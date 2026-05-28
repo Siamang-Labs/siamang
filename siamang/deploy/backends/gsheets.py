@@ -104,6 +104,7 @@ class GoogleSheetsBackend(BackendAdapter):
     credentials_file: str = ""
     spreadsheet_id: str = ""
     sheet_name: str = "Responses"
+    apps_script_url: str = ""  # Apps Script Web App URL for secure browser submissions
     _credentials: Any = field(default=None, init=False, repr=False)
     _service: Any = field(default=None, init=False, repr=False)
     _last_survey_id: str = field(default="", init=False, repr=False)
@@ -120,6 +121,11 @@ class GoogleSheetsBackend(BackendAdapter):
             self.spreadsheet_id = os.environ.get(
                 "SIAMANG_GSHEETS_SPREADSHEET_ID",
                 os.environ.get("SURVLIB_GSHEETS_SPREADSHEET_ID", ""),
+            )
+        if not self.apps_script_url:
+            self.apps_script_url = os.environ.get(
+                "SIAMANG_GSHEETS_APPS_SCRIPT_URL",
+                os.environ.get("SURVLIB_GSHEETS_APPS_SCRIPT_URL", ""),
             )
 
     @property
@@ -221,14 +227,19 @@ class GoogleSheetsBackend(BackendAdapter):
 
         self._last_survey_id = survey_id
 
+        # Build frontend-safe settings; include apps_script_url if provided
+        settings: dict[str, str] = {
+            "spreadsheet_id": spreadsheet_id,
+            "sheet_name": self.sheet_name,
+            "api_endpoint": f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
+        }
+        if self.apps_script_url:
+            settings["apps_script_url"] = self.apps_script_url
+
         return BackendConfig(
             backend=self.name,
             survey_id=survey_id,
-            settings={
-                "spreadsheet_id": spreadsheet_id,
-                "sheet_name": self.sheet_name,
-                "api_endpoint": f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
-            },
+            settings=settings,
             internal={
                 "backend_ref": self,
                 "credentials_file": self.credentials_file,

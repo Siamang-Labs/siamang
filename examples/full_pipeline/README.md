@@ -29,7 +29,7 @@ A complete end-to-end example demonstrating the **siamang** workflow — from su
 
 ### 1. Survey Design
 - 12 variables with measurement scales, labels, valid ranges
-- 10 questions across 6 pages
+- 10 questions across 5 pages
 - Conditional routing: `show_if=consent.eq(1)`, `show_if=AND(consent.eq(1), remote_freq.ge(2))`
 
 ### 2. HTML Preview

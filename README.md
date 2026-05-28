@@ -91,7 +91,7 @@ data.plot.bar("satisfaction").show()
 
 The [`examples/full_pipeline/`](examples/full_pipeline/) directory contains a complete Jupyter notebook demonstrating the entire research workflow — from survey design to statistical analysis:
 
-1. **Survey Design** — 12 variables, 6 pages, conditional routing (`show_if`), matrix questions, Likert scales
+1. **Survey Design** — 12 variables, 5 pages, conditional routing (`show_if`), matrix questions, Likert scales
 2. **Simulation & Deployment** — 250 synthetic respondents, local SQLite storage, interactive HTML preview
 3. **Declarative Reporting** — frequency tables, cross-tabs with Chi², grouped means with auto-selected tests, correlation heatmaps
 4. **Visualizations** — bar charts, boxplots, heatmaps, scatter plots — all with one line of code
@@ -139,7 +139,7 @@ data.plot.scatter("satisfaction", "autonomy", hue="gender")
 
 # Export
 data.report.freq("it_role").to_markdown()   # Markdown string
-data.report.freq("it_role").to_dataframe()  # pandas DataFrame
+data.report.freq("it_role").to_frame()       # pandas DataFrame
 data.report.freq("it_role").to_html()       # HTML table
 ```
 

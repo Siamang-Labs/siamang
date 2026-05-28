@@ -432,7 +432,7 @@ Siamang provides a dual-layer analysis API:
 # Frequencies
 freq_table = data.report.freq("trust")
 print(freq_table.to_markdown())
-freq_table.to_dataframe()
+freq_table.to_frame()
 
 # Crosstabs (automatically runs Chi-square / Cramer's V tests)
 cross_table = data.report.crosstab("gender", "party")

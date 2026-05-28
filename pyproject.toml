@@ -72,9 +72,9 @@ gsheets = [
     "google-auth-httplib2>=0.1",
     "google-api-python-client>=2.0",
 ]
-# Backward-compat aliases — every dep is now installed by default with
-# `pip install siamang`. These groups remain for users with old install
-# scripts; they resolve to empty extras.
+# Legacy extras kept for old install scripts. Core deps are bundled by
+# default; cloud-specific extras (gsheets) add optional dependencies.
+# These aliases resolve to empty extras for backward compatibility.
 all = []
 excel = []
 pyreadstat = []
