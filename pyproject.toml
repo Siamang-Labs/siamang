@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "siamang"
+version = "0.5.0"
+description = "Research-as-code framework for sociological surveys."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Siamang Project Contributors"}]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["survey", "research", "sociology", "questionnaire", "polling"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Sociology",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pandas>=2.0",
+    # Local preview server (siamang preview)
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    # IO formats
+    "openpyxl>=3.1",         # Excel
+    "pyreadstat>=1.2",       # SPSS .sav / Stata .dta
+    # Statistics
+    "scipy>=1.11",
+    # Deployment backends/frontends
+    "supabase>=2.0",
+    "requests>=2.31",
+]
+
+[project.urls]
+Homepage = "https://github.com/socialdatascientist/survlib"
+Manual   = "https://github.com/socialdatascientist/survlib/blob/main/MANUAL.md"
+Issues   = "https://github.com/socialdatascientist/survlib/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["siamang*"]
+
+[tool.setuptools.package-data]
+"siamang" = ["py.typed"]
+"siamang.frontend.templates" = ["*.tpl"]
+"siamang.frontend.templates.react" = ["*.tpl", "*.jsx"]
+"siamang.frontend.templates.react.dist" = ["*.js"]
+"siamang.frontend.templates.react.vendor" = ["*.js"]
+
+[project.optional-dependencies]
+# Backward-compat aliases — every dep is now installed by default with
+# `pip install siamang`. These groups remain for users with old install
+# scripts; they resolve to empty extras.
+all = []
+excel = []
+pyreadstat = []
+server = []
+supabase = []
+vercel = []
+scipy = []
+
+[project.scripts]
+siamang = "siamang.cli.entry:main"
+
+[project.entry-points."siamang.backends"]
+local = "siamang.deploy.backends.local:LocalBackend"
+supabase = "siamang.deploy.backends.supabase:SupabaseBackend"
+
+[project.entry-points."siamang.frontends"]
+local = "siamang.deploy.frontends.local:LocalFrontend"
+vercel = "siamang.deploy.frontends.vercel:VercelFrontend"

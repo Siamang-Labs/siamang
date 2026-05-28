@@ -1,0 +1,9 @@
+include README.md BUILD.md CHANGELOG.md MANIFEST.in
+include pyproject.toml
+
+global-exclude *.map
+global-exclude *.ts
+global-exclude *.tsx
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store

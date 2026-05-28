@@ -1,0 +1,112 @@
+# Getting started
+
+## Install
+
+siamang requires **Python 3.11+**.
+
+```bash
+pip install siamang
+```
+
+That's it — every feature is included out of the box:
+
+| Comes with | What it enables |
+|------------|-----------------|
+| `pandas` | Data model, analysis |
+| `fastapi`, `uvicorn` | `siamang preview` local server |
+| `openpyxl` | Excel reader / writer |
+| `pyreadstat` | SPSS `.sav` and Stata `.dta` I/O |
+| `scipy` | Chi-square, Kruskal-Wallis, Mann-Whitney, Spearman |
+| `supabase`, `requests` | Supabase backend / Vercel deploy |
+
+(The old `siamang[server]`, `siamang[excel]`, `siamang[all]`, … install
+commands still work — they're no-ops now.)
+
+## Your first survey
+
+Save the following as `hello.py`:
+
+```python
+import siamang as sg
+
+age = sg.Variable("age", scale="ratio", label="Age")
+fav = sg.Variable(
+    "fav_color", scale="nominal",
+    label="Favourite colour",
+    labels={1: "Red", 2: "Blue", 3: "Green"},
+)
+
+survey = sg.Questionnaire(
+    title="Hello, siamang",
+    pages=[
+        sg.Page(
+            name="main",
+            title="Tell us a bit about yourself",
+            items=[
+                sg.NumericInput("How old are you?", var=age, required=True),
+                sg.SingleChoice("What is your favourite colour?", var=fav),
+            ],
+        ),
+    ],
+)
+```
+
+The CLI looks for a module-level `survey` variable (you can override with
+`--attribute`):
+
+```bash
+siamang validate hello.py
+# → "OK" if the questionnaire is well-formed; lists problems otherwise.
+
+siamang preview hello.py --port 8000
+# → http://127.0.0.1:8000 — fill the survey in your browser, responses
+#   land in survey.db (SQLite).
+
+siamang deploy hello.py --backend supabase --frontend vercel
+# → provisions a Supabase project and publishes the static frontend to
+#   Vercel; prints the public URL.
+```
+
+## Try it without a server — `simulate`
+
+You don't need a backend to start exploring the analysis layer. Generate
+a synthetic dataset:
+
+```python
+from hello import survey
+
+data = survey.simulate(n=500, seed=42)
+print(data.frame.head())
+
+# Frequency table with labels
+freq = data.analysis.frequencies("fav_color", labels=True)
+print(freq)
+
+# Cronbach's alpha, crosstabs, descriptives etc. — see docs/reference/data.md
+```
+
+## Export to your stats package
+
+```python
+data.export("csv",   path="hello.csv")
+data.export("xlsx",  path="hello.xlsx")
+data.export("spss",  path="hello.sav")
+data.export("stata", path="hello.dta")
+data.export("r",     path="hello_R/")            # CSV + JSON dict + .R loader
+```
+
+Round-trip: `SPSSReader().read("hello.sav")` gives you a `SurveyData`
+back with all variable labels, value labels, and missing-value
+conventions intact.
+
+## Where to go next
+
+- **[`examples/demo_survey.py`](../examples/demo_survey.py)** — a complete
+  reference questionnaire that exercises every feature (all question
+  types, visibility logic, theming, conditional pages, "Other" option).
+  Run it locally with `siamang preview examples/demo_survey.py`.
+- **[Manual with examples](../MANUAL.md)** — single-file tour of every
+  feature.
+- **[Concepts](concepts.md)** — the data model end-to-end.
+- **[Reference](reference/core.md)** — every public class and function.
+- **[Cookbook](cookbook.md)** — short recipes for common tasks.
