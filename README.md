@@ -173,7 +173,6 @@ siamang/
 | [`MANUAL.md`](MANUAL.md) | Single-file manual with worked examples for every feature. |
 | [`docs/index.md`](docs/index.md) | Full documentation hub: getting started, concepts, per-module reference, cookbook, development guide. |
 | [`docs/reference/`](docs/reference/) | API reference — every public class and function in `core`, `data`, `io`, `frontend`, `deploy`, `cli`. |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version history. |
 | [`LICENSE`](LICENSE) | MIT License. |
 
 ---
