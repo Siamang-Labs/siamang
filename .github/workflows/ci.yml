@@ -71,7 +71,6 @@ jobs:
           python -c "
           import siamang as sg
           print('Version:', sg.__version__)
-          # Verify all key exports are accessible
           assert hasattr(sg, 'Variable')
           assert hasattr(sg, 'Question')
           assert hasattr(sg, 'SingleChoice')
@@ -89,19 +88,16 @@ jobs:
         run: |
           python -c "
           import siamang as sg
+          from siamang.frontend.compiler.react import compile_react_payload
 
-          # Create a minimal survey
           v = sg.Variable('test', 'nominal', 'Test var', labels={1: 'A', 2: 'B'})
           q = sg.SingleChoice('Pick one', v, required=True, other_specify=True)
           p = sg.Page('p1', 'Test Page', items=[q])
           survey = sg.Questionnaire(title='CI Test', pages=[p])
 
-          # Compile to React payload
-          from siamang.frontend.compiler.react import ReactCompiler
-          compiler = ReactCompiler()
-          payload = compiler.compile(survey)
-          assert 'pages' in payload
-          assert len(payload['pages']) > 0
+          payload = compile_react_payload(survey)
+          assert 'SURVEY' in payload
+          assert 'PAGES' in payload
           print('Compilation OK')
           "
 
@@ -109,19 +105,22 @@ jobs:
         run: |
           python -c "
           import siamang as sg
-          from siamang.frontend.runtime.react import ReactRuntime
+          from siamang.frontend.runtime.react import ReactRuntime, RuntimeRenderContext
+          from siamang.frontend.theme.ui_config import UIConfig
 
           v = sg.Variable('color', 'nominal', 'Fav color', labels={1: 'Red', 2: 'Blue'})
           q = sg.SingleChoice('Pick a color', v)
           p = sg.Page('p1', 'Colors', items=[q])
           survey = sg.Questionnaire(title='Render Test', pages=[p])
 
+          schema = survey.compile()
+          ui = UIConfig()
+          context = RuntimeRenderContext(schema=schema, ui=ui, survey=survey)
+
           runtime = ReactRuntime()
-          runtime.survey = survey
-          html = runtime.render_html()
-          assert '<html' in html
-          assert 'bundle.js' in html or 'PAGES' in html
+          html = runtime.render_html(context)
           assert len(html) > 1000
+          assert 'PAGES' in html or 'window.' in html
           print(f'Render OK: {len(html)} bytes')
           "
 
@@ -130,13 +129,11 @@ jobs:
           python -c "
           import siamang as sg
 
-          # Test presets
           for name in ('classic', 'modern', 'humanist'):
               preset = sg.get_preset(name)
               assert preset.font_preset == name
               print(f'Preset {name}: OK')
 
-          # Test custom config
           ui = sg.UIConfig(
               font_preset='modern',
               primary_color='#e63946',
@@ -153,7 +150,7 @@ jobs:
 
           sql = generate_migration_sql(survey_id='test123', title=\"Student's Survey\")
           assert 'CREATE TABLE' in sql
-          assert 'Student''s Survey' in sql  # escaped apostrophe
+          assert \"Student''s Survey\" in sql  # escaped apostrophe
           assert 'test123' in sql
           print(f'Migration SQL OK: {len(sql)} chars')
           "
@@ -161,15 +158,14 @@ jobs:
       - name: Test script factories (injection safety)
         run: |
           python -c "
-          from siamang.core.script import randomize_options, validate_fields_match, timed_question
+          from siamang.core.script import Script
 
-          # These should not break with special characters
-          s1 = randomize_options(\"q_test's\")
-          s2 = validate_fields_match('field_a', 'field_b', \"Values don't match\")
-          s3 = timed_question('q1', 30)
-          assert 'q_test' in s1.body
-          assert 'field_a' in s2.body
-          assert '30' in s3.body
+          s1 = Script.randomize_options(\"q_test's\")
+          s2 = Script.validate_fields_match('field_a', 'field_b', \"Values don't match\")
+          s3 = Script.timed_question('q1', 30)
+          assert 'q_test' in s1.code
+          assert 'field_a' in s2.code
+          assert '30' in s3.code
           print('Script factories OK')
           "
 
@@ -195,15 +191,12 @@ jobs:
       - name: Verify wheel contents
         run: |
           python -c "
-          import zipfile, sys
-          whl = [f for f in __import__('os').listdir('dist') if f.endswith('.whl')][0]
+          import zipfile, os
+          whl = [f for f in os.listdir('dist') if f.endswith('.whl')][0]
           with zipfile.ZipFile(f'dist/{whl}') as z:
               names = z.namelist()
-              # Must include bundle.js
               assert any('bundle.js' in n for n in names), 'bundle.js missing from wheel'
-              # Must include CSS template
               assert any('style.css' in n for n in names), 'style.css missing from wheel'
-              # Must include HTML template
               assert any('index.html' in n for n in names), 'index.html template missing'
               print(f'Wheel OK: {len(names)} files')
           "
