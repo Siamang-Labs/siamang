@@ -1,4 +1,4 @@
-# `siamang.frontend` — Bundle Builder and Runtimes Reference
+# `siamang.frontend` — Frontend Compilation & Theming Reference
 
 The `frontend` subpackage is responsible for compiling a `Questionnaire` into a deployable static bundle (consisting of HTML, JS, CSS, and environment configuration) [1]. While end-users typically interact with this pipeline indirectly via the high-level `survey.deploy(...)` method, this document provides the comprehensive API reference for the underlying compilation pipeline, theming engine, and client adapters [2].
 
@@ -39,8 +39,10 @@ class SurveySchema:
 
 #### Methods
 
-* `to_surveyjs() -> dict[str, Any]`: Renders the intermediate representation into a JSON structure compatible with the SurveyJS library [1].
-* `to_dict() -> dict[str, Any]`: Serializes the entire schema into a JSON-compatible dictionary, including standard metadata like `format_version=1` and ISO-formatted deadlines.
+* **`to_surveyjs() -> dict[str, Any]`**:
+  Renders the intermediate representation into a JSON structure compatible with the SurveyJS library [1].
+* **`to_dict() -> dict[str, Any]`**:
+  Serializes the entire schema into a JSON-compatible dictionary, including standard metadata like `format_version=1` and ISO-formatted deadlines.
 
 ---
 
@@ -57,13 +59,16 @@ class SurveyBundle:
 
 #### Methods
 
-| Method | Return Type | Description |
-| :--- | :--- | :--- |
-| `write_to(target: str \| Path)` | `Path` | Writes every file in the bundle to the specified target directory, creating parent directories if they do not exist. |
-| `to_zip() -> bytes` | `bytes` | Generates a deflate-compressed ZIP archive containing all the files in the bundle. |
-| `manifest_json() -> str` | `str` | Returns a pretty-printed JSON string representation of the bundle's manifest. |
-| `compute_digest() -> str` | `str` | Computes a 16-character SHA-256 prefix hash over all file contents in the bundle, useful for versioning and caching. |
-| `with_hashed_filenames()` | `SurveyBundle` | Returns a new bundle where all static assets (`.js` and `.css`) are renamed to include a content hash (e.g., `app.js` → `app.a1b2c3d4.js`) to prevent browser caching issues. HTML file references are updated automatically. |
+* **`write_to(target: str | Path) -> Path`**:
+  Writes every file in the bundle to the specified target directory, creating parent directories if they do not exist.
+* **`to_zip() -> bytes`**:
+  Generates a deflate-compressed ZIP archive containing all the files in the bundle.
+* **`manifest_json() -> str`**:
+  Returns a pretty-printed JSON string representation of the bundle's manifest.
+* **`compute_digest() -> str`**:
+  Computes a 16-character SHA-256 prefix hash over all file contents in the bundle, useful for versioning and caching.
+* **`with_hashed_filenames() -> SurveyBundle`**:
+  Returns a new bundle where all static assets (`.js` and `.css`) are renamed to include a content hash (e.g., `app.js` → `app.a1b2c3d4.js`) to prevent browser caching issues. HTML file references are updated automatically.
 
 ---
 
@@ -94,18 +99,11 @@ When building, the returned bundle contains:
 * `env.js`: The runtime environment variables injected at deployment.
 * `manifest.json`: Metadata about the active runtime, survey ID, and version.
 
-> **Note on Runtimes**: If using the `ReactRuntime`, the live `Questionnaire` object must be passed to the `survey` parameter during build, as the React compiler compiles expressions directly from the Python source objects [2].
-
 ---
 
 ## `UIConfig` — The Design System
 
 The `UIConfig` dataclass defines the visual appearance, typography, layout, branding, and localization strings for the deployed survey. Siamang defaults to a clean, highly readable "academic" design system featuring a narrow line measure, comfortable vertical spacing, and a classic serif body font [3].
-
-```python
-@dataclass(frozen=True, slots=True)
-class UIConfig: ...
-```
 
 ### 1. Color Palette
 
@@ -118,7 +116,6 @@ All colors are specified as standard CSS hex color codes (e.g., `"#2c5f8a"`).
 | `background_color` | `"#fbfbfb"` | The page background color. |
 | `surface_color` | `"#ffffff"` | The background color of cards, panels, and input containers. |
 | `text_color` | `"#1a1a1a"` | The primary body text color. |
-| `muted_text_color` | `"#5a5a5a"` | The color for secondary text, hints, and placeholder values. |
 | `border_color` | `"#e6e4df"` | The color for dividers, input borders, and card outlines. |
 | `error_color` | `"#b3261e"` | The color for validation errors and alert indicators. |
 | `error_soft_color` | `"#fdf1f0"` | A light background tint used behind validation error messages. |
@@ -247,40 +244,28 @@ Runtimes are adapters that convert a compiled survey schema into physical HTML p
 
 All runtimes inherit from this base class, which defines the interface for generating the web survey.
 
-```python
-class RuntimeAdapter:
-    name: str
+#### Methods
 
-    def render_html(self, context: RuntimeRenderContext) -> str: ...
-    def render_closed_page(self, context: RuntimeRenderContext, reason: str) -> str: ...
-    def stylesheet(self, context: RuntimeRenderContext) -> str | None: ...
-    def static_assets(self) -> dict[str, str | bytes]: ...
-```
-
----
-
-### `ReactRuntime`
-
-The `ReactRuntime` is the default and recommended runtime for Siamang surveys. It compiles the questionnaire into a self-contained React 18 single-page application [2].
-
-```python
-ReactRuntime(precompile: bool = True)
-```
-
-#### Key Features
-* **No CDN Dependency**: The runtime ships a pre-compiled, optimized React bundle (`dist/bundle.js`) directly within the survey bundle. It runs entirely offline or from static hosts without loading external scripts (except Google Fonts, if enabled).
-* **Native Visibility Engine**: Compiles all `show_if` and `hide_if` expressions into native JavaScript functions, eliminating the overhead of parsing ASTs in the browser [2].
-* **Local State Persistence**: Automatically persists current answers to the browser's `localStorage`, allowing respondents to resume their progress if they close the browser tab.
+* **`render_html(schema: SurveySchema, context: RuntimeRenderContext) -> str`**:
+  Renders the main survey `index.html` entry point.
+* **`render_closed_html(schema: SurveySchema, context: RuntimeRenderContext) -> str`**:
+  Renders the `closed.html` page displayed when a survey is inactive or full.
+* **`render_style_css(ui: UIConfig) -> str`**:
+  Compiles the active `UIConfig` into a CSS stylesheet string.
+* **`get_client_js(client: BackendClientTemplate, env: ClientEnv) -> str`**:
+  Compiles the selected backend client adapter into JavaScript.
 
 ---
 
 ### `SurveyJSRuntime`
 
-The `SurveyJSRuntime` is a legacy runtime that renders the survey using the external SurveyJS library. It loads the SurveyJS library from a CDN at runtime.
+A lightweight, non-React runtime that uses the popular **SurveyJS** core library for rendering questions. This is the default runtime because it is highly compatible and requires zero build dependencies.
 
-```python
-SurveyJSRuntime(version: str = "1.9.124")
-```
+---
+
+### `ReactRuntime`
+
+A modern runtime that compiles the questionnaire into a native, standalone **React + TailwindCSS** application. This runtime is required when using advanced features like interactive custom charts, custom visual widgets, or complex real-time animations.
 
 ---
 
@@ -288,6 +273,6 @@ SurveyJSRuntime(version: str = "1.9.124")
 
 1. Siamang Team. *Siamang: A Research-as-Code Framework for Sociological Surveys*. Siamang Documentation, 2026.
 2. Manus AI. *Technical Architecture and Deployment Pipeline of Siamang*. Siamang Reference, 2026.
-3. Dillman, Don A., Smyth, Jolene D., and Christian, Leah Melani. *Internet, Phone, Mail, and Mixed-Mode Surveys: The Tailored Design Method*. John Wiley & Sons, 4th edition, 2014.
-4. Babbie, Earl R. *The Practice of Social Research*. Cengage Learning, 15th edition, 2021.
+3. Wickham, Hadley. *ggplot2: Elegant Graphics for Data Analysis*. Springer, 2nd edition, 2016.
+4. Dillman, Don A., Smyth, Jolene D., and Christian, Leah Melani. *Internet, Phone, Mail, and Mixed-Mode Surveys: The Tailored Design Method*. John Wiley & Sons, 4th edition, 2014.
 5. W3C. *Web Content Accessibility Guidelines (WCAG) 2.1*. W3C Recommendation, 2018.

@@ -1,4 +1,4 @@
-# `siamang.core` — Domain Model Reference
+# `siamang.core` — Core API Reference
 
 This document provides the authoritative, comprehensive API reference for all public classes and functions within the `siamang.core` package. The `siamang` library is designed as a research-as-code framework for sociological surveys [1]. It enforces strict type safety, automatic data schema validation, and seamless integration between Python-defined surveys and their web-based deployments [2].
 
@@ -44,12 +44,14 @@ The `Variable` class represents a single question's measurement or an analytical
 | `missing_labels` | `dict[Any, str]` | `{}` | A dictionary mapping missing value codes to their descriptions. |
 | `missing` | `tuple[MissingValue, ...]` | `()` | A tuple of structured `MissingValue` instances defining the missing codes, labels, and kinds. |
 
-#### Initialization and Normalization
+#### Methods
 
-During instantiation, the `__post_init__` method performs several normalizations to ensure structural integrity:
-* **Case-folding**: The `scale`, `dtype`, and `role` strings are stripped and converted to lowercase. If they do not match the allowed sets, a `ValueError` is raised.
-* **Missing Value Consolidation**: The legacy `missing_values` and `missing_labels` properties are automatically merged with the structured `missing` tuple into a single canonical `missing` property. Any code present in `missing_labels` but missing from `missing_values` or `missing` raises a `ValueError`.
-* **Range Verification**: If `valid_range` is provided, it must be a 2-item tuple where the first element is less than or equal to the second element.
+* **`missing_kinds_dict() -> dict[Any, str]`**:
+  Returns a dictionary mapping missing value codes to their `kind` string (e.g., `{98: "dont_know", 99: "refusal"}`).
+* **`structured_missing_values() -> tuple[MissingValue, ...]`**:
+  Returns the canonical tuple of `MissingValue` objects, resolving legacy fields if necessary.
+* **`is_missing(value: Any) -> bool`**:
+  Returns `True` if the provided value matches any registered missing value code.
 
 #### Comparison Helpers
 
@@ -68,32 +70,6 @@ To build conditional routing and visibility expressions, `Variable` instances pr
 
 The `Variable` class also overloads Python's comparison operators (`>`, `>=`, `<`, `<=`), allowing expressions to be written naturally as `age >= 18`. Explicit equality (`==`) cannot be overloaded because it is reserved for dataclass structural identity; therefore, `var.eq(value)` must be used.
 
-#### Example
-
-```python
-from siamang.core import Variable, MissingValue
-
-# Defining a nominal variable with a structured refusal missing value
-gender = Variable(
-    name="gender",
-    scale="nominal",
-    label="Respondent Gender",
-    labels={1: "Male", 2: "Female", 3: "Non-binary"},
-    missing=(
-        MissingValue(code=9, label="Prefer not to say", kind="refusal"),
-    )
-)
-
-# Defining a ratio variable with a valid range constraint
-age = Variable(
-    name="age",
-    scale="ratio",
-    label="Respondent Age",
-    dtype="int",
-    valid_range=(18, 99),
-)
-```
-
 ---
 
 ### `MissingValue`
@@ -108,15 +84,6 @@ The `MissingValue` class provides a structured representation of non-substantive
 | `label` | `str` | *Required* | The human-readable description of the missing state (e.g., `"Don't know"`). |
 | `kind` | `str` | `"system_missing"` | The classification of the missing value. Must be one of: `"refusal"`, `"dont_know"`, `"not_applicable"`, `"not_asked"`, or `"system_missing"`. |
 
-#### Example
-
-```python
-from siamang.core import MissingValue
-
-dk_option = MissingValue(code=98, label="Don't know", kind="dont_know")
-ref_option = MissingValue(code=99, label="Refused to answer", kind="refusal")
-```
-
 ---
 
 ### `VariableMap`
@@ -125,35 +92,35 @@ A `VariableMap` is a specialized dictionary subclass that indexes `Variable` obj
 
 #### Methods
 
-* `add(variable: Variable) -> None`: Registers a new variable. Raises a `KeyError` if a variable with the same name is already registered.
-* `add_many(variables: list[Variable]) -> None`: Convenience method to register multiple variables sequentially.
-* `require(name: str) -> Variable`: Retrieves a variable by name. Raises a `KeyError` if the variable is not found.
-* `by_scale(scale: str) -> list[Variable]`: Returns all registered variables matching the specified scale (case-insensitive).
-* `by_role(role: str) -> list[Variable]`: Returns all registered variables matching the specified role (case-insensitive).
-* `validate_frame(frame: pd.DataFrame, raise_on_error: bool = False) -> list[ValidationIssue]`: Validates a pandas DataFrame against the registered variable schemas. It checks for:
+* **`add(variable: Variable) -> None`**:
+  Registers a new variable. Raises a `KeyError` if a variable with the same name is already registered.
+* **`add_many(variables: list[Variable]) -> None`**:
+  Convenience method to register multiple variables sequentially.
+* **`require(name: str) -> Variable`**:
+  Retrieves a variable by name. Raises a `KeyError` if the variable is not found.
+* **`by_scale(scale: str) -> list[Variable]`**:
+  Returns all registered variables matching the specified scale (case-insensitive).
+* **`by_role(role: str) -> list[Variable]`**:
+  Returns all registered variables matching the specified role (case-insensitive).
+* **`labels_dict() -> dict[str, str]`**:
+  Returns a dictionary mapping variable names to their `label` strings.
+* **`value_labels_dict() -> dict[str, dict[Any, str]]`**:
+  Returns a nested dictionary mapping variable names to their category code labels.
+* **`missing_dict() -> dict[str, list[Any]]`**:
+  Returns a dictionary mapping variable names to a list of their missing codes.
+* **`missing_labels_dict() -> dict[str, dict[Any, str]]`**:
+  Returns a dictionary mapping variable names to a dictionary of their missing value labels.
+* **`missing_kinds_dict() -> dict[str, dict[Any, str]]`**:
+  Returns a dictionary mapping variable names to a dictionary of their missing value kinds.
+* **`to_dict() -> dict[str, dict[str, Any]]`**:
+  Serializes the entire variable map to a nested dictionary representation.
+* **`validate_frame(frame: pd.DataFrame, raise_on_error: bool = False) -> list[ValidationIssue]`**:
+  Validates a pandas DataFrame against the registered variable schemas. It checks for:
   * Missing columns for required variables.
   * Data type compatibility (e.g., ensuring numeric columns contain numeric data).
   * Out-of-range values based on `valid_range`.
   * Category code consistency based on defined `labels` and `missing_values`.
   * Role-specific constraints (e.g., ensuring an `"id"` column has unique values, and a `"weight"` column contains positive numbers).
-
-#### Example
-
-```python
-from siamang.core import VariableMap, Variable
-import pandas as pd
-
-vmap = VariableMap()
-vmap.add(Variable("age", scale="ratio", valid_range=(18, 80)))
-vmap.add(Variable("gender", scale="nominal", labels={1: "Male", 2: "Female"}))
-
-# Validate a dataset
-df = pd.DataFrame({"age": [25, 12, 45], "gender": [1, 2, 3]})
-issues = vmap.validate_frame(df)
-
-for issue in issues:
-    print(f"[{issue.severity.upper()}] {issue.message} (Col: {issue.column})")
-```
 
 ---
 
@@ -175,38 +142,39 @@ An `Expression` represents a logical condition or comparison.
 
 #### Methods
 
-* `evaluate(answers: dict[str, Any]) -> bool`: Evaluates the expression against a dictionary of current answers. Returns a boolean value. Throws a `ValueError` if the expression contains a `"raw"` operator, as raw expressions cannot be safely evaluated in Python.
-* `variables() -> set[str]`: Returns a set of all variable names referenced within the expression tree.
-* `to_surveyjs() -> str`: Compiles the expression into a SurveyJS-compatible expression string (e.g., `"{age} >= 18"`).
-* `Expression.raw(text: str) -> Expression` *(classmethod)*: Creates an opaque expression from a raw SurveyJS string. This serves as an escape hatch for complex logic that cannot be represented by the typed DSL.
+* **`evaluate(answers: dict[str, Any]) -> bool`**:
+  Evaluates the expression against a dictionary of current answers. Returns a boolean value. Throws a `ValueError` if the expression contains a `"raw"` operator, as raw expressions cannot be safely evaluated in Python.
+* **`variables() -> set[str]`**:
+  Returns a set of all variable names referenced within the expression tree.
+* **`to_surveyjs() -> str`**:
+  Compiles the expression into a SurveyJS-compatible expression string (e.g., `"{age} >= 18"`).
+* **`to_dict() -> dict[str, Any]`**:
+  Serializes the expression tree to a JSON-compatible dictionary.
+* **`validate(variables: set[str] | Mapping[str, Any]) -> None`**:
+  Validates that all variables referenced in the expression are present in the provided variable registry. Raises a `ValueError` on validation failure.
+* **`Expression.raw(text: str) -> Expression`** *(classmethod)*:
+  Creates an opaque expression from a raw SurveyJS string. This serves as an escape hatch for complex logic that cannot be represented by the typed DSL.
 
-#### Composing Expressions
+---
 
-Siamang provides several helper functions to compose complex logical trees:
-* `AND(*exprs: Expression) -> Expression`: Performs an n-ary logical AND operation. Requires at least two expressions.
-* `OR(*exprs: Expression) -> Expression`: Performs an n-ary logical OR operation. Requires at least two expressions.
-* `NOT(expr: Expression) -> Expression`: Negates the provided expression.
+### `VarRef`
 
-Expressions can also be composed using Python's bitwise operators:
-* `expr1 & expr2` is equivalent to `AND(expr1, expr2)`
-* `expr1 | expr2` is equivalent to `OR(expr1, expr2)`
-* `~expr` is equivalent to `NOT(expr)`
+The `VarRef` class represents a reference to a variable name within an `Expression`. It is used to defer variable evaluation until answers are provided.
 
-#### Example
+#### Properties
 
-```python
-from siamang import AND, OR, NOT
-from siamang.core import Variable
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `str` | *Required* | The name of the referenced variable. |
 
-age = Variable("age", scale="ratio")
-employment = Variable("employment", scale="nominal")
+#### Methods
 
-# Composing a complex routing condition using operators
-is_eligible = (age >= 18) & (employment.isin([1, 2, 3]))
-
-# Composing using functional helpers
-is_eligible_alt = AND(age.ge(18), employment.isin([1, 2, 3]))
-```
+* **`evaluate(answers: dict[str, Any]) -> Any`**:
+  Extracts the value of the referenced variable from the answers dictionary. Returns `None` if the variable is not found.
+* **`variables() -> set[str]`**:
+  Returns a set containing only the referenced variable name.
+* **`to_dict() -> dict[str, str]`**:
+  Serializes the variable reference to a dictionary representation.
 
 ---
 
@@ -251,22 +219,6 @@ The `SingleChoice` question presents a list of mutually exclusive options.
 | `none_of_above` | `bool` | `False` | If `True`, appends a "None of the above" option that deselects other choices. |
 | `choices` | `list[Option] \| None` | `None` | Explicit list of `Option` instances. If `None`, choices are automatically populated from the bound variable's `labels`. |
 
-#### Example
-
-```python
-from siamang.core import SingleChoice, Variable
-
-vote = Variable("vote", scale="nominal", labels={1: "Party A", 2: "Party B", 3: "Independent"})
-
-q_vote = SingleChoice(
-    text="Which political party do you intend to vote for?",
-    var=vote,
-    display="radio",
-    required=True,
-    other_specify=True,
-)
-```
-
 ---
 
 ### `MultiChoice`
@@ -283,36 +235,6 @@ The `MultiChoice` question allows respondents to select one or more options from
 | `mode` | `str` | `"array"` | Determines how the data is structured. Allowed values: `"array"` (stores selected codes as a list in a single column) or `"wide"` (stores binary indicators across multiple columns). |
 | `choices` | `list[Option] \| None` | `None` | Explicit list of `Option` instances. If `None`, choices are populated from the bound variable's `labels`. |
 
-#### Modes of Operation
-
-1. **Array Mode (Default)**: Bound to a single `Variable`. The response is stored in a single database column as an array of selected codes (e.g., `[1, 3]`).
-2. **Wide Mode**: Bound to multiple binary variables (one variable per choice). To activate wide mode, pass a list of variables to the keyword-only argument `vars=[...]`. Siamang will automatically configure `mode="wide"`.
-
-#### Example
-
-```python
-from siamang.core import MultiChoice, Variable
-
-# Array Mode Example
-hobbies = Variable("hobbies", scale="nominal", labels={1: "Reading", 2: "Sports", 3: "Music", 4: "None"})
-q_hobbies = MultiChoice(
-    text="What are your hobbies?",
-    var=hobbies,
-    max_answers=3,
-    exclusive=[4], # "None" is mutually exclusive
-)
-
-# Wide Mode Example
-tech_python = Variable("tech_python", scale="nominal", labels={0: "No", 1: "Yes"})
-tech_r = Variable("tech_r", scale="nominal", labels={0: "No", 1: "Yes"})
-tech_sql = Variable("tech_sql", scale="nominal", labels={0: "No", 1: "Yes"})
-
-q_tech = MultiChoice(
-    text="Which technologies do you use?",
-    vars=[tech_python, tech_r, tech_sql], # Activates wide mode
-)
-```
-
 ---
 
 ### `LikertScale`
@@ -328,23 +250,6 @@ The `LikertScale` question presents a symmetric, horizontal rating scale represe
 | `right_label` | `str \| None` | `None` | Text label displayed on the far-right end of the scale (e.g., `"Strongly agree"`). |
 | `na_option` | `bool \| str` | `False` | If `True`, adds a "Not applicable" option. If a string is provided, that string is used as the option's label. |
 
-#### Example
-
-```python
-from siamang.core import LikertScale, Variable
-
-satisfaction = Variable("satisfaction", scale="ordinal")
-
-q_sat = LikertScale(
-    text="How satisfied are you with our service?",
-    var=satisfaction,
-    points=7,
-    left_label="Extremely dissatisfied",
-    right_label="Extremely satisfied",
-    na_option="Don't know",
-)
-```
-
 ---
 
 ### `NumericInput`
@@ -359,24 +264,6 @@ The `NumericInput` question collects continuous numerical values (integers or fl
 | `unit` | `str \| None` | `None` | Text representing the unit of measurement displayed next to the input field (e.g., `"years"`, `"%"`, `"USD"`). |
 | `step` | `int \| float` | `1` | The step increment for sliders or number inputs. Must be greater than 0. |
 
-> **Note on Constraints**: If the bound `Variable` defines a `valid_range=(min, max)`, the frontend runtime automatically enforces these boundaries as the input's minimum and maximum constraints.
-
-#### Example
-
-```python
-from siamang.core import NumericInput, Variable
-
-income = Variable("income", scale="ratio", valid_range=(0, 1000000))
-
-q_income = NumericInput(
-    text="What is your annual household income?",
-    var=income,
-    display="input",
-    unit="USD",
-    step=1000,
-)
-```
-
 ---
 
 ### `OpenText`
@@ -390,22 +277,6 @@ The `OpenText` question collects unstructured, free-form text responses.
 | `multiline` | `bool` | `False` | If `True`, renders a large multiline `<textarea>` instead of a single-line text input. |
 | `max_chars` | `int \| None` | `None` | The maximum number of characters allowed. Must be greater than 0 when set. |
 | `placeholder` | `str \| None` | `None` | Ghost placeholder text displayed inside the input field when it is empty. |
-
-#### Example
-
-```python
-from siamang.core import OpenText, Variable
-
-feedback = Variable("feedback", scale="nominal")
-
-q_feedback = OpenText(
-    text="Do you have any additional comments or suggestions?",
-    var=feedback,
-    multiline=True,
-    max_chars=2000,
-    placeholder="Write your comments here...",
-)
-```
 
 ---
 
@@ -422,26 +293,6 @@ The `Matrix` question displays a grid of subquestions (rows) sharing a common se
 | `column_labels` | `list[str] \| None` | `None` | A list of column labels. If `None`, column labels default to the rating category labels defined in the variables' `labels` dictionary. |
 | `na_option` | `bool \| str` | `False` | If `True`, appends a "Not applicable" column. If a string is provided, that string is used as the column header. |
 
-> **Requirement**: All variables passed to a `Matrix` must share identical scale types and category definitions (e.g., the same Likert point values and labels).
-
-#### Example
-
-```python
-from siamang.core import Matrix, Variable
-
-# Create row variables
-trust_gov = Variable("trust_gov", scale="ordinal", labels={1: "Low", 2: "Medium", 3: "High"})
-trust_media = Variable("trust_media", scale="ordinal", labels={1: "Low", 2: "Medium", 3: "High"})
-trust_science = Variable("trust_science", scale="ordinal", labels={1: "Low", 2: "Medium", 3: "High"})
-
-q_trust_matrix = Matrix(
-    text="Please rate your trust in the following institutions:",
-    var=[trust_gov, trust_media, trust_science],
-    subquestions=["National Government", "Mass Media", "Scientific Institutions"],
-    column_labels=["No Trust", "Moderate Trust", "Complete Trust"],
-)
-```
-
 ---
 
 ### `Ranking`
@@ -454,20 +305,6 @@ The `Ranking` question presents a list of options that respondents must sort int
 | :--- | :--- | :--- | :--- |
 | `max_ranked` | `int \| None` | `None` | The maximum number of items the respondent is required to rank (e.g., "Rank your top 3"). Must be greater than 0. |
 | `choices` | `list[Option] \| None` | `None` | List of `Option` instances to rank. If `None`, choices are derived from the bound variable's `labels`. |
-
-#### Example
-
-```python
-from siamang.core import Ranking, Variable
-
-values = Variable("values", scale="ordinal", labels={1: "Freedom", 2: "Security", 3: "Equality", 4: "Tradition"})
-
-q_values = Ranking(
-    text="Rank these social values in order of importance to you:",
-    var=values,
-    max_ranked=3, # Rank top 3 only
-)
-```
 
 ---
 
@@ -487,27 +324,6 @@ The `Option` class represents an individual answer choice within choice question
 | `hide_if` | `Expression \| str \| None` | `None` | Condition determining when this specific option should be hidden. |
 | `media` | `Media \| None` | `None` | A `Media` instance representing an image, video, or audio file attached to this option. |
 
-#### Example
-
-```python
-from siamang.core import Option, Variable, SingleChoice
-
-age = Variable("age", scale="ratio")
-income_source = Variable("income_source", scale="nominal")
-
-q_income = SingleChoice(
-    text="What is your primary source of income?",
-    var=income_source,
-    choices=[
-        Option(1, "Wages or salary"),
-        Option(2, "Business profits"),
-        # Only show pension option for respondents aged 60 and older
-        Option(3, "Pension or retirement funds", show_if=age.ge(60)),
-        Option(4, "Student allowance", show_if=age.lt(30)),
-    ]
-)
-```
-
 ---
 
 ### `Media`
@@ -525,40 +341,6 @@ The `Media` class represents an external visual or auditory asset attached to a 
 | `autoplay` | `bool` | `False` | If `True`, the media starts playing automatically upon becoming visible (videos/audio only). |
 | `loop` | `bool` | `False` | If `True`, the media plays in an infinite loop. |
 | `controls` | `bool` | `True` | If `True`, displays media playback controls (play, pause, volume, etc.). |
-
-#### Extension Inference
-
-If `kind` is omitted, `Media.__post_init__` automatically infers the media type based on the URL file extension:
-* **Image**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`, `.avif`
-* **Video**: `.mp4`, `.webm`, `.mov`, `.m4v`, `.ogv`
-* **Audio**: `.mp3`, `.wav`, `.ogg`, `.m4a`, `.flac`
-
-If the extension is unrecognized or missing, a `ValueError` is raised, requiring `kind` to be passed explicitly.
-
-#### Example
-
-```python
-from siamang.core import Media, SingleChoice, Variable
-
-brand_var = Variable("brand_logo", scale="nominal")
-
-# Media type inferred as "image" from the extension
-logo_media = Media(
-    url="https://assets.example.com/images/brand-logo.png",
-    alt="Company logo illustration",
-    caption="Figure 1: Corporate Brand Mark"
-)
-
-q_brand = SingleChoice(
-    text="Which brand does this logo belong to?",
-    var=brand_var,
-    media=logo_media,
-    choices=[
-        Option(1, "Brand Alpha"),
-        Option(2, "Brand Beta"),
-    ]
-)
-```
 
 ---
 
@@ -583,25 +365,10 @@ A `Page` represents a single screen shown to the respondent. It contains questio
 | `show_if` | `Expression \| str \| None` | `None` | Condition determining whether this page should be displayed. |
 | `hide_if` | `Expression \| str \| None` | `None` | Condition determining whether this page should be hidden. |
 
-#### Example
+#### Methods
 
-```python
-from siamang.core import Page, SingleChoice, Variable
-
-satisfaction = Variable("satisfaction", scale="ordinal", labels={1: "Unhappy", 2: "Happy"})
-
-page_feedback = Page(
-    name="feedback_page",
-    title="Customer Feedback",
-    items=[
-        SingleChoice("Are you happy with our service?", var=satisfaction)
-    ],
-    next_if=[
-        ("satisfaction = 1", "unhappy_followup_page"), # Jump if unhappy
-    ],
-    default_next="thank_you_page"
-)
-```
+* **`flatten_questions() -> list[Question]`**:
+  Flattens all nested blocks and questions on this page into a single flat list of `Question` objects.
 
 ---
 
@@ -619,24 +386,6 @@ A `Block` is a logical container that groups questions or nested blocks together
 | `show_if` | `Expression \| str \| None` | `None` | Bulk condition determining when this entire block is visible. |
 | `hide_if` | `Expression \| str \| None` | `None` | Bulk condition determining when this entire block is hidden. |
 
-#### Example
-
-```python
-from siamang.core import Block, OpenText, Variable
-
-var_reason = Variable("unhappy_reason", scale="nominal")
-var_contact = Variable("contact_email", scale="nominal")
-
-unhappy_block = Block(
-    title="Help us improve",
-    items=[
-        OpenText("Why were you unhappy with your experience?", var=var_reason, multiline=True),
-        OpenText("Can we contact you to discuss this? Leave your email:", var=var_contact),
-    ],
-    randomize=False
-)
-```
-
 ---
 
 ## Quotas and Scripts
@@ -652,15 +401,6 @@ A `Quota` defines limits on the number of accepted responses matching specific c
 | `variable` | `str` | *Required* | The name of the variable to monitor. |
 | `target_value` | `Any` | *Required* | The category code to count. |
 | `limit` | `int` | *Required* | The maximum number of accepted responses matching this category. |
-
-#### Example
-
-```python
-from siamang.core import Quota
-
-# Limit the survey to a maximum of 100 male respondents
-male_quota = Quota(variable="gender", target_value=1, limit=100)
-```
 
 ---
 
@@ -678,49 +418,6 @@ The `Script` class allows researchers to inject custom JavaScript snippets into 
 | `target` | `str \| None` | `None` | Limits the scope of the script to a specific page name or question ID. |
 | `context` | `dict[str, Any]` | `{}` | Static data dictionary passed into the script's execution context. |
 | `sandbox` | `bool` | `True` | If `True`, executes the script in a sandboxed iframe to prevent direct DOM access and maintain security. |
-
-#### Script Lifecycle Triggers
-
-* `"onInit"`: Runs once when the survey is first loaded (before the welcome page).
-* `"onPageEnter"`: Runs when a page becomes visible to the respondent.
-* `"onPageExit"`: Runs when the respondent attempts to navigate away from a page.
-* `"onQuestionShow"`: Runs when a specific question's `show_if` resolves to true and it is rendered.
-* `"onAnswer"`: Runs immediately when any answer is modified.
-* `"onSubmit"`: Runs right before the final response is submitted.
-* `"onRandomize"`: Runs during the survey's randomization phase.
-
-#### Built-in Script Factories
-
-The `Script` class provides classmethod factories to generate common survey patterns automatically:
-
-##### `Script.randomize_options(question_id: str, seed: str | None = None) -> Script`
-Shuffles the display order of choices for a specific choice question.
-```python
-# Shuffles the choices for the question 'q_hobbies'
-shuffle_script = Script.randomize_options("q_hobbies")
-```
-
-##### `Script.randomize_pages() -> Script`
-Shuffles the order of all pages in the survey, excluding the first (welcome) page and the final page.
-```python
-shuffle_pages = Script.randomize_pages()
-```
-
-##### `Script.validate_fields_match(field_a: str, field_b: str, message: str) -> Script`
-Validates that two fields contain identical values (e.g., password confirmation or email confirmation).
-```python
-confirm_email = Script.validate_fields_match(
-    field_a="email",
-    field_b="email_confirm",
-    message="Email addresses do not match."
-)
-```
-
-##### `Script.timed_question(question_id: str, seconds: int) -> Script`
-Displays a question for a limited time before automatically advancing the page.
-```python
-time_limit = Script.timed_question("q_attention_check", seconds=15)
-```
 
 ---
 
@@ -741,48 +438,46 @@ The `Questionnaire` class is the aggregate root of a survey design. It combines 
 
 ### Methods
 
-* `all_questions() -> list[Question]`: Flattens all pages and blocks into a single, ordered list of questions.
-* `validate(strict: bool = False) -> None`: Performs comprehensive structural and logical checks:
+* **`all_questions() -> list[Question]`**:
+  Flattens all pages and blocks into a single, ordered list of questions.
+* **`validate(strict: bool = False) -> None`**:
+  Performs comprehensive structural and logical checks:
   * Ensures all question and page identifiers are unique.
   * Verifies that all `skip_to` and navigation targets point to valid pages or questions.
   * Checks that all expressions reference only registered variables and evaluate without error.
   * Validates that scripts are bound to existing questions or pages.
   * If `strict=True`, also runs linting heuristics and raises a `ValueError` on any errors.
-* `lint(level: str = "basic") -> list[LintWarning]`: Analyzes the survey structure for logical anti-patterns, such as unreachable pages, unused variables, or empty pages.
-* `compile(**options) -> SurveySchema`: Compiles the questionnaire into an intermediate `SurveySchema` representation ready for bundle building [2].
-* `deploy(backend: str = "local", frontend: str = "local", **kwargs) -> DeployResult`: Deploys the survey to a specified environment (e.g., local server or cloud services like Supabase and Vercel) [2].
-* `simulate(n: int = 100, seed: int = 42) -> SurveyData`: Generates `n` synthetic, logically valid responses using Monte Carlo simulation, which is useful for testing analytical pipelines before data collection [1].
+* **`lint(level: str = "basic") -> list[LintWarning]`**:
+  Analyzes the survey structure for logical anti-patterns, such as unreachable pages, unused variables, or empty pages.
+* **`compile(**options) -> SurveySchema`**:
+  Compiles the questionnaire into an intermediate `SurveySchema` representation ready for bundle building [2].
+* **`deploy(backend: str = "local", frontend: str = "local", **options) -> DeployResult`**:
+  Deploys the survey to a specified environment (e.g., local server or cloud services like Supabase and Vercel) [2].
+* **`simulate(n: int = 100, seed: int = 42) -> SurveyData`**:
+  Generates `n` synthetic, logically valid responses using Monte Carlo simulation, which is useful for testing analytical pipelines before data collection [1].
+* **`preview() -> str`**:
+  Renders a static text preview of the survey structure, including routing logic and page hierarchy.
+* **`collect()`**:
+  Retrieves responses collected from active deployments (available for cloud backends).
+* **`to_dict() -> dict`**:
+  Serializes the entire survey definition to a nested dictionary representation.
+* **`validate_for_export(target: str = "surveyjs") -> None`**:
+  Validates that the questionnaire structure is fully compatible with the export target format.
 
-### Example
+---
 
-```python
-from siamang.core import Questionnaire, Page, SingleChoice, Variable, VariableMap
+### `LintWarning`
 
-# Define Variables
-consent = Variable("consent", scale="nominal", labels={1: "Yes", 0: "No"})
-q1_var = Variable("q1", scale="nominal", labels={1: "Option A", 2: "Option B"})
+The `LintWarning` class represents a structural or logical warning discovered during survey linting.
 
-# Define Pages
-welcome_page = Page(
-    name="welcome",
-    items=[SingleChoice("Do you consent to participate?", var=consent)]
-)
-question_page = Page(
-    name="questions",
-    items=[SingleChoice("Select an option:", var=q1_var)],
-    show_if=consent.eq(1)
-)
+#### Properties
 
-# Aggregate into Questionnaire
-survey = Questionnaire(
-    title="My Research Survey",
-    pages=[welcome_page, question_page],
-    variables=VariableMap()
-)
-
-# Validate Survey
-survey.validate(strict=True)
-```
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `code` | `str` | *Required* | Unique warning code (e.g., `"unreachable_page"`, `"unused_variable"`). |
+| `severity` | `str` | *Required* | Severity level: `"info"`, `"warning"`, or `"error"`. |
+| `message` | `str` | *Required* | Human-readable explanation of the warning. |
+| `location` | `str \| None` | `None` | Location identifier indicating where the issue was found (e.g., `"page:welcome"`). |
 
 ---
 

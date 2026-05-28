@@ -1,12 +1,6 @@
-# `siamang.data` — analysis layer reference
+# `siamang.data` — Data Analysis & Processing Reference
 
-The `data` subpackage wraps a pandas DataFrame together with its
-`VariableMap` and exposes three accessors:
-
-- `SurveyData.analysis` (`DataAnalysis`) — descriptive and inferential
-  statistics
-- `SurveyData.processing` (`DataProcessing`) — value-level transforms
-- `SurveyData.tables` (`SurveyTables`) — multi-cell / banner tables
+The `data` subpackage wraps a pandas DataFrame together with its `VariableMap` and exposes specialized accessors for cleaning, processing, analyzing, and visualizing survey data [1] [2].
 
 ```python
 from siamang.data import SurveyData, SurveyTables, BannerTable
@@ -15,6 +9,8 @@ from siamang.data import SurveyData, SurveyTables, BannerTable
 ---
 
 ## `SurveyData`
+
+The `SurveyData` class is the primary container for survey datasets. It binds a pandas DataFrame to a `VariableMap` and optionally a `Questionnaire` schema, enabling metadata-aware data operations.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -25,112 +21,69 @@ class SurveyData:
     weight: str | None = None      # column name to use as the default weight
 ```
 
-The aggregate object. Construct it explicitly, or get one back from
-`questionnaire.simulate()`, `DeployResult.collect()`, or any reader in
-`siamang.io`.
-
 ### Properties
 
 | Property | Returns | Purpose |
-|----------|---------|---------|
-| `analysis` | `DataAnalysis` | Frequencies, crosstabs, descriptives, tests, CIs |
-| `processing` | `DataProcessing` | Lightweight value-level transforms |
-| `tables` | `SurveyTables` | Banner tables |
+| :--- | :--- | :--- |
+| `analysis` | `DataAnalysis` | High-level descriptive and inferential statistics [1]. |
+| `processing` | `DataProcessing` | Ad-hoc value-level transformations. |
+| `tables` | `SurveyTables` | Complex multi-cell banner tables. |
+| `report` | `ReportAccessor` | Declarative, metadata-aware table generation. |
+| `plot` | `PlotAccessor` | Declarative, metadata-aware visualization generation [3]. |
 
-### Immutable updates
+### Immutable Updates
 
-`SurveyData` is frozen — every transform returns a new instance.
+Since `SurveyData` is frozen and immutable, all data transformation methods return a new `SurveyData` instance containing the updated DataFrame and variables.
 
-| Method | Returns | Behaviour |
-|--------|---------|-----------|
-| `with_frame(frame)` | `SurveyData` | Replace the underlying DataFrame. |
-| `with_weight(column)` | `SurveyData` | Set the default weight column. Raises `ValueError` if the column is missing. |
+* **`with_frame(frame: pd.DataFrame) -> SurveyData`**:
+  Returns a new instance with the underlying DataFrame replaced.
+* **`with_weight(column: str | None) -> SurveyData`**:
+  Sets the default weight column. Raises a `ValueError` if the specified column is not present in the DataFrame.
 
-### Inspection
+### Inspection and Validation
 
-| Method | Returns |
-|--------|---------|
-| `codebook()` | `DataFrame` (`name`, `scale`, `label`, `labels`, `missing_values`, …) — raises `ValueError` if `variables` is unset. |
-| `describe_variables()` | `DataFrame` with `n`, `n_missing`, `n_unique` per variable. |
-| `validate(raise_on_error=False)` | `list[ValidationIssue]` — same checks as `VariableMap.validate_frame`, plus weight column type checks and questionnaire/frame consistency. |
+* **`codebook() -> pd.DataFrame`**:
+  Generates a comprehensive codebook DataFrame containing metadata (`name`, `scale`, `label`, `labels`, `missing_values`) for all registered variables. Raises a `ValueError` if `variables` is unset.
+* **`describe_variables() -> pd.DataFrame`**:
+  Generates a summary table containing the number of valid responses (`n`), missing responses (`n_missing`), and unique values (`n_unique`) for each variable.
+* **`validate(raise_on_error: bool = False) -> list[ValidationIssue]`**:
+  Validates the underlying DataFrame against the `VariableMap` schema. It checks column presence, data types, value ranges, category labels, and weight constraints. Raises a `ValueError` if `raise_on_error=True` and issues are found.
 
-### Missing-value handling
+### Missing-Value Handling
 
-```python
-data.apply_missing_values()                            # all configured codes → pd.NA
-data.apply_missing_values(kinds={"refusal", "dont_know"})  # only those kinds
-```
+* **`apply_missing_values(kinds: set[str] | None = None) -> SurveyData`**:
+  Replaces all user-defined missing value codes (e.g., `99` for refusal) with `pd.NA` in the DataFrame. If `kinds` is specified (e.g., `{"refusal", "dont_know"}`), only missing values matching those classifications are replaced.
+* **`drop_missing(column: str) -> SurveyData`**:
+  Returns a new instance with rows removed where the specified column is missing (`NaN` or `pd.NA`).
 
-`apply_missing_values(kinds=None)` returns a new `SurveyData` whose
-DataFrame has every configured missing code (or a filtered subset by
-`MissingValue.kind`) replaced with `pd.NA`. Raises `ValueError` if
-`variables` is not set.
+### Recoding and Derivations
 
-`drop_missing(column)` — return a new `SurveyData` with all rows where
-`column` is `NaN` removed.
+* **`recode(column: str, *, into: str, bins: list[Any], labels: list[str] | None = None, right: bool = False, label: str | None = None) -> SurveyData`**:
+  Bins continuous numerical variables into discrete categories using `pandas.cut` [2]. Automatically registers the new variable in the `VariableMap` with an `"ordinal"` scale.
+* **`recode_values(column: str, mapping: dict[Any, Any], *, into: str | None = None, label: str | None = None, scale: str | None = None) -> SurveyData`**:
+  Collapses or remaps discrete values (e.g., `{1: 0, 2: 0, 3: 1}` to collapse categories). If `into` is provided, stores the result in a new column and registers the new variable; otherwise, updates the column in-place.
+* **`derive(*, name: str, expression: Expression, label: str | None = None, scale: str = "nominal", labels: dict[Any, str] | None = None) -> SurveyData`**:
+  Evaluates a logical `Expression` row-by-row to create a new binary indicator variable (0/1). Registers the new variable with the specified metadata.
 
-### Recoding and derived variables
+### Composite Measures
 
-```python
-# Bin a numeric column into categories
-data = data.recode(
-    "age",
-    into="age_group",
-    bins=[18, 30, 45, 65, 99],
-    labels=["18-29", "30-44", "45-64", "65+"],
-    right=False,
-    label="Age group",
-)
-
-# Remap discrete values
-data = data.recode_values(
-    "education",
-    {1: 0, 2: 0, 3: 1, 4: 1, 5: 1},     # collapse to "no college"/"college"
-    into="college",
-    label="College education",
-    scale="nominal",
-)
-
-# Boolean derived variable from an expression
-data = data.derive(
-    name="adult_woman",
-    expression=age.ge(18) & gender.eq(2),
-    label="Adult woman",
-    labels={0: "No", 1: "Yes"},
-)
-```
-
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `recode(column, *, into, bins, labels=None, right=False, label=None)` | `SurveyData` | Numeric binning via `pandas.cut`. Validates that `len(labels) == len(bins) - 1` when provided. |
-| `recode_values(column, mapping, *, into=None, label=None, scale=None)` | `SurveyData` | Apply a `{old: new}` mapping. When `into` is provided, the original column is kept and a new variable is added. |
-| `derive(*, name, expression, label=None, scale="nominal", labels=None)` | `SurveyData` | Evaluate an `Expression` row-by-row and store the result (0/1 by default) in `name`. |
-
-### Composite measures
-
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `scale_alpha(items: list[str])` | `float` | Cronbach's α (requires ≥ 2 items). |
-| `create_index(name, *, items, method="mean", label=None)` | `SurveyData` | Methods: `"mean"`, `"sum"`. Raises `ValueError` for any other method or empty `items`. |
+* **`scale_alpha(items: list[str]) -> float`**:
+  Calculates Cronbach's alpha coefficient of internal consistency for a set of scale items. Requires at least 2 items.
+* **`create_index(name: str, *, items: list[str], method: str = "mean", label: str | None = None) -> SurveyData`**:
+  Creates a composite index variable (e.g., an index of autonomy) by aggregating a list of items. Supported aggregation methods: `"mean"` or `"sum"`. Automatically registers the new variable with an `"interval"` scale.
 
 ### Export
 
-```python
-data.export("csv",   path="out.csv")
-data.export("xlsx",  path="out.xlsx")
-data.export("spss",  path="out.sav")        # SPSS .sav with full metadata
-data.export("stata", path="out.dta")        # Stata .dta with full metadata
-data.export("r",     path="out_R/")         # CSV + JSON dict + .R loader
-data.export_dictionary("dict.json")         # VariableMap → JSON
-```
-
-`export(fmt, path=None, **kwargs)` is a thin dispatcher to the
-corresponding writer in `siamang.io`. Unknown `fmt` raises
-`NotImplementedError`.
+* **`export(fmt: str, path: str | Path | None = None, **kwargs) -> Any`**:
+  Exports the dataset and its metadata. Supported formats: `"csv"`, `"xlsx"`, `"stata"` (exports a native `.dta` file with embedded variable and value labels), and `"r"` (exports a CSV, a JSON dictionary, and an R script to load the data with correct factor levels) [2].
+* **`export_dictionary(path: str | Path) -> Path`**:
+  Exports the `VariableMap` metadata to a standardized JSON schema file.
 
 ---
 
 ## `DataAnalysis`
+
+The `DataAnalysis` class provides high-level statistical methods. It is accessed via the `data.analysis` property.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -140,51 +93,45 @@ class DataAnalysis:
     variables: VariableMap | None = None
 ```
 
-Accessed via `data.analysis`. Methods that say "weighted" use
-`weight_column`; methods that take a `weighted=` flag default to
-unweighted.
-
 ### Descriptives
 
-| Method | Returns |
-|--------|---------|
-| `mean(column, weighted=False)` | `float` (`0.0` when empty / weight sum non-positive). |
-| `median(column)` | `float`. |
-| `grouped_mean(column, by, weighted=False, labels=False)` | `DataFrame` columns: `group`, `mean`, `n`, plus `label` when `labels=True`. |
+* **`mean(column: str, weighted: bool = False) -> float`**:
+  Calculates the mean. If `weighted=True`, uses the default weight column [1].
+* **`median(column: str) -> float`**:
+  Calculates the median value.
+* **`grouped_mean(column: str, by: str, weighted: bool = False, labels: bool = False) -> pd.DataFrame`**:
+  Calculates the mean of `column` grouped by categories of `by`. Returns a DataFrame with `group`, `mean`, and `n` columns. If `labels=True`, replaces category codes with their textual labels.
 
 ### Tables
 
-```python
-data.analysis.frequencies("party", labels=True, weighted=True)
-data.analysis.crosstab("gender", "party", normalize="columns", chi2=True, cramers_v=True)
-```
+* **`frequencies(column: str, normalize: bool = False, weighted: bool = False, labels: bool = False) -> pd.Series | pd.DataFrame`**:
+  Generates a frequency distribution. If `normalize=True`, returns percentages instead of absolute counts. If `labels=True`, returns a DataFrame with category labels included.
+* **`crosstab(row: str, col: str, normalize: str | bool = False, chi2: bool = False, cramers_v: bool = False, phi: bool = False, weighted: bool = False, labels: bool = False) -> pd.DataFrame | tuple[pd.DataFrame, dict[str, Any]]`**:
+  Generates a two-way contingency table. `normalize` accepts `"index"` (row percentages), `"columns"` (column percentages), `"all"` (total percentages), or `False`. If any test flags (`chi2`, `cramers_v`, `phi`) are `True`, returns a tuple containing the contingency table and a dictionary of test results [1].
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `frequencies(column, normalize=False, weighted=False, labels=False)` | `Series` (counts/percentages) or `DataFrame` when `labels=True`. |
-| `crosstab(row, col, normalize=False, chi2=False, cramers_v=False, phi=False, weighted=False, labels=False)` | `DataFrame`, or `(DataFrame, dict)` when any test flag is set. `normalize` ∈ `{False, True, "index", "columns", "all"}`. `phi` requires a 2×2 table. |
+### Inferential Tests
 
-### Inferential tests
+These methods require `scipy` to be installed.
 
-These require `scipy` (installed by default with the package) and raise
-`ImportError` if unavailable.
+* **`kruskal(column: str, group: str) -> dict[str, float]`**:
+  Performs a Kruskal-Wallis H-test for independent samples. Returns a dictionary with `"statistic"` and `"pvalue"`.
+* **`mannwhitney(column: str, group: str) -> dict[str, float]`**:
+  Performs a Mann-Whitney U-test for two independent samples. Returns a dictionary with `"statistic"`, `"pvalue"`, `"n1"`, and `"n2"`.
+* **`spearman(x: str, y: str) -> dict[str, float]`**:
+  Calculates Spearman's rank correlation coefficient. Returns a dictionary with `"rho"`, `"pvalue"`, and `"n"`.
 
-| Method | Returns |
-|--------|---------|
-| `kruskal(column, group)` | `{"statistic", "pvalue"}` — Kruskal-Wallis test. Raises `ValueError` if fewer than two groups. |
-| `mannwhitney(column, group)` | `{"statistic", "pvalue", "n1", "n2"}` — Mann-Whitney U test. Requires exactly two groups. |
-| `spearman(x, y)` | `{"rho", "pvalue", "n"}` — rank correlation (uses pandas fallback if scipy missing). |
+### Confidence Intervals & Sample Size
 
-### Confidence intervals & effective sample size
-
-| Method | Returns |
-|--------|---------|
-| `proportion_ci(column, value, confidence=0.95, weighted=False)` | `{"proportion", "ci_low", "ci_high", "n"}`. `confidence` must be in `(0, 1)`. |
-| `effective_sample_size()` | `float`. Raises `ValueError` if `weight_column` is unset (Kish's ESS = `(Σw)² / Σw²`). |
+* **`proportion_ci(column: str, value: Any, confidence: float = 0.95, weighted: bool = False) -> dict[str, float]`**:
+  Calculates a binomial confidence interval for a specific category proportion. Returns `"proportion"`, `"ci_low"`, `"ci_high"`, and `"n"`.
+* **`effective_sample_size() -> float`**:
+  Calculates Kish's effective sample size (ESS) for weighted datasets: $ESS = \frac{(\sum w)^2}{\sum w^2}$. Raises a `ValueError` if no weight column is set.
 
 ---
 
 ## `DataProcessing`
+
+A thin, low-level utility wrapper accessed via `data.processing` for ad-hoc value transformations.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -192,19 +139,14 @@ class DataProcessing:
     frame: pd.DataFrame
 ```
 
-A thin wrapper that returns new `SurveyData` instances; mainly used for
-ad-hoc explorations.
-
-| Method | Returns | Behaviour |
-|--------|---------|-----------|
-| `recode(column, mapping)` | `SurveyData` | Apply `mapping` to `column` in place (in a new frame). |
-
-For research-grade transforms with metadata, prefer
-`SurveyData.recode_values()` / `.derive()`.
+* **`recode(column: str, mapping: dict[Any, Any]) -> SurveyData`**:
+  Applies a raw `{old: new}` mapping to a column in-place. For research-grade, metadata-aware recoding, prefer `SurveyData.recode_values()`.
 
 ---
 
 ## `SurveyTables`
+
+The `SurveyTables` class generates complex, publication-ready banner tables (cross-tabulating multiple row variables against multiple column variables simultaneously) [1]. It is accessed via `data.tables`.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -214,24 +156,14 @@ class SurveyTables:
     weight_column: str | None = None
 ```
 
-Accessed via `data.tables`. Builds banner-style cross-tabulations
-suitable for export.
+* **`banner(rows: list[str], columns: list[str], weight: str | None = None, labels: bool = True) -> BannerTable`**:
+  Generates a banner table cross-tabulating all `rows` variables against all `columns` variables. If `labels=True`, uses variable and value labels for headers.
 
-```python
-banner = data.tables.banner(
-    rows=["trust", "trust_local"],
-    columns=["gender", "region"],
-    weight="weight_v2",          # overrides the default weight column
-    labels=True,                  # use Variable.labels for human-readable headers
-)
-banner.export_xlsx("results.xlsx")
-```
-
-| Method | Returns | Raises |
-|--------|---------|--------|
-| `banner(rows, columns, weight=None, labels=True)` | `BannerTable` | `ValueError` if `rows` or `columns` is empty, or if `weight` is set but not present in the frame. |
+---
 
 ### `BannerTable`
+
+An immutable container representing a compiled banner table, ready for export.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -239,7 +171,17 @@ class BannerTable:
     frame: pd.DataFrame
 ```
 
-| Method | Returns |
-|--------|---------|
-| `export_csv(path, **pandas_kwargs)` | `Path` (creates parent directories) |
-| `export_xlsx(path, **pandas_kwargs)` | `Path` (creates parent directories) |
+#### Methods
+
+* **`export_csv(path: str | Path, **pandas_kwargs) -> Path`**:
+  Exports the banner table to a CSV file.
+* **`export_xlsx(path: str | Path, **pandas_kwargs) -> Path`**:
+  Exports the banner table to an Excel spreadsheet, automatically creating parent directories.
+
+---
+
+## References
+
+1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.
+2. McKinney, Wes. *Python for Data Analysis: Data Wrangling with pandas, NumPy, and Jupyter*. O'Reilly Media, 3rd edition, 2022.
+3. Wickham, Hadley. *ggplot2: Elegant Graphics for Data Analysis*. Springer, 2nd edition, 2016.
