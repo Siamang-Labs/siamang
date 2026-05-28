@@ -166,7 +166,7 @@ data.analysis.crosstab("gender", "party", normalize="columns", chi2=True, cramer
 
 ### Inferential tests
 
-These require `scipy` (installed by default with `pip install siamang`) and raise
+These require `scipy` (installed by default with the package) and raise
 `ImportError` if unavailable.
 
 | Method | Returns |

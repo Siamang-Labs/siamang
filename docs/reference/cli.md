@@ -68,7 +68,7 @@ Spins up a local FastAPI server with the React frontend and the SQLite
 backend. The survey is reachable at `http://127.0.0.1:<port>`. Responses
 land in `--db`. Press Ctrl+C to stop.
 
-Uses FastAPI + uvicorn (installed automatically with `pip install siamang`).
+Uses FastAPI + uvicorn (installed automatically with the package).
 
 Example:
 

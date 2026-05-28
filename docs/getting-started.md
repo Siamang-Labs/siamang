@@ -5,7 +5,7 @@
 siamang requires **Python 3.11+**.
 
 ```bash
-pip install siamang
+pip install git+https://github.com/hanelias/siamang.git
 ```
 
 That's it — every feature is included out of the box:

@@ -36,13 +36,12 @@ reference (every class, every field), see [`docs/`](docs/index.md).
 ## Install
 
 ```bash
-pip install siamang
+pip install git+https://github.com/hanelias/siamang.git
 ```
 
 That's it — every feature is included by default (Excel / SPSS / Stata
 I/O, the local preview server, scipy-backed statistics, Supabase and
-Vercel deploy). The legacy `siamang[server]`, `siamang[all]`, …
-install commands still work as no-ops.
+Vercel deploy).
 
 ---
 

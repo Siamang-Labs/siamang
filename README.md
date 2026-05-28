@@ -18,7 +18,7 @@
 ---
 
 ```bash
-pip install siamang
+pip install git+https://github.com/hanelias/siamang.git
 siamang validate my_survey.py
 siamang preview  my_survey.py        # local React preview
 siamang deploy   my_survey.py --backend supabase --frontend vercel
@@ -82,7 +82,7 @@ visibility rules, conditional logic, theming, and the "Other (specify)"
 feature:
 
 ```bash
-pip install siamang
+pip install git+https://github.com/hanelias/siamang.git
 siamang preview examples/demo_survey.py --port 8000 --open
 ```
 
@@ -107,7 +107,7 @@ siamang preview examples/demo_survey.py --port 8000 --open
 ### Local (development)
 
 ```bash
-pip install siamang
+pip install git+https://github.com/hanelias/siamang.git
 siamang preview my_survey.py        # → http://127.0.0.1:8000
 ```
 
