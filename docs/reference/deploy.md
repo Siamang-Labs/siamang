@@ -138,13 +138,14 @@ class SupabaseBackend(BackendAdapter):
 ```
 
 The `supabase` Python client comes pre-installed. Credentials fall back to
-`SURVLIB_SUPABASE_URL`, `SURVLIB_SUPABASE_ANON_KEY`,
-`SURVLIB_SUPABASE_SERVICE_KEY` if the kwargs are blank. The constructor
-raises `ValueError` if any of the three are still empty.
+`SIAMANG_SUPABASE_URL`, `SIAMANG_SUPABASE_ANON_KEY`,
+`SIAMANG_SUPABASE_SERVICE_KEY` if the kwargs are blank (legacy `SURVLIB_*`
+names are also accepted). The constructor raises `ValueError` if any of the
+three are still empty.
 
-Per-survey isolation:
+Data model:
 
-- One Postgres table per survey (`responses_<survey_id>`).
+- A single shared `responses` table with a `survey_id` column.
 - RLS policies created at provision time so anon clients can `INSERT`
   but not `SELECT`.
 - Quota counters live in a single `quota_counters` table updated by an

@@ -182,9 +182,12 @@ project_name = "political-trust-2026"
 
 Backend kwargs are also overridable via environment variables:
 
-| Variable | Read by |
-|----------|---------|
-| `SURVLIB_SUPABASE_URL` | `SupabaseBackend.url` |
-| `SURVLIB_SUPABASE_ANON_KEY` | `SupabaseBackend.anon_key` |
-| `SURVLIB_SUPABASE_SERVICE_KEY` | `SupabaseBackend.service_key` |
-| `VERCEL_TOKEN` | `VercelFrontend.token` |
+| Variable | Read by | Notes |
+|----------|---------|-------|
+| `SIAMANG_SUPABASE_URL` | `SupabaseBackend.url` | Canonical |
+| `SIAMANG_SUPABASE_ANON_KEY` | `SupabaseBackend.anon_key` | Canonical |
+| `SIAMANG_SUPABASE_SERVICE_KEY` | `SupabaseBackend.service_key` | Canonical |
+| `SURVLIB_SUPABASE_URL` | `SupabaseBackend.url` | Legacy fallback |
+| `SURVLIB_SUPABASE_ANON_KEY` | `SupabaseBackend.anon_key` | Legacy fallback |
+| `SURVLIB_SUPABASE_SERVICE_KEY` | `SupabaseBackend.service_key` | Legacy fallback |
+| `VERCEL_TOKEN` | `VercelFrontend.token` | |

@@ -23,8 +23,8 @@ class ClientEnv:
 class BackendClientTemplate(ABC):
     """Template that emits an ``env.js`` snippet for a specific backend.
 
-    The snippet registers a transport on ``window.SURVLIB_TRANSPORTS`` keyed
-    by ``ClientEnv.backend`` and assigns ``window.SURVLIB_ENV``.
+    The snippet registers a transport on ``window.SIAMANG_TRANSPORTS`` keyed
+    by ``ClientEnv.backend`` and assigns ``window.SIAMANG_ENV``.
     """
 
     name: str

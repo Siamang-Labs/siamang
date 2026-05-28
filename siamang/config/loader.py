@@ -136,7 +136,13 @@ def _namespace(payload: Any) -> dict[str, dict[str, Any]]:
     }
 
 
+# New canonical prefix + legacy fallback (SURVLIB_* still works)
 _ENV_PREFIXES = {
+    "SIAMANG_SUPABASE_": ("backends", "supabase"),
+    "SIAMANG_GSHEETS_": ("backends", "gsheets"),
+    "SIAMANG_VERCEL_": ("frontends", "vercel"),
+    "SIAMANG_NETLIFY_": ("frontends", "netlify"),
+    # Legacy (backward-compatible)
     "SURVLIB_SUPABASE_": ("backends", "supabase"),
     "SURVLIB_GSHEETS_": ("backends", "gsheets"),
     "SURVLIB_VERCEL_": ("frontends", "vercel"),

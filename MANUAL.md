@@ -542,9 +542,9 @@ print(result.url, result.dashboard)
 df = result.collect()   # pull responses any time later
 ```
 
-Environment variable fallbacks: `SURVLIB_SUPABASE_URL`,
-`SURVLIB_SUPABASE_ANON_KEY`, `SURVLIB_SUPABASE_SERVICE_KEY`,
-`VERCEL_TOKEN`.
+Environment variables: `SIAMANG_SUPABASE_URL`,
+`SIAMANG_SUPABASE_ANON_KEY`, `SIAMANG_SUPABASE_SERVICE_KEY`,
+`VERCEL_TOKEN`. Legacy `SURVLIB_*` names are also accepted as fallback.
 
 ---
 

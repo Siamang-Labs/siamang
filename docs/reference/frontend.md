@@ -310,8 +310,8 @@ Required context: `survey` must be set. `render_html` raises
 ## Client templates
 
 Each backend uses a small JavaScript snippet on the frontend that
-registers a transport on `window.SURVLIB_TRANSPORTS` for response
-submission and quota checking.
+registers a transport on `window.SIAMANG_TRANSPORTS` for response
+submission and quota checking (legacy `SURVLIB_TRANSPORTS` also supported).
 
 ### `ClientEnv`
 

@@ -23,11 +23,11 @@ class SupabaseClientTemplate(BackendClientTemplate):
 
 
 _TEMPLATE = """\
-window.SURVLIB_ENV = __ENV__;
-window.SURVLIB_TRANSPORTS = window.SURVLIB_TRANSPORTS || {};
-window.SURVLIB_TRANSPORTS.supabase = {
+window.SIAMANG_ENV = __ENV__;
+window.SIAMANG_TRANSPORTS = window.SIAMANG_TRANSPORTS || {};
+window.SIAMANG_TRANSPORTS.supabase = {
   async submit(responses) {
-    const env = window.SURVLIB_ENV;
+    const env = window.SIAMANG_ENV;
     const url = env.url.replace(/\\/$/, "") + "/rest/v1/" + env.table;
     const res = await fetch(url, {
       method: "POST",
@@ -37,7 +37,10 @@ window.SURVLIB_TRANSPORTS.supabase = {
         "Authorization": "Bearer " + env.anon_key,
         "Prefer": "return=minimal",
       },
-      body: JSON.stringify({ survey_id: env.survey_id, payload: responses }),
+      body: JSON.stringify({
+        survey_id: env.survey_id,
+        data: responses,
+      }),
     });
     if (!res.ok) {
       throw new Error("supabase submit failed: " + res.status);
@@ -45,7 +48,7 @@ window.SURVLIB_TRANSPORTS.supabase = {
     return { ok: true };
   },
   async checkQuota(variable, value) {
-    const env = window.SURVLIB_ENV;
+    const env = window.SIAMANG_ENV;
     const url = env.url.replace(/\\/$/, "") + "/functions/v1/" + env.quota_function;
     const res = await fetch(url, {
       method: "POST",

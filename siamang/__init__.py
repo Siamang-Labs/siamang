@@ -38,6 +38,7 @@ from siamang.core import (
 )
 from siamang.data import BannerTable, SurveyData, SurveyTables
 from siamang.deploy import DeployResult
+from siamang.frontend.theme import UIConfig, get_preset
 from siamang.io import (
     CSVReader,
     CSVWriter,
@@ -102,4 +103,6 @@ __all__ = [
     "compare",
     "read_spss",
     "read_stata",
+    "UIConfig",
+    "get_preset",
 ]

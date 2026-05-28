@@ -1,3 +1,43 @@
-
+# Build artifacts
 dist/
+build/
 *.egg-info/
+*.whl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing & linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+survey.db
+*.sqlite3
+.env
+.env.local
+.vercel_deploy_*
+node_modules/

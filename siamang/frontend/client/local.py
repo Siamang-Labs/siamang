@@ -21,11 +21,11 @@ class LocalClientTemplate(BackendClientTemplate):
 
 
 _TEMPLATE = """\
-window.SURVLIB_ENV = __ENV__;
-window.SURVLIB_TRANSPORTS = window.SURVLIB_TRANSPORTS || {};
-window.SURVLIB_TRANSPORTS.local = {
+window.SIAMANG_ENV = __ENV__;
+window.SIAMANG_TRANSPORTS = window.SIAMANG_TRANSPORTS || {};
+window.SIAMANG_TRANSPORTS.local = {
   async submit(responses) {
-    const env = window.SURVLIB_ENV;
+    const env = window.SIAMANG_ENV;
     const payload = { survey_id: env.survey_id, responses: responses };
     const res = await fetch(env.endpoint, {
       method: "POST",
@@ -38,7 +38,7 @@ window.SURVLIB_TRANSPORTS.local = {
     return await res.json();
   },
   async checkQuota(variable, value) {
-    const env = window.SURVLIB_ENV;
+    const env = window.SIAMANG_ENV;
     const res = await fetch(env.quota_endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

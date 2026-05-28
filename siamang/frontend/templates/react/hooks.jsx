@@ -143,8 +143,8 @@ function useSubmission(store, clearSaved) {
   const [submitAttempts, setSubmitAttempts] = useState(0);
 
   const submit = useCallback(async (isRetry = false) => {
-    const env = window.SURVLIB_ENV || {};
-    const transport = (window.SURVLIB_TRANSPORTS || {})[env.transport];
+    const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
+    const transport = (window.SIAMANG_TRANSPORTS || window.SURVLIB_TRANSPORTS || {})[env.transport];
     const stamp = new Date();
     if (!isRetry) setSubmitAttempts(0);
     setSubmitting(true);

@@ -1,4 +1,4 @@
-"""`siamang preview` — boot the local SurveyJS preview server."""
+"""`siamang preview` — boot the local React preview server."""
 
 from __future__ import annotations
 

@@ -13,7 +13,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 keywords = ["survey", "research", "sociology", "questionnaire", "polling"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Education",
     "Operating System :: OS Independent",

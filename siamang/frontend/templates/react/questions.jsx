@@ -1,5 +1,5 @@
 /* Question components — one per survey question type.
-   Markup mirrors SurveyJS v2 class names (sd-*) so siamang's CSS rules apply. */
+   Markup uses sd-* class names for consistent styling with siamang's CSS rules. */
 
 const { useState, useRef, useEffect } = React;
 

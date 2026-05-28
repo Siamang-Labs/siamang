@@ -1,5 +1,9 @@
-include README.md BUILD.md CHANGELOG.md MANIFEST.in
+include README.md CHANGELOG.md LICENSE MANIFEST.in
 include pyproject.toml
+
+recursive-include siamang *.tpl *.jsx *.js py.typed
+recursive-include docs *.md
+recursive-include examples *.py
 
 global-exclude *.map
 global-exclude *.ts

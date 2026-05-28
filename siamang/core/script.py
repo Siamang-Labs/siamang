@@ -19,6 +19,7 @@ Each script runs at a specified trigger point and has access to:
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -93,10 +94,12 @@ class Script:
     @classmethod
     def randomize_options(cls, question_id: str, seed: str | None = None) -> "Script":
         """Factory: create a script that randomizes answer options for a question."""
+        qid = json.dumps(question_id)
         code = f"""
-            const opts = answers.__options__?.['{question_id}'];
+            const qid = {qid};
+            const opts = answers.__options__?.[qid];
             if (opts && Array.isArray(opts)) {{
-                answers.__options__['{question_id}'] = utils.shuffle(opts);
+                answers.__options__[qid] = utils.shuffle(opts);
             }}
         """
         return cls(
@@ -132,11 +135,16 @@ class Script:
         cls, field_a: str, field_b: str, message: str = "Fields do not match."
     ) -> "Script":
         """Factory: validate that two answer fields have the same value."""
+        fa = json.dumps(field_a)
+        fb = json.dumps(field_b)
+        msg = json.dumps(message)
         code = f"""
-            if (answers['{field_a}'] !== undefined && 
-                answers['{field_b}'] !== undefined &&
-                answers['{field_a}'] !== answers['{field_b}']) {{
-                answers.__errors__['{field_b}'] = '{message}';
+            const fa = {fa};
+            const fb = {fb};
+            if (answers[fa] !== undefined && 
+                answers[fb] !== undefined &&
+                answers[fa] !== answers[fb]) {{
+                answers.__errors__[fb] = {msg};
             }}
         """
         return cls(
@@ -149,11 +157,14 @@ class Script:
     @classmethod
     def timed_question(cls, question_id: str, seconds: int = 30) -> "Script":
         """Factory: show a question for limited time, then auto-advance."""
+        qid = json.dumps(question_id)
+        timeout_ms = seconds * 1000
         code = f"""
-            const timeout = {seconds * 1000};
+            const qid = {qid};
+            const timeout = {timeout_ms};
             if (!answers.__timers__) answers.__timers__ = {{}};
-            if (!answers.__timers__['{question_id}']) {{
-                answers.__timers__['{question_id}'] = setTimeout(() => {{
+            if (!answers.__timers__[qid]) {{
+                answers.__timers__[qid] = setTimeout(() => {{
                     if (window.siamangNext) window.siamangNext();
                 }}, timeout);
             }}
