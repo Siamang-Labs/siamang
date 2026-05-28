@@ -217,7 +217,64 @@ siamang/
 - **Python 3.11+**
 - For cloud deployment (option A): a **Supabase** project and a **Vercel** account
 - For cloud deployment (option B): a **Google Cloud** service account and a **Netlify** account
-- For Google Sheets backend: `pip install google-auth google-auth-httplib2 google-api-python-client`
+
+---
+
+## Dependencies
+
+All core dependencies are installed automatically with `pip install siamang`.
+
+### Core (installed automatically)
+
+| Package | Version | Purpose |
+| :--- | :--- | :--- |
+| `pandas` | ≥ 2.0 | Data manipulation, SurveyData backbone |
+| `scipy` | ≥ 1.11 | Statistical tests (chi-square, t-test, ANOVA) |
+| `openpyxl` | ≥ 3.1 | Excel (.xlsx) import/export |
+| `pyreadstat` | ≥ 1.2 | SPSS (.sav) and Stata (.dta) import/export |
+| `fastapi` | ≥ 0.110 | Local preview server (`siamang preview`) |
+| `uvicorn` | ≥ 0.29 | ASGI server for local preview |
+| `supabase` | ≥ 2.0 | Supabase backend (Postgres + RLS + Edge Functions) |
+| `requests` | ≥ 2.31 | HTTP client for Netlify/Vercel deployment APIs |
+
+### Charts (optional)
+
+```bash
+pip install matplotlib seaborn
+```
+
+| Package | Version | Purpose |
+| :--- | :--- | :--- |
+| `matplotlib` | ≥ 3.7 | Chart rendering (`data.plot.bar()`, `.boxplot()`, `.scatter()`, `.heatmap()`) |
+| `seaborn` | ≥ 0.13 | Statistical visualization helpers |
+
+Charts are optional — if you only use tables (`data.report.freq()`, `data.report.crosstab()`), matplotlib is not needed. A clear error message will guide you if you try to render a chart without it.
+
+### Google Sheets backend (optional)
+
+```bash
+pip install siamang[gsheets]
+```
+
+| Package | Version | Purpose |
+| :--- | :--- | :--- |
+| `google-auth` | ≥ 2.0 | Service account authentication |
+| `google-auth-httplib2` | ≥ 0.1 | HTTP transport for Google APIs |
+| `google-api-python-client` | ≥ 2.0 | Google Sheets API and Google Drive API client |
+
+### Development
+
+```bash
+pip install siamang[dev]
+```
+
+| Package | Version | Purpose |
+| :--- | :--- | :--- |
+| `ruff` | ≥ 0.4 | Linting and formatting |
+| `mypy` | ≥ 1.10 | Static type checking |
+| `pytest` | ≥ 8.0 | Test runner |
+| `matplotlib` | ≥ 3.7 | Required for chart tests |
+| `seaborn` | ≥ 0.13 | Required for chart tests |
 
 ---
 
