@@ -12,7 +12,8 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
-  <a href="MANUAL.md">Manual</a>
+  <a href="#full-pipeline-example">Full pipeline</a> ·
+  <a href="docs/reference/">API Reference</a>
 </p>
 
 ---
@@ -20,7 +21,7 @@
 ```bash
 pip install git+https://github.com/hanelias/siamang.git
 siamang validate my_survey.py
-siamang preview  my_survey.py        # local React preview
+siamang preview  my_survey.py        # local preview
 siamang deploy   my_survey.py --backend supabase --frontend vercel
 ```
 
@@ -35,9 +36,9 @@ Python script:
 my_survey.py          ← you write this
     │
     ├─ siamang validate   → catches errors before deployment
-    ├─ siamang preview    → local React frontend (hot-reload)
+    ├─ siamang preview    → local frontend (hot-reload)
     ├─ siamang deploy     → Vercel + Supabase (cloud deployment)
-    └─ siamang init       → configures deployment credentials
+    └─ survey.simulate()  → synthetic data for testing
 ```
 
 **No GUI builders. No drag-and-drop. No lock-in.** Your survey is a
@@ -48,57 +49,99 @@ Python module — version-control it, test it, reuse it.
 ## Quick start
 
 ```python
-from siamang import (
-    Variable, Question, SingleChoice, Page, Questionnaire,
+from siamang.core import (
+    Variable, SingleChoice, LikertScale, Page, Questionnaire,
 )
 
-age = Variable("age", "interval", "How old are you?")
+# Define variables with full metadata
 satisfaction = Variable(
-    "satisfaction", "ordinal", "Overall satisfaction",
+    "satisfaction", scale="ordinal",
+    label="Overall satisfaction",
     labels={1: "Very dissatisfied", 2: "Dissatisfied",
             3: "Neutral", 4: "Satisfied", 5: "Very satisfied"},
 )
-
-q_age = Question("How old are you?", age, required=True)
-q_sat = SingleChoice("How satisfied are you?", satisfaction, required=True)
-
-survey = Questionnaire(
-    title="My First Survey",
-    pages=[Page("main", "Survey Questions", items=[q_age, q_sat])],
+remote_freq = Variable(
+    "remote_freq", scale="ordinal",
+    label="Remote work frequency",
+    labels={1: "Never", 2: "1-2 days/week",
+            3: "3-4 days/week", 4: "Fully remote"},
 )
+
+# Build questions
+q_sat = LikertScale("How satisfied are you with your current role?",
+                    var=satisfaction, points=5, required=True)
+q_remote = SingleChoice("How often do you work remotely?",
+                        var=remote_freq, display="radio", required=True)
+
+# Assemble questionnaire
+survey = Questionnaire(
+    title="Work Attitudes Study",
+    pages=[Page("main", items=[q_sat, q_remote])],
+)
+
+# Simulate and analyze
+data = survey.simulate(n=200)
+print(data.report.freq("satisfaction").to_markdown())
+data.plot.bar("satisfaction").show()
 ```
 
-Save as `survey.py`, then:
+---
+
+## Full Pipeline Example
+
+The [`examples/full_pipeline/`](examples/full_pipeline/) directory contains a complete Jupyter notebook demonstrating the entire research workflow — from survey design to statistical analysis:
+
+1. **Survey Design** — 12 variables, 6 pages, conditional routing (`show_if`), matrix questions, Likert scales
+2. **Simulation & Deployment** — 250 synthetic respondents, local SQLite storage, interactive HTML preview
+3. **Declarative Reporting** — frequency tables, cross-tabs with Chi², grouped means with auto-selected tests, correlation heatmaps
+4. **Visualizations** — bar charts, boxplots, heatmaps, scatter plots — all with one line of code
 
 ```bash
-siamang validate survey.py       # check for errors
-siamang preview  survey.py       # open in browser at localhost:8000
+cd examples/full_pipeline
+jupyter notebook full_pipeline_demo.ipynb
 ```
 
-For a hands-on look at every feature, run the bundled
-[`examples/demo_survey.py`](examples/demo_survey.py) — an "AI & Work
-Attitudes Study 2026" survey that exercises every question type,
-visibility rules, conditional logic, theming, and the "Other (specify)"
-feature:
-
-```bash
-pip install git+https://github.com/hanelias/siamang.git
-siamang preview examples/demo_survey.py --port 8000 --open
-```
+The folder also includes `survey_preview.html` — an interactive HTML survey you can open in any browser to see how the questionnaire looks for respondents.
 
 ---
 
 ## Features
 
 | Area | Capabilities |
-|------|-------------|
-| **Core** | Variables (nominal/ordinal/interval/ratio), questions (single/multi/open/numeric/likert/matrix/ranking), pages, skip logic (`show_if`), quotas, validation |
-| **Scripts** | Inline JavaScript for survey-side behaviour — 7 trigger points (`onInit`, `onPageEnter`, `onPageExit`, `onQuestionShow`, `onAnswer`, `onSubmit`, `onRandomize`) |
-| **Frontend** | React 18 runtime, keyboard navigation, swipe gestures, dark mode, per-question error boundaries, auto-save, access codes |
-| **CLI** | `validate`, `preview`, `deploy`, `init` |
-| **Backend** | Local SQLite for dev, Supabase for cloud (RLS policies, pagination, quota counters, migration export) |
-| **Deploy** | Vercel frontend with CSP headers and cache control; survey data is bundled into a self-contained HTML payload |
-| **Data I/O** | CSV, Excel (.xlsx), SPSS (.sav), Stata (.dta), R (.rda) — round-trip with `labels`, `missing_values`, `formats` preserved |
+| :--- | :--- |
+| **Core** | Variables (nominal/ordinal/interval/ratio), questions (single/multi/open/numeric/likert/matrix/ranking), pages, skip logic (`show_if`/`hide_if`), quotas, validation |
+| **Reporting** | Declarative tables (`FreqTable`, `CrossTable`, `GroupMeanTable`) and charts (`BarChart`, `BoxPlot`, `HeatMap`, `ScatterPlot`) — automatic labels, statistical tests, and metadata awareness |
+| **Scripts** | Inline JavaScript for survey-side behaviour — 7 trigger points |
+| **Frontend** | SurveyJS and React 18 runtimes, dark mode, auto-save, access codes, 6 theme presets |
+| **Backend** | Local SQLite for development, Supabase for production |
+| **Deploy** | Vercel frontend with CSP headers; self-contained HTML bundle for offline use |
+| **Data I/O** | CSV, Excel (.xlsx), SPSS (.sav), Stata (.dta), R (.rda) — round-trip with labels and missing values preserved |
+
+---
+
+## Declarative Reporting API
+
+Siamang automatically uses variable metadata (labels, scales, missing values) to produce publication-ready outputs — like SPSS, but in Python:
+
+```python
+data = survey.simulate(n=300)
+
+# Tables — automatic labels, tests, and formatting
+data.report.freq("it_role")                              # frequency table
+data.report.crosstab("gender", "satisfaction", pct="col") # cross-tab + Chi²
+data.report.means("autonomy", by="remote_freq")          # means + Kruskal-Wallis
+
+# Charts — one line, automatic axis labels
+data.plot.bar("it_role")
+data.plot.boxplot("satisfaction", by="remote_freq", show_points=True)
+data.plot.heatmap(["surv_keystroke", "surv_camera"], by="remote_freq")
+data.plot.scatter("satisfaction", "autonomy", hue="gender")
+
+# Export
+data.report.freq("it_role").to_markdown()   # Markdown string
+data.report.freq("it_role").to_dataframe()  # pandas DataFrame
+data.report.freq("it_role").to_html()       # HTML table
+```
 
 ---
 
@@ -107,72 +150,50 @@ siamang preview examples/demo_survey.py --port 8000 --open
 ### Local (development)
 
 ```bash
-pip install git+https://github.com/hanelias/siamang.git
 siamang preview my_survey.py        # → http://127.0.0.1:8000
 ```
 
-### Cloud deployment (Vercel + Supabase)
+### Cloud (Vercel + Supabase)
 
 ```bash
-siamang init                                   # one-time: stores credentials
+siamang init                        # one-time: stores credentials
 siamang deploy my_survey.py --backend supabase --frontend vercel
 ```
 
-The deploy command:
-
-1. Bundles your survey into a self-contained HTML payload (pre-built React runtime).
-2. Uploads static assets to Vercel.
-3. Provisions Supabase tables with row-level security and quota counters.
-4. Prints the response dashboard URL.
-
 ---
 
-## Key concepts
-
-| Concept | Description |
-|---------|-------------|
-| **Variable** | The atomic unit — `name`, `scale`, `label`, value `labels`, `missing_values`. |
-| **Question** | Binds a variable to a prompt — `text`, `var`, `required`, `hint`, `show_if`, `skip_to`. |
-| **Question types** | `Question` (open / numeric), `SingleChoice`, `MultiChoice`, plus matrix / Likert / ranking subclasses. |
-| **Script** | Dataclass holding JavaScript snippets that hook into survey lifecycle events. |
-| **Page** | Groups questions into one screen: `Page(id, title, items=[...])`. |
-| **Questionnaire** | Top-level container: `Questionnaire(title, pages, blocks, deadline, variables, scripts)`. |
-| **Quota** | Per-cell respondent target: `Quota(variable, value, target)`. |
-| **SurveyData** | Collected responses with `.analysis()` for frequencies, crosstabs, descriptives. |
-
----
-
-## Project layout
+## Project Layout
 
 ```
 siamang/
-├── core/      Data model: Variable, Question, Block, Page, Questionnaire, Expression, Quota, Script
-├── data/      SurveyData, analysis, processing, frequency/crosstab/banner tables
-├── frontend/  React 18 runtime, JSX→JS compiler, bundle builder, theme engine
-├── deploy/    Backends (SQLite, Supabase), frontends (Vercel, local), pipeline orchestration
-├── cli/       validate, preview, deploy, init
-├── io/        Import/export for CSV, Excel, SPSS, Stata, R
-└── config/    User configuration (~/.siamang.toml), secrets
+├── core/        Variable, Question types, Block, Page, Questionnaire, Expression, Quota, Script
+├── data/        SurveyData, DataAnalysis, DataProcessing, SurveyTables
+├── reporting/   Declarative tables (FreqTable, CrossTable, GroupMeanTable) and charts (BarChart, BoxPlot, HeatMap, ScatterPlot)
+├── frontend/    SurveyJS & React runtimes, bundle builder, UIConfig theme engine, presets
+├── deploy/      Backends (SQLite, Supabase), frontends (Vercel, local), pipeline orchestration
+├── cli/         validate, preview, deploy, init
+├── io/          Import/export for CSV, Excel, SPSS, Stata, R
+└── config/      User configuration (~/.siamang.toml), secrets
 ```
-
----
-
-## Requirements
-
-- **Python 3.11+**
-- For cloud deployment: a **Supabase** project + anon key, and a
-  **Vercel** account.
 
 ---
 
 ## Documentation
 
 | Resource | Description |
-|----------|-------------|
-| [`MANUAL.md`](MANUAL.md) | Single-file manual with worked examples for every feature. |
-| [`docs/index.md`](docs/index.md) | Full documentation hub: getting started, concepts, per-module reference, cookbook, development guide. |
-| [`docs/reference/`](docs/reference/) | API reference — every public class and function in `core`, `data`, `io`, `frontend`, `deploy`, `cli`. |
-| [`LICENSE`](LICENSE) | MIT License. |
+| :--- | :--- |
+| [`docs/reference/core.md`](docs/reference/core.md) | API reference — Variable, Expression, all Question types, Page, Questionnaire |
+| [`docs/reference/data.md`](docs/reference/data.md) | API reference — SurveyData, DataAnalysis, DataProcessing, SurveyTables |
+| [`docs/reference/reporting.md`](docs/reference/reporting.md) | API reference — Declarative tables and charts |
+| [`docs/reference/frontend.md`](docs/reference/frontend.md) | API reference — UIConfig, theme presets, runtimes, bundle builder |
+| [`examples/full_pipeline/`](examples/full_pipeline/) | Complete worked example: design → deploy → analyze |
+
+---
+
+## Requirements
+
+- **Python 3.11+**
+- For cloud deployment: a **Supabase** project and a **Vercel** account
 
 ---
 
