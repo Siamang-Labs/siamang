@@ -133,23 +133,50 @@ class SupabaseBackend(BackendAdapter):
     url: str = ""
     anon_key: str = ""
     service_key: str = ""
-    table: str = "responses"           # base name; per-survey: responses_<survey_id>
+    table: str = "responses"
     quota_function: str = "quota-check"
+    auto_provision: bool = True
 ```
 
-The `supabase` Python client comes pre-installed. Credentials fall back to
-`SIAMANG_SUPABASE_URL`, `SIAMANG_SUPABASE_ANON_KEY`,
+Credentials fall back to `SIAMANG_SUPABASE_URL`, `SIAMANG_SUPABASE_ANON_KEY`,
 `SIAMANG_SUPABASE_SERVICE_KEY` if the kwargs are blank (legacy `SURVLIB_*`
 names are also accepted). The constructor raises `ValueError` if any of the
 three are still empty.
 
-Data model:
+**Data model:**
 
 - A single shared `responses` table with a `survey_id` column.
-- RLS policies created at provision time so anon clients can `INSERT`
-  but not `SELECT`.
-- Quota counters live in a single `quota_counters` table updated by an
-  Edge Function (named via `quota_function`).
+- A `survey_meta` table tracking each deployed survey's schema.
+- RLS policies: anon can `INSERT`, authenticated can `SELECT`/`DELETE`.
+- Quota counters live in `quota_counters`, updated by an Edge Function.
+
+**Provisioning modes:**
+
+1. **Auto** (default, `auto_provision=True`): creates tables via an
+   `exec_sql` RPC function. You must create this function once:
+
+   ```sql
+   -- Run once in Supabase Dashboard → SQL Editor:
+   CREATE OR REPLACE FUNCTION exec_sql(query TEXT)
+   RETURNS VOID AS $$
+   BEGIN EXECUTE query; END;
+   $$ LANGUAGE plpgsql SECURITY DEFINER;
+   ```
+
+   If the function is missing, `provision()` raises
+   `SupabaseProvisionError` with clear instructions.
+
+2. **Manual** (`auto_provision=False`): skips table creation entirely.
+   Generate and run the SQL yourself:
+
+   ```python
+   from siamang.deploy.backends.supabase import generate_migration_sql
+   print(generate_migration_sql())
+   # Copy output → Supabase Dashboard → SQL Editor → Run
+   ```
+
+3. **Migration file**: pass `migration_dir="./migrations"` to `provision()`
+   to save a timestamped `.sql` file (works with both modes).
 
 Extra method: `get_all_responses(survey_id, page_size=1000)` —
 auto-paginates through all responses.

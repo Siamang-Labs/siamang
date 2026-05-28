@@ -38,20 +38,32 @@ CREATE TABLE IF NOT EXISTS responses (
 _RLS_POLICIES = """
 ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
 
--- Anon users can only INSERT their own responses
-CREATE POLICY "anon_insert_responses" ON responses
-    FOR INSERT TO anon
-    WITH CHECK (true);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'anon_insert_responses'
+    ) THEN
+        CREATE POLICY "anon_insert_responses" ON responses
+            FOR INSERT TO anon WITH CHECK (true);
+    END IF;
+END $$;
 
--- Authenticated users can read all responses
-CREATE POLICY "auth_select_responses" ON responses
-    FOR SELECT TO authenticated
-    USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'auth_select_responses'
+    ) THEN
+        CREATE POLICY "auth_select_responses" ON responses
+            FOR SELECT TO authenticated USING (true);
+    END IF;
+END $$;
 
--- Authenticated users can delete responses
-CREATE POLICY "auth_delete_responses" ON responses
-    FOR DELETE TO authenticated
-    USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE policyname = 'auth_delete_responses'
+    ) THEN
+        CREATE POLICY "auth_delete_responses" ON responses
+            FOR DELETE TO authenticated USING (true);
+    END IF;
+END $$;
 """
 
 _INDEXES = """
@@ -89,6 +101,10 @@ CREATE TABLE IF NOT EXISTS quota_counters (
 """
 
 
+class SupabaseProvisionError(RuntimeError):
+    """Raised when Supabase provisioning fails (e.g. missing exec_sql RPC)."""
+
+
 def _compute_schema_hash(survey_id: str, variables: list[dict[str, Any]]) -> str:
     """Compute a hash of the variable schema for migration tracking."""
     payload = json.dumps(variables, sort_keys=True, ensure_ascii=False)
@@ -111,6 +127,60 @@ def _get_env(new_name: str, legacy_name: str, default: str = "") -> str:
     return os.environ.get(new_name, os.environ.get(legacy_name, default))
 
 
+def generate_migration_sql(
+    survey_id: str | None = None,
+    title: str = "Untitled Survey",
+) -> str:
+    """Generate the full migration SQL for manual execution in Supabase SQL Editor.
+
+    This is useful when the ``exec_sql`` RPC function is not available.
+    Copy the output and run it in the Supabase Dashboard → SQL Editor.
+
+    Parameters
+    ----------
+    survey_id : str, optional
+        If provided, includes a survey_meta INSERT for this specific survey.
+    title : str
+        Survey title for the meta record.
+
+    Returns
+    -------
+    str
+        Complete SQL migration script.
+    """
+    parts = [
+        "-- Siamang: Supabase migration script",
+        f"-- Generated: {datetime.now(timezone.utc).isoformat()}",
+        "-- Run this in Supabase Dashboard → SQL Editor",
+        "",
+        "-- 1. Responses table",
+        _RESPONSES_TABLE.strip(),
+        "",
+        "-- 2. Survey metadata table",
+        _SURVEY_META_TABLE.strip(),
+        "",
+        "-- 3. Quota counters table",
+        _QUOTA_TABLE.strip(),
+        "",
+        "-- 4. Row-Level Security policies",
+        _RLS_POLICIES.strip(),
+        "",
+        "-- 5. Indexes",
+        _INDEXES.strip(),
+    ]
+
+    if survey_id:
+        parts.extend([
+            "",
+            "-- 6. Register this survey",
+            f"INSERT INTO survey_meta (survey_id, title) "
+            f"VALUES ('{survey_id}', '{title}') ON CONFLICT (survey_id) DO NOTHING;",
+        ])
+
+    parts.append("")
+    return "\n".join(parts)
+
+
 @dataclass(slots=True)
 class SupabaseBackend(BackendAdapter):
     """Supabase storage backend with RLS policies and migration tracking.
@@ -122,6 +192,13 @@ class SupabaseBackend(BackendAdapter):
         SIAMANG_SUPABASE_URL (fallback: SURVLIB_SUPABASE_URL)
         SIAMANG_SUPABASE_ANON_KEY (fallback: SURVLIB_SUPABASE_ANON_KEY)
         SIAMANG_SUPABASE_SERVICE_KEY (fallback: SURVLIB_SUPABASE_SERVICE_KEY)
+
+    Provisioning modes:
+        1. **Auto** (default): calls ``exec_sql`` RPC to create tables.
+           Requires a Postgres function ``exec_sql(query TEXT)`` in your
+           Supabase project. See docs for setup instructions.
+        2. **Manual**: pass ``auto_provision=False`` and run the SQL from
+           ``generate_migration_sql()`` in the Supabase SQL Editor yourself.
     """
 
     name: str = "supabase"
@@ -130,6 +207,7 @@ class SupabaseBackend(BackendAdapter):
     service_key: str = ""
     table: str = "responses"
     quota_function: str = "quota-check"
+    auto_provision: bool = True
     session: Any = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -170,19 +248,81 @@ class SupabaseBackend(BackendAdapter):
     def _table_url(self) -> str:
         return f"{self.url.rstrip('/')}/rest/v1/{self.table}"
 
-    def _exec_sql(self, query: str) -> bool:
-        """Execute raw SQL via Supabase REST API (requires exec_sql RPC function)."""
+    def _exec_sql(self, query: str, *, required: bool = True) -> bool:
+        """Execute raw SQL via Supabase REST API (requires exec_sql RPC function).
+
+        Parameters
+        ----------
+        query : str
+            SQL to execute.
+        required : bool
+            If True (default), raises SupabaseProvisionError on failure.
+            If False, returns False silently.
+
+        Returns
+        -------
+        bool
+            True if the query executed successfully.
+
+        Raises
+        ------
+        SupabaseProvisionError
+            If required=True and the RPC call fails.
+        """
+        rpc_url = f"{self.url.rstrip('/')}/rest/v1/rpc/exec_sql"
         try:
-            rpc_url = f"{self.url.rstrip('/')}/rest/v1/rpc/exec_sql"
             response = self.session.post(
                 rpc_url,
                 headers=self._admin_headers(),
                 data=json.dumps({"query": query}),
                 timeout=30,
             )
-            return response.status_code in (200, 201, 204)
-        except Exception:
+        except Exception as exc:
+            if required:
+                raise SupabaseProvisionError(
+                    f"Failed to connect to Supabase exec_sql RPC: {exc}\n\n"
+                    "To fix this, either:\n"
+                    "  1. Create the exec_sql RPC function in your Supabase project:\n"
+                    "     CREATE OR REPLACE FUNCTION exec_sql(query TEXT)\n"
+                    "     RETURNS VOID AS $$ BEGIN EXECUTE query; END; $$ LANGUAGE plpgsql;\n\n"
+                    "  2. Or run the migration manually:\n"
+                    "     from siamang.deploy.backends.supabase import generate_migration_sql\n"
+                    "     print(generate_migration_sql())\n"
+                    "     # Copy output → Supabase Dashboard → SQL Editor → Run\n\n"
+                    "  3. Or set auto_provision=False:\n"
+                    "     SupabaseBackend(auto_provision=False, ...)"
+                ) from exc
             return False
+
+        if response.status_code not in (200, 201, 204):
+            if required:
+                # Detect common failure: RPC function doesn't exist (404)
+                if response.status_code == 404:
+                    raise SupabaseProvisionError(
+                        "The exec_sql RPC function was not found in your Supabase project.\n\n"
+                        "To fix this, either:\n"
+                        "  1. Create it in Supabase Dashboard → SQL Editor:\n\n"
+                        "     CREATE OR REPLACE FUNCTION exec_sql(query TEXT)\n"
+                        "     RETURNS VOID AS $$\n"
+                        "     BEGIN EXECUTE query; END;\n"
+                        "     $$ LANGUAGE plpgsql SECURITY DEFINER;\n\n"
+                        "  2. Or run the migration SQL manually:\n"
+                        "     from siamang.deploy.backends.supabase import generate_migration_sql\n"
+                        "     print(generate_migration_sql())\n"
+                        "     # Copy output → Supabase Dashboard → SQL Editor → Run\n\n"
+                        "  3. Or set auto_provision=False:\n"
+                        "     SupabaseBackend(auto_provision=False, ...)"
+                    )
+                raise SupabaseProvisionError(
+                    f"exec_sql RPC returned HTTP {response.status_code}: "
+                    f"{response.text[:300]}\n\n"
+                    "If you cannot resolve this, run the migration manually:\n"
+                    "  from siamang.deploy.backends.supabase import generate_migration_sql\n"
+                    "  print(generate_migration_sql())"
+                )
+            return False
+
+        return True
 
     def _extract_variables(self, schema: "SurveySchema") -> list[dict[str, Any]]:
         """Extract variable definitions from survey schema for migration tracking."""
@@ -196,6 +336,22 @@ class SupabaseBackend(BackendAdapter):
 
         Creates a shared ``responses`` table (if not exists), registers the
         survey in ``survey_meta``, and sets up quota counters.
+
+        If ``auto_provision`` is False, skips table creation (assumes tables
+        already exist from a manual migration).
+
+        Parameters
+        ----------
+        schema : SurveySchema
+            The compiled survey schema.
+        migration_dir : str, optional
+            If provided, writes a .sql migration file to this directory
+            regardless of auto_provision setting.
+
+        Raises
+        ------
+        SupabaseProvisionError
+            If auto_provision is True and exec_sql RPC is unavailable.
         """
         survey_id = uuid.uuid4().hex[:12]
         variables = self._extract_variables(schema)
@@ -203,14 +359,30 @@ class SupabaseBackend(BackendAdapter):
 
         dashboard_url = f"{self.url.rstrip('/')}/project/_/editor"
 
-        # 1. Ensure shared tables exist
-        self._exec_sql(_SURVEY_META_TABLE)
-        self._exec_sql(_RESPONSES_TABLE)
-        self._exec_sql(_RLS_POLICIES)
-        self._exec_sql(_INDEXES)
-        self._exec_sql(_QUOTA_TABLE)
+        # Always export migration SQL if requested (useful even with auto_provision)
+        if migration_dir:
+            from pathlib import Path
 
-        # 2. Register survey in survey_meta
+            migrations = Path(migration_dir)
+            migrations.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            migration_sql = generate_migration_sql(
+                survey_id=survey_id, title=schema.title or "Untitled"
+            )
+            (migrations / f"{timestamp}_provision_{survey_id}.sql").write_text(
+                migration_sql
+            )
+
+        # Auto-provision: create tables via exec_sql RPC
+        if self.auto_provision:
+            self._exec_sql(_SURVEY_META_TABLE, required=True)
+            self._exec_sql(_RESPONSES_TABLE, required=True)
+            self._exec_sql(_RLS_POLICIES, required=True)
+            self._exec_sql(_INDEXES, required=True)
+            self._exec_sql(_QUOTA_TABLE, required=True)
+
+        # Register survey in survey_meta (via REST API, not exec_sql)
         meta_url = f"{self.url.rstrip('/')}/rest/v1/survey_meta"
         meta_payload = {
             "survey_id": survey_id,
@@ -227,7 +399,7 @@ class SupabaseBackend(BackendAdapter):
         )
         response.raise_for_status()
 
-        # 3. Create quota_counters if needed
+        # Create quota_counters if needed
         if schema.quotas:
             quota_url = f"{self.url.rstrip('/')}/rest/v1/quota_counters"
             quota_rows = [
@@ -246,29 +418,6 @@ class SupabaseBackend(BackendAdapter):
                 data=json.dumps(quota_rows),
             )
             response.raise_for_status()
-
-        # 4. Export migration SQL if requested
-        if migration_dir:
-            from pathlib import Path
-
-            migrations = Path(migration_dir)
-            migrations.mkdir(parents=True, exist_ok=True)
-
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            migration_sql = (
-                "-- Auto-generated by siamang deploy\n"
-                f"-- Survey: {schema.title}\n"
-                f"-- Survey ID: {survey_id}\n"
-                f"-- Schema hash: {schema_hash}\n\n"
-                f"{_SURVEY_META_TABLE}\n\n"
-                f"{_RESPONSES_TABLE}\n\n"
-                f"{_RLS_POLICIES}\n\n"
-                f"{_INDEXES}\n\n"
-                f"{_QUOTA_TABLE}\n"
-            )
-            (migrations / f"{timestamp}_provision_{survey_id}.sql").write_text(
-                migration_sql
-            )
 
         return BackendConfig(
             backend=self.name,
