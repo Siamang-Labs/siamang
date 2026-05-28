@@ -113,8 +113,8 @@ The folder also includes `survey_preview.html` — an interactive HTML survey yo
 | **Reporting** | Declarative tables (`FreqTable`, `CrossTable`, `GroupMeanTable`) and charts (`BarChart`, `BoxPlot`, `HeatMap`, `ScatterPlot`) — automatic labels, statistical tests, and metadata awareness |
 | **Scripts** | Inline JavaScript for survey-side behaviour — 7 trigger points |
 | **Frontend** | SurveyJS and React 18 runtimes, dark mode, auto-save, access codes, 6 theme presets |
-| **Backend** | Local SQLite for development, Supabase for production |
-| **Deploy** | Vercel frontend with CSP headers; self-contained HTML bundle for offline use |
+| **Backend** | Local SQLite for development, Supabase for production, Google Sheets for collaborative access |
+| **Deploy** | Vercel and Netlify frontends with CSP headers; self-contained HTML bundle for offline use |
 | **Data I/O** | CSV, Excel (.xlsx), SPSS (.sav), Stata (.dta), R (.rda) — round-trip with labels and missing values preserved |
 
 ---
@@ -153,12 +153,31 @@ data.report.freq("it_role").to_html()       # HTML table
 siamang preview my_survey.py        # → http://127.0.0.1:8000
 ```
 
-### Cloud (Vercel + Supabase)
+### Cloud — Vercel + Supabase (high concurrency)
 
 ```bash
 siamang init                        # one-time: stores credentials
 siamang deploy my_survey.py --backend supabase --frontend vercel
 ```
+
+### Cloud — Netlify + Google Sheets (lightweight)
+
+```bash
+export SIAMANG_GSHEETS_CREDENTIALS_FILE=./service-account-key.json
+export NETLIFY_AUTH_TOKEN=nfp_...
+siamang deploy my_survey.py --backend gsheets --frontend netlify
+```
+
+Responses are written directly to a Google Spreadsheet (one row per respondent). The survey is hosted on Netlify CDN with automatic HTTPS and global edge distribution.
+
+### Deployment combinations
+
+| Use case | Backend | Frontend |
+| :--- | :--- | :--- |
+| Local development / testing | `local` | `local` |
+| Small survey, shared with team | `gsheets` | `netlify` |
+| Production, high concurrency | `supabase` | `vercel` or `netlify` |
+| Offline / air-gapped | `local` | `local` (HTML bundle) |
 
 ---
 
@@ -170,7 +189,7 @@ siamang/
 ├── data/        SurveyData, DataAnalysis, DataProcessing, SurveyTables
 ├── reporting/   Declarative tables (FreqTable, CrossTable, GroupMeanTable) and charts (BarChart, BoxPlot, HeatMap, ScatterPlot)
 ├── frontend/    SurveyJS & React runtimes, bundle builder, UIConfig theme engine, presets
-├── deploy/      Backends (SQLite, Supabase), frontends (Vercel, local), pipeline orchestration
+├── deploy/      Backends (SQLite, Supabase, Google Sheets), frontends (Vercel, Netlify, local), pipeline orchestration
 ├── cli/         validate, preview, deploy, init
 ├── io/          Import/export for CSV, Excel, SPSS, Stata, R
 └── config/      User configuration (~/.siamang.toml), secrets
@@ -186,6 +205,7 @@ siamang/
 | [`docs/reference/data.md`](docs/reference/data.md) | API reference — SurveyData, DataAnalysis, DataProcessing, SurveyTables |
 | [`docs/reference/reporting.md`](docs/reference/reporting.md) | API reference — Declarative tables and charts |
 | [`docs/reference/frontend.md`](docs/reference/frontend.md) | API reference — UIConfig, theme presets, runtimes, bundle builder |
+| [`docs/reference/deploy.md`](docs/reference/deploy.md) | API reference — Backends (Local, Supabase, Google Sheets), Frontends (Local, Vercel, Netlify), pipeline |
 | [`examples/full_pipeline/`](examples/full_pipeline/) | Complete worked example: design → deploy → analyze |
 
 ---
@@ -193,7 +213,9 @@ siamang/
 ## Requirements
 
 - **Python 3.11+**
-- For cloud deployment: a **Supabase** project and a **Vercel** account
+- For cloud deployment (option A): a **Supabase** project and a **Vercel** account
+- For cloud deployment (option B): a **Google Cloud** service account and a **Netlify** account
+- For Google Sheets backend: `pip install google-auth google-auth-httplib2 google-api-python-client`
 
 ---
 

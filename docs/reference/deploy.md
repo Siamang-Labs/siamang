@@ -181,6 +181,86 @@ three are still empty.
 Extra method: `get_all_responses(survey_id, page_size=1000)` —
 auto-paginates through all responses.
 
+### `GoogleSheetsBackend`
+
+```python
+@dataclass(slots=True)
+class GoogleSheetsBackend(BackendAdapter):
+    name: str = "gsheets"
+    credentials_file: str = ""     # path to service account JSON key
+    spreadsheet_id: str = ""       # existing spreadsheet (creates new if empty)
+    sheet_name: str = "Responses"  # worksheet name for response rows
+```
+
+Google Sheets backend — each response becomes a row in a Google Spreadsheet.
+Ideal for small-to-medium surveys where you want instant access to data in a
+familiar spreadsheet interface, shareable with collaborators without any
+infrastructure.
+
+**Prerequisites:**
+
+1. Create a Google Cloud project and enable the **Google Sheets API** and **Google Drive API**.
+2. Create a **Service Account** and download the JSON key file.
+3. (If using an existing spreadsheet) Share the spreadsheet with the service account email (Editor access).
+
+**Environment variables:**
+
+| Variable | Purpose |
+| :--- | :--- |
+| `SIAMANG_GSHEETS_CREDENTIALS_FILE` | Path to service account JSON key file (required) |
+| `SIAMANG_GSHEETS_SPREADSHEET_ID` | Existing spreadsheet ID (optional — creates new if empty) |
+
+Legacy `SURVLIB_GSHEETS_*` prefixes are also accepted.
+
+**Required Python packages:**
+
+```bash
+pip install google-auth google-auth-httplib2 google-api-python-client
+```
+
+**Data model:**
+
+- **Responses sheet** (`sheet_name`, default "Responses"): first row = headers (variable names), subsequent rows = responses. System columns `_response_id` and `_submitted_at` are prepended automatically.
+- **`_meta` sheet**: stores survey metadata (schema JSON, survey_id, deployed_at).
+- **`_quotas` sheet**: quota counters with columns `variable`, `value`, `target`, `current`.
+
+**Usage example:**
+
+```python
+# Deploy with Google Sheets backend
+result = survey.deploy(
+    backend="gsheets",
+    frontend="netlify",
+    backend_kwargs={
+        "credentials_file": "./my-project-key.json",
+        # spreadsheet_id omitted → creates a new spreadsheet
+    },
+)
+print(result.url)        # https://my-survey.netlify.app
+print(result.dashboard)  # https://docs.google.com/spreadsheets/d/...
+
+# Collect responses later
+df = result.collect()
+data = SurveyData(frame=df, variables=survey.variables)
+```
+
+**Methods:**
+
+| Method | Returns | Description |
+| :--- | :--- | :--- |
+| `provision(schema)` | `BackendConfig` | Creates/configures spreadsheet, writes headers, sets up `_meta` and `_quotas` sheets |
+| `store_response(survey_id, payload)` | `str` (response_id) | Appends a response row via `values.append()` |
+| `get_responses(survey_id)` | `pd.DataFrame` | Reads all rows, auto-converts numeric columns, replaces empty strings with NaN |
+| `check_quota(survey_id, variable, value)` | `bool` | Returns `True` if quota cell has capacity |
+| `increment_quota(survey_id, variable, value)` | `bool` | Check + increment; returns `False` when full |
+| `get_response_count(survey_id)` | `int` | Number of responses collected |
+
+**Limitations:**
+
+- Google Sheets API has a rate limit of ~100 requests/100 seconds per user. For surveys expecting >50 simultaneous respondents, use Supabase.
+- Quota increments are not truly atomic (small race condition window). For strict quota enforcement under high concurrency, use Supabase.
+- Maximum 10 million cells per spreadsheet (Google Sheets limit). For surveys with many variables and thousands of respondents, consider Supabase.
+
 ---
 
 ## Bundled frontends
@@ -226,6 +306,69 @@ In all branches it injects a strict `vercel.json`:
 - `X-Frame-Options: DENY`,
 - cache-control headers for hashed assets,
 - analytics route when `UIConfig.enable_analytics=True`.
+
+### `NetlifyFrontend`
+
+```python
+@dataclass(slots=True)
+class NetlifyFrontend(FrontendAdapter):
+    name: str = "netlify"
+    token: str = ""                # falls back to NETLIFY_AUTH_TOKEN env var
+    site_id: str = ""              # existing site ID (creates new if empty)
+    site_name: str = "siamang-survey"  # name for new site
+```
+
+Netlify frontend adapter — deploys static survey bundles to Netlify's global CDN. Provides instant HTTPS, automatic SSL, and worldwide edge distribution.
+
+**Environment variables:**
+
+| Variable | Purpose |
+| :--- | :--- |
+| `NETLIFY_AUTH_TOKEN` | Netlify personal access token (required for API deploy) |
+| `SIAMANG_NETLIFY_TOKEN` | Legacy alias for the above |
+
+**Deployment modes (automatic fallback):**
+
+1. **REST API** (recommended): ZIP upload to `/api/v1/sites/{id}/deploys` with automatic polling until ready. Requires `token`.
+2. **CLI fallback**: uses `npx netlify deploy --prod` when the REST path is unavailable.
+3. **Local fallback**: when no token is set, writes the bundle to `.netlify_deploy_<survey_id>/` for manual deployment via Netlify Drop or CLI.
+
+**Security headers** (injected automatically via `_headers` file):
+
+```
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; ...
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+SPA routing is handled via `_redirects` (`/* /index.html 200`).
+
+**Usage example:**
+
+```python
+# Deploy to Netlify + Google Sheets
+result = survey.deploy(
+    backend="gsheets",
+    frontend="netlify",
+    backend_kwargs={"credentials_file": "./key.json"},
+    frontend_kwargs={"token": "nfp_...", "site_name": "my-research-survey"},
+)
+print(result.url)  # https://my-research-survey.netlify.app
+```
+
+**Methods:**
+
+| Method | Returns | Description |
+| :--- | :--- | :--- |
+| `publish(bundle, config)` | `str` (URL) | Deploy bundle and return public URL |
+| `get_deploy_status(deploy_id)` | `dict` | Check status of a specific deploy |
+| `list_deploys()` | `list[dict]` | List all deploys for the site |
 
 ---
 
@@ -312,17 +455,21 @@ Both functions look up names first in the `siamang.backends` /
 `siamang.frontends` Python entry points (so third-party packages can
 contribute adapters), then fall back to siamang's built-in registry.
 
-Built-in entry points (declared in `pyproject.toml`):
+Built-in adapters:
 
-```toml
-[project.entry-points."siamang.backends"]
-local    = "siamang.deploy.backends.local:LocalBackend"
-supabase = "siamang.deploy.backends.supabase:SupabaseBackend"
-
-[project.entry-points."siamang.frontends"]
-local  = "siamang.deploy.frontends.local:LocalFrontend"
-vercel = "siamang.deploy.frontends.vercel:VercelFrontend"
+```python
+list_backends()   → ["local", "supabase", "gsheets"]
+list_frontends()  → ["local", "vercel", "netlify"]
 ```
+
+**Recommended combinations:**
+
+| Use case | Backend | Frontend |
+| :--- | :--- | :--- |
+| Local development / testing | `local` | `local` |
+| Small survey, shared with team | `gsheets` | `netlify` |
+| Production, high concurrency | `supabase` | `vercel` or `netlify` |
+| Offline / air-gapped | `local` | `local` (HTML bundle) |
 
 To ship a custom backend, register an entry point under the same
 group from your own package and implement `BackendAdapter`. Same for
