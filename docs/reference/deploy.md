@@ -190,6 +190,7 @@ class GoogleSheetsBackend(BackendAdapter):
     credentials_file: str = ""     # path to service account JSON key
     spreadsheet_id: str = ""       # existing spreadsheet (creates new if empty)
     sheet_name: str = "Responses"  # worksheet name for response rows
+    apps_script_url: str = ""      # Apps Script Web App URL for secure browser submissions
 ```
 
 Google Sheets backend — each response becomes a row in a Google Spreadsheet.
@@ -221,6 +222,7 @@ infrastructure.
 | :--- | :--- |
 | `SIAMANG_GSHEETS_CREDENTIALS_FILE` | Path to service account JSON key file (required) |
 | `SIAMANG_GSHEETS_SPREADSHEET_ID` | Existing spreadsheet ID (optional — creates new if empty) |
+| `SIAMANG_GSHEETS_APPS_SCRIPT_URL` | Apps Script Web App URL for secure browser submissions (optional) |
 
 Legacy `SURVLIB_GSHEETS_*` prefixes are also accepted.
 
@@ -245,6 +247,7 @@ result = survey.deploy(
     frontend="netlify",
     backend_kwargs={
         "credentials_file": "./my-project-key.json",
+        "apps_script_url": "https://script.google.com/macros/s/AKfyc.../exec",
         # spreadsheet_id omitted → creates a new spreadsheet
     },
 )
@@ -368,7 +371,10 @@ SPA routing is handled via `_redirects` (`/* /index.html 200`).
 result = survey.deploy(
     backend="gsheets",
     frontend="netlify",
-    backend_kwargs={"credentials_file": "./key.json"},
+    backend_kwargs={
+        "credentials_file": "./key.json",
+        "apps_script_url": "https://script.google.com/macros/s/AKfyc.../exec",
+    },
     frontend_kwargs={"token": "nfp_...", "site_name": "my-research-survey"},
 )
 print(result.url)  # https://my-research-survey.netlify.app

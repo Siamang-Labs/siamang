@@ -78,6 +78,8 @@ survey = Questionnaire(
 # Simulate and analyze
 data = survey.simulate(n=200)
 print(data.report.freq("satisfaction").to_markdown())
+
+# Visualize (requires: pip install siamang[charts])
 data.plot.bar("satisfaction").show()
 ```
 
@@ -236,7 +238,7 @@ All core dependencies are installed automatically with `pip install siamang`.
 ### Charts (optional)
 
 ```bash
-pip install matplotlib seaborn
+pip install siamang[charts]
 ```
 
 | Package | Version | Purpose |

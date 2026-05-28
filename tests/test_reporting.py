@@ -1,9 +1,5 @@
 """Tests for the declarative reporting module."""
 
-import sys
-
-sys.path.insert(0, "/home/ubuntu/siamang")
-
 from siamang import (
     LikertScale,
     NumericInput,
