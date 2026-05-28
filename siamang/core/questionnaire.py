@@ -179,9 +179,12 @@ class Questionnaire:
 
     def simulate(self, n: int = 100, seed: int | None = 42):
         from siamang.data.survey_data import SurveyData
-        from siamang.local_simulator import simulate_dataframe
+        from siamang.local_simulator import simulate_dataframe, simulate_from_pages
 
-        frame = simulate_dataframe(self.all_questions(), n=n, seed=seed)
+        if self.pages:
+            frame = simulate_from_pages(self.pages, n=n, seed=seed)
+        else:
+            frame = simulate_dataframe(self.all_questions(), n=n, seed=seed)
         variables = self.variables or VariableMap()
         if not variables:
             variables = VariableMap()
