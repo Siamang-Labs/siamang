@@ -63,6 +63,8 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.10",
     "pytest>=8.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
 ]
 # Google Sheets backend requires additional packages not bundled by default.
 gsheets = [
