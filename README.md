@@ -15,7 +15,7 @@
 ---
 
 ```bash
-pip install git+https://github.com/hanelias/siamang.git
+pip install siamang
 siamang validate my_survey.py
 siamang preview  my_survey.py        # local preview
 siamang deploy   my_survey.py --backend supabase --frontend vercel
