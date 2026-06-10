@@ -284,7 +284,9 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
       {page.title ? <h2 className="sd-page__title">{page.title}</h2> : null}
       {page.description ? <p className="sd-page__description">{page.description}</p> : null}
 
-      {page.blocks
+      {page.kind === "content"
+        ? <div className="sd-page__html" dangerouslySetInnerHTML={{ __html: page.body || "" }} />
+        : page.blocks
         ? page.blocks
             .filter((b) => visibilityEngine.isBlockVisible(b, answers))
             .map((b, i) => (
@@ -385,6 +387,57 @@ function ClosedScreen({ reason }) {
       </div>
       <h2 className="siamang-closed__title">{m.title}</h2>
       <p className="siamang-closed__body">{m.body}</p>
+    </div>
+  );
+}
+
+/* ─── Terminal pages (disqualification / final / redirect) ─────────────── */
+
+function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiTexts }) {
+  const firedRef = useRef(false);
+  const redirectUrl = page.redirectUrl || null;
+  const delayMs = (page.redirectDelay != null ? page.redirectDelay : 5) * 1000;
+
+  // Record the response once when the respondent reaches a terminal page.
+  // Disqualification pages are flagged screened-out in the stored payload.
+  useEffect(() => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    const status = page.kind === "disqualification" ? "screened_out"
+      : page.kind === "redirect" ? "redirect" : "completed";
+    try { store.set("__status", status); } catch (e) {}
+    submit();
+  }, []);
+
+  // Redirect (if configured) once the response is safely recorded.
+  useEffect(() => {
+    if (redirectUrl && phase === "completed") {
+      const t = setTimeout(() => { window.location.href = redirectUrl; }, delayMs);
+      return () => clearTimeout(t);
+    }
+  }, [redirectUrl, phase, delayMs]);
+
+  const screenedOut = page.kind === "disqualification";
+  const wrapCls = screenedOut ? "siamang-closed" : "sd-completedpage";
+  const titleCls = screenedOut ? "siamang-closed__title" : "sd-completedpage__title";
+  const bodyCls = screenedOut ? "siamang-closed__body" : "sd-completedpage__body";
+  return (
+    <div className={wrapCls}>
+      <h2 className={titleCls}>{page.title || (screenedOut ? "Thank you" : uiTexts.completedTitle)}</h2>
+      {page.body
+        ? <div className={"sd-page__html " + bodyCls} dangerouslySetInnerHTML={{ __html: page.body }} />
+        : <p className={bodyCls}>{uiTexts.completedBody}</p>}
+      {(submitId || submittedAt) && !screenedOut ? (
+        <dl className="sd-completedpage__meta">
+          {submitId ? <div><dt>Response ID</dt><dd>{submitId}</dd></div> : null}
+          {submittedAt ? <div><dt>Submitted</dt><dd>{submittedAt}</dd></div> : null}
+        </dl>
+      ) : null}
+      {redirectUrl ? (
+        <p className="sd-completedpage__redirect">
+          Redirecting you now. <a href={redirectUrl}>Continue</a> if you are not redirected.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -556,6 +609,21 @@ function App() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // ─── Terminal pages (disqualification / final / redirect) ───
+  // When the respondent reaches a terminal page it ends the survey: record the
+  // response (screened-out for disqualification) and show the page's content.
+  const _cur = nav.currentPage;
+  if (_cur && (_cur.kind === "disqualification" || _cur.kind === "final" || _cur.kind === "redirect")) {
+    return (
+      <>
+        <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
+        <div id="survey"><Header /><main id="surveyContainer" role="main">
+          <TerminalScreen page={_cur} store={store} submit={submit} phase={phase} submitId={submitId} submittedAt={submittedAt} uiTexts={uiTexts} />
+        </main><Footer /></div>
+      </>
     );
   }
 

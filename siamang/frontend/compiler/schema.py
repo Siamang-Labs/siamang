@@ -82,6 +82,14 @@ def _compile_page(page: Page) -> dict[str, Any]:
     hide_if = compile_expression(page.hide_if)
     if hide_if is not None:
         payload["hideIf"] = hide_if
+    if page.kind is not None:
+        payload["kind"] = page.kind
+    if page.body is not None:
+        payload["body"] = page.body
+    if page.redirect_url is not None:
+        payload["redirectUrl"] = page.redirect_url
+    if page.redirect_delay is not None:
+        payload["redirectDelay"] = page.redirect_delay
     return payload
 
 

@@ -62,6 +62,7 @@ from siamang.reporting import (
     FreqTable,
     GroupMeanTable,
     HeatMap,
+    Report,
     ScatterPlot,
 )
 
@@ -120,5 +121,6 @@ __all__ = [
     "FreqTable",
     "GroupMeanTable",
     "HeatMap",
+    "Report",
     "ScatterPlot",
 ]

@@ -12,7 +12,13 @@ from siamang.core.expression import (
 from siamang.core.filter_rule import FilterRule
 from siamang.core.media import Media
 from siamang.core.option import Option
-from siamang.core.page import Page
+from siamang.core.page import (
+    ContentPage,
+    DisqualificationPage,
+    FinalPage,
+    Page,
+    RedirectPage,
+)
 from siamang.core.question import (
     LikertScale,
     Matrix,
@@ -31,8 +37,11 @@ from siamang.core.variable import MissingValue, ValidationIssue, Variable, Varia
 __all__ = [
     "AND",
     "Block",
+    "ContentPage",
+    "DisqualificationPage",
     "Expression",
     "FilterRule",
+    "FinalPage",
     "LikertScale",
     "LintWarning",
     "Matrix",
@@ -49,6 +58,7 @@ __all__ = [
     "Questionnaire",
     "Quota",
     "Ranking",
+    "RedirectPage",
     "Script",
     "SingleChoice",
     "ValidationIssue",

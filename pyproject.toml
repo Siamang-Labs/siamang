@@ -35,6 +35,9 @@ dependencies = [
     "pyreadstat>=1.2",       # SPSS .sav / Stata .dta
     # Statistics
     "scipy>=1.11",
+    # Reporting (Report.to_markdown / to_html; pandas DataFrame.to_markdown needs tabulate)
+    "markdown>=3.5",
+    "tabulate>=0.9",
     # Deployment backends/frontends
     "supabase>=2.0",
     "requests>=2.31",
