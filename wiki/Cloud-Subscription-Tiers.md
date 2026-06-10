@@ -79,7 +79,7 @@ it returns **HTTP 402 (upgrade required)** via `require_feature` →
 | :--- | :--- | :--- |
 | `FEATURE_WEBHOOKS` | Plus, Pro, Corporate | Outgoing, HMAC-signed `POST` notifications on terminal events (`deploy.live`/`deploy.failed`, `run.completed`/`run.failed`). A Slack incoming-webhook URL works directly. |
 | `FEATURE_SCHEDULES` | Plus, Pro, Corporate | Cron-scheduled automation: run an analysis script or a full "run-all" on a schedule. |
-| `FEATURE_CONNECTORS` | Pro, Corporate | Data connectors (S3, GCS, Azure, BigQuery, Snowflake, Sheets, BYO-DB) **and** Git mirrors (push/pull to GitHub/GitLab). See [[Cloud Connectors|Cloud-Connectors]]. |
+| `FEATURE_CONNECTORS` | Pro, Corporate | Data connectors (S3, GCS, Azure, BigQuery, Snowflake, Sheets, BYO-DB) **and** Git mirrors (push/pull to GitHub/GitLab). See [[Cloud Connectors\|Cloud-Connectors]]. |
 | `FEATURE_SSO` | Pro, Corporate | Enterprise SAML / OIDC configuration for the org. The config surface is available on Pro+; enforced sign-in lands with the live identity integration. |
 | `FEATURE_SELF_HOSTED` | Corporate only | Entitlement to run siamang Cloud on your own infrastructure (data-residency / control). |
 
