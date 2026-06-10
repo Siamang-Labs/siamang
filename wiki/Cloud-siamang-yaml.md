@@ -137,9 +137,9 @@ tasks:
     direction: out        # out | in
     table: clean_responses  # project table to export (or destination on import)
     secret: aws_creds     # project_secrets key holding credentials
-    config:               # adapter-specific settings
+    config:               # adapter-specific settings (s3 requires bucket + key)
       bucket: my-research-exports
-      prefix: brand-study/
+      key: brand-study/responses.parquet
 ```
 
 See [[Cloud Connectors|Cloud-Connectors]] for the connector targets and how they

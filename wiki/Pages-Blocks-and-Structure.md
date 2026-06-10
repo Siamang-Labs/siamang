@@ -145,6 +145,8 @@ class Block:
 blocks.
 
 ```python
+import siamang as sg
+
 demographics = sg.Block(
     title="About you",
     items=[q_age, q_gender, q_region],

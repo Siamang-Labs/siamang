@@ -1,6 +1,7 @@
 # Cookbook
 
-Short, self-contained recipes for common tasks. Each assumes:
+Short recipes for common tasks. Within a section, later snippets may reuse
+variables defined just above; each recipe assumes:
 
 ```python
 import siamang as sg
