@@ -1866,3 +1866,8 @@ body.viewport-print .sd-matrix__cell { border-color: #000; }
   margin-bottom: 1.5rem;
   line-height: 1.5;
 }
+
+/* Custom HTML / content + terminal page body (author-provided markup). */
+.sd-page__html { line-height: 1.6; }
+.sd-page__html > :first-child { margin-top: 0; }
+.sd-page__html p { margin: 0 0 0.75em; }

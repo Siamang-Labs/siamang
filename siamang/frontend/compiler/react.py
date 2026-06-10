@@ -159,6 +159,16 @@ def _compile_page(page: Page, *, index: int, total: int) -> dict[str, Any]:
     if hide_if is not None:
         payload["hideIf"] = hide_if
 
+    # Custom page kinds (content / disqualification / final / redirect).
+    if page.kind is not None:
+        payload["kind"] = page.kind
+    if page.body is not None:
+        payload["body"] = page.body
+    if page.redirect_url is not None:
+        payload["redirectUrl"] = page.redirect_url
+    if page.redirect_delay is not None:
+        payload["redirectDelay"] = page.redirect_delay
+
     has_block = any(isinstance(item, Block) for item in page.items)
     if has_block:
         blocks: list[dict[str, Any]] = []
