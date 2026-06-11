@@ -1,21 +1,44 @@
-# Cloud Analysis and Reporting
+# Analysis & Reports
 
-A project's analysis is **code**: ordinary Python scripts, committed to the
-repository and declared in [[Project Config (siamang.yaml)|Cloud-siamang-yaml]],
-that read the project's responses and produce tables, files, and report
-documents. The platform runs them in the [[Cloud Sandbox and Security|Cloud-Sandbox-and-Security]]
-with a Postgres role scoped to the project's own schema, captures their outputs,
-and persists each run. Separately, a **server-side dashboard** computes
-frequencies and crosstabs straight from the database for quick exploration.
+siamang Cloud gives you two ways to make sense of your data: the live
+**Dashboard** for quick looks, and **analysis scripts** you commit and run for
+full, reproducible analysis with shareable **reports**. This page shows how you
+use both from the web app.
 
-Scripts use the [[Cloud Analysis SDK|Cloud-Analysis-SDK]] (`siamang_cloud`) for
-data access and statistics, and the re-exported [[Report Document|Report-Document]]
-to assemble Markdown/HTML reports.
+## Quick looks: the Dashboard
 
-## Declaring analysis scripts
+Open a project's **Dashboard** and find the **Data insights** section. It is
+computed live over **all** of your collected responses, so the numbers stay
+correct no matter how much data you have. Without writing anything you get:
 
-Each `type: analysis` task in `siamang.yaml` names an entry script and,
-optionally, a report artifact and extra outputs:
+- A **summary** — total responses, unique respondents, how many are partial, and
+  when the last response arrived.
+- A **responses-per-day** chart, so you can see fieldwork progress.
+- **Frequencies** — pick any variable from the dropdown to see its distribution
+  as a bar chart.
+- A **crosstab** — choose two variables to see a two-way table (with row and
+  column totals).
+
+The Dashboard is read-only and meant for exploring. For weighting, significance
+tests, custom tables, and anything you want to save or share, use analysis
+scripts.
+
+## Full analysis: scripts and runs
+
+Your analysis is **code**: ordinary Python scripts that read the project's
+responses, compute results, and produce tables, files, and reports. You commit
+them to the repository and declare them in your project's `siamang.yaml`. The
+platform runs each script in an **isolated environment** with read access to your
+project's data, captures whatever it produces, and saves every run.
+
+To write scripts, see [[Analysis SDK|Cloud-Analysis-SDK]] (the `siamang_cloud`
+helpers for data access and statistics). To declare them, see
+[[Project Config (siamang.yaml)|Cloud-siamang-yaml]].
+
+### Declaring a script
+
+Each analysis step is a `type: analysis` task in `siamang.yaml`. It names the
+script and, optionally, the report it produces and any extra files to keep:
 
 ```yaml
 tasks:
@@ -27,105 +50,79 @@ tasks:
   final_tables:
     type: analysis
     entry: scripts/final_tables.py
-    description: "Build frequency tables and crosstabs"   # → report section title
-    report: outputs/final_tables.md                        # the script's Report.save(...) target
+    description: "Build frequency tables and crosstabs"   # becomes a report section title
+    report: outputs/final_tables.md                        # the report the script saves
     outputs:
       - outputs/final_tables.xlsx                          # extra files to keep
 ```
 
-The API exposes these to the web app:
+The example project comes with three steps wired up this way: cleaning,
+weighting, and final tables.
 
-- `GET /projects/{id}/scripts` — the configured analysis scripts.
-- `POST /projects/{id}/scripts/{name}/run` — enqueue one script (role `analyst`+).
-- `POST /projects/{id}/scripts/run-all` — run every analysis task and combine reports.
-- `GET /projects/{id}/runs` — run history (status, log, output/report keys).
-- `GET /projects/{id}/reports` — report artifacts indexed under `reports/`.
+### Running scripts
 
-When a run is enqueued the API pins the project's default branch HEAD to a
-concrete commit SHA, so the worker always checks out an immutable commit.
+Open the **Analysis** screen. The **Scripts** section lists every analysis step
+from your `siamang.yaml`. From here you can:
 
-## Running one script — the `run_script` task
+- **Run** a single script — useful while you are iterating on one step.
+- **Run all** — run every step in declaration order (e.g. clean → weight →
+  tabulate) and combine the results into one report. If any step fails, the run
+  stops there.
 
-`worker/app/tasks/run_script.py` runs a single script and records its outcome on
-the `runs` row:
+Each card shows when the script last ran, how long it took, and whether it
+succeeded, plus chips linking to whatever it produced.
 
-1. Mark the run `running`, then download the commit archive.
-2. Resolve the entry path and (optional) report path from `siamang.yaml`.
-3. Build the **scoped DSN** — the platform DSN rewritten to the `project_<id>`
-   login role, whose password is an HMAC of a shared secret
-   (`sandbox_db.scoped_dsn`). No secret is stored; the worker reconstructs the
-   same credentials the API provisioned.
-4. Run the sandbox in **run_script** mode (`sandbox_run_script`): the checkout is
-   mounted **read-write** so the script can write into `<work>/outputs`, and the
-   container attaches to a **DB-only network**. The SDK connects with the scoped
-   role via injected environment variables (`SIAMANG_CLOUD_PG_DSN`,
-   `SIAMANG_CLOUD_PROJECT_SCHEMA`, `SIAMANG_CLOUD_PROJECT_ID`).
-5. Collect the files written to `outputs/` (capped by count and total size so a
-   runaway script cannot fill storage) and publish them.
+### Runs: completed or failed
 
-On success the run is marked `completed` with the script log, the output prefix,
-and the report key; a `run.completed` notification is emitted (and `run.failed`
-on failure).
+Every time you run something, it creates a **run** that appears in **Run
+history**. A run finishes in one of two states:
 
-### Where results go
+- **completed** — the script ran to the end successfully.
+- **failed** — the script raised an error (open it to read the log and fix it).
 
-A script can emit results in four non-exclusive ways:
+Click any run to open its detail panel:
 
-| Way | How | Where it shows |
-| :-- | :-- | :-- |
-| **Report artifact** | `Report(...).add(...).save("outputs/report.md")` | Repository (rendered Markdown/HTML) |
-| New database table | `db.write_table("clean_responses", df)` | Database → Tables |
-| File in `outputs/` | `df.to_excel("outputs/result.xlsx")` | Files (object storage) |
-| Log | `print(...)` | Analysis → run details / log |
+- **Logs** — everything the script printed, plus the error if it failed (with a
+  **Copy** button).
+- **Outputs** — links to what the run produced: a **report**, new **database
+  tables** (jump to them in the Database), and **files** to download.
 
-> **Storage vs. surfacing:** the rendered report itself is *stored* in object
-> storage (MinIO/S3 — the worker uploads it and records the object key on
-> `runs.report_key`), not committed back to the repository; the **Reports**
-> tab / `GET /projects/{id}/reports` endpoint is the surfacing layer that lists
-> and serves it.
+## Where your results go
 
-### Artifact storage
+A script can produce results in several ways at once, and each shows up in a
+predictable place in the app:
 
-When object storage (MinIO/S3) is configured, the worker uploads each `outputs/`
-file under a deterministic key, `runs/<run_id>/outputs/<rel>`
-(`MinioArtifactSink`), and stores the report's key on `runs.report_key`. Without
-object storage it falls back to local metadata (`LocalArtifactSink`) so the run
-still records what it produced.
+| You write… | …and it appears in |
+| :--- | :--- |
+| `Report(...).add(...).save("outputs/report.md")` | The **report**, openable in the Repository and listed in the run's Outputs |
+| `db.write_table("clean_responses", df)` | **Database → Tables** |
+| a file under `outputs/` (e.g. an `.xlsx`) | **Files** and the run's Outputs (downloadable) |
+| `print(...)` | The run's **Logs** |
 
-## Running everything — the `run_all` task
+## Reports
 
-`worker/app/tasks/run_all.py` powers **Run all**:
+A **report** is the shareable document your analysis produces — built with the
+[[Report Document|Report-Document]] builder (re-exported as `Report` in the
+analysis SDK), which turns your tables, headings, and notes into a clean
+document.
 
-1. Read every `type: analysis` task in declaration order.
-2. Run each script in the sandbox (`run_analysis`) with the same scoped DSN and
-   DB-only network. If any step fails, the run is marked `failed` and stops.
-3. Discover each task's Markdown report artifacts (its `report` plus any `.md`
-   `outputs`), validating that paths stay inside the checkout.
-4. **Combine** them into one document with `Report.combine(...)` (with a table of
-   contents) — each script becomes a section titled by its `description`. The
-   combined document is written to the configured `reports.combined` path
-   (default `reports/report.md`).
-5. Persist the combined report to object storage and index it in `project_files`
-   (`record_report_file`) so it survives the checkout teardown and appears under
-   `/reports`.
+- Reports are generated in **Markdown** and **HTML** (PDF is planned).
+- An individual script's report (its `report:` path) opens in the **Repository**
+  as a rendered document, with **MD** and **HTML** download buttons.
+- **Run all** combines every step's report into one document — with a table of
+  contents, each step titled by its `description` — written to your project's
+  reports folder (by default `reports/report.md`).
+- Generated reports and files also appear under **Files** so you can find and
+  download them later.
 
-## Server-side dashboard aggregates
+## Running analysis on a schedule
 
-The web Dashboard renders aggregates computed in Postgres
-(`api/app/routers/dashboard.py`), so frequencies and crosstabs stay correct at
-any data volume rather than aggregating client-side over a sample:
-
-- `GET /projects/{id}/dashboard/summary` — response/respondent counts,
-  duplicates, partials, last-response time, and a per-day series.
-- `GET /projects/{id}/dashboard/variables` — labelled variables available to chart.
-- `GET /projects/{id}/dashboard/frequencies?variable=…` — a frequency
-  distribution (`value`, `count`, `percent`).
-- `GET /projects/{id}/dashboard/crosstab?rows=…&cols=…` — a two-way table with
-  row/column totals.
-
-These are read-only summaries; full analysis (weighting, significance tests,
-custom tables, exports) belongs in the sandboxed scripts above.
+On the **Plus** plan and above, the **Analysis** screen has a **Schedules** panel
+where you can run a single script or a full **run-all** automatically on a cron
+schedule — handy for refreshing tables and reports nightly during fieldwork. See
+[[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]] for schedules and for
+getting notified when runs finish.
 
 ## See also
 
-[[Cloud Analysis SDK|Cloud-Analysis-SDK]] · [[Report Document|Report-Document]] · [[Cloud Scheduling and Webhooks|Cloud-Scheduling-and-Webhooks]] · [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] · [[Cloud Sandbox and Security|Cloud-Sandbox-and-Security]] · [[Cloud REST API|Cloud-REST-API]]
+[[Analysis SDK|Cloud-Analysis-SDK]] · [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] · [[Report Document|Report-Document]] · [[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]]

@@ -1,172 +1,109 @@
-# Cloud Scheduling and Webhooks
+# Schedules & Webhooks
 
-This page covers the platform's time- and event-driven plumbing:
+Two ways to put your project on autopilot: **schedules** run your analysis on a timetable,
+and **webhooks** notify your own systems when something finishes. Both are a **Plus and
+up** feature — see [[Plans & Billing|Cloud-Subscription-Tiers]].
 
-- **Cron schedules** that fire analysis runs on a timetable.
-- **Incoming Gitea webhooks** that turn a `git push` into a validation job.
-- **Outgoing webhooks** that notify your endpoints of terminal events, with a
-  signed payload and exponential-backoff retries.
+## Schedules: run analysis on a timetable
 
-All of these are driven by ARQ cron jobs registered in
-`worker/app/settings.py`:
+A schedule runs your analysis without anyone clicking a button — for example, clean the
+data and rebuild your report every night. You choose what runs, on which branch, and how
+often (as a cron expression).
 
-```python
-cron_jobs = [
-    cron(scheduler_tick,        second=0),                          # fire due schedules every minute
-    cron(webhook_retry_tick,    second=15),                         # retry failed deliveries every minute
-    cron(reap_deployments,      minute=set(range(0, 60, 5)), second=30),
-    cron(cleanup_expired_trials, minute={0, 30}),
-    cron(purge_stale_previews,  hour={3}, minute={15}),
-]
+A schedule runs one of:
+
+- **A single script** (`run_script`) — one analysis task, named by its task name from
+  [[Project Config (siamang.yaml)|Cloud-siamang-yaml]].
+- **Run all** (`run_all`) — every analysis task in order, producing the combined report.
+
+### Add a schedule
+
+In the web app, open your project's **Analysis** screen and go to **Schedules**. Add a
+schedule by choosing:
+
+- **What runs** — a single script (pick the task) or *Run all*.
+- **Branch** — the branch to check out and run (usually `main`).
+- **Cron** — a standard five-field cron expression (minute, hour, day-of-month, month,
+  day-of-week), interpreted in UTC.
+- **Enabled** — toggle a schedule on or off without deleting it.
+
+A new schedule starts from when you create it; it does not back-fill runs it "missed"
+before then. You can disable or remove a schedule at any time.
+
+### Cron examples
+
+```text
+0 2 * * *       Every day at 02:00 UTC
+30 7 * * 1-5    07:30 UTC on weekdays (Mon–Fri)
+0 */6 * * *     Every 6 hours
+0 9 * * 1       09:00 UTC every Monday
 ```
 
-## Scheduled analysis runs
+A nightly *Run all*, for instance, is `0 2 * * *`. To re-run just your `tables` script on
+weekday mornings, schedule a `run_script` for that task with `30 7 * * 1-5`.
 
-A **schedule** ties a cron expression to either a single analysis script
-(`run_script`) or a full `run_all`, on a chosen branch. Schedules are managed
-through the API (`api/app/routers/schedules.py`):
+## Webhooks: get notified on events
 
-- `GET /projects/{id}/schedules` — list schedules.
-- `POST /projects/{id}/schedules` — create one (role `analyst`+).
-- `DELETE /projects/{id}/schedules/{schedule_id}` — remove one.
+A webhook lets the platform tell *your* systems when a deploy or a run finishes. You
+register an endpoint URL, and the platform sends it an outgoing `POST` with a JSON body
+each time a subscribed event happens.
 
-The create payload (`ScheduleIn`):
+### Events
 
-```json
-{
-  "kind": "run_all",          // "run_script" or "run_all"
-  "script_name": null,        // required when kind == "run_script"
-  "cron": "0 2 * * *",        // standard 5-field cron; validated with croniter
-  "branch": "main",
-  "enabled": true
-}
-```
+| Event | Fires when |
+| :--- | :--- |
+| `deploy.live` | A deployment finished and the survey is live |
+| `deploy.failed` | A deployment failed |
+| `run.completed` | An analysis run finished successfully |
+| `run.failed` | An analysis run failed |
 
-The cron expression is validated with `croniter` on create, and `script_name` is
-required for `run_script` schedules. Scheduling is a paid feature, so creating a
-schedule checks the org's plan (see [[Cloud Subscription Tiers|Cloud-Subscription-Tiers]]).
+### Register an endpoint
 
-### The `scheduler_tick` cron
+Webhook endpoints are set per organization, in your organization's settings. To add one,
+provide:
 
-`scheduler_tick` runs **once a minute** (`worker/app/tasks/scheduler.py`):
+- **URL** — where the platform should `POST`. A **Slack incoming-webhook URL works
+  directly**, so you can get run/deploy notifications in a Slack channel with no extra
+  glue.
+- **Events** — the events to subscribe to. Leave the list **empty to receive all events**.
+- **Secret** (optional) — a shared secret used to sign each request so you can verify it
+  came from siamang Cloud (see below).
+- **Enabled** — turn the endpoint on or off.
 
-1. Load enabled schedules joined with their repo and `last_run_at`
-   (`due_schedules`).
-2. For each one, decide whether it is **due** with the pure `is_due()` check
-   (`worker/app/scheduler_core.py`) — `croniter` computes the next fire time from
-   `last_run_at` (or one minute ago if it has never run, so a brand-new schedule
-   does not backfill its whole missed history).
-3. For a due schedule, create a `runs` row and enqueue the matching job —
-   `run_all` or `run_script` — checking out the schedule's **branch name**
-   directly (no Gitea HEAD lookup, keeping the tick cheap), then stamp
-   `last_run_at` (`mark_schedule_run`).
+The app also keeps a **delivery log** for each endpoint, so you can see what was sent and
+whether it succeeded. If a delivery fails, the platform retries it automatically with
+increasing delays before giving up.
 
-One broken schedule (bad cron, enqueue hiccup) is logged and skipped so it never
-starves every other org's schedules. The tick returns `{checked, fired, errors}`.
+### What a delivery looks like
 
-### A cron example
-
-```yaml
-# Run all analysis tasks every night at 02:00 UTC, on the main branch.
-kind: run_all
-cron: "0 2 * * *"
-branch: main
-enabled: true
-```
-
-```yaml
-# Re-run just the daily tables on weekdays at 07:30 UTC.
-kind: run_script
-script_name: tables
-cron: "30 7 * * 1-5"
-branch: main
-```
-
-## Incoming Gitea push webhooks
-
-Validation is triggered by a Gitea `push` webhook at `POST /webhooks/git`
-(`api/app/routers/webhooks.py`):
-
-1. The raw body is verified against the configured `git_webhook_secret` using an
-   HMAC-SHA256 signature in the `X-Gitea-Signature` header; a bad signature is
-   rejected with `401`.
-2. The project is resolved by `repository.id` (the `gitea_repo_id`). An unknown
-   repo is acknowledged without action (`{"status": "ignored"}`).
-3. A `commit_status` row is upserted to `pending` for the pushed commit (`after`)
-   and branch.
-4. A `validate` job is enqueued with the commit SHA, branch, and repo full name.
-
-The endpoint responds `202 Accepted`. The rest of validation is covered in
-[[Cloud Survey Lifecycle|Cloud-Survey-Lifecycle]].
-
-## Outgoing webhooks
-
-An organization can register webhook **endpoints** that receive a JSON payload on
-terminal events — `deploy.live`, `deploy.failed`, `run.completed`,
-`run.failed`. (Slack-compatible incoming-webhook URLs work too.) Endpoints are
-managed under the org routes (`api/app/routers/orgs.py`):
-
-- `GET /{org}/webhooks` — list endpoints.
-- `POST /{org}/webhooks` — create one (role `admin`+); paid feature.
-- `DELETE /{org}/webhooks/{webhook_id}` — remove one.
-- `GET /{org}/webhooks/deliveries` — the **delivery journal** (newest first).
-
-The create payload (`WebhookIn`):
-
-```json
-{
-  "url": "https://example.com/hooks/siamang",
-  "secret": "whsec_…",   // optional; enables HMAC signing
-  "events": [],          // empty list = subscribe to all events
-  "enabled": true
-}
-```
-
-### Delivery, signing, and the journal
-
-When a task finishes it calls `notify.emit(...)`, which POSTs the payload to each
-enabled endpoint subscribed to the event (`worker/app/notify.py`). Delivery is
-fully best-effort: any failure — including journaling — is swallowed so the
-originating deploy/run task never breaks.
-
-Each request carries:
+Each request is a JSON `POST` whose body includes the `event` name plus a few details
+about what happened (for example a `run.completed` carries the run and script; a
+`deploy.live` carries the survey URL). Every request also carries these headers:
 
 - `Content-Type: application/json`
-- `X-Siamang-Event: <event>`
-- `X-Siamang-Signature: sha256=<hex>` — present only when the endpoint has a
-  secret; the HMAC-SHA256 of the exact request body.
+- `X-Siamang-Event: <event>` — the event name.
+- `X-Siamang-Signature: sha256=<hex>` — present only when you set a secret; an HMAC-SHA256
+  signature of the exact request body.
 
-Verify the signature on your side:
+### Verify the signature
+
+If you set a secret, check the signature on your side before trusting the payload. Compute
+the HMAC-SHA256 of the raw request body with your secret and compare it to the header:
 
 ```python
-import hashlib, hmac
+import hashlib
+import hmac
 
 def verify(secret: str, body: bytes, header: str) -> bool:
     expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, header)
 ```
 
-Every attempt is recorded in the `webhook_deliveries` journal. A successful POST
-is marked `ok`; a failure (any `>= 400` status or transport error) is saved as
-`pending` with the error and a `next_attempt_at`.
-
-### Retry with backoff — the `webhook_retry_tick` cron
-
-`webhook_retry_tick` runs every minute and calls `retry_due_deliveries`, which
-re-sends `pending` deliveries whose `next_attempt_at` has passed. Rows are
-claimed with `FOR UPDATE … SKIP LOCKED` so concurrent ticks never double-send.
-On each retry:
-
-- Success → marked `ok`.
-- Another failure → `next_attempt_at` pushed out by exponential backoff
-  (`2, 4, 8, …` minutes, capped at 60) until `MAX_ATTEMPTS` (5).
-- Exhausted, or the endpoint was disabled after the event fired → marked
-  `failed` with the last error.
-
-The delivery journal therefore always shows the terminal state of every
-notification, which the `GET /{org}/webhooks/deliveries` endpoint surfaces in the
-web app.
+Use the raw bytes of the body exactly as received (don't re-serialize the JSON first), or
+the signatures won't match.
 
 ## See also
 
-[[Cloud Survey Lifecycle|Cloud-Survey-Lifecycle]] · [[Cloud Analysis and Reporting|Cloud-Analysis-and-Reporting]] · [[Cloud REST API|Cloud-REST-API]] · [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] · [[Cloud Subscription Tiers|Cloud-Subscription-Tiers]]
+- [[Plans & Billing|Cloud-Subscription-Tiers]] — schedules and webhooks are Plus and up
+- [[Analysis & Reports|Cloud-Analysis-and-Reporting]] — what a run produces
+- [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] — name the tasks a schedule runs
