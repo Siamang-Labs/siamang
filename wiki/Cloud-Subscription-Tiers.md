@@ -1,164 +1,97 @@
-# Cloud Subscription Tiers
+# Plans & Billing
 
-The siamang **engine is open source**; siamang **Cloud** is the managed, hosted
-product that monetizes the infrastructure and a set of premium capabilities on top
-of the open engine. Subscriptions therefore cover the *Cloud* — hosting, resource
-limits, and gated features. There are four tiers: **Free**, **Plus**, **Pro**, and
-**Corporate**.
-
-> **Single source of truth.** The plan matrix is defined in the backend and
-> mirrored by the UI:
-> - Caps & feature flags: `api/app/services/limits.py`
-> - Prices & catalogue: `api/app/services/billing.py`
-> - UI mirror used for client-side gating: `web/lib/plans.ts`
->
-> The values below are taken from `limits.py` (the authoritative source). Where
-> the prose docs differ, see the [note on the AI feature](#a-note-on-the-ai-assistant).
-
----
+siamang Cloud comes in four plans — **Free**, **Plus**, **Pro**, and **Corporate**. Your
+plan applies to a whole **organization** and every project inside it, setting how much you
+can create and which premium features you can use. This page covers what each plan
+includes and how to change yours.
 
 ## Plans at a glance
 
 | | **Free** | **Plus** | **Pro** | **Corporate** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Price / month** | $0 | $49 | $299 | Custom — contact sales |
-| **Checkout** | Self-serve | Self-serve | Self-serve | Sales-assisted |
-| **Projects (repositories)** | 2 | 10 | Unlimited | Unlimited |
+| **Price / month** | $0 | $49 | $299 | Custom |
+| **How to get it** | Self-serve | Self-serve | Self-serve | Contact sales |
+| **Projects** | 2 | 10 | Unlimited | Unlimited |
 | **Team members** | 2 | 15 | Unlimited | Unlimited |
 | **Responses per project** | 500 | Unlimited | Unlimited | Unlimited |
-| **Webhooks** | — | ✓ | ✓ | ✓ |
-| **Schedules (cron runs)** | — | ✓ | ✓ | ✓ |
-| **Connectors & Git mirrors** | — | — | ✓ | ✓ |
-| **SSO (SAML / OIDC)** | — | — | ✓ | ✓ |
-| **Self-hosted deployment** | — | — | — | ✓ |
-| **Core platform** (repos, deploys, database, analysis, reports, API keys) | ✓ | ✓ | ✓ | ✓ |
+| **Webhooks** | — | Yes | Yes | Yes |
+| **Schedules** | — | Yes | Yes | Yes |
+| **Connectors & Git mirrors** | — | — | Yes | Yes |
+| **SSO (SAML / OIDC)** | — | — | Yes | Yes |
+| **Self-hosted deployment** | — | — | — | Yes |
 
-`Unlimited` is represented in code as "no cap" (`None`). Prices come from
-`PLAN_PRICE_CENTS` in `billing.py` (`free=0`, `plus=4900`, `pro=29900`,
-`corporate=None`).
+## What every plan includes
 
----
+All plans — Free included — get the complete research-as-code product. Free is a
+genuinely useful, capped tier rather than a stripped-down trial. On every plan you get:
 
-## What every plan includes (core platform)
-
-All tiers — including **Free** — get the complete research-as-code product; Free
-is a genuinely useful, capped funnel rather than a crippled trial. Core
-capabilities on every plan:
-
-- **Git-backed repositories** — author surveys as code; commit, branch, open and
-  merge pull requests; every commit runs validation and reports a status.
-- **Repository dashboard** — per-repo overview (README, status, recent commits,
-  latest deployment).
-- **Deployments** — publish a survey to an environment, get a hosted survey URL,
+- **Git-backed projects** — author surveys as code; commit, branch, and open and merge
+  pull requests. Every commit is validated.
+- **Deployments** — publish a survey to an environment, get a hosted survey URL, and
   collect responses.
-- **Response database** — browse responses, view table schemas, export to
-  CSV/XLSX/SAV/Parquet/SQLite.
-- **Analysis & reports** — run analysis scripts and generate reports (Markdown /
-  HTML; PDF planned).
-- **Files** — repository outputs plus uploaded assets and exports.
-- **Team** — invite members and assign roles (`owner` / `admin` / `member`).
-- **Developer access** — personal API keys (`sck_…` bearer tokens) and SSH keys.
-- **Project settings** — runtime (`siamang.yaml`), project secrets, branch
-  protection.
+- **Response database** — browse responses, inspect tables, and export to **CSV, XLSX,
+  SPSS, Parquet, or SQLite**.
+- **Analysis & reports** — run analysis scripts over your data and generate reports in
+  **Markdown and HTML** (PDF is planned).
+- **Files** — your project's generated outputs plus uploaded assets and exports.
+- **Team** — invite members and assign roles.
 
-The premium features below are additions on top of this core.
+The features below are additions on top of this core.
 
----
+## Premium features
 
-## Premium features (gated by plan)
-
-Each feature is a flag in `limits.py`. Using a gated feature on a plan that lacks
-it returns **HTTP 402 (upgrade required)** via `require_feature` →
-`FeatureRequired`, and the UI surfaces an upgrade prompt instead of a dead end.
-
-| Feature flag | Tiers | What it unlocks |
+| Feature | Plans | What it does |
 | :--- | :--- | :--- |
-| `FEATURE_WEBHOOKS` | Plus, Pro, Corporate | Outgoing, HMAC-signed `POST` notifications on terminal events (`deploy.live`/`deploy.failed`, `run.completed`/`run.failed`). A Slack incoming-webhook URL works directly. |
-| `FEATURE_SCHEDULES` | Plus, Pro, Corporate | Cron-scheduled automation: run an analysis script or a full "run-all" on a schedule. |
-| `FEATURE_CONNECTORS` | Pro, Corporate | Data connectors (S3, GCS, Azure, BigQuery, Snowflake, Sheets, BYO-DB) **and** Git mirrors (push/pull to GitHub/GitLab). See [[Cloud Connectors\|Cloud-Connectors]]. |
-| `FEATURE_SSO` | Pro, Corporate | Enterprise SAML / OIDC configuration for the org. The config surface is available on Pro+; enforced sign-in lands with the live identity integration. |
-| `FEATURE_SELF_HOSTED` | Corporate only | Entitlement to run siamang Cloud on your own infrastructure (data-residency / control). |
+| **Webhooks** | Plus, Pro, Corporate | Get a signed `POST` to your own URL (or a Slack channel) when a deploy or run finishes. See [[Schedules & Webhooks\|Cloud-Scheduling-and-Webhooks]]. |
+| **Schedules** | Plus, Pro, Corporate | Run an analysis script or a full run-all on a cron schedule. See [[Schedules & Webhooks\|Cloud-Scheduling-and-Webhooks]]. |
+| **Connectors & Git mirrors** | Pro, Corporate | Move tables to external stores (S3, BigQuery, Snowflake, Sheets, your own database) and mirror the repo to GitHub / GitLab. See [[Connectors\|Cloud-Connectors]]. |
+| **SSO (SAML / OIDC)** | Pro, Corporate | Configure single sign-on for your organization. |
+| **Self-hosted deployment** | Corporate | Run siamang Cloud on your own infrastructure for data-residency or control. |
 
-The exact `PLAN_TIERS` definition (from `limits.py`):
+## Choosing the right plan
 
-```python
-PLAN_TIERS = {
-    "free":      PlanLimits(max_projects=2,    max_members=2,    max_responses_per_project=500,  features=frozenset()),
-    "plus":      PlanLimits(max_projects=10,   max_members=15,   max_responses_per_project=None, features={WEBHOOKS, SCHEDULES}),
-    "pro":       PlanLimits(max_projects=None, max_members=None, max_responses_per_project=None, features={WEBHOOKS, SCHEDULES, CONNECTORS, SSO}),
-    "corporate": PlanLimits(max_projects=None, max_members=None, max_responses_per_project=None, features={WEBHOOKS, SCHEDULES, CONNECTORS, SSO, SELF_HOSTED}),
-}
-```
+- **Free** — for individuals, evaluation, and small one-off studies. Two projects, two
+  members, and up to 500 responses per project.
+- **Plus** — for small teams running recurring studies that need automation: unlimited
+  responses, plus webhooks and schedules.
+- **Pro** — for teams that need scale and integrations: unlimited projects, members, and
+  responses, plus connectors, Git mirrors, and SSO.
+- **Corporate** — for organizations with data-residency or on-prem requirements:
+  everything in Pro plus self-hosted deployment, arranged with sales.
 
-### A note on the AI assistant
+When you reach a cap (for example, trying to add a third project on Free) or use a feature
+your plan doesn't include, the app tells you and points you to Billing to upgrade — you
+won't hit a dead end.
 
-The `FEATURE_AI` flag still exists, but **AI was removed from the product for
-beta-2**. It is *not* included in any plan's `features` set in `limits.py` (or in
-the UI mirror `plans.ts`), so the assistant endpoint answers **HTTP 402 on every
-plan** rather than 404-ing old clients. The `docs/SUBSCRIPTION_TIERS.md` prose and
-the reference `plan_tiers` table (migration 005) still list `ai` as a Plus+
-feature, but those are stale relative to the authoritative `limits.py`.
+## Changing your plan
 
----
+Open **Organization settings → Billing**. Free, Plus, and Pro can be selected there
+directly; Corporate is arranged through sales ("Contact sales").
 
-## Limits & enforcement
+> **In the current beta**, switching plans takes effect **immediately, without payment** —
+> pick a plan and your organization changes right away. Cancelling returns the
+> organization to **Free**; your existing projects and members keep working (you just
+> can't exceed Free's caps or use paid features afterward).
 
-| Limit | Free | Plus | Pro | Corporate | Where enforced |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Projects** | 2 | 10 | ∞ | ∞ | `check_projects` → project creation (`projects.py`) |
-| **Team members** | 2 | 15 | ∞ | ∞ | `check_members` → member invite (`orgs.py`) |
-| **Responses / project** | 500 | ∞ | ∞ | ∞ | `response_cap` → response ingest (`ingest_service.py`) |
+Billing is per organization, so one plan covers all of its members and projects. Only the
+organization **owner** can change the plan.
 
-- **Projects / members:** exceeding the cap returns **HTTP 402**; the UI disables
-  the action and links to Billing.
-- **Responses:** the effective per-survey cap is the **tighter** of the plan cap
-  and the survey's own `max_responses` (set in `siamang.yaml`). `response_cap`
-  returns `min(plan_cap, survey_max)`, or `None` (unlimited) if neither applies.
-  On Free a survey stops accepting responses at 500.
+## Plans vs. team roles
 
-`limits.py` is intentionally pure (no DB, no services), so it can be unit-tested
-and called from any router. The `plan_tiers` table (migration 005) mirrors these
-defaults for ops visibility / future per-org overrides (wired later).
+Your plan and your role are two different things. The **plan** decides what the
+*organization* can do; your **role** decides what *you* can do inside it. Every member has
+one of three roles:
 
----
+| Role | Can do |
+| :--- | :--- |
+| **owner** | Everything, including changing the plan and billing, organization settings, and SSO. There is one owner. |
+| **admin** | Manage the organization profile and members (invite, change roles, remove), create projects, set branch protection, and manage integrations. |
+| **member** | Contribute to projects: edit code, run analysis, deploy, and manage project secrets. |
 
-## Billing: stub vs live
-
-Billing is a pure, dependency-free seam (`api/app/services/billing.py`) selected
-by the `BILLING_PROVIDER` setting:
-
-- **`stub`** (default) — a checkout applies the chosen plan **immediately, with no
-  payment**. `checkout_url` returns a placeholder
-  (`https://billing.stub.local/checkout?...`). This is what the beta and demo run
-  on; the UI shows honest "in the beta, the plan switches without payment" copy
-  and a "Coming soon" badge on checkout.
-- **live (Stripe)** — real hosted Checkout sessions + webhooks are wired behind
-  the same interface in the Service Integration stage, using `STRIPE_SECRET_KEY`
-  and `STRIPE_WEBHOOK_SECRET`.
-
-`available_plans()` returns the catalogue (plan, price, sorted features) for the
-billing UI. `SELF_SERVE_PLANS = ("free", "plus", "pro")` — only those can be
-selected from **Organization settings → Billing**; `corporate` is sales-assisted
-("Contact sales").
-
----
-
-## Subscription vs. team roles vs. org type
-
-Three independent dimensions control access — don't conflate them:
-
-1. **Subscription tier** (this page) — *what the organization can do* (caps +
-   premium features). Bought by the owner; applies org-wide. Only the **owner**
-   can purchase, change, or cancel it. Cancelling returns the org to **Free**.
-2. **Team role** — *who within the org can do what*: **owner** (full control incl.
-   billing, org type, SSO), **admin** (manage profile/members, create projects,
-   branch protection, integrations), **member** (contribute: edit code, run
-   analysis, deploy, manage secrets).
-3. **Organization type** — **personal** (solo workspace, no team invitations) or
-   **cooperative** (can invite teammates and manage roles). Independent of the
-   tier; switching a cooperative back to personal removes all members except the
-   owner.
+Only the **owner** can purchase, change, or cancel the subscription — regardless of plan.
 
 ## See also
 
-[[Cloud Self-Hosted Trials|Cloud-Self-Hosted-Trials]] · [[Cloud Connectors|Cloud-Connectors]] · [[Cloud Configuration|Cloud-Configuration]]
+- [[Connectors|Cloud-Connectors]] — a Pro / Corporate feature
+- [[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]] — a Plus and up feature
+- [[Cloud Overview|Cloud-Overview]] — what the platform does and who it's for

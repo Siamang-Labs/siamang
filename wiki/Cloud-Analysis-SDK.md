@@ -1,158 +1,163 @@
 # Cloud Analysis SDK
 
-`siamang_cloud` is the small SDK that analysis scripts import. It is available
-inside the analysis sandbox (see [[Cloud Analysis and Reporting|Cloud-Analysis-and-Reporting]])
-and gives a script three modules plus a re-exported report builder:
+Write analysis scripts that run against your collected responses. The `siamang_cloud`
+package is available in your project's run environment: you import it from a Python file,
+read your project's tables, compute results, and build a report — without managing any
+connection details yourself.
+
+A script becomes an **analysis task** the moment you declare it in
+[[Project Config (siamang.yaml)|Cloud-siamang-yaml]]. You then run it from the
+**Analysis** screen (or on a schedule), and any report it saves shows up under
+[[Analysis & Reports|Cloud-Analysis-and-Reporting]].
+
+## The import surface
+
+Everything you need comes from one package:
 
 ```python
 from siamang_cloud import db, analysis, respondents, Report
 ```
 
-- `db` — read the project's response tables (and write derived tables back).
-- `analysis` — weighting, frequencies, crosstabs, and significance tests.
-- `respondents` — respondent-level helpers (dedup/resume, completion time,
-  partial flags).
-- `Report` — the composable report document, re-exported from
-  `siamang_cloud_engine` (full reference: [[Report Document|Report-Document]]).
+| Import | What you use it for |
+| :--- | :--- |
+| `db` | List, inspect, read and write your project's tables |
+| `analysis` | Weighting, frequencies, crosstabs, chi-square, Cramér's V |
+| `respondents` | Dedup resumed submissions, completion time, partial flags |
+| `Report` | Build a Markdown / HTML report document |
 
-The SDK is configured entirely from environment variables the run worker injects
-into the sandbox — `SIAMANG_CLOUD_PG_DSN`, `SIAMANG_CLOUD_PROJECT_SCHEMA`,
-`SIAMANG_CLOUD_PROJECT_ID` — so a script never sees a connection string or
-credentials. The DSN is a Postgres role scoped to the project's own schema; a
-script can only touch its own data. (See [[Cloud Sandbox and Security|Cloud-Sandbox-and-Security]].)
+Your scripts run in an **isolated environment** with read access to your project's data.
+Reading a table loads it as a pandas `DataFrame`, so anything you already know about
+pandas, numpy and scipy works here too.
 
-## `db` — project data access
+## `db` — your project data
 
-```python
-db.table(name)                         # -> _Table; .to_pandas() loads it as a DataFrame
-db.list_tables()                       # -> list[str] of tables in the project schema
-db.schema(name)                        # -> list of {name, type, nullable, default}
-db.write_table(name, df, if_exists="fail")   # "fail" | "replace" | "append"
-db.as_survey_data(name="responses", questionnaire=None)  # SurveyData wrapper for analysis
-db.export_table(name, path, fmt=None)  # csv | parquet | xlsx | sav (SPSS) | sqlite
-```
+`db` is your handle on the project's tables. Your collected answers live in a table
+called **`responses`**; analysis steps you write add more tables (for example
+`clean_responses`, `weighted_responses`).
 
-The raw `responses` table stores each submission's answers in a `data` JSONB
-column. `db.table("responses").to_pandas()` **flattens** that JSONB so each
-answer variable becomes a top-level column (alongside `id`, `survey_id`,
-`respondent_id`, and the timestamps):
+| Call | Returns | Notes |
+| :--- | :--- | :--- |
+| `db.list_tables()` | `list[str]` | Names of every table in your project |
+| `db.schema("responses")` | `list[dict]` | Each column's `name`, `type`, `nullable`, `default` |
+| `db.table("responses").to_pandas()` | `DataFrame` | Load a whole table. The `responses` table is flattened so each answer is its own column |
+| `db.write_table("clean", df, if_exists="replace")` | — | Save a DataFrame as a table. `if_exists` is `"fail"` (default), `"replace"` or `"append"` |
+| `db.as_survey_data("responses")` | survey-data object | Load a table wrapped for label-aware analysis |
+| `db.export_table("responses", "out.csv")` | written path | Write a table to a file — format from the extension |
 
-```python
-raw = db.table("responses").to_pandas()
-# real table columns: id, survey_id, respondent_id, partial, created_at, updated_at
-# plus one column per answer variable lifted out of `data` (gender, age_group, …)
-```
+There is **no free-form SQL** here: you read tables and work with them in pandas. When
+you need a custom slice, load the table and filter it in Python.
 
-Any timing fields a respondent's payload carries (for example `duration_s`) come
-through `data` as columns too; the `respondents` helpers below default to the
-conventional `submitted_at` / `started_at` / `duration_s` names and simply skip
-whatever a given dataset does not have.
+When you read the `responses` table, each answer variable (for example `gender`,
+`age_group`, `satisfaction`) comes back as its own column, alongside identifiers such as
+`respondent_id` and the submission timestamps.
 
-Derived tables you write back live in the same project schema and show up under
-**Database → Tables** in the web app:
+`export_table` infers the format from the file extension. Supported formats: `csv`,
+`parquet`, `xlsx`, `sav` (SPSS) and `sqlite`.
 
 ```python
-clean = raw.dropna(subset=["satisfaction"])
-db.write_table("clean_responses", clean, if_exists="replace")
-```
+from siamang_cloud import db
 
-Table and column names are validated before use, and only the project's own
-`project_<id>` schema is addressable, so the data boundary holds even for
-untrusted scripts.
+print(db.list_tables())                       # e.g. ['responses', 'survey_meta']
+print(db.schema("responses"))                 # column names and types
+
+df = db.table("responses").to_pandas()        # one column per answer
+db.export_table("responses", "outputs/responses.sav")   # SPSS for a colleague
+```
 
 ## `analysis` — weights, tables, significance
 
-All functions take and return plain `pandas` objects, so results drop straight
-into `Report.add(...)`.
+These helpers take and return plain pandas objects, so a result drops straight into a
+`Report`.
+
+| Function | What it does |
+| :--- | :--- |
+| `frequencies(df, "col", weight=None)` | Frequency table with `value`, `count`, `percent` |
+| `crosstab(df, "row", "col", weight=None, normalize=None)` | Two-way contingency table; `normalize="index"` / `"columns"` / `"all"` for percentages |
+| `chi2(df, "a", "b")` | Pearson chi-square: returns `chi2`, `dof`, `p`, `cramers_v`, `n` |
+| `cell_weights(df, "col", targets)` | Post-stratification weights so one variable matches target proportions |
+| `rake_weights(df, targets)` | Raking (iterative proportional fitting) to several marginal targets |
+
+`targets` is a mapping of category to share — proportions or counts, normalized for you.
+The weight functions return a `Series` scaled to mean 1.0, ready to pass as the
+`weight=` argument to `frequencies` or `crosstab`.
 
 ```python
-analysis.frequencies(df, column, *, weight=None, dropna=True)
-    # -> DataFrame[value, count, percent]; weighted counts sum the weight column
+from siamang_cloud import analysis, db
 
-analysis.crosstab(df, row, col, *, weight=None, normalize=None)
-    # -> two-way contingency table; normalize ("index"|"columns"|"all") -> percentages
-
-analysis.chi2(df, a, b)
-    # -> {chi2, dof, p, cramers_v, n}  (Pearson chi-square + Cramér's V effect size)
-
-analysis.cell_weights(df, column, targets)
-    # -> Series; single-variable post-stratification weights (scaled to mean 1.0)
-
-analysis.rake_weights(df, targets, *, max_iter=50, tol=1e-6)
-    # -> Series; iterative proportional fitting (raking) to multiple margins
+df = db.table("responses").to_pandas()
+freq = analysis.frequencies(df, "satisfaction")
+table = analysis.crosstab(df, "work_mode", "satisfaction", normalize="index")
+test = analysis.chi2(df, "work_mode", "satisfaction")
+print(test["p"], test["cramers_v"])
 ```
 
-`targets` maps a category to a target proportion or count (counts are
-normalized). Categories missing from the targets keep a weight of 1.0.
+## `respondents` — response hygiene
 
-## `respondents` — respondent-level helpers
+Helpers that work over the loaded `responses` DataFrame.
 
-```python
-respondents.dedup_responses(df, *, id_col="respondent_id",
-                            order_by="submitted_at", keep="last")
-    # collapse resumed submissions to one row per respondent
+| Function | What it does |
+| :--- | :--- |
+| `dedup_responses(df, id_col="respondent_id")` | Collapse repeated submissions (a resume updates, not duplicates); keeps the most recent |
+| `completion_time(df)` | Per-response duration in seconds (prefers a `duration_s` column, else timestamps) |
+| `partial_flag(df, required=[...])` | Boolean `Series`: `True` where any required field is blank |
 
-respondents.completion_time(df, *, start_col="started_at",
-                            end_col="submitted_at", duration_col="duration_s")
-    # -> Series of seconds; prefers an existing duration column, else end - start
+## A complete script
 
-respondents.partial_flag(df, required)
-    # -> boolean Series: True when any `required` field is null/blank
-```
-
-## A complete example script
-
-This is a self-contained `type: analysis` script — clean → weight → tabulate →
-report — of the kind you commit to a project and wire up in
-[[Project Config (siamang.yaml)|Cloud-siamang-yaml]]:
+This is a full analysis step you can commit. It cleans the raw responses, rakes the
+sample to census margins, builds two tables with a significance note, and saves a report.
+Declare it as a `type: analysis` task and it runs from the Analysis screen.
 
 ```python
-"""scripts/key_tables.py — clean, weight, and tabulate in one script."""
+"""Key tables (type: analysis) — frequencies, a weighted crosstab, chi-square."""
 
 from siamang_cloud import Report, analysis, db, respondents
 
-# 1. Load raw responses (the `data` JSONB is flattened to columns).
+# 1. Read collected responses (one column per answer).
 raw = db.table("responses").to_pandas()
 
-# 2. One row per respondent; drop partials and speeders (< 2 minutes).
+# 2. One row per respondent; drop partials and speeders (under 2 minutes).
 df = respondents.dedup_responses(raw, id_col="respondent_id")
 df["duration_s"] = respondents.completion_time(df)
-df["is_partial"] = respondents.partial_flag(
-    df, required=["gender", "age_group", "satisfaction"]
-)
+df["is_partial"] = respondents.partial_flag(df, required=["gender", "age_group", "satisfaction"])
 df = df[~df["is_partial"]]
 df = df[df["duration_s"].isna() | (df["duration_s"] >= 120)]
-db.write_table("clean_responses", df.drop(columns=["is_partial"]), if_exists="replace")
 
-# 3. Rake the sample to census margins so estimates generalise.
+# 3. The achieved sample skews young/male; rake it to census margins.
 CENSUS = {
-    "gender":    {1: 0.49, 2: 0.48, 3: 0.03},
+    "gender": {1: 0.49, 2: 0.48, 3: 0.03},
     "age_group": {1: 0.32, 2: 0.36, 3: 0.32},
 }
 df["w"] = analysis.rake_weights(df, CENSUS)
 
-# 4. Weighted frequencies, a crosstab, and a chi-square test.
-sat  = analysis.frequencies(df, "satisfaction", weight="w")
-ct   = analysis.crosstab(df, "work_mode", "satisfaction", weight="w", normalize="index")
+# 4. Weighted estimates.
+sat = analysis.frequencies(df, "satisfaction", weight="w")
+ct = analysis.crosstab(df, "work_mode", "satisfaction", weight="w", normalize="index")
 test = analysis.chi2(df, "work_mode", "satisfaction")
 
-# 5. Assemble a report artifact (rendered in the Repository, combined by Run all).
-(Report(title="Work & Wellbeing — key tables",
-        description="Weighted estimates (raked to census gender × age margins).")
+# 5. Save a report — it appears under Analysis & Reports.
+(
+    Report(
+        title="Work & Wellbeing — key tables",
+        description="Weighted estimates (raked to census gender x age margins).",
+    )
     .heading("Job satisfaction")
     .add(sat, caption="Table 1. Satisfaction, weighted %")
     .heading("Satisfaction by work mode")
     .add(ct, caption="Table 2. Row % within work mode")
-    .note(
-        f"chi²={test['chi2']:.1f}, dof={test['dof']}, "
-        f"p={test['p']:.4f}, Cramér's V={test['cramers_v']:.2f}"
-    )
-    .save("outputs/key_tables.md"))
-
-print(f"clean_responses: {len(df)} rows; report written to outputs/key_tables.md")
+    .note(f"chi2={test['chi2']:.1f}, dof={test['dof']}, p={test['p']:.4f}, "
+          f"Cramér's V={test['cramers_v']:.2f}")
+    .save("outputs/key_tables.md")
+)
+print("report written to outputs/key_tables.md")
 ```
 
-Declare it in `siamang.yaml` so the platform can run it and pick up its report:
+You can also persist an intermediate result for a later step to pick up:
+
+```python
+db.write_table("weighted_responses", df, if_exists="replace")
+```
+
+Then declare the script in your project config so the platform can run it:
 
 ```yaml
 tasks:
@@ -163,6 +168,23 @@ tasks:
     report: outputs/key_tables.md
 ```
 
+## Building the report
+
+`Report` is the composable document you assemble in your script. Every builder method
+returns the report, so you chain them and finish with `save()`:
+
+- **Narrative** — `.heading(text)`, `.markdown(md)`, `.note(md)`, `.value(label, v)`,
+  `.divider()`.
+- **Inserts** — `.add(component, caption=...)` accepts a pandas `DataFrame` or a library
+  table / chart; `.image(path, caption=...)` embeds a figure.
+- **Save** — `.save("outputs/report.md")` writes Markdown; `.save("outputs/report.html")`
+  writes HTML. (PDF output is planned.)
+
+See [[Report Document|Report-Document]] for the full builder reference.
+
 ## See also
 
-[[Cloud Analysis and Reporting|Cloud-Analysis-and-Reporting]] · [[Report Document|Report-Document]] · [[Cloud Engine Plugin|Cloud-Engine-Plugin]] · [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] · [[Cloud Sandbox and Security|Cloud-Sandbox-and-Security]] · [[Analysis]]
+- [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] — declare your script as an analysis task
+- [[Analysis & Reports|Cloud-Analysis-and-Reporting]] — run scripts and view reports
+- [[Report Document|Report-Document]] — the `Report` builder in depth
+- [[Working with Data|Working-with-Data]] — survey data and label-aware analysis

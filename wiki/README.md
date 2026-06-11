@@ -19,8 +19,8 @@ The wiki covers **two products** in one place:
 - Link between pages with wiki links: `[[Display text|Target-Page]]`
   (e.g. `[[Question Types|Question-Types]]`). All links are internal — the
   Library and Cloud sections live in the **same** wiki.
-- Cloud pages use the `Cloud-` filename prefix to avoid name clashes with
-  Library pages (both have a "Configuration" and a "Deployment" page).
+- Cloud pages use the `Cloud-` filename prefix to keep the two sections
+  visually separate and avoid name clashes with Library pages.
 
 ## Publishing
 
