@@ -18,17 +18,18 @@ A schedule runs one of:
 
 ### Add a schedule
 
-In the web app, open your project's **Analysis** screen and go to **Schedules**. Add a
-schedule by choosing:
+Schedules are managed from the **Console** — open it with the **Console** button in
+the project's top bar (or press the backtick **`** key) — using these commands:
 
-- **What runs** — a single script (pick the task) or *Run all*.
-- **Branch** — the branch to check out and run (usually `main`).
-- **Cron** — a standard five-field cron expression (minute, hour, day-of-month, month,
-  day-of-week), interpreted in UTC.
-- **Enabled** — toggle a schedule on or off without deleting it.
+- `schedules` — list the project's scheduled runs.
+- `schedule add --cron "<expr>" --all` — schedule a **Run all**.
+- `schedule add --cron "<expr>" --script <name>` — schedule a single analysis task
+  (named as in [[Project Config (siamang.yaml)|Cloud-siamang-yaml]]).
+- `schedule rm <id>` — remove a schedule.
 
-A new schedule starts from when you create it; it does not back-fill runs it "missed"
-before then. You can disable or remove a schedule at any time.
+The cron expression is the standard five fields (minute, hour, day-of-month, month,
+day-of-week), interpreted in UTC. A new schedule starts from when you create it; it
+does not back-fill runs it "missed" before then.
 
 ### Cron examples
 

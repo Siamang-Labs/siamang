@@ -42,6 +42,18 @@ Python module — version-control it, test it, reuse it.
 
 ---
 
+## Siamang Cloud
+
+Prefer not to run servers, databases, and hosting yourself? **Siamang Cloud** is
+the hosted platform built on this engine — author surveys as code in your browser,
+deploy them to a public link with one click, collect responses, run analysis, read
+dashboards and reports, and collaborate with your team. The engine in this
+repository is open source; the Cloud runs everything around it.
+
+→ [**github.com/Siamang-Labs/siamang**](https://github.com/Siamang-Labs/siamang)
+
+---
+
 ## Quick start
 
 ```python
