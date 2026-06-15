@@ -9,7 +9,7 @@ includes and how to change yours.
 
 | | **Free** | **Plus** | **Pro** | **Corporate** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Price / month** | $0 | $49 | $299 | Custom |
+| **Price / month** | $0 | $25 | $200 | Custom |
 | **How to get it** | Self-serve | Self-serve | Self-serve | Contact sales |
 | **Projects** | 2 | 10 | Unlimited | Unlimited |
 | **Team members** | 2 | 15 | Unlimited | Unlimited |
@@ -60,21 +60,25 @@ The features below are additions on top of this core.
   everything in Pro plus self-hosted deployment, arranged with sales.
 
 When you reach a cap (for example, trying to add a third project on Free) or use a feature
-your plan doesn't include, the app tells you and points you to Billing to upgrade — you
-won't hit a dead end.
+your plan doesn't include, the app tells you and points you to **Billing** — you won't hit
+a dead end.
 
-## Changing your plan
+## During the open beta
 
-Open **Organization settings → Billing**. Free, Plus, and Pro can be selected there
-directly; Corporate is arranged through sales ("Contact sales").
+siamang Cloud is in **open beta**, so billing works a little differently for now. Open
+**Organization settings → Billing** to see your status:
 
-> **In the current beta**, switching plans takes effect **immediately, without payment** —
-> pick a plan and your organization changes right away. Cancelling returns the
-> organization to **Free**; your existing projects and members keep working (you just
-> can't exceed Free's caps or use paid features afterward).
+- **Every new workspace starts on a 30-day Pro trial** — full access to every Pro feature
+  while it lasts, with a countdown shown on the Billing screen.
+- **Plan switching is turned off** during the beta. The other plans show **"Available at
+  the official release,"** and **nothing is ever charged**.
+- **When the trial ends**, the workspace becomes **read-only** — your data is preserved
+  and stays exportable — until the official release.
+- **Paid plans (with Stripe) arrive at the official release**, when you will be able to
+  choose and pay for a plan.
 
-Billing is per organization, so one plan covers all of its members and projects. Only the
-organization **owner** can change the plan.
+Billing is always per organization — one plan covers all of its members and projects —
+and only the organization **owner** manages it.
 
 ## Plans vs. team roles
 

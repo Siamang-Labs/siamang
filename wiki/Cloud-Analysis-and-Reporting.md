@@ -117,10 +117,10 @@ document.
 
 ## Running analysis on a schedule
 
-On the **Plus** plan and above, the **Analysis** screen has a **Schedules** panel
-where you can run a single script or a full **run-all** automatically on a cron
-schedule — handy for refreshing tables and reports nightly during fieldwork. See
-[[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]] for schedules and for
+On the **Plus** plan and above, you can run a single script or a full **run-all**
+automatically on a cron schedule — handy for refreshing tables and reports nightly
+during fieldwork. Schedules are managed from the project **Console**; see
+[[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]] for the commands and for
 getting notified when runs finish.
 
 ## See also

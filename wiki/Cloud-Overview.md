@@ -55,8 +55,8 @@ the [[Quickstart]] on the library side, then come back here.
 ## What you can do
 
 - Create an **organization** (your workspace) and **projects** inside it.
-- Start from a ready-made **example study** or an empty project — either way a
-  repo and a database are set up for you.
+- Start from the ready-made **example study**, a lighter **template**, or an
+  **empty** project — either way a repo and a database are set up for you.
 - Edit your questionnaire in an **in-browser code editor**, or clone the repo and
   push from your own machine.
 - **Deploy** a survey to an environment (e.g. a small pilot, then the main run)

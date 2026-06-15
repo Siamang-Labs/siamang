@@ -5,9 +5,9 @@ Google Sheets, or your own SQL database. You use them to export a project table 
 cleaned responses) to somewhere your team already works, or to pull an external table
 into your project.
 
-Connectors are a **Pro / Corporate** feature. The same plan entitlement also covers **Git
-mirrors** (keeping your project's repository in sync with GitHub or GitLab). See
-[[Plans & Billing|Cloud-Subscription-Tiers]].
+Connectors are a **Pro / Corporate** feature. The same plan entitlement covers **Git
+mirrors** (keeping your repository in sync with GitHub or GitLab), which are now managed
+in **Repository → Remotes**. See [[Plans & Billing|Cloud-Subscription-Tiers]].
 
 ## The catalog
 
@@ -20,7 +20,6 @@ mirrors** (keeping your project's repository in sync with GitHub or GitLab). See
 | Google Sheets | `sheets` | Export a table to a spreadsheet |
 | Google BigQuery | `bigquery` | Sync a table into a dataset |
 | Snowflake | `snowflake` | Sync a table into a warehouse |
-| Git mirror — GitHub / GitLab | — | Mirror the repository to an external remote |
 
 ## How you declare a connector
 
@@ -39,7 +38,7 @@ tasks:
     secret: aws_creds               # the name of a project secret (set in the web app)
     config:
       bucket: my-research-exports
-      key: work-wellbeing/responses.parquet
+      key: digital-life/responses.parquet
 ```
 
 The destination-specific settings always go **inside** `config:`. Each target requires a
@@ -99,9 +98,10 @@ a value, but it is never shown back to you.
 
 Git mirrors are the other half of the same plan entitlement. A mirror keeps your
 project's repository in sync with an external remote on **GitHub** or **GitLab**, so your
-survey-as-code lives in your own organization's Git host as well. You configure a mirror
-in your project's settings and supply an access token as a project secret, the same way
-you would for a connector.
+survey-as-code lives in your own organization's Git host as well. You set them up in
+**Repository → Remotes** (not project settings): pick the provider, give the remote path,
+and supply an access token as a project secret. From there you can **Sync now**,
+**pause/resume**, or remove a mirror. See [[Repository & Editing|Cloud-Repository-and-Editing]].
 
 ## See also
 

@@ -15,7 +15,7 @@ This is the kind of config generated for a new project, with a comment on each k
 part of it is editable.
 
 ```yaml
-name: "Work & Wellbeing 2026"        # the project's display name
+name: "Digital Life & Wellbeing 2026"  # the project's display name
 org: "research-agency"               # the organization that owns it
 version: "1.0"                       # config format version
 

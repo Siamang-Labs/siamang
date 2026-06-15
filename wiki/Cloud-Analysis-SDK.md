@@ -137,7 +137,7 @@ test = analysis.chi2(df, "work_mode", "satisfaction")
 # 5. Save a report — it appears under Analysis & Reports.
 (
     Report(
-        title="Work & Wellbeing — key tables",
+        title="Digital Life & Wellbeing — key tables",
         description="Weighted estimates (raked to census gender x age margins).",
     )
     .heading("Job satisfaction")
