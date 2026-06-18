@@ -50,7 +50,7 @@ deploy them to a public link with one click, collect responses, run analysis, re
 dashboards and reports, and collaborate with your team. The engine in this
 repository is open source; the Cloud runs everything around it.
 
-→ [**github.com/Siamang-Labs/siamang**](https://github.com/Siamang-Labs/siamang)
+→ [**Try open beta**]((https://beta.siamang.org/login))
 
 ---
 
