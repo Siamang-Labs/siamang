@@ -17,11 +17,11 @@ Siamang is dual-licensed:
 ## Obtaining a commercial license
 
 Commercial licenses are negotiated individually and granted in writing.
-To obtain one, contact the maintainer:
+To obtain one, contact Siamang Labs LLC:
 
-- GitHub: [@hanelias](https://github.com/hanelias)
+- Email: info@siamang-team.org
 - Issue tracker (for general licensing questions):
-  <https://github.com/hanelias/siamang/issues>
+  <https://github.com/Siamang-Labs/siamang/issues>
 
 Until a written commercial license agreement is in place, no commercial
 rights to Siamang are granted.

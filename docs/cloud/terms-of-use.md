@@ -1,12 +1,12 @@
 # Siamang Cloud — Terms of Use
 
-_Last updated: 15 June 2026_
+_Last updated: 25 June 2026_
 
-Siamang Cloud is an independent, early-stage project run by Siamang Labs — the small
-team behind the open-source [`siamang`](https://github.com/Siamang-Labs/siamang)
+Siamang Cloud is operated by **Siamang Labs LLC**, a Wyoming limited liability company,
+the team behind the open-source [`siamang`](https://github.com/Siamang-Labs/siamang)
 research-as-code engine. It is currently in **open beta**, offered free of charge and
-provided in good faith, "as is". We are not (yet) an incorporated company; these terms
-are written in plain language and will be updated as the project matures.
+provided in good faith, "as is". These terms are written in plain language and will be
+updated as the project matures.
 
 By creating an account or using Siamang Cloud (the "Service") you agree to these Terms
 of Use (the "Terms"). If you do not agree, please don't use the Service.
@@ -86,7 +86,7 @@ for your purposes. You are responsible for keeping your own copies of important 
 
 ## 7. Limitation of liability
 
-To the maximum extent permitted by applicable law, Siamang Labs and its contributors
+To the maximum extent permitted by applicable law, Siamang Labs LLC and its contributors
 will not be liable for any indirect, incidental, special, consequential or exemplary
 damages, or for lost data, profits or goodwill, arising from your use of (or inability
 to use) the Service. Because the Service is currently provided free of charge, our
@@ -109,10 +109,18 @@ We may update these Terms as the project evolves. Material changes will be refle
 the "Last updated" date above and, where significant, surfaced in the app. Continuing
 to use the Service after a change means you accept the updated Terms.
 
-## 10. Contact
+## 10. Governing law
+
+These Terms are governed by the laws of the State of Wyoming, USA, without regard to its
+conflict-of-laws rules, and any dispute will be subject to the courts located in
+Wyoming, unless mandatory law in your place of residence provides otherwise.
+
+## 11. Contact
 
 Questions about these Terms? Email **info@siamang-team.org** or open an issue at
 <https://github.com/Siamang-Labs/siamang/issues>.
+
+Siamang Labs LLC · 30 N Gould St Ste N, Sheridan, WY 82801, USA
 
 ---
 
