@@ -1,12 +1,13 @@
 # Siamang Cloud — Privacy Policy
 
-_Last updated: 15 June 2026_
+_Last updated: 25 June 2026_
 
-Siamang Cloud is an independent, early-stage (open beta) project run by Siamang Labs,
-the team behind the open-source [`siamang`](https://github.com/Siamang-Labs/siamang)
-engine. This policy explains, in plain language, what data the Siamang Cloud **console**
-collects about you (the account holder) and how we handle it. It is offered in good
-faith and will be updated as the project matures.
+Siamang Cloud is an open-beta service operated by **Siamang Labs LLC**, a Wyoming limited
+liability company, the team behind the open-source
+[`siamang`](https://github.com/Siamang-Labs/siamang) engine. This policy explains, in
+plain language, what data the Siamang Cloud **console** collects about you (the account
+holder) and how we handle it. It is offered in good faith and will be updated as the
+project matures.
 
 ## 1. Scope: two kinds of data
 
@@ -134,6 +135,9 @@ change and significant updates will be surfaced in the app.
 
 Privacy questions or requests? Email **info@siamang-team.org** or open an issue at
 <https://github.com/Siamang-Labs/siamang/issues>.
+
+The data controller for your account and usage data is Siamang Labs LLC, 30 N Gould St
+Ste N, Sheridan, WY 82801, USA.
 
 ---
 

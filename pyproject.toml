@@ -8,7 +8,7 @@ version = "0.5.0"
 description = "Research-as-code framework for sociological surveys."
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{name = "Siamang Project Contributors"}]
+authors = [{name = "Siamang Labs LLC"}]
 license = "PolyForm-Noncommercial-1.0.0 OR LicenseRef-Commercial"
 license-files = ["LICENSE", "LICENSE-COMMERCIAL.md"]
 keywords = ["survey", "research", "sociology", "questionnaire", "polling"]
