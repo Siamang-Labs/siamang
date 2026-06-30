@@ -301,7 +301,5 @@ Siamang is **dual-licensed**:
   [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) — to obtain one, email
   **info@siamang-team.org**.
 
-Versions up to and including 0.5.0 were published under the MIT License
-and remain available under it.
 
 Siamang and Siamang Cloud are operated by **Siamang Labs LLC** (Wyoming, USA).
