@@ -35,6 +35,7 @@ from siamang.core import (
     VariableMap,
     VarRef,
     compare,
+    validate_options,
 )
 from siamang.data import BannerTable, SurveyData, SurveyTables
 from siamang.deploy import DeployResult
@@ -111,6 +112,7 @@ __all__ = [
     "Variable",
     "VariableMap",
     "compare",
+    "validate_options",
     "read_spss",
     "read_stata",
     "UIConfig",

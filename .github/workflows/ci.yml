@@ -84,6 +84,8 @@ jobs:
           assert hasattr(sg, 'get_preset')
           assert hasattr(sg, 'Script')
           assert hasattr(sg, 'Expression')
+          assert hasattr(sg, 'Quota')
+          assert hasattr(sg, 'validate_options')
           print('All exports OK')
           "
 

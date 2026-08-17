@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any, NamedTuple
 
 from siamang.core.block import Block
-from siamang.core.expression import Expression
+from siamang.core.expression import Expression, VarRef
 from siamang.core.page import Page
 from siamang.core.question import (
     LikertScale,
@@ -226,9 +227,8 @@ class Questionnaire:
         pattern = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
         probe_answers = {name: 0 for name in known_vars}
 
-        def check(condition, field: str, location: str) -> None:
-            if condition is None:
-                return
+        for ref in _iter_conditions(self.pages, self.blocks):
+            condition, field, location = ref.condition, ref.field, ref.location
             if not isinstance(condition, (Expression, str)):
                 raise ValueError(f"{location} {field} must be str or Expression.")
             if isinstance(condition, Expression):
@@ -243,44 +243,12 @@ class Questionnaire:
                     f"{location} {field} references unknown variables: {', '.join(sorted(unknown))}"
                 )
             if expr is None:
-                return
+                continue
             try:
                 expr.validate(known_vars)
                 expr.evaluate(probe_answers)
             except Exception as exc:
-                raise ValueError(f"{location} has invalid {field} expression.") from exc
-
-        for page in self.pages:
-            check(page.show_if, "show_if", f"Page '{page.name}'")
-            check(page.hide_if, "hide_if", f"Page '{page.name}'")
-            for item in page.items:
-                self._check_item_conditions(item, check, f"page '{page.name}'")
-
-        # Blocks attached directly to the questionnaire (blocks mode).
-        for item in self.blocks:
-            self._check_item_conditions(item, check, "questionnaire")
-
-    @staticmethod
-    def _check_item_conditions(item, check, parent: str) -> None:
-        from siamang.core.block import Block
-
-        if isinstance(item, Block):
-            location = f"Block in {parent}"
-            check(item.show_if, "show_if", location)
-            check(item.hide_if, "hide_if", location)
-            for nested in item.items:
-                Questionnaire._check_item_conditions(nested, check, location)
-            return
-        # Question
-        q_id = item.id or item.name or "?"
-        location = f"Question '{q_id}' in {parent}"
-        check(item.show_if, "show_if", location)
-        check(item.hide_if, "hide_if", location)
-        choices = getattr(item, "choices", None) or []
-        for opt in choices:
-            opt_loc = f"Option {opt.code!r} of {location}"
-            check(opt.show_if, "show_if", opt_loc)
-            check(opt.hide_if, "hide_if", opt_loc)
+                raise ValueError(f"{location} has invalid {field} expression: {exc}") from exc
 
     def _validate_page_expressions_for_export(self, target: str) -> None:
         if target != "surveyjs":
@@ -320,7 +288,10 @@ class Questionnaire:
         if self.pages:
             graph = _build_navigation_graph(self.pages)
             for index, page in enumerate(self.pages):
-                if not page.items:
+                # Content and terminal pages render `body` instead of questions,
+                # so having no items is what they are for — only an ordinary
+                # question page with nothing on it is empty.
+                if not page.items and (page.kind is None or not page.body):
                     warnings.append(
                         LintWarning(
                             code="EMPTY_PAGE",
@@ -351,6 +322,12 @@ class Questionnaire:
                             location=page.name,
                         )
                     )
+        # Codebook and logic consistency. These are warnings at every level: they
+        # describe a questionnaire that compiles and runs but collects the wrong
+        # thing, which is worth saying even to someone who did not ask for strict.
+        warnings.extend(_condition_value_warnings(self))
+        warnings.extend(_contradictory_visibility_warnings(self))
+        warnings.extend(_codebook_warnings(self))
         if level == "strict":
             warnings.extend(_strict_question_warnings(self.all_questions()))
             if self.variables is not None:
@@ -373,6 +350,62 @@ class Questionnaire:
 
 def _question_variables(question: Question):
     return question.var if isinstance(question.var, list) else [question.var]
+
+
+class _ConditionRef(NamedTuple):
+    """One visibility/branching condition, with everything needed to report it."""
+
+    holder: Any
+    condition: Any
+    field: str
+    location: str
+    question: Question | None
+
+
+def _holder_conditions(holder, location: str, question: Question | None):
+    """Yield the show_if/hide_if conditions carried by a single object."""
+
+    for name in ("show_if", "hide_if"):
+        condition = getattr(holder, name, None)
+        if condition is not None:
+            yield _ConditionRef(holder, condition, name, location, question)
+
+
+def _item_conditions(item, parent: str):
+    if isinstance(item, Block):
+        location = f"Block in {parent}"
+        yield from _holder_conditions(item, location, None)
+        for nested in item.items:
+            yield from _item_conditions(nested, location)
+        return
+    # Question
+    location = f"Question '{question_fallback_id(item)}' in {parent}"
+    yield from _holder_conditions(item, location, item)
+    for option in getattr(item, "choices", None) or []:
+        yield from _holder_conditions(option, f"Option {option.code!r} of {location}", item)
+
+
+def _iter_conditions(pages: list[Page], blocks: list):
+    """Yield a :class:`_ConditionRef` for every visibility or branching condition
+    in the questionnaire, in document order.
+
+    ``question`` is the question a condition belongs to (the question itself, or
+    the one owning the option), and ``None`` for page- and block-level
+    conditions. ``location`` is the human-readable prefix used in messages.
+    """
+
+    for page in pages:
+        page_location = f"Page '{page.name}'"
+        yield from _holder_conditions(page, page_location, None)
+        for condition, _target in page.next_if:
+            if condition is not None:
+                yield _ConditionRef(page, condition, "next_if", page_location, None)
+        for item in page.items:
+            yield from _item_conditions(item, f"page '{page.name}'")
+
+    # Blocks attached directly to the questionnaire (blocks mode).
+    for item in blocks:
+        yield from _item_conditions(item, "questionnaire")
 
 
 def _strict_question_warnings(questions: list[Question]) -> list[LintWarning]:
@@ -415,6 +448,270 @@ def _strict_question_warnings(questions: list[Question]) -> list[LintWarning]:
         if isinstance(question, MultiChoice):
             warnings.extend(_categorical_label_warnings(question_id, _question_variables(question)))
     return warnings
+
+
+def _variable_codes(variable) -> list:
+    """Every code a variable legitimately carries: labelled categories + missing."""
+
+    return list(variable.labels) + [
+        code for code in variable.missing_values if code not in variable.labels
+    ]
+
+
+def _known(value, codes) -> bool:
+    """Membership that tolerates unhashable values — lint must never raise."""
+
+    return any(value == code for code in codes)
+
+
+def _format_codes(codes) -> str:
+    return ", ".join(str(code) for code in codes)
+
+
+def _survey_variables(survey: Questionnaire) -> dict[str, Any]:
+    """Every variable the questionnaire touches, keyed by name."""
+
+    variables: dict[str, Any] = {}
+    for question in survey.all_questions():
+        for variable in _question_variables(question):
+            variables.setdefault(variable.name, variable)
+    if survey.variables:
+        for name, variable in survey.variables.items():
+            variables.setdefault(name, variable)
+    return variables
+
+
+def _option_codes(question: Question) -> list:
+    return [option.code for option in getattr(question, "choices", None) or []]
+
+
+def _single_variable(question: Question):
+    """The one variable a question writes into, or None for wide/matrix questions."""
+
+    return None if isinstance(question.var, list) else question.var
+
+
+def _compared_values(node):
+    """Yield ``(variable_name, value)`` for each literal compared to a variable."""
+
+    if not isinstance(node, Expression):
+        return
+    if node.op in {"=", "!=", "in", "not in"} and isinstance(node.left, VarRef):
+        right = node.right
+        values = right if isinstance(right, (list, tuple, set)) else [right]
+        for value in values:
+            if not isinstance(value, (Expression, VarRef)):
+                yield node.left.name, value
+        return
+    yield from _compared_values(node.left)
+    yield from _compared_values(node.right)
+
+
+def _condition_value_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """Answer codes used in conditions that no longer exist among the choices.
+
+    The classic survey-authoring mistake: the option list is reworked and the
+    rule pointing at it is not. The question then shows to nobody (or to
+    everybody) for the whole of fieldwork, silently.
+    """
+
+    variables = _survey_variables(survey)
+    # Codes contributed by an explicit Option list shadow the variable's labels
+    # at runtime, so a condition may legitimately name one of them.
+    from_choices: dict[str, list] = {}
+    for question in survey.all_questions():
+        codes = _option_codes(question)
+        if not codes:
+            continue
+        for variable in _question_variables(question):
+            from_choices.setdefault(variable.name, []).extend(codes)
+
+    warnings: list[LintWarning] = []
+    for ref in _iter_conditions(survey.pages, survey.blocks):
+        for name, value in _compared_values(ref.condition):
+            variable = variables.get(name)
+            # No codebook, or a genuinely numeric scale: comparing to a number
+            # is legitimate and there is nothing to check against.
+            if variable is None or not variable.labels:
+                continue
+            if variable.scale in {"interval", "ratio"}:
+                continue
+            allowed = _variable_codes(variable) + from_choices.get(name, [])
+            if _known(value, allowed):
+                continue
+            warnings.append(
+                LintWarning(
+                    code="UNKNOWN_CONDITION_VALUE",
+                    severity="warning",
+                    message=(
+                        f"{ref.location} {ref.field} references value {value}, which is not "
+                        f"a defined category of '{name}' ({_format_codes(variable.labels)})"
+                    ),
+                    location=(
+                        question_fallback_id(ref.question)
+                        if ref.question is not None
+                        else ref.location
+                    ),
+                )
+            )
+    return warnings
+
+
+def _contradictory_visibility_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """show_if and hide_if on the same object — in the limit, never shown."""
+
+    fields: dict[int, set[str]] = {}
+    seen: dict[int, _ConditionRef] = {}
+    for ref in _iter_conditions(survey.pages, survey.blocks):
+        fields.setdefault(id(ref.holder), set()).add(ref.field)
+        seen.setdefault(id(ref.holder), ref)
+
+    warnings: list[LintWarning] = []
+    for key, present in fields.items():
+        if not {"show_if", "hide_if"} <= present:
+            continue
+        ref = seen[key]
+        warnings.append(
+            LintWarning(
+                code="CONTRADICTORY_VISIBILITY",
+                severity="warning",
+                message=(
+                    f"{ref.location} sets both show_if and hide_if; the two are combined, "
+                    "so the object may never be shown."
+                ),
+                location=(
+                    question_fallback_id(ref.question) if ref.question is not None else ref.location
+                ),
+            )
+        )
+    return warnings
+
+
+def _codebook_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """Consistency between questions, their answer options and their codebook."""
+
+    warnings: list[LintWarning] = []
+    for question in survey.all_questions():
+        question_id = question_fallback_id(question)
+        # Wide MultiChoice and Matrix bind a list of variables; the rules below
+        # are all about the single variable a question puts its codes into.
+        bound = _single_variable(question)
+
+        # Exclusive codes that match no answer option silently stop being
+        # exclusive: "None of these" no longer clears the other answers.
+        if isinstance(question, MultiChoice) and question.mode == "array" and bound is not None:
+            allowed = _variable_codes(bound) + _option_codes(question)
+            unknown = [code for code in question.exclusive if not _known(code, allowed)]
+            if allowed and unknown:
+                warnings.append(
+                    LintWarning(
+                        code="EXCLUSIVE_CODE_UNKNOWN",
+                        severity="warning",
+                        message=(
+                            f"MultiChoice question '{question_id}' marks "
+                            f"{_format_codes(unknown)} exclusive, which is not among its "
+                            f"answer codes ({_format_codes(allowed)})."
+                        ),
+                        location=question_id,
+                    )
+                )
+
+        # Option.code must match the codes used in Variable.labels, or the
+        # export loses its value labels exactly where they are wanted.
+        codes = _option_codes(question)
+        if codes and bound is not None and bound.labels:
+            known = _variable_codes(bound)
+            unlabelled = [code for code in codes if not _known(code, known)]
+            if unlabelled:
+                warnings.append(
+                    LintWarning(
+                        code="OPTION_CODE_WITHOUT_LABEL",
+                        severity="warning",
+                        message=(
+                            f"Question '{question_id}' offers option code(s) "
+                            f"{_format_codes(unlabelled)} that variable "
+                            f"'{bound.name}' has no value label for "
+                            f"({_format_codes(known)})."
+                        ),
+                        location=question_id,
+                    )
+                )
+
+        if isinstance(question, LikertScale) and bound is not None and bound.labels:
+            labelled = [code for code in bound.labels if code not in bound.missing_values]
+            if labelled and question.points != len(labelled):
+                warnings.append(
+                    LintWarning(
+                        code="LIKERT_POINTS_LABEL_MISMATCH",
+                        severity="warning",
+                        message=(
+                            f"LikertScale question '{question_id}' has {question.points} points "
+                            f"but variable '{bound.name}' labels {len(labelled)} of them; "
+                            "the unlabelled codes arrive with no text."
+                        ),
+                        location=question_id,
+                    )
+                )
+
+    for name, variable in _survey_variables(survey).items():
+        if not variable.labels:
+            continue
+
+        # A missing code absent from the labels is a missing value that never
+        # occurs, while the real refusal stays unmarked.
+        unknown_missing = [
+            code for code in variable.missing_values if not _known(code, variable.labels)
+        ]
+        if unknown_missing:
+            warnings.append(
+                LintWarning(
+                    code="MISSING_CODE_NOT_IN_LABELS",
+                    severity="warning",
+                    message=(
+                        f"Variable '{name}' declares missing value(s) "
+                        f"{_format_codes(unknown_missing)} that are not among its value "
+                        f"labels ({_format_codes(variable.labels)})."
+                    ),
+                    location=name,
+                )
+            )
+
+        if variable.valid_range is not None:
+            outside = [
+                code
+                for code in variable.labels
+                if code not in variable.missing_values
+                and _outside_range(code, variable.valid_range)
+            ]
+            if outside:
+                low, high = variable.valid_range
+                warnings.append(
+                    LintWarning(
+                        code="RANGE_LABEL_MISMATCH",
+                        severity="warning",
+                        message=(
+                            f"Variable '{name}' labels value(s) {_format_codes(outside)} that "
+                            f"fall outside its valid_range ({low}, {high})."
+                        ),
+                        location=name,
+                    )
+                )
+
+    return warnings
+
+
+def _outside_range(code, valid_range) -> bool:
+    low, high = valid_range
+    try:
+        if low is not None and code < low:
+            return True
+        if high is not None and code > high:
+            return True
+    except TypeError:
+        # A non-comparable code (a string label key against a numeric range)
+        # is a different problem; do not guess about it here.
+        return False
+    return False
 
 
 def _categorical_label_warnings(question_id: str, variables) -> list[LintWarning]:

@@ -201,6 +201,13 @@ class Matrix(Question):
             raise ValueError("Matrix requires at least one variable")
         if any(not isinstance(v, Variable) for v in self.var):
             raise TypeError("Matrix var must contain only Variable instances")
+        # Statements and variables are matched by position, so a length mismatch
+        # records answers under the wrong statement without anything looking wrong.
+        if self.subquestions is not None and len(self.subquestions) != len(self.var):
+            raise ValueError(
+                f"Matrix has {len(self.subquestions)} subquestions but {len(self.var)} "
+                "variables; they are matched by position and must be the same length."
+            )
 
 
 @dataclass(frozen=True, slots=True)

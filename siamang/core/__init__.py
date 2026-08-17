@@ -30,7 +30,7 @@ from siamang.core.question import (
     SingleChoice,
 )
 from siamang.core.questionnaire import LintWarning, Questionnaire
-from siamang.core.quota import Quota
+from siamang.core.quota import Quota, validate_options
 from siamang.core.script import Script
 from siamang.core.variable import MissingValue, ValidationIssue, Variable, VariableMap
 
@@ -66,4 +66,5 @@ __all__ = [
     "Variable",
     "VariableMap",
     "compare",
+    "validate_options",
 ]
