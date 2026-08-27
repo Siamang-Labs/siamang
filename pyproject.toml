@@ -1,0 +1,134 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "siamang"
+version = "0.5.0"
+description = "Research-as-code framework for sociological surveys."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Siamang Labs LLC"}]
+license = "PolyForm-Noncommercial-1.0.0 OR LicenseRef-Commercial"
+license-files = ["LICENSE", "LICENSE-COMMERCIAL.md"]
+keywords = ["survey", "research", "sociology", "questionnaire", "polling"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Sociology",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pandas>=2.0",
+    # Local preview server (siamang preview)
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    # IO formats
+    "openpyxl>=3.1",         # Excel
+    "pyreadstat>=1.2",       # SPSS .sav / Stata .dta
+    # Statistics
+    "scipy>=1.11",
+    # Reporting (Report.to_markdown / to_html; pandas DataFrame.to_markdown needs tabulate)
+    "markdown>=3.5",
+    "tabulate>=0.9",
+    # Deployment backends/frontends
+    "supabase>=2.0",
+    "requests>=2.31",
+]
+
+[project.urls]
+Homepage = "https://github.com/hanelias/siamang"
+Manual   = "https://github.com/hanelias/siamang/blob/main/MANUAL.md"
+Issues   = "https://github.com/hanelias/siamang/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["siamang*"]
+
+[tool.setuptools.package-data]
+"siamang" = ["py.typed"]
+"siamang.frontend.templates" = ["*.tpl"]
+"siamang.frontend.templates.react" = ["*.tpl", "*.jsx"]
+"siamang.frontend.templates.react.dist" = ["*.js"]
+"siamang.frontend.templates.react.vendor" = ["*.js"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "siamang[charts]",
+]
+# Charts (optional) — required for data.plot.* visualizations.
+charts = [
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+]
+# Google Sheets backend requires additional packages not bundled by default.
+gsheets = [
+    "google-auth>=2.0",
+    "google-auth-httplib2>=0.1",
+    "google-api-python-client>=2.0",
+]
+# Legacy extras kept for old install scripts. Core deps are bundled by
+# default; cloud-specific extras (gsheets) add optional dependencies.
+# These aliases resolve to empty extras for backward compatibility.
+all = []
+excel = []
+pyreadstat = []
+server = []
+supabase = []
+vercel = []
+scipy = []
+
+[project.scripts]
+siamang = "siamang.cli.entry:main"
+
+[project.entry-points."siamang.backends"]
+local = "siamang.deploy.backends.local:LocalBackend"
+supabase = "siamang.deploy.backends.supabase:SupabaseBackend"
+gsheets = "siamang.deploy.backends.gsheets:GoogleSheetsBackend"
+
+[project.entry-points."siamang.frontends"]
+local = "siamang.deploy.frontends.local:LocalFrontend"
+vercel = "siamang.deploy.frontends.vercel:VercelFrontend"
+netlify = "siamang.deploy.frontends.netlify:NetlifyFrontend"
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default argument (common in dataclasses)
+    "SIM108", # ternary instead of if-else (readability)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["siamang"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # gradual typing — will tighten later
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
