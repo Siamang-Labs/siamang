@@ -33,8 +33,11 @@ AND(age.ge(18), gender.eq(2), region.isin([1, 2]))
 | `var.notin(vs)` | `not in` | `region.notin([99])` | `{region} not in [99]` |
 
 `>`, `>=`, `<`, `<=` are overloaded on `Variable`, so `age >= 18` works directly.
-Equality is **not** overloaded (Python reserves `==` for dataclass identity), so use
-`var.eq(value)`.
+`==` and `!=` are **not** overloaded — the dataclass machinery uses them for
+field-wise comparison of `Variable` objects — so use `var.eq(value)` and
+`var.ne(value)`. Beware that `gender == 1` and `gender != 1` do not raise: they
+silently produce a plain Python `bool` (`False` / `True`) instead of an
+`Expression`.
 
 ### `compare`
 
@@ -101,7 +104,11 @@ You rarely construct `Expression` directly; prefer the helpers above. The operat
 - **`to_dict() -> dict`** / **`from_dict(payload)`** — lossless JSON serialization.
 - **`Expression.raw(text)`** *(classmethod)* — wrap a verbatim SurveyJS string as an
   escape hatch (`op="raw"`). Raw expressions are passed through to the frontend but
-  cannot be evaluated or validated in Python.
+  cannot be evaluated or validated in Python. Because of that, `Expression.raw`
+  is **not** usable as a `show_if`/`hide_if` gate: `Questionnaire.validate()`
+  rejects it, and the React runtime evaluates a `raw` node as never-true (the
+  element would stay hidden). For a verbatim gate, use the plain-string form
+  below instead.
 
 ```python
 expr = AND(age.ge(18), gender.eq(2))
@@ -195,11 +202,18 @@ sg.Page(
 ### String form
 
 Any gate also accepts a string in the SurveyJS dialect. Strings are preserved
-verbatim and sent to the frontend, but are **not** evaluated in Python:
+verbatim and sent to the frontend, but are **not** evaluated in Python (so
+`simulate()` treats a string gate as always true):
 
 ```python
 sg.Page("adults", items=[...], show_if="age >= 18")
 ```
+
+The React runtime evaluates recognised SurveyJS-dialect strings (`{age} >= 18`
+or `age >= 18`, `and`/`or`/`not`, `in [...]`, `empty`/`notempty`, `contains`)
+client-side at every gate level. A string it cannot parse is treated as always
+true (with a `console.warn`) when used as a gate, and as not-matched when used
+as a `next_if` routing condition.
 
 `Questionnaire.validate()` still checks that `{name}` tokens in a string gate
 reference known variables — bare names (like the `age` above) are not extracted

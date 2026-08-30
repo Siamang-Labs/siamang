@@ -76,7 +76,9 @@ def load(path: str | Path = DEFAULT_PATH) -> Config:
     global _CURRENT
     resolved = Path(os.path.expanduser(str(path)))
     if not resolved.is_file():
-        cfg = Config(path=resolved)
+        # Environment credentials (SIAMANG_*/VERCEL_TOKEN/...) apply even
+        # without a config file on disk.
+        cfg = _apply_env_overrides(Config(path=resolved))
         _CURRENT = cfg
         return cfg
 

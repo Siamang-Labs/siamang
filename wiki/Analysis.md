@@ -162,9 +162,11 @@ frame and raises `ValueError` if no weight is set. See
 def recode(self, column: str, mapping: dict[Any, Any]) -> SurveyData: ...
 ```
 
-`DataProcessing.recode` applies a raw `{old: new}` mapping to a column **in
-place** and returns a new `SurveyData`. It is a thin convenience wrapper and
-**does not** carry over variable metadata.
+`DataProcessing.recode` applies a raw `{old: new}` mapping to the column
+(values not listed in the mapping are kept) and returns a bare `SurveyData`
+around the transformed frame. It is a thin convenience wrapper and **does
+not** carry over variable metadata, the questionnaire, or a configured
+weight.
 
 ```python
 # Collapse the 5-point remote-frequency scale into 3 levels

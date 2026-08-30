@@ -5,7 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] — 2026-08-30
+
+Runtime documentation-parity release: everything the docs describe for the
+respondent experience now actually runs in the browser.
+
+### Added
+
+- **Routing in the respondent runtime**: `Question.skip_to`,
+  `Page.next_if`, and `Page.default_next` are compiled into the React
+  payload and executed — skip_to of the first answered visible question
+  wins, then the first matching `next_if` rule, then `default_next`, then
+  the next visible page. Targets may be page names or question ids; a jump
+  to a page hidden by its own gates falls through to the next visible page
+  in document order. "Previous" retraces the actual visited path.
+- **String conditions**: plain-string gates in the SurveyJS dialect
+  (`"{age} >= 18"`, `"age >= 18"`, `and`/`or`/`not`, `in [..]`,
+  `contains`, `empty`/`notempty`, parentheses) are now parsed and
+  evaluated by the React runtime, for page/block/question/option gates and
+  string `next_if` rules. An unparsable string keeps the historical
+  always-visible behaviour (with a console warning); as a routing
+  condition it counts as not matched.
+- **All seven script triggers dispatched**: `onPageEnter`, `onPageExit`,
+  `onQuestionShow` (when a question first becomes visible), and
+  `onRandomize` now fire alongside `onInit`/`onAnswer`/`onSubmit`. Script
+  writes into `answers` sync back to the reactive store, which makes the
+  documented `answers.__options__` / `__pages__` / `__errors__` /
+  `__timers__` contracts real: `Script.randomize_options` reorders
+  options, `Script.randomize_pages` reorders navigation,
+  `Script.validate_fields_match` messages render under the field and block
+  "Next" until resolved, `Script.timed_question` auto-advances via the new
+  `window.siamangNext` hook.
+- **Author-declared randomization**: `Question.randomize`,
+  `Block.randomize`, and `Page.randomize_blocks` are applied once per
+  respondent at load time (standalone questions keep their positions).
+- **Choice behaviours**: `MultiChoice.exclusive` codes clear — and are
+  cleared by — other selections; `SingleChoice.none_of_above` appends the
+  documented option (sentinel code `__none__`, mirroring `__other__`).
+- **Matrix**: `subquestions` override row labels; `na_option` adds the
+  "Not applicable" column (stored as `"na"`, same as `LikertScale`).
+- `SurveyData.create_index(method="sum")` (row sum, `min_count=1`);
+  `"mean"` remains the default.
+
+### Fixed
+
+- Option-level `show_if`/`hide_if` never gated anything: the
+  `isVisibleGated` helper that the option renderer called was not defined.
+- `siamang deploy` now loads `~/.siamang.toml` automatically, as
+  documented — defaults, profiles (`--profile`), and stored credentials
+  apply without an explicit `--config`.
+- Environment credential overlays (`SIAMANG_*`, `VERCEL_TOKEN`,
+  `NETLIFY_AUTH_TOKEN`, legacy `SURVLIB_*`) now apply even when no config
+  file exists on disk.
+- Question components re-render when their option order or option gates
+  change (previously blocked by the memo comparator).
 
 ### Changed
 
@@ -15,6 +68,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`LICENSE-COMMERCIAL.md`). Versions up to and including 0.5.0 remain
   available under the MIT License.
 - Build: `setuptools>=77` is now required (PEP 639 license metadata).
+
+### Known limitations
+
+- `simulate()` still ignores routing (`next_if`/`skip_to`) — it models
+  visibility gates only.
+- `Questionnaire.preview()` (the Python method) returns a one-line
+  summary; use `siamang preview` for the real rendered survey.
+- `validate()` checks that `skip_to` targets exist but does not include
+  `skip_to` edges in reachability/cycle detection.
+- The alternative SurveyJS runtime does not evaluate the new routing
+  payload; the default React runtime does.
 
 ## [0.5.0] — 2026-05-28
 

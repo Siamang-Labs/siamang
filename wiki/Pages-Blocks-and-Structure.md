@@ -204,9 +204,12 @@ Most surveys use `pages`.
 | `validate_for_export(target="surveyjs") -> None` | Confirm the survey is export-compatible. |
 
 `validate()` enforces unique page names and question ids, valid `skip_to` and
-`next_if`/`default_next` navigation targets (including reachability and
-cycle-detection across the page graph), expressions that reference only known
-variables, and scripts that target real questions or pages.
+`next_if`/`default_next` navigation targets, expressions that reference only
+known variables, and scripts that target real questions or pages. Reachability
+and cycle-detection run across the page graph built from `next_if`,
+`default_next`, and the implicit page order; `skip_to` is checked for target
+existence only and does not enter that graph, so a loop routed purely through
+`skip_to` is not detected.
 
 ### A complete example
 

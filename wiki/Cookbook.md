@@ -250,7 +250,8 @@ See [[Banner Tables|Banner-Tables]].
 
 See [[Data Import and Export|Data-Import-and-Export]]. `SurveyData.export(fmt, path)`
 is the high-level helper; the `siamang.io` writers give finer control. SPSS and Stata
-round-trip variable labels, value labels, and missing-value codes.
+round-trip variable labels, value labels, and missing-value codes (Stata accepts
+only single-letter `.a`–`.z` missing codes; numeric codes are dropped on write).
 
 ```python
 # High-level
@@ -267,7 +268,8 @@ import pandas as pd
 from siamang.io import read_spss, SPSSWriter
 
 data = read_spss("input.sav")                                   # full metadata recovered
-data = data.recode_values("age", {-1: pd.NA}).apply_missing_values()
+# Treat -1 as missing (recode_values would write to a new column instead):
+data = data.with_frame(data.frame.replace({"age": {-1: pd.NA}})).apply_missing_values()
 SPSSWriter().write(data, "output.sav")                          # opens in SPSS untouched
 ```
 

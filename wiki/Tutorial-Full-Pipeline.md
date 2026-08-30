@@ -171,8 +171,9 @@ how that HTML is produced.
 
 `simulate(n, seed)` generates synthetic data that respects every visibility rule:
 when `consent=0`, all later variables are `NaN`; when `remote_freq=1`, the
-surveillance items are `NaN`. The shipped database holds 250 responses; the notebook
-runs 300.
+surveillance items are `NaN`. The notebook runs 300 respondents (a
+`survey_responses.db` produced by running a local deployment yourself is
+git-ignored, not shipped — see the note above).
 
 ```python
 data = survey.simulate(n=300, seed=42)
@@ -184,7 +185,7 @@ data.frame.head(10)
 the variable metadata. A quick overview:
 
 ```python
-desc = data.describe_variables()     # one row per variable: scale, n, missing, range/levels
+desc = data.describe_variables()     # one row per variable: name, label, scale, n, n_missing, n_unique
 ```
 
 See [[Simulation]] for the sampling rules in detail.
@@ -261,8 +262,9 @@ data.plot.heatmap(["surv_keystroke", "surv_camera", "surv_git", "satisfaction", 
 data.plot.scatter("satisfaction", "autonomy", hue="remote_freq").plot()
 ```
 
-The notebook saves `fig_outcomes_by_remote.png` and
-`fig_surveillance_heatmap.png` from these calls.
+The notebook only renders these figures inline; to keep them as files, call
+`.save(...)` instead of `.plot()` — e.g. as `fig_outcomes_by_remote.png` and
+`fig_surveillance_heatmap.png`.
 
 ---
 
@@ -279,7 +281,7 @@ xtab.to_html()         # HTML fragment
 ```
 
 A banner table (multiple row variables against multiple column variables) exports
-straight to a publication-ready spreadsheet — the notebook writes
+straight to a publication-ready spreadsheet — for example,
 `banner_satisfaction_by_remote.xlsx`:
 
 ```python

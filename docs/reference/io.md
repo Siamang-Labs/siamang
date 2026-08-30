@@ -1,9 +1,10 @@
 # `siamang.io` — readers and writers reference
 
-The I/O layer round-trips survey data with all metadata (variable
-labels, value labels, missing-value codes, missing-value kinds, formats)
-intact between siamang's `SurveyData` and the common research file
-formats.
+The I/O layer moves survey data between siamang's `SurveyData` and the
+common research file formats. SPSS and Stata round-trip metadata
+(variable labels, value labels, missing-value codes); CSV and Excel
+carry data only (pair them with a JSON dictionary for metadata); the R
+export writes a CSV plus dictionary plus loader script.
 
 ```python
 from siamang.io import (
@@ -17,9 +18,12 @@ from siamang.io import (
 )
 ```
 
-Convention: every reader exposes `read(path, **kwargs) -> SurveyData`;
-every writer exposes `write(data, path, **kwargs) -> Path`. Writers
-return the `Path` they wrote to.
+Convention: every tabular reader (CSV, Excel, SPSS, Stata) exposes
+`read(path, **kwargs) -> SurveyData`; every tabular writer exposes
+`write(data, path, **kwargs) -> Path`. Writers return the `Path` they
+wrote to. `DictionaryReader`/`DictionaryWriter` work with a
+`VariableMap` instead of `SurveyData`, and `RScriptWriter.write(data,
+path)` takes no extra kwargs.
 
 ---
 
@@ -85,14 +89,15 @@ SPSSWriter().write(data, "trust_out.sav")
 | Class | Behaviour |
 |-------|-----------|
 | `SPSSReader.read(path, **kwargs)` | Reads via `pyreadstat.read_sav(path, user_missing=True)` by default. Reconstructs a `VariableMap` from `meta.variable_value_labels`, `meta.variable_labels`, `meta.missing_ranges`, and the column dtypes; returns `SurveyData(frame=df, variables=...)`. |
-| `SPSSWriter.write(data, path, **kwargs)` | Writes via `pyreadstat.write_sav` with full metadata: variable labels, value labels, missing values, and column formats. `data.variables` must be set (otherwise written with bare column names). |
+| `SPSSWriter.write(data, path, **kwargs)` | Writes via `pyreadstat.write_sav` with full metadata: variable labels, value labels, missing values, and measurement levels (nominal/ordinal/scale). `data.variables` must be set (otherwise written with bare column names). |
 | `read_spss(path, **kwargs)` | Convenience function — equivalent to `SPSSReader().read(path, **kwargs)`. |
 
 Round-trip example:
 
 ```python
 data = read_spss("input.sav")              # full metadata recovered
-data = data.recode_values("age", {-1: pd.NA})
+# Treat -1 as missing (recode_values would write to a new column instead):
+data = data.with_frame(data.frame.replace({"age": {-1: pd.NA}}))
 SPSSWriter().write(data, "output.sav")     # SPSS opens it as if untouched
 ```
 
@@ -112,8 +117,13 @@ Same shape as SPSS:
 | Class | Behaviour |
 |-------|-----------|
 | `StataReader.read(path, **kwargs)` | `pyreadstat.read_dta(path, user_missing=True)` → `SurveyData` with `VariableMap`. |
-| `StataWriter.write(data, path, version=15, **kwargs)` | `pyreadstat.write_dta` with metadata. `version` selects the Stata file-format version (Stata 12 = 117, 13/14 = 118, ≥ 15 = 119). |
+| `StataWriter.write(data, path, version=15, **kwargs)` | `pyreadstat.write_dta` with metadata. `version` is the target Stata version (8–15 supported, default 15), forwarded to `pyreadstat.write_dta`. |
 | `read_stata(path, **kwargs)` | Convenience function. |
+
+Note: Stata only supports single-letter user missing codes (`.a`–`.z`),
+so numeric missing codes (e.g. `99`) are dropped on write, and
+measurement levels are not stored in `.dta` files. Pair a `.dta` export
+with a JSON dictionary to preserve the full codebook.
 
 ---
 
@@ -127,13 +137,15 @@ RScriptWriter().write(data, path="political_trust_R/")
 
 Writes a three-file bundle into the target directory:
 
-- `data.csv` — the responses.
-- `dictionary.json` — full `VariableMap` serialisation.
-- `load_data.R` — an R script that reads the CSV, applies value labels
-  (`factor(...)`) and missing-value codes from `dictionary.json`, and
-  attaches variable labels via `Hmisc::label`.
+- `import_survey.csv` — the responses.
+- `import_survey_dictionary.json` — full `VariableMap` serialisation.
+- `import_survey.R` — an R script (using `jsonlite`) that reads the CSV,
+  replaces missing-value codes with `NA`, applies value labels
+  (`factor(...)`), and leaves a `survey_data` data frame.
 
-Returns the `Path` to `load_data.R`.
+Returns the `Path` to `import_survey.R`. If `path` ends in `.R`, that
+name is used instead (e.g. `trust.R` → `trust.csv`,
+`trust_dictionary.json`, `trust.R`).
 
 ---
 

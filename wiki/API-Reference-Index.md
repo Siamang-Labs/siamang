@@ -8,7 +8,7 @@ hub — each row links to the wiki page that documents the symbol in depth.
 ```python
 import siamang as sg
 
-sg.__version__        # the installed version (e.g. "0.5.0")
+sg.__version__        # the installed version (e.g. "0.6.0")
 ```
 
 The package is organised into seven layers: **core** (survey definition),
@@ -128,8 +128,8 @@ Documented in [[Frontend and Theming|Frontend-and-Theming]].
 | `FrontendBuilder` | `from siamang.frontend import FrontendBuilder` | Assembles a `SurveyBundle` from schema + runtime + theme + client. | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `SurveySchema` | `from siamang.frontend import SurveySchema` | Platform-agnostic compiled survey IR. | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `SurveyBundle` | `from siamang.frontend import SurveyBundle` | The compiled files (HTML/CSS/JS) ready to deploy. | [[Frontend and Theming\|Frontend-and-Theming]] |
-| `SurveyJSRuntime` | `from siamang.frontend import SurveyJSRuntime` | The default, build-free SurveyJS runtime. | [[Frontend and Theming\|Frontend-and-Theming]] |
-| `ReactRuntime` | `from siamang.frontend import ReactRuntime` | A standalone React 18 runtime with a bundled design-system stylesheet. | [[Frontend and Theming\|Frontend-and-Theming]] |
+| `SurveyJSRuntime` | `from siamang.frontend import SurveyJSRuntime` | The build-free SurveyJS runtime (default for a hand-built `FrontendBuilder`). | [[Frontend and Theming\|Frontend-and-Theming]] |
+| `ReactRuntime` | `from siamang.frontend import ReactRuntime` | A standalone React 18 runtime with a bundled design-system stylesheet (default for `survey.deploy()` and `siamang preview`). | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `LocalClientTemplate` | `from siamang.frontend import LocalClientTemplate` | `env.js` for the local backend. | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `SupabaseClientTemplate` | `from siamang.frontend import SupabaseClientTemplate` | `env.js` for the Supabase backend. | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `ClientEnv` | `from siamang.frontend import ClientEnv` | Frontend-safe config handed to the in-bundle client. | [[Frontend and Theming\|Frontend-and-Theming]] |

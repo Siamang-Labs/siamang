@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from siamang.cli.loader import load_survey
-from siamang.config import current, load
+from siamang.config import load
 
 
 def run(
@@ -16,9 +16,9 @@ def run(
     profile: str | None = None,
     config_path: str | None = None,
 ) -> int:
-    cfg = current()
-    if config_path is not None:
-        cfg = load(config_path)
+    # Load ~/.siamang.toml (or the explicit --config path) so documented
+    # defaults, profiles, and credentials apply to CLI deploys.
+    cfg = load(config_path) if config_path is not None else load()
     if profile is not None:
         cfg = cfg.with_profile(profile)
 

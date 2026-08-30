@@ -37,7 +37,7 @@ siamang separates concerns into five layers, each with a strict responsibility.
 | 2. Frontend | `siamang.frontend` | Compile the model to a schema and a self-contained bundle. |
 | 3. Deploy | `siamang.deploy` | Provision a backend, publish the bundle, return a URL. |
 | 4. Data | `siamang.data` | Wrap a pandas `DataFrame` + `VariableMap` with analysis accessors. |
-| 5. I/O | `siamang.io` | Round-trip data and metadata with CSV/Excel/SPSS/Stata/R. |
+| 5. I/O | `siamang.io` | Exchange data with CSV/Excel/SPSS/Stata/R (SPSS/Stata round-trip metadata; CSV/Excel carry data only). |
 
 This page focuses on **layer 1**, the model — the part you author by hand. The other
 layers are covered in [[Deployment]], [[Working with Data|Working-with-Data]], and

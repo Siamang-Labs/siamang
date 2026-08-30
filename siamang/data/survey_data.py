@@ -323,20 +323,23 @@ class SurveyData:
         method: str = "mean",
         label: str | None = None,
     ) -> SurveyData:
-        if method != "mean":
-            raise ValueError("create_index currently supports only method='mean'.")
+        if method not in ("mean", "sum"):
+            raise ValueError("create_index supports method='mean' or method='sum'.")
         if not items:
             raise ValueError("create_index requires at least one item.")
         frame = self.frame.copy()
         item_frame = self._numeric_items_frame(items)
-        frame[name] = item_frame.mean(axis=1, skipna=True)
+        if method == "sum":
+            frame[name] = item_frame.sum(axis=1, skipna=True, min_count=1)
+        else:
+            frame[name] = item_frame.mean(axis=1, skipna=True)
         variables = self._variables_with(
             Variable(
                 name,
                 "interval",
                 label=label or name,
                 role="derived",
-                description=f"Mean index from items: {', '.join(items)}",
+                description=f"{method.capitalize()} index from items: {', '.join(items)}",
             )
         )
         return SurveyData(

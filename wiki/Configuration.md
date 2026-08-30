@@ -45,7 +45,9 @@ backend  = "supabase"
 frontend = "vercel"
 ```
 
-> The `local` backend and `local` frontend take no kwargs, so a minimal config is
+> The `local` backend and `local` frontend require no kwargs (`LocalBackend` has
+> an optional `path="survey.db"`; `LocalFrontend` has optional `host`, `port`,
+> and `open_browser`), so a minimal config is
 > just `[defaults]` with both set to `"local"` — which is exactly what
 > `siamang init --non-interactive` writes.
 
@@ -94,7 +96,7 @@ from siamang.config import load, save, use_profile, current
 
 | Function | Description |
 | :--- | :--- |
-| `load(path="~/.siamang.toml")` | Read and parse the file, apply env overrides, and set it as the active config. A missing file yields an empty `Config` (no error). |
+| `load(path="~/.siamang.toml")` | Read and parse the file, apply env overrides, and set it as the active config. A missing file yields a `Config` with only the environment overrides applied (no error). |
 | `current()` | The active `Config` (set by the last `load`/`use_profile`), or an empty one. |
 | `use_profile(name)` | Switch the active config to `current().with_profile(name)`. |
 | `save(config, path=None)` | Write `config` to disk as TOML, creating parent dirs and applying `chmod 600`. Returns the `Path`. |

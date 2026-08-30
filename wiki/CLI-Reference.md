@@ -1,8 +1,9 @@
 # CLI Reference
 
 `siamang` ships a single executable, `siamang`, that wraps the public Python API.
-Every subcommand loads the questionnaire from a `.py` file, looking for a
-module-level attribute named `survey` by default (override with `--attribute`).
+The `validate`, `preview`, and `deploy` subcommands load the questionnaire from a
+`.py` file, looking for a module-level attribute named `survey` by default
+(override with `--attribute`); `init` only writes the config file.
 
 ```bash
 siamang --help
@@ -18,7 +19,7 @@ python -m siamang validate my_survey.py
 Subcommands: [`validate`](#validate), [`preview`](#preview), [`deploy`](#deploy),
 [`init`](#init).
 
-> **The survey file.** Each command imports your `.py` file and reads the attribute
+> **The survey file.** `validate`, `preview`, and `deploy` each import your `.py` file and read the attribute
 > named by `--attribute` (default `survey`). If the attribute is missing you get an
 > `AttributeError` telling you to set `survey = sg.Questionnaire(...)` or pass
 > `--attribute NAME`.
@@ -37,8 +38,9 @@ siamang validate PATH [--attribute ATTR] [--strict]
 | `--attribute` | `survey` | Module-level attribute name to load. |
 | `--strict` | off | Pass `strict=True` to `validate()` (also fails on strict-level lint errors). |
 
-Runs `survey.validate(strict=...)` then `survey.lint()` and prints each warning as
-`[severity] [code] message (location)`.
+Runs `survey.validate(strict=...)`, validates the module-level `options` dict if
+one is exported (quotas are checked only here), then runs `survey.lint()` and
+prints each warning as `[severity] [code] message (location)`.
 
 **Exit codes:**
 
@@ -46,7 +48,12 @@ Runs `survey.validate(strict=...)` then `survey.lint()` and prints each warning 
 | :--- | :--- |
 | 0 | Valid, no `error`-severity lint warnings. |
 | 1 | A lint warning had `error` severity. |
-| 2 | `validate()` raised a `ValueError` (structural problem). |
+| 2 | `validate()` or the `options` check raised a `ValueError` (structural problem). |
+
+> `error`-severity lint rules only run at the strict level, and with `--strict`
+> they are promoted by `validate(strict=True)` into a `ValueError` first — so in
+> practice such findings surface as exit code 2, and exit code 1 is a reserved
+> part of the contract.
 
 ```bash
 $ siamang validate my_survey.py
@@ -82,16 +89,17 @@ siamang preview PATH [--attribute ATTR] [--port PORT] [--open] [--db DB]
 | `--db` | `survey.db` | SQLite file used by the local backend. |
 
 Spins up a local FastAPI server with the React frontend and the SQLite backend
-(`LocalBackend` + `LocalFrontend`). The survey is reachable at
-`http://127.0.0.1:<port>`; responses land in `--db`. Press Ctrl+C to stop. The
+(`LocalBackend` + `LocalFrontend`). The server binds all interfaces
+(`0.0.0.0`); open the survey at `http://127.0.0.1:<port>`. Responses land in
+`--db`. Press Ctrl+C to stop. The
 command also prints a one-line diagnostic about the React compile path (sucrase +
 esbuild fast path, vs. in-browser `@babel/standalone`).
 
 ```bash
 $ siamang preview my_survey.py --port 8000 --open
-Preview ready at http://127.0.0.1:8000
-  survey_id: 42a1c0e9
-  dashboard: None
+Preview ready at http://0.0.0.0:8000
+  survey_id: 42a1c0e9d3f5
+  dashboard: sqlite:///survey.db
   [react] sucrase + esbuild minify available — fast path
 Press Ctrl+C to stop.
 ```
@@ -101,7 +109,7 @@ Read the collected responses from Python afterwards:
 ```python
 from siamang.deploy.backends.local import LocalBackend
 
-df = LocalBackend(path="survey.db").get_responses(survey_id="42a1c0e9")
+df = LocalBackend(path="survey.db").get_responses(survey_id="42a1c0e9d3f5")
 ```
 
 ---
@@ -133,10 +141,10 @@ for the file format and environment overrides.
 ```bash
 $ siamang deploy my_survey.py --profile production
 Deployed: https://political-trust-2026.vercel.app
-  survey_id: 42a1c0e9
+  survey_id: 42a1c0e9d3f5
   backend:   supabase
   frontend:  vercel
-  dashboard: https://app.supabase.com/project/abcdef
+  dashboard: https://abcdef.supabase.co/project/_/editor
 ```
 
 You can override the configured backend/frontend on the command line:

@@ -76,7 +76,9 @@ def to_markdown(self, asset_dir: str | Path = ".", *, embed_images: bool = False
 ```
 
 Renders the whole document to a Markdown string. Charts are materialized to PNG
-files named `fig_<index>.png`:
+files named `fig_<index>.png`, where `<index>` is the chart block's position in
+the whole document (narrative blocks count too) — so the numbers are ordered
+but not consecutive:
 
 - with `embed_images=False` (default), each chart is written into `asset_dir`
   and linked by relative filename;

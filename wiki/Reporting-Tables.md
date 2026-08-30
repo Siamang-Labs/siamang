@@ -25,7 +25,7 @@ lazily on first use):
 | :--- | :--- | :--- |
 | `to_frame()` | `pd.DataFrame` | Raw result table. |
 | `to_markdown()` | `str` | GitHub-flavored pipe table; appends a stats footer. |
-| `to_html()` | `str` | `<table class="siamang-table">`; renders inline in Jupyter. |
+| `to_html()` | `str` | HTML table tagged with the `siamang-table` CSS class (rendered as `class="dataframe siamang-table"`); renders inline in Jupyter. |
 | `export_xlsx(path)` | `Path` | Writes an `.xlsx` sheet named `"Table"`. |
 
 The statistics footer (Chi-square, Cramér's V, the chosen mean-comparison test,
@@ -47,7 +47,8 @@ percentages, plus a `Total` row. Value labels are resolved automatically.
 - **`column`** — variable to tabulate.
 - **`exclude_missing`** — drop `NaN` from the base (default `True`).
 - **`sort`** — `"value"` (by code, default), `"freq"` (count descending), or
-  `"label"` (alphabetical by label).
+  `"label"` (alphabetical by label). Any other value is silently ignored and
+  code order is kept.
 
 ```python
 print(data.report.freq("it_role").to_markdown())

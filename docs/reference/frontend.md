@@ -92,12 +92,14 @@ class FrontendBuilder:
     ) -> SurveyBundle: ...
 ```
 
-When building, the returned bundle contains:
+When building, the returned bundle contains five base files:
 * `index.html`: The main survey entry point.
 * `closed.html`: The screen displayed when a survey has expired, reached its response limit, or when quotas are full.
 * `style.css`: The compiled stylesheet containing the active theme.
 * `env.js`: The runtime environment variables injected at deployment.
 * `manifest.json`: Metadata about the active runtime, survey ID, and version.
+
+A runtime may add its own static assets on top: `ReactRuntime` contributes `bundle.js` plus vendored React files under `vendor/`, while `SurveyJSRuntime` adds none.
 
 ---
 
@@ -150,7 +152,7 @@ Siamang features an integrated web-font loader. By default, it loads high-qualit
 | Property | Default | Description |
 | :--- | :--- | :--- |
 | `logo_url` | `None` | Optional URL pointing to a logo image displayed in the header. |
-| `logo_text` | `None` | Short text logo displayed when `logo_url` is not set. If omitted, it is automatically derived from the initials of `institution_name`. |
+| `logo_text` | `None` | Short text logo displayed when `logo_url` is not set. If omitted, it is automatically derived from the initials of the first two words of `institution_name` (e.g., "Riverside Health Collective" → "RH"). |
 | `logo_position` | `"left"` | The alignment of the logo in the header. Allowed values: `"left"`, `"right"`, or `"center"`. |
 | `show_title` | `True` | If `True`, displays the questionnaire's title in the header. |
 | `institution_name` | `None` | The name of the academic institution or research organization, displayed beneath the title. |
@@ -259,13 +261,13 @@ All runtimes inherit from this base class, which defines the interface for gener
 
 ### `SurveyJSRuntime`
 
-A lightweight, non-React runtime that uses the popular **SurveyJS** core library for rendering questions. This is the default runtime because it is highly compatible and requires zero build dependencies.
+A lightweight, non-React runtime that uses the popular **SurveyJS** core library for rendering questions. It is highly compatible and requires zero build dependencies, and it is the default only when you construct a `FrontendBuilder` by hand — `survey.deploy(...)` and `siamang preview` default to `ReactRuntime`. Note that this runtime does not execute siamang's routing payload (`skip_to` / `next_if` / `default_next`); surveys that rely on routing should use `ReactRuntime`.
 
 ---
 
 ### `ReactRuntime`
 
-A modern runtime that compiles the questionnaire into a native, standalone **React + TailwindCSS** application. This runtime is required when using advanced features like interactive custom charts, custom visual widgets, or complex real-time animations.
+A modern runtime that compiles the questionnaire into a native, standalone **React 18** application with a bundled design-system stylesheet (no CSS framework dependency). This runtime is required when using advanced features like interactive custom charts, custom visual widgets, or complex real-time animations. It is the default runtime for `survey.deploy(...)` and `siamang preview`.
 
 ---
 

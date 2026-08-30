@@ -125,7 +125,7 @@ The folder also includes `survey_preview.html` — an interactive HTML survey yo
 | **Frontend** | SurveyJS and React 18 runtimes, dark mode, auto-save, access codes, 6 theme presets |
 | **Backend** | Local SQLite for development, Supabase for production, Google Sheets for collaborative access |
 | **Deploy** | Vercel and Netlify frontends with CSP headers; self-contained HTML bundle for offline use |
-| **Data I/O** | CSV, Excel (.xlsx), SPSS (.sav), Stata (.dta), R (.rda) — round-trip with labels and missing values preserved |
+| **Data I/O** | CSV, Excel (.xlsx), SPSS (.sav), Stata (.dta), R — SPSS/Stata round-trip labels and missing values; CSV/Excel carry data only (labels via the JSON dictionary); R export is CSV + dictionary + loader script |
 
 ---
 

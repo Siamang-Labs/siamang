@@ -74,7 +74,7 @@ class SingleChoice(Question):
 | Field | Default | Description |
 | :--- | :--- | :--- |
 | `display` | `"radio"` | UI style: `"radio"`, `"dropdown"`, or `"buttons"` (segmented). |
-| `none_of_above` | `False` | Append a "None of the above" option that deselects others. |
+| `none_of_above` | `False` | Append a "None of the above" option that deselects others; it is stored with the code `"__none__"`. |
 | `choices` | `None` | Explicit `Option` list; if `None`, derived from the variable's `labels`. |
 
 `var` must be a single `Variable`. When `choices` is omitted, the options come from
@@ -156,7 +156,7 @@ class LikertScale(Question):
 | `points` | `5` | Number of scale points. Must be `>= 2`. |
 | `left_label` | `None` | Anchor label on the far left (e.g. `"Strongly disagree"`). |
 | `right_label` | `None` | Anchor label on the far right (e.g. `"Strongly agree"`). |
-| `na_option` | `False` | `True` adds a "Not applicable" choice; a string sets its label. |
+| `na_option` | `False` | `True` adds a "Not applicable" choice; a string sets its label. An NA answer is stored as the value `"na"`. |
 
 `var` must be a single `Variable` (ideally `ordinal`).
 
@@ -253,7 +253,7 @@ class Matrix(Question):
 | `var` | *required* | Non-empty list of `Variable` — one per row. |
 | `subquestions` | `None` | Row labels; default to each variable's `label`. |
 | `column_labels` | `None` | Column headers; default to the variables' value `labels`. |
-| `na_option` | `False` | `True` adds a "Not applicable" column; a string sets its header. |
+| `na_option` | `False` | `True` adds a "Not applicable" column; a string sets its header. An NA cell is stored as the value `"na"`. |
 
 ```python
 def trust_dim(name, label):

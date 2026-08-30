@@ -386,7 +386,7 @@ Triggers: `onInit`, `onPageEnter`, `onPageExit`, `onQuestionShow`,
 
 ```bash
 $ siamang validate hello.py
-OK: Questionnaire<Hello, siamang> with 2 questions
+OK — no warnings.
 ```
 
 ```python
@@ -512,9 +512,10 @@ csv   = csv.__class__(
 )
 ```
 
-SPSS and Stata I/O round-trip variable labels, value labels,
-missing-value codes, and column formats so the same file can be opened
-in SPSS / Stata / siamang interchangeably.
+SPSS and Stata I/O round-trip variable labels, value labels, and
+missing-value codes so the same file can be opened in SPSS / Stata /
+siamang interchangeably. (Stata accepts only single-letter `.a`–`.z`
+missing codes, so numeric missing codes are dropped on `.dta` write.)
 
 ---
 

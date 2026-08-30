@@ -97,13 +97,70 @@ function isAnswered(q, v) {
 
 function extractOptions(pages) {
   const opts = {};
-  for (const p of pages) {
-    const items = p.items || [];
-    for (const q of items) {
-      if (q.options) opts[q.id] = q.options;
+  const collect = (items) => {
+    for (const q of items || []) {
+      if (q && q.options) opts[q.id] = q.options;
     }
+  };
+  for (const p of pages) {
+    collect(p.items);
+    for (const b of p.blocks || []) collect(b.items);
   }
   return opts;
+}
+
+/* ─── Author-declared randomization (Question.randomize, Block.randomize,
+   Page.randomize_blocks) ─────────────────────────────────────────────────
+   Applied once per respondent at load time; the shuffled option order is
+   captured into answers.__options__ via extractOptions() afterwards. */
+
+function applyRandomization(pages) {
+  let touched = false;
+  const shuffle = (arr) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const mapQ = (q) => {
+    if (q && q.randomize && Array.isArray(q.options) && q.options.length > 1) {
+      touched = true;
+      return { ...q, options: shuffle(q.options) };
+    }
+    return q;
+  };
+  const out = pages.map((p) => {
+    if (Array.isArray(p.items)) {
+      return { ...p, items: p.items.map(mapQ) };
+    }
+    if (Array.isArray(p.blocks)) {
+      let blocks = p.blocks.map((b) => {
+        let items = (b.items || []).map(mapQ);
+        if (b.randomize && items.length > 1) {
+          touched = true;
+          items = shuffle(items);
+        }
+        return { ...b, items };
+      });
+      if (p.randomizeBlocks) {
+        // Shuffle only real authored blocks among their own slots; wrappers
+        // holding standalone questions keep their positions.
+        const slots = blocks.map((b, i) => (b.isBlock ? i : -1)).filter((i) => i >= 0);
+        if (slots.length > 1) {
+          touched = true;
+          const shuffled = shuffle(slots.map((i) => blocks[i]));
+          const next = [...blocks];
+          slots.forEach((slot, k) => { next[slot] = shuffled[k]; });
+          blocks = next;
+        }
+      }
+      return { ...p, blocks };
+    }
+    return p;
+  });
+  return { pages: out, touched };
 }
 
 /* ─── ScriptRunner ──────────────────────────────────────────────────── */
@@ -140,6 +197,10 @@ const ScriptRunner = {
     },
   },
 
+  // Set once by App; lets script writes into `answers` flow back into the
+  // reactive store (scripts receive a mutable working copy, see below).
+  _store: null,
+
   run(trigger, answers, context = {}, target = null) {
     const scripts = (window.SURVEY && window.SURVEY.scripts) || [];
     if (!scripts.length) return;
@@ -149,13 +210,48 @@ const ScriptRunner = {
       if (!target && s.target) return false;
       return true;
     });
+    if (!matching.length) return;
+
+    // Scripts mutate `answers` (including nested objects such as
+    // __errors__ / __options__ / __pages__). Hand them a one-level-deep
+    // working copy of the live store state, then sync changes back so the
+    // UI reacts and later triggers observe the writes.
+    const store = ScriptRunner._store;
+    let work = answers;
+    let base = null;
+    if (store) {
+      base = store.snapshot();
+      work = { ...base };
+      for (const k of Object.keys(work)) {
+        const v = work[k];
+        if (Array.isArray(v)) work[k] = [...v];
+        else if (v && typeof v === "object") work[k] = { ...v };
+      }
+    }
+
     for (const script of matching) {
       try {
         const fn = new Function("answers", "utils", "api", "context", script.code);
-        fn(answers, ScriptRunner._utils, ScriptRunner._api, { ...script.context, ...context });
+        fn(work, ScriptRunner._utils, ScriptRunner._api, { ...script.context, ...context });
       } catch (err) {
         console.warn(`siamang Script error [${script.name || script.trigger}]:`, err);
       }
+    }
+
+    if (store && base) {
+      const updates = {};
+      for (const k of Object.keys(work)) {
+        const nv = work[k];
+        const ov = base[k];
+        if (nv === ov) continue;
+        if (nv && typeof nv === "object" && ov && typeof ov === "object") {
+          try {
+            if (JSON.stringify(nv) === JSON.stringify(ov)) continue;
+          } catch (e) { /* unserialisable (e.g. timer handles) — treat as changed */ }
+        }
+        updates[k] = nv;
+      }
+      if (Object.keys(updates).length) store.setMany(updates);
     }
   },
 
@@ -446,16 +542,24 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
 
 function App() {
   const ui = window.SURVEY || {};
-  const allPages = window.PAGES || [];
   const surveyId = ui.surveyId || "siamang_survey";
+
+  // ─── Author-declared randomization (applied once per respondent) ───
+  const randomized = useMemo(() => applyRandomization(window.PAGES || []), []);
+  const allPages = randomized.pages;
 
   // ─── Answers Store (replaces useState for form values) ───
   const store = useMemo(() => {
-    const initial = { __options__: extractOptions(allPages), __pages__: allPages };
+    const initial = {
+      __options__: extractOptions(allPages),
+      __pages__: allPages,
+      __errors__: {},
+    };
     return createAnswersStore(initial);
   }, []);
   const storeRef = useRef(store);
   storeRef.current = store;
+  ScriptRunner._store = store;
 
   // ─── Visibility Engine ───
   const visibilityEngine = useVisibilityEngine(allPages, store);
@@ -492,8 +596,31 @@ function App() {
   useEffect(() => {
     if (!initializing && nav.pages.length > 0) {
       ScriptRunner.runOnInit(store.snapshot());
+      // Author-declared randomization ran at load; onInit scripts (e.g.
+      // randomize_pages) may also have shuffled state. Fire onRandomize
+      // so scripts can react to the final randomized state.
+      ScriptRunner.run("onRandomize", store.snapshot());
     }
   }, [initializing]);
+
+  // ─── onPageEnter / onQuestionShow lifecycle triggers ───
+  const currentPageName = nav.currentPage ? nav.currentPage.name : null;
+  const shownQuestionsRef = useRef(new Set());
+  useEffect(() => {
+    if (initializing || !currentPageName) return;
+    ScriptRunner.run("onPageEnter", store.snapshot(), {}, currentPageName);
+  }, [initializing, currentPageName]);
+  useEffect(() => {
+    if (initializing || !nav.currentPage) return;
+    const answers = store.snapshot();
+    const items = visibilityEngine.visibleItems(nav.currentPage, answers);
+    for (const q of items) {
+      if (!shownQuestionsRef.current.has(q.id)) {
+        shownQuestionsRef.current.add(q.id);
+        ScriptRunner.runForQuestion(q.id, store.snapshot());
+      }
+    }
+  }, [initializing, currentPageName, visibilityEngine._sig]);
 
   // ─── UI Texts ───
   const uiTexts = useMemo(() => ({
@@ -516,9 +643,20 @@ function App() {
     completedBody: ui.completedBody || "Your responses help inform open research.",
   }), []);
 
+  // ─── Script-written validation messages (answers.__errors__) ───
+  const scriptErrors = useFieldValue(store, "__errors__") || {};
+
   // ─── Stable setAnswer callback ───
   const setAnswer = useCallback((id, val) => {
     store.set(id, val);
+    // A change to the field invalidates any script-written message for it;
+    // onAnswer scripts re-add it below if the problem persists.
+    const se = store.get("__errors__");
+    if (se && se[id] !== undefined) {
+      const next = { ...se };
+      delete next[id];
+      store.set("__errors__", next);
+    }
     setTimeout(() => ScriptRunner.run("onAnswer", store.snapshot(), {}, id), 0);
     scheduleSave();
     if (errorsRef.current[id]) {
@@ -545,9 +683,13 @@ function App() {
     if (!page) return;
     const items = visibilityEngine.visibleItems(page, answers);
     const errs = {};
+    const se = answers.__errors__ || {};
     for (const q of items) {
       if (q.required && !isAnswered(q, answers[q.id])) {
         errs[q.id] = uiTexts.required;
+      } else if (se[q.id]) {
+        // Script-written validation message blocks navigation too.
+        errs[q.id] = se[q.id];
       }
     }
     if (Object.keys(errs).length > 0) {
@@ -571,6 +713,12 @@ function App() {
     setErrors({});
     nav.goPrev();
   }, [nav]);
+
+  // Timed-question scripts auto-advance through this global hook.
+  useEffect(() => {
+    window.siamangNext = handleNext;
+    return () => { if (window.siamangNext === handleNext) delete window.siamangNext; };
+  }, [handleNext]);
 
   // ─── Keyboard + Touch + BeforeUnload ───
   const navRef = useRef({ onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage });
@@ -725,7 +873,7 @@ function App() {
                   store={store}
                   visibilityEngine={visibilityEngine}
                   setAnswer={setAnswer}
-                  errors={errors}
+                  errors={{ ...scriptErrors, ...errors }}
                   onNext={handleNext}
                   onPrev={handlePrev}
                   isFirst={nav.isFirst}

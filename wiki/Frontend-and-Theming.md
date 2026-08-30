@@ -73,7 +73,7 @@ whose filenames are content-hashed. `survey` is only needed by runtimes that
 require the live `Questionnaire` (`ReactRuntime`); `SurveyJSRuntime` works from
 `schema` alone.
 
-The returned bundle contains:
+The returned bundle contains five base files:
 
 | File | Purpose |
 | :--- | :--- |
@@ -82,6 +82,10 @@ The returned bundle contains:
 | `style.css` | The compiled theme (from the runtime, or `compile_css(ui)` as a fallback). |
 | `env.js` | Runtime config emitted by the backend client template. |
 | `manifest.json` | Metadata: runtime, client, backend, `survey_id`, `schema_hash`, build time. |
+
+A runtime may add its own static assets on top: `ReactRuntime` contributes
+`bundle.js` plus vendored React files under `vendor/`; `SurveyJSRuntime` adds
+none.
 
 ### End-to-end example
 
@@ -131,11 +135,14 @@ Immutable container of the compiled files plus a manifest. Useful methods:
 A `RuntimeAdapter` turns a compiled schema into HTML pages and the client-side
 behaviour. Two are bundled:
 
-### `SurveyJSRuntime` (default)
+### `SurveyJSRuntime`
 
-A lightweight, non-React runtime built on the **SurveyJS** core library. It is the
-default because it is highly compatible and needs zero build tooling. This is what
-the full-pipeline example uses to produce a standalone `.html` file.
+A lightweight, non-React runtime built on the **SurveyJS** core library. It is
+the default only for a hand-built `FrontendBuilder`; it is highly compatible and
+needs zero build tooling. This is what the full-pipeline example uses to produce
+a standalone `.html` file. Note that it does not execute siamang's routing
+payload (`skip_to` / `next_if` / `default_next`) — surveys that rely on routing
+should use `ReactRuntime`.
 
 ### `ReactRuntime`
 
@@ -143,7 +150,9 @@ Compiles the questionnaire into a standalone **React 18** application with a
 bundled design-system stylesheet.
 Required for advanced interactive features (custom charts, custom widgets, complex
 animations). Because it needs the live questionnaire, pass `survey=` to `build(...)`.
-`siamang preview` uses the React runtime locally.
+Both `survey.deploy(...)` and `siamang preview` use the React runtime by
+default; `SurveyJSRuntime` is only the default when you construct a
+`FrontendBuilder` yourself.
 
 Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`,
 `stylesheet`, `static_assets`) — see
@@ -215,7 +224,8 @@ ships its own Google Fonts URL. Fine-grained overrides: `font_family`,
 
 ### Branding / header
 
-`logo_url`, `logo_text` (auto-derived from `institution_name` initials if unset),
+`logo_url`, `logo_text` (if unset, auto-derived from the initials of the first
+two words of `institution_name` — e.g. "Riverside Health Collective" → "RH"),
 `logo_position`, `show_title`, `institution_name`, `study_subtitle`,
 `show_section_numbers`, `show_progress_text`, and `estimated_minutes`.
 

@@ -94,6 +94,12 @@ print(int(data.frame["autonomy"].isna().sum()))
 > Page-level skip logic is only applied in **pages mode**. In the legacy flat
 > (`blocks`) mode every question is answered for every respondent.
 
+> **Known limitation:** `simulate()` honors only `show_if`/`hide_if` at the page
+> and question level. Routing (`next_if`, `default_next`, `skip_to`) is *not*
+> replayed — every page is processed in document order regardless of routing
+> rules — and `show_if`/`hide_if` on a `Block` inside a page is not applied
+> either. To see routing in action, use the runtime (`siamang preview`).
+
 ---
 
 ## Using simulated data for testing and preview

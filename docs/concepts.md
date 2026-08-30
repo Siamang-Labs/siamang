@@ -71,7 +71,7 @@ that can be deployed as static files.
 |--------|------|
 | `FrontendBuilder` | Combines a `RuntimeAdapter` (React / SurveyJS), a `UIConfig` (theme, labels, branding), and a `BackendClientTemplate` (Local / Supabase) into a `SurveyBundle`. |
 | `UIConfig` | All branding and UI-strings settings (logo, colours, progress style, language) — see [`reference/frontend.md`](reference/frontend.md). |
-| `ReactRuntime` | Renders the survey using the in-tree React templates; compiles JSX on the fly via `npx sucrase` or `npx babel`. |
+| `ReactRuntime` | Renders the survey using the in-tree React templates; ships pre-compiled JS plus vendored React 18 (`bundle.js` and `vendor/` files in the bundle). Default for `survey.deploy()` and `siamang preview`. |
 | `SurveyJSRuntime` | Older path, renders via SurveyJS CDN. |
 | `LocalClientTemplate` / `SupabaseClientTemplate` | Generate the JavaScript snippet that talks to the backend from the browser. |
 
@@ -129,11 +129,12 @@ Accessors:
 
 ### 5. `siamang.io` — round-trip with stats packages
 
-Every reader and writer round-trips metadata (variable labels, value
-labels, missing-value conventions, formats) so that a `Questionnaire`
-defined in siamang produces an SPSS `.sav` that opens identically in
-SPSS, and a `.sav` written elsewhere reads back into siamang with the
-same `VariableMap`.
+The SPSS and Stata readers and writers round-trip metadata (variable
+labels, value labels, missing-value conventions) so that a
+`Questionnaire` defined in siamang produces an SPSS `.sav` that opens
+identically in SPSS, and a `.sav` written elsewhere reads back into
+siamang with the same `VariableMap`. CSV and Excel carry data only —
+pair them with a JSON dictionary for metadata.
 
 Supported formats:
 

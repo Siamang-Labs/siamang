@@ -265,7 +265,7 @@ data = SurveyData(frame=df, variables=survey.variables)
 | :--- | :--- | :--- |
 | `provision(schema)` | `BackendConfig` | Creates/configures spreadsheet, writes headers, sets up `_meta` and `_quotas` sheets |
 | `store_response(survey_id, payload)` | `str` (response_id) | Appends a response row via `values.append()` |
-| `get_responses(survey_id)` | `pd.DataFrame` | Reads all rows, auto-converts numeric columns, replaces empty strings with NaN |
+| `get_responses(survey_id)` | `pd.DataFrame` | Reads all rows, auto-converts numeric columns, replaces empty strings with NaN. Includes the service columns `_response_id` and `_submitted_at` alongside the variable columns |
 | `check_quota(survey_id, variable, value)` | `bool` | Returns `True` if quota cell has capacity |
 | `increment_quota(survey_id, variable, value)` | `bool` | Check + increment; returns `False` when full |
 | `get_response_count(survey_id)` | `int` | Number of responses collected |
@@ -286,7 +286,7 @@ data = SurveyData(frame=df, variables=survey.variables)
 @dataclass
 class LocalFrontend(FrontendAdapter):
     name: str = "local"
-    host: str = "127.0.0.1"
+    host: str = "0.0.0.0"
     port: int = 0                  # 0 → pick a free port
     open_browser: bool = False
 ```
@@ -310,17 +310,22 @@ class VercelFrontend(FrontendAdapter):
 
 `publish(...)` strategy:
 
-1. If `token` is set, use the Vercel REST API to deploy.
-2. Otherwise, if `npx vercel` is available, fall back to the CLI.
-3. Otherwise, write the bundle to `.vercel_deploy_<survey_id>/` for
-   manual deployment and return that local path.
+1. If `token` is set (and `requests` is available), use the Vercel REST
+   API to deploy.
+2. If `token` is set but the REST path is unavailable, fall back to the
+   `npx vercel --prod --token <token>` CLI.
+3. Without a token, write the bundle to `.vercel_deploy_<survey_id>/`
+   for manual deployment and return that local path.
 
 In all branches it injects a strict `vercel.json`:
 
 - `Content-Security-Policy`,
 - `X-Frame-Options: DENY`,
-- cache-control headers for hashed assets,
-- analytics route when `UIConfig.enable_analytics=True`.
+- cache-control headers for hashed assets.
+
+When `UIConfig.enable_analytics=True`, the Vercel Web Analytics script
+is injected into the bundle's page itself (the CSP already allows
+`va.vercel-scripts.com`).
 
 ### `NetlifyFrontend`
 

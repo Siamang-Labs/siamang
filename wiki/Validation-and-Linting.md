@@ -32,7 +32,10 @@ would produce a broken survey:
 - **Script triggers/targets** — each script must use a known trigger and point
   at a real question or page.
 - **Registry consistency** — if the questionnaire carries a `VariableMap`, every
-  question variable must be the same instance registered there.
+  question variable must be equal (field-by-field) to the definition registered
+  there. The comparison is by value, not identity, so an identical copy passes —
+  but defining each `Variable` once and reusing that object remains the simplest
+  way to keep the two in sync.
 
 ### `strict=True`
 
@@ -89,6 +92,9 @@ class LintWarning:
 
 ### What `basic` checks
 
+Every run of `lint()` — including the default `level="basic"` — applies eleven
+rules. Four are structural:
+
 | Code | Severity | Meaning |
 | :--- | :--- | :--- |
 | `EMPTY_QUESTIONNAIRE` | warning | No pages and no blocks. |
@@ -96,9 +102,23 @@ class LintWarning:
 | `REDUNDANT_NAVIGATION` | warning | `default_next` duplicates the implicit next page. |
 | `MISSING_NAVIGATION` | warning | Any page other than the last one has no outgoing navigation edges. |
 
+Seven more check codebook and logic consistency — a questionnaire that compiles
+and runs but silently collects the wrong thing. All of them are warnings at
+every level:
+
+| Code | Severity | Meaning |
+| :--- | :--- | :--- |
+| `UNKNOWN_CONDITION_VALUE` | warning | A condition compares a variable to a value that is not among its defined categories. |
+| `CONTRADICTORY_VISIBILITY` | warning | An object sets both `show_if` and `hide_if`; the combination may never show it. |
+| `EXCLUSIVE_CODE_UNKNOWN` | warning | A `MultiChoice` marks a code `exclusive` that is not among its answer codes. |
+| `OPTION_CODE_WITHOUT_LABEL` | warning | An `Option.code` has no matching value label on the bound variable. |
+| `LIKERT_POINTS_LABEL_MISMATCH` | warning | A `LikertScale`'s `points` disagrees with the number of labelled codes. |
+| `MISSING_CODE_NOT_IN_LABELS` | warning | A declared missing-value code is not among the variable's value labels. |
+| `RANGE_LABEL_MISMATCH` | warning | A variable labels values that fall outside its `valid_range`. |
+
 ### Extra `strict` checks
 
-`level="strict"` adds question-level and registry checks:
+`level="strict"` adds four question-level and registry checks:
 
 | Code | Severity | Meaning |
 | :--- | :--- | :--- |
@@ -130,14 +150,21 @@ for w in survey.lint():
 ## Relationship to the `siamang validate` CLI
 
 `siamang validate my_survey.py` is a thin wrapper: it loads the survey object,
-calls `validate(strict=...)`, then prints all `lint()` warnings. The exit code
-encodes the outcome:
+calls `validate(strict=...)`, also validates the module-level `options` dict if
+the module exports one (quotas live there), then prints all `lint()` warnings.
+The exit code encodes the outcome:
 
 | Exit code | Condition |
 | :--- | :--- |
 | `0` | Valid; no warnings, or only `warning`-severity lint findings. |
-| `1` | Valid structure, but at least one lint finding had `severity == "error"`. |
-| `2` | `validate()` raised a `ValueError` (structural failure). |
+| `1` | Valid structure, but at least one printed lint finding had `severity == "error"`. |
+| `2` | `validate()` (or the `options` check) raised a `ValueError` (structural failure). |
+
+> **Note:** `error`-severity lint rules only exist at the strict level, and
+> `--strict` runs `validate(strict=True)` first — which promotes those same
+> findings into a `ValueError` (exit code `2`). With the current rule set,
+> exit code `1` is therefore a reserved part of the contract rather than an
+> outcome you will commonly see.
 
 ```bash
 siamang validate my_survey.py            # basic lint

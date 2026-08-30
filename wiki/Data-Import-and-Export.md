@@ -102,7 +102,7 @@ SPSSWriter().write(data, "trust_out.sav")
 | Class | Behaviour |
 | :--- | :--- |
 | `SPSSReader.read(path, **kwargs)` | Reads via `pyreadstat.read_sav(path, user_missing=True)`. Rebuilds a `VariableMap` from `meta.column_names_to_labels`, `meta.variable_value_labels`, `meta.missing_ranges`, and `meta.variable_measure`. |
-| `SPSSWriter.write(data, path, **kwargs)` | Writes via `pyreadstat.write_sav` with variable labels, value labels, missing values, and formats. `data.variables` must be set, or columns are written bare. |
+| `SPSSWriter.write(data, path, **kwargs)` | Writes via `pyreadstat.write_sav` with variable labels, value labels, missing values, and measurement levels (nominal/ordinal/scale). `data.variables` must be set, or columns are written bare. |
 | `read_spss(path, **kwargs)` | Convenience for `SPSSReader().read(...)`. |
 
 SPSS round-trips full metadata, so a file edited through siamang opens in SPSS as if
@@ -111,7 +111,8 @@ untouched:
 ```python
 import pandas as pd
 data = read_spss("input.sav")                       # metadata recovered
-data = data.recode_values("age", {-1: pd.NA})       # treat -1 as missing
+# Treat -1 as missing (recode_values would write to a new column instead):
+data = data.with_frame(data.frame.replace({"age": {-1: pd.NA}}))
 SPSSWriter().write(data, "output.sav")
 ```
 
@@ -134,7 +135,11 @@ StataWriter().write(data, "trust_out.dta", version=15)
 | `StataWriter.write(data, path, version=15, **kwargs)` | `pyreadstat.write_dta` with metadata. `version` (default `15`) is forwarded to `pyreadstat.write_dta` as the target Stata version. |
 | `read_stata(path, **kwargs)` | Convenience function. |
 
-Same metadata round-trip as SPSS.
+Labels and value labels round-trip as with SPSS, with two Stata-specific
+limits: Stata accepts only single-letter user missing codes (`.a`–`.z`), so
+numeric missing codes (e.g. `99`) are dropped on write, and measurement levels
+are not stored in `.dta` files. Pair a `.dta` export with a JSON dictionary to
+preserve the full codebook.
 
 ---
 
@@ -187,15 +192,15 @@ questionnaire.
 
 ## Round-tripping labels and missing values
 
-SPSS and Stata are the formats that preserve everything. A typical recode-and-export
-cycle:
+SPSS and Stata are the formats that preserve the most metadata (see the
+Stata-specific limits above). A typical recode-and-export cycle:
 
 ```python
 import pandas as pd
 from siamang.io import read_spss, SPSSWriter
 
 data = read_spss("input.sav")
-data = data.recode_values("age", {-1: pd.NA}).apply_missing_values()
+data = data.with_frame(data.frame.replace({"age": {-1: pd.NA}})).apply_missing_values()
 SPSSWriter().write(data, "output.sav")
 ```
 

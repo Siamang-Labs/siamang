@@ -1,9 +1,10 @@
 # CLI reference
 
 `siamang` ships with a single executable, `siamang`, that wraps the
-public Python API. Every subcommand loads the questionnaire from a
-`.py` file (looking for a module-level attribute named `survey` by
-default; override with `--attribute`).
+public Python API. The `validate`, `preview`, and `deploy` subcommands
+load the questionnaire from a `.py` file (looking for a module-level
+attribute named `survey` by default; override with `--attribute`);
+`init` only writes the config file.
 
 ```bash
 siamang --help
@@ -33,19 +34,26 @@ siamang validate PATH [--attribute ATTR] [--strict]
 | `--attribute` | `survey` | Module-level attribute name to load. |
 | `--strict` | off | Treat `lint(level="strict")` errors as failures. |
 
-Runs `survey.validate()` and prints any issues. Exit codes:
+Runs `survey.validate(strict=...)`, validates the module-level `options` dict if
+the module exports one (e.g. `quota=[Quota(...)]` — quotas are checked only
+here), then prints every `lint()` finding. Exit codes:
 
 | Code | Meaning |
 |------|---------|
-| 0 | Questionnaire is valid (and lint clean if `--strict`). |
-| 1 | Lint reported an `error`-severity warning (only when `--strict`). |
-| 2 | `validate()` raised a `ValueError` (structural problem). |
+| 0 | Questionnaire is valid; no `error`-severity lint findings. |
+| 1 | A printed lint finding had `error` severity. |
+| 2 | `validate()` or the `options` check raised a `ValueError` (structural problem). |
+
+`error`-severity lint rules only run at the strict level, and with `--strict`
+they are promoted by `validate(strict=True)` into a `ValueError` first — so in
+practice they surface as exit code 2, and exit code 1 is a reserved part of the
+contract.
 
 Example:
 
 ```bash
 $ siamang validate my_survey.py
-OK: Questionnaire<Political Trust — 2026> with 5 questions
+OK — no warnings.
 ```
 
 ---
@@ -65,8 +73,8 @@ siamang preview PATH [--attribute ATTR] [--port PORT] [--open] [--db DB]
 | `--db` | `survey.db` | SQLite file used by the local backend. |
 
 Spins up a local FastAPI server with the React frontend and the SQLite
-backend. The survey is reachable at `http://127.0.0.1:<port>`. Responses
-land in `--db`. Press Ctrl+C to stop.
+backend. The server binds all interfaces (`0.0.0.0`); open the survey at
+`http://127.0.0.1:<port>`. Responses land in `--db`. Press Ctrl+C to stop.
 
 Uses FastAPI + uvicorn (installed automatically with the package).
 
@@ -74,8 +82,11 @@ Example:
 
 ```bash
 $ siamang preview my_survey.py --port 8000 --open
-Preview server: http://127.0.0.1:8000
-SQLite db:      survey.db
+Preview ready at http://0.0.0.0:8000
+  survey_id: 42a1c0e9d3f5
+  dashboard: sqlite:///survey.db
+  [react] sucrase + esbuild minify available — fast path
+Press Ctrl+C to stop.
 ```
 
 ---
@@ -94,7 +105,7 @@ siamang deploy PATH [--attribute ATTR]
 | `--attribute` | `survey` | Module-level attribute name. |
 | `--backend` | from config | Backend name (see `list_backends()`). |
 | `--frontend` | from config | Frontend name (see `list_frontends()`). |
-| `--profile` | `default` | Selects a `[profile.<name>]` block in the config. |
+| `--profile` | (none) | Selects a `[profiles.<name>]` block in the config. |
 | `--config` | `~/.siamang.toml` | Override config path. |
 
 Loads `~/.siamang.toml` (or `--config`), resolves the backend and
@@ -104,16 +115,16 @@ credentials come from the config file (created by `siamang init`).
 Typical config (a TOML file written by `siamang init`):
 
 ```toml
-[profile.default]
+[defaults]
 backend  = "supabase"
 frontend = "vercel"
 
-[profile.default.backend_kwargs]
+[backends.supabase]
 url         = "https://abcdef.supabase.co"
 anon_key    = "..."
 service_key = "..."
 
-[profile.default.frontend_kwargs]
+[frontends.vercel]
 token        = "..."
 project_name = "political-trust-2026"
 ```
@@ -122,10 +133,11 @@ Example:
 
 ```bash
 $ siamang deploy my_survey.py
-URL:       https://political-trust-2026.vercel.app
-Survey id: 42a1c0e9
-Backend:   supabase
-Frontend:  vercel
+Deployed: https://political-trust-2026.vercel.app
+  survey_id: 42a1c0e9d3f5
+  backend:   supabase
+  frontend:  vercel
+  dashboard: https://abcdef.supabase.co/project/_/editor
 ```
 
 ---
@@ -148,36 +160,36 @@ credentials, then writes the config with `chmod 600`.
 
 ## Configuration file format
 
+The loader recognises four top-level tables: `[defaults]` (default
+backend/frontend names, used when `--profile` isn't passed),
+`[backends.<name>]` and `[frontends.<name>]` (kwargs forwarded to the
+matching adapter constructor), and `[profiles.<name>]` (named overrides
+of `[defaults]`, selected with `--profile`).
+
 ```toml
 # ~/.siamang.toml
 
-# Default profile — used when --profile isn't passed
-[profile.default]
+# Defaults — used when --profile isn't passed
+[defaults]
 backend  = "local"            # or "supabase"
 frontend = "local"            # or "vercel"
 
-# Anything under <profile>.backend_kwargs is forwarded to the backend's
-# adapter constructor. Same for frontend_kwargs.
-[profile.default.backend_kwargs]
-path = "preview.db"
-
-[profile.default.frontend_kwargs]
-host = "127.0.0.1"
-port = 8000
-
-# A different profile, selected with `--profile production`
-[profile.production]
-backend  = "supabase"
-frontend = "vercel"
-
-[profile.production.backend_kwargs]
+# Anything under [backends.<name>] is forwarded to that backend's
+# adapter constructor. Same for [frontends.<name>]. (`siamang deploy`
+# does not pass kwargs to the `local` backend/frontend.)
+[backends.supabase]
 url         = "https://abcdef.supabase.co"
 anon_key    = "eyJ..."
 service_key = "eyJ..."
 
-[profile.production.frontend_kwargs]
+[frontends.vercel]
 token        = "vercel-token-..."
 project_name = "political-trust-2026"
+
+# A profile, selected with `--profile production` — keys override [defaults]
+[profiles.production]
+backend  = "supabase"
+frontend = "vercel"
 ```
 
 Backend kwargs are also overridable via environment variables:
@@ -190,4 +202,4 @@ Backend kwargs are also overridable via environment variables:
 | `SURVLIB_SUPABASE_URL` | `SupabaseBackend.url` | Legacy fallback |
 | `SURVLIB_SUPABASE_ANON_KEY` | `SupabaseBackend.anon_key` | Legacy fallback |
 | `SURVLIB_SUPABASE_SERVICE_KEY` | `SupabaseBackend.service_key` | Legacy fallback |
-| `VERCEL_TOKEN` | `VercelFrontend.token` | |
+| `VERCEL_TOKEN` | `VercelFrontend.token` | Read directly by the adapter, only when `token` isn't set in the config |

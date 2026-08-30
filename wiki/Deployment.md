@@ -26,15 +26,18 @@ result = survey.deploy(
     frontend="vercel",           # name → FrontendAdapter via entry points
     backend_kwargs={...},        # forwarded to the backend adapter's __init__
     frontend_kwargs={...},       # forwarded to the frontend adapter's __init__
-    **options,                   # ui=..., quota=..., language=... → compile_questionnaire
+    **options,                   # quota=..., language=... → compile_questionnaire;
+                                 # ui=... / runtime=... → FrontendBuilder
 )  # -> DeployResult
 ```
 
 `backend` defaults to `"local"` and `frontend` to `"local"`, so a bare
 `survey.deploy()` writes a local SQLite store and serves it from a background
-FastAPI server. `**options` are forwarded to compilation — common ones are
-`ui=UIConfig(...)` (see [[Frontend and Theming|Frontend-and-Theming]]),
-`quota=[...]` (see [[Quotas]]), and `language=`.
+FastAPI server. `deploy()` extracts `ui=UIConfig(...)` (see
+[[Frontend and Theming|Frontend-and-Theming]]) and `runtime=` (defaulting to
+`ReactRuntime()` when not passed) itself and hands
+them to the `FrontendBuilder`; the remaining `**options` are forwarded to
+compilation — common ones are `quota=[...]` (see [[Quotas]]) and `language=`.
 
 ```python
 import siamang as sg
@@ -135,10 +138,12 @@ class FrontendAdapter:
   `POST /quota-check` to the backend. Stop it with `local_frontend.stop()`;
   `siamang preview` blocks until Ctrl+C.
 - **`VercelFrontend`** deploys via the Vercel REST API when `token` is set (falls
-  back to `VERCEL_TOKEN`), else `npx vercel`, else writes
+  back to `VERCEL_TOKEN`); with a token but no REST path it falls back to
+  `npx vercel --prod --token <token>`; without a token it writes
   `.vercel_deploy_<survey_id>/` for manual upload. It injects a strict `vercel.json`
-  (CSP, `X-Frame-Options: DENY`, asset caching, analytics route when
-  `UIConfig.enable_analytics=True`).
+  (CSP, `X-Frame-Options: DENY`, asset caching). With
+  `UIConfig.enable_analytics=True` the Vercel Web Analytics script is injected
+  into the bundle's page itself.
 - **`NetlifyFrontend`** ZIP-uploads via the REST API when `token` is set (falls
   back to `NETLIFY_AUTH_TOKEN`, then `npx netlify deploy --prod`, then a local
   write). It injects security headers via `_headers` and SPA routing via

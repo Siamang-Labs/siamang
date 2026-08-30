@@ -35,7 +35,7 @@ The `Variable` class represents a single question's measurement or an analytical
 | `label` | `str \| None` | `None` | A human-readable label or short description of the variable, often used as the variable label in statistical packages like SPSS or Stata. |
 | `labels` | `dict[Any, str]` | `{}` | A mapping of valid category codes to their textual labels (e.g., `{1: "Yes", 0: "No"}`). |
 | `missing_values` | `tuple[Any, ...]` | `()` | A legacy tuple of plain codes representing missing responses. Normalized in `__post_init__` into the `missing` property. |
-| `dtype` | `str \| None` | `None` | The physical data type. Allowed values are: `"int"`, `"float"`, `"str"`, `"bool"`, `"category"`, or `"datetime"`. If omitted, it is inferred during validation. |
+| `dtype` | `str \| None` | `None` | The physical data type. Allowed values are: `"int"`, `"float"`, `"str"`, `"bool"`, `"category"`, or `"datetime"`. If omitted (`None`), dtype checking is simply skipped during validation. |
 | `role` | `str \| None` | `None` | The analytical role of the variable. Allowed values are: `"input"`, `"target"`, `"weight"`, `"id"`, `"grouping"`, or `"derived"`. |
 | `description` | `str \| None` | `None` | A long-form textual description of what this variable measures, its context, or historical origin. |
 | `construct` | `str \| None` | `None` | The latent psychological or sociological construct being measured (e.g., `"trust_in_institutions"`). |
@@ -68,7 +68,7 @@ To build conditional routing and visibility expressions, `Variable` instances pr
 | `var.isin(list)` | `in` | `region.isin([1, 2, 3])` |
 | `var.notin(list)` | `not in` | `region.notin([99])` |
 
-The `Variable` class also overloads Python's comparison operators (`>`, `>=`, `<`, `<=`), allowing expressions to be written naturally as `age >= 18`. Explicit equality (`==`) cannot be overloaded because it is reserved for dataclass structural identity; therefore, `var.eq(value)` must be used.
+The `Variable` class also overloads Python's comparison operators (`>`, `>=`, `<`, `<=`), allowing expressions to be written naturally as `age >= 18`. Equality and inequality (`==`, `!=`) are not overloaded — the dataclass machinery uses them for field-wise object comparison, and `gender == 1` silently returns a plain `bool` — therefore `var.eq(value)` / `var.ne(value)` must be used.
 
 ---
 
@@ -184,7 +184,7 @@ Questions bind user prompts to variables and define the user interface component
 
 ### `Question` (Base Class)
 
-The base `Question` class defines the properties shared by all question types. It cannot be instantiated directly.
+The base `Question` class defines the properties shared by all question types. It is not meant to be used directly — instantiate one of the seven subclasses.
 
 #### Shared Properties
 
@@ -448,7 +448,7 @@ The `Questionnaire` class is the aggregate root of a survey design. It combines 
   * Validates that scripts are bound to existing questions or pages.
   * If `strict=True`, also runs linting heuristics and raises a `ValueError` on any errors.
 * **`lint(level: str = "basic") -> list[LintWarning]`**:
-  Analyzes the survey structure for logical anti-patterns, such as unreachable pages, unused variables, or empty pages.
+  Analyzes the survey structure for logical anti-patterns, such as empty pages, redundant navigation, codebook/condition mismatches, or (at `level="strict"`) unused variables and incompatible question scales.
 * **`compile(**options) -> SurveySchema`**:
   Compiles the questionnaire into an intermediate `SurveySchema` representation ready for bundle building [2].
 * **`deploy(backend: str = "local", frontend: str = "local", **options) -> DeployResult`**:
@@ -456,7 +456,7 @@ The `Questionnaire` class is the aggregate root of a survey design. It combines 
 * **`simulate(n: int = 100, seed: int = 42) -> SurveyData`**:
   Generates `n` synthetic, logically valid responses using Monte Carlo simulation, which is useful for testing analytical pipelines before data collection [1].
 * **`preview() -> str`**:
-  Renders a static text preview of the survey structure, including routing logic and page hierarchy.
+  Returns a one-line summary string of the form `Questionnaire<Title> with N questions`. For a browsable rendering of the survey, use the `siamang preview` CLI command instead.
 * **`collect()`**:
   Retrieves responses collected from active deployments (available for cloud backends).
 * **`to_dict() -> dict`**:
@@ -474,10 +474,10 @@ The `LintWarning` class represents a structural or logical warning discovered du
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `code` | `str` | *Required* | Unique warning code (e.g., `"unreachable_page"`, `"unused_variable"`). |
-| `severity` | `str` | *Required* | Severity level: `"info"`, `"warning"`, or `"error"`. |
+| `code` | `str` | *Required* | Machine-readable warning code (e.g., `"EMPTY_PAGE"`, `"UNUSED_VARIABLE"`). |
+| `severity` | `str` | *Required* | Severity level: `"warning"` or `"error"`. |
 | `message` | `str` | *Required* | Human-readable explanation of the warning. |
-| `location` | `str \| None` | `None` | Location identifier indicating where the issue was found (e.g., `"page:welcome"`). |
+| `location` | `str \| None` | `None` | Where the issue was found — a page name, question id, or variable name (e.g., `"p2"`). |
 
 ---
 

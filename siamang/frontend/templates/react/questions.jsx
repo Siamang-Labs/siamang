@@ -14,8 +14,13 @@ function gateOption(opt, answers) {
 }
 
 function visibleOptions(q, answers) {
-  if (!q.options) return [];
-  return q.options.filter((opt) => gateOption(opt, answers));
+  // Honour script- or author-randomized option order stored in
+  // answers.__options__ (see Script.randomize_options / Question.randomize).
+  let opts = q.options;
+  const stored = answers && answers.__options__ && answers.__options__[q.id];
+  if (Array.isArray(stored) && stored.length) opts = stored;
+  if (!opts) return [];
+  return opts.filter((opt) => gateOption(opt, answers));
 }
 
 /* Render one media attachment as <img>/<video>/<audio>. Authors should keep
@@ -195,11 +200,18 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
     }
   };
 
+  const exclusiveCodes = Array.isArray(q.exclusive) ? q.exclusive : [];
+  const isExclusive = (code) => exclusiveCodes.includes(code);
+
   const toggle = (code) => {
     if (v.includes(code)) {
       emitValue(v.filter((x) => x !== code), otherText);
+    } else if (isExclusive(code)) {
+      // Picking an exclusive code (e.g. "None of the above") clears the rest.
+      emitValue([code], "");
     } else if (!q.max || v.length < q.max) {
-      emitValue([...v, code], otherText);
+      // Picking a regular code clears any selected exclusive codes.
+      emitValue([...v.filter((x) => !isExclusive(x)), code], otherText);
     }
   };
 
@@ -207,7 +219,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
     if (isOtherSelected) {
       emitValue(v.filter((x) => x !== "__other__"), "");
     } else if (!q.max || v.length < q.max) {
-      emitValue([...v, "__other__"], otherText);
+      emitValue([...v.filter((x) => !isExclusive(x)), "__other__"], otherText);
       setTimeout(() => otherInputRef.current && otherInputRef.current.focus(), 50);
     }
   };
@@ -366,6 +378,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
             <tr>
               <th></th>
               {q.columns.map((c, i) => <th key={i}>{c}</th>)}
+              {q.naOption ? <th className="sd-matrix__na-header">{q.naOption}</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -390,6 +403,18 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
                     </td>
                   );
                 })}
+                {q.naOption ? (
+                  <td>
+                    <button
+                      type="button"
+                      className={"sd-matrix__cell" + (v[row.id] === "na" ? " is-selected" : "")}
+                      aria-label={`${row.label}: ${q.naOption}`}
+                      aria-pressed={v[row.id] === "na"}
+                      tabIndex={-1}
+                      onClick={() => onChange({ ...v, [row.id]: "na" })}
+                    />
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
@@ -779,6 +804,15 @@ const Question = React.memo(_QuestionDispatcher, (prev, next) => {
   if (pipes(next.q.title) || pipes(next.q.description)) {
     if (prev.answers !== next.answers) return false;
   }
+  // Option order can be changed through answers.__options__ (randomize
+  // scripts / author-declared randomization) — re-render when it does.
+  const optOrder = (a) => (a && a.__options__ ? a.__options__[next.qId] : undefined);
+  if (optOrder(prev.answers) !== optOrder(next.answers)) return false;
+  // Per-option show_if/hide_if gates read other answers.
+  const hasGatedOptions =
+    Array.isArray(next.q.options) &&
+    next.q.options.some((o) => o && (o.showIf !== undefined || o.hideIf !== undefined));
+  if (hasGatedOptions && prev.answers !== next.answers) return false;
   return true;
 });
 

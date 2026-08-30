@@ -116,8 +116,9 @@ frontends are `local`, `vercel`, and `netlify`. See [[Deployment]].
 
 ## 6. Export to your stats package
 
-`SurveyData.export()` round-trips variable labels, value labels, and missing-value
-conventions into the format your tools expect:
+`SurveyData.export()` writes the format your tools expect. SPSS and Stata carry
+variable labels, value labels, and missing-value conventions in the file; CSV and
+Excel carry data only (export a JSON dictionary alongside for the metadata):
 
 ```python
 data.export("csv",   path="hello.csv")

@@ -103,7 +103,7 @@ Confirm the package imports and check the version:
 ```python
 import siamang as sg
 
-print(sg.__version__)        # e.g. "0.5.0"
+print(sg.__version__)        # e.g. "0.6.0"
 print(sg.SingleChoice)        # <class 'siamang.core.question.SingleChoice'>
 ```
 

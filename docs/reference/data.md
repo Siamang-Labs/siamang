@@ -61,7 +61,7 @@ Since `SurveyData` is frozen and immutable, all data transformation methods retu
 * **`recode(column: str, *, into: str, bins: list[Any], labels: list[str] | None = None, right: bool = False, label: str | None = None) -> SurveyData`**:
   Bins continuous numerical variables into discrete categories using `pandas.cut` [2]. Automatically registers the new variable in the `VariableMap` with an `"ordinal"` scale.
 * **`recode_values(column: str, mapping: dict[Any, Any], *, into: str | None = None, label: str | None = None, scale: str | None = None) -> SurveyData`**:
-  Collapses or remaps discrete values (e.g., `{1: 0, 2: 0, 3: 1}` to collapse categories). If `into` is provided, stores the result in a new column and registers the new variable; otherwise, updates the column in-place.
+  Collapses or remaps discrete values (e.g., `{1: 0, 2: 0, 3: 1}` to collapse categories). The source column is never modified: if `into` is provided, the result is stored in that new column; otherwise it is stored in a new column named `<column>_recoded`. The new variable is registered either way. Values absent from `mapping` become `NaN`, so list every code you want to keep.
 * **`derive(*, name: str, expression: Expression, label: str | None = None, scale: str = "nominal", labels: dict[Any, str] | None = None) -> SurveyData`**:
   Evaluates a logical `Expression` row-by-row to create a new binary indicator variable (0/1). Registers the new variable with the specified metadata.
 
@@ -70,12 +70,12 @@ Since `SurveyData` is frozen and immutable, all data transformation methods retu
 * **`scale_alpha(items: list[str]) -> float`**:
   Calculates Cronbach's alpha coefficient of internal consistency for a set of scale items. Requires at least 2 items.
 * **`create_index(name: str, *, items: list[str], method: str = "mean", label: str | None = None) -> SurveyData`**:
-  Creates a composite index variable (e.g., an index of autonomy) by aggregating a list of items. Supported aggregation methods: `"mean"` or `"sum"`. Automatically registers the new variable with an `"interval"` scale.
+  Creates a composite index variable (e.g., an index of autonomy) by aggregating a list of items. Supported aggregation methods: `"mean"` (default) or `"sum"` (row-wise sum with `min_count=1`, so a row with all items missing stays `NaN`). Automatically registers the new variable with an `"interval"` scale.
 
 ### Export
 
 * **`export(fmt: str, path: str | Path | None = None, **kwargs) -> Any`**:
-  Exports the dataset and its metadata. Supported formats: `"csv"`, `"xlsx"`, `"stata"` (exports a native `.dta` file with embedded variable and value labels), and `"r"` (exports a CSV, a JSON dictionary, and an R script to load the data with correct factor levels) [2].
+  Exports the dataset and its metadata. Supported formats: `"csv"`, `"xlsx"` (alias `"excel"`), `"spss"` (alias `"sav"`), `"stata"` (alias `"dta"` — a native `.dta` file with embedded variable and value labels), and `"r"` (a CSV, a JSON dictionary, and an R script to load the data with correct factor levels) [2]. An unknown format raises `NotImplementedError`.
 * **`export_dictionary(path: str | Path) -> Path`**:
   Exports the `VariableMap` metadata to a standardized JSON schema file.
 
@@ -140,7 +140,7 @@ class DataProcessing:
 ```
 
 * **`recode(column: str, mapping: dict[Any, Any]) -> SurveyData`**:
-  Applies a raw `{old: new}` mapping to a column in-place. For research-grade, metadata-aware recoding, prefer `SurveyData.recode_values()`.
+  Applies a raw `{old: new}` mapping via `pandas.replace` and returns a new `SurveyData` carrying only the recoded frame — the `VariableMap`, questionnaire, and weight are dropped. Use it only when the metadata is no longer needed; for research-grade, metadata-aware recoding, prefer `SurveyData.recode_values()`.
 
 ---
 

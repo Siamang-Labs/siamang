@@ -169,6 +169,18 @@ def _compile_page(page: Page, *, index: int, total: int) -> dict[str, Any]:
     if page.redirect_delay is not None:
         payload["redirectDelay"] = page.redirect_delay
 
+    # Routing: next_if rules (first match wins) and the default_next fallback.
+    if page.next_if:
+        rules = []
+        for condition, target in page.next_if:
+            compiled = _compile_condition(condition)
+            rules.append({"if": compiled, "target": target})
+        payload["nextIf"] = rules
+    if page.default_next is not None:
+        payload["defaultNext"] = page.default_next
+    if page.randomize_blocks:
+        payload["randomizeBlocks"] = True
+
     has_block = any(isinstance(item, Block) for item in page.items)
     if has_block:
         blocks: list[dict[str, Any]] = []
@@ -194,7 +206,12 @@ def _compile_block(block: Block) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "title": block.title or "",
         "items": [_compile_question(q) for q in block.flatten_questions()],
+        # Marks a real authored Block (vs. a wrapper for loose questions), so
+        # the runtime knows which entries page-level randomize_blocks may move.
+        "isBlock": True,
     }
+    if block.randomize:
+        payload["randomize"] = True
     show_if = _compile_condition(block.show_if)
     if show_if is not None:
         payload["showIf"] = show_if
@@ -223,14 +240,22 @@ def _compile_question(question: Question) -> dict[str, Any]:
     media = _serialise_media(question.media)
     if media is not None:
         base["media"] = media
+    if question.skip_to is not None:
+        base["skipTo"] = question.skip_to
+    if question.randomize:
+        base["randomize"] = True
 
     if isinstance(question, SingleChoice):
         kind = "dropdown" if question.display == "dropdown" else "single"
+        options = _options_payload(question.var, question.choices)
+        if question.none_of_above:
+            # Sentinel code mirrors the runtime's "__other__" convention.
+            options = [*options, {"code": "__none__", "label": "None of the above", "noneOfAbove": True}]
         payload = {
             **base,
             "kind": kind,
             "display": question.display,
-            "options": _options_payload(question.var, question.choices),
+            "options": options,
         }
         if question.other_specify:
             payload["otherSpecify"] = True
@@ -250,6 +275,8 @@ def _compile_question(question: Question) -> dict[str, Any]:
             payload["min"] = question.min_answers
         if question.max_answers is not None:
             payload["max"] = question.max_answers
+        if question.exclusive:
+            payload["exclusive"] = list(question.exclusive)
         if question.other_specify:
             payload["otherSpecify"] = True
             other_meta = question.metadata or {}
@@ -289,8 +316,21 @@ def _compile_question(question: Question) -> dict[str, Any]:
         }
     if isinstance(question, Matrix):
         columns = question.column_labels or _columns_from_first_var(question.var)
-        rows = [{"id": v.name, "label": v.label or v.name} for v in question.var]
-        return {**base, "kind": "matrix", "columns": columns, "rows": rows}
+        if question.subquestions is not None:
+            rows = [
+                {"id": v.name, "label": label}
+                for v, label in zip(question.var, question.subquestions)
+            ]
+        else:
+            rows = [{"id": v.name, "label": v.label or v.name} for v in question.var]
+        payload = {**base, "kind": "matrix", "columns": columns, "rows": rows}
+        if question.na_option:
+            payload["naOption"] = (
+                question.na_option
+                if isinstance(question.na_option, str)
+                else "Not applicable"
+            )
+        return payload
     if isinstance(question, Ranking):
         payload = {
             **base,

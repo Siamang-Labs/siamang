@@ -30,7 +30,7 @@ Every table component supports the following common interface:
 * **`to_html() -> str`**:
   Returns a clean HTML `<table>` string with basic class styling.
 * **`export_xlsx(path: str | Path) -> Path`**:
-  Exports the table directly to an Excel sheet. Creates parent directories if they do not exist.
+  Exports the table directly to an Excel sheet named `"Table"`. The destination directory must already exist.
 
 ---
 
@@ -45,7 +45,7 @@ Generates frequency distributions with absolute counts, percentages, and cumulat
 | `data` | `SurveyData` | *Required* | The `SurveyData` container. |
 | `column` | `str` | `""` | Name of the variable to analyze. |
 | `exclude_missing` | `bool` | `True` | If `True`, filters out missing values from the base. |
-| `sort` | `str` | `"value"` | Sort order: `"value"` (sort by code value), `"frequency"` (descending count), or `"index"` (sort by value labels). |
+| `sort` | `str` | `"value"` | Sort order: `"value"` (sort by code value, default), `"freq"` (descending count), or `"label"` (alphabetical by value label). Any other value is silently ignored and the table keeps code order — a typo will not raise an error. |
 
 #### Example
 
@@ -141,7 +141,7 @@ Every chart component supports the following common interface:
 * **`show() -> None`**:
   Displays the plot inline (ideal for Jupyter notebooks).
 * **`save(path: str | Path, dpi: int = 150) -> Path`**:
-  Saves the plot to a file. Creates parent directories if needed.
+  Saves the plot to a file (`bbox_inches="tight"`). The destination directory must already exist.
 
 ---
 
@@ -214,9 +214,11 @@ In addition to base properties:
 | `columns` | `list[str]` | `[]` | List of variables to include in the matrix. |
 | `by` | `str \| None` | `None` | If specified, plots grouped means of `columns` across categories of `by`. If `None`, plots a Spearman rank correlation matrix of `columns`. |
 | `annot` | `bool` | `True` | If `True`, writes the data value in each cell. |
-| `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name. |
-| `vmin` | `float \| None` | `None` | Minimum value anchor for the colormap. |
-| `vmax` | `float \| None` | `None` | Maximum value anchor for the colormap. |
+| `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name (grouped-means mode only). |
+| `vmin` | `float \| None` | `None` | Minimum value anchor for the colormap (grouped-means mode only). |
+| `vmax` | `float \| None` | `None` | Maximum value anchor for the colormap (grouped-means mode only). |
+
+> **Note:** In correlation mode (`by=None`) the matrix is always drawn on a diverging `RdBu_r` scale centered at 0 over the range `[-1, 1]`; the `cmap`, `vmin`, and `vmax` properties are ignored. To restyle a correlation heatmap, work with the `matplotlib` Axes returned by `plot()`.
 
 #### Example
 
@@ -233,13 +235,11 @@ chart = HeatMap(
 chart.show()
 
 # 2. Correlation matrix of all numerical variables
+#    (always rendered on a fixed RdBu_r scale over [-1, 1], centered at 0)
 corr_chart = HeatMap(
     data,
     columns=["age", "experience", "satisfaction", "autonomy"],
     by=None,
-    cmap="coolwarm",
-    vmin=-1.0,
-    vmax=1.0
 )
 corr_chart.show()
 ```

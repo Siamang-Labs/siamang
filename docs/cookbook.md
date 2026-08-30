@@ -111,8 +111,9 @@ survey.deploy(backend="supabase", frontend="vercel", quota=quotas)
 
 ### Tighten one cell over time
 
-Add or change quotas between deploys — siamang reprovisions only when
-the schema hash changes, so updating a `limit` is a cheap operation.
+Updating a `limit` is just a code change followed by another deploy —
+but note that each deploy provisions a new survey instance with fresh
+quota counters.
 
 ---
 
@@ -221,20 +222,22 @@ log_dwell = sg.Script(
 
 ```python
 data = survey.simulate(n=1000, seed=42).with_weight("weight")
-# High-level declarative reporting (recommended)
-print(data.report.freq("trust", weighted=True).to_markdown())
+# High-level declarative reporting (unweighted — weights are honoured
+# only by the data.analysis methods)
+print(data.report.freq("trust").to_markdown())
 
-# Low-level statistical methods
+# Low-level statistical methods (weight-aware)
 data.analysis.frequencies("trust", labels=True, weighted=True, normalize=True)
 ```
 
 ### Weighted crosstab + Chi-square
 
 ```python
-# High-level declarative reporting (includes Chi-square / Cramers V by default)
-print(data.report.crosstab("gender", "party", weighted=True).to_markdown())
+# High-level declarative reporting (includes Chi-square / Cramers V by
+# default; always unweighted)
+print(data.report.crosstab("gender", "party").to_markdown())
 
-# Low-level statistical methods
+# Low-level statistical methods (weight-aware)
 tab, stats = data.analysis.crosstab(
     "gender", "party",
     normalize="columns",
@@ -297,7 +300,8 @@ banner.export_xlsx("results.xlsx")
 from siamang.io import read_spss, SPSSWriter
 
 data = read_spss("input.sav")
-data = data.recode_values("age", {-1: pd.NA}).apply_missing_values()
+# Treat -1 as missing (recode_values would write to a new column instead):
+data = data.with_frame(data.frame.replace({"age": {-1: pd.NA}})).apply_missing_values()
 SPSSWriter().write(data, "output.sav")
 ```
 
@@ -321,8 +325,8 @@ data = data.with_frame(data.frame).__class__(
 from siamang.io import RScriptWriter
 
 RScriptWriter().write(data, path="political_trust_R/")
-# Writes data.csv, dictionary.json, load_data.R
-# Then in R:  source("political_trust_R/load_data.R")
+# Writes import_survey.csv, import_survey_dictionary.json, import_survey.R
+# Then in R:  source("political_trust_R/import_survey.R")
 ```
 
 ---

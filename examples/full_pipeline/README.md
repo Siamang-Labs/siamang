@@ -18,14 +18,20 @@ A complete end-to-end example demonstrating the **siamang** workflow — from su
 |:-----|:------------|
 | `full_pipeline_demo.ipynb` | **Jupyter notebook** — full pipeline with all outputs saved inline (tables, stats, plots) |
 | `survey_preview.html` | **Interactive HTML survey** — open in browser to see what respondents experience |
-| `survey_responses.db` | **SQLite database** — 250 simulated responses stored exactly as in production |
-| `fig_outcomes_by_remote.png` | Boxplots: satisfaction & autonomy by remote work frequency |
-| `fig_surveillance_heatmap.png` | Heatmap: surveillance tool agreement by remote frequency |
-| `banner_satisfaction_by_remote.xlsx` | Banner table export (publication-ready Excel) |
+
+Running the pipeline yourself can additionally produce local artifacts — a
+`survey_responses.db` SQLite store (from a local preview/deployment), figure
+PNGs such as `fig_outcomes_by_remote.png` and `fig_surveillance_heatmap.png`
+(via `chart.save(...)`), and a `banner_satisfaction_by_remote.xlsx` banner
+export. These are git-ignored, so they are not shipped in this directory.
 
 ---
 
-## Pipeline Steps (in the notebook)
+## Pipeline Steps
+
+The notebook covers design, simulation, and analysis (steps 1, 4, and 5);
+the HTML preview and database storage steps are represented by
+`survey_preview.html` and the schema below.
 
 ### 1. Survey Design
 - 12 variables with measurement scales, labels, valid ranges
@@ -42,7 +48,7 @@ A complete end-to-end example demonstrating the **siamang** workflow — from su
 - Each response stored as JSON with timestamp
 - Same schema used in production local deployments
 
-### 4. Simulation (250 respondents)
+### 4. Simulation (300 respondents)
 - Respects page-level `show_if` conditions
 - `consent=0` → all subsequent variables = NaN
 - `remote_freq=1` → surveillance variables = NaN
@@ -70,7 +76,7 @@ jupyter notebook full_pipeline_demo.ipynb
 # Or just open the HTML survey in browser
 open survey_preview.html
 
-# Query the database directly
+# Query the database directly (created once you run a local preview/deployment)
 sqlite3 survey_responses.db "SELECT COUNT(*) FROM responses;"
 ```
 

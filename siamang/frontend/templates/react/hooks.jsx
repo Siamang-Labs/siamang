@@ -84,14 +84,60 @@ function useAutosave(store, surveyId, pageIdxRef) {
 
 /* ─── useSurveyNav ─────────────────────────────────────────────────────── */
 
+/* Resolve a routing target (a page name or a question id) to a page name.
+   Question ids resolve to the page that contains the question. */
+function resolveTargetPageName(target, orderedPages) {
+  if (!target) return null;
+  for (const p of orderedPages) {
+    if (p.name === target) return p.name;
+  }
+  const containsQuestion = (items) =>
+    Array.isArray(items) && items.some((q) => q && q.id === target);
+  for (const p of orderedPages) {
+    if (containsQuestion(p.items)) return p.name;
+    if (Array.isArray(p.blocks) && p.blocks.some((b) => containsQuestion(b.items))) {
+      return p.name;
+    }
+  }
+  return null;
+}
+
+/* Decide where "Next" should land from `page`, honouring (in order):
+   1. skip_to on the first answered visible question,
+   2. the first matching next_if rule,
+   3. default_next,
+   4. the next visible page in sequence (return null → caller advances by 1).
+   Returns a page NAME or null for plain sequential advance. */
+function computeRouteTarget(page, answers, visibilityEngine) {
+  if (!page) return null;
+  const items = visibilityEngine.visibleItems(page, answers);
+  for (const q of items) {
+    if (q.skipTo && isAnswered(q, answers[q.id])) return q.skipTo;
+  }
+  if (Array.isArray(page.nextIf)) {
+    for (const rule of page.nextIf) {
+      if (evaluateRouteCondition(rule.if, answers)) return rule.target;
+    }
+  }
+  if (page.defaultNext) return page.defaultNext;
+  return null;
+}
+
 function useSurveyNav(allPages, store, visibilityEngine) {
   const [pageIdx, setPageIdx] = useState(0);
   const [transitionDir, setTransitionDir] = useState(null);
+  // Pages actually visited, as names — lets Previous retrace routed jumps.
+  const historyRef = useRef([]);
+
+  // Page order lives in the answers store (answers.__pages__) so lifecycle
+  // scripts such as randomize_pages can reorder it; fall back to the static list.
+  const storedOrder = useFieldValue(store, "__pages__");
+  const orderedPages = Array.isArray(storedOrder) && storedOrder.length ? storedOrder : allPages;
 
   // Compute visible pages using the visibility engine
   const pages = useMemo(() => {
-    return allPages.filter((p) => visibilityEngine.isPageVisible(p, store.snapshot()));
-  }, [allPages, visibilityEngine, visibilityEngine._sig]);
+    return orderedPages.filter((p) => visibilityEngine.isPageVisible(p, store.snapshot()));
+  }, [orderedPages, visibilityEngine, visibilityEngine._sig]);
 
   // Clamp pageIdx if visibility changes shrink the list
   useEffect(() => {
@@ -111,16 +157,56 @@ function useSurveyNav(allPages, store, visibilityEngine) {
   const goNext = useCallback(() => {
     setTransitionDir("next");
     setTimeout(() => setTransitionDir(null), 140);
-    setPageIdx((i) => Math.min(i + 1, pages.length - 1));
+    const answers = store.snapshot();
+    const from = pages[pageIdx] || null;
+    let nextIdx = Math.min(pageIdx + 1, pages.length - 1);
+
+    const targetName = resolveTargetPageName(
+      computeRouteTarget(from, answers, visibilityEngine),
+      orderedPages,
+    );
+    if (targetName) {
+      let idx = pages.findIndex((p) => p.name === targetName);
+      if (idx < 0) {
+        // Target page exists but is currently hidden by its own gates:
+        // land on the first visible page at-or-after it in document order.
+        const orderedIdx = orderedPages.findIndex((p) => p.name === targetName);
+        if (orderedIdx >= 0) {
+          for (let j = orderedIdx + 1; j < orderedPages.length; j++) {
+            const candidate = pages.findIndex((p) => p.name === orderedPages[j].name);
+            if (candidate >= 0) { idx = candidate; break; }
+          }
+        }
+      }
+      if (idx >= 0) nextIdx = idx;
+    }
+
+    if (from) {
+      historyRef.current.push(from.name);
+      ScriptRunner.run("onPageExit", answers, {}, from.name);
+    }
+    setPageIdx(nextIdx);
     window.scrollTo(0, 0);
-  }, [pages.length]);
+  }, [pages, pageIdx, orderedPages, store, visibilityEngine]);
 
   const goPrev = useCallback(() => {
     setTransitionDir("prev");
     setTimeout(() => setTransitionDir(null), 140);
+    const from = pages[pageIdx] || null;
+    if (from) ScriptRunner.run("onPageExit", store.snapshot(), {}, from.name);
+    // Retrace the actual path (skips land back where the respondent was).
+    while (historyRef.current.length > 0) {
+      const prevName = historyRef.current.pop();
+      const idx = pages.findIndex((p) => p.name === prevName);
+      if (idx >= 0 && idx !== pageIdx) {
+        setPageIdx(idx);
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
     setPageIdx((i) => Math.max(i - 1, 0));
     window.scrollTo(0, 0);
-  }, []);
+  }, [pages, pageIdx, store]);
 
   const goTo = useCallback((idx) => {
     setPageIdx(idx);
