@@ -69,9 +69,9 @@ provide:
 - **Events** — the events to subscribe to. Leave the list **empty to receive all events**.
 - **Secret** (optional) — a shared secret used to sign each request so you can verify it
   came from siamang Cloud (see below).
-- **Enabled** — turn the endpoint on or off.
 
-The app also keeps a **delivery log** for each endpoint, so you can see what was sent and
+An endpoint you no longer want is removed with **Delete** (there is no on/off toggle).
+The app also keeps a **delivery log**, so you can see what was sent and
 whether it succeeded. If a delivery fails, the platform retries it automatically with
 increasing delays before giving up.
 

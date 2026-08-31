@@ -52,7 +52,9 @@ When you read the `responses` table, each answer variable (for example `gender`,
 `respondent_id` and the submission timestamps.
 
 `export_table` infers the format from the file extension. Supported formats: `csv`,
-`parquet`, `xlsx`, `sav` (SPSS) and `sqlite`.
+`parquet`, `xlsx`, `sav` (SPSS) and `sqlite`. Note that `.sav` files are written
+without variable or value labels — for a labelled `.sav`, use the engine's SPSS
+export on a `SurveyData` object.
 
 ```python
 from siamang_cloud import db
@@ -78,8 +80,9 @@ These helpers take and return plain pandas objects, so a result drops straight i
 | `rake_weights(df, targets)` | Raking (iterative proportional fitting) to several marginal targets |
 
 `targets` is a mapping of category to share — proportions or counts, normalized for you.
-The weight functions return a `Series` scaled to mean 1.0, ready to pass as the
-`weight=` argument to `frequencies` or `crosstab`.
+The weight functions return a `Series` scaled to mean 1.0; store it as a column
+(`df["w"] = ...`) and pass the **column name** as the `weight=` argument to
+`frequencies` or `crosstab` (`weight="w"`).
 
 ```python
 from siamang_cloud import analysis, db

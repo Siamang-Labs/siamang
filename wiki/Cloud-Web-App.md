@@ -52,10 +52,12 @@ actions stay in one owner/admin-gated place.
 ### Dashboard
 
 The project's home. A row of stats (status, branch, responses, commits,
-deployments) sits above **Data insights** — live charts over all collected
-responses: response/respondent counts, partial rate, last-response time, a
-responses-per-day chart, a **frequency** chart for any variable, and a two-way
-**crosstab**. Below that are the README, recent commits, a language breakdown,
+deployments) sits above **Data insights** — opt-in live charts over collected
+responses. A project turns them on by declaring an `insights:` block in
+`siamang.yaml`, which pins widgets such as response/respondent stats, a
+responses-per-day chart, a **frequency** chart for a chosen variable, and a
+two-way **crosstab**; without the block the Dashboard shows a hint with a
+**Configure** button. Below that are the README, recent commits, a language breakdown,
 and the latest deployment. See [[Analysis & Reports|Cloud-Analysis-and-Reporting]].
 
 ### Repository
@@ -75,8 +77,8 @@ Markdown. Common actions:
   open or merge **pull requests** from the toolbar.
 - **New file** — add a file to the repo.
 - **Remotes** — open the **Repository connections** dialog to clone/push from your
-  own machine (over HTTPS or SSH; add an SSH key in your [Profile](#profile)
-  first) and to set up **GitHub / GitLab mirrors** that keep your repo in sync with
+  own machine (it shows the **HTTPS** clone URL, your username, and an access
+  token) and to set up **GitHub / GitLab mirrors** that keep your repo in sync with
   an external host. See [[Repository & Editing|Cloud-Repository-and-Editing]].
 - **Read reports** — Markdown (`.md`) files open with a rendered **Preview** and
   an **Edit** view, and download buttons for **MD** and **HTML**.
@@ -114,8 +116,9 @@ Browse and export your responses. The left lists the project's **tables**
 Run analysis over your data. The **Scripts** section lists the analysis steps
 declared in your `siamang.yaml`; for each you can **View in Repo** or **Run** it.
 **Run all** runs every step in order and combines their reports. Every run lands
-in **Run history** and finishes **completed** or **failed**; click a run for its
-**Logs** and **Outputs** (report, new database tables, downloadable files). To run
+in **Run history** as a card that finishes **success**, **warnings**, or
+**failed** (**running** while in flight), showing the run's steps, links to its
+outputs (report, new database tables, downloadable files), and expandable logs. To run
 a script or run-all automatically on a cron schedule (a **Plus and up** feature),
 use the **Console** — see [[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]].
 See also [[Analysis & Reports|Cloud-Analysis-and-Reporting]] and
@@ -134,7 +137,10 @@ Send project data to external stores — object storage, data warehouses, Google
 Sheets, or your own database. Some targets are live and others show a **soon**
 badge while they roll out; the simplest way to get data out is always **Database →
 Export**. **GitHub / GitLab mirrors** are managed in **Repository → Remotes**, not
-here. A Pro / Corporate feature — see [[Connectors|Cloud-Connectors]].
+here. Available from the **Plus** plan for the first targets (Google Sheets,
+Excel 365, Supabase, Airtable, Dropbox); object storage, warehouses, and most
+other targets need **Pro**, and MCP is **Corporate** — see
+[[Connectors|Cloud-Connectors]].
 
 ### Settings (project)
 
@@ -184,8 +190,10 @@ Settings that apply to the whole organization (open the **Settings** button or
 - **Members** — invite teammates and set their **role**: **owner** (full control,
   including billing), **admin** (manage members and projects), or **member**
   (contribute: edit code, run analysis, deploy). Owners and admins manage this.
-- **Billing** — your plan and upgrades. During the beta, plans switch instantly
-  and nothing is charged. See [[Plans & Billing|Cloud-Subscription-Tiers]].
+- **Billing** — your plan and upgrades. During the beta every organization starts
+  on a 30-day **Pro trial**; other plans show "Available at the official release"
+  unless paid upgrades (such as the one-time year-of-Pro beta offer) are enabled.
+  See [[Plans & Billing|Cloud-Subscription-Tiers]].
 - **Integrations** — outgoing **Webhooks** for events like deploys and runs, with
   a delivery log (a Plus feature). (**SSO** configuration is hidden until the
   official release.) See [[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]].

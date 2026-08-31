@@ -30,10 +30,12 @@ is nullable. Check it before analysis so you know what the data looks like.
 2. Choose a format: **CSV**, **Excel (.xlsx)**, **SPSS (.sav)**, **Parquet**, or
    **SQLite**.
 
-**Result:** the file downloads. **SPSS** carries variable and value labels;
-**CSV**/**Excel** carry the data, with labels available via the survey's dictionary;
-**SQLite** is a single-file snapshot of the whole table. For how labels and missing
-values travel between formats, see [[Data Import and Export|Data-Import-and-Export]].
+**Result:** the file downloads. **SPSS (.sav)** gives colleagues a file that opens
+straight in SPSS; note that this export carries the data without variable or value
+labels — for a labelled `.sav`, use the engine's SPSS export on a `SurveyData` object
+in an analysis script. **SQLite** is a single-file snapshot of the whole table. For
+how labels and missing values travel between formats, see
+[[Data Import and Export|Data-Import-and-Export]].
 
 ## Delete a response (GDPR)
 
@@ -61,9 +63,12 @@ You can **Upload**, **Download**, or **Delete** anything here. Uploads are cappe
 ## Sending data to other systems
 
 **Connectors** push tables to object storage, data warehouses, Google Sheets, or
-your own database. Some targets are live and others are still rolling out, so the
-simplest way to get data out is **Database → Export** above. See
-[[Connectors|Cloud-Connectors]] (a Pro / Corporate feature).
+your own database. Twelve targets transfer data today (S3, GCS, Azure, SFTP, Sheets,
+Excel 365, Supabase, your own Postgres, BigQuery, Snowflake, REDCap, custom HTTP);
+only Airtable, Dropbox, and MCP are still rolling out. See
+[[Connectors|Cloud-Connectors]] (available from **Plus**, with per-target minimum
+plans). For a quick one-off, **Database → Export** above is still the simplest way
+out.
 
 ## See also
 

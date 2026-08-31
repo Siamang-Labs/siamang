@@ -40,8 +40,9 @@ screen — projects, team, billing — re-scopes to the organization you pick.
 ## Invite a teammate
 
 **What you'll need:** a **cooperative** organization; the **owner** or **admin**
-role. Your invitee needs their own siamang Cloud account, and your plan must have
-room (see member limits in [[Plans & Billing|Cloud-Subscription-Tiers]]).
+role; and room on your plan (see member limits in
+[[Plans & Billing|Cloud-Subscription-Tiers]]). Your invitee does **not** need a
+siamang Cloud account yet — the invite goes to their email.
 
 **Steps**
 1. Open **Organization settings → Members**.
@@ -49,7 +50,9 @@ room (see member limits in [[Plans & Billing|Cloud-Subscription-Tiers]]).
 3. Enter their **email** and pick a **role** — **admin** or **member**.
 4. Send the invite.
 
-**Result:** they join the organization with the role you chose. The **Team** screen
+**Result:** if they already have an account, they join the organization with the
+role you chose; if not, they receive an emailed invitation link and join after
+signing up with the same email address. The **Team** screen
 shows the full roster (email, role, join date); invites, role changes, and removals
 all live in **Settings → Members**.
 

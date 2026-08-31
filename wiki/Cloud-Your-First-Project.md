@@ -13,7 +13,7 @@ When you create a project you choose how it starts — three options:
 
 - **Example** — the complete **"Digital Life & Wellbeing 2026"** study: a full
   questionnaire (consent, screening, quotas, every question type, skip logic, a
-  custom thank-you page), four analysis scripts, and about **300 sample responses**
+  custom thank-you page), two analysis scripts, and about **300 sample responses**
   so the Database, Dashboard, and Analysis screens are alive immediately.
   **Pick this for your first project** — you can see the whole loop before writing
   anything.
@@ -54,7 +54,7 @@ Open **Repository** to see the project's files:
 | :--- | :--- |
 | `siamang.yaml` | The project's configuration: the survey entry point, deployment environments, and which analysis scripts to run. See [[Project Config (siamang.yaml)\|Cloud-siamang-yaml]]. |
 | `survey/questionnaire.py` | The survey itself, written as Python. |
-| `scripts/` | Analysis scripts (in the example: `cleaning.py`, `weights.py`, `tables.py`, `drivers.py`). |
+| `scripts/` | Analysis scripts (in the example: `cleaning.py` — data cleaning, and `tables.py` — frequencies, a crosstab with a chi-square test, and a Markdown report). |
 | `outputs/` | Where analysis runs write tables and files. |
 | `reports/` | Generated reports (Markdown / HTML). |
 | `README.md` | The project's notes, shown on the Dashboard. |

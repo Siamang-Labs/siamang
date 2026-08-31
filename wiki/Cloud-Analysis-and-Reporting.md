@@ -7,19 +7,22 @@ use both from the web app.
 
 ## Quick looks: the Dashboard
 
-Open a project's **Dashboard** and find the **Data insights** section. It is
-computed live over **all** of your collected responses, so the numbers stay
-correct no matter how much data you have. Without writing anything you get:
+**Data insights** are charts you pin to a project's **Dashboard**. They are **off by
+default**: a project opts in by declaring an `insights:` block in `siamang.yaml`
+listing the widgets to show (until then the Dashboard shows a hint with a
+**Configure** button). Widgets are computed live over **all** of your collected
+responses, so the numbers stay correct no matter how much data you have. Four widget
+types are available:
 
-- A **summary** — total responses, unique respondents, how many are partial, and
-  when the last response arrived.
-- A **responses-per-day** chart, so you can see fieldwork progress.
-- **Frequencies** — pick any variable from the dropdown to see its distribution
-  as a bar chart.
-- A **crosstab** — choose two variables to see a two-way table (with row and
-  column totals).
+- `stats` — a **summary** row: total responses, unique respondents, how many are
+  partial, and when the last response arrived.
+- `timeseries` — a **responses-per-day** chart, so you can see fieldwork progress.
+- `frequency` — the distribution of one variable (named as `variable:` in the
+  config) as a bar chart.
+- `crosstab` — a two-way table of two variables (named as `rows:` and `cols:`),
+  with row and column totals.
 
-The Dashboard is read-only and meant for exploring. For weighting, significance
+The Dashboard is read-only and meant for monitoring. For weighting, significance
 tests, custom tables, and anything you want to save or share, use analysis
 scripts.
 
@@ -56,21 +59,21 @@ tasks:
       - outputs/final_tables.xlsx                          # extra files to keep
 ```
 
-The example project comes with three steps wired up this way: cleaning,
-weighting, and final tables.
+The example project comes with two steps wired up this way: cleaning and tables.
 
 ### Running scripts
 
-Open the **Analysis** screen. The **Scripts** section lists every analysis step
-from your `siamang.yaml`. From here you can:
+Open the **Analysis** screen. The **Pipeline** strip shows every analysis task from
+your `siamang.yaml` as a chip, in declaration order, each with a status dot for its
+latest run; clicking a chip opens the Run dialog with that task preselected. From
+the buttons in the screen's header you can:
 
-- **Run** a single script — useful while you are iterating on one step.
-- **Run all** — run every step in declaration order (e.g. clean → weight →
-  tabulate) and combine the results into one report. If any step fails, the run
-  stops there.
+- **Run script** — run a single task, useful while you are iterating on one step.
+- **Run all** — run every step in declaration order (e.g. clean → tabulate) and
+  combine the results into one report. If any step fails, the run stops there.
 
-Each card shows when the script last ran, how long it took, and whether it
-succeeded, plus chips linking to whatever it produced.
+Details of each run — when it ran, its status, and what it produced — appear on its
+card in **Run history**.
 
 ### Runs: completed or failed
 
@@ -80,12 +83,13 @@ history**. A run finishes in one of two states:
 - **completed** — the script ran to the end successfully.
 - **failed** — the script raised an error (open it to read the log and fix it).
 
-Click any run to open its detail panel:
+Each run is a card showing its status, a step-by-step progress row, and (on failure)
+an excerpt of the error:
 
-- **Logs** — everything the script printed, plus the error if it failed (with a
-  **Copy** button).
-- **Outputs** — links to what the run produced: a **report**, new **database
-  tables** (jump to them in the Database), and **files** to download.
+- **Output chips** — what the run produced: a **report** (opens in the Repository),
+  new **database tables** (jump to them in the Database), and **files** to download.
+- **View logs** — a collapsible section with everything the script printed, plus the
+  error if it failed.
 
 ## Where your results go
 

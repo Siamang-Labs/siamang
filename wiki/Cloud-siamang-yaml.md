@@ -34,27 +34,28 @@ tasks:
     entry: scripts/cleaning.py
     description: "Dedup respondents, drop speeders/partials -> clean_responses"
 
-  weights:
-    type: analysis
-    entry: scripts/weights.py
-    description: "Rake to census margins (gender x age) -> weighted_responses"
-
   tables:
     type: analysis
     entry: scripts/tables.py
-    description: "Key tables: frequencies, weighted crosstab, chi-square"
-    report: outputs/key_tables.md    # the report this script saves
+    description: "Frequencies, a crosstab with a chi-square test, Markdown report"
+    report: outputs/tables.md        # the report this script saves
 
 runtime:
-  python: "3.11"                     # interpreter your scripts run on
-  packages:
+  python: "3.11"                     # informational; the sandbox pins the version
+  packages:                          # from the curated allowlist
     - "siamang[charts]>=0.5"
     - "pandas>=2.0"
+    - "numpy>=1.26"
 
 reports:
-  dir: reports/                      # folder for the combined report
   combined: reports/report.md        # the "Run all" document
-  formats: [md, html]                # render Markdown and HTML
+
+# Data insights are off by default; declare an `insights:` block to pin
+# charts to the Dashboard (see below).
+# insights:
+#   - type: stats
+#   - type: frequency
+#     variable: life_satisfaction
 ```
 
 ## `name` and `org`
@@ -116,28 +117,56 @@ table, a project secret for credentials, and a nested `config:` block:
     secret: aws_creds          # a project secret holding the credentials
     config:
       bucket: my-research-exports
-      key: work-wellbeing/responses.parquet
+      key: work-wellbeing/responses.csv
 ```
 
-Connectors are a Pro / Corporate feature. See [[Connectors|Cloud-Connectors]] for the
-full catalog of destinations and the `config` keys each one needs.
+The Connectors surface unlocks at **Plus**, and each target has its own minimum plan.
+See [[Connectors|Cloud-Connectors]] for the full catalog of destinations and the
+`config` keys each one needs. Note that the required `config` keys are checked when
+the connector **runs**, not at commit time — commit validation only warns when a
+declared target is above your organization's plan.
 
 ## `runtime`
 
 The runtime applies to your analysis scripts (and survey compilation).
 
-- `python` — the interpreter version (for example `"3.11"`).
+- `python` — declarative for now: all scripts run in the platform's sandbox image
+  (Python 3.11), and picking another version is not yet implemented.
 - `packages` — the packages available to your scripts. `siamang` and `pandas` are the
-  usual entries; add any others your analysis imports.
+  usual entries. Packages must come from the platform's **curated allowlist**
+  (numpy, pandas, scipy, statsmodels, scikit-learn, matplotlib, seaborn, and other
+  research staples) — a commit declaring anything else fails validation with the
+  package named.
 
 ## `reports`
 
 These settings control the combined document that **Run all** produces by stitching your
 analysis reports together (see [[Analysis & Reports|Cloud-Analysis-and-Reporting]]).
 
-- `dir` — the folder for the combined report.
-- `combined` — the combined document's path (for example `reports/report.md`).
-- `formats` — which formats to render: `md` and `html`. (PDF is planned.)
+- `combined` — the combined document's path (default `reports/report.md`).
+- `dir` and `formats` appear in some generated configs but are reserved — the
+  platform currently reads only `combined` (reports are always rendered as Markdown
+  and HTML; PDF is planned).
+
+## `insights`
+
+**Data insights** are off by default. Declaring an `insights:` block pins live
+widgets to the project's **Dashboard** — a list of entries with a `type` of `stats`,
+`timeseries`, `frequency` (with `variable:`), or `crosstab` (with `rows:` and
+`cols:`), plus an optional `title`. See
+[[Analysis & Reports|Cloud-Analysis-and-Reporting]] for what each widget shows.
+
+```yaml
+insights:
+  - type: stats
+  - type: timeseries
+  - type: frequency
+    variable: life_satisfaction
+    title: "Overall life satisfaction"
+  - type: crosstab
+    rows: life_satisfaction
+    cols: age_group
+```
 
 ## See also
 

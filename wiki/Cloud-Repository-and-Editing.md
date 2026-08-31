@@ -75,13 +75,17 @@ and it lets you mirror the repo to GitHub or GitLab.
 
 ### Clone and push locally
 
-**What you'll need:** for **SSH**, add a public key first under
-[[Account & Security|Cloud-Account-and-Security]] → **SSH keys**.
-
 **Steps**
 1. On **Repository**, click **Remotes**.
-2. Under **Local clone**, copy the **HTTPS** or **SSH** clone command.
+2. Under **Local clone**, copy the **HTTPS** clone URL, your **username**, and
+   the **access token** (shown once) — the dialog includes a ready-made
+   `git clone` command.
 3. Clone, edit on your machine, then `git push`.
+
+> The dialog authenticates over **HTTPS** with the access token. You can also
+> add an SSH public key under
+> [[Account & Security|Cloud-Account-and-Security]] → **SSH keys** to authorize
+> Git over SSH, but the dialog does not display an SSH address.
 
 **Result:** your pushed commits appear in the Repository and are validated like
 browser commits.
@@ -91,8 +95,9 @@ browser commits.
 Keep a copy of your survey-as-code in your own Git host. A mirror needs an access
 token stored as a project secret (see above).
 
-> Git mirrors are a **Pro / Corporate** feature — see
-> [[Connectors|Cloud-Connectors]] and [[Plans & Billing|Cloud-Subscription-Tiers]].
+> Mirroring to **GitHub** needs the **Plus** plan and up; **GitLab** (and custom
+> remotes) need **Pro** — see [[Connectors|Cloud-Connectors]] and
+> [[Plans & Billing|Cloud-Subscription-Tiers]].
 
 **Steps**
 1. On **Repository**, click **Remotes**.

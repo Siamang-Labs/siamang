@@ -22,8 +22,9 @@ everything around it:
   status, so a broken survey never goes live by accident.
 - **Runs analysis** scripts on the collected data and keeps a history of every
   run and its output.
-- **Shows dashboards** (frequencies, crosstabs, a respondent summary) for quick
-  looks, and **generates reports** (Markdown / HTML) for sharing.
+- **Shows dashboards** — opt-in Data insights charts (frequencies, crosstabs, a
+  respondent summary) for quick looks — and **generates reports**
+  (Markdown / HTML) for sharing.
 - **Manages your team** (invite people, assign roles) and your **plan**.
 
 You never wire up servers, databases, or hosting. You write the survey and the

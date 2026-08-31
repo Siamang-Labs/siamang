@@ -16,7 +16,8 @@ includes and how to change yours.
 | **Responses per project** | 500 | Unlimited | Unlimited | Unlimited |
 | **Webhooks** | — | Yes | Yes | Yes |
 | **Schedules** | — | Yes | Yes | Yes |
-| **Connectors & Git mirrors** | — | — | Yes | Yes |
+| **Connectors** | — | Everyday set (Sheets, Excel 365, Supabase) | All targets (S3, GCS, Azure, BigQuery, Snowflake, BYO Postgres, SFTP, REDCap, HTTP) | All + custom MCP servers |
+| **Git mirrors** | — | GitHub | GitHub, GitLab, self-hosted | GitHub, GitLab, self-hosted |
 | **SSO (SAML / OIDC)** | — | — | Yes | Yes |
 | **Self-hosted deployment** | — | — | — | Yes |
 
@@ -44,7 +45,7 @@ The features below are additions on top of this core.
 | :--- | :--- | :--- |
 | **Webhooks** | Plus, Pro, Corporate | Get a signed `POST` to your own URL (or a Slack channel) when a deploy or run finishes. See [[Schedules & Webhooks\|Cloud-Scheduling-and-Webhooks]]. |
 | **Schedules** | Plus, Pro, Corporate | Run an analysis script or a full run-all on a cron schedule. See [[Schedules & Webhooks\|Cloud-Scheduling-and-Webhooks]]. |
-| **Connectors & Git mirrors** | Pro, Corporate | Move tables to external stores (S3, BigQuery, Snowflake, Sheets, your own database) and mirror the repo to GitHub / GitLab. See [[Connectors\|Cloud-Connectors]]. |
+| **Connectors & Git mirrors** | Plus and up, tiered per target | Move tables to external stores and mirror the repo to an external Git host. The Connectors screen unlocks at Plus; each target has its own minimum plan — everyday destinations (Sheets, Excel 365, Supabase) and GitHub mirrors at Plus; storage, warehouses, BYO infrastructure (S3, GCS, Azure, BigQuery, Snowflake, your own Postgres, SFTP, REDCap, HTTP) and GitLab / self-hosted mirrors at Pro; custom MCP servers at Corporate. See [[Connectors\|Cloud-Connectors]]. |
 | **SSO (SAML / OIDC)** | Pro, Corporate | Configure single sign-on for your organization. |
 | **Self-hosted deployment** | Corporate | Run siamang Cloud on your own infrastructure for data-residency or control. |
 
@@ -53,9 +54,10 @@ The features below are additions on top of this core.
 - **Free** — for individuals, evaluation, and small one-off studies. Two projects, two
   members, and up to 500 responses per project.
 - **Plus** — for small teams running recurring studies that need automation: unlimited
-  responses, plus webhooks and schedules.
+  responses, webhooks and schedules, everyday connectors (Sheets, Excel 365, Supabase),
+  and GitHub mirrors.
 - **Pro** — for teams that need scale and integrations: unlimited projects, members, and
-  responses, plus connectors, Git mirrors, and SSO.
+  responses, plus the full connector catalog, GitLab / self-hosted mirrors, and SSO.
 - **Corporate** — for organizations with data-residency or on-prem requirements:
   everything in Pro plus self-hosted deployment, arranged with sales.
 
@@ -70,12 +72,14 @@ siamang Cloud is in **open beta**, so billing works a little differently for now
 
 - **Every new workspace starts on a 30-day Pro trial** — full access to every Pro feature
   while it lasts, with a countdown shown on the Billing screen.
-- **Plan switching is turned off** during the beta. The other plans show **"Available at
-  the official release,"** and **nothing is ever charged**.
-- **When the trial ends**, the workspace becomes **read-only** — your data is preserved
-  and stays exportable — until the official release.
-- **Paid plans (with Stripe) arrive at the official release**, when you will be able to
-  choose and pay for a plan.
+- **Until a payment provider is connected**, the other plans show **"Available at the
+  official release"** and **nothing is ever charged**. Once Stripe billing is enabled,
+  Free, Plus, and Pro become self-serve upgrades from the Billing screen (Corporate is
+  arranged with sales).
+- **When the trial ends**, the organization moves to the **Free** plan. Nothing is
+  paused or removed: your projects, data, and running surveys keep working within the
+  Free caps (2 projects, 2 members, 500 responses per project), and anything beyond
+  them prompts an upgrade.
 
 Billing is always per organization — one plan covers all of its members and projects —
 and only the organization **owner** manages it.
@@ -96,6 +100,6 @@ Only the **owner** can purchase, change, or cancel the subscription — regardle
 
 ## See also
 
-- [[Connectors|Cloud-Connectors]] — a Pro / Corporate feature
+- [[Connectors|Cloud-Connectors]] — unlock at Plus, tiered per target
 - [[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]] — a Plus and up feature
 - [[Cloud Overview|Cloud-Overview]] — what the platform does and who it's for

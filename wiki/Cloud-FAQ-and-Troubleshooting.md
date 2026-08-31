@@ -63,15 +63,18 @@ logged in **Activity**.
 ### Plans
 
 **What does Free include, and what's gated?**
-Free gives 2 projects, 2 members, and 500 responses per project. Webhooks and
-schedules need **Plus**; connectors, Git mirrors, and SSO need **Pro**; self-hosted
-is **Corporate**. See [[Plans & Billing|Cloud-Subscription-Tiers]].
+Free gives 2 projects, 2 members, and 500 responses per project. Webhooks,
+schedules, everyday connectors (Sheets, Excel 365, Supabase), and GitHub mirrors need
+**Plus**; the full connector catalog, GitLab / self-hosted mirrors, and SSO need
+**Pro**; self-hosted deployment and custom MCP servers are **Corporate**. See
+[[Plans & Billing|Cloud-Subscription-Tiers]].
 
 **Can I change plans during the open beta?**
-Not yet. Every workspace starts on a **30-day Pro trial** with full access, and the
-other plans show "Available at the official release" — nothing is charged. When the
-trial ends the workspace becomes read-only (your data is preserved and exportable)
-until paid plans arrive at release. See [[Plans & Billing|Cloud-Subscription-Tiers]].
+Every workspace starts on a **30-day Pro trial** with full access. Until a payment
+provider is connected, the other plans show "Available at the official release" —
+nothing is charged. When the trial ends the organization moves to the **Free** plan:
+nothing is paused or removed, and everything keeps working within the Free caps. See
+[[Plans & Billing|Cloud-Subscription-Tiers]].
 
 ## Troubleshooting
 
@@ -79,7 +82,7 @@ until paid plans arrive at release. See [[Plans & Billing|Cloud-Subscription-Tie
 
 You reached a plan limit (for example a third project on Free) or used a feature
 your plan doesn't include. During the open beta your **Pro trial** gives full
-access; once it ends, the workspace is limited until paid plans arrive at release.
+access; once it ends, the organization is on **Free** and the Free caps apply.
 Check **Organization settings → Billing** for your status. See
 [[Plans & Billing|Cloud-Subscription-Tiers]].
 
@@ -105,8 +108,10 @@ example, tables need cleaned and weighted data first), run the earlier step — 
 ### I can't invite someone
 
 Check all of these: the organization is **cooperative**, you are the **owner** or an
-**admin**, the person already has a siamang Cloud account, and your plan has member
-room. See [[Organizations & Team|Cloud-Organizations-and-Team]].
+**admin**, and your plan has member room. The person does **not** need a siamang
+Cloud account yet — inviting an unknown email sends a pending invitation link — but
+pending invites also count toward the member limit, and an invite expires after a
+while. See [[Organizations & Team|Cloud-Organizations-and-Team]].
 
 ### Clone or push fails
 
@@ -116,8 +121,18 @@ stopped working, re-copy the command from **Repository → Remotes**. See
 
 ### Connectors aren't moving data
 
-Connectors are marked **Coming soon** and don't transfer data yet. Use
-**Database → Export** to get your data out in the meantime.
+Most targets transfer for real (only `airtable`, `dropbox`, and `mcp` are still
+**Coming soon**). If a run fails, check:
+
+- **The project secret is set** — the run fails with *"this connector needs a
+  `secret`"* if the secret named in `siamang.yaml` isn't set under
+  **Project → Secrets**.
+- **Your plan covers the target** — a target above your plan is refused with the name
+  of the required plan (see [[Connectors|Cloud-Connectors]] for per-target plans).
+- **The `config:` keys are right** — missing keys surface at run time as
+  *"&lt;target&gt;: missing config: …"*.
+
+**Database → Export** always works as a manual fallback.
 
 ## See also
 

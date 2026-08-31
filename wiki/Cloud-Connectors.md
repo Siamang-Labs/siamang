@@ -1,25 +1,48 @@
 # Connectors
 
 Connectors move data in or out of external stores — object storage, data warehouses,
-Google Sheets, or your own SQL database. You use them to export a project table (say your
+Google Sheets, or your own Postgres database. You use them to export a project table (say your
 cleaned responses) to somewhere your team already works, or to pull an external table
 into your project.
 
-Connectors are a **Pro / Corporate** feature. The same plan entitlement covers **Git
-mirrors** (keeping your repository in sync with GitHub or GitLab), which are now managed
-in **Repository → Remotes**. See [[Plans & Billing|Cloud-Subscription-Tiers]].
+The Connectors screen unlocks on the **Plus** plan, and each target additionally
+carries its own **minimum plan**: everyday destinations (Sheets, Excel 365, Supabase)
+are Plus; object storage, warehouses, and bring-your-own infrastructure are Pro; custom
+MCP servers are Corporate. The related **Git mirrors** (keeping your repository in sync
+with an external remote, managed in **Repository → Remotes**) are gated per provider:
+**GitHub from Plus; GitLab and self-hosted from Pro**. See
+[[Plans & Billing|Cloud-Subscription-Tiers]].
 
 ## The catalog
 
-| Destination | `target` | Typical use |
-| :--- | :--- | :--- |
-| Object storage — Amazon S3, Cloudflare R2, MinIO | `s3` | Drop an export file into a bucket |
-| Google Cloud Storage | `gcs` | Drop an export file into a GCS bucket |
-| Azure Blob Storage | `azure` | Drop an export file into a container |
-| Your own SQL database (Postgres / MySQL) | `database` | Push a table out, or pull one in |
-| Google Sheets | `sheets` | Export a table to a spreadsheet |
-| Google BigQuery | `bigquery` | Sync a table into a dataset |
-| Snowflake | `snowflake` | Sync a table into a warehouse |
+Twelve targets transfer data today; `airtable`, `dropbox`, and `mcp` can be configured
+but answer "coming soon" until they go live.
+
+| Destination | `target` | Min. plan | Typical use |
+| :--- | :--- | :--- | :--- |
+| Google Sheets | `sheets` | Plus | Export a table to a spreadsheet |
+| Excel on OneDrive / SharePoint | `excel365` | Plus | Write a table into an existing workbook |
+| Supabase | `supabase` | Plus | Push a table out, or pull one in |
+| Airtable *(coming soon)* | `airtable` | Plus | Sync a table into a base |
+| Dropbox *(coming soon)* | `dropbox` | Plus | Drop an export file into a folder |
+| Object storage — Amazon S3, Cloudflare R2, MinIO | `s3` | Pro | Drop an export file into a bucket |
+| Google Cloud Storage | `gcs` | Pro | Drop an export file into a GCS bucket |
+| Azure Blob Storage | `azure` | Pro | Drop an export file into a container |
+| Your own Postgres (BYO database) | `database` | Pro | Push a table out, or pull one in |
+| Google BigQuery | `bigquery` | Pro | Sync a table into a dataset |
+| Snowflake | `snowflake` | Pro | Sync a table into a warehouse |
+| SFTP server | `sftp` | Pro | Upload the export to a panel / agency exchange |
+| REDCap | `redcap` | Pro | Import records into a REDCap project |
+| Custom HTTP endpoint | `http` | Pro | `POST` the table to your own service |
+| Custom MCP server *(coming soon)* | `mcp` | Corporate | Your own integration surface |
+
+Two targets can also **import** an external table into your project: `database` and
+`supabase`.
+
+Live transfers share a few rules: each run **replaces** the destination's contents (no
+incremental sync), all columns are written as **text**, exports are capped at
+**100,000 rows** (Sheets 50,000; Excel 365 10,000), and connectors run on **manual
+trigger** only.
 
 ## How you declare a connector
 
@@ -38,23 +61,30 @@ tasks:
     secret: aws_creds               # the name of a project secret (set in the web app)
     config:
       bucket: my-research-exports
-      key: digital-life/responses.parquet
+      key: digital-life/responses.csv
 ```
 
-The destination-specific settings always go **inside** `config:`. Each target requires a
+Live export targets serialize the table as **CSV** (file-style destinations get a
+`.csv` object; database-style destinations get a table of text columns). The
+destination-specific settings always go **inside** `config:`. Each target requires a
 different set of keys (below).
 
 ## Required `config` for each target
 
 | `target` | Required `config` keys | Secret |
 | :--- | :--- | :--- |
-| `s3` | `bucket`, `key` | Optional (for private buckets) |
+| `s3` | `bucket`, `key` | JSON `{access_key, secret_key}` (plus `endpoint` for R2 / MinIO) |
 | `gcs` | `bucket`, `key` | Service-account JSON |
 | `azure` | `container`, `path` | Connection string / SAS |
-| `database` | — (a `dsn` may go in `config` instead of the secret) | DSN |
+| `database` | — (optional `table`, `schema`) | `postgres://` DSN (required) |
 | `sheets` | `spreadsheet_id` | Service-account JSON |
+| `excel365` | `drive_id`, plus `item_id` or `item_path` | JSON `{tenant_id, client_id, client_secret}` |
+| `supabase` | — (optional `table`, `schema`) | `postgres://` connection string (required) |
 | `bigquery` | `dataset`, `table` | Service-account JSON |
-| `snowflake` | `database`, `schema`, `table` | Connection parameters |
+| `snowflake` | `database`, `schema`, `table`, `warehouse` | JSON `{account, user, private_key}` (key-pair auth) |
+| `sftp` | `host`, `path` | Password or private key |
+| `redcap` | `api_url` | API token |
+| `http` | `url` | Optional (sent as a bearer token) |
 
 A few more examples:
 
@@ -81,7 +111,10 @@ tasks:
 ```
 
 If you leave out a required key (for example an `s3` connector without a `bucket` or
-`key`), the configuration is reported as invalid so you can fix it before it runs.
+`key`), the connector fails at **run time** with a message naming the missing keys —
+commit validation does not check `config:` contents. What commit validation *does*
+flag is a connector whose target is above your organization's plan (as a warning), so
+you learn about the gate before you hit Run.
 
 ## Credentials: use a project secret, never inline
 
@@ -96,8 +129,9 @@ a value, but it is never shown back to you.
 
 ## Git mirrors
 
-Git mirrors are the other half of the same plan entitlement. A mirror keeps your
-project's repository in sync with an external remote on **GitHub** or **GitLab**, so your
+Git mirrors share the same integrations surface. A mirror keeps your project's
+repository in sync with an external remote on **GitHub** (Plus and up) or **GitLab /
+a self-hosted host** (Pro and up), so your
 survey-as-code lives in your own organization's Git host as well. You set them up in
 **Repository → Remotes** (not project settings): pick the provider, give the remote path,
 and supply an access token as a project secret. From there you can **Sync now**,
@@ -105,6 +139,6 @@ and supply an access token as a project secret. From there you can **Sync now**,
 
 ## See also
 
-- [[Plans & Billing|Cloud-Subscription-Tiers]] — connectors and Git mirrors are Pro / Corporate
+- [[Plans & Billing|Cloud-Subscription-Tiers]] — connectors unlock at Plus, tiered per target
 - [[Project Config (siamang.yaml)|Cloud-siamang-yaml]] — where connector tasks are declared
 - [[Cloud Analysis SDK|Cloud-Analysis-SDK]] — `db.export_table` writes a table to a file

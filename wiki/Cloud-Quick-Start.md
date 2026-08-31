@@ -34,7 +34,7 @@ how it starts:
 
 - **Example** — seeds the complete **"Digital Life & Wellbeing 2026"** study: a
   full questionnaire (consent, screening, quotas, every question type, skip logic,
-  a custom thank-you page), four analysis scripts, and about 300 sample responses
+  a custom thank-you page), two analysis scripts, and about 300 sample responses
   so the data screens are alive immediately. **Pick this one** for your first run.
 - **Template** — a minimal survey plus two starter analysis scripts, with no
   sample data.
@@ -54,7 +54,7 @@ Other files worth a look:
 - `siamang.yaml` — the project's configuration: where the survey lives, which
   deployment environments exist, and which analysis scripts to run (see
   [[Project Config (siamang.yaml)|Cloud-siamang-yaml]]).
-- `scripts/` — the analysis scripts (cleaning, weighting, tables, and drivers).
+- `scripts/` — the analysis scripts (`cleaning.py` and `tables.py`).
 
 Try a small edit, then click **Save & commit** (or press Ctrl/Cmd+S), write a
 short message, and commit. **Validation runs automatically on every commit** and
@@ -89,9 +89,12 @@ some real responses alongside the sample data.
   up as rows (next to the ~300 seeded sample rows). You can filter, sort, page
   through the data, and **Export** it to CSV, Excel, SPSS (`.sav`), Parquet, or
   SQLite.
-- **Dashboard** — the **Data insights** section charts your data live: response
-  and respondent counts, responses per day, a **frequency** chart for any
-  variable, and a two-way **crosstab**. These update as responses arrive.
+- **Dashboard** — a stats row (status, branch, responses, commits, deployments)
+  is always visible. Live **Data insights** charts are opt-in: add an
+  `insights:` block to `siamang.yaml` (the example project ships one, commented
+  out and ready to uncomment) to pin charts — response stats, responses per day,
+  a **frequency** chart for a chosen variable, and a two-way **crosstab**. Until
+  then the Dashboard shows a hint with a **Configure** button.
 
 On the live Deployment card you will also see a **monitor**: how many responses
 have come in (and against the cap), quota progress, and the survey's codebook.
@@ -102,13 +105,13 @@ Open **Analysis**. The **Scripts** list shows the analysis steps declared in
 `siamang.yaml`. You can:
 
 - Click **Run** on a single script, or
-- Click **Run all** to run every analysis step in order (clean → weight →
-  tabulate) and combine the results into one report.
+- Click **Run all** to run every analysis step in order (clean → tabulate) and
+  combine the results into one report.
 
-Each run appears in **Run history** and finishes **completed** or **failed**.
-Click a run to open its detail panel with **Logs** and **Outputs** tabs. The
-**Outputs** tab links to anything the run produced — a **report**, new database
-tables, and downloadable files.
+Each run appears in **Run history** as a card and finishes **success**,
+**warnings**, or **failed** (a live run shows **running**). The card shows the
+run's steps, links to anything the run produced — a **report**, new database
+tables, and downloadable files — and its logs, which you can expand in place.
 
 Open the generated report (Markdown, with an **HTML** download available) to see
 your tables and charts. Reports also appear under **Files** and can be opened

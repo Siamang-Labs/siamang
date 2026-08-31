@@ -15,12 +15,11 @@ your activity. Edit it and save.
 
 ## Change your password
 
-**What you'll need:** your current password.
-
 **Steps**
 1. Open the **account menu** (top bar) → **Profile**.
 2. Go to the **Security** tab.
-3. Enter your **current password**, then your **new password** twice.
+3. Enter your **new password** twice (some configurations also ask for your
+   **current password** first).
 4. Click **Save**.
 
 **Result:** your password is updated; you stay signed in.
@@ -77,10 +76,10 @@ your own machine over SSH (instead of editing in the browser). You add your
 1. Copy your **public** key (for example the contents of `~/.ssh/id_ed25519.pub`).
 2. Open **Profile → SSH keys**.
 3. Click **Add SSH key**, paste the public key, give it a label, and save.
-4. Now clone or push using the SSH address shown under **Repository →
-   Remotes**.
 
-**Result:** Git operations over SSH are authorized as you. See
+**Result:** Git operations over SSH are authorized as you. Note that the
+**Repository → Remotes** dialog currently shows only the **HTTPS** clone URL and
+an access token — it does not display an SSH address. See
 [[Repository & Editing|Cloud-Repository-and-Editing]] for the clone/push steps.
 
 ## Support
