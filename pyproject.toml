@@ -44,9 +44,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hanelias/siamang"
-Manual   = "https://github.com/hanelias/siamang/blob/main/MANUAL.md"
-Issues   = "https://github.com/hanelias/siamang/issues"
+Homepage = "https://github.com/Siamang-Labs/siamang"
+Manual   = "https://github.com/Siamang-Labs/siamang/blob/main/MANUAL.md"
+Issues   = "https://github.com/Siamang-Labs/siamang/issues"
 
 [tool.setuptools]
 include-package-data = true
