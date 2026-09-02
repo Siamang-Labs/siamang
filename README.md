@@ -222,6 +222,12 @@ siamang/
 
 ---
 
+## Free User Guide
+
+See the complete [textbook](https://siamang.org/textbook) for the engine and the hosted platform, from first installation to banner tables and report documents.
+
+---
+
 ## Requirements
 
 - **Python 3.11+**
