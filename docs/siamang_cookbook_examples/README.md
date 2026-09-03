@@ -2,8 +2,7 @@
 
 Four complete studies built with **siamang 0.6.0**, each in its own directory with the survey as
 Python modules, tests, scripts and a Jupyter notebook that *imports* those modules and walks the
-pipeline with saved outputs, plus a notebook of short recipes. Everything was executed; see
-[`EXECUTION_REPORT.md`](EXECUTION_REPORT.md) for a cell-by-cell record.
+pipeline with saved outputs, plus a notebook of short recipes.
 
 ## Running
 
