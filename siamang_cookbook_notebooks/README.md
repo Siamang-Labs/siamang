@@ -3,8 +3,7 @@
 Five Jupyter notebooks built with **siamang 0.6.0**, executed top to bottom with their outputs saved
 (tables, charts, printed results, a real local deployment with HTTP submissions). Every notebook is
 self-contained: codebook, questionnaire, options, theme and analysis all live in its cells — nothing
-to import besides the installed package. See [`EXECUTION_REPORT.md`](EXECUTION_REPORT.md) for a
-cell-by-cell record of what ran.
+to import besides the installed package.
 
 ## Running
 
