@@ -26,5 +26,4 @@ jupyter notebook civic_trust.ipynb                    # the same pipeline step b
 
 Notebooks add their own directory to `sys.path` in the first cell, so they run from any
 launcher. All numbers come from `survey.simulate()` and are meaningless by construction;
-the point is that every table is labelled and every test is chosen for you. See
-`docs/cookbook-scenarios.md` in the siamang repository for the narrative version.
+the point is that every table is labelled and every test is chosen for you.
