@@ -17,6 +17,7 @@ Subcommands:
 - [`preview`](#preview) — local React frontend on `http://127.0.0.1`
 - [`deploy`](#deploy) — publish to a backend/frontend pair
 - [`init`](#init) — create or update `~/.siamang.toml`
+- [`model`](#model) — convert a questionnaire to a JSON document and check one
 
 You can also run it via the module: `python -m siamang …`.
 
@@ -155,6 +156,22 @@ siamang init [--path PATH] [--non-interactive]
 
 Interactive walkthrough that asks for backend/frontend choice and
 credentials, then writes the config with `chmod 600`.
+
+---
+
+## `model`
+
+```bash
+siamang model import PATH [--attribute ATTR] [-o OUTPUT]
+siamang model check PATH [--strict]
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `import` | Execute a questionnaire module and write its `survey` + `options` as a JSON document (`-o FILE`, default stdout). Conversion warnings go to stderr. |
+| `check` | Validate a JSON document: JSON Schema, structure, `validate()`, `validate_options()`, `lint()`. Same output and exit codes as `validate`. |
+
+The document format is described in [`siamang.model`](model.md).
 
 ---
 

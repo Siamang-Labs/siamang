@@ -42,6 +42,20 @@ def _add_init(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--non-interactive", action="store_true")
 
 
+def _add_model(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "model", help="Convert between questionnaire Python files and JSON documents."
+    )
+    sub = parser.add_subparsers(dest="model_command", required=True)
+    importer = sub.add_parser("import", help="Write the questionnaire of a Python file as JSON.")
+    importer.add_argument("path", help="Path to a Python file exposing `survey` (and `options`).")
+    importer.add_argument("--attribute", default="survey")
+    importer.add_argument("-o", "--output", help="Output file (default: stdout).")
+    checker = sub.add_parser("check", help="Validate a JSON questionnaire document.")
+    checker.add_argument("path", help="Path to a questionnaire.json document.")
+    checker.add_argument("--strict", action="store_true", help="Treat strict lint errors as failures.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="siamang", description="siamang command-line interface")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -49,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_preview(sub)
     _add_deploy(sub)
     _add_init(sub)
+    _add_model(sub)
     return parser
 
 
@@ -86,6 +101,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         from siamang.cli.init import run as run_init
 
         return run_init(path=args.path, non_interactive=args.non_interactive)
+    if command == "model":
+        from siamang.cli.model import run_check, run_import
+
+        if args.model_command == "import":
+            return run_import(args.path, attribute=args.attribute, output=args.output)
+        return run_check(args.path, strict=args.strict)
 
     parser.error(f"Unknown command: {command}")
     return 2

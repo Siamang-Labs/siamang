@@ -1,0 +1,406 @@
+{
+  "schema_version": "1.0",
+  "title": "Brand Awareness Study 2026",
+  "options": {
+    "description": "Awareness and trust across regions, wave 2026-Q3.",
+    "completion_text": "Thank you — your answers make the results better!",
+    "metadata": {
+      "wave": "2026-Q3",
+      "estimated_minutes": 6
+    }
+  },
+  "deadline": null,
+  "variables": {
+    "age": {
+      "scale": "ratio",
+      "label": "Age",
+      "valid_range": [
+        16,
+        99
+      ]
+    },
+    "region": {
+      "scale": "nominal",
+      "label": "Region",
+      "labels": [
+        {
+          "code": 1,
+          "label": "Capital"
+        },
+        {
+          "code": 2,
+          "label": "North"
+        },
+        {
+          "code": 3,
+          "label": "South"
+        }
+      ]
+    },
+    "gender": {
+      "scale": "nominal",
+      "label": "Gender",
+      "labels": [
+        {
+          "code": 1,
+          "label": "Male"
+        },
+        {
+          "code": 2,
+          "label": "Female"
+        },
+        {
+          "code": 3,
+          "label": "Other"
+        }
+      ]
+    },
+    "aware": {
+      "scale": "nominal",
+      "label": "Brands heard of (unaided)",
+      "labels": [
+        {
+          "code": 1,
+          "label": "Acme"
+        },
+        {
+          "code": 2,
+          "label": "Globex"
+        },
+        {
+          "code": 3,
+          "label": "Initech"
+        },
+        {
+          "code": 99,
+          "label": "None of these"
+        }
+      ]
+    },
+    "trust_acme": {
+      "scale": "ordinal",
+      "label": "Trust: Acme",
+      "labels": [
+        {
+          "code": 1,
+          "label": "No trust"
+        },
+        {
+          "code": 2,
+          "label": "Low"
+        },
+        {
+          "code": 3,
+          "label": "Medium"
+        },
+        {
+          "code": 4,
+          "label": "High"
+        },
+        {
+          "code": 5,
+          "label": "Full"
+        },
+        {
+          "code": 9,
+          "label": "Refused"
+        }
+      ],
+      "missing": [
+        {
+          "code": 9,
+          "label": "Refused",
+          "kind": "system_missing"
+        }
+      ]
+    },
+    "trust_globex": {
+      "scale": "ordinal",
+      "label": "Trust: Globex",
+      "labels": [
+        {
+          "code": 1,
+          "label": "No trust"
+        },
+        {
+          "code": 2,
+          "label": "Low"
+        },
+        {
+          "code": 3,
+          "label": "Medium"
+        },
+        {
+          "code": 4,
+          "label": "High"
+        },
+        {
+          "code": 5,
+          "label": "Full"
+        },
+        {
+          "code": 9,
+          "label": "Refused"
+        }
+      ],
+      "missing": [
+        {
+          "code": 9,
+          "label": "Refused",
+          "kind": "system_missing"
+        }
+      ]
+    },
+    "satisfaction": {
+      "scale": "ordinal",
+      "label": "Overall satisfaction",
+      "labels": [
+        {
+          "code": 1,
+          "label": "Very dissatisfied"
+        },
+        {
+          "code": 2,
+          "label": "Dissatisfied"
+        },
+        {
+          "code": 3,
+          "label": "Neutral"
+        },
+        {
+          "code": 4,
+          "label": "Satisfied"
+        },
+        {
+          "code": 5,
+          "label": "Very satisfied"
+        }
+      ]
+    },
+    "comment": {
+      "scale": "nominal",
+      "label": "Free comment"
+    }
+  },
+  "pages": [
+    {
+      "name": "screener",
+      "title": "About you",
+      "items": [
+        {
+          "type": "NumericInput",
+          "id": "q_age",
+          "text": "How old are you?",
+          "var": "age",
+          "required": true,
+          "randomize": false,
+          "other_specify": false,
+          "display": "input",
+          "unit": "years",
+          "step": 1
+        },
+        {
+          "type": "SingleChoice",
+          "id": "q_region",
+          "text": "Where do you live?",
+          "var": "region",
+          "required": true,
+          "randomize": false,
+          "other_specify": false,
+          "display": "buttons",
+          "none_of_above": false
+        },
+        {
+          "type": "SingleChoice",
+          "id": "q_gender",
+          "text": "What is your gender?",
+          "var": "gender",
+          "required": false,
+          "randomize": false,
+          "other_specify": false,
+          "display": "radio",
+          "none_of_above": false
+        }
+      ],
+      "next_if": [
+        {
+          "condition": {
+            "type": "expression",
+            "op": "<",
+            "left": {
+              "type": "var",
+              "name": "age"
+            },
+            "right": 18
+          },
+          "target": "screen_out"
+        }
+      ]
+    },
+    {
+      "name": "screen_out",
+      "kind": "disqualification",
+      "title": "Thank you",
+      "body": "<p>This study is for respondents aged 18 and over.</p>"
+    },
+    {
+      "name": "awareness",
+      "title": "Brands",
+      "items": [
+        {
+          "type": "MultiChoice",
+          "id": "q_aware",
+          "text": "Which of these brands have you heard of?",
+          "var": "aware",
+          "required": false,
+          "randomize": true,
+          "other_specify": false,
+          "min_answers": 1,
+          "exclusive": [
+            99
+          ],
+          "mode": "array"
+        },
+        {
+          "type": "Block",
+          "title": "Trust",
+          "show_if": {
+            "type": "expression",
+            "op": "not",
+            "left": {
+              "type": "expression",
+              "op": "in",
+              "left": {
+                "type": "var",
+                "name": "aware"
+              },
+              "right": [
+                99
+              ]
+            },
+            "right": null
+          },
+          "items": [
+            {
+              "type": "Matrix",
+              "id": "m_trust",
+              "text": "How much do you trust each brand?",
+              "var": [
+                "trust_acme",
+                "trust_globex"
+              ],
+              "required": false,
+              "randomize": false,
+              "other_specify": false,
+              "na_option": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "attitudes",
+      "title": "Your experience",
+      "items": [
+        {
+          "type": "LikertScale",
+          "id": "q_sat",
+          "text": "How satisfied are you with brands in this category overall?",
+          "var": "satisfaction",
+          "required": true,
+          "randomize": false,
+          "other_specify": false,
+          "points": 5,
+          "left_label": "Very dissatisfied",
+          "right_label": "Very satisfied",
+          "na_option": false
+        },
+        {
+          "type": "OpenText",
+          "id": "q_comment",
+          "text": "Anything else you would like to add?",
+          "var": "comment",
+          "required": false,
+          "randomize": false,
+          "other_specify": false,
+          "multiline": true,
+          "max_chars": 500,
+          "placeholder": "Optional comments…"
+        }
+      ],
+      "show_if": {
+        "type": "expression",
+        "op": "and",
+        "left": {
+          "type": "expression",
+          "op": ">=",
+          "left": {
+            "type": "var",
+            "name": "age"
+          },
+          "right": 18
+        },
+        "right": {
+          "type": "expression",
+          "op": "or",
+          "left": {
+            "type": "expression",
+            "op": "=",
+            "left": {
+              "type": "var",
+              "name": "region"
+            },
+            "right": 1
+          },
+          "right": {
+            "type": "expression",
+            "op": "=",
+            "left": {
+              "type": "var",
+              "name": "region"
+            },
+            "right": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "thanks",
+      "kind": "final",
+      "title": "Thank you!",
+      "body": "<p>Your answers have been recorded.</p>"
+    }
+  ],
+  "quotas": [
+    {
+      "variable": "region",
+      "target_value": 1,
+      "limit": 400
+    },
+    {
+      "variable": "region",
+      "target_value": 2,
+      "limit": 400
+    },
+    {
+      "variable": "region",
+      "target_value": 3,
+      "limit": 400
+    }
+  ],
+  "scripts": [
+    {
+      "type": "timed_question",
+      "question": "q_aware",
+      "seconds": 45
+    }
+  ],
+  "ui": {
+    "primary_color": "#a8324b",
+    "font_pair": "mixed",
+    "institution_name": "Independent Polling Lab",
+    "estimated_minutes": 6,
+    "progress_style": "dots",
+    "default_theme": "system"
+  }
+}

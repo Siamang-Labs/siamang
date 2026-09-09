@@ -43,8 +43,11 @@ public class, dataclass field, and helper exported from the subpackage.
   `DeployResult`, the abstract `BackendAdapter` / `FrontendAdapter`,
   the bundled backends (Local, Supabase, Google Sheets), and frontends
   (Local, Vercel, Netlify).
+- **[`siamang.model`](reference/model.md)** — the questionnaire as a JSON
+  document: `to_document` / `from_document`, the JSON Schema, and what a
+  graphical builder stores.
 - **[CLI](reference/cli.md)** — `siamang validate / preview / deploy /
-  init`, every flag documented.
+  init / model`, every flag documented.
 
 ### Other
 

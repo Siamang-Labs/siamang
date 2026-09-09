@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`siamang.model`** — the questionnaire as a JSON document.
+  `to_document(survey, options)` serializes every core object (`Variable`,
+  all seven question types, `Option`, `Media`, `Block`, `Page`,
+  `Expression`, `Script`, `Quota`, `UIConfig`, compiler options, deadline)
+  into a plain dict; `from_document(doc)` rebuilds them. The round trip is
+  lossless: the rebuilt survey compiles to the same `SurveySchema`, and
+  re-serializing it returns the same document. Factory-made scripts are
+  stored by name and parameters; codebook codes keep their type and order.
+- **JSON Schema** for the document format
+  (`siamang/schemas/questionnaire-1.0.json`, generated from the dataclasses
+  by `scripts/gen_document_schema.py`) and `validate_document()` on top of
+  it. `jsonschema` is a new dependency.
+- **`siamang model import`** writes a module's `survey` + `options` as a
+  document; **`siamang model check`** validates a document the way
+  `siamang validate` validates a module.
+
 ## [0.6.0] — 2026-08-30
 
 Runtime documentation-parity release: everything the docs describe for the
