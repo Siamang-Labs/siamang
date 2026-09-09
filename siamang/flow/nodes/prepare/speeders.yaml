@@ -1,0 +1,37 @@
+type: prepare.speeders
+category: prepare
+title: Speeders & partials
+description: Add duration_s and partial columns and drop responses that were too fast or incomplete.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  min_seconds:
+    kind: int
+    default: 60
+    minimum: 0
+    label: Minimum seconds
+  required:
+    kind: variables
+    default: []
+    label: Required answers
+  drop_partials:
+    kind: bool
+    default: true
+    label: Drop partials
+subtitle: ≥ {min_seconds} s
+imports:
+- from siamang.data import respondents
+template:
+- |
+  _frame = {in.data}.frame.copy()
+  _frame["duration_s"] = respondents.completion_time(_frame)
+  _frame["partial"] = respondents.partial_flag(_frame, required={required!r})
+  _keep = ~respondents.speeders(_frame, min_seconds={min_seconds!r})
+- when: drop_partials
+  code: |
+    _keep &= ~_frame["partial"]
+- |
+  {out.data} = {in.data}.with_frame(_frame[_keep])
+preview: rows

@@ -53,18 +53,43 @@ def _add_model(subparsers: argparse._SubParsersAction) -> None:
     importer.add_argument("-o", "--output", help="Output file (default: stdout).")
     checker = sub.add_parser("check", help="Validate a JSON questionnaire document.")
     checker.add_argument("path", help="Path to a questionnaire.json document.")
-    checker.add_argument("--strict", action="store_true", help="Treat strict lint errors as failures.")
+    checker.add_argument(
+        "--strict", action="store_true", help="Treat strict lint errors as failures."
+    )
 
 
 def _add_codegen(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "codegen", help="Generate questionnaire.py from a JSON questionnaire document."
     )
-    parser.add_argument("path", help="Path to a questionnaire.json document.")
+    parser.add_argument("path", help="Path to a questionnaire.json or <name>.flow.json document.")
     parser.add_argument("-o", "--output", help="Output file (default: stdout).")
+    parser.add_argument(
+        "--questionnaire", help="For a flow: the questionnaire.json its variables refer to."
+    )
     parser.add_argument(
         "--no-format", action="store_true", help="Skip the ruff format pass over the output."
     )
+
+
+def _add_flow(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("flow", help="Check, run and describe analysis flows.")
+    sub = parser.add_subparsers(dest="flow_command", required=True)
+    check = sub.add_parser("check", help="Validate a flow document against the node registry.")
+    check.add_argument("path", help="Path to a <name>.flow.json document.")
+    check.add_argument("--questionnaire", help="questionnaire.json to check variables against.")
+    run = sub.add_parser("run", help="Execute a flow on a local data snapshot.")
+    run.add_argument("path", help="Path to a <name>.flow.json document.")
+    run.add_argument(
+        "--data",
+        action="append",
+        help="Snapshot file for the data source (or <node>=<path>); repeatable.",
+    )
+    run.add_argument("--questionnaire", help="questionnaire.json of the survey.")
+    run.add_argument("--cwd", help="Directory where relative output paths are written.")
+    run.add_argument("--upto", help="Run only up to this node (inclusive).")
+    nodes = sub.add_parser("nodes", help="List the node registry.")
+    nodes.add_argument("--json", action="store_true", dest="as_json", help="Print as JSON.")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -76,6 +101,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_init(sub)
     _add_model(sub)
     _add_codegen(sub)
+    _add_flow(sub)
     return parser
 
 
@@ -122,7 +148,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     if command == "codegen":
         from siamang.cli.codegen import run as run_codegen
 
-        return run_codegen(args.path, output=args.output, format=not args.no_format)
+        return run_codegen(
+            args.path,
+            output=args.output,
+            questionnaire=args.questionnaire,
+            format=not args.no_format,
+        )
+    if command == "flow":
+        from siamang.cli.flow import run_check, run_flow, run_nodes
+
+        if args.flow_command == "check":
+            return run_check(args.path, questionnaire=args.questionnaire)
+        if args.flow_command == "run":
+            return run_flow(
+                args.path,
+                data=args.data,
+                questionnaire=args.questionnaire,
+                cwd=args.cwd,
+                upto=args.upto,
+            )
+        return run_nodes(as_json=args.as_json)
 
     parser.error(f"Unknown command: {command}")
     return 2

@@ -39,6 +39,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on a bare frame). Plain pandas functions that combine with
   `SurveyData.with_frame`; the first two sets were previously only
   available in the Siamang Cloud SDK.
+- **`siamang.flow`** — analysis flows. A flow document (`flow-1.0.json`
+  schema) is a graph of typed nodes from a YAML **node registry**
+  (30 nodes: sources, prepare, analyze, visualize, output; `siamang flow
+  nodes`). `check_flow` validates it against the registry and the
+  questionnaire's codebook; `FlowRunner` executes it in-process on a
+  `SurveyData` or a snapshot, with `live.capture()` collecting the tiles
+  `output.live_tile` nodes publish; `generate_flow` renders the script a
+  researcher would have written, with a `--data` switch between the
+  platform database and a local snapshot. Runner and generator use the
+  node templates verbatim, so the script reproduces the runner's report.
+  `PyYAML` is a new dependency. CLI: **`siamang flow check | run | nodes`**
+  and **`siamang codegen <name>.flow.json --questionnaire …`**.
+- `SurveyData.filter(expression)` keeps the rows matching a questionnaire
+  condition; `SurveyTable.stats` exposes a table's statistics as a dict;
+  `Report.add` accepts a statistics mapping.
 - **Snapshots** — `siamang.io.read_snapshot` / `write_snapshot`: a data
   file (Parquet, CSV, Excel, SPSS, Stata) plus `<name>.dictionary.json`,
   read back into a `SurveyData` with the codebook, embedded metadata or the

@@ -1,0 +1,20 @@
+type: source.simulated
+category: source
+title: Simulated data
+description: Synthetic responses generated from the questionnaire, for building a flow before fieldwork.
+outputs:
+  data: SurveyData
+params:
+  n:
+    kind: int
+    default: 200
+    minimum: 1
+    label: Respondents
+  seed:
+    kind: int
+    default: 42
+    label: Seed
+subtitle: n = {n}
+template: |
+  {out.data} = survey.simulate(n={n!r}, seed={seed!r})
+preview: rows

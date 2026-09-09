@@ -1,0 +1,27 @@
+type: source.responses
+category: source
+title: Responses
+description: Responses collected by the platform for one environment.
+outputs:
+  data: SurveyData
+params:
+  table:
+    kind: string
+    default: responses
+    label: Table
+  environment:
+    kind: string
+    default: main
+    label: Environment
+  only_completed:
+    kind: bool
+    default: false
+    label: Only completed responses
+subtitle: '{table} · {environment}'
+imports:
+- from siamang_studio import db
+platform: true
+snapshot: true
+template: |
+  {out.data} = db.as_survey_data({table!r}, environment={environment!r}, only_completed={only_completed!r}, questionnaire=survey)
+preview: rows

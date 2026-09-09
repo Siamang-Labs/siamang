@@ -1,0 +1,37 @@
+type: prepare.recode
+category: prepare
+title: Recode
+description: Map the codes of a variable to new codes, into a new variable.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  variable:
+    kind: variable
+    required: true
+    label: Variable
+  mapping:
+    kind: mapping
+    required: true
+    label: Old code → new code
+  into:
+    kind: string
+    creates: variable
+    label: New variable
+    help: Defaults to <variable>_recoded.
+  label:
+    kind: string
+    label: Label
+  scale:
+    kind: enum
+    values:
+    - nominal
+    - ordinal
+    - interval
+    - ratio
+    label: Scale
+subtitle: '{variable} → {into}'
+template: |
+  {out.data} = {in.data}.recode_values({variable!r}, {mapping!r}, into={into!r}, label={label!r}, scale={scale!r})
+preview: rows

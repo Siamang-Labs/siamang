@@ -1,0 +1,29 @@
+type: prepare.missing
+category: prepare
+title: Missing values
+description: Turn the codebook's missing codes into blanks, optionally dropping the rows.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  action:
+    kind: enum
+    values:
+    - to_nan
+    - drop_rows
+    default: to_nan
+    label: Action
+  variables:
+    kind: variables
+    default: []
+    label: Drop rows missing in
+    help: 'For drop_rows: rows with a blank in any of these variables are dropped.'
+template:
+- |
+  {out.data} = {in.data}.apply_missing_values()
+- when: action=drop_rows
+  code: |
+    for _column in {variables!r}:
+        {out.data} = {out.data}.drop_missing(_column)
+preview: rows

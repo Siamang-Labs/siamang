@@ -1,0 +1,34 @@
+type: visualize.bar
+category: visualize
+title: Bar chart
+description: Distribution of a variable, or its mean by group.
+inputs:
+  data: SurveyData
+outputs:
+  chart: Chart
+params:
+  variable:
+    kind: variable
+    required: true
+    label: Variable
+  by:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: By
+  horizontal:
+    kind: bool
+    default: false
+    label: Horizontal
+  show_values:
+    kind: bool
+    default: true
+    label: Show values
+  title:
+    kind: string
+    label: Title
+subtitle: '{variable}'
+template: |
+  {out.chart} = {in.data}.plot.bar({variable!r}, by={by!r}, horizontal={horizontal!r}, show_values={show_values!r}, title={title!r})
+preview: chart

@@ -1,0 +1,32 @@
+type: prepare.index
+category: prepare
+title: Index / scale
+description: Combine several items into one index (mean or sum).
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  name:
+    kind: string
+    required: true
+    creates: variable
+    label: Index name
+  items:
+    kind: variables
+    required: true
+    label: Items
+  method:
+    kind: enum
+    values:
+    - mean
+    - sum
+    default: mean
+    label: Method
+  label:
+    kind: string
+    label: Label
+subtitle: '{name}'
+template: |
+  {out.data} = {in.data}.create_index({name!r}, items={items!r}, method={method!r}, label={label!r})
+preview: rows

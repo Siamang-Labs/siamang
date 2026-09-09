@@ -48,8 +48,11 @@ public class, dataclass field, and helper exported from the subpackage.
   graphical builder stores.
 - **[`siamang.codegen`](reference/codegen.md)** — a JSON document back to
   `questionnaire.py`: deterministic, ruff-formatted, round-trip safe.
+- **[`siamang.flow`](reference/flow.md)** — analysis flows: the node
+  registry, flow documents and their checks, `FlowRunner`, live tiles, and
+  the generated analysis script.
 - **[CLI](reference/cli.md)** — `siamang validate / preview / deploy /
-  init / model / codegen`, every flag documented.
+  init / model / codegen / flow`, every flag documented.
 
 ### Other
 

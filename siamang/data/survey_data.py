@@ -266,6 +266,20 @@ class SurveyData:
             weight=self.weight,
         )
 
+    def filter(self, expression: Expression) -> SurveyData:
+        """Keep the rows for which ``expression`` (a questionnaire condition) is true.
+
+        The expression is evaluated row by row against the frame's columns, the
+        same way visibility conditions are evaluated against answers.
+        """
+
+        if not isinstance(expression, Expression):
+            raise TypeError("filter() expects an Expression built from questionnaire variables.")
+        mask = self.frame.apply(lambda row: bool(expression.evaluate(row.to_dict())), axis=1)
+        if mask.empty:
+            return self.with_frame(self.frame.copy())
+        return self.with_frame(self.frame[mask.astype(bool)])
+
     def derive(
         self,
         *,

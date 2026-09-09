@@ -1,0 +1,38 @@
+type: prepare.rake_weights
+category: prepare
+title: Rake weights
+description: Iterative proportional fitting of weights to several marginal targets.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  targets:
+    kind: targets
+    required: true
+    label: Targets (variable → code → share)
+  weight_column:
+    kind: string
+    default: weight
+    creates: column
+    label: Weight column
+  max_iter:
+    kind: int
+    default: 50
+    minimum: 1
+    label: Max iterations
+  tol:
+    kind: float
+    default: 1.0e-06
+    label: Tolerance
+  cap:
+    kind: float
+    minimum: 1
+    label: Cap
+imports:
+- from siamang.data import weights
+template: |
+  _frame = {in.data}.frame.copy()
+  _frame[{weight_column!r}] = weights.rake_weights(_frame, {targets!r}, max_iter={max_iter!r}, tol={tol!r}, cap={cap!r})
+  {out.data} = {in.data}.with_frame(_frame)
+preview: rows

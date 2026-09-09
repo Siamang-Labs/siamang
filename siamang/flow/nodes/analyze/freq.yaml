@@ -1,0 +1,29 @@
+type: analyze.freq
+category: analyze
+title: Frequencies
+description: Frequency distribution of one variable with value labels, % and cumulative %.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+params:
+  variable:
+    kind: variable
+    required: true
+    label: Variable
+  exclude_missing:
+    kind: bool
+    default: true
+    label: Exclude missing
+  sort:
+    kind: enum
+    values:
+    - value
+    - freq
+    - label
+    default: value
+    label: Sort
+subtitle: '{variable}'
+template: |
+  {out.table} = {in.data}.report.freq({variable!r}, exclude_missing={exclude_missing!r}, sort={sort!r})
+preview: table

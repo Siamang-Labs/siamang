@@ -1,0 +1,39 @@
+type: output.save_report
+category: output
+title: Save report
+description: Combine sections into one report and save it as Markdown (and HTML).
+inputs:
+  sections:
+    type: Report
+    many: true
+outputs:
+  report: Report
+params:
+  title:
+    kind: string
+    required: true
+    label: Title
+  path:
+    kind: path
+    default: outputs/report.md
+    label: Path
+  html:
+    kind: bool
+    default: false
+    label: Also save HTML
+  toc:
+    kind: bool
+    default: false
+    label: Table of contents
+subtitle: '{path}'
+imports:
+- from pathlib import Path
+- from siamang.reporting import Report
+template:
+- |
+  {out.report} = Report.combine({in.sections}, title={title!r}, toc={toc!r})
+  {out.report}.save({path!r})
+- when: html
+  code: |
+    {out.report}.save(Path({path!r}).with_suffix(".html"))
+preview: report

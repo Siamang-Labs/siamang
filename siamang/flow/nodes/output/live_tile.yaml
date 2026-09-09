@@ -1,0 +1,34 @@
+type: output.live_tile
+category: output
+title: Live tile
+description: 'Show this value on the Live screen: a number, a table, a chart or a statistic.'
+inputs:
+  input: Any
+params:
+  kind:
+    kind: enum
+    values:
+    - number
+    - table
+    - chart
+    - stat
+    - text
+    default: number
+    label: Kind
+  label:
+    kind: string
+    required: true
+    label: Label
+  metric:
+    kind: enum
+    values:
+    - value
+    - rows
+    default: value
+    label: Show
+    help: 'rows: the number of respondents in the data connected.'
+subtitle: '{label}'
+imports:
+- from siamang.flow import live
+template: |
+  live.publish({node!r}, kind={kind!r}, label={label!r}, value={in.input}, metric={metric!r})

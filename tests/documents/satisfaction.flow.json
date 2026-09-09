@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "name": "satisfaction_by_region",
+  "title": "Satisfaction by region",
+  "description": "Dedup, drop speeders, rake to region × gender, crosstab and group means, Markdown report.",
+  "nodes": [
+    { "id": "src", "type": "source.responses", "params": { "table": "responses", "environment": "main" }, "position": [0, 0] },
+    { "id": "dedup", "type": "prepare.dedup", "params": { "key": "respondent_id", "keep": "last" }, "position": [1, 0] },
+    { "id": "speed", "type": "prepare.speeders", "params": { "min_seconds": 90, "drop_partials": true, "required": ["age", "region", "satisfaction"] }, "position": [2, 0] },
+    { "id": "rake", "type": "prepare.rake_weights", "params": {
+        "targets": {
+          "region": { "1": 0.45, "2": 0.30, "3": 0.25 },
+          "gender": { "1": 0.48, "2": 0.50, "3": 0.02 }
+        },
+        "weight_column": "weight",
+        "max_iter": 50
+      }, "position": [3, 0] },
+    { "id": "apply", "type": "prepare.apply_weight", "params": { "column": "weight" }, "position": [4, 0] },
+    { "id": "xtab", "type": "analyze.crosstab", "params": { "row": "satisfaction", "col": "region", "pct": "col" }, "position": [5, -1] },
+    { "id": "means", "type": "analyze.means", "params": { "y": "satisfaction", "by": "region" }, "position": [5, 1] },
+    { "id": "bar", "type": "visualize.bar", "params": { "variable": "satisfaction", "by": "region" }, "position": [6, -1] },
+    { "id": "section", "type": "output.report_section", "params": {
+        "heading": "Overall satisfaction by region",
+        "text": "Column percentages, weighted by region × gender (raking). N after cleaning is reported below.",
+        "captions": { "xtab": "Table 1. Satisfaction × region (%)", "bar": "Figure 1. Distribution by region", "means": "Table 2. Mean satisfaction by region" }
+      }, "position": [7, 0] },
+    { "id": "save", "type": "output.save_report", "params": { "path": "outputs/satisfaction_by_region.md", "title": "Satisfaction 2026-Q3", "html": true }, "position": [8, 0] },
+    { "id": "tile_n", "type": "output.live_tile", "params": { "kind": "number", "label": "Clean respondents", "metric": "rows" }, "position": [3, 2] },
+    { "id": "tile_x", "type": "output.live_tile", "params": { "kind": "table", "label": "Satisfaction × region" }, "position": [6, 2] }
+  ],
+  "edges": [
+    { "from": { "node": "src", "port": "data" }, "to": { "node": "dedup", "port": "data" } },
+    { "from": { "node": "dedup", "port": "data" }, "to": { "node": "speed", "port": "data" } },
+    { "from": { "node": "speed", "port": "data" }, "to": { "node": "rake", "port": "data" } },
+    { "from": { "node": "rake", "port": "data" }, "to": { "node": "apply", "port": "data" } },
+    { "from": { "node": "apply", "port": "data" }, "to": { "node": "xtab", "port": "data" } },
+    { "from": { "node": "apply", "port": "data" }, "to": { "node": "means", "port": "data" } },
+    { "from": { "node": "apply", "port": "data" }, "to": { "node": "bar", "port": "data" } },
+    { "from": { "node": "xtab", "port": "table" }, "to": { "node": "section", "port": "items" } },
+    { "from": { "node": "bar", "port": "chart" }, "to": { "node": "section", "port": "items" } },
+    { "from": { "node": "means", "port": "table" }, "to": { "node": "section", "port": "items" } },
+    { "from": { "node": "section", "port": "report" }, "to": { "node": "save", "port": "sections" } },
+    { "from": { "node": "speed", "port": "data" }, "to": { "node": "tile_n", "port": "input" } },
+    { "from": { "node": "xtab", "port": "table" }, "to": { "node": "tile_x", "port": "input" } }
+  ],
+  "outputs": {
+    "report": "outputs/satisfaction_by_region.md",
+    "files": ["outputs/satisfaction_by_region.html"]
+  },
+  "live": {
+    "enabled": true,
+    "debounce_seconds": 10,
+    "tiles": [
+      { "node": "tile_n", "w": 1, "h": 1 },
+      { "node": "tile_x", "w": 2, "h": 2 }
+    ]
+  }
+}

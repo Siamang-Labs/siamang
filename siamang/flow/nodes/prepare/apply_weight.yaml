@@ -1,0 +1,17 @@
+type: prepare.apply_weight
+category: prepare
+title: Apply weight
+description: Use a weight column in every table and statistic downstream.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  column:
+    kind: string
+    default: weight
+    label: Weight column
+subtitle: '{column}'
+template: |
+  {out.data} = {in.data}.with_weight({column!r})
+preview: rows

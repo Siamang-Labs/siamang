@@ -1,0 +1,44 @@
+type: output.report_section
+category: output
+title: Report section
+description: A heading, text and any number of tables, charts and statistics.
+inputs:
+  items:
+    type:
+    - Table
+    - Chart
+    - Stat
+    many: true
+    optional: true
+outputs:
+  report: Report
+params:
+  heading:
+    kind: string
+    required: true
+    label: Heading
+  text:
+    kind: markdown
+    label: Text
+  captions:
+    kind: captions
+    label: Captions
+  note:
+    kind: markdown
+    label: Note
+subtitle: '{heading}'
+imports:
+- from siamang.reporting import Report
+template:
+- |
+  {out.report} = Report().heading({heading!r})
+- when: text
+  code: |
+    {out.report}.text({text!r})
+- |
+  for _item, _caption in zip({in.items}, {captions!r}, strict=True):
+      {out.report}.add(_item, caption=_caption)
+- when: note
+  code: |
+    {out.report}.note({note!r})
+preview: report

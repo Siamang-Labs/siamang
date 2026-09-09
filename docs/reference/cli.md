@@ -18,7 +18,8 @@ Subcommands:
 - [`deploy`](#deploy) — publish to a backend/frontend pair
 - [`init`](#init) — create or update `~/.siamang.toml`
 - [`model`](#model) — convert a questionnaire to a JSON document and check one
-- [`codegen`](#codegen) — write a JSON document as `questionnaire.py`
+- [`codegen`](#codegen) — write a JSON document as `questionnaire.py` (or a flow as its script)
+- [`flow`](#flow) — check, run and describe analysis flows
 
 You can also run it via the module: `python -m siamang …`.
 
@@ -190,7 +191,25 @@ siamang codegen PATH [-o OUTPUT] [--no-format]
 
 Generates ordinary siamang code (`survey = sg.Questionnaire(...)` plus
 `options`) that `siamang validate` accepts and that converts back to the same
-document. See [`siamang.codegen`](codegen.md).
+document. See [`siamang.codegen`](codegen.md). Given a `<name>.flow.json`
+document instead (with `--questionnaire questionnaire.json`), it writes the
+flow's analysis script; see [`siamang.flow`](flow.md).
+
+---
+
+## `flow`
+
+```bash
+siamang flow check PATH [--questionnaire Q.json]
+siamang flow run PATH --data SNAPSHOT [--data NODE=PATH …] [--questionnaire Q.json] [--cwd DIR] [--upto NODE]
+siamang flow nodes [--json]
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `check` | JSON Schema plus graph checks against the node registry (and the codebook when `--questionnaire` is given). Prints every issue with its code; exit 1 on errors. |
+| `run` | Execute the flow in-process. `--data` feeds the platform data source from a snapshot file (`NODE=PATH` when there are several); relative output paths land in `--cwd`. Prints one line per node and the live tiles. |
+| `nodes` | List the node registry by category; `--json` prints it as the builder receives it. |
 
 ---
 

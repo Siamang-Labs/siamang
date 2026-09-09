@@ -1,0 +1,49 @@
+type: analyze.compare_groups
+category: analyze
+title: Compare groups
+description: Mann-Whitney U for two groups, Kruskal-Wallis H for more.
+inputs:
+  data: SurveyData
+outputs:
+  stat: Stat
+params:
+  y:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variable
+  group:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Group
+  test:
+    kind: enum
+    values:
+    - auto
+    - kruskal
+    - mannwhitney
+    default: auto
+    label: Test
+subtitle: '{y} by {group}'
+template:
+- when: test=auto
+  code: |
+    _groups = {in.data}.frame[{group!r}].dropna().nunique()
+    {out.stat} = (
+        {in.data}.analysis.mannwhitney({y!r}, {group!r})
+        if _groups == 2
+        else {in.data}.analysis.kruskal({y!r}, {group!r})
+    )
+- when: test=kruskal
+  code: |
+    {out.stat} = {in.data}.analysis.kruskal({y!r}, {group!r})
+- when: test=mannwhitney
+  code: |
+    {out.stat} = {in.data}.analysis.mannwhitney({y!r}, {group!r})
+preview: stat

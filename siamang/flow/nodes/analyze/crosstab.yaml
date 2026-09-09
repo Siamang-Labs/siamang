@@ -1,0 +1,42 @@
+type: analyze.crosstab
+category: analyze
+title: Crosstab
+description: Cross-tabulation with chi-square test and Cramér's V.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  row:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Rows
+  col:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Columns
+  pct:
+    kind: enum
+    values:
+    - none
+    - row
+    - col
+    - total
+    default: col
+    label: Percentages
+  test:
+    kind: bool
+    default: true
+    label: Chi-square test
+subtitle: '{row} × {col}'
+template: |
+  {out.table} = {in.data}.report.crosstab({row!r}, {col!r}, pct={pct!r}, test={test!r})
+  {out.stat} = {out.table}.stats
+preview: table
