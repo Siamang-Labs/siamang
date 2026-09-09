@@ -357,14 +357,90 @@ function Footer() {
      runtime → host  {type:"siamang:page", name, index, total}
                      {type:"siamang:select", id, page}     (a click on a question)
    Nothing else changes: the survey behaves exactly as respondents see it. */
-function useDesignMode(nav) {
+/* Walkthrough trace (Studio's Test tab): what the logic decided on the
+   current page for the current answers — which gated questions/blocks are
+   visible, which next_if rules match, which skip_to would fire, and where
+   "Next" lands. Posted to the parent as `siamang:trace` on every page
+   change and (debounced) on every answer change. */
+function buildDesignTrace(page, index, answers, visibilityEngine) {
+  const items = [];
+  const blocks = [];
+  if (page.items) {
+    for (const q of page.items) items.push({ q, block: null });
+  } else if (page.blocks) {
+    for (const b of page.blocks) {
+      const gated = b.showIf != null || b.hideIf != null;
+      const visible = isConditionVisible(b.showIf, b.hideIf, answers);
+      if (gated) blocks.push({ title: b.title || null, visible: visible, showIf: b.showIf != null, hideIf: b.hideIf != null });
+      for (const q of b.items || []) items.push({ q, block: visible ? null : (b.title || "block") });
+    }
+  }
+  const conditions = [];
+  const skips = [];
+  let answered = 0;
+  let visibleCount = 0;
+  for (const { q, block } of items) {
+    const qid = q.qid || q.id;
+    const gated = q.showIf != null || q.hideIf != null;
+    const visible = block == null && isConditionVisible(q.showIf, q.hideIf, answers);
+    if (gated) conditions.push({ id: qid, visible: visible, showIf: q.showIf != null, hideIf: q.hideIf != null, hiddenByBlock: block });
+    if (visible) {
+      visibleCount += 1;
+      const done = isAnswered(q, answers[q.id]);
+      if (done) answered += 1;
+      if (q.skipTo) skips.push({ id: qid, target: q.skipTo, answered: done });
+    }
+  }
+  const rules = (page.nextIf || []).map((r, i) => ({ index: i, target: r.target, matched: evaluateRouteCondition(r.if, answers) }));
+  const route = computeRouteTarget(page, answers, visibilityEngine);
+  return {
+    page: page.name, index: index, kind: page.kind || "content",
+    conditions: conditions, blocks: blocks, rules: rules, skips: skips,
+    defaultNext: page.defaultNext || null, route: route,
+    visible: visibleCount, answered: answered,
+  };
+}
+
+function useDesignMode(nav, store, visibilityEngine, allPages) {
   const enabled = typeof window !== "undefined" && !!window.SIAMANG_DESIGN;
+  const selectable = enabled && window.SIAMANG_DESIGN.select !== false;
   const [selectedId, setSelectedId] = useState(null);
   const post = useCallback((msg) => {
     try { window.parent.postMessage(Object.assign({ source: "siamang-runtime" }, msg), "*"); } catch (e) { /* no parent */ }
   }, []);
   const navRef = useRef(nav);
   navRef.current = nav;
+  const pageName0 = nav.currentPage ? nav.currentPage.name : null;
+  useEffect(() => {
+    if (!enabled || !store || !visibilityEngine) return undefined;
+    let timer = null;
+    const emit = () => {
+      timer = null;
+      const n = navRef.current;
+      if (!n.currentPage) return;
+      try {
+        const answers = store.snapshot();
+        // Document order (scripts may reorder it via answers.__pages__); the
+        // nav's `pages` are the currently visible ones.
+        const ordered = Array.isArray(answers.__pages__) && answers.__pages__.length ? answers.__pages__ : (allPages || n.pages);
+        const cur = ordered.findIndex((p) => p.name === n.currentPage.name);
+        const nextVisible = n.pages[n.pageIdx + 1] ? n.pages[n.pageIdx + 1].name : null;
+        const skipped = [];
+        if (cur >= 0) {
+          for (let i = cur + 1; i < ordered.length; i++) {
+            const p = ordered[i];
+            if (p.name === nextVisible) break;
+            if (p.showIf != null || p.hideIf != null) skipped.push({ name: p.name, showIf: p.showIf != null, hideIf: p.hideIf != null });
+          }
+        }
+        const trace = buildDesignTrace(n.currentPage, cur >= 0 ? cur : n.pageIdx, answers, visibilityEngine);
+        post(Object.assign({ type: "siamang:trace", next: nextVisible, skipped: skipped, position: n.pageIdx + 1, total: n.pages.length }, trace));
+      } catch (e) { /* a trace must never break the survey */ }
+    };
+    emit();
+    const unsubscribe = store.subscribe(() => { if (timer) clearTimeout(timer); timer = setTimeout(emit, 60); });
+    return () => { if (timer) clearTimeout(timer); unsubscribe(); };
+  }, [enabled, store, visibilityEngine, pageName0, post]);
   useEffect(() => {
     if (!enabled) return undefined;
     const onMessage = (e) => {
@@ -386,10 +462,11 @@ function useDesignMode(nav) {
     if (enabled && pageName) post({ type: "siamang:page", name: pageName, index: nav.pageIdx, total: nav.pages.length });
   }, [enabled, pageName, nav.pageIdx, nav.pages.length, post]);
   const onSelect = useCallback((id) => {
+    if (!selectable) return;
     setSelectedId(id);
     post({ type: "siamang:select", id: id, page: navRef.current.currentPage ? navRef.current.currentPage.name : null });
-  }, [post]);
-  return { enabled, selectedId, onSelect };
+  }, [post, selectable]);
+  return { enabled, selectable, selectedId, onSelect };
 }
 
 function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, handleBlur, uiTexts, design }) {
@@ -406,7 +483,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
         key={q.id}
         className={"sd-question-slot" + (selected ? " is-design-selected" : "")}
         data-qid={qid}
-        onClickCapture={design && design.enabled ? () => design.onSelect(qid) : undefined}
+        onClickCapture={design && design.selectable ? () => design.onSelect(qid) : undefined}
       >
         <ErrorBoundary>
           <Question
@@ -624,7 +701,7 @@ function App() {
   pageIdxRef.current = nav.pageIdx;
 
   // ─── Design mode (Studio preview only) ───
-  const design = useDesignMode(nav);
+  const design = useDesignMode(nav, store, visibilityEngine, allPages);
 
   // ─── Autosave ───
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);
