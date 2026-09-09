@@ -46,8 +46,10 @@ public class, dataclass field, and helper exported from the subpackage.
 - **[`siamang.model`](reference/model.md)** — the questionnaire as a JSON
   document: `to_document` / `from_document`, the JSON Schema, and what a
   graphical builder stores.
+- **[`siamang.codegen`](reference/codegen.md)** — a JSON document back to
+  `questionnaire.py`: deterministic, ruff-formatted, round-trip safe.
 - **[CLI](reference/cli.md)** — `siamang validate / preview / deploy /
-  init / model`, every flag documented.
+  init / model / codegen`, every flag documented.
 
 ### Other
 

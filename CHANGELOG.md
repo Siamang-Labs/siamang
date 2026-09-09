@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`siamang model import`** writes a module's `survey` + `options` as a
   document; **`siamang model check`** validates a document the way
   `siamang validate` validates a module.
+- **`siamang.codegen`** — `generate_questionnaire(document)` renders a
+  document as the Python file a researcher would have written: variables,
+  questions, pages (with the page factories), scripts, `survey`, `options`,
+  each object marked with `# studio: …`. Output is deterministic, laid out
+  like `ruff format` and passed through it when ruff is installed
+  (`pip install "siamang[codegen]"`), and converts back to the same
+  document with `siamang.model.to_document`. CLI: **`siamang codegen
+  questionnaire.json [-o questionnaire.py]`**.
 
 ## [0.6.0] — 2026-08-30
 

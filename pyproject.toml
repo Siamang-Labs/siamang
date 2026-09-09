@@ -71,6 +71,10 @@ dev = [
     "pytest>=8.0",
     "siamang[charts]",
 ]
+# Code generation (siamang codegen) formats its output with ruff.
+codegen = [
+    "ruff>=0.4",
+]
 # Charts (optional) — required for data.plot.* visualizations.
 charts = [
     "matplotlib>=3.7",
