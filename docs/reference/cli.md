@@ -18,6 +18,7 @@ Subcommands:
 - [`deploy`](#deploy) — publish to a backend/frontend pair
 - [`init`](#init) — create or update `~/.siamang.toml`
 - [`model`](#model) — convert a questionnaire to a JSON document and check one
+- [`codegen`](#codegen) — write a JSON document as `questionnaire.py`
 
 You can also run it via the module: `python -m siamang …`.
 
@@ -172,6 +173,24 @@ siamang model check PATH [--strict]
 | `check` | Validate a JSON document: JSON Schema, structure, `validate()`, `validate_options()`, `lint()`. Same output and exit codes as `validate`. |
 
 The document format is described in [`siamang.model`](model.md).
+
+---
+
+## `codegen`
+
+```bash
+siamang codegen PATH [-o OUTPUT] [--no-format]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `PATH` | (required) | A JSON questionnaire document. |
+| `-o`, `--output` | stdout | Where to write the generated `questionnaire.py`. |
+| `--no-format` | off | Skip the `ruff format` pass. |
+
+Generates ordinary siamang code (`survey = sg.Questionnaire(...)` plus
+`options`) that `siamang validate` accepts and that converts back to the same
+document. See [`siamang.codegen`](codegen.md).
 
 ---
 

@@ -56,6 +56,17 @@ def _add_model(subparsers: argparse._SubParsersAction) -> None:
     checker.add_argument("--strict", action="store_true", help="Treat strict lint errors as failures.")
 
 
+def _add_codegen(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "codegen", help="Generate questionnaire.py from a JSON questionnaire document."
+    )
+    parser.add_argument("path", help="Path to a questionnaire.json document.")
+    parser.add_argument("-o", "--output", help="Output file (default: stdout).")
+    parser.add_argument(
+        "--no-format", action="store_true", help="Skip the ruff format pass over the output."
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="siamang", description="siamang command-line interface")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -64,6 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_deploy(sub)
     _add_init(sub)
     _add_model(sub)
+    _add_codegen(sub)
     return parser
 
 
@@ -107,6 +119,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.model_command == "import":
             return run_import(args.path, attribute=args.attribute, output=args.output)
         return run_check(args.path, strict=args.strict)
+    if command == "codegen":
+        from siamang.cli.codegen import run as run_codegen
+
+        return run_codegen(args.path, output=args.output, format=not args.no_format)
 
     parser.error(f"Unknown command: {command}")
     return 2
