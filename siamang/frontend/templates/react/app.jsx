@@ -349,28 +349,79 @@ function Footer() {
 
 /* ─── SurveyPage ───────────────────────────────────────────────────────── */
 
-function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, handleBlur, uiTexts }) {
+/* ─── Design mode (Studio preview) ────────────────────────────────────────
+   Enabled when the host page sets window.SIAMANG_DESIGN before the bundle
+   loads. The runtime then talks to its parent frame by postMessage:
+     host → runtime  {type:"siamang:goto", page: <name|index>}
+                     {type:"siamang:select", id: <question id|null>}
+     runtime → host  {type:"siamang:page", name, index, total}
+                     {type:"siamang:select", id, page}     (a click on a question)
+   Nothing else changes: the survey behaves exactly as respondents see it. */
+function useDesignMode(nav) {
+  const enabled = typeof window !== "undefined" && !!window.SIAMANG_DESIGN;
+  const [selectedId, setSelectedId] = useState(null);
+  const post = useCallback((msg) => {
+    try { window.parent.postMessage(Object.assign({ source: "siamang-runtime" }, msg), "*"); } catch (e) { /* no parent */ }
+  }, []);
+  const navRef = useRef(nav);
+  navRef.current = nav;
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const onMessage = (e) => {
+      const d = e.data;
+      if (!d || typeof d !== "object" || typeof d.type !== "string") return;
+      if (d.type === "siamang:goto") {
+        const pages = navRef.current.pages;
+        const idx = typeof d.page === "number" ? d.page : pages.findIndex((p) => p.name === d.page);
+        if (idx >= 0 && idx < pages.length && idx !== navRef.current.pageIdx) navRef.current.goTo(idx);
+      } else if (d.type === "siamang:select") {
+        setSelectedId(d.id || null);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [enabled]);
+  const pageName = nav.currentPage ? nav.currentPage.name : null;
+  useEffect(() => {
+    if (enabled && pageName) post({ type: "siamang:page", name: pageName, index: nav.pageIdx, total: nav.pages.length });
+  }, [enabled, pageName, nav.pageIdx, nav.pages.length, post]);
+  const onSelect = useCallback((id) => {
+    setSelectedId(id);
+    post({ type: "siamang:select", id: id, page: navRef.current.currentPage ? navRef.current.currentPage.name : null });
+  }, [post]);
+  return { enabled, selectedId, onSelect };
+}
+
+function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, handleBlur, uiTexts, design }) {
   const answers = useAnswersStore(store);
   let qNum = qStart;
 
   const renderItem = (q) => {
     if (!visibilityEngine.isItemVisible(q, answers)) return null;
     qNum += 1;
+    const qid = q.qid || q.id;
+    const selected = design && design.enabled && design.selectedId === qid;
     return (
-      <ErrorBoundary key={q.id}>
-        <Question
-          key={q.id}
-          q={q}
-          qId={q.id}
-          value={answers[q.id]}
-          setAnswer={setAnswer}
-          num={"Q" + String(qNum).padStart(2, "0")}
-          error={errors[q.id]}
-          handleBlur={handleBlur}
-          answers={answers}
-          onAutoAdvance={onNext}
-        />
-      </ErrorBoundary>
+      <div
+        key={q.id}
+        className={"sd-question-slot" + (selected ? " is-design-selected" : "")}
+        data-qid={qid}
+        onClickCapture={design && design.enabled ? () => design.onSelect(qid) : undefined}
+      >
+        <ErrorBoundary>
+          <Question
+            q={q}
+            qId={q.id}
+            value={answers[q.id]}
+            setAnswer={setAnswer}
+            num={"Q" + String(qNum).padStart(2, "0")}
+            error={errors[q.id]}
+            handleBlur={handleBlur}
+            answers={answers}
+            onAutoAdvance={onNext}
+          />
+        </ErrorBoundary>
+      </div>
     );
   };
 
@@ -571,6 +622,9 @@ function App() {
   const pageIdxRef = useRef(0);
   const nav = useSurveyNav(allPages, store, visibilityEngine);
   pageIdxRef.current = nav.pageIdx;
+
+  // ─── Design mode (Studio preview only) ───
+  const design = useDesignMode(nav);
 
   // ─── Autosave ───
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);
@@ -882,6 +936,7 @@ function App() {
                   submitting={submitting}
                   handleBlur={handleBlur}
                   uiTexts={uiTexts}
+                  design={design}
                 />
               </ErrorBoundary>
             ) : null}

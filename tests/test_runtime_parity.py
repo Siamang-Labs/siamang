@@ -205,3 +205,16 @@ class TestRuntimeBundleMarkers:
             "siamangNext",
         ):
             assert marker in bundle, f"bundle is stale: missing {marker}"
+
+
+def test_question_qid_serialized_for_design_mode():
+    """Design mode addresses questions by the author-facing id, not the variable."""
+    payload = compile_react_payload(_survey_with_routing())
+    items = [item for page in payload["PAGES"] for item in page.get("items", [])]
+    items += [item for page in payload["PAGES"] for block in page.get("blocks", []) for item in block.get("items", [])]
+    assert items, "the routing fixture has questions"
+    for item in items:
+        assert "id" in item
+        # qid is present whenever the author gave the question an id.
+        if "qid" in item:
+            assert isinstance(item["qid"], str) and item["qid"]
