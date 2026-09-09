@@ -1,0 +1,162 @@
+# `siamang.model` reference
+
+`siamang.model` turns a questionnaire into a plain JSON document and back.
+The document is what a graphical survey builder stores and edits; the Python
+file is what researchers get. Both describe the same survey, field for field.
+
+```python
+from siamang.model import to_document, from_document, validate_document, dumps
+
+doc = to_document(survey, options)      # Questionnaire (+ options dict) -> dict
+validate_document(doc)                  # JSON Schema check, raises DocumentError
+loaded = from_document(doc)             # dict -> LoadedSurvey
+loaded.survey.validate()
+schema = loaded.survey.compile(**loaded.options)
+print(dumps(doc))                       # canonical text form
+```
+
+The two functions are inverse of each other:
+
+- `from_document(to_document(survey, options))` compiles to the same
+  `SurveySchema` as `survey` itself, and
+- `to_document(loaded.survey, loaded.options)` returns the document unchanged.
+
+---
+
+## Document layout (`schema_version` 1.0)
+
+| Key | Content |
+|-----|---------|
+| `schema_version` | `"1.0"` |
+| `title` | Questionnaire title. |
+| `options` | Compiler settings from the module-level `options` dict: `language`, `description`, `completion_text`, `show_progress`, `allow_back`, `one_question_per_page`, `max_responses`, `metadata`. Only keys that were set. |
+| `deadline` | ISO 8601 datetime or `null`. |
+| `variables` | `{name: Variable}` in order of first use; variables that are only in the `VariableMap` registry come last. |
+| `pages` | `[Page]`. A questionnaire built with `blocks=` is paged the way the compiler pages it. |
+| `quotas` | `[{variable, target_value, limit}]` from `options["quota"]`. |
+| `scripts` | Library scripts by name and parameters, everything else verbatim (see below). |
+| `ui` | `UIConfig` fields that differ from the defaults (from `options["ui"]`). |
+| `layout` | Optional, builder-owned, ignored by the engine. |
+
+### Variable
+
+```json
+{
+  "scale": "ordinal",
+  "label": "Trust: Acme",
+  "labels": [{"code": 1, "label": "No trust"}, {"code": 9, "label": "Refused"}],
+  "missing": [{"code": 9, "label": "Refused", "kind": "system_missing"}],
+  "valid_range": [16, null],
+  "dtype": "int", "role": "input", "description": "…", "construct": "…", "source": "…"
+}
+```
+
+`labels` is a list so that codes keep their type (`1` vs `"1"`) and their
+order; the object form `{"1": "No trust"}` is accepted as shorthand, as are
+`missing_values` / `missing_labels`. `to_document` always writes the list and
+the structured `missing`.
+
+### Page, Block, Question
+
+A page carries `name`, optional `kind` (`content`, `disqualification`,
+`final`, `redirect`), `title`, `body`, `redirect_url`, `redirect_delay`,
+`items`, `show_if`, `hide_if`, `next_if` (`[{condition, target}]`),
+`default_next` and `randomize_blocks`. Structural booleans (`randomize_blocks`,
+a block's `randomize`) appear only when true.
+
+Items are `{"type": "Block", …}` or a question whose `type` is the engine
+class name (`SingleChoice`, `MultiChoice`, `LikertScale`, `NumericInput`,
+`OpenText`, `Matrix`, `Ranking`). A question always has `type`, `id`, `text`
+and `var` (a variable name, or a list of names for `Matrix` and wide
+`MultiChoice`); every other dataclass field is written explicitly unless it
+is `None` or empty, so a stored document keeps its meaning even if an engine
+default changes later. `id` is the question's own `id` or, when it has none,
+the same fallback id the compiler uses.
+
+### Conditions
+
+`show_if`, `hide_if`, option gates and `next_if` conditions are either the
+`Expression` AST as written by `Expression.to_dict()`:
+
+```json
+{"type": "expression", "op": "and",
+ "left":  {"type": "expression", "op": ">=", "left": {"type": "var", "name": "age"}, "right": 18},
+ "right": {"type": "expression", "op": "in", "left": {"type": "var", "name": "region"}, "right": [1, 2]}}
+```
+
+or a plain-string condition kept as text: `{"type": "raw", "text": "{age} >= 18"}`.
+A `set` operand is written as a list in the order the compiler renders it.
+
+### Scripts
+
+A script made by one of the `Script` factories is stored by what it does —
+`{"type": "timed_question", "question": "q_aware", "seconds": 45}`,
+`{"type": "randomize_options", "question": "q1", "seed": "…"}`,
+`{"type": "randomize_pages"}`,
+`{"type": "validate_fields_match", "field_a": "…", "field_b": "…", "message": "…"}`
+— and regenerated from the current engine on load. Detection is exact: the
+factory, called with the recovered parameters, must reproduce the script
+field for field; a hand-edited script becomes
+`{"type": "custom", "name", "trigger", "target", "code", "context", "sandbox"}`.
+
+---
+
+## API
+
+### `to_document(survey, options=None, *, layout=None, on_warning=None) -> dict`
+
+Raises `DocumentError` for anything the format cannot hold: a callable
+condition, a non-JSON value in `metadata`, an `options["quota"]` that is not a
+list of `Quota`. Conversions that keep the compiled survey identical but
+change its shape — a `blocks=` questionnaire becoming pages, an `options` key
+the document does not carry (`runtime`, say) — are passed to `on_warning`.
+
+### `from_document(document) -> LoadedSurvey`
+
+Rebuilds the engine objects. `LoadedSurvey` has `survey` (a `Questionnaire`
+with a `VariableMap` registry of every document variable), `options` (ready
+for `compile(**options)` / `deploy(**options)` / `validate_options`; contains
+`quota` as `Quota` objects and `ui` as a `UIConfig` when defined), `layout`
+and `schema_version`; `quotas` and `ui` are convenience properties. Only the
+structure is checked — a question naming an unknown variable, an unknown
+field — with the location in the message (`question 'q_age': step must be > 0`).
+Run `survey.validate()` and `survey.lint()` on the result as for any survey.
+
+### `validate_document(document) -> None`
+
+Checks the document against the JSON Schema
+(`siamang/schemas/questionnaire-1.0.json`, draft 2020-12; `load_schema()`
+returns it). Raises `DocumentError` naming the first offending location:
+`pages/0/items/2/points: 1 is less than the minimum of 2`. The schema file is
+generated from the dataclasses by `scripts/gen_document_schema.py` and is
+meant to be reused by non-Python consumers.
+
+### `import_module(path, attribute="survey") -> ImportResult`
+
+Executes a questionnaire module (like `siamang validate` does) and returns
+`ImportResult(document, warnings)`. This is what `siamang model import` runs.
+
+### `dumps(document) -> str`, `loads(text) -> dict`
+
+Canonical text form: two-space indent, keys in document order, UTF-8 as is,
+trailing newline. Two runs over the same survey give the same bytes.
+
+### `migrate(document) -> dict`
+
+Brings a document written by an older engine up to the current
+`schema_version`. There is one version so far; the function exists so
+callers can route every document they load through it.
+
+---
+
+## CLI
+
+```bash
+siamang model import questionnaire.py [-o questionnaire.json] [--attribute survey]
+siamang model check questionnaire.json [--strict]
+```
+
+`import` writes the document (stdout by default) and prints conversion
+warnings on stderr. `check` runs the JSON Schema, rebuilds the survey,
+`validate()`, `validate_options()` and `lint()` — the same output and exit
+codes as `siamang validate`, for a document instead of a module.

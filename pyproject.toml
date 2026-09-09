@@ -41,6 +41,8 @@ dependencies = [
     # Deployment backends/frontends
     "supabase>=2.0",
     "requests>=2.31",
+    # Questionnaire documents (siamang.model) are checked against a JSON Schema
+    "jsonschema>=4.18",
 ]
 
 [project.urls]
@@ -56,6 +58,7 @@ include = ["siamang*"]
 
 [tool.setuptools.package-data]
 "siamang" = ["py.typed"]
+"siamang.schemas" = ["*.json"]
 "siamang.frontend.templates" = ["*.tpl"]
 "siamang.frontend.templates.react" = ["*.tpl", "*.jsx"]
 "siamang.frontend.templates.react.dist" = ["*.js"]
