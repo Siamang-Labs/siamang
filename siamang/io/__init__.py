@@ -5,6 +5,12 @@ from siamang.io.dictionary import DictionaryReader, DictionaryWriter
 from siamang.io.excel import ExcelReader, ExcelWriter
 from siamang.io.r import RScriptWriter
 from siamang.io.reader import SurveyDataReader
+from siamang.io.snapshot import (
+    SNAPSHOT_FORMATS,
+    dictionary_path_for,
+    read_snapshot,
+    write_snapshot,
+)
 from siamang.io.spss import SPSSReader, SPSSWriter, read_spss
 from siamang.io.stata import StataReader, StataWriter, read_stata
 
@@ -23,4 +29,8 @@ __all__ = [
     "StataReader",
     "SPSSWriter",
     "SPSSReader",
+    "SNAPSHOT_FORMATS",
+    "dictionary_path_for",
+    "read_snapshot",
+    "write_snapshot",
 ]
