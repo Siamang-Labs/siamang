@@ -23,6 +23,7 @@ from siamang.model.document import (
     to_document,
 )
 from siamang.model.importer import ImportResult, import_module
+from siamang.model.parse_python import Dropped, StaticImportResult, parse_file, parse_source
 from siamang.model.schema import load_schema, migrate, validate_document
 from siamang.model.scripts import LIBRARY_SCRIPT_TYPES
 
@@ -37,6 +38,10 @@ __all__ = [
     "dumps",
     "from_document",
     "import_module",
+    "parse_file",
+    "parse_source",
+    "StaticImportResult",
+    "Dropped",
     "load_schema",
     "loads",
     "migrate",

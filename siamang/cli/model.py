@@ -12,15 +12,27 @@ from siamang.model import (
     from_document,
     import_module,
     loads,
+    parse_file,
     validate_document,
 )
 
 
-def run_import(path: str, attribute: str = "survey", output: str | None = None) -> int:
-    """``siamang model import questionnaire.py [-o questionnaire.json]``."""
+def run_import(
+    path: str, attribute: str = "survey", output: str | None = None, static: bool = False
+) -> int:
+    """``siamang model import questionnaire.py [-o questionnaire.json] [--static]``.
+
+    ``--static`` reads the file without executing it (``parse_python``):
+    the declarative subset is imported, anything else is listed as skipped."""
 
     try:
-        result = import_module(path, attribute=attribute)
+        if static:
+            static_result = parse_file(path, attribute=attribute)
+            for dropped in static_result.dropped:
+                print(f"[skipped] {dropped}", file=sys.stderr)
+            result = static_result
+        else:
+            result = import_module(path, attribute=attribute)
     except DocumentError as exc:
         print(f"import error: {exc}", file=sys.stderr)
         return 2

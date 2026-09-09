@@ -51,6 +51,11 @@ def _add_model(subparsers: argparse._SubParsersAction) -> None:
     importer.add_argument("path", help="Path to a Python file exposing `survey` (and `options`).")
     importer.add_argument("--attribute", default="survey")
     importer.add_argument("-o", "--output", help="Output file (default: stdout).")
+    importer.add_argument(
+        "--static",
+        action="store_true",
+        help="Read the file without executing it (declarative subset; the rest is listed as skipped).",
+    )
     checker = sub.add_parser("check", help="Validate a JSON questionnaire document.")
     checker.add_argument("path", help="Path to a questionnaire.json document.")
     checker.add_argument(
@@ -143,7 +148,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         from siamang.cli.model import run_check, run_import
 
         if args.model_command == "import":
-            return run_import(args.path, attribute=args.attribute, output=args.output)
+            return run_import(
+                args.path, attribute=args.attribute, output=args.output, static=args.static
+            )
         return run_check(args.path, strict=args.strict)
     if command == "codegen":
         from siamang.cli.codegen import run as run_codegen
