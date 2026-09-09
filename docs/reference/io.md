@@ -165,3 +165,33 @@ restored = DictionaryReader().read("dict.json")
 
 Useful for storing a survey's codebook alongside a CSV export, or for
 distributing a variable schema independently of the questionnaire.
+
+---
+
+## Snapshots
+
+A snapshot is a data file plus its codebook, the unit a platform exports so an
+analysis can be reproduced elsewhere: `responses.parquet` (or `.csv`, `.xlsx`,
+`.sav`, `.dta`) and, next to it, `responses.dictionary.json` in the
+[data dictionary](#data-dictionary) format.
+
+```python
+from siamang.io import read_snapshot, write_snapshot
+
+path = write_snapshot(data, "data/responses.parquet")     # + data/responses.dictionary.json
+data = read_snapshot("data/responses.parquet", questionnaire=survey)
+```
+
+`read_snapshot(path, *, dictionary=None, questionnaire=None, weight=None, **read_kwargs)`
+resolves the codebook in this order: an explicit `dictionary` path;
+`<stem>.dictionary.json` or `dictionary.json` next to the file; metadata
+embedded in a `.sav` / `.dta`; the variables of `questionnaire`. The
+questionnaire, when given, is attached to the `SurveyData`; `weight` names
+the weight column to apply. With a codebook, integer-coded columns that a
+text format turned into floats come back as nullable `Int64`.
+
+`write_snapshot(data, path, *, dictionary=True, **write_kwargs)` writes the
+data file in the format of the suffix and the dictionary when `data` has
+variable metadata. Parquet needs `pip install "siamang[parquet]"`.
+`SurveyDataReader` also accepts `.parquet`.
+

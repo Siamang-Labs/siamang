@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`pip install "siamang[codegen]"`), and converts back to the same
   document with `siamang.model.to_document`. CLI: **`siamang codegen
   questionnaire.json [-o questionnaire.py]`**.
+- **Pipeline helpers in `siamang.data`** — `respondents` (`dedup_responses`,
+  `completion_time`, `partial_flag`, `speeders`), `weights`
+  (`cell_weights`, `rake_weights` with an optional `cap`,
+  `effective_sample_size`) and `stats` (`frequencies`, `crosstab`, `chi2`
+  on a bare frame). Plain pandas functions that combine with
+  `SurveyData.with_frame`; the first two sets were previously only
+  available in the Siamang Cloud SDK.
+- **Snapshots** — `siamang.io.read_snapshot` / `write_snapshot`: a data
+  file (Parquet, CSV, Excel, SPSS, Stata) plus `<name>.dictionary.json`,
+  read back into a `SurveyData` with the codebook, embedded metadata or the
+  questionnaire's variables. Parquet via the new `siamang[parquet]` extra;
+  `SurveyDataReader` accepts `.parquet`.
 
 ## [0.6.0] — 2026-08-30
 

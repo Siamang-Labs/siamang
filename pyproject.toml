@@ -70,10 +70,15 @@ dev = [
     "mypy>=1.10",
     "pytest>=8.0",
     "siamang[charts]",
+    "siamang[parquet]",
 ]
 # Code generation (siamang codegen) formats its output with ruff.
 codegen = [
     "ruff>=0.4",
+]
+# Parquet snapshots (read_snapshot / write_snapshot on .parquet files).
+parquet = [
+    "pyarrow>=14",
 ]
 # Charts (optional) — required for data.plot.* visualizations.
 charts = [

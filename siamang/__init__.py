@@ -53,8 +53,10 @@ from siamang.io import (
     StataReader,
     StataWriter,
     SurveyDataReader,
+    read_snapshot,
     read_spss,
     read_stata,
+    write_snapshot,
 )
 from siamang.reporting import (
     BarChart,
@@ -113,8 +115,10 @@ __all__ = [
     "VariableMap",
     "compare",
     "validate_options",
+    "read_snapshot",
     "read_spss",
     "read_stata",
+    "write_snapshot",
     "UIConfig",
     "get_preset",
     "BarChart",

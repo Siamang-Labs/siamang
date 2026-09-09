@@ -180,6 +180,57 @@ class BannerTable:
 
 ---
 
+## Pipeline helpers: `respondents`, `weights`, `stats`
+
+Three modules of plain pandas functions for the cleaning and weighting steps
+that sit between "responses arrived" and "tables". They take and return
+frames or Series, so they combine with `SurveyData.with_frame(...)` and work
+on data from any source.
+
+```python
+from siamang.data import respondents, weights, stats
+
+frame = data.frame
+frame = respondents.dedup_responses(frame, id_col="respondent_id", keep="last")
+frame["duration_s"] = respondents.completion_time(frame)
+frame["partial"] = respondents.partial_flag(frame, required=["age", "region"])
+frame = frame[~respondents.speeders(frame, min_seconds=90) & ~frame["partial"]]
+frame["weight"] = weights.rake_weights(frame, {"region": {1: 0.45, 2: 0.30, 3: 0.25}})
+clean = data.with_frame(frame).with_weight("weight")
+```
+
+### `siamang.data.respondents`
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `dedup_responses(df, *, id_col="respondent_id", order_by="submitted_at", keep="last")` | frame | One row per respondent; anonymous rows (null/blank id) are always kept; original order restored. |
+| `completion_time(df, *, start_col="started_at", end_col="submitted_at", duration_col="duration_s")` | Series (seconds) | Uses `duration_col` when present, else end − start. |
+| `partial_flag(df, required)` | bool Series | `True` where any required column is null/blank; a missing column flags every row. |
+| `speeders(df, *, min_seconds, duration=None)` | bool Series | `True` under `min_seconds`; unknown durations are never flagged. |
+
+### `siamang.data.weights`
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `cell_weights(df, column, targets, *, cap=None)` | Series, mean 1 | Post-stratification on one variable. Targets are proportions or counts. |
+| `rake_weights(df, targets, *, max_iter=50, tol=1e-6, cap=None)` | Series, mean 1 | Iterative proportional fitting to several margins: `{"region": {1: .45, …}, "gender": {…}}`. |
+| `effective_sample_size(weights)` | float | Kish's `(Σw)² / Σw²`. |
+
+`cap` bounds the weights from above (after scaling to mean 1); capped rows are
+then under-represented, so the fit to the targets becomes approximate.
+
+### `siamang.data.stats`
+
+Tidy-frame descriptives for scripts that do not go through `SurveyData`:
+
+| Function | Returns |
+|----------|---------|
+| `frequencies(df, column, *, weight=None, dropna=True)` | `value` / `count` / `percent` rows |
+| `crosstab(df, row, col, *, weight=None, normalize=None)` | two-way table; percentages when `normalize` is set |
+| `chi2(df, a, b)` | `{"chi2", "dof", "p", "cramers_v", "n"}` |
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.

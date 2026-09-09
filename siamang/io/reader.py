@@ -23,4 +23,8 @@ class SurveyDataReader:
             return SPSSReader().read(p, **kwargs)
         if suffix == ".dta":
             return StataReader().read(p, **kwargs)
+        if suffix == ".parquet":
+            import pandas as pd
+
+            return SurveyData(pd.read_parquet(p, **kwargs))
         raise ValueError(f"Unsupported file format: {suffix}")
