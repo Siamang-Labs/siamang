@@ -1,0 +1,29 @@
+type: analyze.correlation
+category: analyze
+title: Correlation
+description: Spearman rank correlation between two variables.
+inputs:
+  data: SurveyData
+outputs:
+  stat: Stat
+params:
+  x:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: X
+  y:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Y
+subtitle: '{x} ~ {y}'
+template: |
+  {out.stat} = {in.data}.analysis.spearman({x!r}, {y!r})
+preview: stat

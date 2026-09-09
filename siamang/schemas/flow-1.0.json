@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://siamang.org/schemas/flow-1.0.json",
+  "title": "Siamang flow document",
+  "description": "An analysis flow: nodes from the siamang.flow registry connected by typed edges. Written by a flow builder, executed by siamang.flow.FlowRunner and rendered to Python by siamang.flow.generate_flow.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "type": { "type": "string", "pattern": "^(source|prepare|analyze|visualize|output)\\.[a-z][a-z0-9_]*$" },
+          "params": { "type": "object" },
+          "position": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "label": { "type": "string" }
+        },
+        "required": ["id", "type"],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "$ref": "#/$defs/endpoint" },
+          "to": { "$ref": "#/$defs/endpoint" }
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "properties": {
+        "report": { "type": "string" },
+        "files": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "live": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "debounce_seconds": { "type": "integer", "minimum": 1 },
+        "tiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": { "type": "string" },
+              "w": { "type": "integer", "minimum": 1 },
+              "h": { "type": "integer", "minimum": 1 }
+            },
+            "required": ["node"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "schedule": { "type": "string" },
+    "layout": { "type": "object" }
+  },
+  "required": ["schema_version", "name", "nodes"],
+  "additionalProperties": false,
+  "$defs": {
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "node": { "type": "string" },
+        "port": { "type": "string" }
+      },
+      "required": ["node", "port"],
+      "additionalProperties": false
+    }
+  }
+}

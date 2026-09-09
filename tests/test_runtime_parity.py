@@ -86,7 +86,9 @@ class TestRandomizationPayload:
                 sg.Page(
                     name="p",
                     items=[
-                        sg.Block(title="B1", items=[sg.SingleChoice("Q1?", var=v1)], randomize=True),
+                        sg.Block(
+                            title="B1", items=[sg.SingleChoice("Q1?", var=v1)], randomize=True
+                        ),
                         sg.Block(title="B2", items=[sg.SingleChoice("Q2?", var=v2)]),
                     ],
                     randomize_blocks=True,
@@ -133,11 +135,7 @@ class TestMatrixPayload:
             pages=[
                 sg.Page(
                     name="p",
-                    items=[
-                        sg.Matrix(
-                            "Rate", var=[m1, m2], column_labels=["C1", "C2"], **kwargs
-                        )
-                    ],
+                    items=[sg.Matrix("Rate", var=[m1, m2], column_labels=["C1", "C2"], **kwargs)],
                 )
             ],
         )
@@ -195,6 +193,15 @@ class TestRuntimeBundleMarkers:
             .joinpath("dist/bundle.js")
             .read_text(encoding="utf-8")
         )
-        for marker in ("nextIf", "defaultNext", "skipTo", "__errors__", "__pages__",
-                       "onPageExit", "onQuestionShow", "onRandomize", "siamangNext"):
+        for marker in (
+            "nextIf",
+            "defaultNext",
+            "skipTo",
+            "__errors__",
+            "__pages__",
+            "onPageExit",
+            "onQuestionShow",
+            "onRandomize",
+            "siamangNext",
+        ):
             assert marker in bundle, f"bundle is stale: missing {marker}"

@@ -1,0 +1,34 @@
+type: analyze.means
+category: analyze
+title: Group means
+description: Mean, SD, median and N of a variable by group, with the matching significance test.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  y:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variable
+  by:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: By
+  test:
+    kind: bool
+    default: true
+    label: Significance test
+subtitle: '{y} by {by}'
+template: |
+  {out.table} = {in.data}.report.means({y!r}, by={by!r}, test={test!r})
+  {out.stat} = {out.table}.stats
+preview: table

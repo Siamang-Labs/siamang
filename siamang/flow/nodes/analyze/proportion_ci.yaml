@@ -1,0 +1,31 @@
+type: analyze.proportion_ci
+category: analyze
+title: Proportion CI
+description: Share of respondents with a given answer and its confidence interval.
+inputs:
+  data: SurveyData
+outputs:
+  stat: Stat
+params:
+  variable:
+    kind: variable
+    required: true
+    label: Variable
+  value:
+    kind: json
+    required: true
+    label: Answer code
+  confidence:
+    kind: float
+    default: 0.95
+    minimum: 0
+    maximum: 1
+    label: Confidence
+  weighted:
+    kind: bool
+    default: false
+    label: Weighted
+subtitle: '{variable} = {value}'
+template: |
+  {out.stat} = {in.data}.analysis.proportion_ci({variable!r}, {value!r}, confidence={confidence!r}, weighted={weighted!r})
+preview: stat

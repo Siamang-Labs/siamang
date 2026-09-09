@@ -1,0 +1,42 @@
+type: visualize.scatter
+category: visualize
+title: Scatter plot
+description: Two variables against each other with a trend line.
+inputs:
+  data: SurveyData
+outputs:
+  chart: Chart
+params:
+  x:
+    kind: variable
+    required: true
+    scales:
+    - interval
+    - ratio
+    - ordinal
+    label: X
+  y:
+    kind: variable
+    required: true
+    scales:
+    - interval
+    - ratio
+    - ordinal
+    label: Y
+  hue:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: Color by
+  trendline:
+    kind: bool
+    default: true
+    label: Trend line
+  title:
+    kind: string
+    label: Title
+subtitle: '{x} vs {y}'
+template: |
+  {out.chart} = {in.data}.plot.scatter({x!r}, {y!r}, hue={hue!r}, trendline={trendline!r}, title={title!r})
+preview: chart

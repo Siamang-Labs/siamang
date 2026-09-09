@@ -83,6 +83,12 @@ class SurveyTable:
         self._ensure_built()
         return self._result.copy()
 
+    @property
+    def stats(self) -> dict[str, Any]:
+        """The statistics the table reports under itself (χ², p, N, …), as a dict."""
+        self._ensure_built()
+        return dict(self._stats)
+
     def to_markdown(self) -> str:
         """Return the table as a GitHub-flavored Markdown string."""
         self._ensure_built()

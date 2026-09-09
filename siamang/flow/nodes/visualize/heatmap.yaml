@@ -1,0 +1,25 @@
+type: visualize.heatmap
+category: visualize
+title: Heatmap
+description: Correlation matrix of several items, or their means by group.
+inputs:
+  data: SurveyData
+outputs:
+  chart: Chart
+params:
+  items:
+    kind: variables
+    required: true
+    label: Items
+  by:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: By
+  title:
+    kind: string
+    label: Title
+template: |
+  {out.chart} = {in.data}.plot.heatmap({items!r}, by={by!r}, title={title!r})
+preview: chart

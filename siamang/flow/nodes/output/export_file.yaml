@@ -1,0 +1,16 @@
+type: output.export_file
+category: output
+title: Export file
+description: 'Write the data as a file (format by extension: .parquet .csv .xlsx .sav .dta) with its dictionary.'
+inputs:
+  data: SurveyData
+params:
+  path:
+    kind: path
+    required: true
+    label: Path
+subtitle: '{path}'
+imports:
+- from siamang.io import write_snapshot
+template: |
+  write_snapshot({in.data}, {path!r})

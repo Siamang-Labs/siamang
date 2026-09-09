@@ -1,0 +1,24 @@
+type: analyze.describe
+category: analyze
+title: Describe
+description: Summary of every variable (N, missing, unique) or the codebook itself.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+params:
+  mode:
+    kind: enum
+    values:
+    - variables
+    - codebook
+    default: variables
+    label: Show
+template:
+- when: mode=variables
+  code: |
+    {out.table} = {in.data}.describe_variables()
+- when: mode=codebook
+  code: |
+    {out.table} = {in.data}.codebook()
+preview: table

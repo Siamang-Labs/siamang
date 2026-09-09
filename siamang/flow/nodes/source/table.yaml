@@ -1,0 +1,19 @@
+type: source.table
+category: source
+title: Project table
+description: A table another flow wrote to the project database.
+outputs:
+  data: SurveyData
+params:
+  table:
+    kind: string
+    required: true
+    label: Table
+subtitle: '{table}'
+imports:
+- from siamang_studio import db
+platform: true
+snapshot: true
+template: |
+  {out.data} = db.as_survey_data({table!r}, questionnaire=survey)
+preview: rows

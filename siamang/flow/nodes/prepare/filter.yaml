@@ -1,0 +1,18 @@
+type: prepare.filter
+category: prepare
+title: Filter rows
+description: Keep the respondents that satisfy a condition.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  condition:
+    kind: condition
+    required: true
+    label: Condition
+imports:
+- import siamang as sg
+template: |
+  {out.data} = {in.data}.filter({condition!r})
+preview: rows

@@ -1,0 +1,35 @@
+type: visualize.boxplot
+category: visualize
+title: Box plot
+description: Distribution of a variable across groups.
+inputs:
+  data: SurveyData
+outputs:
+  chart: Chart
+params:
+  y:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variable
+  by:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: By
+  show_points:
+    kind: bool
+    default: false
+    label: Show points
+  title:
+    kind: string
+    label: Title
+subtitle: '{y} by {by}'
+template: |
+  {out.chart} = {in.data}.plot.boxplot({y!r}, by={by!r}, show_points={show_points!r}, title={title!r})
+preview: chart

@@ -225,7 +225,7 @@ def test_digital_life_document_details():
     assert [variable.name for variable in rebuilt.var] == wide["var"]
 
 
-@pytest.mark.parametrize("path", sorted(DOCUMENTS.glob("*.json")))
+@pytest.mark.parametrize("path", sorted(DOCUMENTS.glob("*.questionnaire.json")))
 def test_committed_documents_are_canonical(path):
     text = path.read_text(encoding="utf-8")
     document = loads(text)

@@ -1,0 +1,16 @@
+type: prepare.select
+category: prepare
+title: Select columns
+description: Keep only the listed variables.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  columns:
+    kind: variables
+    required: true
+    label: Variables
+template: |
+  {out.data} = {in.data}.with_frame({in.data}.frame[{columns!r}])
+preview: rows

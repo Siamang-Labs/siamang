@@ -1,0 +1,21 @@
+type: source.file
+category: source
+title: Data file
+description: 'A data file from Files: Parquet, CSV, Excel, SPSS or Stata, with its dictionary when present.'
+outputs:
+  data: SurveyData
+params:
+  path:
+    kind: path
+    required: true
+    label: File
+  dictionary:
+    kind: path
+    label: Dictionary (JSON)
+    help: Optional <name>.dictionary.json; found automatically when next to the file.
+subtitle: '{path}'
+imports:
+- from siamang.io import read_snapshot
+template: |
+  {out.data} = read_snapshot({path!r}, dictionary={dictionary!r}, questionnaire=survey)
+preview: rows

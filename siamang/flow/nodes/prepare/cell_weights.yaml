@@ -1,0 +1,38 @@
+type: prepare.cell_weights
+category: prepare
+title: Cell weights
+description: Post-stratification weights on one variable so its distribution matches the targets.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  variable:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Variable
+  targets:
+    kind: mapping
+    required: true
+    label: Targets (code → share)
+  weight_column:
+    kind: string
+    default: weight
+    creates: column
+    label: Weight column
+  cap:
+    kind: float
+    minimum: 1
+    label: Cap
+    help: Upper bound for weights of mean 1.
+subtitle: '{variable}'
+imports:
+- from siamang.data import weights
+template: |
+  _frame = {in.data}.frame.copy()
+  _frame[{weight_column!r}] = weights.cell_weights(_frame, {variable!r}, {targets!r}, cap={cap!r})
+  {out.data} = {in.data}.with_frame(_frame)
+preview: rows

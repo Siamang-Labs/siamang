@@ -1,0 +1,30 @@
+type: prepare.dedup
+category: prepare
+title: Dedup respondents
+description: 'One row per respondent: a resumed survey keeps its latest submission.'
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  key:
+    kind: string
+    default: respondent_id
+    label: Respondent id column
+  order_by:
+    kind: string
+    default: submitted_at
+    label: Order by
+  keep:
+    kind: enum
+    values:
+    - first
+    - last
+    default: last
+    label: Keep
+subtitle: by {key}, keep {keep}
+imports:
+- from siamang.data import respondents
+template: |
+  {out.data} = {in.data}.with_frame(respondents.dedup_responses({in.data}.frame, id_col={key!r}, order_by={order_by!r}, keep={keep!r}))
+preview: rows

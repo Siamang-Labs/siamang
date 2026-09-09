@@ -1,0 +1,25 @@
+type: output.write_table
+category: output
+title: Write table
+description: Save the data as a project table for other flows and the Data screen.
+inputs:
+  data: SurveyData
+params:
+  name:
+    kind: string
+    required: true
+    label: Table name
+  if_exists:
+    kind: enum
+    values:
+    - fail
+    - replace
+    - append
+    default: replace
+    label: If it exists
+subtitle: '{name}'
+imports:
+- from siamang_studio import db
+platform: true
+template: |
+  db.write_table({name!r}, {in.data}.frame, if_exists={if_exists!r})

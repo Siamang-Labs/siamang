@@ -14,6 +14,7 @@ import base64
 import mimetypes
 import re
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
@@ -77,10 +78,18 @@ class Report:
             self._blocks.append(("chart", (component, caption)))
         elif isinstance(component, pd.DataFrame):
             self._blocks.append(("table", (component, caption)))
+        elif isinstance(component, Mapping):
+            # A statistics dict (a table's .stats, an analysis result): one line.
+            parts = [
+                f"{key} = {value:.4f}" if isinstance(value, float) else f"{key} = {value}"
+                for key, value in component.items()
+            ]
+            text = "; ".join(parts) if parts else "—"
+            self._blocks.append(("md", f"*{caption}*: {text}" if caption else text))
         else:
             raise TypeError(
-                "Report.add() accepts a SurveyTable, SurveyChart, or pandas.DataFrame; "
-                f"got {type(component).__name__}"
+                "Report.add() accepts a SurveyTable, SurveyChart, pandas.DataFrame or a "
+                f"statistics mapping; got {type(component).__name__}"
             )
         return self
 
