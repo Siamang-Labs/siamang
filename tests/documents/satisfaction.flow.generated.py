@@ -11,6 +11,7 @@ The flow document is the source of truth; edit it and generate again.
 """
 
 import argparse
+import os
 from pathlib import Path
 
 from siamang.data import respondents, weights
@@ -119,5 +120,6 @@ live.publish(
 # ── Save report: outputs/satisfaction_by_region.md ──────────────────────────────
 # studio: save
 n_save = Report.combine([n_section], title="Satisfaction 2026-Q3", toc=False)
+n_save.provenance(os.environ.get("SIAMANG_PROVENANCE"))
 n_save.save("outputs/satisfaction_by_region.md")
 n_save.save(Path("outputs/satisfaction_by_region.md").with_suffix(".html"))

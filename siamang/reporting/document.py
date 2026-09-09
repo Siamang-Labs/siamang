@@ -70,6 +70,20 @@ class Report:
         self._blocks.append(("md", "---"))
         return self
 
+    def provenance(self, text: str | None) -> Report:
+        """A footer saying what the report was made from.
+
+        ``text`` is Markdown (typically the ``PROVENANCE.md`` of a research
+        bundle: questionnaire version, data snapshot, engine); it goes after a
+        divider so a report mailed to a client still tells where it came from.
+        Nothing is added when ``text`` is empty, so callers can pass an
+        environment variable straight through.
+        """
+        if text and text.strip():
+            self._blocks.append(("md", "---"))
+            self._blocks.append(("md", "**Provenance**\n\n" + text.strip()))
+        return self
+
     # ── inserts ───────────────────────────────────────────────────
     def add(self, component: object, *, caption: str | None = None) -> Report:
         if isinstance(component, SurveyTable):

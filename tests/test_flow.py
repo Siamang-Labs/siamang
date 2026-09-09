@@ -553,6 +553,26 @@ def test_generated_script_reproduces_the_runner(
     assert "χ²" in ours and "Table 1. Satisfaction × region (%)" in ours
 
 
+def test_save_report_footer_comes_from_the_environment(
+    flow_doc, questionnaire_doc, survey, responses, tmp_path, monkeypatch
+):
+    """The platform (or a bundle's run.sh) sets SIAMANG_PROVENANCE; the saved
+    report ends with that text. Unset, the report is unchanged."""
+
+    monkeypatch.delenv("SIAMANG_PROVENANCE", raising=False)
+    plain = FlowRunner(flow_doc, questionnaire=survey, questionnaire_document=questionnaire_doc)
+    assert plain.run(sources={"src": responses}, cwd=tmp_path / "plain").ok
+    text = (tmp_path / "plain" / "outputs" / "satisfaction_by_region.md").read_text("utf-8")
+    assert "Provenance" not in text
+
+    monkeypatch.setenv("SIAMANG_PROVENANCE", "Project `acme/brand`\nSave #17 · siamang 1.4.0")
+    stamped = FlowRunner(flow_doc, questionnaire=survey, questionnaire_document=questionnaire_doc)
+    assert stamped.run(sources={"src": responses}, cwd=tmp_path / "stamped").ok
+    text = (tmp_path / "stamped" / "outputs" / "satisfaction_by_region.md").read_text("utf-8")
+    assert text.rstrip().endswith("Save #17 · siamang 1.4.0")
+    assert "**Provenance**" in text and "Project `acme/brand`" in text
+
+
 def test_generate_flow_variants(questionnaire_doc):
     two_sources = _flow(
         [

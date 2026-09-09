@@ -83,6 +83,13 @@ The runner and the generator use the same order.
 Port types: `SurveyData`, `Table`, `Chart`, `Stat`, `Report`, `Any`. Weights
 and flags are columns inside a `SurveyData`.
 
+`output.save_report` ends the report with a **provenance footer** when the
+environment variable `SIAMANG_PROVENANCE` is set (Markdown: questionnaire
+version, data snapshot, engine version — whatever ran the flow knows). A
+platform sets it per run; a research bundle's `run.sh` exports its
+`PROVENANCE.md`. Unset, the report is unchanged (`Report.provenance(None)` is
+a no-op).
+
 ### A node specification
 
 ```yaml

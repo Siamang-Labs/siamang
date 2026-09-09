@@ -76,3 +76,11 @@ def test_combine_builds_toc_and_sections():
     assert "## Contents" in md
     assert "- [Cleaning](#cleaning)" in md
     assert "## Final tables" in md
+
+
+def test_provenance_footer_is_optional():
+    md = Report(title="R").text("body").provenance("Project `a/b`\nSave #3").to_markdown()
+    assert md.index("body") < md.index("---") < md.index("**Provenance**")
+    assert "Save #3" in md
+    plain = Report(title="R").text("body").provenance(None).provenance("  ").to_markdown()
+    assert "Provenance" not in plain and "---" not in plain
