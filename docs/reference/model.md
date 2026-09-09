@@ -136,6 +136,22 @@ meant to be reused by non-Python consumers.
 Executes a questionnaire module (like `siamang validate` does) and returns
 `ImportResult(document, warnings)`. This is what `siamang model import` runs.
 
+### `import_qsf(payload) -> QsfImportResult`, `import_qsf_file(path)`
+
+Converts a Qualtrics Survey Format export (the JSON of "Export survey") into
+a document without touching Qualtrics: questions, choices with recodes,
+"other" entries, forced response, randomization, display logic on answers,
+page breaks, the block order of the survey flow, branches (page `show_if`)
+and end-of-survey elements inside branches (disqualification pages).
+`QsfImportResult(document, warnings, skipped)`: `skipped` lists, per
+question or flow element, what the format cannot hold and why (constant
+sum, side-by-side, loop & merge, embedded data, quotas, logic on embedded
+fields …); `warnings` lists what was transferred approximately (a block
+randomizer, advanced randomization). A multi-select whose choices are
+tested by logic is stored wide — one yes/no variable per choice, as
+Qualtrics exports it — so the logic keeps working; other multi-selects
+keep one array variable.
+
 ### `dumps(document) -> str`, `loads(text) -> dict`
 
 Canonical text form: two-space indent, keys in document order, UTF-8 as is,
@@ -153,10 +169,12 @@ callers can route every document they load through it.
 
 ```bash
 siamang model import questionnaire.py [-o questionnaire.json] [--attribute survey]
+siamang model import survey.qsf [-o questionnaire.json]
 siamang model check questionnaire.json [--strict]
 ```
 
 `import` writes the document (stdout by default) and prints conversion
-warnings on stderr. `check` runs the JSON Schema, rebuilds the survey,
+warnings on stderr; a `.qsf` file (Qualtrics export) is converted and
+everything the format cannot hold is printed as `[skipped]` lines. `check` runs the JSON Schema, rebuilds the survey,
 `validate()`, `validate_options()` and `lint()` — the same output and exit
 codes as `siamang validate`, for a document instead of a module.

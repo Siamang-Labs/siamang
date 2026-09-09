@@ -11,6 +11,7 @@ from siamang.model import (
     dumps,
     from_document,
     import_module,
+    import_qsf_file,
     loads,
     parse_file,
     validate_document,
@@ -23,10 +24,17 @@ def run_import(
     """``siamang model import questionnaire.py [-o questionnaire.json] [--static]``.
 
     ``--static`` reads the file without executing it (``parse_python``):
-    the declarative subset is imported, anything else is listed as skipped."""
+    the declarative subset is imported, anything else is listed as skipped.
+    A ``.qsf`` file (Qualtrics export) is converted; what the format cannot
+    hold is listed as skipped."""
 
     try:
-        if static:
+        if path.lower().endswith(".qsf"):
+            qsf_result = import_qsf_file(path)
+            for skipped in qsf_result.skipped:
+                print(f"[skipped] {skipped}", file=sys.stderr)
+            result = qsf_result
+        elif static:
             static_result = parse_file(path, attribute=attribute)
             for dropped in static_result.dropped:
                 print(f"[skipped] {dropped}", file=sys.stderr)

@@ -47,8 +47,12 @@ def _add_model(subparsers: argparse._SubParsersAction) -> None:
         "model", help="Convert between questionnaire Python files and JSON documents."
     )
     sub = parser.add_subparsers(dest="model_command", required=True)
-    importer = sub.add_parser("import", help="Write the questionnaire of a Python file as JSON.")
-    importer.add_argument("path", help="Path to a Python file exposing `survey` (and `options`).")
+    importer = sub.add_parser(
+        "import", help="Write the questionnaire of a Python file (or a Qualtrics .qsf) as JSON."
+    )
+    importer.add_argument(
+        "path", help="Path to a Python file exposing `survey` (and `options`), or a .qsf export."
+    )
     importer.add_argument("--attribute", default="survey")
     importer.add_argument("-o", "--output", help="Output file (default: stdout).")
     importer.add_argument(
