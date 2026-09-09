@@ -27,11 +27,15 @@ params:
     label: Table of contents
 subtitle: '{path}'
 imports:
+- import os
 - from pathlib import Path
 - from siamang.reporting import Report
+# SIAMANG_PROVENANCE is set by the platform that runs the flow and by a
+# research bundle's run.sh: the report's footer says what it was made from.
 template:
 - |
   {out.report} = Report.combine({in.sections}, title={title!r}, toc={toc!r})
+  {out.report}.provenance(os.environ.get("SIAMANG_PROVENANCE"))
   {out.report}.save({path!r})
 - when: html
   code: |
