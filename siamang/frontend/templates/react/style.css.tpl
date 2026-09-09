@@ -311,11 +311,16 @@ body { min-height: 100vh; }
 .sd-question:first-child,
 .sd-block .sd-question:first-of-type { margin-top: 0; }
 .sd-question + .sd-question { margin-top: var(--siamang-section-gap); }
+/* Design mode (Studio preview): question slots are click targets; the
+   selected one gets a ring. Slots are transparent wrappers otherwise. */
+.sd-question-slot + .sd-question-slot { margin-top: var(--siamang-section-gap); }
+.sd-question-slot.is-design-selected > .sd-question { outline: 2px solid var(--siamang-primary); outline-offset: 6px; border-radius: 6px; }
 
 /* ─── Question style variants (Tweak) ─────────────────────────────── */
 
 /* "divided" — hairline rule between consecutive questions */
-.qstyle-divided .sd-question + .sd-question {
+.qstyle-divided .sd-question + .sd-question,
+.qstyle-divided .sd-question-slot + .sd-question-slot > .sd-question {
   border-top: 1px solid color-mix(in srgb, var(--siamang-border) 70%, transparent);
   padding-top: var(--siamang-section-gap);
 }

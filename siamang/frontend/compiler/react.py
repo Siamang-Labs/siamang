@@ -227,6 +227,10 @@ def _compile_question(question: Question) -> dict[str, Any]:
         "title": question.text,
         "required": bool(question.required),
     }
+    if question.id:
+        # The author-facing id (distinct from the output variable): design
+        # mode reports clicks and highlights questions by it.
+        base["qid"] = question.id
     if question.hint:
         base["description"] = question.hint
     if question.show_if is not None:
