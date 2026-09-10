@@ -43,7 +43,7 @@
       "elements": [
         { "type": "comment", "name": "comment", "title": "Anything else?", "maxLength": 500 },
         { "type": "text", "name": "low_reason", "title": "Why so low?", "visibleIf": "{satisfaction} < 3 and {comment} notempty" },
-        { "type": "multipletext", "name": "contact", "title": "How can we reach you?", "items": [{ "name": "email", "title": "Email" }, { "name": "phone", "title": "Phone" }] },
+        { "type": "multipletext", "name": "contact", "title": "How can we reach you?", "items": [{ "name": "email", "title": "Email", "inputType": "email" }, { "name": "phone", "title": "Phone", "inputType": "tel" }] },
         { "type": "matrixdropdown", "name": "mood", "title": "Your mood", "columns": [{ "name": "level", "cellType": "dropdown", "choices": [1, 2, 3] }], "rows": ["morning", "evening"] },
         { "type": "file", "name": "upload", "title": "Upload a screenshot" },
         { "type": "signaturepad", "name": "sig", "title": "Sign here" },

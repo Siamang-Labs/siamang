@@ -297,6 +297,8 @@ def _compile_question(question: Question) -> dict[str, Any]:
             **base,
             "kind": "likert",
             "points": question.points,
+            "start": question.start,
+            "display": question.display,
             "leftLabel": question.left_label or "",
             "rightLabel": question.right_label or "",
             "naOption": question.na_option
@@ -318,6 +320,7 @@ def _compile_question(question: Question) -> dict[str, Any]:
             **base,
             "kind": "text",
             "multiline": question.multiline,
+            "format": question.format,
             "maxChars": question.max_chars,
             "placeholder": question.placeholder or "",
         }

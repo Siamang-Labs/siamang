@@ -85,6 +85,10 @@ def _html(value: Any, locale: str) -> str:
     return str(value) if value is not None else ""
 
 
+#: SurveyJS ``inputType`` -> OpenText ``format`` (the runtime validates these).
+_TEXT_FORMATS = {"email": "email", "tel": "phone", "url": "url", "date": "date", "time": "time"}
+
+
 @dataclass(slots=True)
 class _Converted:
     name: str
@@ -590,13 +594,16 @@ class _Importer:
                 item["step"] = step
             self._item(out, code, item)
             return
-        if input_type in {"date", "datetime-local", "time", "month", "week"}:
+        fmt = _TEXT_FORMATS.get(input_type)
+        if fmt is None and input_type not in {"text", "password", "color"}:
             self.warnings.append(
-                f"{where}: {input_type} input became free text (no date type in the format)."
+                f"{where}: {input_type} input became free text (no such format in the format)."
             )
         var = self._variable(code, {"scale": "nominal", "label": text[:120]})
         out.var, out.kind = var, "text"
         item = {"type": "OpenText", "text": text, "var": var, **self._common(q, where)}
+        if fmt:
+            item["format"] = fmt
         max_len = _number(q.get("maxLength"))
         for validator in q.get("validators") or []:
             if (
@@ -642,16 +649,20 @@ class _Importer:
             )
             out.row_vars[item_name] = var
             out.var = out.var or var
-            self._item(
-                out,
-                f"{code}_{_suffix(item_name)}",
-                {
-                    "type": "OpenText",
-                    "text": f"{text} — {label}",
-                    "var": var,
-                    **self._common(q, where),
-                },
+            field_item: dict[str, Any] = {
+                "type": "OpenText",
+                "text": f"{text} — {label}",
+                "var": var,
+                **self._common(q, where),
+            }
+            fmt = (
+                _TEXT_FORMATS.get(str(entry.get("inputType") or "").lower())
+                if isinstance(entry, dict)
+                else None
             )
+            if fmt:
+                field_item["format"] = fmt
+            self._item(out, f"{code}_{_suffix(item_name)}", field_item)
 
     def _matrix(self, out: _Converted, q: dict, where: str, text: str, code: str) -> None:
         rows = q.get("rows") or []
@@ -836,7 +847,7 @@ def _tokenize(expression: str) -> list[tuple[str, Any]]:
             continue
         m = _TOKEN_RE.match(expression, pos)
         if not m:
-            raise _Unsupported(f"unreadable at {expression[pos:pos + 12]!r}")
+            raise _Unsupported(f"unreadable at {expression[pos : pos + 12]!r}")
         pos = m.end()
         kind = m.lastgroup or ""
         text = m.group(kind)

@@ -342,6 +342,8 @@ _SPECIFIC: dict[type[Question], dict[str, Any]] = {
         "left_label": STRING,
         "right_label": STRING,
         "na_option": {"type": ["boolean", "string"]},
+        "start": {"enum": [0, 1]},
+        "display": {"enum": ["scale", "stars"]},
     },
     NumericInput: {
         "display": {"enum": ["input", "slider"]},
@@ -352,6 +354,7 @@ _SPECIFIC: dict[type[Question], dict[str, Any]] = {
         "multiline": BOOL,
         "max_chars": {"type": "integer", "minimum": 1},
         "placeholder": STRING,
+        "format": {"enum": ["text", "email", "phone", "url", "date", "time"]},
     },
     Matrix: {
         "var": {"type": "array", "items": NONEMPTY, "minItems": 1},

@@ -314,7 +314,9 @@
           "points": 5,
           "left_label": "Very dissatisfied",
           "right_label": "Very satisfied",
-          "na_option": false
+          "na_option": false,
+          "start": 1,
+          "display": "scale"
         },
         {
           "type": "OpenText",
@@ -326,7 +328,8 @@
           "other_specify": false,
           "multiline": true,
           "max_chars": 500,
-          "placeholder": "Optional comments…"
+          "placeholder": "Optional comments…",
+          "format": "text"
         }
       ],
       "show_if": {

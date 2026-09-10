@@ -1,0 +1,23 @@
+type: analyze.nps
+category: analyze
+title: Net Promoter Score
+description: Detractors (0–6), passives (7–8) and promoters (9–10) of a 0–10 item; the score with its standard error and 95 % CI.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  variable:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: 0–10 item
+subtitle: '{variable}'
+template: |
+  {out.table} = {in.data}.report.nps({variable!r})
+  {out.stat} = {out.table}.stats
+preview: table

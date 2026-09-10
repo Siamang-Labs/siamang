@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
     from siamang.reporting.charts import BarChart, BoxPlot, HeatMap, ScatterPlot
-    from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable
+    from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable, NpsTable
 
 
 class ReportAccessor:
@@ -47,6 +47,13 @@ class ReportAccessor:
         from siamang.reporting.tables import FreqTable
 
         return FreqTable(data=self._data, column=column, exclude_missing=exclude_missing, sort=sort)
+
+    def nps(self, column: str) -> NpsTable:
+        """Net Promoter Score of a 0–10 item: detractors / passives / promoters
+        with N and %, the score with its standard error and 95 % CI in stats."""
+        from siamang.reporting.tables import NpsTable
+
+        return NpsTable(data=self._data, column=column)
 
     def crosstab(
         self,

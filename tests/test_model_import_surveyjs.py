@@ -95,12 +95,13 @@ def test_question_types_map(result):
     assert comment["multiline"] is True and comment["max_chars"] == 500
     contact = _item(result.document, "contact_email")
     assert contact["type"] == "OpenText" and contact["text"] == "How can we reach you? — Email"
+    assert contact["format"] == "email"
     mood = _item(result.document, "mood")
     assert mood["type"] == "Matrix" and mood["column_labels"] == ["1", "2", "3"]
     assert mood["subquestions"] == ["morning", "evening"]
     birthday = _item(result.document, "birthday")
-    assert birthday["type"] == "OpenText"
-    assert any("date input became free text" in w for w in result.warnings)
+    assert birthday["type"] == "OpenText" and birthday["format"] == "date"
+    assert not any("became free text" in w for w in result.warnings)
 
 
 def test_panels_become_blocks_when_randomized(result):

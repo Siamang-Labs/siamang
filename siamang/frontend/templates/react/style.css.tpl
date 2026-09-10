@@ -624,6 +624,27 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   font-variant-numeric: tabular-nums;
   transition: background-color 80ms, border-color 80ms, color 80ms;
 }
+.sd-rating--stars .sd-rating__item {
+  border-color: transparent;
+  background: transparent;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: #c8c8c8;
+  padding: 0 0.15rem;
+}
+.sd-rating--stars .sd-rating__item.is-lit,
+.sd-rating--stars .sd-rating__item.is-selected,
+.sd-rating--stars .sd-rating__item:hover {
+  color: var(--siamang-primary, #d4a017);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.sd-rating--stars .sd-rating__item:focus-visible {
+  outline: 2px solid var(--siamang-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 .sd-rating__item:hover {
   background: color-mix(in srgb, var(--siamang-accent) 6%, transparent);
   border-color: color-mix(in srgb, var(--siamang-accent) 40%, var(--siamang-border));

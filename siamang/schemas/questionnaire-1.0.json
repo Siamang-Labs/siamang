@@ -982,6 +982,18 @@
             "boolean",
             "string"
           ]
+        },
+        "start": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "display": {
+          "enum": [
+            "scale",
+            "stars"
+          ]
         }
       },
       "required": [
@@ -1193,6 +1205,16 @@
         },
         "placeholder": {
           "type": "string"
+        },
+        "format": {
+          "enum": [
+            "text",
+            "email",
+            "phone",
+            "url",
+            "date",
+            "time"
+          ]
         }
       },
       "required": [

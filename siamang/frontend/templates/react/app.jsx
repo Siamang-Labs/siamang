@@ -95,6 +95,25 @@ function isAnswered(q, v) {
   return true;
 }
 
+/* An OpenText with a format (email, phone, url, date, time) refuses a value
+   that does not look like one — the browser input already steers the
+   respondent, this is the check that holds on "Next". */
+const TEXT_FORMAT_RE = {
+  email: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+  phone: /^\+?[0-9][0-9\s().-]{5,}$/,
+  url: /^https?:\/\/[^\s]+\.[^\s]+$/i,
+  date: /^\d{4}-\d{2}-\d{2}$/,
+  time: /^\d{2}:\d{2}(:\d{2})?$/,
+};
+function textFormatError(q, v, texts) {
+  if (!q || q.kind !== "text" || !q.format || q.format === "text") return null;
+  if (v === undefined || v === null || v === "") return null;
+  const re = TEXT_FORMAT_RE[q.format];
+  if (!re || re.test(String(v).trim())) return null;
+  if (q.format === "date" && !isNaN(Date.parse(String(v)))) return null;
+  return (texts && texts.formats && texts.formats[q.format]) || (texts && texts.invalidFormat) || "Please check the format of your answer.";
+}
+
 function extractOptions(pages) {
   const opts = {};
   const collect = (items) => {
@@ -760,6 +779,14 @@ function App() {
     submit: ui.submitButtonText || "Submit responses",
     submitting: ui.submittingText || "Submitting your responses\u2026",
     required: ui.requiredText || "This question requires an answer.",
+    invalidFormat: ui.invalidFormatText || "Please check the format of your answer.",
+    formats: {
+      email: ui.invalidEmailText || "Please enter a valid email address.",
+      phone: ui.invalidPhoneText || "Please enter a valid phone number.",
+      url: ui.invalidUrlText || "Please enter a valid web address (https://…).",
+      date: ui.invalidDateText || "Please enter a valid date.",
+      time: ui.invalidTimeText || "Please enter a valid time.",
+    },
     saving: ui.savingText || "Saving\u2026",
     resumeTitle: ui.resumeTitle || "We saved your progress from earlier. Would you like to resume?",
     resumeAction: ui.resumeAction || "Resume",
@@ -804,8 +831,11 @@ function App() {
     const q = items.find((item) => item.id === questionId);
     if (q && q.required && !isAnswered(q, answers[q.id])) {
       setErrors((prev) => ({ ...prev, [q.id]: uiTexts.required }));
+      return;
     }
-  }, [store, visibilityEngine, nav.pages, uiTexts.required]);
+    const formatError = textFormatError(q, answers[q.id], uiTexts);
+    if (formatError) setErrors((prev) => ({ ...prev, [q.id]: formatError }));
+  }, [store, visibilityEngine, nav.pages, uiTexts]);
 
   // ─── handleNext with validation ───
   const handleNext = useCallback(() => {
@@ -816,8 +846,11 @@ function App() {
     const errs = {};
     const se = answers.__errors__ || {};
     for (const q of items) {
+      const formatError = textFormatError(q, answers[q.id], uiTexts);
       if (q.required && !isAnswered(q, answers[q.id])) {
         errs[q.id] = uiTexts.required;
+      } else if (formatError) {
+        errs[q.id] = formatError;
       } else if (se[q.id]) {
         // Script-written validation message blocks navigation too.
         errs[q.id] = se[q.id];
@@ -838,7 +871,7 @@ function App() {
       return;
     }
     nav.goNext();
-  }, [store, nav, visibilityEngine, uiTexts.required, submit, setSubmitting]);
+  }, [store, nav, visibilityEngine, uiTexts, submit, setSubmitting]);
 
   const handlePrev = useCallback(() => {
     setErrors({});
