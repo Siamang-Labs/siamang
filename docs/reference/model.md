@@ -152,6 +152,26 @@ tested by logic is stored wide — one yes/no variable per choice, as
 Qualtrics exports it — so the logic keeps working; other multi-selects
 keep one array variable.
 
+### `import_lss(text) -> LssImportResult`, `import_lss_file(path)`
+
+Converts a LimeSurvey survey structure export (the XML of "Export survey
+structure", `.lss`, LimeSurvey 3 to 6) into a document: list, dropdown,
+yes/no, gender, 5-point, multiple choice (subquestions as choices),
+numerical (with sliders and ranges), multiple numerical, short/long text,
+multiple short text, arrays (flexible labels and the fixed 5/10-point,
+yes/no/uncertain, increase/same/decrease scales), ranking and text
+displays; mandatory, "other", answer order, choice randomization, the
+survey format (one page per group or per question), welcome and end texts,
+back button, progress bar, language, question relevance (ExpressionScript
+comparisons joined with and/or) and group relevance, legacy conditions
+when a question carries no relevance equation. `LssImportResult(document,
+warnings, skipped)` has the same shape as the Qualtrics result: `skipped`
+lists arrays dual scale/numbers/texts, equations, file uploads, quotas,
+assessments, validation regexes, comment fields and relevance the
+expression language cannot express (functions, arithmetic); `warnings`
+lists approximate transfers (a date question as free text, a
+multilingual survey reduced to one language).
+
 ### `dumps(document) -> str`, `loads(text) -> dict`
 
 Canonical text form: two-space indent, keys in document order, UTF-8 as is,
@@ -170,11 +190,12 @@ callers can route every document they load through it.
 ```bash
 siamang model import questionnaire.py [-o questionnaire.json] [--attribute survey]
 siamang model import survey.qsf [-o questionnaire.json]
+siamang model import survey.lss [-o questionnaire.json]
 siamang model check questionnaire.json [--strict]
 ```
 
 `import` writes the document (stdout by default) and prints conversion
-warnings on stderr; a `.qsf` file (Qualtrics export) is converted and
+warnings on stderr; a `.qsf` (Qualtrics) or `.lss` (LimeSurvey) export is converted and
 everything the format cannot hold is printed as `[skipped]` lines. `check` runs the JSON Schema, rebuilds the survey,
 `validate()`, `validate_options()` and `lint()` — the same output and exit
 codes as `siamang validate`, for a document instead of a module.

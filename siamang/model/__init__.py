@@ -22,6 +22,7 @@ from siamang.model.document import (
     loads,
     to_document,
 )
+from siamang.model.import_lss import LssImportResult, import_lss, import_lss_file
 from siamang.model.import_qsf import QsfImportResult, Skipped, import_qsf, import_qsf_file
 from siamang.model.importer import ImportResult, import_module
 from siamang.model.parse_python import Dropped, StaticImportResult, parse_file, parse_source
@@ -39,8 +40,11 @@ __all__ = [
     "dumps",
     "from_document",
     "import_module",
+    "import_lss",
+    "import_lss_file",
     "import_qsf",
     "import_qsf_file",
+    "LssImportResult",
     "QsfImportResult",
     "Skipped",
     "parse_file",
