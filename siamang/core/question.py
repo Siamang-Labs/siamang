@@ -145,10 +145,16 @@ class MultiChoice(Question):
 
 @dataclass(frozen=True, slots=True)
 class LikertScale(Question):
+    """A numbered scale. ``start`` is the first point's value (1 by default;
+    0 for an NPS-style 0–10 scale), ``display`` its rendering: numbered
+    buttons (``scale``) or stars (``stars``)."""
+
     points: int = 5
     left_label: str | None = None
     right_label: str | None = None
     na_option: bool | str = False
+    start: int = 1
+    display: str = "scale"
 
     def __post_init__(self) -> None:
         Question.__post_init__(self)
@@ -156,6 +162,15 @@ class LikertScale(Question):
             raise TypeError("LikertScale expects var to be a Variable.")
         if self.points < 2:
             raise ValueError("points must be >= 2")
+        if self.start not in (0, 1):
+            raise ValueError("start must be 0 or 1")
+        if self.display not in {"scale", "stars"}:
+            raise ValueError("display must be one of: scale, stars")
+
+    @property
+    def values(self) -> list[int]:
+        """The scale's values in order (``start`` … ``start + points - 1``)."""
+        return list(range(self.start, self.start + self.points))
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,11 +189,17 @@ class NumericInput(Question):
             raise ValueError("step must be > 0")
 
 
+#: What an OpenText answer must look like; the runtime picks the input type
+#: and refuses a value that does not match on "Next".
+TEXT_FORMATS = ("text", "email", "phone", "url", "date", "time")
+
+
 @dataclass(frozen=True, slots=True)
 class OpenText(Question):
     multiline: bool = False
     max_chars: int | None = None
     placeholder: str | None = None
+    format: str = "text"
 
     def __post_init__(self) -> None:
         Question.__post_init__(self)
@@ -186,6 +207,10 @@ class OpenText(Question):
             raise TypeError("OpenText expects var to be a Variable.")
         if self.max_chars is not None and self.max_chars <= 0:
             raise ValueError("max_chars must be > 0")
+        if self.format not in TEXT_FORMATS:
+            raise ValueError("format must be one of: " + ", ".join(TEXT_FORMATS))
+        if self.multiline and self.format != "text":
+            raise ValueError("a multiline answer cannot have a format")
 
 
 @dataclass(frozen=True, slots=True)

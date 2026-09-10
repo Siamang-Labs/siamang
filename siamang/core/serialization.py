@@ -44,13 +44,21 @@ def question_to_dict(question: Question) -> dict:
         return {
             **base,
             "type": "rating",
-            "rateMax": question.points,
-            "rateMin": 1,
+            "rateMax": question.start + question.points - 1,
+            "rateMin": question.start,
+            **({"rateType": "stars"} if question.display == "stars" else {}),
         }
     if isinstance(question, NumericInput):
         return {**base, "type": "text", "inputType": "number"}
     if isinstance(question, OpenText):
-        return {**base, "type": "comment" if question.multiline else "text"}
+        if question.multiline:
+            return {**base, "type": "comment"}
+        input_type = {"phone": "tel"}.get(question.format, question.format)
+        return {
+            **base,
+            "type": "text",
+            **({"inputType": input_type} if input_type != "text" else {}),
+        }
     if isinstance(question, Matrix):
         columns = [{"value": k, "text": v} for k, v in (question.var[0].labels or {}).items()]
         rows = [{"value": v.name, "text": v.label or v.name} for v in question.var]

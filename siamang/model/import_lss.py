@@ -919,7 +919,7 @@ def _tokenize(expression: str) -> list[tuple[str, str]]:
             continue
         m = _TOKEN_RE.match(expression, pos)
         if not m or m.end() == pos:
-            raise _Unsupported(f"unreadable at {expression[pos:pos + 12]!r}")
+            raise _Unsupported(f"unreadable at {expression[pos : pos + 12]!r}")
         pos = m.end()
         kind = m.lastgroup or ""
         tokens.append((kind, m.group(kind)))

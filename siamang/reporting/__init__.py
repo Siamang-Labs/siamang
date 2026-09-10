@@ -8,10 +8,11 @@ to produce publication-ready outputs with minimal configuration.
 from siamang.reporting.accessors import PlotAccessor, ReportAccessor
 from siamang.reporting.charts import BarChart, BoxPlot, HeatMap, ScatterPlot
 from siamang.reporting.document import Report
-from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable
+from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable, NpsTable
 
 __all__ = [
     "FreqTable",
+    "NpsTable",
     "CrossTable",
     "GroupMeanTable",
     "BarChart",

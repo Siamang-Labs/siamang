@@ -205,6 +205,80 @@ class FreqTable(SurveyTable):
         self._stats = {"Variable": _get_label(self.data, col), "N valid": int(total)}
 
 
+# ─── NpsTable ─────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class NpsTable(SurveyTable):
+    """Net Promoter Score of a 0–10 "how likely are you to recommend" item.
+
+    Detractors are 0–6, passives 7–8, promoters 9–10; the score is the share
+    of promoters minus the share of detractors (−100 … +100). The table has
+    one row per group with N and %, plus a total row; the score, its
+    standard error and a 95 % confidence interval are the stats. Weighted
+    when the data carries a weight column.
+
+    Parameters
+    ----------
+    data : SurveyData
+        The survey data container with variable metadata.
+    column : str
+        The 0–10 variable.
+    """
+
+    column: str = ""
+
+    GROUPS = (("Detractors", 0, 6), ("Passives", 7, 8), ("Promoters", 9, 10))
+
+    def _build(self) -> None:
+        import numpy as np
+
+        col = self.column
+        frame = self.data.frame
+        series = pd.to_numeric(frame[col], errors="coerce")
+        keep = series.notna()
+        values = series[keep].to_numpy(dtype=float)
+        if self.data.weight and self.data.weight in frame.columns:
+            weights = pd.to_numeric(frame.loc[keep, self.data.weight], errors="coerce")
+            weights = weights.fillna(0).to_numpy(dtype=float)
+        else:
+            weights = np.ones(len(values))
+        out_of_range = ((values < 0) | (values > 10)).sum()
+        if out_of_range:
+            raise ValueError(
+                f"{col!r} has {int(out_of_range)} values outside 0–10; NPS needs a 0–10 scale"
+            )
+        total_w = float(weights.sum())
+        n = int(keep.sum())
+        rows = []
+        shares: dict[str, float] = {}
+        for label, lo, hi in self.GROUPS:
+            mask = (values >= lo) & (values <= hi)
+            share = float(weights[mask].sum()) / total_w * 100 if total_w > 0 else 0.0
+            shares[label] = share
+            rows.append(
+                {"Group": label, "Range": f"{lo}–{hi}", "N": int(mask.sum()), "%": round(share, 1)}
+            )
+        rows.append({"Group": "Total", "Range": "0–10", "N": n, "%": 100.0 if n else 0.0})
+        self._result = pd.DataFrame(rows, columns=["Group", "Range", "N", "%"])
+
+        score = shares["Promoters"] - shares["Detractors"]
+        # Standard error of a difference of two proportions from one sample
+        # (Rocks, 2016), on the effective sample size when weighted.
+        p_pro, p_det = shares["Promoters"] / 100, shares["Detractors"] / 100
+        n_eff = total_w**2 / float((weights**2).sum()) if total_w > 0 else 0.0
+        variance = (p_pro + p_det - (p_pro - p_det) ** 2) / n_eff if n_eff > 0 else float("nan")
+        se = float(np.sqrt(variance)) * 100 if variance == variance else float("nan")
+        self._stats = {
+            "Variable": _get_label(self.data, col),
+            "NPS": round(score, 1),
+            "SE": round(se, 1) if se == se else None,
+            "CI95 low": round(max(-100.0, score - 1.96 * se), 1) if se == se else None,
+            "CI95 high": round(min(100.0, score + 1.96 * se), 1) if se == se else None,
+            "N valid": n,
+        }
+
+
 # ─── CrossTable ───────────────────────────────────────────────────────────────
 
 

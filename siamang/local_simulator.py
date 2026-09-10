@@ -30,7 +30,7 @@ def _simulate_value(question: Question, var=None):
             return random.randint(int(lo), int(hi))
         return random.randint(18, 70)
     if isinstance(question, LikertScale):
-        return random.randint(1, question.points)
+        return random.choice(question.values)
     if isinstance(question, Matrix):
         # For Matrix, simulate based on the variable's labels (Likert-like)
         v = var or (question.var[0] if question.var else None)
@@ -52,8 +52,25 @@ def _simulate_value(question: Question, var=None):
             return random.sample(codes, count)
         return [1]
     if isinstance(question, OpenText):
-        return "sample text"
+        return _simulate_text(question.format)
     return None
+
+
+def _simulate_text(fmt: str) -> str:
+    """A plausible answer for an OpenText of the given format."""
+    if fmt == "email":
+        return f"respondent{random.randint(1, 999)}@example.com"
+    if fmt == "phone":
+        return f"+1 555 {random.randint(100, 999)} {random.randint(1000, 9999)}"
+    if fmt == "url":
+        return f"https://example.com/{random.randint(1, 999)}"
+    if fmt == "date":
+        return (
+            f"{random.randint(1960, 2010)}-{random.randint(1, 12):02d}-{random.randint(1, 28):02d}"
+        )
+    if fmt == "time":
+        return f"{random.randint(0, 23):02d}:{random.randint(0, 59):02d}"
+    return "sample text"
 
 
 def _choice_codes(question: Question) -> list:

@@ -351,21 +351,32 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
 
 function Likert({ q, value, onChange, num, error, onBlur, answers }) {
   const isNA = value === "na";
+  const start = q.start === 0 ? 0 : 1;
+  const stars = q.display === "stars";
+  const [hover, setHover] = useState(null);
+  const points = Array.from({ length: q.points }, (_, i) => i + start);
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-      <div className="sd-rating">
-        <div className="sd-rating__scale" role="radiogroup" aria-label={q.title}>
-          {Array.from({ length: q.points }, (_, i) => i + 1).map((n) => (
-            <button
-              type="button"
-              key={n}
-              className={"sd-rating__item" + (value === n ? " is-selected" : "")}
-              onClick={() => onChange(n)}
-              aria-pressed={value === n}
-            >
-              <span className="sd-rating__num">{n}</span>
-            </button>
-          ))}
+      <div className={"sd-rating" + (stars ? " sd-rating--stars" : "")}>
+        <div className="sd-rating__scale" role="radiogroup" aria-label={q.title} onMouseLeave={() => setHover(null)}>
+          {points.map((n) => {
+            // Stars fill up to the chosen (or hovered) one; numbers select one point.
+            const lit = stars && typeof value === "number" && n <= (hover ?? value);
+            const hot = stars && hover !== null && n <= hover;
+            return (
+              <button
+                type="button"
+                key={n}
+                className={"sd-rating__item" + (value === n ? " is-selected" : "") + (lit || hot ? " is-lit" : "")}
+                onClick={() => onChange(n)}
+                onMouseEnter={stars ? () => setHover(n) : undefined}
+                aria-pressed={value === n}
+                aria-label={stars ? `${n - start + 1} of ${q.points}` : undefined}
+              >
+                {stars ? <span className="sd-rating__star" aria-hidden="true">{lit || hot ? "\u2605" : "\u2606"}</span> : <span className="sd-rating__num">{n}</span>}
+              </button>
+            );
+          })}
         </div>
         <div className="sd-rating__labels">
           <span>{q.leftLabel}</span>
@@ -613,7 +624,7 @@ function OpenText({ q, value, onChange, num, error, onBlur, answers }) {
   };
 
   const InputTag = q.multiline ? "textarea" : "input";
-  const extraProps = q.multiline ? { rows: 4 } : { type: "text" };
+  const extraProps = q.multiline ? { rows: 4 } : { type: TEXT_INPUT_TYPES[q.format] || "text", inputMode: TEXT_INPUT_MODES[q.format] };
 
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={null} answers={answers} media={q.media}>
@@ -636,6 +647,11 @@ function OpenText({ q, value, onChange, num, error, onBlur, answers }) {
     </QuestionShell>
   );
 }
+
+/* An OpenText's format picks the browser input (a date picker, the phone
+   keypad) — and the runtime's own check on "Next" (see textFormatError). */
+const TEXT_INPUT_TYPES = { email: "email", phone: "tel", url: "url", date: "date", time: "time" };
+const TEXT_INPUT_MODES = { email: "email", phone: "tel", url: "url" };
 
 function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers }) {
   const [open, setOpen] = useState(false);

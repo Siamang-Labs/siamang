@@ -514,9 +514,9 @@ def test_generated_flow_script_is_clean_deterministic_and_golden(flow_doc, quest
     code = generate_flow(flow_doc, questionnaire_doc)
     assert code == generate_flow(flow_doc, questionnaire_doc)
     golden = DOCUMENTS / "satisfaction.flow.generated.py"
-    assert (
-        golden.exists()
-    ), "run: siamang codegen tests/documents/satisfaction.flow.json --questionnaire …"
+    assert golden.exists(), (
+        "run: siamang codegen tests/documents/satisfaction.flow.json --questionnaire …"
+    )
     assert code == golden.read_text("utf-8")
     assert _ruff("format", "--isolated", "--line-length", "100", code=code).stdout == code
     lint = _ruff(
