@@ -93,6 +93,8 @@ def compile_react_payload(
         "progressStyle": ui.progress_style,
         "defaultTheme": ui.default_theme,
         "redirectUrl": ui.redirect_url,
+        "screenOutRedirectUrl": ui.screen_out_redirect_url,
+        "quotaFullRedirectUrl": ui.quota_full_redirect_url,
         "requireAccessCode": ui.require_access_code,
         "accessCodes": ui.access_codes,
         "accessTitle": ui.access_title,

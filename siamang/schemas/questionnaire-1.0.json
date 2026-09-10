@@ -1890,6 +1890,26 @@
             }
           ]
         },
+        "screen_out_redirect_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quota_full_redirect_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "warn_color": {
           "type": "string"
         },

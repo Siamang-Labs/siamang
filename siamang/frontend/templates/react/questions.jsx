@@ -121,6 +121,20 @@ function processPipedText(text, answers) {
     return piped === null ? match : piped;
   });
 }
+/* Redirect URL templates: ``{url:NAME}`` is the query parameter the
+   respondent arrived with (a panel's respondent id), ``{answer:x}`` etc.
+   pipe answers; every value is URL-encoded. An unknown placeholder is
+   removed rather than sent to a third party as literal braces. */
+function redirectTemplate(url, answers) {
+  if (!url || typeof url !== "string") return url || null;
+  let params = null;
+  try { params = new URLSearchParams(window.location.search); } catch (e) { params = null; }
+  return url.replace(/\{(url|answer|label|var):([a-zA-Z0-9_]+)\}/g, (match, type, key) => {
+    if (type === "url") return encodeURIComponent((params && params.get(key)) || "");
+    const piped = pipeValue(type, key, answers || {});
+    return piped === null ? "" : encodeURIComponent(piped);
+  });
+}
 /* The same for HTML bodies: piped values are escaped so an answer can never
    inject markup into the page. */
 function processPipedHtml(html, answers) {

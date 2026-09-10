@@ -126,7 +126,14 @@ class UIConfig:
     default_theme: str = "light"  # "light" | "dark" | "system"
 
     # --- redirect -------------------------------------------------------
+    # Where a respondent goes after the survey: on completion (a final page
+    # without its own redirect_url), after a screen-out (disqualification
+    # page) and when the quota is full. Templates: ``{url:NAME}`` is the
+    # value of ``?NAME=`` the respondent arrived with (a panel's respondent
+    # id), ``{answer:x}`` / ``{label:x}`` pipe answers; values are URL-encoded.
     redirect_url: str | None = None
+    screen_out_redirect_url: str | None = None
+    quota_full_redirect_url: str | None = None
 
     # --- color palette extras -------------------------------------------
     warn_color: str = "#9a6a1a"
