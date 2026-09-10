@@ -245,6 +245,30 @@ class DataAnalysis:
         upper = min(1.0, p + margin)
         return {"p": p, "lower": lower, "upper": upper, "n": n}
 
+    # ── models (siamang.data.models) ──────────────────────────────
+    def regression(self, y: str, predictors: list[str], *, kind: str = "auto"):
+        """OLS / WLS (with the weight column) or logit; see :func:`siamang.data.models.regression`."""
+        from siamang.data.models import regression
+
+        return regression(
+            self.frame,
+            y,
+            predictors,
+            kind=kind,
+            weight=self.weight_column,
+            variables=self.variables,
+        )
+
+    def pca(self, items: list[str], *, n_components: int | None = None, standardize: bool = True):
+        from siamang.data.models import pca
+
+        return pca(self.frame, items, n_components=n_components, standardize=standardize)
+
+    def reliability(self, items: list[str]):
+        from siamang.data.models import reliability
+
+        return reliability(self.frame, items)
+
     def effective_sample_size(self) -> float:
         if self.weight_column is None:
             raise ValueError("effective_sample_size requires SurveyData.weight to be set.")

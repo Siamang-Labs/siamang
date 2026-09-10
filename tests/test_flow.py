@@ -419,6 +419,10 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
             {"y": "satisfaction", "group": "region", "test": "kruskal"},
         ),
         ("desc", "analyze.describe", {"mode": "codebook"}),
+        ("reg", "analyze.regression", {"y": "satisfaction", "predictors": ["age", "region2"]}),
+        ("pca", "analyze.pca", {"items": ["age", "satisfaction", "trust_idx"], "n_components": 2}),
+        ("clu", "analyze.cluster", {"items": ["age", "satisfaction"], "k": 2, "into": "segment"}),
+        ("rel", "analyze.reliability", {"items": ["age", "satisfaction", "trust_idx"]}),
         ("box", "visualize.boxplot", {"y": "trust_idx", "by": "region2"}),
         ("heat", "visualize.heatmap", {"items": ["age", "satisfaction", "trust_idx"]}),
         ("scat", "visualize.scatter", {"x": "age", "y": "satisfaction", "hue": "gender"}),
@@ -439,13 +443,32 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
     edges = [(a, "data", b, "data") for a, b in zip(chain, chain[1:], strict=False)]
     edges += [
         ("sel", "data", n, "data")
-        for n in ("freq", "corr", "ci", "cmp", "cmp3", "desc", "box", "heat", "scat", "exp")
+        for n in (
+            "freq",
+            "corr",
+            "ci",
+            "cmp",
+            "cmp3",
+            "desc",
+            "reg",
+            "pca",
+            "clu",
+            "rel",
+            "box",
+            "heat",
+            "scat",
+            "exp",
+        )
     ]
     edges += [
         ("freq", "table", "sec", "items"),
         ("corr", "stat", "sec", "items"),
         ("box", "chart", "sec", "items"),
         ("desc", "table", "sec", "items"),
+        ("reg", "table", "sec", "items"),
+        ("pca", "loadings", "sec", "items"),
+        ("clu", "table", "sec", "items"),
+        ("rel", "stat", "sec", "items"),
         ("sec", "report", "save", "sections"),
         ("corr", "stat", "tile", "input"),
     ]
@@ -460,6 +483,14 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
     assert result.output("apply").weight == "weight"
     assert "rho" in result.output("corr")
     assert set(result.output("cmp")) >= {"statistic", "p_value"}
+    assert list(result.output("reg", "table")["term"])[:2] == ["(intercept)", "age"]
+    assert result.output("reg", "stat")["model"] == "WLS"  # the flow applied a weight
+    assert list(result.output("pca", "loadings").columns) == ["item", "PC1", "PC2"]
+    assert "segment" in result.output("clu", "data").frame.columns
+    assert result.output("clu", "table")["size"].sum() == len(
+        result.output("sel").frame.dropna(subset=["age", "satisfaction"])
+    )
+    assert "alpha" in result.output("rel", "stat")
     assert (tmp_path / "outputs" / "all.md").read_text("utf-8").startswith("# All nodes")
     assert (tmp_path / "outputs" / "clean.csv").is_file()
     assert (tmp_path / "outputs" / "clean.dictionary.json").is_file()
@@ -483,9 +514,9 @@ def test_generated_flow_script_is_clean_deterministic_and_golden(flow_doc, quest
     code = generate_flow(flow_doc, questionnaire_doc)
     assert code == generate_flow(flow_doc, questionnaire_doc)
     golden = DOCUMENTS / "satisfaction.flow.generated.py"
-    assert golden.exists(), (
-        "run: siamang codegen tests/documents/satisfaction.flow.json --questionnaire …"
-    )
+    assert (
+        golden.exists()
+    ), "run: siamang codegen tests/documents/satisfaction.flow.json --questionnaire …"
     assert code == golden.read_text("utf-8")
     assert _ruff("format", "--isolated", "--line-length", "100", code=code).stdout == code
     lint = _ruff(

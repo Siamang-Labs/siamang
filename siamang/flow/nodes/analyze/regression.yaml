@@ -1,0 +1,34 @@
+type: analyze.regression
+category: analyze
+title: Regression
+description: Linear (OLS, weighted when a weight is applied) or logistic regression with a coefficient table.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  y:
+    kind: variable
+    required: true
+    label: Outcome
+    help: Two values → logistic (auto); otherwise linear.
+  predictors:
+    kind: variables
+    required: true
+    label: Predictors
+    help: Nominal predictors are dummy-coded against their first category.
+  kind:
+    kind: enum
+    values:
+    - auto
+    - ols
+    - logit
+    default: auto
+    label: Model
+subtitle: '{y} ~ {predictors}'
+template: |
+  _model = {in.data}.analysis.regression({y!r}, {predictors!r}, kind={kind!r})
+  {out.table} = _model.table
+  {out.stat} = _model.stats
+preview: table

@@ -1,0 +1,35 @@
+type: analyze.pca
+category: analyze
+title: Principal components
+description: Loadings and explained variance of a set of items (standardized).
+inputs:
+  data: SurveyData
+outputs:
+  loadings: Table
+  variance: Table
+  stat: Stat
+params:
+  items:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Items
+  n_components:
+    kind: int
+    minimum: 1
+    label: Components
+    help: Empty keeps the components with an eigenvalue above 1.
+  standardize:
+    kind: bool
+    default: true
+    label: Standardize items
+subtitle: '{items}'
+template: |
+  _pca = {in.data}.analysis.pca({items!r}, n_components={n_components!r}, standardize={standardize!r})
+  {out.loadings} = _pca.loadings
+  {out.variance} = _pca.variance
+  {out.stat} = _pca.stats
+preview: table
