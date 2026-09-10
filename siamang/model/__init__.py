@@ -24,6 +24,12 @@ from siamang.model.document import (
 )
 from siamang.model.import_lss import LssImportResult, import_lss, import_lss_file
 from siamang.model.import_qsf import QsfImportResult, Skipped, import_qsf, import_qsf_file
+from siamang.model.import_surveyjs import (
+    SurveyJsImportResult,
+    import_surveyjs,
+    import_surveyjs_file,
+    looks_like_surveyjs,
+)
 from siamang.model.importer import ImportResult, import_module
 from siamang.model.parse_python import Dropped, StaticImportResult, parse_file, parse_source
 from siamang.model.schema import load_schema, migrate, validate_document
@@ -44,6 +50,10 @@ __all__ = [
     "import_lss_file",
     "import_qsf",
     "import_qsf_file",
+    "import_surveyjs",
+    "import_surveyjs_file",
+    "looks_like_surveyjs",
+    "SurveyJsImportResult",
     "LssImportResult",
     "QsfImportResult",
     "Skipped",

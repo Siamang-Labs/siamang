@@ -49,11 +49,11 @@ def _add_model(subparsers: argparse._SubParsersAction) -> None:
     sub = parser.add_subparsers(dest="model_command", required=True)
     importer = sub.add_parser(
         "import",
-        help="Write the questionnaire of a Python file (or a Qualtrics .qsf / LimeSurvey .lss) as JSON.",
+        help="Write the questionnaire of a Python file (or a Qualtrics .qsf / LimeSurvey .lss / SurveyJS .json) as JSON.",
     )
     importer.add_argument(
         "path",
-        help="Path to a Python file exposing `survey` (and `options`), or a .qsf / .lss export.",
+        help="Path to a Python file exposing `survey` (and `options`), or a .qsf / .lss / SurveyJS .json export.",
     )
     importer.add_argument("--attribute", default="survey")
     importer.add_argument("-o", "--output", help="Output file (default: stdout).")

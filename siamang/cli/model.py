@@ -13,6 +13,7 @@ from siamang.model import (
     import_lss_file,
     import_module,
     import_qsf_file,
+    import_surveyjs_file,
     loads,
     parse_file,
     validate_document,
@@ -26,15 +27,18 @@ def run_import(
 
     ``--static`` reads the file without executing it (``parse_python``):
     the declarative subset is imported, anything else is listed as skipped.
-    A ``.qsf`` file (Qualtrics export) or an ``.lss`` file (LimeSurvey
-    structure export) is converted; what the format cannot hold is listed as
-    skipped."""
+    A ``.qsf`` file (Qualtrics export), an ``.lss`` file (LimeSurvey
+    structure export) or a SurveyJS ``.json`` definition is converted; what
+    the format cannot hold is listed as skipped."""
 
     try:
-        if path.lower().endswith((".qsf", ".lss")):
-            converted = (
-                import_lss_file(path) if path.lower().endswith(".lss") else import_qsf_file(path)
-            )
+        if path.lower().endswith((".qsf", ".lss", ".json")):
+            if path.lower().endswith(".lss"):
+                converted = import_lss_file(path)
+            elif path.lower().endswith(".json"):
+                converted = import_surveyjs_file(path)
+            else:
+                converted = import_qsf_file(path)
             for skipped in converted.skipped:
                 print(f"[skipped] {skipped}", file=sys.stderr)
             result = converted
