@@ -1,0 +1,57 @@
+{
+  "title": "Customer Pulse",
+  "locale": "en",
+  "showProgressBar": "top",
+  "showPrevButton": false,
+  "completedHtml": "<h3>Thank you!</h3>",
+  "navigateToUrl": "https://example.org/done",
+  "pages": [
+    {
+      "name": "intro",
+      "title": "About you",
+      "description": "<p>Two quick questions.</p>",
+      "elements": [
+        { "type": "boolean", "name": "consent", "title": "Do you agree to take part?", "isRequired": true },
+        { "type": "text", "name": "age", "title": "Your age", "inputType": "number", "min": 16, "max": 99 },
+        { "type": "dropdown", "name": "region", "title": "Where do you live?", "choices": ["North", "South", { "value": "cap", "text": "Capital" }], "hasOther": true }
+      ]
+    },
+    {
+      "name": "habits",
+      "title": "Habits",
+      "visibleIf": "{consent} = true",
+      "elements": [
+        { "type": "html", "name": "note", "html": "<p>Now your <b>habits</b>.</p>" },
+        { "type": "checkbox", "name": "devices", "title": "Devices you use daily", "choices": [{ "value": "phone", "text": "Phone" }, { "value": "laptop", "text": "Laptop" }, { "value": "tablet", "text": "Tablet" }], "hasNone": true, "colCount": 1 },
+        { "type": "text", "name": "screen_time", "title": "Hours of phone screen time", "inputType": "range", "min": 0, "max": 12, "step": 0.5, "visibleIf": "{devices} contains 'phone'" },
+        { "type": "rating", "name": "satisfaction", "title": "How satisfied are you?", "rateMin": 1, "rateMax": 5, "minRateDescription": "Not at all", "maxRateDescription": "Completely", "isRequired": true },
+        { "type": "matrix", "name": "apps", "title": "How often do you use these apps?", "columns": [{ "value": 1, "text": "Never" }, { "value": 2, "text": "Sometimes" }, { "value": 3, "text": "Daily" }], "rows": [{ "value": "social", "text": "Social media" }, { "value": "news", "text": "News" }], "visibleIf": "{region} = 'North' or {region} = 'cap'" },
+        {
+          "type": "panel",
+          "name": "prefs",
+          "questionsOrder": "random",
+          "elements": [
+            { "type": "ranking", "name": "priorities", "title": "Rank what matters", "choices": ["Sleep", "Exercise", "Friends"] },
+            { "type": "radiogroup", "name": "plan", "title": "Your plan", "choices": [{ "value": 1, "text": "Free" }, { "value": 2, "text": "Plus" }], "choicesOrder": "random" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wrap",
+      "title": "Wrap up",
+      "elements": [
+        { "type": "comment", "name": "comment", "title": "Anything else?", "maxLength": 500 },
+        { "type": "text", "name": "low_reason", "title": "Why so low?", "visibleIf": "{satisfaction} < 3 and {comment} notempty" },
+        { "type": "multipletext", "name": "contact", "title": "How can we reach you?", "items": [{ "name": "email", "title": "Email" }, { "name": "phone", "title": "Phone" }] },
+        { "type": "matrixdropdown", "name": "mood", "title": "Your mood", "columns": [{ "name": "level", "cellType": "dropdown", "choices": [1, 2, 3] }], "rows": ["morning", "evening"] },
+        { "type": "file", "name": "upload", "title": "Upload a screenshot" },
+        { "type": "signaturepad", "name": "sig", "title": "Sign here" },
+        { "type": "text", "name": "birthday", "title": "Date of birth", "inputType": "date" },
+        { "type": "tagbox", "name": "topics", "title": "Topics of interest", "choices": ["a", "b"], "visibleIf": "{plan} anyof [1, 2]" }
+      ]
+    }
+  ],
+  "triggers": [{ "type": "complete", "expression": "{consent} = false" }],
+  "calculatedValues": [{ "name": "score", "expression": "{age} * 2" }]
+}

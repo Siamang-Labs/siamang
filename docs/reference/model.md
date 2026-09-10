@@ -172,6 +172,23 @@ expression language cannot express (functions, arithmetic); `warnings`
 lists approximate transfers (a date question as free text, a
 multilingual survey reduced to one language).
 
+### `import_surveyjs(payload) -> SurveyJsImportResult`, `import_surveyjs_file(path)`, `looks_like_surveyjs(payload)`
+
+Converts a SurveyJS survey definition (the JSON of the Survey Creator) into
+a document: radiogroup / dropdown / imagepicker, checkbox / tagbox, boolean,
+rating, text (number and range inputs, min/max, length), comment,
+multipletext, matrix and single-column matrixdropdown, ranking, html;
+panels are flattened (a randomized or conditional panel becomes a Block),
+`isRequired`, "other" and "none" items, `choicesOrder`, `questionsOrder`,
+`visibleIf` on questions, panels and pages (=, <>, <, <=, >, >=,
+contains / notcontains, anyof, and / or / not), locale, back button,
+progress bar, `completedHtml`, `navigateToUrl`. `skipped` lists file and
+signature questions, dynamic panels and matrices, expressions, triggers,
+calculated values, validators the format lacks and `visibleIf` it cannot
+express (empty / notempty, allof, functions). `looks_like_surveyjs` tells a
+SurveyJS JSON (pages of `elements`) from a questionnaire document (pages of
+`items`), so a caller can route a `.json` upload.
+
 ### `dumps(document) -> str`, `loads(text) -> dict`
 
 Canonical text form: two-space indent, keys in document order, UTF-8 as is,
@@ -191,11 +208,12 @@ callers can route every document they load through it.
 siamang model import questionnaire.py [-o questionnaire.json] [--attribute survey]
 siamang model import survey.qsf [-o questionnaire.json]
 siamang model import survey.lss [-o questionnaire.json]
+siamang model import survey.surveyjs.json [-o questionnaire.json]
 siamang model check questionnaire.json [--strict]
 ```
 
 `import` writes the document (stdout by default) and prints conversion
-warnings on stderr; a `.qsf` (Qualtrics) or `.lss` (LimeSurvey) export is converted and
+warnings on stderr; a `.qsf` (Qualtrics), `.lss` (LimeSurvey) or SurveyJS `.json` export is converted and
 everything the format cannot hold is printed as `[skipped]` lines. `check` runs the JSON Schema, rebuilds the survey,
 `validate()`, `validate_options()` and `lint()` — the same output and exit
 codes as `siamang validate`, for a document instead of a module.
