@@ -10,6 +10,7 @@ from siamang.model import (
     DocumentError,
     dumps,
     from_document,
+    import_lss_file,
     import_module,
     import_qsf_file,
     loads,
@@ -25,15 +26,18 @@ def run_import(
 
     ``--static`` reads the file without executing it (``parse_python``):
     the declarative subset is imported, anything else is listed as skipped.
-    A ``.qsf`` file (Qualtrics export) is converted; what the format cannot
-    hold is listed as skipped."""
+    A ``.qsf`` file (Qualtrics export) or an ``.lss`` file (LimeSurvey
+    structure export) is converted; what the format cannot hold is listed as
+    skipped."""
 
     try:
-        if path.lower().endswith(".qsf"):
-            qsf_result = import_qsf_file(path)
-            for skipped in qsf_result.skipped:
+        if path.lower().endswith((".qsf", ".lss")):
+            converted = (
+                import_lss_file(path) if path.lower().endswith(".lss") else import_qsf_file(path)
+            )
+            for skipped in converted.skipped:
                 print(f"[skipped] {skipped}", file=sys.stderr)
-            result = qsf_result
+            result = converted
         elif static:
             static_result = parse_file(path, attribute=attribute)
             for dropped in static_result.dropped:
