@@ -611,7 +611,13 @@ function CompletedScreen({ surveyId, submittedAt, uiTexts, redirectUrl }) {
   );
 }
 
-function ClosedScreen({ reason }) {
+function ClosedScreen({ reason, redirectUrl }) {
+  // A panel's quota-full return: send the respondent back once the notice showed.
+  useEffect(() => {
+    if (!redirectUrl) return;
+    const t = setTimeout(() => { window.location.href = redirectUrl; }, 3000);
+    return () => clearTimeout(t);
+  }, [redirectUrl]);
   const messages = {
     quota_full: { title: "Thank you for your interest", body: "We have already reached our target sample for participants like you." },
     deadline: { title: "Survey closed", body: "Thank you. This survey is no longer accepting responses." },
@@ -630,6 +636,11 @@ function ClosedScreen({ reason }) {
       </div>
       <h2 className="siamang-closed__title">{m.title}</h2>
       <p className="siamang-closed__body">{m.body}</p>
+      {redirectUrl ? (
+        <p className="sd-completedpage__redirect">
+          Redirecting you now. <a href={redirectUrl}>Continue</a> if you are not redirected.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -638,7 +649,11 @@ function ClosedScreen({ reason }) {
 
 function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiTexts }) {
   const firedRef = useRef(false);
-  const redirectUrl = page.redirectUrl || null;
+  // The page's own redirect, else the survey's default for this outcome
+  // (screen-out or completion); {url:NAME} and piped answers filled in.
+  const ui = window.SURVEY || {};
+  const fallback = page.kind === "disqualification" ? ui.screenOutRedirectUrl : ui.redirectUrl;
+  const redirectUrl = useMemo(() => redirectTemplate(page.redirectUrl || fallback || null, store.snapshot()), [page.redirectUrl, fallback]);
   const delayMs = (page.redirectDelay != null ? page.redirectDelay : 5) * 1000;
 
   // Record the response once when the respondent reaches a terminal page.
@@ -726,7 +741,7 @@ function App() {
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);
 
   // ─── Submission ───
-  const { phase, setPhase, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved);
+  const { phase, setPhase, closedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
@@ -944,7 +959,7 @@ function App() {
     return (
       <>
         <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
-        <div id="survey"><Header /><main id="surveyContainer" role="main"><ClosedScreen reason="closed" /></main><Footer /></div>
+        <div id="survey"><Header /><main id="surveyContainer" role="main"><ClosedScreen reason={closedReason || "closed"} redirectUrl={closedReason === "quota_full" ? redirectTemplate(ui.quotaFullRedirectUrl || null, store.snapshot()) : null} /></main><Footer /></div>
       </>
     );
   }
@@ -953,7 +968,7 @@ function App() {
     return (
       <>
         <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
-        <div id="survey"><Header /><main id="surveyContainer" role="main"><CompletedScreen surveyId={submitId} submittedAt={submittedAt} uiTexts={uiTexts} redirectUrl={ui.redirectUrl} /></main><Footer /></div>
+        <div id="survey"><Header /><main id="surveyContainer" role="main"><CompletedScreen surveyId={submitId} submittedAt={submittedAt} uiTexts={uiTexts} redirectUrl={redirectTemplate(ui.redirectUrl || null, store.snapshot())} /></main><Footer /></div>
       </>
     );
   }

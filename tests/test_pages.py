@@ -69,6 +69,20 @@ def test_schema_to_dict_carries_page_kinds():
     assert by_name["rd"]["kind"] == "redirect"
 
 
+def test_react_payload_carries_outcome_redirects():
+    ui = UIConfig(
+        redirect_url="https://panel/complete?id={url:PID}",
+        screen_out_redirect_url="https://panel/screenout?id={url:PID}",
+        quota_full_redirect_url="https://panel/quota",
+    )
+    survey = compile_react_payload(_q(), ui=ui)["SURVEY"]
+    assert survey["redirectUrl"] == "https://panel/complete?id={url:PID}"
+    assert survey["screenOutRedirectUrl"] == "https://panel/screenout?id={url:PID}"
+    assert survey["quotaFullRedirectUrl"] == "https://panel/quota"
+    default = compile_react_payload(_q(), ui=UIConfig())["SURVEY"]
+    assert default["screenOutRedirectUrl"] is None and default["quotaFullRedirectUrl"] is None
+
+
 def test_react_payload_carries_page_kinds():
     payload = compile_react_payload(_q(), ui=UIConfig())
     by_name = {p["name"]: p for p in payload["PAGES"]}

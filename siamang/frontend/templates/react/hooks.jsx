@@ -223,6 +223,9 @@ function useSurveyNav(allPages, store, visibilityEngine) {
 
 function useSubmission(store, clearSaved) {
   const [phase, setPhase] = useState("running"); // "running" | "completed" | "closed"
+  // Why the survey closed on this respondent: "quota_full" (the sample is
+  // complete) or "error" (the response could not be saved); null otherwise.
+  const [closedReason, setClosedReason] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitId, setSubmitId] = useState(null);
   const [submittedAt, setSubmittedAt] = useState(null);
@@ -240,6 +243,7 @@ function useSubmission(store, clearSaved) {
         const res = await transport.submit(store.snapshot());
         if (res && res.status === "quota_full") {
           setSubmitting(false);
+          setClosedReason("quota_full");
           setPhase("closed");
           return;
         }
@@ -260,12 +264,13 @@ function useSubmission(store, clearSaved) {
       const newAttempts = (isRetry ? submitAttempts : 0) + 1;
       setSubmitAttempts(newAttempts);
       if (newAttempts >= 3) {
+        setClosedReason(err && err.status === 409 ? "quota_full" : "error");
         setPhase("closed");
       }
     }
   }, [store, clearSaved, submitAttempts]);
 
-  return { phase, setPhase, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
+  return { phase, setPhase, closedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
 }
 
 /* ─── useKeyboardShortcuts ─────────────────────────────────────────────── */
