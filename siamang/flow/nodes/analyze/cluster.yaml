@@ -1,0 +1,45 @@
+type: analyze.cluster
+category: analyze
+title: Cluster (k-means)
+description: Segment respondents on a set of items; adds a cluster variable and returns the centroids.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+  table: Table
+  stat: Stat
+params:
+  items:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Items
+  k:
+    kind: int
+    default: 3
+    minimum: 2
+    maximum: 12
+    label: Clusters
+  into:
+    kind: string
+    default: cluster
+    creates: variable
+    label: Cluster variable
+  seed:
+    kind: int
+    default: 42
+    label: Seed
+  standardize:
+    kind: bool
+    default: true
+    label: Standardize items
+subtitle: '{k} clusters → {into}'
+template: |
+  _clusters = {in.data}.cluster({items!r}, k={k!r}, into={into!r}, seed={seed!r}, standardize={standardize!r})
+  {out.data} = _clusters.data
+  {out.table} = _clusters.centroids
+  {out.stat} = _clusters.stats
+preview: table

@@ -1,0 +1,24 @@
+type: analyze.reliability
+category: analyze
+title: Scale reliability
+description: Cronbach's alpha for a set of items, with item–total correlations and alpha if deleted.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  items:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Items
+subtitle: 'α of {items}'
+template: |
+  _scale = {in.data}.analysis.reliability({items!r})
+  {out.table} = _scale.items
+  {out.stat} = _scale.stats
+preview: table

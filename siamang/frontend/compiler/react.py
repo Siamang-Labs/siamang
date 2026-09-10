@@ -254,7 +254,10 @@ def _compile_question(question: Question) -> dict[str, Any]:
         options = _options_payload(question.var, question.choices)
         if question.none_of_above:
             # Sentinel code mirrors the runtime's "__other__" convention.
-            options = [*options, {"code": "__none__", "label": "None of the above", "noneOfAbove": True}]
+            options = [
+                *options,
+                {"code": "__none__", "label": "None of the above", "noneOfAbove": True},
+            ]
         payload = {
             **base,
             "kind": kind,
@@ -323,16 +326,14 @@ def _compile_question(question: Question) -> dict[str, Any]:
         if question.subquestions is not None:
             rows = [
                 {"id": v.name, "label": label}
-                for v, label in zip(question.var, question.subquestions)
+                for v, label in zip(question.var, question.subquestions, strict=False)
             ]
         else:
             rows = [{"id": v.name, "label": v.label or v.name} for v in question.var]
         payload = {**base, "kind": "matrix", "columns": columns, "rows": rows}
         if question.na_option:
             payload["naOption"] = (
-                question.na_option
-                if isinstance(question.na_option, str)
-                else "Not applicable"
+                question.na_option if isinstance(question.na_option, str) else "Not applicable"
             )
         return payload
     if isinstance(question, Ranking):

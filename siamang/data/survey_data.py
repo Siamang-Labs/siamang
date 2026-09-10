@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas as pd
 
@@ -12,6 +12,16 @@ from siamang.core.variable import ValidationIssue, Variable, VariableMap
 from siamang.data.analysis import DataAnalysis
 from siamang.data.processing import DataProcessing
 from siamang.data.tables import SurveyTables
+
+
+@dataclass(frozen=True, slots=True)
+class ClusterAssignment:
+    """What :meth:`SurveyData.cluster` returns: the data with the cluster
+    variable, and the centroids table."""
+
+    data: SurveyData
+    centroids: pd.DataFrame
+    stats: dict[str, float | int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -362,6 +372,45 @@ class SurveyData:
             questionnaire=self.questionnaire,
             weight=self.weight,
         )
+
+    def cluster(
+        self,
+        items: list[str],
+        *,
+        k: int = 3,
+        into: str = "cluster",
+        seed: int | None = 42,
+        standardize: bool = True,
+        label: str | None = None,
+    ) -> ClusterAssignment:
+        """k-means on ``items``: a copy of the data with the cluster number in
+        ``into`` (a nominal variable labeled "Cluster 1".."Cluster k") and the
+        centroid table (:func:`siamang.data.models.kmeans`)."""
+        from siamang.data.models import kmeans
+
+        result = kmeans(
+            self._numeric_items_frame(items),
+            items,
+            k=k,
+            seed=seed,
+            standardize=standardize,
+        )
+        frame = self.frame.copy()
+        frame[into] = result.labels.astype("Int64")
+        variables = self._variables_with(
+            Variable(
+                into,
+                "nominal",
+                label=label or f"Cluster ({', '.join(items)})",
+                labels={i: f"Cluster {i}" for i in range(1, k + 1)},
+                role="derived",
+                description=f"k-means, k={k}, on items: {', '.join(items)}",
+            )
+        )
+        data = SurveyData(
+            frame=frame, variables=variables, questionnaire=self.questionnaire, weight=self.weight
+        )
+        return ClusterAssignment(data=data, centroids=result.centroids, stats=result.stats)
 
     def _numeric_items_frame(self, items: list[str]) -> pd.DataFrame:
         missing_normalized = self.apply_missing_values() if self.variables is not None else self
