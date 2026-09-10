@@ -7,6 +7,7 @@ from typing import Any
 
 from siamang.core.variable import MissingValue, Variable, VariableMap
 from siamang.data.survey_data import SurveyData
+from siamang.io._frames import scalar_frame
 
 
 class SPSSWriter:
@@ -15,7 +16,7 @@ class SPSSWriter:
         output = Path(path)
         output.parent.mkdir(parents=True, exist_ok=True)
         pyreadstat.write_sav(
-            data.frame,
+            scalar_frame(data.frame),
             output,
             column_labels=_column_labels(data.variables),
             variable_value_labels=_value_labels(data.variables),

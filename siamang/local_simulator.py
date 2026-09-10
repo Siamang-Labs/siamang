@@ -163,14 +163,43 @@ def simulate_dataframe(
     return pd.DataFrame(rows)
 
 
-def simulate_from_pages(pages: list[Page], n: int = 100, seed: int | None = 42) -> pd.DataFrame:
-    """Simulate responses respecting page-level and question-level show_if/hide_if.
+def _answered(question: Question, row: dict[str, Any]) -> bool:
+    names = _question_variable_names(question)
+    return any(row.get(name) not in (None, [], "") for name in names)
 
-    For each simulated respondent, pages are processed in order. A page's
-    ``show_if`` expression is evaluated against the answers collected so far.
-    If the page is not shown, all variables on that page are set to NaN.
-    Similarly, individual question-level ``show_if``/``hide_if`` conditions
-    are evaluated per-question.
+
+def _route_target(page: Page, row: dict[str, Any], visible: list[Question]) -> str | None:
+    """Where "Next" lands from ``page`` — the runtime's rules, in order:
+    ``skip_to`` on the first answered visible question, the first matching
+    ``next_if`` rule, ``default_next``; ``None`` means the next page in
+    sequence."""
+    for question in visible:
+        if question.skip_to and _answered(question, row):
+            return question.skip_to
+    for condition, target in page.next_if:
+        if isinstance(condition, Expression) and _evaluate_condition(condition, row):
+            return target
+    if page.default_next is not None:
+        return page.default_next
+    return None
+
+
+def simulate_from_pages(
+    pages: list[Page], n: int = 100, seed: int | None = 42, *, routing: bool = True
+) -> pd.DataFrame:
+    """Simulate responses respecting visibility and — with ``routing`` —
+    the questionnaire's navigation.
+
+    Each simulated respondent starts on the first page and moves the way
+    the runtime would: a page's ``show_if`` / ``hide_if`` decides whether it
+    is answered (a hidden page is passed over — that is how a screen-out
+    placed mid-questionnaire stays out of the way of those who qualify),
+    a question's ``skip_to``, the page's ``next_if`` rules and
+    ``default_next`` decide where "Next" lands, and a visible terminal page
+    (screen-out, final, redirect) ends the interview. Pages never reached
+    stay missing, so a screen-out really leaves the later variables empty
+    and a branch really splits the sample. ``routing=False`` walks every
+    page in document order (the previous behavior).
     """
     if seed is not None:
         random.seed(seed)
@@ -180,37 +209,40 @@ def simulate_from_pages(pages: list[Page], n: int = 100, seed: int | None = 42) 
     for page in pages:
         for q in page.flatten_questions():
             all_var_names.extend(_question_variable_names(q))
+    by_name = {page.name: index for index, page in enumerate(pages)}
 
     rows = []
     for _ in range(n):
         row: dict[str, Any] = {name: None for name in all_var_names}
-
-        for page in pages:
-            # Evaluate page-level show_if
-            page_show = _evaluate_condition(page.show_if, row)
-            page_hide = False
-            if page.hide_if is not None:
-                page_hide = _evaluate_condition(page.hide_if, row)
-
-            page_visible = page_show and not page_hide
-
+        index = 0
+        steps = 0
+        while 0 <= index < len(pages) and steps <= 2 * len(pages):
+            steps += 1
+            page = pages[index]
+            page_visible = _evaluate_condition(page.show_if, row) and not (
+                page.hide_if is not None and _evaluate_condition(page.hide_if, row)
+            )
+            visible: list[Question] = []
             for q in page.flatten_questions():
-                if not page_visible:
-                    # Page is hidden → all questions on it produce NaN
-                    _set_question_missing(q, row)
-                    continue
-
-                # Evaluate question-level show_if/hide_if
-                q_show = _evaluate_condition(q.show_if, row)
-                q_hide = False
-                if q.hide_if is not None:
-                    q_hide = _evaluate_condition(q.hide_if, row)
-
-                if q_show and not q_hide:
+                q_visible = (
+                    page_visible
+                    and _evaluate_condition(q.show_if, row)
+                    and not (q.hide_if is not None and _evaluate_condition(q.hide_if, row))
+                )
+                if q_visible:
                     _simulate_question_into_row(q, row)
+                    visible.append(q)
                 else:
                     _set_question_missing(q, row)
-
+            if not routing:
+                index += 1
+                continue
+            if page_visible and page.is_terminal:
+                break
+            target = _route_target(page, row, visible) if page_visible else None
+            # Like the runtime: a routed target, else the next page in order
+            # (a hidden page is passed over, a visible terminal page ends it).
+            index = by_name[target] if target is not None and target in by_name else index + 1
         rows.append(row)
 
     return pd.DataFrame(rows)

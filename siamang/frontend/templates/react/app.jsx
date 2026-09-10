@@ -505,11 +505,11 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
   return (
     <div className="sd-page">
       {page.section ? <div className="sd-page__eyebrow">{page.section}</div> : null}
-      {page.title ? <h2 className="sd-page__title">{page.title}</h2> : null}
-      {page.description ? <p className="sd-page__description">{page.description}</p> : null}
+      {page.title ? <h2 className="sd-page__title">{processPipedText(page.title, answers)}</h2> : null}
+      {page.description ? <p className="sd-page__description">{processPipedText(page.description, answers)}</p> : null}
 
       {page.kind === "content"
-        ? <div className="sd-page__html" dangerouslySetInnerHTML={{ __html: page.body || "" }} />
+        ? <div className="sd-page__html" dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body || "", answers) }} />
         : page.blocks
         ? page.blocks
             .filter((b) => visibilityEngine.isBlockVisible(b, answers))

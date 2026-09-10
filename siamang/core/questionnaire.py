@@ -328,6 +328,7 @@ class Questionnaire:
         warnings.extend(_condition_value_warnings(self))
         warnings.extend(_contradictory_visibility_warnings(self))
         warnings.extend(_codebook_warnings(self))
+        warnings.extend(_piping_warnings(self))
         if level == "strict":
             warnings.extend(_strict_question_warnings(self.all_questions()))
             if self.variables is not None:
@@ -584,6 +585,96 @@ def _contradictory_visibility_warnings(survey: Questionnaire) -> list[LintWarnin
                 ),
             )
         )
+    return warnings
+
+
+_PIPE_RE = re.compile(r"\{(answer|var|label):([A-Za-z0-9_]+)\}")
+
+
+def _piping_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """Piped text — ``{answer:var}``, ``{label:var}`` in a question's text,
+    hint or a page's title / body — must name a variable that exists and is
+    answered on an earlier page (or earlier on the same page); otherwise the
+    respondent sees the placeholder itself."""
+
+    warnings: list[LintWarning] = []
+    known = set(survey.variables.keys()) if survey.variables else set()
+    seen: set[str] = set()
+    pages = survey.pages or []
+    if not pages:
+        for question in survey.all_questions():
+            known.update(var.name for var in _question_variables(question))
+        pages_items: list[tuple[str, list[tuple[str, str | None]], list[Question]]] = [
+            ("questionnaire", [], survey.all_questions())
+        ]
+    else:
+        for question in survey.all_questions():
+            known.update(var.name for var in _question_variables(question))
+        pages_items = [
+            (
+                page.name,
+                [(page.title or "", "title"), (page.body or "", "body")],
+                page.flatten_questions(),
+            )
+            for page in pages
+        ]
+    for location, texts, questions in pages_items:
+        for text, _what in texts:
+            for kind, name in _PIPE_RE.findall(text or ""):
+                if name not in known:
+                    warnings.append(
+                        LintWarning(
+                            code="PIPE_UNKNOWN_VARIABLE",
+                            severity="warning",
+                            message=(
+                                f"Page '{location}' pipes {{{kind}:{name}}}, but no variable "
+                                f"'{name}' exists; the respondent will see the placeholder."
+                            ),
+                            location=location,
+                        )
+                    )
+                elif name not in seen:
+                    warnings.append(
+                        LintWarning(
+                            code="PIPE_FORWARD_REFERENCE",
+                            severity="warning",
+                            message=(
+                                f"Page '{location}' pipes {{{kind}:{name}}} before '{name}' is "
+                                "answered; it stays empty on this page."
+                            ),
+                            location=location,
+                        )
+                    )
+        for question in questions:
+            question_id = question_fallback_id(question)
+            for field_text in (question.text or "", question.hint or ""):
+                for kind, name in _PIPE_RE.findall(field_text):
+                    if name not in known:
+                        warnings.append(
+                            LintWarning(
+                                code="PIPE_UNKNOWN_VARIABLE",
+                                severity="warning",
+                                message=(
+                                    f"Question '{question_id}' pipes {{{kind}:{name}}}, but no "
+                                    f"variable '{name}' exists; the respondent will see the "
+                                    "placeholder."
+                                ),
+                                location=question_id,
+                            )
+                        )
+                    elif name not in seen:
+                        warnings.append(
+                            LintWarning(
+                                code="PIPE_FORWARD_REFERENCE",
+                                severity="warning",
+                                message=(
+                                    f"Question '{question_id}' pipes {{{kind}:{name}}} before "
+                                    f"'{name}' is answered; it stays empty there."
+                                ),
+                                location=question_id,
+                            )
+                        )
+            seen.update(var.name for var in _question_variables(question))
     return warnings
 
 

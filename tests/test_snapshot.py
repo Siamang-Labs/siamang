@@ -156,3 +156,23 @@ def test_reader_router_reads_parquet(tmp_path):
     write_snapshot(_data(), tmp_path / "r.parquet", dictionary=False)
     loaded = SurveyDataReader().read(tmp_path / "r.parquet")
     assert len(loaded.frame) == 4 and loaded.variables is None
+
+
+def test_sav_and_dta_store_list_answers_next_to_missing_ones(tmp_path):
+    """A multiple-choice list and a ranking mixed with respondents who never
+    saw the question (routing) still write: lists become ';'-joined codes."""
+    import pandas as pd
+
+    from siamang.data import SurveyData
+    from siamang.io import read_snapshot, write_snapshot
+
+    frame = pd.DataFrame(
+        {"age": [20, 31, 44], "manage": [[1, 3], None, [2]], "rank": [[2, 1], [1], None]}
+    )
+    for suffix in (".sav", ".dta"):
+        path = write_snapshot(SurveyData(frame=frame), tmp_path / f"s{suffix}", dictionary=False)
+        back = read_snapshot(path).frame
+        assert back["manage"].tolist()[0] == "1;3" and back["rank"].tolist()[1] == "1"
+        # A missing string reads back as NaN or "" depending on the format.
+        gap = back["manage"].tolist()[1]
+        assert gap == "" or pd.isna(gap)
