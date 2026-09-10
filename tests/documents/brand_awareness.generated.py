@@ -136,6 +136,7 @@ page_screener = sg.Page(
     title="About you",
     items=[q_age, q_region, q_gender],
     next_if=[(age.lt(18), "screen_out")],
+    default_next="awareness",
 )
 
 # studio: page screen_out

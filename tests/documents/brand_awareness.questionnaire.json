@@ -235,7 +235,8 @@
           },
           "target": "screen_out"
         }
-      ]
+      ],
+      "default_next": "awareness"
     },
     {
       "name": "screen_out",

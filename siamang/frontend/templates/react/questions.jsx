@@ -73,23 +73,68 @@ function MediaGallery({ media }) {
   );
 }
 
+/* Piping: {answer:x} / {var:x} insert the raw answer to variable x,
+   {label:x} the label of the chosen option(s) (falls back to the raw
+   value for questions without options). Unanswered → the placeholder
+   stays, so an author sees at once what is missing. */
+let _pipeLabelIndex = null;
+function pipeLabelIndex() {
+  if (_pipeLabelIndex) return _pipeLabelIndex;
+  const index = {};
+  const survey = (typeof window !== "undefined" && window.SURVEY) || {};
+  const visit = (items) => {
+    for (const q of items || []) {
+      if (!q) continue;
+      if (Array.isArray(q.options) && q.id) {
+        const map = {};
+        for (const o of q.options) if (o && o.code !== undefined) map[String(o.code)] = o.label;
+        index[q.id] = map;
+      }
+      if (Array.isArray(q.columns) && Array.isArray(q.rows)) {
+        // Matrix: each row is its own variable; columns carry the labels.
+        for (const r of q.rows) if (r && r.id) index[r.id] = Object.fromEntries((q.columns || []).map((c, i) => [String(c && c.code !== undefined ? c.code : i + 1), c && c.label !== undefined ? c.label : String(c)]));
+      }
+    }
+  };
+  for (const p of survey.pages || []) {
+    visit(p.items);
+    for (const b of p.blocks || []) visit(b.items);
+  }
+  _pipeLabelIndex = index;
+  return index;
+}
+function pipeValue(type, key, answers) {
+  let val = answers[key];
+  if (val && typeof val === "object" && !Array.isArray(val) && "code" in val) val = val.text && val.code === "__other__" ? val.text : val.code;
+  if (val === null || val === undefined || val === "") return null;
+  if (type === "label") {
+    const labels = pipeLabelIndex()[key];
+    const one = (v) => (labels && labels[String(v)] !== undefined ? String(labels[String(v)]) : String(v));
+    return Array.isArray(val) ? val.map(one).join(", ") : one(val);
+  }
+  return Array.isArray(val) ? val.join(", ") : String(val);
+}
 function processPipedText(text, answers) {
   if (!text || typeof text !== 'string' || !answers) return text;
   return text.replace(/\{(answer|label|var):([a-zA-Z0-9_]+)\}/g, (match, type, key) => {
-    if (type === 'answer' || type === 'var') {
-      const val = answers[key];
-      return val !== null && val !== undefined ? String(val) : match;
-    }
-    if (type === 'label') {
-      const val = answers[key];
-      return val !== null && val !== undefined ? String(val) : match;
-    }
-    return match;
+    const piped = pipeValue(type, key, answers);
+    return piped === null ? match : piped;
+  });
+}
+/* The same for HTML bodies: piped values are escaped so an answer can never
+   inject markup into the page. */
+function processPipedHtml(html, answers) {
+  if (!html || typeof html !== 'string' || !answers) return html;
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return html.replace(/\{(answer|label|var):([a-zA-Z0-9_]+)\}/g, (match, type, key) => {
+    const piped = pipeValue(type, key, answers);
+    return piped === null ? match : esc(piped);
   });
 }
 
 function QuestionShell({ num, title, required, description, error, children, onBlur, answers, media }) {
   const processedTitle = processPipedText(title, answers);
+  const processedDescription = processPipedText(description, answers);
   return (
     <div className={"sd-question" + (error ? " has-error" : "")} onBlur={onBlur}>
       <div className="sd-question__header">
@@ -98,7 +143,7 @@ function QuestionShell({ num, title, required, description, error, children, onB
           <span>{processedTitle}</span>
           {required ? <span className="sd-question__required-text" aria-hidden="true">*</span> : null}
         </h3>
-        {description ? <p className="sd-question__description">{description}</p> : null}
+        {processedDescription ? <p className="sd-question__description">{processedDescription}</p> : null}
         <MediaGallery media={media} />
       </div>
       {children}
@@ -816,4 +861,4 @@ const Question = React.memo(_QuestionDispatcher, (prev, next) => {
   return true;
 });
 
-Object.assign(window, { Question, QuestionShell });
+Object.assign(window, { Question, QuestionShell, processPipedText, processPipedHtml });

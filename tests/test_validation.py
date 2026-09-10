@@ -16,6 +16,7 @@ from siamang.core import (
     Matrix,
     MissingValue,
     MultiChoice,
+    OpenText,
     Option,
     Page,
     Questionnaire,
@@ -380,3 +381,35 @@ def test_a_page_with_neither_items_nor_body_is_still_empty():
         pages=[Page("blank"), Page("q", items=[SingleChoice("News?", _news())])],
     )
     assert "EMPTY_PAGE" in _codes(survey.lint())
+
+
+# ── Piping ────────────────────────────────────────────────────────────────────
+
+
+def test_lint_flags_piped_text_that_names_unknown_or_later_variables():
+    name = Variable("name", "nominal", label="Name")
+    color = Variable("color", "nominal", labels={1: "Red", 2: "Blue"})
+    first = Page("first", items=[OpenText("Your name?", var=name)])
+    second = Page(
+        "second",
+        title="Thanks, {answer:name}",
+        items=[
+            SingleChoice(
+                "{answer:name}, favorite color?",
+                var=color,
+                choices=[Option(1, "Red"), Option(2, "Blue")],
+                hint="You said {label:color} — before answering this, that is a forward reference",
+            ),
+            OpenText("Why {label:color}? And {answer:nickname}?", var=Variable("why", "nominal")),
+        ],
+    )
+    findings = Questionnaire(title="T", pages=[first, second]).lint()
+    codes = _codes(findings)
+    assert "PIPE_UNKNOWN_VARIABLE" in codes and "PIPE_FORWARD_REFERENCE" in codes
+    unknown = [f for f in findings if f.code == "PIPE_UNKNOWN_VARIABLE"]
+    assert len(unknown) == 1 and "{answer:nickname}" in unknown[0].message
+    forward = [f for f in findings if f.code == "PIPE_FORWARD_REFERENCE"]
+    # The hint pipes color before color is answered; the next question may use it.
+    assert len(forward) == 1 and "{label:color}" in forward[0].message
+    # A page title piping an earlier answer is fine.
+    assert all("{answer:name}" not in f.message for f in findings)
