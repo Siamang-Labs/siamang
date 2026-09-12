@@ -622,6 +622,9 @@
             },
             "seed": {
               "type": "string"
+            },
+            "balance": {
+              "type": "boolean"
             }
           },
           "required": [

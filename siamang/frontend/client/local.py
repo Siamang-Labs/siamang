@@ -16,6 +16,7 @@ class LocalClientTemplate(BackendClientTemplate):
             "survey_id": env.survey_id,
             "endpoint": env.settings.get("endpoint", "/responses"),
             "quota_endpoint": env.settings.get("quota_endpoint", "/quota-check"),
+            "quota_pick_endpoint": env.settings.get("quota_pick_endpoint", "/quota-pick"),
         }
         return _TEMPLATE.replace("__ENV__", json.dumps(env_payload, ensure_ascii=False))
 
@@ -43,6 +44,16 @@ window.SIAMANG_TRANSPORTS.local = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ survey_id: env.survey_id, variable: variable, value: value }),
+    });
+    if (!res.ok) return { ok: false };
+    return await res.json();
+  },
+  async pickQuota(variable, values) {
+    const env = window.SIAMANG_ENV;
+    const res = await fetch(env.quota_pick_endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ survey_id: env.survey_id, variable: variable, values: values }),
     });
     if (!res.ok) return { ok: false };
     return await res.json();

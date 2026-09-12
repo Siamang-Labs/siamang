@@ -137,6 +137,7 @@ class Script:
         variable: str,
         arms: Sequence[tuple[int | str, str] | tuple[int | str, str, int]],
         seed: str | None = None,
+        balance: bool = False,
     ) -> Script:
         """Factory: draw each respondent into one experimental arm.
 
@@ -152,6 +153,16 @@ class Script:
             seed: draw deterministically. With a seed the same respondent id
                 always lands in the same arm, which is what makes a fielded
                 assignment reproducible from the generated ``.py``.
+            balance: keep the arms level against the live quota counters
+                instead of trusting the draw. Each respondent is sent to the
+                arm furthest behind its own quota target, which is what stops
+                one arm completing while another starves — an independent
+                draw drifts, and differential screen-out pulls the arms apart
+                much faster than drift does. Needs a quota cell per arm on
+                ``variable``; the draw above stays as the fallback, so a
+                missing quota or an unreachable backend costs balance, not a
+                session. Not compatible with a reproducible ``seed``: the
+                assignment then depends on who answered first.
 
         Example:
             Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])
@@ -176,10 +187,29 @@ class Script:
         codes = [str(code) for code, _, _ in prepared]
         if len(set(codes)) != len(codes):
             raise ValueError("Arm codes must be distinct: they are what lands in the data.")
+        if balance and seed is not None:
+            raise ValueError(
+                "A balanced assignment cannot also be seeded: the arm depends on "
+                "who answered before, so it is not reproducible from the seed. "
+                "Drop the seed, or drop balance=True."
+            )
 
         var = json.dumps(variable)
         weights = json.dumps([weight for _, _, weight in prepared])
         values = json.dumps([code for code, _, _ in prepared])
+        # The local draw above has already written an arm, so the respondent is
+        # never left without one. This only replaces it when the backend can say
+        # which arm is furthest behind its quota; the runtime holds the first
+        # page while it answers, and gives up after its own timeout.
+        balance_js = (
+            """
+                const balanced = await api.pickQuota(variable, values);
+                if (balanced !== undefined && balanced !== null) {
+                    answers[variable] = balanced;
+                }"""
+            if balance
+            else ""
+        )
         # Deterministic when seeded: a 32-bit FNV-1a hash of "<seed>:<respondent>"
         # feeds a mulberry32 draw, so the same respondent always lands in the
         # same arm on a re-run and the assignment is reproducible from the .py.
@@ -213,7 +243,7 @@ class Script:
                     cut -= weights[i];
                     if (cut < 0) {{ chosen = values[i]; break; }}
                 }}
-                answers[variable] = chosen;
+                answers[variable] = chosen;{balance_js}
             }}
         """
         context: dict[str, Any] = {
@@ -222,6 +252,8 @@ class Script:
         }
         if seed is not None:
             context["seed"] = seed
+        if balance:
+            context["balance"] = True
         return cls(
             name=f"assign_{variable}",
             trigger="onInit",
