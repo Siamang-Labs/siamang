@@ -276,6 +276,30 @@ DEFS: dict[str, Any] = {
             },
             {
                 "type": "object",
+                "properties": {
+                    "type": {"const": "assign_condition"},
+                    "variable": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+                    "arms": {
+                        "type": "array",
+                        "minItems": 2,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {"type": ["integer", "string"]},
+                                "label": NONEMPTY,
+                                "weight": {"type": "integer", "minimum": 1},
+                            },
+                            "required": ["code", "label"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    "seed": STRING,
+                },
+                "required": ["type", "variable", "arms"],
+                "additionalProperties": False,
+            },
+            {
+                "type": "object",
                 "properties": {"type": {"const": "randomize_pages"}},
                 "required": ["type"],
                 "additionalProperties": False,

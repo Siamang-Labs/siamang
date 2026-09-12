@@ -294,6 +294,57 @@ def test_hand_edited_factory_script_is_custom():
     assert script_from_document(script_to_document(script)) == script
 
 
+def test_assign_condition_round_trips_and_rejects_bad_arms():
+    payload = {
+        "type": "assign_condition",
+        "variable": "condition",
+        "arms": [
+            {"code": 1, "label": "Control", "weight": 2},
+            {"code": 2, "label": "Treatment"},
+            {"code": 3, "label": "Treatment B"},
+        ],
+        "seed": "study26",
+    }
+    script = script_from_document(payload)
+    assert script.trigger == "onInit" and script.name == "assign_condition"
+    # Weight 1 is the default and is not written back, so the document a
+    # builder saves is the document it reads.
+    assert script_to_document(script) == payload
+
+    # An edited factory script degrades to custom rather than claiming to be
+    # an assignment it no longer matches.
+    edited = Script(
+        code=script.code + "\n// tweaked",
+        trigger=script.trigger,
+        name=script.name,
+        context=script.context,
+    )
+    assert script_to_document(edited)["type"] == "custom"
+
+    for arms, why in [
+        ([(1, "Only")], "one arm"),
+        ([(1, "A"), (1, "B")], "duplicate codes"),
+        ([(1, ""), (2, "B")], "empty label"),
+        ([(1, "A", 0), (2, "B")], "zero weight"),
+    ]:
+        with pytest.raises(ValueError):
+            Script.assign_condition("condition", arms), why
+    with pytest.raises(ValueError):
+        Script.assign_condition("1bad", [(1, "A"), (2, "B")])
+
+
+def test_assign_condition_draws_the_declared_shares():
+    # The arm is drawn in the browser, so the behavior that matters lives in
+    # the emitted JavaScript. Check the shape the runtime relies on: the
+    # parameters are recoverable from context, and the code only touches
+    # `answers[variable]` when it is still unset (a resumed respondent keeps
+    # the arm they were already given).
+    script = Script.assign_condition("arm", [(1, "A", 3), (2, "B")], seed="s")
+    assert script.context == {"variable": "arm", "arms": [[1, "A", 3], [2, "B", 1]], "seed": "s"}
+    assert "answers[variable] === undefined" in script.code
+    assert "[3, 1]" in script.code and "[1, 2]" in script.code
+
+
 def test_shorthand_codebook_forms_are_accepted():
     document = {
         "schema_version": SCHEMA_VERSION,

@@ -525,6 +525,23 @@ class _Generator:
 
     def _script(self, payload: dict[str, Any]) -> Node:
         kind = payload["type"]
+        if kind == "assign_condition":
+            # Arms are (code, label) or (code, label, weight) tuples: the same
+            # shape the factory takes, so the generated call reads as the
+            # researcher would write it by hand.
+            arms = List(
+                tuple(
+                    Tuple(
+                        (literal(arm["code"]), literal(arm["label"]))
+                        + ((literal(int(arm["weight"])),) if arm.get("weight", 1) != 1 else ())
+                    )
+                    for arm in payload["arms"]
+                )
+            )
+            kwargs = (
+                (("seed", literal(payload["seed"])),) if payload.get("seed") is not None else ()
+            )
+            return Call("sg.Script.assign_condition", (literal(payload["variable"]), arms), kwargs)
         if kind == "randomize_options":
             kwargs = (
                 (("seed", literal(payload["seed"])),) if payload.get("seed") is not None else ()

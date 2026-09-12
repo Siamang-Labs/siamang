@@ -132,6 +132,48 @@ def test_kitchen_sink_code_shape(tmp_path):
     assert module.survey.variables["unused"].label == "Registered but not asked"
 
 
+def test_assign_condition_generates_a_readable_call_and_survives_the_round_trip(tmp_path):
+    document = {
+        "schema_version": "1.0",
+        "title": "Split ballot",
+        "variables": {
+            "q1": {"scale": "nominal"},
+            "condition": {
+                "scale": "nominal",
+                "role": "grouping",
+                "labels": [
+                    {"code": 1, "label": "Control"},
+                    {"code": 2, "label": "Treatment"},
+                ],
+            },
+        },
+        "pages": [
+            {"name": "p1", "items": [{"type": "OpenText", "id": "q1", "var": "q1", "text": "Why?"}]}
+        ],
+        "scripts": [
+            {
+                "type": "assign_condition",
+                "variable": "condition",
+                "arms": [
+                    {"code": 1, "label": "Control", "weight": 2},
+                    {"code": 2, "label": "Treatment"},
+                ],
+                "seed": "study26",
+            }
+        ],
+        # A quota on the assigned variable is how an arm is kept balanced.
+        "quotas": [{"variable": "condition", "target_value": 1, "limit": 200}],
+    }
+    source = generate_questionnaire(document, header="Test.")
+    assert "sg.Script.assign_condition(" in source
+    assert '[(1, "Control", 2), (2, "Treatment")]' in source
+    assert 'seed="study26"' in source
+    assert 'Quota("condition", 1, 200)' in source
+
+    module = _exec(source, tmp_path)
+    assert to_document(module.survey)["scripts"] == document["scripts"]
+
+
 def test_multiline_custom_script_and_identifier_clashes(tmp_path):
     document = {
         "schema_version": "1.0",
