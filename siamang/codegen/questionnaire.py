@@ -538,9 +538,11 @@ class _Generator:
                     for arm in payload["arms"]
                 )
             )
-            kwargs = (
+            kwargs: tuple[tuple[str, Node], ...] = (
                 (("seed", literal(payload["seed"])),) if payload.get("seed") is not None else ()
             )
+            if payload.get("balance"):
+                kwargs += (("balance", literal(True)),)
             return Call("sg.Script.assign_condition", (literal(payload["variable"]), arms), kwargs)
         if kind == "randomize_options":
             kwargs = (

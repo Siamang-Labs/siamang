@@ -203,6 +203,12 @@ class TestRuntimeBundleMarkers:
             "onQuestionShow",
             "onRandomize",
             "siamangNext",
+            # Balanced condition assignment: the async script path, the
+            # transport call it awaits, and the guard that keeps the late
+            # write-back from re-applying keys the script never touched.
+            "AsyncFunction",
+            "pickQuota",
+            "_differs",
         ):
             assert marker in bundle, f"bundle is stale: missing {marker}"
 

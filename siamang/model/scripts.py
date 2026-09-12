@@ -68,7 +68,12 @@ def script_from_document(payload: dict[str, Any]) -> Script:
         )
     if kind == "assign_condition":
         arms = [(arm["code"], arm["label"], int(arm.get("weight", 1))) for arm in payload["arms"]]
-        return Script.assign_condition(payload["variable"], arms, seed=payload.get("seed"))
+        return Script.assign_condition(
+            payload["variable"],
+            arms,
+            seed=payload.get("seed"),
+            balance=bool(payload.get("balance", False)),
+        )
     if kind == "randomize_options":
         return Script.randomize_options(payload["question"], seed=payload.get("seed"))
     if kind == "randomize_pages":
@@ -119,7 +124,8 @@ def _as_assign_condition(script: Script) -> dict[str, Any] | None:
     except (IndexError, TypeError, ValueError):
         return None
     seed = context.get("seed")
-    if script != Script.assign_condition(variable, arms, seed=seed):
+    balance = bool(context.get("balance", False))
+    if script != Script.assign_condition(variable, arms, seed=seed, balance=balance):
         return None
     payload: dict[str, Any] = {
         "type": "assign_condition",
@@ -131,6 +137,8 @@ def _as_assign_condition(script: Script) -> dict[str, Any] | None:
     }
     if seed is not None:
         payload["seed"] = seed
+    if balance:
+        payload["balance"] = True
     return payload
 
 

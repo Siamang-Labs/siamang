@@ -184,6 +184,15 @@ function applyRandomization(pages) {
 
 /* ─── ScriptRunner ──────────────────────────────────────────────────── */
 
+// `new Function` compiles a sync body; scripts need `await`, and the async
+// constructor is not a global.
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+// How long the first page waits on an awaiting onInit script before showing
+// anyway. The script has already written its offline fallback, so a slow or
+// dead backend costs a moment and a little balance, never the session.
+const INIT_AWAIT_TIMEOUT_MS = 2000;
+
 const ScriptRunner = {
   _utils: {
     shuffle: (arr) => {
@@ -214,11 +223,47 @@ const ScriptRunner = {
         })).json();
       } catch (e) { return null; }
     },
+    // Which of `values` is the least-full open quota cell of `variable`, as
+    // the backend sees it across every respondent so far. The URL and its
+    // credentials differ per backend, so this goes through the transport
+    // rather than being built here. Returns null whenever there is no usable
+    // answer — no transport (offline preview, static export), no quota on
+    // this variable, or every cell full — and the caller keeps its own draw.
+    pickQuota: async (variable, values) => {
+      const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
+      const transport = (window.SIAMANG_TRANSPORTS || window.SURVLIB_TRANSPORTS || {})[env.transport];
+      if (!transport || typeof transport.pickQuota !== "function") return null;
+      try {
+        const res = await transport.pickQuota(variable, values);
+        if (!res || res.ok === false || res.value === undefined || res.value === null) return null;
+        return res.value;
+      } catch (e) { return null; }
+    },
   },
 
   // Set once by App; lets script writes into `answers` flow back into the
   // reactive store (scripts receive a mutable working copy, see below).
   _store: null,
+
+  /** One-level-deep copy, so a script mutating a nested object is visible. */
+  _copy(src) {
+    const out = { ...src };
+    for (const k of Object.keys(out)) {
+      const v = out[k];
+      if (Array.isArray(v)) out[k] = [...v];
+      else if (v && typeof v === "object") out[k] = { ...v };
+    }
+    return out;
+  },
+
+  _differs(a, b) {
+    if (a === b) return false;
+    if (a && typeof a === "object" && b && typeof b === "object") {
+      try { return JSON.stringify(a) !== JSON.stringify(b); }
+      catch (e) { return true; /* unserializable (e.g. timer handles) */ }
+    }
+    return true;
+  },
 
   run(trigger, answers, context = {}, target = null) {
     const scripts = (window.SURVEY && window.SURVEY.scripts) || [];
@@ -240,43 +285,56 @@ const ScriptRunner = {
     let base = null;
     if (store) {
       base = store.snapshot();
-      work = { ...base };
-      for (const k of Object.keys(work)) {
-        const v = work[k];
-        if (Array.isArray(v)) work[k] = [...v];
-        else if (v && typeof v === "object") work[k] = { ...v };
-      }
+      work = ScriptRunner._copy(base);
     }
 
+    // Scripts are compiled as async functions so a body may `await` (a
+    // balanced assignment asks the backend which arm is furthest behind).
+    // Everything before the first `await` still runs synchronously inside
+    // this call, so a script that never awaits behaves exactly as before.
+    const pending = [];
     for (const script of matching) {
       try {
-        const fn = new Function("answers", "utils", "api", "context", script.code);
-        fn(work, ScriptRunner._utils, ScriptRunner._api, { ...script.context, ...context });
+        const fn = new AsyncFunction("answers", "utils", "api", "context", script.code);
+        const result = fn(work, ScriptRunner._utils, ScriptRunner._api, { ...script.context, ...context });
+        if (result && typeof result.then === "function") {
+          pending.push(result.catch((err) => {
+            console.warn(`siamang Script error [${script.name || script.trigger}]:`, err);
+          }));
+        }
       } catch (err) {
         console.warn(`siamang Script error [${script.name || script.trigger}]:`, err);
       }
     }
 
-    if (store && base) {
+    // Sync writes land now, exactly as before. Anything a script writes after
+    // an await lands in a second pass — but only the keys it actually touched
+    // after the first pass: `work` is a copy taken before the scripts ran, so
+    // blindly re-applying all of it would undo whatever else wrote to the
+    // store while we were awaiting (the onRandomize run that follows onInit
+    // reorders `__pages__`, for one).
+    const flush = (since) => {
+      if (!store || !base) return;
+      const now = store.snapshot();
       const updates = {};
       for (const k of Object.keys(work)) {
-        const nv = work[k];
-        const ov = base[k];
-        if (nv === ov) continue;
-        if (nv && typeof nv === "object" && ov && typeof ov === "object") {
-          try {
-            if (JSON.stringify(nv) === JSON.stringify(ov)) continue;
-          } catch (e) { /* unserialisable (e.g. timer handles) — treat as changed */ }
-        }
-        updates[k] = nv;
+        if (since && !ScriptRunner._differs(work[k], since[k])) continue;
+        if (!ScriptRunner._differs(work[k], now[k])) continue;
+        updates[k] = work[k];
       }
       if (Object.keys(updates).length) store.setMany(updates);
-    }
+    };
+    flush(null);
+    if (!pending.length) return null;
+    // Taken synchronously: an awaiting script is suspended at its first
+    // `await`, so nothing has resumed yet.
+    const afterSync = ScriptRunner._copy(work);
+    return Promise.all(pending).then(() => flush(afterSync));
   },
 
   runForQuestion(questionId, answers) { ScriptRunner.run("onQuestionShow", answers, {}, questionId); },
   runForPage(pageName, answers) { ScriptRunner.run("onPageEnter", answers, {}, pageName); },
-  runOnInit(answers) { ScriptRunner.run("onInit", answers); },
+  runOnInit(answers) { return ScriptRunner.run("onInit", answers); },
   runOnSubmit(answers) { ScriptRunner.run("onSubmit", answers); },
 };
 
@@ -757,16 +815,34 @@ function App() {
 
   // ─── Initializing ───
   const [initializing, setInitializing] = useState(true);
-  useEffect(() => { setInitializing(false); }, []);
+  const initRanRef = useRef(false);
   useEffect(() => {
-    if (!initializing && nav.pages.length > 0) {
-      ScriptRunner.runOnInit(store.snapshot());
-      // Author-declared randomization ran at load; onInit scripts (e.g.
-      // randomize_pages) may also have shuffled state. Fire onRandomize
-      // so scripts can react to the final randomized state.
-      ScriptRunner.run("onRandomize", store.snapshot());
-    }
-  }, [initializing]);
+    if (!initializing || initRanRef.current) return;
+    // Nothing to initialize against yet (or ever): drop the skeleton rather
+    // than hold an empty questionnaire behind it.
+    if (nav.pages.length === 0) { setInitializing(false); return; }
+    initRanRef.current = true;
+    const pending = ScriptRunner.runOnInit(store.snapshot());
+    // Author-declared randomization ran at load; onInit scripts (e.g.
+    // randomize_pages) may also have shuffled state. Fire onRandomize
+    // so scripts can react to the final randomized state.
+    ScriptRunner.run("onRandomize", store.snapshot());
+    if (!pending) { setInitializing(false); return; }
+    // An onInit script is still waiting on the backend — a balanced
+    // assignment asking which arm is furthest behind. The respondent must not
+    // see page 1 assigned one way and then watch it change, so the skeleton
+    // stays up; the timeout guarantees it comes down regardless.
+    let settled = false;
+    let timer = null;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      if (timer !== null) clearTimeout(timer);
+      setInitializing(false);
+    };
+    timer = setTimeout(finish, INIT_AWAIT_TIMEOUT_MS);
+    pending.then(finish, finish);
+  }, [initializing, nav.pages.length]);
 
   // ─── onPageEnter / onQuestionShow lifecycle triggers ───
   const currentPageName = nav.currentPage ? nav.currentPage.name : null;
@@ -1045,7 +1121,7 @@ function App() {
             </div>
           )}
           <div className={nav.transitionDir ? "siamang-page-enter" : ""}>
-            {nav.currentPage ? (
+            {nav.currentPage && !initializing ? (
               <ErrorBoundary>
                 <SurveyPage
                   page={nav.currentPage}

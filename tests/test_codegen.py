@@ -174,6 +174,45 @@ def test_assign_condition_generates_a_readable_call_and_survives_the_round_trip(
     assert to_document(module.survey)["scripts"] == document["scripts"]
 
 
+def test_balanced_assignment_survives_the_round_trip(tmp_path):
+    # balance=True has to reach the generated .py, or re-opening a fielded
+    # study would quietly go back to an unbalanced draw.
+    document = {
+        "schema_version": "1.0",
+        "title": "Split ballot",
+        "variables": {
+            "q1": {"scale": "nominal"},
+            "condition": {
+                "scale": "nominal",
+                "role": "grouping",
+                "labels": [
+                    {"code": 1, "label": "Control"},
+                    {"code": 2, "label": "Treatment"},
+                ],
+            },
+        },
+        "pages": [
+            {"name": "p1", "items": [{"type": "OpenText", "id": "q1", "var": "q1", "text": "Why?"}]}
+        ],
+        "scripts": [
+            {
+                "type": "assign_condition",
+                "variable": "condition",
+                "arms": [{"code": 1, "label": "Control"}, {"code": 2, "label": "Treatment"}],
+                "balance": True,
+            }
+        ],
+        "quotas": [
+            {"variable": "condition", "target_value": 1, "limit": 250},
+            {"variable": "condition", "target_value": 2, "limit": 250},
+        ],
+    }
+    source = generate_questionnaire(document, header="Test.")
+    assert "balance=True" in source
+    module = _exec(source, tmp_path)
+    assert to_document(module.survey)["scripts"] == document["scripts"]
+
+
 def test_multiline_custom_script_and_identifier_clashes(tmp_path):
     document = {
         "schema_version": "1.0",

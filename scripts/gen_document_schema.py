@@ -294,6 +294,7 @@ DEFS: dict[str, Any] = {
                         },
                     },
                     "seed": STRING,
+                    "balance": {"type": "boolean"},
                 },
                 "required": ["type", "variable", "arms"],
                 "additionalProperties": False,

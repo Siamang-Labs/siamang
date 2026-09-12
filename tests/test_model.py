@@ -345,6 +345,37 @@ def test_assign_condition_draws_the_declared_shares():
     assert "[3, 1]" in script.code and "[1, 2]" in script.code
 
 
+def test_balanced_assignment_round_trips_and_refuses_a_seed():
+    # Balance is what stops one arm completing while another starves: the
+    # respondent is sent to the arm furthest behind its quota instead of being
+    # drawn independently. It is a different script from the unbalanced one,
+    # so the round trip has to carry the flag or the builder would silently
+    # turn balancing off on the next save.
+    payload = {
+        "type": "assign_condition",
+        "variable": "condition",
+        "arms": [{"code": 1, "label": "Control"}, {"code": 2, "label": "Treatment"}],
+        "balance": True,
+    }
+    script = script_from_document(payload)
+    assert script_to_document(script) == payload
+    assert script.context["balance"] is True
+    # The local draw stays as the fallback and the backend call is awaited
+    # after it, so a respondent always has an arm even offline.
+    assert "answers[variable] = chosen;" in script.code
+    assert "await api.pickQuota(variable, values)" in script.code
+
+    plain = script_from_document({k: v for k, v in payload.items() if k != "balance"})
+    assert "await" not in plain.code
+    assert script_to_document(plain).get("balance") is None
+    assert plain != script
+
+    # A balanced arm depends on who answered first, so it cannot also be
+    # reproducible from a seed — saying both would be a lie about one of them.
+    with pytest.raises(ValueError, match="seed"):
+        Script.assign_condition("condition", [(1, "A"), (2, "B")], seed="s", balance=True)
+
+
 def test_shorthand_codebook_forms_are_accepted():
     document = {
         "schema_version": SCHEMA_VERSION,
