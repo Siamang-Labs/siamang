@@ -20,8 +20,12 @@ Each script runs at a specified trigger point and has access to:
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 _VALID_TRIGGERS = {
     "onInit",  # Runs once when survey loads (before first page)
@@ -125,6 +129,104 @@ class Script:
             name="randomize_pages",
             trigger="onInit",
             code=code,
+        )
+
+    @classmethod
+    def assign_condition(
+        cls,
+        variable: str,
+        arms: Sequence[tuple[int | str, str] | tuple[int | str, str, int]],
+        seed: str | None = None,
+    ) -> Script:
+        """Factory: draw each respondent into one experimental arm.
+
+        Randomization shuffles *order*; this makes a *choice*. One arm is
+        drawn per respondent before the first page and written to ``variable``,
+        so ordinary routing (``show_if`` / ``next_if``) can branch on it, a
+        quota can balance it, and the analysis can group by it.
+
+        Args:
+            variable: where the drawn arm's code is stored.
+            arms: ``(code, label)`` or ``(code, label, weight)`` — weights are
+                positive integers and default to 1, so equal arms need none.
+            seed: draw deterministically. With a seed the same respondent id
+                always lands in the same arm, which is what makes a fielded
+                assignment reproducible from the generated ``.py``.
+
+        Example:
+            Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])
+        """
+        if not variable or not _IDENTIFIER_RE.match(variable):
+            raise ValueError(
+                f"Assignment variable {variable!r} is not a valid name: "
+                "letters, digits and underscore, not starting with a digit."
+            )
+        prepared: list[tuple[int | str, str, int]] = []
+        for arm in arms:
+            code, label, weight = (arm[0], arm[1], arm[2] if len(arm) > 2 else 1)  # type: ignore[misc]
+            if not str(label).strip():
+                raise ValueError(f"Arm {code!r} has no label.")
+            if int(weight) < 1:
+                raise ValueError(
+                    f"Arm {code!r} has weight {weight}; weights are positive integers."
+                )
+            prepared.append((code, str(label), int(weight)))
+        if len(prepared) < 2:
+            raise ValueError("An assignment needs at least two arms.")
+        codes = [str(code) for code, _, _ in prepared]
+        if len(set(codes)) != len(codes):
+            raise ValueError("Arm codes must be distinct: they are what lands in the data.")
+
+        var = json.dumps(variable)
+        weights = json.dumps([weight for _, _, weight in prepared])
+        values = json.dumps([code for code, _, _ in prepared])
+        # Deterministic when seeded: a 32-bit FNV-1a hash of "<seed>:<respondent>"
+        # feeds a mulberry32 draw, so the same respondent always lands in the
+        # same arm on a re-run and the assignment is reproducible from the .py.
+        code_js = f"""
+            const variable = {var};
+            if (answers[variable] === undefined || answers[variable] === null) {{
+                const values = {values};
+                const weights = {weights};
+                const total = weights.reduce((a, b) => a + b, 0);
+                const seed = context.seed;
+                let draw;
+                if (seed === undefined || seed === null || seed === "") {{
+                    draw = Math.random();
+                }} else {{
+                    const key = String(seed) + ":" + String(
+                        answers.__respondent__ || answers.respondent_id || ""
+                    );
+                    let h = 2166136261;
+                    for (let i = 0; i < key.length; i++) {{
+                        h ^= key.charCodeAt(i);
+                        h = Math.imul(h, 16777619);
+                    }}
+                    let t = (h + 0x6D2B79F5) | 0;
+                    t = Math.imul(t ^ (t >>> 15), 1 | t);
+                    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+                    draw = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+                }}
+                let cut = draw * total;
+                let chosen = values[values.length - 1];
+                for (let i = 0; i < values.length; i++) {{
+                    cut -= weights[i];
+                    if (cut < 0) {{ chosen = values[i]; break; }}
+                }}
+                answers[variable] = chosen;
+            }}
+        """
+        context: dict[str, Any] = {
+            "variable": variable,
+            "arms": [list(arm) for arm in prepared],
+        }
+        if seed is not None:
+            context["seed"] = seed
+        return cls(
+            name=f"assign_{variable}",
+            trigger="onInit",
+            code=code_js,
+            context=context,
         )
 
     @classmethod

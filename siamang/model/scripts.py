@@ -26,6 +26,7 @@ _FIELD_B_RE = re.compile(r"const fb = (\"(?:[^\"\\]|\\.)*\");")
 _MESSAGE_RE = re.compile(r"answers\.__errors__\[fb\] = (\"(?:[^\"\\]|\\.)*\");")
 
 LIBRARY_SCRIPT_TYPES = (
+    "assign_condition",
     "randomize_options",
     "randomize_pages",
     "timed_question",
@@ -65,6 +66,9 @@ def script_from_document(payload: dict[str, Any]) -> Script:
             context=dict(payload.get("context") or {}),
             sandbox=bool(payload.get("sandbox", True)),
         )
+    if kind == "assign_condition":
+        arms = [(arm["code"], arm["label"], int(arm.get("weight", 1))) for arm in payload["arms"]]
+        return Script.assign_condition(payload["variable"], arms, seed=payload.get("seed"))
     if kind == "randomize_options":
         return Script.randomize_options(payload["question"], seed=payload.get("seed"))
     if kind == "randomize_pages":
@@ -80,7 +84,13 @@ def script_from_document(payload: dict[str, Any]) -> Script:
 
 
 def _detect_library_script(script: Script) -> dict[str, Any] | None:
-    for candidate in (_as_randomize_pages, _as_randomize_options, _as_timed, _as_validate_match):
+    for candidate in (
+        _as_randomize_pages,
+        _as_assign_condition,
+        _as_randomize_options,
+        _as_timed,
+        _as_validate_match,
+    ):
         found = candidate(script)
         if found is not None:
             return found
@@ -91,6 +101,37 @@ def _as_randomize_pages(script: Script) -> dict[str, Any] | None:
     if script == Script.randomize_pages():
         return {"type": "randomize_pages"}
     return None
+
+
+def _as_assign_condition(script: Script) -> dict[str, Any] | None:
+    # The parameters ride in `context`, so recovery is a read rather than a
+    # regex over generated JavaScript — and the exactness check below still
+    # decides whether this really is the factory's output.
+    if not (script.name or "").startswith("assign_"):
+        return None
+    context = script.context or {}
+    variable = context.get("variable")
+    raw_arms = context.get("arms")
+    if not isinstance(variable, str) or not isinstance(raw_arms, list):
+        return None
+    try:
+        arms = [(arm[0], arm[1], int(arm[2]) if len(arm) > 2 else 1) for arm in raw_arms]
+    except (IndexError, TypeError, ValueError):
+        return None
+    seed = context.get("seed")
+    if script != Script.assign_condition(variable, arms, seed=seed):
+        return None
+    payload: dict[str, Any] = {
+        "type": "assign_condition",
+        "variable": variable,
+        "arms": [
+            {"code": code, "label": label, **({"weight": weight} if weight != 1 else {})}
+            for code, label, weight in arms
+        ],
+    }
+    if seed is not None:
+        payload["seed"] = seed
+    return payload
 
 
 def _as_randomize_options(script: Script) -> dict[str, Any] | None:
