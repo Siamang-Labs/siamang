@@ -940,6 +940,90 @@ function MaxDiff({ q, value, onChange, num, error, onBlur, answers }) {
 }
 
 
+/* Conjoint — whole products side by side, pick one.
+
+   The grid is attributes down the side and alternatives across, because that
+   is the comparison being asked for: a respondent reads across a row to see
+   what differs. On a narrow screen the same table scrolls sideways rather than
+   becoming a list of products, which would be a different question.
+
+   Like MaxDiff, the version of the design is drawn from the respondent key and
+   written as an ordinary variable — the choice is meaningless without knowing
+   which products it was between. */
+function Conjoint({ q, value, onChange, num, error, onBlur, answers }) {
+  const v = value || {};
+  const versions = q.versions || [];
+  const versionRef = useRef(null);
+  if (versionRef.current === null) {
+    const stored = v[q.versionVar];
+    versionRef.current = stored === undefined ? maxDiffVersion(q, answers) : stored;
+  }
+  const version = versionRef.current;
+  const tasks = versions.length ? versions[version % versions.length] : [];
+  const attributes = q.attributes || [];
+
+  const pick = (taskIdx, alt) => {
+    const name = q.taskVars[taskIdx];
+    const next = { ...v, [q.versionVar]: version };
+    if (next[name] === alt) delete next[name];
+    else next[name] = alt;
+    onChange(next);
+  };
+
+  return (
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
+      <div className="sd-conjoint">
+        {tasks.map((profiles, taskIdx) => {
+          const chosen = v[q.taskVars[taskIdx]];
+          return (
+            <div className="sd-conjoint__task" key={taskIdx}>
+              <div className="sd-conjoint__count">{`${taskIdx + 1} / ${tasks.length}`}</div>
+              <div className="sd-conjoint__scroll">
+                <table className="sd-conjoint__grid" aria-label={`Choice ${taskIdx + 1} of ${tasks.length}`}>
+                  <tbody>
+                    {attributes.map((attribute, row) => (
+                      <tr key={attribute.name}>
+                        <th scope="row">{attribute.label}</th>
+                        {profiles.map((profile, col) => {
+                          const code = String(profile[row]);
+                          const label = attribute.levels && attribute.levels[code] !== undefined ? attribute.levels[code] : code;
+                          return <td key={col} className={chosen === col + 1 ? "is-chosen" : undefined}>{label}</td>;
+                        })}
+                      </tr>
+                    ))}
+                    <tr className="sd-conjoint__picks">
+                      <th scope="row" />
+                      {profiles.map((_profile, col) => (
+                        <td key={col}>
+                          <button type="button"
+                            className={"sd-conjoint__pick" + (chosen === col + 1 ? " is-selected" : "")}
+                            aria-pressed={chosen === col + 1}
+                            aria-label={`Choice ${taskIdx + 1}, option ${col + 1}`}
+                            onClick={() => pick(taskIdx, col + 1)}>
+                            {chosen === col + 1 ? "\u2713" : ""}
+                          </button>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              {q.noneLabel ? (
+                <label className="sd-conjoint__none">
+                  <input type="radio" checked={chosen === profiles.length + 1}
+                    onChange={() => pick(taskIdx, profiles.length + 1)} />
+                  {q.noneLabel}
+                </label>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </QuestionShell>
+  );
+}
+
+
 /* Internal dispatcher. SurveyPage passes a stable `setAnswer` plus the
    question's id; we build the per-question `onChange`/`onBlur` closures
    here so that they only get recreated when this dispatcher actually
@@ -959,6 +1043,7 @@ function _QuestionDispatcher({ q, qId, value, setAnswer, num, error, handleBlur,
     case "image":    return <ImageChoice  q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "ranking":  return <Ranking      q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "maxdiff":  return <MaxDiff      q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
+    case "conjoint": return <Conjoint     q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     default:         return null;
   }
 }

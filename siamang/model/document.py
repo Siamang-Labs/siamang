@@ -45,12 +45,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from siamang.core.attribute import Attribute
 from siamang.core.block import Block
 from siamang.core.expression import Expression, VarRef
 from siamang.core.media import Media
 from siamang.core.option import Option
 from siamang.core.page import Page
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     Matrix,
     MaxDiff,
@@ -83,6 +85,7 @@ QUESTION_TYPES: dict[str, type[Question]] = {
         Matrix,
         Ranking,
         MaxDiff,
+        Conjoint,
     )
 }
 
@@ -345,6 +348,15 @@ def _question_to_doc(question: Question) -> dict[str, Any]:
             )
         elif name == "choices":
             payload[name] = [_option_to_doc(option, where) for option in value]
+        elif name == "attributes":
+            payload[name] = [
+                {
+                    "name": attribute.name,
+                    **({"label": attribute.label} if attribute.label is not None else {}),
+                    "levels": [_option_to_doc(level, where) for level in attribute.levels],
+                }
+                for attribute in value
+            ]
         elif name == "metadata":
             if value:
                 payload[name] = _json_value(dict(value), f"{where} metadata")
@@ -725,12 +737,33 @@ def _question_from_doc(
                 _option_from_doc(item, f"{where} choices[{index}]")
                 for index, item in enumerate(value)
             ]
+        elif key == "attributes":
+            kwargs["attributes"] = [
+                _attribute_from_doc(item, f"{where} attributes[{index}]")
+                for index, item in enumerate(value)
+            ]
         elif key == "metadata":
             kwargs["metadata"] = dict(value or {})
         else:
             kwargs[key] = value
     try:
         return cls(**kwargs)
+    except (TypeError, ValueError) as exc:
+        raise DocumentError(f"{where}: {exc}") from exc
+
+
+def _attribute_from_doc(payload: Any, where: str) -> Attribute:
+    if not isinstance(payload, dict) or "name" not in payload or "levels" not in payload:
+        raise DocumentError(f"{where}: attribute needs 'name' and 'levels'.")
+    unknown = set(payload) - {"name", "label", "levels"}
+    if unknown:
+        raise DocumentError(f"{where}: unknown attribute field '{sorted(unknown)[0]}'.")
+    levels = [
+        _option_from_doc(item, f"{where} levels[{index}]")
+        for index, item in enumerate(payload["levels"])
+    ]
+    try:
+        return Attribute(name=payload["name"], levels=levels, label=payload.get("label"))
     except (TypeError, ValueError) as exc:
         raise DocumentError(f"{where}: {exc}") from exc
 

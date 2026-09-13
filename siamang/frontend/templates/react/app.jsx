@@ -95,6 +95,11 @@ function isAnswered(q, v) {
      call it answered after the first task. Every task needs both picks, or the
      design has holes where the analysis expects comparisons. */
   if (q && q.kind === "maxdiff") return maxDiffRemaining(q, v) === 0;
+  /* Same reason: a conjoint fills one object over several tasks, and every task
+     needs a choice or the design has holes where comparisons were expected. */
+  if (q && q.kind === "conjoint") {
+    return (q.taskVars || []).every((name) => v && v[name] !== undefined);
+  }
   if (typeof v === "object") return Object.keys(v).length > 0;
   return true;
 }

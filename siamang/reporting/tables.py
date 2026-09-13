@@ -746,3 +746,74 @@ class MaxDiffTable(SurveyTable):
 
 def _reasons(reasons: dict[str, int]) -> str:
     return ", ".join(f"{reason}: {count}" for reason, count in reasons.items())
+
+
+# ─── ConjointTable ────────────────────────────────────────────────────────────
+
+
+@dataclass
+class ConjointTable(SurveyTable):
+    """What a conjoint found: every level's worth and every attribute's weight.
+
+    Two tables in one, because they are read together. ``Part-worth`` is what a
+    level is worth in a currency shared across all attributes, against the first
+    level of its own attribute at zero. ``Importance`` is the share of the
+    decision the attribute accounted for — the range of its part-worths over all
+    the ranges — and it is repeated on each of that attribute's rows so the
+    table can be sorted without losing it.
+
+    Importance means what it says only for the levels that were shown. Price
+    tested from £10 to £12 will look unimportant beside price tested from £10 to
+    £100, and that is a fact about the design; the footer says so rather than
+    leaving a client to infer a market truth from a design decision.
+    """
+
+    question: Any = None
+
+    def _build(self) -> None:
+        from siamang.data import conjoint
+
+        question = conjoint.question_of(self.data, self.question)
+        read = conjoint.answers(self.data, question)
+        result = conjoint.part_worths(self.data, question)
+        weights = conjoint.importance(self.data, question)
+        estimate = dict(zip(result.table["term"], result.table["estimate"], strict=True))
+        by_attribute = dict(zip(weights["attribute"], weights["importance"], strict=True))
+
+        rows = []
+        for attribute in question.attributes:
+            name = attribute.label or attribute.name
+            for position, level in enumerate(attribute.levels):
+                term = f"{name}: {level.label}"
+                rows.append(
+                    {
+                        "Attribute": name,
+                        "Level": level.label,
+                        "Part-worth": 0.0 if position == 0 else round(estimate.get(term, 0.0), 4),
+                        "Importance %": by_attribute.get(name, 0.0),
+                    }
+                )
+        frame = pd.DataFrame(rows, columns=["Attribute", "Level", "Part-worth", "Importance %"])
+        order = {name: i for i, name in enumerate(weights["attribute"])}
+        frame = (
+            frame.assign(_o=frame["Attribute"].map(order))
+            .sort_values(["_o", "Part-worth"], ascending=[True, False])
+            .drop(columns="_o")
+            .reset_index(drop=True)
+        )
+
+        stats: dict[str, Any] = {
+            "Question": question.text,
+            "Base": f"{read.respondents} respondents",
+            "Tasks read": int(len(read.frame)),
+            "Method": "conditional logit (aggregate)",
+            "Reference": result.stats.get("reference", ""),
+            "Pseudo R²": result.stats.get("pseudo_r2", 0.0),
+            "Note": ("importance is of the levels tested, not of the attribute in general"),
+        }
+        if not result.stats.get("converged", True):
+            stats["Warning"] = "the model did not converge; read the part-worths with care"
+        if read.dropped:
+            stats["Unreadable answers"] = f"{read.dropped} ({_reasons(read.reasons)})"
+        self._result = frame
+        self._stats = stats

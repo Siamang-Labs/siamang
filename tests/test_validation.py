@@ -9,6 +9,8 @@ import pytest
 
 from siamang.core import (
     AND,
+    Attribute,
+    Conjoint,
     ContentPage,
     Expression,
     FinalPage,
@@ -509,3 +511,111 @@ def test_a_maxdiff_without_a_seed_still_gives_one_design():
     # different tasks — gets its own design rather than borrowing this one.
     assert first != question("q_other").resolved_design().to_dict()
     assert first != question(per_task=2).resolved_design().to_dict()
+
+
+# ─── Conjoint ────────────────────────────────────────────────────────────────
+
+
+def _conjoint_attributes() -> list[Attribute]:
+    return [
+        Attribute("brand", [Option(1, "Acme"), Option(2, "Globex"), Option(3, "Initech")]),
+        Attribute("price", [Option(10, "10"), Option(15, "15"), Option(20, "20")]),
+        Attribute("warranty", [Option(1, "1 year"), Option(2, "2 years")]),
+    ]
+
+
+def _conjoint_variables(tasks: int) -> list[Variable]:
+    variables = [
+        Variable(f"cbc_t{t}", "nominal", labels={1: "1", 2: "2", 3: "3"})
+        for t in range(1, tasks + 1)
+    ]
+    variables.append(Variable("cbc_version", "nominal"))
+    return variables
+
+
+def test_a_conjoint_writes_one_variable_per_task_plus_the_version():
+    """Lighter than a MaxDiff, because the answer *is* the choice: which levels
+    it carried lives in the design, not in another column."""
+
+    question = Conjoint("Q?", _conjoint_variables(4), attributes=_conjoint_attributes(), tasks=4)
+    assert question.task_variable(0).name == "cbc_t1"
+    assert question.version_variable.name == "cbc_version"
+    with pytest.raises(ValueError, match="needs 4 variables"):
+        Conjoint("Q?", _conjoint_variables(4), attributes=_conjoint_attributes(), tasks=3)
+
+
+def test_a_conjoint_refuses_what_cannot_be_a_trade_off():
+    with pytest.raises(ValueError, match="at least two alternatives"):
+        Conjoint(
+            "Q?", _conjoint_variables(2), attributes=_conjoint_attributes(), tasks=2, alternatives=1
+        )
+    with pytest.raises(ValueError, match="distinct names"):
+        Conjoint(
+            "Q?",
+            _conjoint_variables(2),
+            attributes=[_conjoint_attributes()[0], _conjoint_attributes()[0]],
+            tasks=2,
+        )
+    with pytest.raises(ValueError, match="at least two attributes"):
+        Conjoint("Q?", _conjoint_variables(2), attributes=[], tasks=2).resolved_design()
+
+
+def test_an_attribute_is_a_dimension_with_levels_not_an_option():
+    """`Option` is a code and a label; a product is a row of them, which is why
+    `Attribute` exists rather than `Option` growing a field."""
+
+    attribute = Attribute("price", [Option(10, "£10"), Option(20, "£20")], label="Price")
+    assert attribute.codes == [10, 20]
+    assert attribute.label_of(20) == "£20"
+    assert attribute.to_dict()["levels"][0] == {"code": 10, "label": "£10"}
+    with pytest.raises(ValueError, match="plain identifier"):
+        Attribute("unit price", [Option(1, "a"), Option(2, "b")])
+    with pytest.raises(ValueError, match="at least two levels"):
+        Attribute("price", [Option(1, "only")])
+    with pytest.raises(ValueError, match="two levels with code"):
+        Attribute("price", [Option(1, "a"), Option(1, "b")])
+
+
+def test_a_conjoint_profile_reads_as_the_lines_a_respondent_sees():
+    question = Conjoint(
+        "Q?", _conjoint_variables(2), attributes=_conjoint_attributes(), tasks=2, seed=1
+    )
+    profile = question.resolved_design().task(0, 0)[0]
+    assert question.profile_labels(profile) == [
+        question.attributes[i].label_of(profile[i]) for i in range(3)
+    ]
+
+
+def test_a_conjoint_without_a_seed_still_gives_one_design():
+    def question(qid: str = "q_cbc", tasks: int = 4) -> Conjoint:
+        return Conjoint(
+            "Q?", _conjoint_variables(tasks), attributes=_conjoint_attributes(), tasks=tasks, id=qid
+        )
+
+    first = question().resolved_design().to_dict()
+    assert first == question().resolved_design().to_dict()
+    assert first != question("q_other").resolved_design().to_dict()
+
+
+def test_conjoint_lint_catches_a_design_nobody_could_fit():
+    """The failure that costs money: it is only discovered when fieldwork is
+    over and the model will not converge. The design generator already knows."""
+
+    def survey(tasks: int, versions: int) -> Questionnaire:
+        question = Conjoint(
+            "Q?",
+            _conjoint_variables(tasks),
+            attributes=_conjoint_attributes(),
+            tasks=tasks,
+            versions=versions,
+            id="q_cbc",
+        )
+        return Questionnaire(title="C", pages=[Page(name="p", items=[question])])
+
+    assert survey(8, 3).lint("strict") == []
+    [single] = survey(8, 1).lint("strict")
+    assert single.code == "CONJOINT_SINGLE_VERSION"
+    codes = [w.code for w in survey(1, 1).lint("strict")]
+    assert "CONJOINT_NOT_ESTIMABLE" in codes
+    # Versions pool: the same single task in three versions is estimable.
+    assert "CONJOINT_NOT_ESTIMABLE" not in [w.code for w in survey(1, 3).lint("strict")]

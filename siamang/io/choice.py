@@ -28,10 +28,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from siamang.core.question import MaxDiff
+    from siamang.core.question import Conjoint, MaxDiff
     from siamang.data.survey_data import SurveyData
 
-__all__ = ["write_maxdiff_choices"]
+__all__ = ["write_conjoint_choices", "write_maxdiff_choices"]
 
 
 def write_maxdiff_choices(
@@ -175,3 +175,84 @@ utilities$id <- unique(choices$id)
 write.csv(utilities, file.path(base_dir, "hb_utilities.csv"), row.names = FALSE)
 cat("wrote hb_utilities.csv —", nrow(utilities), "respondents\\n")
 """
+
+
+def write_conjoint_choices(
+    data: SurveyData,
+    question: Conjoint | str,
+    path: str | Path,
+    *,
+    weight: str | None = None,
+) -> Path:
+    """The same three files for a conjoint: CSV, column dictionary, HB script.
+
+    A conjoint needs no re-coding to get there — its tasks already are choice
+    sets with a constant number of alternatives, which is what the R packages
+    want. The only thing worth saying in the dictionary is which level each
+    column stands for, because ``x7`` is not self-explanatory at the other end.
+    """
+
+    import pandas as pd
+
+    from siamang.data import conjoint
+
+    question = conjoint.question_of(data, question)
+    sets = conjoint.choice_sets(data, question, weight=weight)
+    read = conjoint.answers(data, question)
+
+    target = Path(path)
+    if target.suffix.lower() != ".csv":
+        target = target.with_suffix(".csv")
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    respondents = list(read.frame["respondent"])
+    sizes, starts = sets.sizes, sets.starts
+    columns = {f"x{i + 1}": sets.design[:, i] for i in range(sets.design.shape[1])}
+
+    ids, ques, alt, y = [], [], [], []
+    for set_index, start in enumerate(starts):
+        block = sets.chosen[start : start + sizes[set_index]]
+        picked = int(np.argmax(block)) + 1
+        for position in range(sizes[set_index]):
+            ids.append(respondents[set_index])
+            ques.append(set_index + 1)
+            alt.append(position + 1)
+            y.append(picked if position == 0 else 0)
+
+    frame = pd.DataFrame({"id": ids, "ques": ques, "alt": alt, **columns, "y": y})
+    frame.to_csv(target, index=False)
+
+    dictionary = {
+        "question": question.text,
+        "format": "ChoiceModelR / bayesm long format",
+        "coding": "dummy, the first level of each attribute held at zero",
+        "rows": "one per alternative on offer",
+        "reference": sets.reference,
+        "columns": {
+            "id": "respondent",
+            "ques": "choice task, numbered across the whole file",
+            "alt": "alternative within the task",
+            "y": "number of the chosen alternative, on the first row of each task",
+            **{f"x{i + 1}": name for i, name in enumerate(sets.names)},
+        },
+        "attributes": [
+            {
+                "name": attribute.name,
+                "label": attribute.label or attribute.name,
+                "levels": [level.label for level in attribute.levels],
+                "reference": attribute.levels[0].label,
+            }
+            for attribute in question.attributes
+        ],
+        "note": (
+            "Every attribute's first level has no column: it is the reference, and the other "
+            "levels of that attribute are read against it."
+        ),
+    }
+    target.with_name(f"{target.stem}.dictionary.json").write_text(
+        json.dumps(dictionary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    target.with_name(f"{target.stem}.hb.R").write_text(
+        _render_hb_script(target.name, sets.design.shape[1]), encoding="utf-8"
+    )
+    return target

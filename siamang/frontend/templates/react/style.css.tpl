@@ -797,6 +797,80 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   .sd-maxdiff__task th, .sd-maxdiff__task td { padding: 8px 6px; }
 }
 
+/* ─── Conjoint ─────────────────────────────────────────────────────────── */
+
+.sd-conjoint { display: flex; flex-direction: column; gap: 22px; }
+
+.sd-conjoint__task {
+  background: var(--siamang-surface);
+  border: 1px solid var(--siamang-border);
+  border-radius: var(--siamang-radius);
+  padding: 10px 12px 12px;
+}
+
+.sd-conjoint__count {
+  font-size: 0.8em;
+  color: var(--siamang-muted);
+  margin-bottom: 6px;
+}
+
+/* A narrow screen scrolls the grid sideways rather than stacking the products:
+   stacked, they stop being a comparison and become three separate questions. */
+.sd-conjoint__scroll { overflow-x: auto; }
+
+.sd-conjoint__grid { width: 100%; border-collapse: collapse; min-width: 20em; }
+
+.sd-conjoint__grid th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--siamang-muted);
+  padding: 7px 10px 7px 0;
+  white-space: nowrap;
+}
+
+.sd-conjoint__grid td {
+  padding: 7px 10px;
+  text-align: center;
+  border-top: 1px solid color-mix(in srgb, var(--siamang-border) 55%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--siamang-border) 55%, transparent);
+}
+
+.sd-conjoint__grid td.is-chosen {
+  background: color-mix(in srgb, var(--siamang-accent) 8%, transparent);
+}
+
+.sd-conjoint__picks td { border-top: 1px solid var(--siamang-border); }
+
+.sd-conjoint__pick {
+  display: inline-grid;
+  place-items: center;
+  min-width: 3.2em;
+  padding: 6px 10px;
+  border: 1.5px solid color-mix(in srgb, var(--siamang-muted) 50%, var(--siamang-border));
+  border-radius: var(--siamang-radius);
+  background: var(--siamang-surface);
+  color: var(--siamang-text);
+  cursor: pointer;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+
+.sd-conjoint__pick:hover { border-color: var(--siamang-accent); }
+
+.sd-conjoint__pick.is-selected {
+  border-color: var(--siamang-accent);
+  background: var(--siamang-accent);
+  color: var(--siamang-on-accent, #fff);
+}
+
+.sd-conjoint__none {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.92em;
+}
+
 /* ─── Ranking ──────────────────────────────────────────────────────────── */
 
 .sd-ranking { display: flex; flex-direction: column; gap: 6px; }

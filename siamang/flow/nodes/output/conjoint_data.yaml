@@ -1,0 +1,25 @@
+type: output.conjoint_data
+category: output
+title: Conjoint data for HB
+description: A conjoint's choices in the long format R's hierarchical Bayes packages read, with a column dictionary and a script that runs it.
+inputs:
+  data: SurveyData
+params:
+  question:
+    kind: string
+    required: true
+    label: Conjoint question
+    help: The question's id or name. Its attributes and design are read from the questionnaire.
+  path:
+    kind: path
+    required: true
+    label: Path
+    help: Written as <name>.csv, with <name>.dictionary.json and <name>.hb.R beside it.
+subtitle: '{question} → {path}'
+imports:
+- from siamang.io.choice import write_conjoint_choices
+template: |
+  # Individual part-worths come from hierarchical Bayes, which lives in R and
+  # takes minutes. This hands over the choices in the shape those packages read,
+  # so the estimate comes back from the researcher's own machine.
+  write_conjoint_choices({in.data}, {question!r}, {path!r})

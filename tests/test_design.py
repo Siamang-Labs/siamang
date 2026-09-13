@@ -131,3 +131,146 @@ def test_the_generator_itself_is_pinned():
         [[4, 2, 3], [5, 1, 4], [3, 1, 5]],
         [[2, 4, 3], [2, 1, 5], [2, 3, 4]],
     ]
+
+
+# ─── choice-based conjoint ───────────────────────────────────────────────────
+
+ATTRIBUTES = ["brand", "price", "size", "warranty"]
+LEVELS = [["Acme", "Globex", "Initech"], [10, 15, 20, 25], ["S", "L"], ["1y", "2y", "3y"]]
+
+
+def test_a_conjoint_design_is_fixed_by_its_seed():
+    from siamang.design import CbcDesign, cbc_design
+
+    first = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=8, versions=6, seed=3)
+    again = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=8, versions=6, seed=3)
+    assert first.to_dict() == again.to_dict()
+    other = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=8, versions=6, seed=4)
+    assert first.to_dict() != other.to_dict()
+    assert CbcDesign.from_dict(first.to_dict()).to_dict() == first.to_dict()
+
+
+def test_every_task_shows_whole_products():
+    from siamang.design import cbc_design
+
+    design = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=8, versions=6, seed=3)
+    assert len(design.versions) == 6 and design.tasks == 8
+    for version in design.versions:
+        for task in version:
+            assert len(task) == 3
+            for profile in task:
+                assert len(profile) == len(ATTRIBUTES)
+                for value, codes in zip(profile, LEVELS, strict=True):
+                    assert value in codes
+
+
+def test_each_attribute_shows_its_own_levels_equally_often():
+    """Across attributes the counts differ by arithmetic — two levels are each
+    shown twice as often as four. Within an attribute they should not."""
+
+    from collections import Counter
+
+    from siamang.design import cbc_design
+
+    design = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=10, versions=12, seed=5)
+    for position, codes in enumerate(LEVELS):
+        shown = Counter(
+            profile[position] for version in design.versions for task in version for profile in task
+        )
+        assert set(shown) == set(codes)
+        assert max(shown.values()) - min(shown.values()) == 0
+    assert design.balance.perfect and design.balance.imbalance == 0
+
+
+def test_overlap_is_reported_against_what_is_actually_avoidable():
+    """`size` has two levels and every task shows three products, so one
+    attribute must repeat. Saying only "1.0 repeated" would read as a flaw."""
+
+    from siamang.design import cbc_design
+
+    design = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=10, versions=8, seed=1)
+    assert design.balance.overlap_min == 1  # only `size` is short of levels
+    assert design.balance.overlap <= design.balance.overlap_min + 0.001
+    # With four alternatives, everything but `price` is short of levels.
+    wider = cbc_design(ATTRIBUTES, LEVELS, alternatives=4, tasks=10, versions=8, seed=1)
+    assert wider.balance.overlap_min == 3
+
+
+def test_d_error_prefers_a_design_that_can_actually_be_estimated():
+    """The criterion has to be able to tell a good design from a bad one, or
+    choosing between random starts by it is theater."""
+
+    from siamang.design import _d_error, cbc_design
+
+    design = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=10, versions=4, seed=2)
+    # A design where every alternative in a task is identical carries no
+    # information at all about anything.
+    flat = [[tuple([task[0]] * 3) for task in version] for version in design.versions]
+    assert _d_error(flat, LEVELS) > design.balance.d_error
+    assert design.balance.d_error > 0
+
+
+def test_more_tasks_estimate_more_precisely():
+    from siamang.design import cbc_design
+
+    small = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=6, versions=4, seed=8)
+    large = cbc_design(ATTRIBUTES, LEVELS, alternatives=3, tasks=18, versions=4, seed=8)
+    assert large.balance.d_error < small.balance.d_error
+
+
+def test_versions_wrap_and_a_bad_conjoint_says_why():
+    from siamang.design import cbc_design
+
+    design = cbc_design(ATTRIBUTES, LEVELS, alternatives=2, tasks=3, versions=2, seed=1)
+    assert design.task(5, 0) == design.task(1, 0)
+
+    with pytest.raises(ValueError, match="own list of levels"):
+        cbc_design(["a", "b"], [["x", "y"]])
+    with pytest.raises(ValueError, match="at least two attributes"):
+        cbc_design(["a"], [["x", "y"]])
+    with pytest.raises(ValueError, match="at least two levels"):
+        cbc_design(["a", "b"], [["x"], ["y", "z"]])
+    with pytest.raises(ValueError, match="at least two alternatives"):
+        cbc_design(ATTRIBUTES, LEVELS, alternatives=1)
+    with pytest.raises(ValueError, match="at least one task"):
+        cbc_design(ATTRIBUTES, LEVELS, tasks=0)
+    with pytest.raises(ValueError, match="at least one version"):
+        cbc_design(ATTRIBUTES, LEVELS, versions=0)
+
+
+def test_a_design_too_small_to_fit_says_so_instead_of_failing():
+    """Two binary tasks cannot estimate three parameters, and no amount of
+    fieldwork fixes that. The researcher gets the design and the reason, not a
+    crash — and not a very large number, which would read as merely imprecise."""
+
+    import json
+
+    from siamang.design import cbc_design
+
+    design = cbc_design(
+        ["a", "b"], [["x", "y"], [1, 2, 3]], alternatives=2, tasks=2, versions=1, seed=42
+    )
+    assert design.balance.d_error is None
+    assert "not estimable" in str(design.balance)
+    json.dumps(design.to_dict())  # infinity is not valid JSON; None is
+
+
+def test_the_conjoint_generator_is_pinned_too():
+    """Same reason as the MaxDiff golden: a questionnaire stores a seed, not a
+    table, so changing the heuristic rewrites what past studies asked."""
+
+    from siamang.design import cbc_design
+
+    design = cbc_design(
+        ["brand", "price"], [["x", "y"], [1, 2, 3]], alternatives=2, tasks=6, versions=1, seed=42
+    )
+    assert [[list(map(list, task)) for task in version] for version in design.versions] == [
+        [
+            [["x", 1], ["y", 2]],
+            [["x", 3], ["y", 1]],
+            [["x", 3], ["y", 2]],
+            [["x", 2], ["y", 1]],
+            [["y", 3], ["x", 1]],
+            [["x", 2], ["y", 3]],
+        ]
+    ]

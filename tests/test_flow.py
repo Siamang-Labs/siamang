@@ -813,3 +813,76 @@ def test_the_choice_data_node_writes_what_an_hb_package_reads(tmp_path):
     assert (tmp_path / "outputs" / "md.csv").is_file()
     assert (tmp_path / "outputs" / "md.dictionary.json").is_file()
     assert (tmp_path / "outputs" / "md.hb.R").is_file()
+
+
+def _conjoint_survey():
+    import siamang as sg
+
+    attributes = [
+        sg.Attribute(
+            "brand", [sg.Option(1, "Acme"), sg.Option(2, "Globex"), sg.Option(3, "Initech")]
+        ),
+        sg.Attribute("price", [sg.Option(10, "10"), sg.Option(15, "15"), sg.Option(20, "20")]),
+    ]
+    variables = [
+        sg.Variable(f"cbc_t{t}", "nominal", label=f"Task {t}", labels={1: "1", 2: "2", 3: "3"})
+        for t in (1, 2, 3, 4)
+    ]
+    variables.append(sg.Variable("cbc_version", "nominal", label="Design version"))
+    question = sg.Conjoint(
+        "Which would you buy?",
+        variables,
+        attributes=attributes,
+        alternatives=3,
+        tasks=4,
+        versions=6,
+        seed=7,
+        id="q_cbc",
+    )
+    return sg.Questionnaire(title="C", pages=[sg.Page(name="p", items=[question])])
+
+
+def test_the_conjoint_nodes_run_on_a_conjoint_questionnaire(tmp_path):
+    """The attributes and the design come from the questionnaire, so the only
+    thing a researcher names is the question — and, for a simulation, the
+    products they are thinking of launching."""
+
+    from siamang.model import to_document
+
+    survey = _conjoint_survey()
+    document = to_document(survey)
+    products = {
+        "Cheap Acme": {"brand": 1, "price": 10},
+        "Dear Globex": {"brand": 2, "price": 20},
+    }
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 150, "seed": 9}),
+            ("cbc", "analyze.conjoint", {"question": "q_cbc"}),
+            ("sim_shares", "analyze.conjoint_shares", {"question": "q_cbc", "products": products}),
+            ("out", "output.conjoint_data", {"question": "q_cbc", "path": "outputs/cbc.csv"}),
+        ],
+        [
+            ("sim", "data", "cbc", "data"),
+            ("sim", "data", "sim_shares", "data"),
+            ("sim", "data", "out", "data"),
+        ],
+    )
+    assert check_flow(flow, questionnaire=document) == []
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=document).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+
+    table = result.output("cbc", "table").to_frame()
+    assert list(table.columns) == ["Attribute", "Level", "Part-worth", "Importance %"]
+    assert set(table["Attribute"]) == {"brand", "price"}
+    stats = result.output("cbc", "stat")
+    assert "respondents" in stats["Base"]
+
+    shares = result.output("sim_shares", "table")
+    assert list(shares["product"]) and abs(shares["share"].sum() - 100.0) < 0.2
+
+    assert (tmp_path / "outputs" / "cbc.csv").is_file()
+    assert (tmp_path / "outputs" / "cbc.dictionary.json").is_file()
+    assert (tmp_path / "outputs" / "cbc.hb.R").is_file()

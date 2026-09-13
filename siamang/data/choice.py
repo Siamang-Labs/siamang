@@ -22,6 +22,7 @@ read against the reference, and every table here names it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -128,14 +129,19 @@ def _hessian(beta: np.ndarray, sets: ChoiceSets, weights: np.ndarray) -> np.ndar
     return np.einsum("i,ijk->jk", weights, information)
 
 
-def mnl(sets: ChoiceSets, *, max_iter: int = 200) -> MnlResult:
+def mnl(sets: ChoiceSets, *, max_iter: int = 200, shares: bool = True) -> MnlResult:
     """Fit a conditional logit to the choice sets.
 
-    ``share`` in the table is the utility put back on a scale people read: the
-    probability each alternative would be picked if all of them were offered
-    together, times a hundred. Utilities are logs of odds and get compared by
-    people who do not read logs; shares are the same information in the units
-    the question was asked in.
+    ``share`` is the utility put back on a scale people read: the probability
+    each alternative would be picked if all of them were offered together, times
+    a hundred. Utilities are logs of odds and get compared by people who do not
+    read logs; shares are the same information in the units the question was
+    asked in.
+
+    It is a parameter because it is only meaningful when the rows *are* the
+    alternatives, as in a MaxDiff. Where a row is one attribute level of a
+    larger product — a conjoint — the levels never compete with each other and a
+    share column would invite exactly the reading it cannot support.
     """
 
     from scipy.optimize import minimize
@@ -170,17 +176,17 @@ def mnl(sets: ChoiceSets, *, max_iter: int = 200) -> MnlResult:
     # everything against.
     utilities = np.r_[beta, 0.0]
     terms = [*sets.names, sets.reference]
-    exponent = np.exp(utilities - utilities.max())
-    table = pd.DataFrame(
-        {
-            "term": terms,
-            "estimate": np.round(utilities, 4),
-            "std_error": np.round(np.r_[errors, 0.0], 4),
-            "statistic": np.round(np.r_[statistic, 0.0], 4),
-            "p_value": np.round(np.r_[p_value, 1.0], 4),
-            "share": np.round(exponent / exponent.sum() * 100, 1),
-        }
-    )
+    columns: dict[str, Any] = {
+        "term": terms,
+        "estimate": np.round(utilities, 4),
+        "std_error": np.round(np.r_[errors, 0.0], 4),
+        "statistic": np.round(np.r_[statistic, 0.0], 4),
+        "p_value": np.round(np.r_[p_value, 1.0], 4),
+    }
+    if shares:
+        exponent = np.exp(utilities - utilities.max())
+        columns["share"] = np.round(exponent / exponent.sum() * 100, 1)
+    table = pd.DataFrame(columns)
     stats: dict[str, float | int | str] = {
         "model": "conditional logit",
         "sets": int(sets.n_sets),
