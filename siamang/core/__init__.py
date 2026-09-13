@@ -22,6 +22,7 @@ from siamang.core.page import (
 from siamang.core.question import (
     LikertScale,
     Matrix,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     OpenText,
@@ -45,6 +46,7 @@ __all__ = [
     "LikertScale",
     "LintWarning",
     "Matrix",
+    "MaxDiff",
     "Media",
     "MissingValue",
     "MultiChoice",

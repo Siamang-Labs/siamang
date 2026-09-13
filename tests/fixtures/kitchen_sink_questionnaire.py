@@ -11,6 +11,7 @@ from siamang.core import (
     FinalPage,
     LikertScale,
     Matrix,
+    MaxDiff,
     Media,
     MissingValue,
     MultiChoice,
@@ -64,12 +65,20 @@ def build():
     rank = Variable("rank", "nominal", label="Ranking", labels={1: "A", 2: "B", 3: "C"})
     score = Variable("score", "interval", label="Score", valid_range=(0, 10))
     comment = Variable("comment", "nominal", label="Comment")
+    md_items = {1: "Price", 2: "Quality", 3: "Speed", 4: "Support", 5: "Range"}
+    md = [
+        Variable(f"md_t{t}_{side}", "nominal", label=f"MaxDiff task {t}: {side}", labels=md_items)
+        for t in (1, 2)
+        for side in ("best", "worst")
+    ]
+    md.append(Variable("md_version", "nominal", label="MaxDiff design version"))
     unused = Variable("unused", "nominal", label="Registered but not asked")
 
     registry = VariableMap()
     registry.add_many(
         [consent, age, region, gender, trust, owns_a, owns_b, m1, m2, rank, score, comment, unused]
     )
+    registry.add_many(md)
 
     survey = Questionnaire(
         title="Kitchen sink",
@@ -207,6 +216,15 @@ def build():
                         max_ranked=2,
                         id="q_rank",
                         choices=[Option(1, "A"), Option(2, "B"), Option(3, "C")],
+                    ),
+                    MaxDiff(
+                        "Which matters most, and least?",
+                        md,
+                        per_task=3,
+                        tasks=2,
+                        versions=4,
+                        seed=11,
+                        id="q_maxdiff",
                     ),
                     NumericInput("Score", score, display="slider", step=0.5, id="q_score"),
                     OpenText(

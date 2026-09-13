@@ -21,6 +21,7 @@ from typing import Any
 from siamang.core.question import (
     LikertScale,
     Matrix,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     OpenText,
@@ -405,6 +406,37 @@ _SPECIFIC: dict[type[Question], dict[str, Any]] = {
     Ranking: {
         "max_ranked": {"type": "integer", "minimum": 1},
         "choices": {"type": "array", "items": ref("option"), "minItems": 1},
+    },
+    MaxDiff: {
+        "var": {"type": "array", "items": NONEMPTY, "minItems": 3},
+        "choices": {"type": "array", "items": ref("option"), "minItems": 3},
+        "per_task": {"type": "integer", "minimum": 2},
+        "tasks": {"type": "integer", "minimum": 1},
+        "versions": {"type": "integer", "minimum": 1},
+        "seed": {"type": ["integer", "null"]},
+        "best_label": STRING,
+        "worst_label": STRING,
+        # The frozen design: the questionnaire is where it lives, so it travels
+        # into the snapshot, the downloaded script and the provenance file.
+        "design": {
+            "type": ["object", "null"],
+            "properties": {
+                "items": {"type": "array", "minItems": 3},
+                "per_task": {"type": "integer", "minimum": 2},
+                "seed": {"type": ["integer", "null"]},
+                "versions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {"type": "array", "minItems": 2},
+                    },
+                },
+                "balance": {"type": "object"},
+            },
+            "required": ["items", "per_task", "versions"],
+        },
     },
 }
 

@@ -94,7 +94,11 @@ def test_kitchen_sink_round_trip():
     # Variables: order of first use, registry-only ones last; string codes kept.
     assert list(document["variables"]) == [
         "consent", "age", "region", "gender", "owns_a", "owns_b", "trust",
-        "m1", "m2", "rank", "score", "comment", "unused",
+        "m1", "m2", "rank",
+        # A MaxDiff's variables in the order it fills them: best and worst for
+        # each task, then the version of the design the respondent was shown.
+        "md_t1_best", "md_t1_worst", "md_t2_best", "md_t2_worst", "md_version",
+        "score", "comment", "unused",
     ]  # fmt: skip
     assert [item["code"] for item in document["variables"]["region"]["labels"]] == [
         "north", "south", "99",

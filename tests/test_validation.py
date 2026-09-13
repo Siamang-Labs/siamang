@@ -14,6 +14,7 @@ from siamang.core import (
     FinalPage,
     LikertScale,
     Matrix,
+    MaxDiff,
     MissingValue,
     MultiChoice,
     OpenText,
@@ -413,3 +414,82 @@ def test_lint_flags_piped_text_that_names_unknown_or_later_variables():
     assert len(forward) == 1 and "{label:color}" in forward[0].message
     # A page title piping an earlier answer is fine.
     assert all("{answer:name}" not in f.message for f in findings)
+
+
+# ─── MaxDiff ─────────────────────────────────────────────────────────────────
+
+
+def _maxdiff_variables(tasks: int, labels=None):
+    items = labels if labels is not None else {1: "A", 2: "B", 3: "C", 4: "D"}
+    variables = [
+        Variable(f"md_t{t}_{side}", "nominal", labels=items)
+        for t in range(1, tasks + 1)
+        for side in ("best", "worst")
+    ]
+    variables.append(Variable("md_version", "nominal"))
+    return variables
+
+
+def test_maxdiff_pairs_variables_with_tasks():
+    """Best and worst per task plus the version: get the count wrong and answers
+    land under the wrong task without anything looking amiss."""
+
+    variables = _maxdiff_variables(3)
+    assert MaxDiff("Q?", variables, tasks=3).tasks == 3
+    with pytest.raises(ValueError, match="needs 5 variables"):
+        MaxDiff("Q?", variables, tasks=2)
+    with pytest.raises(TypeError, match="list of Variables"):
+        MaxDiff("Q?", Variable("x", "nominal"), tasks=0)
+
+
+def test_maxdiff_refuses_a_task_nobody_can_answer():
+    with pytest.raises(ValueError, match="nothing to beat"):
+        MaxDiff("Q?", _maxdiff_variables(2), tasks=2, per_task=1)
+    with pytest.raises(ValueError, match="at least one version"):
+        MaxDiff("Q?", _maxdiff_variables(2), tasks=2, versions=0)
+
+
+def test_maxdiff_finds_its_items_and_its_variables():
+    question = MaxDiff("Q?", _maxdiff_variables(2), tasks=2, per_task=3)
+    assert question.item_codes == [1, 2, 3, 4]
+    assert question.version_variable.name == "md_version"
+    best, worst = question.task_variables(1)
+    assert (best.name, worst.name) == ("md_t2_best", "md_t2_worst")
+    # Explicit choices override the labels, the way Ranking's do.
+    with_choices = MaxDiff(
+        "Q?",
+        _maxdiff_variables(2),
+        tasks=2,
+        per_task=2,
+        choices=[Option(7, "Seven"), Option(8, "Eight"), Option(9, "Nine")],
+    )
+    assert with_choices.item_codes == [7, 8, 9]
+
+
+def test_maxdiff_generates_its_design_when_none_was_frozen():
+    """A hand-written questionnaire still works, and still gives the same design
+    every time, because the seed is the questionnaire's."""
+
+    question = MaxDiff("Q?", _maxdiff_variables(2), tasks=2, per_task=3, versions=2, seed=5)
+    design = question.resolved_design()
+    assert design.to_dict() == question.resolved_design().to_dict()
+    assert len(design.versions) == 2
+    stored = MaxDiff(
+        "Q?", _maxdiff_variables(2), tasks=2, per_task=3, versions=2, design=design.to_dict()
+    )
+    assert stored.resolved_design().to_dict() == design.to_dict()
+
+
+def test_maxdiff_lint_names_what_cannot_be_estimated():
+    def survey(**kwargs):
+        tasks = kwargs.pop("tasks", 2)
+        question = MaxDiff("Q?", _maxdiff_variables(tasks), tasks=tasks, id="q_md", **kwargs)
+        return Questionnaire(title="M", pages=[Page(name="p", items=[question])])
+
+    assert survey(per_task=3, versions=3).lint("strict") == []
+    # Showing every item in every task is a complete design: nothing is learned
+    # from which items met, which is the entire mechanism.
+    codes = [w.code for w in survey(per_task=4, versions=3).lint("strict")]
+    assert codes == ["MAXDIFF_COMPLETE_DESIGN"]
+    codes = [w.code for w in survey(per_task=3, versions=1).lint("strict")]
+    assert codes == ["MAXDIFF_SINGLE_VERSION"]
