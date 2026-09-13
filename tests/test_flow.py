@@ -403,6 +403,7 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
                 "mode": "flag",
             },
         ),
+        ("expl", "prepare.explode", {"variable": "aware"}),
         (
             "sel",
             "prepare.select",
@@ -417,6 +418,10 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
                     "weight",
                     "quality_flags",
                     "quality_score",
+                    "aware_1",
+                    "aware_2",
+                    "aware_3",
+                    "aware_99",
                 ]
             },
         ),
@@ -450,7 +455,7 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         ("exp", "output.export_file", {"path": "outputs/clean.csv"}),
         ("tile", "output.live_tile", {"kind": "stat", "label": "corr"}),
     ]
-    chain = ["sim", "filt", "miss", "rec", "cell", "apply", "idx", "qual", "sel"]
+    chain = ["sim", "filt", "miss", "rec", "cell", "apply", "idx", "qual", "expl", "sel"]
     edges = [(a, "data", b, "data") for a, b in zip(chain, chain[1:], strict=False)]
     edges += [
         ("sel", "data", n, "data")
@@ -492,6 +497,14 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
     assert result.output("filt").frame["age"].min() >= 18
     assert "region2" in result.output("rec").frame.columns
     assert result.output("apply").weight == "weight"
+    exploded = result.output("expl")
+    # The indicators reproduce the list column exactly, and a respondent who
+    # answered nothing is missing rather than a row of noes.
+    assert [
+        sorted(code for code in (1, 2, 3, 99) if row[f"aware_{code}"] == 1)
+        for _, row in exploded.frame.head(20).iterrows()
+    ] == [sorted(value) for value in exploded.frame["aware"].head(20)]
+    assert exploded.variables["aware_1"].label == "Brands heard of (unaided): Acme"
     assert "rho" in result.output("corr")
     assert set(result.output("cmp")) >= {"statistic", "p_value"}
     assert list(result.output("reg", "table")["term"])[:2] == ["(intercept)", "age"]
@@ -525,9 +538,9 @@ def test_generated_flow_script_is_clean_deterministic_and_golden(flow_doc, quest
     code = generate_flow(flow_doc, questionnaire_doc)
     assert code == generate_flow(flow_doc, questionnaire_doc)
     golden = DOCUMENTS / "satisfaction.flow.generated.py"
-    assert golden.exists(), (
-        "run: siamang codegen tests/documents/satisfaction.flow.json --questionnaire …"
-    )
+    assert (
+        golden.exists()
+    ), "run: siamang codegen tests/documents/satisfaction.flow.json --questionnaire …"
     assert code == golden.read_text("utf-8")
     assert _ruff("format", "--isolated", "--line-length", "100", code=code).stdout == code
     lint = _ruff(

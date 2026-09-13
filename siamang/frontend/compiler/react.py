@@ -483,6 +483,18 @@ def _expr_to_js(node: Any) -> str | None:
         if node.op in ("not in", "notin"):
             return f"(!Array.isArray({right_js})||!{right_js}.includes({left_js}))"
 
+        if node.op in ("contains", "not contains", "notcontains"):
+            # "Did they choose this code", the question `=` cannot answer for a
+            # MultiChoice. A single answer contains what it equals, matching
+            # Expression.evaluate, so the condition survives a question being
+            # changed from several answers to one. Deliberately *not* the
+            # substring test the raw-string parser does for scalars: these codes
+            # are codes, and "11" must not match 1.
+            test = (
+                f"(Array.isArray({left_js})?{left_js}.includes({right_js}):{left_js}==={right_js})"
+            )
+            return test if node.op == "contains" else f"(!{test})"
+
         return None  # Unknown operator
 
     # Literal value (shouldn't appear as top-level condition, but handle gracefully)

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import pandas as pd
 
 from siamang.core.expression import Expression
 from siamang.core.questionnaire import Questionnaire
 from siamang.core.variable import ValidationIssue, Variable, VariableMap
+from siamang.data import multi
 from siamang.data.analysis import DataAnalysis
 from siamang.data.processing import DataProcessing
 from siamang.data.tables import SurveyTables
@@ -89,6 +91,74 @@ class SurveyData:
         variables = self._variables_with(
             Variable(name, scale, label=label or name, labels=labels or {}, role="derived")
         )
+        return SurveyData(
+            frame=frame,
+            variables=variables,
+            questionnaire=self.questionnaire,
+            weight=self.weight,
+        )
+
+    def explode_multi(
+        self,
+        column: str,
+        *,
+        prefix: str | None = None,
+        drop: bool = False,
+    ) -> SurveyData:
+        """Turn a multiple-choice column into one 0/1 variable per option.
+
+        A list of codes is the honest way to *store* the answer and the wrong
+        shape for most of what is done with it afterward: weighting, regression,
+        clustering and TURF all need a rectangle of numbers. This makes that
+        rectangle — ``<column>_<code>`` per option, labeled from the codebook
+        and registered as variables, so the columns are nameable in later nodes.
+
+        Non-respondents get missing values rather than zeros, which keeps every
+        base computed downstream the same as the one
+        :func:`siamang.data.multi.frequencies` reports. ``drop`` removes the
+        original column; by default it stays, because the two shapes answer
+        different questions and both are cheap to keep.
+        """
+
+        if column not in self.frame.columns:
+            raise ValueError(f"Column '{column}' not found in frame.")
+        source = self.variables.get(column) if self.variables is not None else None
+        labels: dict[Any, str] = dict(source.labels) if source is not None else {}
+        # Codebook order first — it is the order the question was asked in —
+        # then anything the data holds that the codebook does not know about.
+        codes: list[Any] = list(labels)
+        codes += [code for code in multi.codes_in(self.frame[column]) if code not in codes]
+        if not codes:
+            raise ValueError(f"Column '{column}' has no answers to explode.")
+
+        stem = f"{column}_" if prefix is None else prefix
+        indicators = multi.explode(self.frame[column], codes=codes, prefix=stem)
+        frame = self.frame.copy()
+        for name in indicators.columns:
+            frame[name] = indicators[name]
+        if drop:
+            frame = frame.drop(columns=[column])
+
+        question = (source.label if source is not None else None) or column
+        # Same contract as with_derived: a frame that was carrying no codebook
+        # still comes back with one for the columns this just invented.
+        variables = VariableMap()
+        if self.variables is not None:
+            for existing in self.variables.values():
+                if existing.name in indicators.columns or (drop and existing.name == column):
+                    continue
+                variables.add(existing)
+        for code in codes:
+            variables.add(
+                Variable(
+                    f"{stem}{code}",
+                    "nominal",
+                    label=f"{question}: {labels.get(code, code)}",
+                    labels={0: "No", 1: "Yes"},
+                    role="derived",
+                    description=f"Chose code {code!r} of multiple-choice {column}",
+                )
+            )
         return SurveyData(
             frame=frame,
             variables=variables,
@@ -445,7 +515,18 @@ class SurveyData:
 
     def _numeric_items_frame(self, items: list[str]) -> pd.DataFrame:
         missing_normalized = self.apply_missing_values() if self.variables is not None else self
-        return missing_normalized.frame[items].apply(pd.to_numeric, errors="coerce")
+        frame = missing_normalized.frame[items]
+        listed = [name for name in items if multi.is_multi(frame[name])]
+        if listed:
+            # to_numeric would coerce every list to NaN and the item would drop
+            # out of the index in silence, which is the worst of the outcomes.
+            raise TypeError(
+                f"{', '.join(listed)} hold multiple-choice answers (lists of codes), "
+                "which have no single numeric value. Run prepare.explode first: it "
+                "turns each option into its own 0/1 column, and those are what an "
+                "index, a scale or a cluster is built from."
+            )
+        return frame.apply(pd.to_numeric, errors="coerce")
 
     def export_dictionary(self, path: str = "survey_dictionary.json"):
         if self.variables is None:

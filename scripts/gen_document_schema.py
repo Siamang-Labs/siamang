@@ -97,7 +97,22 @@ DEFS: dict[str, Any] = {
         "properties": {
             "type": {"const": "expression"},
             "op": {
-                "enum": ["=", "!=", ">", ">=", "<", "<=", "in", "not in", "and", "or", "not", "raw"]
+                "enum": [
+                    "=",
+                    "!=",
+                    ">",
+                    ">=",
+                    "<",
+                    "<=",
+                    "in",
+                    "not in",
+                    "contains",
+                    "not contains",
+                    "and",
+                    "or",
+                    "not",
+                    "raw",
+                ]
             },
             "left": ref("operand"),
             "right": ref("operand"),

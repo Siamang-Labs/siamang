@@ -14,7 +14,8 @@ questionnaires almost always stay in:
   f-strings of constants), references to names bound earlier;
 * calls of the engine's constructors and factories (``sg.Page``,
   ``SingleChoice``, ``Script.timed_question``, ``UIConfig``, ``Quota``…),
-  the condition methods of variables (``age.lt(18)``, ``region.isin([…])``),
+  the condition methods of variables (``age.lt(18)``, ``region.isin([…])``,
+  ``barriers.contains(1)``),
   ``sg.AND / OR / NOT / compare``, the ``& | ~`` operators on conditions,
   ``codebook.add_many([...])`` and ``datetime.fromisoformat("…")``.
 
@@ -107,7 +108,9 @@ _MODULE_NAMES = {
     "siamang.frontend": {n: o for n, o in _CALLABLES.items() if hasattr(_theme, n)},
     "siamang.frontend.theme": {n: o for n, o in _CALLABLES.items() if hasattr(_theme, n)},
 }
-_VARIABLE_METHODS = frozenset({"eq", "ne", "gt", "ge", "lt", "le", "isin", "notin"})
+_VARIABLE_METHODS = frozenset(
+    {"eq", "ne", "gt", "ge", "lt", "le", "isin", "notin", "contains", "notcontains"}
+)
 _VARIABLEMAP_METHODS = frozenset({"add", "add_many"})
 _SCRIPT_FACTORIES = frozenset(
     {"randomize_options", "randomize_pages", "timed_question", "validate_fields_match"}
