@@ -451,3 +451,58 @@ class GroupMeanTable(SurveyTable):
 
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
+
+
+# ─── QualityTable ─────────────────────────────────────────────────────────────
+
+
+@dataclass
+class QualityTable(SurveyTable):
+    """How many responses each quality check flagged, and how many were clean.
+
+    Reads the column ``prepare.quality`` wrote — one string per respondent
+    naming every check they failed — and counts it by reason. A respondent who
+    failed two checks appears in both rows, so the reason counts do not add up
+    to the flagged total; the "Any check" row is the one that says how many
+    responses are affected, and it is the number a methods section quotes.
+
+    The percentages are of everyone screened, which is why the table is built
+    before anything is dropped: "3.2 % of responses were flagged" is a fact
+    about the sample, while the same count over the survivors is a fact about
+    nothing.
+
+    Parameters
+    ----------
+    data : SurveyData
+        The screened data, with the flags column still on it.
+    column : str
+        The flags column, as named in the node (default ``quality_flags``).
+    """
+
+    column: str = "quality_flags"
+
+    def _build(self) -> None:
+        from siamang.data.quality import REASONS
+
+        frame = self.data.frame
+        screened = int(len(frame))
+        flags = (
+            frame[self.column].fillna("").astype(str)
+            if self.column in frame.columns
+            else pd.Series([""] * screened, dtype="object")
+        )
+        reasons = [str(r).split("; ") for r in flags]
+        counts = {
+            reason: sum(1 for parts in reasons if reason in parts)
+            for reason in REASONS
+            if any(reason in parts for parts in reasons)
+        }
+        flagged = int(sum(1 for value in flags if value))
+        share = lambda n: round(n / screened * 100, 1) if screened else 0.0  # noqa: E731
+        rows = [
+            {"Check": reason.capitalize(), "N": n, "%": share(n)} for reason, n in counts.items()
+        ]
+        rows.append({"Check": "Any check", "N": flagged, "%": share(flagged)})
+        rows.append({"Check": "Clean", "N": screened - flagged, "%": share(screened - flagged)})
+        self._result = pd.DataFrame(rows, columns=["Check", "N", "%"])
+        self._stats = {"Screened": screened, "Flagged": flagged}

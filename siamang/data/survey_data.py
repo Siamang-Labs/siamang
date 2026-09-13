@@ -65,6 +65,37 @@ class SurveyData:
             weight=self.weight,
         )
 
+    def with_derived(
+        self,
+        name: str,
+        values: pd.Series,
+        *,
+        label: str | None = None,
+        scale: str = "nominal",
+        labels: dict[object, str] | None = None,
+    ) -> SurveyData:
+        """Attach a computed column *and* the variable that documents it.
+
+        :meth:`with_frame` carries ``variables`` through untouched, so a column
+        added that way is invisible to :meth:`codebook`, to ``analyze.describe``
+        and to the dictionary written beside an export — and naming it in a
+        later node is an error, because it is not in the codebook. :meth:`derive`
+        registers a variable but only accepts an :class:`Expression`; this takes
+        a Series any helper can produce.
+        """
+
+        frame = self.frame.copy()
+        frame[name] = values
+        variables = self._variables_with(
+            Variable(name, scale, label=label or name, labels=labels or {}, role="derived")
+        )
+        return SurveyData(
+            frame=frame,
+            variables=variables,
+            questionnaire=self.questionnaire,
+            weight=self.weight,
+        )
+
     def with_weight(self, column: str) -> SurveyData:
         if column not in self.frame.columns:
             raise ValueError(f"Weight column '{column}' not found in frame.")

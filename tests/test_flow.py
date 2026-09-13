@@ -395,6 +395,15 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         ("apply", "prepare.apply_weight", {}),
         ("idx", "prepare.index", {"name": "trust_idx", "items": ["trust_acme", "trust_globex"]}),
         (
+            "qual",
+            "prepare.quality",
+            {
+                "items": ["trust_acme", "trust_globex"],
+                "expected": {"gender": 1},
+                "mode": "flag",
+            },
+        ),
+        (
             "sel",
             "prepare.select",
             {
@@ -406,6 +415,8 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
                     "trust_idx",
                     "region2",
                     "weight",
+                    "quality_flags",
+                    "quality_score",
                 ]
             },
         ),
@@ -439,7 +450,7 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         ("exp", "output.export_file", {"path": "outputs/clean.csv"}),
         ("tile", "output.live_tile", {"kind": "stat", "label": "corr"}),
     ]
-    chain = ["sim", "filt", "miss", "rec", "cell", "apply", "idx", "sel"]
+    chain = ["sim", "filt", "miss", "rec", "cell", "apply", "idx", "qual", "sel"]
     edges = [(a, "data", b, "data") for a, b in zip(chain, chain[1:], strict=False)]
     edges += [
         ("sel", "data", n, "data")

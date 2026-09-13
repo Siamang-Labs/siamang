@@ -39,6 +39,19 @@ def dedup_responses(
         raise ValueError("keep must be 'first' or 'last'.")
     if id_col not in df.columns:
         return df.copy()
+    if order_by is not None and order_by not in df.columns:
+        # A frame that names its timestamps differently — a platform responses
+        # table has started_at/created_at, not submitted_at — would otherwise be
+        # left unordered, and "keep the latest" would quietly keep an arbitrary
+        # row. Fall back rather than pretend.
+        order_by = next(
+            (
+                c
+                for c in ("submitted_at", "started_at", "updated_at", "created_at")
+                if c in df.columns
+            ),
+            None,
+        )
     out = df
     if order_by and order_by in df.columns:
         out = out.sort_values(order_by, kind="stable")

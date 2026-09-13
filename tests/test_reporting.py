@@ -100,6 +100,45 @@ def test_freq_table():
     print()
 
 
+def test_quality_table_counts_by_reason_over_everyone_screened():
+    """The table prepare.quality feeds into a report section.
+
+    A respondent who failed two checks is in both reason rows, so the reasons
+    do not add up — "Any check" is the number a methods section quotes, and
+    every percentage is of everyone screened rather than of the survivors.
+    """
+    import pandas as pd
+
+    from siamang.data import SurveyData
+
+    frame = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "quality_flags": ["", "straightlining; duplicate", "attention", ""],
+        }
+    )
+    table = SurveyData(frame=frame).report.quality("quality_flags")
+    rows = dict(zip(table.to_frame()["Check"], table.to_frame()["N"], strict=True))
+    assert rows["Straightlining"] == 1 and rows["Duplicate"] == 1 and rows["Attention"] == 1
+    assert rows["Any check"] == 2 and rows["Clean"] == 2
+    percent = dict(zip(table.to_frame()["Check"], table.to_frame()["%"], strict=True))
+    assert percent["Any check"] == 50.0
+    assert table.stats == {"Screened": 4, "Flagged": 2}
+    # A check nobody failed is not a row of zeros: only what happened is shown.
+    assert "Inconsistency" not in rows
+    assert "| Check " in table.to_markdown()
+
+
+def test_quality_table_without_a_flags_column_reports_everyone_clean():
+    import pandas as pd
+
+    from siamang.data import SurveyData
+
+    table = SurveyData(frame=pd.DataFrame({"id": [1, 2]})).report.quality()
+    rows = dict(zip(table.to_frame()["Check"], table.to_frame()["N"], strict=True))
+    assert rows == {"Any check": 0, "Clean": 2}
+
+
 def test_cross_table():
     data = build_test_data()
     table = data.report.crosstab("it_role", "remote_freq")

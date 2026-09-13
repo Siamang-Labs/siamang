@@ -1,4 +1,4 @@
-"""siamang.data.respondents / weights / stats — frame-level pipeline helpers."""
+"""siamang.data.respondents / quality / weights / stats — frame-level helpers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from siamang.data import respondents, stats, weights
+from siamang.core import Variable, VariableMap
+from siamang.data import SurveyData, quality, respondents, stats, weights
 
 # ─── respondents ─────────────────────────────────────────────────────────────
 
@@ -66,6 +67,126 @@ def test_speeders_flag():
     assert list(out) == [False, False, True, True, False]
     df = pd.DataFrame({"duration_s": [None, 10]})
     assert list(respondents.speeders(df, min_seconds=60)) == [False, True]
+
+
+# ─── quality ─────────────────────────────────────────────────────────────────
+
+BATTERY = ["q1", "q2", "q3", "q4", "q5"]
+
+
+def _battery() -> pd.DataFrame:
+    """Five respondents: honest, flatliner, flatliner's twin, near-flat, partial."""
+
+    return pd.DataFrame(
+        {
+            "q1": [1, 4, 4, 4, 3],
+            "q2": [5, 4, 4, 4, None],
+            "q3": [2, 4, 4, 5, 1],
+            "q4": [4, 4, 4, 4, 2],
+            "q5": [3, 4, 4, 4, 5],
+        }
+    )
+
+
+def test_straightlining_catches_flat_rows_and_ignores_incomplete_ones():
+    out = quality.straightlining(_battery(), BATTERY)
+    assert list(out) == [False, True, True, False, False]
+    # The near-flat row (4,4,5,4,4) needs a tolerance to count.
+    loose = quality.straightlining(_battery(), BATTERY, max_sd=0.5)
+    assert list(loose) == [False, True, True, True, False]
+
+
+def test_straightlining_needs_a_battery_worth_measuring():
+    frame = _battery()
+    assert not quality.straightlining(frame, ["q1", "q2"]).any()
+    assert not quality.straightlining(frame, ["nope", "gone", "missing"]).any()
+    assert not quality.straightlining(frame, None).any()
+
+
+def test_inconsistency_skips_pairs_it_cannot_compare():
+    frame = pd.DataFrame({"age": [30, 40], "age_again": [30, 41], "only_once": [1, 2]})
+    assert list(quality.inconsistency(frame, {"age": "age_again"})) == [False, True]
+    # A pair naming a column the frame does not have is skipped, not counted.
+    assert not quality.inconsistency(frame, {"only_once": "never_asked"}).any()
+    assert not quality.inconsistency(frame, None).any()
+
+
+def test_duplicate_pattern_flags_every_member_of_a_colliding_group():
+    out = quality.duplicate_pattern(_battery(), BATTERY)
+    assert list(out) == [False, True, True, False, False]
+    assert not quality.duplicate_pattern(_battery(), BATTERY, min_items=9).any()
+
+
+def test_attention_failed_only_judges_answered_checks():
+    frame = pd.DataFrame({"trap": [3, 1, None]})
+    assert list(quality.attention_failed(frame, {"trap": 3})) == [False, True, False]
+    assert not quality.attention_failed(frame, None).any()
+
+
+def test_checks_compare_numbers_as_numbers_not_as_text():
+    """One missing answer makes the column float — 3 arrives as 3.0.
+
+    Comparing those as strings flagged every honest respondent, which is worse
+    than not checking at all: the fraud screen would condemn the whole sample.
+    """
+
+    frame = pd.DataFrame({"trap": [3, 1, None], "a": [30, 40, None], "b": [30, 41, 40]})
+    assert list(quality.attention_failed(frame, {"trap": 3})) == [False, True, False]
+    assert list(quality.inconsistency(frame, {"a": "b"})) == [False, True, False]
+    # Text answers still compare as text.
+    words = pd.DataFrame({"trap": ["blue", "red"]})
+    assert list(quality.attention_failed(words, {"trap": "blue"})) == [False, True]
+
+
+def test_quality_flags_name_every_failed_check_in_order():
+    frame = _battery()
+    frame["trap"] = [3, 3, 1, 3, 3]
+    frame["age"] = [30, 40, 40, 30, 30]
+    frame["age_again"] = [30, 41, 40, 30, 30]
+    flags = quality.quality_flags(
+        frame,
+        items=BATTERY,
+        pairs={"age": "age_again"},
+        expected={"trap": 3},
+    )
+    assert flags.tolist() == [
+        "",
+        "straightlining; inconsistency; duplicate",
+        "straightlining; duplicate; attention",
+        "",
+        "",
+    ]
+    assert quality.quality_score(flags).tolist() == [0, 3, 3, 0, 0]
+
+
+def test_quality_flags_with_nothing_configured_flags_nobody():
+    # The flow renders an unset mapping parameter as the literal None, so this
+    # is what the generated script passes for a check the author left blank.
+    flags = quality.quality_flags(_battery(), items=None, pairs=None, expected=None)
+    assert flags.tolist() == [""] * 5
+    assert quality.quality_score(flags).tolist() == [0] * 5
+
+
+def test_flags_reach_the_codebook_through_with_derived():
+    """What ``prepare.quality`` relies on: with_frame would lose the metadata."""
+
+    variables = VariableMap()
+    for name in BATTERY:
+        variables.add(Variable(name, "ordinal", label=name.upper()))
+    data = SurveyData(frame=_battery(), variables=variables)
+    flags = quality.quality_flags(data.frame, items=BATTERY)
+    scored = data.with_derived(
+        "quality_flags", flags, label="Quality flags", scale="nominal"
+    ).with_derived(
+        "quality_score", quality.quality_score(flags), label="Checks failed", scale="ratio"
+    )
+
+    assert "quality_flags" in scored.frame.columns
+    book = scored.codebook()
+    assert set(book["name"]) == set(BATTERY) | {"quality_flags", "quality_score"}
+    assert scored.variables["quality_score"].role == "derived"
+    # The original is untouched: every helper here returns a new SurveyData.
+    assert "quality_flags" not in data.frame.columns
 
 
 # ─── weights ─────────────────────────────────────────────────────────────────
