@@ -10,7 +10,7 @@ from siamang.core import (
     Variable, MissingValue, ValidationIssue, VariableMap,
     Expression, VarRef, AND, OR, NOT, compare,
     Question, SingleChoice, MultiChoice, LikertScale,
-    NumericInput, OpenText, Matrix, Ranking, MaxDiff,
+    NumericInput, OpenText, Matrix, Ranking, MaxDiff, Conjoint, Attribute,
     Page, Block, Option, Media, Quota, Script, FilterRule,
     Questionnaire, LintWarning,
 )
@@ -333,7 +333,47 @@ picks cannot be read at all.
 
 ---
 
+### `Conjoint`
+
+The `Conjoint` question shows whole products side by side and asks which one the
+respondent would buy. Asking directly how important an attribute is gets an
+answer everyone gives the same way; a forced trade-off between products that
+differ on everything at once does not.
+
+#### Additional Properties
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `attributes` | `list[Attribute]` | `[]` | What the products vary on. At least two. |
+| `alternatives` | `int` | `3` | Products shown per task. At least 2. |
+| `tasks` | `int` | `10` | Choices one respondent makes. |
+| `versions` | `int` | `20` | Independent blocks of the design. |
+| `seed` | `int \| None` | `None` | Fixes the design; derived from the question when unset. |
+| `none_label` | `str \| None` | `None` | Adds a "none of these" alternative, which changes what the question measures. |
+| `design` | `dict \| None` | `None` | A frozen design; generated from the parameters when absent. |
+
+`var` must be a list of `tasks + 1` variables: which alternative was chosen in
+each task, then the version of the design that respondent saw.
+
+---
+
 ## Options and Media
+
+### `Attribute`
+
+One dimension a conjoint product varies on, and the values it takes. `Option` is
+a code and a label; a product is a row of them, which is why this is a separate
+class rather than a field on `Option`. Levels *are* options.
+
+#### Properties
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `str` | — | A plain identifier; it becomes a column name in the results. |
+| `levels` | `list[Option]` | `[]` | At least two — one level is a constant. The **first is the reference**, held at zero. |
+| `label` | `str \| None` | `None` | What the respondent reads. |
+
+---
 
 ### `Option`
 

@@ -24,10 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per item and per respondent) and utilities with the shares they imply.
   `report.maxdiff(...)` tabulates both against a base; `analyze.maxdiff` runs
   it from a flow.
+- **`Conjoint`** and **`Attribute`** — choice-based conjoint: whole products
+  side by side, pick one. `siamang.design.cbc_design` builds the design by
+  improving several random starts on D-error, and reports the level balance and
+  the task overlap against the floor that is arithmetically forced. A design too
+  small to be fitted reports so, and `lint()` says it in words before fieldwork
+  rather than after the model fails to converge.
+- **`siamang.data.conjoint`** — part-worths in one currency across attributes,
+  attribute importance (of the levels tested, which the table says out loud),
+  and shares of preference for hypothetical products. `report.conjoint(...)`,
+  `analyze.conjoint` and `analyze.conjoint_shares`.
 - **`siamang.io.choice.write_maxdiff_choices`** — the choices in the long
   format R's hierarchical-Bayes packages read, with a column dictionary and a
   script, so individual-level utilities can be estimated outside the engine.
-  `output.choice_data` writes it from a flow.
+  `output.choice_data` and `output.conjoint_data` write it from a flow.
 
 ### Fixed
 

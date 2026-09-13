@@ -8,7 +8,7 @@ class, every type, and the `Option` and `Media` helpers that enrich answer choic
 ```python
 from siamang.core import (
     SingleChoice, MultiChoice, LikertScale, NumericInput,
-    OpenText, Matrix, Ranking, MaxDiff, Option, Media,
+    OpenText, Matrix, Ranking, MaxDiff, Conjoint, Attribute, Option, Media,
 )
 ```
 
@@ -355,6 +355,84 @@ data.report.maxdiff("q_md")            # counting score, utilities, shares
 siamang.data.maxdiff.respondent_scores(data, "q_md")   # one score per person
 siamang.io.choice.write_maxdiff_choices(data, "q_md", "choices.csv")  # for HB in R
 ```
+
+---
+
+## `Conjoint`
+
+Choice-based conjoint. Whole products side by side; the respondent picks one.
+Asking how important price is gets an answer everybody gives the same way;
+showing three products that differ in price *and* in everything else makes the
+respondent spend something to get something, and what they gave up is the
+measurement.
+
+```python
+@dataclass(frozen=True, slots=True)
+class Conjoint(Question):
+    var: list[Variable]                     # tasks + 1
+    attributes: list[Attribute] = []
+    alternatives: int = 3
+    tasks: int = 10
+    versions: int = 20
+    seed: int | None = None
+    none_label: str | None = None
+    design: dict | None = None
+```
+
+| Field | Default | Description |
+| :--- | :--- | :--- |
+| `attributes` | `[]` | What the products vary on. At least two — a trade-off needs two things to trade. |
+| `alternatives` | `3` | Products shown per task. |
+| `tasks` | `10` | Choices one respondent makes. |
+| `versions` | `20` | Independent blocks of the design. |
+| `seed` | `None` | Fixes the design; derived from the question when unset. |
+| `none_label` | `None` | Adds a "none of these" alternative. It changes what the question measures: with it, shares are of a market including people who buy nothing. |
+
+`var` holds **one variable per task plus one**: which alternative was chosen,
+then the version of the design shown. One per task rather than one per attribute
+— the answer *is* the choice, and which levels it carried lives in the design.
+
+```python
+attributes = [
+    sg.Attribute("brand", [sg.Option(1, "Acme"), sg.Option(2, "Globex")], label="Brand"),
+    sg.Attribute("price", [sg.Option(10, "£10"), sg.Option(20, "£20")], label="Price"),
+]
+cbc = [sg.Variable(f"cbc_t{t}", scale="nominal") for t in range(1, 11)]
+cbc.append(sg.Variable("cbc_version", scale="nominal", label="Design version"))
+
+q_cbc = sg.Conjoint("Which would you buy?", cbc, attributes=attributes, seed=7)
+```
+
+Reading the answers:
+
+```python
+data.report.conjoint("q_cbc")                                   # part-worths + importance
+siamang.data.conjoint.shares(data, "q_cbc", {"Ours": {...}})    # share of preference
+siamang.io.choice.write_conjoint_choices(data, "q_cbc", "cbc.csv")  # for HB in R
+```
+
+`lint()` refuses a design that cannot be estimated — too few tasks for the
+number of levels — before anyone is interviewed, rather than after the model
+fails to converge.
+
+---
+
+## `Attribute`
+
+One dimension a conjoint product varies on, and the values it takes. Levels are
+`Option`s, so a level may carry an image for the same reason an answer option
+may.
+
+```python
+@dataclass(frozen=True, slots=True)
+class Attribute:
+    name: str                       # a plain identifier: it becomes a column
+    levels: list[Option] = []       # at least two
+    label: str | None = None        # what the respondent reads
+```
+
+The **first level is the reference**: its part-worth is zero and every other
+level of that attribute is read against it.
 
 ---
 
