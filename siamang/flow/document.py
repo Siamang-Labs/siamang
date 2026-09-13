@@ -404,7 +404,11 @@ def _check_params(
             )
     for name, param in spec.params.items():
         value = params.get(name, param.default)
-        if value is None or value == "" or value == []:
+        # An empty mapping means "not set", exactly as an empty list does. Without
+        # {} here an optional `mapping` param could never be left alone: its empty
+        # default reached _param_problem and came back "expected a non-empty
+        # code → value object", while a required one reported the wrong code.
+        if value is None or value == "" or value == [] or value == {}:
             if param.required:
                 issues.append(
                     FlowIssue(

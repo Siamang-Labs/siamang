@@ -1,0 +1,78 @@
+type: prepare.quality
+category: prepare
+title: Response quality
+description: Flag straightlining, contradictions, duplicate answer patterns and failed attention checks — marking them by default, not dropping them.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+  table: Table
+params:
+  items:
+    kind: variables
+    default: []
+    label: Battery to check
+    help: A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these.
+  pairs:
+    kind: mapping
+    default: {}
+    label: Answers that must agree
+    help: 'left variable: right variable. A respondent answering them differently is flagged as contradictory.'
+  expected:
+    kind: mapping
+    default: {}
+    label: Attention checks
+    help: 'variable: the answer a reading respondent gives.'
+  max_sd:
+    kind: float
+    default: 0.0
+    minimum: 0.0
+    label: Straightlining tolerance
+    help: Standard deviation across the battery at or below which a response counts as flat. 0 means literally identical answers.
+  mode:
+    kind: enum
+    values:
+    - flag
+    - drop
+    default: flag
+    label: Mode
+    help: Flag adds the columns and keeps everyone; drop also removes the flagged responses.
+  flags_column:
+    kind: string
+    default: quality_flags
+    creates: variable
+    label: Flags column
+  score_column:
+    kind: string
+    default: quality_score
+    creates: variable
+    label: Score column
+subtitle: '{mode} · sd ≤ {max_sd}'
+imports:
+- from siamang.data import quality
+template:
+- |
+  _flags = quality.quality_flags(
+      {in.data}.frame,
+      items={items!r},
+      pairs={pairs!r},
+      expected={expected!r},
+      max_sd={max_sd!r},
+  )
+  _scored = {in.data}.with_derived(
+      {flags_column!r}, _flags, label="Quality flags", scale="nominal"
+  )
+  _scored = _scored.with_derived(
+      {score_column!r},
+      quality.quality_score(_flags),
+      label="Checks failed",
+      scale="ratio",
+  )
+  # Counted before anything is dropped, so the percentages are of everyone
+  # screened — that is the number a report can quote.
+  {out.table} = _scored.report.quality({flags_column!r})
+  {out.data} = _scored
+- when: mode=drop
+  code: |
+    {out.data} = _scored.with_frame(_scored.frame[_scored.frame[{flags_column!r}] == ""])
+preview: table

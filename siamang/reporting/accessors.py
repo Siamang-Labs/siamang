@@ -18,7 +18,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
     from siamang.reporting.charts import BarChart, BoxPlot, HeatMap, ScatterPlot
-    from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable, NpsTable
+    from siamang.reporting.tables import (
+        CrossTable,
+        FreqTable,
+        GroupMeanTable,
+        NpsTable,
+        QualityTable,
+    )
 
 
 class ReportAccessor:
@@ -47,6 +53,14 @@ class ReportAccessor:
         from siamang.reporting.tables import FreqTable
 
         return FreqTable(data=self._data, column=column, exclude_missing=exclude_missing, sort=sort)
+
+    def quality(self, column: str = "quality_flags") -> QualityTable:
+        """Counts per quality check from the column ``prepare.quality`` wrote:
+        one row per reason, an "Any check" total and the clean remainder, all as
+        a share of everyone screened."""
+        from siamang.reporting.tables import QualityTable
+
+        return QualityTable(data=self._data, column=column)
 
     def nps(self, column: str) -> NpsTable:
         """Net Promoter Score of a 0–10 item: detractors / passives / promoters
