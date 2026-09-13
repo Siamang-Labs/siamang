@@ -13,6 +13,14 @@ from siamang.core.variable import VariableMap
 
 @dataclass(frozen=True, slots=True)
 class BannerTable:
+    """A banner in tidy form: one row per (row value × column value).
+
+    The shape to feed to something else. For the wide cross-break a person
+    reads — blocks of columns, a base row, significance letters — use
+    ``data.report.banner(...)``, which computes its numbers with the same
+    helper so the two can never disagree.
+    """
+
     frame: pd.DataFrame
 
     def export_csv(self, path: str | Path, **kwargs: Any) -> Path:
@@ -68,15 +76,21 @@ def _banner_pair(
     variables: VariableMap | None,
     labels: bool,
 ) -> pd.DataFrame:
-    required = [row, column] + ([weight_column] if weight_column is not None else [])
-    data = frame[required].dropna(subset=[row, column])
+    # Build a frame with names of our own rather than indexing the original by
+    # label: a variable used as both a row and a banner column (the way you read
+    # a base distribution across the banner) would otherwise select two columns
+    # under one name and fail inside groupby.
+    data = pd.DataFrame({"_row": frame[row], "_col": frame[column]})
+    if weight_column is not None:
+        data["_weight"] = frame[weight_column]
+    data = data.dropna(subset=["_row", "_col"])
     if weight_column is None:
-        grouped = data.groupby([row, column], dropna=False).size().reset_index(name="n")
+        grouped = data.groupby(["_row", "_col"], dropna=False).size().reset_index(name="n")
     else:
         grouped = (
-            data.groupby([row, column], dropna=False)[weight_column].sum().reset_index(name="n")
+            data.groupby(["_row", "_col"], dropna=False)["_weight"].sum().reset_index(name="n")
         )
-    grouped["column_total"] = grouped.groupby(column)["n"].transform("sum")
+    grouped["column_total"] = grouped.groupby("_col")["n"].transform("sum")
     grouped["percent"] = grouped["n"] / grouped["column_total"].replace({0: pd.NA})
     grouped["percent"] = grouped["percent"].fillna(0.0)
 
@@ -85,11 +99,11 @@ def _banner_pair(
     result = pd.DataFrame(
         {
             "row_variable": row,
-            "row_value": grouped[row],
-            "row_label": grouped[row].map(row_labels) if labels else None,
+            "row_value": grouped["_row"],
+            "row_label": grouped["_row"].map(row_labels) if labels else None,
             "column_variable": column,
-            "column_value": grouped[column],
-            "column_label": grouped[column].map(column_labels) if labels else None,
+            "column_value": grouped["_col"],
+            "column_label": grouped["_col"].map(column_labels) if labels else None,
             "n": grouped["n"].astype(float),
             "percent": grouped["percent"].astype(float),
         }
