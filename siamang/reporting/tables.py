@@ -817,3 +817,252 @@ class ConjointTable(SurveyTable):
             stats["Unreadable answers"] = f"{read.dropped} ({_reasons(read.reasons)})"
         self._result = frame
         self._stats = stats
+
+
+# ─── BannerTable ──────────────────────────────────────────────────────────────
+
+
+#: Columns get letters so a cell can say which other columns it beats. They run
+#: across the whole banner (A, B, C, …) rather than restarting per block, so a
+#: letter identifies a column uniquely in the table.
+_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+@dataclass
+class BannerTable(SurveyTable):
+    """The cross-break: several questions down, several breakdowns across.
+
+    The workhorse of agency reporting, and the reason is the shape — one page
+    that answers "how does this differ by region, by age, by segment" without
+    flipping between tables. :meth:`SurveyData.tables.banner` produces the same
+    numbers in tidy form, one row per pair, for feeding to something else; this
+    is the one meant to be read.
+
+    Each cell is a column percentage with its count, and — when ``test`` is on —
+    the letters of the columns it is significantly higher than. Comparisons are
+    made **within a banner variable only**: its columns are mutually exclusive
+    groups of the same people, which is what the test assumes. Columns from
+    different banner variables overlap (a northerner is also under 35), so
+    comparing them would be arithmetic without a meaning, and the table does not
+    offer it.
+
+    Three things are said in ``stats`` rather than assumed, because each of them
+    changes what a letter means: the test and its level, whether a multiple-
+    comparison correction was applied, and — on weighted data — that the base is
+    Kish's effective sample size rather than the raw count. Weights make a
+    sample behave like a smaller one; testing on the raw n would manufacture
+    significance.
+    """
+
+    rows: list[str] = field(default_factory=list)
+    columns: list[str] = field(default_factory=list)
+    weight: str | None = None
+    test: bool = True
+    level: float = 0.05
+    correction: str = "none"
+    #: A column with fewer than this many (effective) respondents takes no part
+    #: in testing: a headline difference computed off seven people is noise with
+    #: a letter beside it.
+    min_base: int = 30
+
+    def _build(self) -> None:
+        import numpy as np
+
+        from siamang.data.tables import _banner_pair
+
+        if not self.rows:
+            raise ValueError("A banner needs at least one row variable.")
+        if not self.columns:
+            raise ValueError("A banner needs at least one banner variable.")
+        if self.correction not in {"none", "bonferroni"}:
+            raise ValueError("correction must be 'none' or 'bonferroni'")
+
+        frame = self.data.frame
+        weight_column = self.weight or self.data.weight
+        if weight_column is not None and weight_column not in frame.columns:
+            raise ValueError(f"Weight column '{weight_column}' not found in frame.")
+
+        # Column headers, in order, with their letters: one block per banner
+        # variable, one column per value of it.
+        blocks: list[list[tuple[str, Any, str]]] = []  # (variable, value, header)
+        letters: dict[tuple[str, Any], str] = {}
+        index = 0
+        for variable in self.columns:
+            values = self._values_of(variable)
+            block: list[tuple[str, Any, str]] = []
+            for value in values:
+                letter = _LETTERS[index] if index < len(_LETTERS) else f"#{index + 1}"
+                label = _get_value_labels(self.data, variable).get(value, value)
+                header = f"{_get_label(self.data, variable)}: {label} ({letter})"
+                letters[(variable, value)] = letter
+                block.append((variable, value, header))
+                index += 1
+            blocks.append(block)
+        headers = [header for block in blocks for _var, _val, header in block]
+
+        # Bases: the weighted total per column, and the effective base the test
+        # uses. Unweighted they are the same number.
+        bases: dict[tuple[str, Any], float] = {}
+        effective: dict[tuple[str, Any], float] = {}
+        for variable in self.columns:
+            for value in self._values_of(variable):
+                mask = frame[variable] == value
+                if weight_column is None:
+                    total = float(mask.sum())
+                    bases[(variable, value)] = total
+                    effective[(variable, value)] = total
+                    continue
+                weights = pd.to_numeric(frame.loc[mask, weight_column], errors="coerce").dropna()
+                total = float(weights.sum())
+                squared = float((weights**2).sum())
+                bases[(variable, value)] = total
+                effective[(variable, value)] = (total**2 / squared) if squared > 0 else 0.0
+
+        records: list[dict[str, Any]] = []
+        records.append(
+            {
+                "Question": "Base",
+                "Answer": "respondents",
+                **{
+                    header: _round_base(bases[(variable, value)])
+                    for block in blocks
+                    for variable, value, header in block
+                },
+            }
+        )
+
+        tested = 0
+        for row_variable in self.rows:
+            # One shared computation per (row, column) pair: the same helper the
+            # tidy accessor uses, so the two can never disagree about a number.
+            shares: dict[tuple[Any, str, Any], float] = {}
+            counts: dict[tuple[Any, str, Any], float] = {}
+            for column_variable in self.columns:
+                pair = _banner_pair(
+                    frame,
+                    row_variable,
+                    column_variable,
+                    weight_column,
+                    self.data.variables,
+                    labels=True,
+                )
+                for record in pair.to_dict("records"):
+                    key = (record["row_value"], column_variable, record["column_value"])
+                    shares[key] = float(record["percent"])
+                    counts[key] = float(record["n"])
+
+            row_labels = _get_value_labels(self.data, row_variable)
+            for row_value in self._values_of(row_variable):
+                cells: dict[str, Any] = {}
+                for block in blocks:
+                    marks = self._letters_for(
+                        block, row_value, shares, effective, letters, np
+                    )
+                    tested += len(block) if self.test else 0
+                    for variable, value, header in block:
+                        key = (row_value, variable, value)
+                        share = shares.get(key, 0.0) * 100
+                        count = counts.get(key, 0.0)
+                        mark = marks.get((variable, value), "")
+                        cells[header] = f"{share:.1f}% ({_round_base(count)})" + (
+                            f" {mark}" if mark else ""
+                        )
+                records.append(
+                    {
+                        "Question": _get_label(self.data, row_variable),
+                        "Answer": str(row_labels.get(row_value, row_value)),
+                        **cells,
+                    }
+                )
+
+        self._result = pd.DataFrame(records, columns=["Question", "Answer", *headers])
+
+        thin = sorted(
+            {
+                letters[key]
+                for key, value in effective.items()
+                if value < self.min_base and self.test
+            }
+        )
+        stats: dict[str, Any] = {
+            "Rows": ", ".join(_get_label(self.data, name) for name in self.rows),
+            "Banner": ", ".join(_get_label(self.data, name) for name in self.columns),
+            "Percentages": "of the column",
+        }
+        if self.test:
+            stats["Test"] = (
+                f"two-sided z-test of column proportions at {self.level:g}, "
+                f"within each banner variable only"
+            )
+            stats["Correction"] = (
+                "Bonferroni, within each banner variable"
+                if self.correction == "bonferroni"
+                else "none (columns are compared pairwise)"
+            )
+        else:
+            stats["Test"] = "not run"
+        if weight_column is not None:
+            stats["Weight"] = weight_column
+            stats["Base"] = "effective (Kish) where a test was run; weighted counts shown"
+        if thin:
+            stats["Not tested"] = (
+                f"columns {', '.join(thin)} — fewer than {self.min_base} respondents"
+            )
+        self._stats = stats
+
+    def _values_of(self, variable: str) -> list[Any]:
+        """The values of a variable, in codebook order where the codebook has one."""
+        present = self.data.frame[variable].dropna().unique().tolist()
+        declared = list(_get_value_labels(self.data, variable))
+        ordered = [value for value in declared if value in present]
+        ordered += [value for value in sorted(present, key=str) if value not in ordered]
+        return ordered
+
+    def _letters_for(
+        self,
+        block: list[tuple[str, Any, str]],
+        row_value: Any,
+        shares: dict[tuple[Any, str, Any], float],
+        effective: dict[tuple[str, Any], float],
+        letters: dict[tuple[str, Any], str],
+        np: Any,
+    ) -> dict[tuple[str, Any], str]:
+        """Which columns of this block each column is significantly higher than."""
+        if not self.test or len(block) < 2:
+            return {}
+        eligible = [
+            (variable, value)
+            for variable, value, _header in block
+            if effective[(variable, value)] >= self.min_base
+        ]
+        if len(eligible) < 2:
+            return {}
+        alpha = self.level
+        if self.correction == "bonferroni":
+            comparisons = len(eligible) * (len(eligible) - 1) / 2
+            alpha = self.level / comparisons if comparisons else self.level
+
+        from scipy import stats as scipy_stats
+
+        beats: dict[tuple[str, Any], list[str]] = {key: [] for key in eligible}
+        for i, left in enumerate(eligible):
+            for right in eligible[i + 1 :]:
+                p1 = shares.get((row_value, *left), 0.0)
+                p2 = shares.get((row_value, *right), 0.0)
+                n1, n2 = effective[left], effective[right]
+                pooled = (p1 * n1 + p2 * n2) / (n1 + n2)
+                variance = pooled * (1 - pooled) * (1 / n1 + 1 / n2)
+                if variance <= 0:
+                    continue
+                z = (p1 - p2) / float(np.sqrt(variance))
+                p_value = 2 * (1 - scipy_stats.norm.cdf(abs(z)))
+                if p_value >= alpha:
+                    continue
+                winner, loser = (left, right) if p1 > p2 else (right, left)
+                beats[winner].append(letters[loser])
+        return {key: "".join(sorted(marks)) for key, marks in beats.items() if marks}
+
+
+def _round_base(value: float) -> int | float:
+    """Weighted counts are fractional; a base of 41.0 should read as 41."""
+    return int(round(value)) if abs(value - round(value)) < 1e-9 else round(value, 1)

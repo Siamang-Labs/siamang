@@ -92,6 +92,36 @@ class ReportAccessor:
 
         return NpsTable(data=self._data, column=column)
 
+    def banner(
+        self,
+        rows: list[str],
+        columns: list[str],
+        *,
+        weight: str | None = None,
+        test: bool = True,
+        level: float = 0.05,
+        correction: str = "none",
+    ) -> Any:
+        """The cross-break: several questions down, several breakdowns across.
+
+        Each cell is a column percentage with its count and, unless ``test`` is
+        off, the letters of the columns it is significantly higher than —
+        compared only within a banner variable, whose columns are mutually
+        exclusive. ``data.tables.banner`` gives the same numbers in tidy form
+        for feeding to something else; this one is for reading.
+        """
+        from siamang.reporting.tables import BannerTable
+
+        return BannerTable(
+            data=self._data,
+            rows=list(rows),
+            columns=list(columns),
+            weight=weight,
+            test=test,
+            level=level,
+            correction=correction,
+        )
+
     def crosstab(
         self,
         row: str,

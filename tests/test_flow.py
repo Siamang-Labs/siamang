@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from siamang.codegen import generate_questionnaire
@@ -935,7 +936,7 @@ def test_the_derive_node_computes_a_variable_and_registers_it(tmp_path):
     )
     assert result.ok
     described = result.output("desc", "table")
-    described = described if hasattr(described, "columns") else described.to_frame()
+    described = described if isinstance(described, pd.DataFrame) else described.to_frame()
     assert "spend_month" in set(described["name"])
     # The label defaults to the formula, so the codebook says how the number
     # was made — and that travels into the dictionary beside any export.
@@ -968,3 +969,37 @@ def test_the_derive_node_reports_a_bad_formula_before_anything_runs(questionnair
     issues = check_flow(typo, questionnaire=questionnaire_doc)
     assert [i.code for i in issues] == ["UNKNOWN_VARIABLE"]
     assert "agee" in issues[0].message
+
+
+def test_the_banner_node_runs_and_only_compares_within_a_block(
+    questionnaire_doc, survey, tmp_path
+):
+    """The letters are the reason this node exists, and the way to get them
+    wrong is to compare columns that are not mutually exclusive."""
+
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 300, "seed": 5}),
+            (
+                "ban",
+                "analyze.banner",
+                {"rows": ["gender"], "columns": ["region", "gender"]},
+            ),
+        ],
+        [("sim", "data", "ban", "data")],
+    )
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    result = FlowRunner(
+        flow, questionnaire=survey, questionnaire_document=questionnaire_doc
+    ).run(cwd=tmp_path)
+    assert result.ok
+
+    # to_frame(), not a duck test: BannerTable has a `columns` field of its own
+    # (the banner variables), so "has .columns" does not mean "is a frame".
+    frame = result.output("ban", "table").to_frame()
+    assert list(frame.columns[:2]) == ["Question", "Answer"]
+    assert frame.iloc[0]["Answer"] == "respondents"
+
+    stats = result.output("ban", "stat")
+    assert "within each banner variable only" in stats["Test"]
+    assert "none" in stats["Correction"]

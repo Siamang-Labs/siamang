@@ -1,0 +1,54 @@
+type: analyze.banner
+category: analyze
+title: Banner table
+description: The cross-break — several questions down, several breakdowns across, with significance letters.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  rows:
+    kind: variables
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Questions (down)
+  columns:
+    kind: variables
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Breakdowns (across)
+    help: Each becomes a block of columns. Letters run across the whole table, but columns are only compared inside their own block.
+  test:
+    kind: bool
+    default: true
+    label: Significance letters
+  level:
+    kind: float
+    default: 0.05
+    minimum: 0.001
+    maximum: 0.2
+    label: Level
+  correction:
+    kind: enum
+    values:
+    - none
+    - bonferroni
+    default: none
+    label: Multiple comparisons
+subtitle: '{rows} × {columns}'
+template: |
+  # Columns are compared only within a banner variable: its columns are
+  # mutually exclusive groups, which is what the test assumes. Columns from
+  # different banner variables overlap, so comparing them would be arithmetic
+  # without a meaning.
+  _banner = {in.data}.report.banner(
+      {rows!r}, {columns!r}, test={test!r}, level={level!r}, correction={correction!r}
+  )
+  {out.table} = _banner
+  {out.stat} = _banner.stats
+preview: table
