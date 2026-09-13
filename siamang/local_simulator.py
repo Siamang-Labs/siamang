@@ -10,6 +10,7 @@ import pandas as pd
 from siamang.core.expression import Expression
 from siamang.core.page import Page
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     Matrix,
     MaxDiff,
@@ -57,12 +58,26 @@ def _simulate_value(question: Question, var=None):
         return [1]
     if isinstance(question, OpenText):
         return _simulate_text(question.format)
+    if isinstance(question, Conjoint):
+        return _simulate_conjoint(question)
     if isinstance(question, MaxDiff):
         # The whole answer at once — best and worst have to come from the same
         # task's items and cannot be the same item, so simulating one variable
         # at a time would produce combinations the design never showed.
         return _simulate_maxdiff(question)
     return None
+
+
+def _simulate_conjoint(question: Conjoint) -> dict[str, Any]:
+    """A version of the design, then one alternative picked per task."""
+
+    design = question.resolved_design()
+    version = random.randrange(len(design.versions))
+    answer: dict[str, Any] = {question.version_variable.name: version}
+    highest = question.alternatives + (1 if question.none_label else 0)
+    for index in range(question.tasks):
+        answer[question.task_variable(index).name] = random.randint(1, highest)
+    return answer
 
 
 def _simulate_maxdiff(question: MaxDiff) -> dict[str, Any]:
@@ -188,7 +203,7 @@ def _simulate_question_into_row(question: Question, row: dict[str, Any]) -> None
     """Simulate a single question's value(s) and write into the row dict."""
     if isinstance(question, MultiChoice) and question.mode == "wide":
         row.update(_simulate_wide_multichoice(question))
-    elif isinstance(question, MaxDiff):
+    elif isinstance(question, MaxDiff | Conjoint):
         row.update(_simulate_value(question))
     elif isinstance(question.var, list):
         for var in question.var:

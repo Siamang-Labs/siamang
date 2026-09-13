@@ -11,7 +11,9 @@ from siamang.core import (
     AND,
     NOT,
     OR,
+    Attribute,
     Block,
+    Conjoint,
     Expression,
     FilterRule,
     LikertScale,
@@ -71,10 +73,12 @@ from siamang.reporting import (
 )
 
 __all__ = [
+    "Attribute",
     "__version__",
     "AND",
     "BannerTable",
     "Block",
+    "Conjoint",
     "CSVReader",
     "CSVWriter",
     "DeployResult",

@@ -11,6 +11,7 @@ from siamang.core.block import Block
 from siamang.core.expression import Expression, VarRef
 from siamang.core.page import Page
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     MaxDiff,
     MultiChoice,
@@ -459,6 +460,68 @@ def _strict_question_warnings(questions: list[Question]) -> list[LintWarning]:
                 )
             )
             warnings.extend(_maxdiff_warnings(question_id, question))
+        if isinstance(question, Conjoint):
+            warnings.extend(_conjoint_warnings(question_id, question))
+    return warnings
+
+
+def _conjoint_warnings(question_id: str, question: Conjoint) -> list[LintWarning]:
+    """What a conjoint can be configured into that cannot be estimated.
+
+    The last of these is the one that costs money: a design with too few tasks
+    for the number of levels cannot be fitted at all, and nobody finds out until
+    fieldwork is over and the model will not converge. The design generator
+    already knows — it computes the D-error and gets infinity — so the question
+    is asked here, before anyone is interviewed.
+    """
+
+    warnings: list[LintWarning] = []
+    if len(question.attributes) < 2:
+        warnings.append(
+            LintWarning(
+                code="CONJOINT_TOO_FEW_ATTRIBUTES",
+                severity="error",
+                message=(
+                    f"Conjoint '{question_id}' has {len(question.attributes)} attributes; a "
+                    "trade-off needs at least two."
+                ),
+                location=question_id,
+            )
+        )
+        return warnings
+    if question.versions == 1:
+        warnings.append(
+            LintWarning(
+                code="CONJOINT_SINGLE_VERSION",
+                severity="warning",
+                message=(
+                    f"Conjoint '{question_id}' has one version of the design, so every "
+                    "respondent sees the same products."
+                ),
+                location=question_id,
+            )
+        )
+    try:
+        balance = question.resolved_design().balance
+    except ValueError:
+        return warnings
+    if balance is not None and balance.d_error is None:
+        parameters = sum(len(a.levels) - 1 for a in question.attributes)
+        warnings.append(
+            LintWarning(
+                code="CONJOINT_NOT_ESTIMABLE",
+                severity="error",
+                message=(
+                    f"Conjoint '{question_id}' cannot be estimated: "
+                    f"{question.tasks} task{'' if question.tasks == 1 else 's'} of "
+                    f"{question.alternatives} across {question.versions} "
+                    f"version{'' if question.versions == 1 else 's'} cannot pin down "
+                    f"{parameters} part-worths. Add tasks, add versions, add alternatives, "
+                    "or use fewer levels."
+                ),
+                location=question_id,
+            )
+        )
     return warnings
 
 

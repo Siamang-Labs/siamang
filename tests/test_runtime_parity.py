@@ -217,6 +217,9 @@ class TestRuntimeBundleMarkers:
             "maxdiff",
             "maxDiffRemaining",
             "versionVar",
+            # Conjoint: the component and the grid it renders.
+            "conjoint",
+            "taskVars",
         ):
             assert marker in bundle, f"bundle is stale: missing {marker}"
 
@@ -292,4 +295,70 @@ class TestMaxDiffPayload:
         assert (
             _page_by_name(first, "p")["items"][0]["versions"]
             == (_page_by_name(second, "p")["items"][0]["versions"])
+        )
+
+
+class TestConjointPayload:
+    """What the runtime is handed for a choice task."""
+
+    def _survey(self, **kwargs):
+        attributes = [
+            sg.Attribute(
+                "brand",
+                [sg.Option(1, "Acme"), sg.Option(2, "Globex"), sg.Option(3, "Initech")],
+                label="Brand",
+            ),
+            sg.Attribute(
+                "price", [sg.Option(10, "£10"), sg.Option(15, "£15")], label="Price per month"
+            ),
+        ]
+        tasks = kwargs.pop("tasks", 4)
+        variables = [
+            sg.Variable(f"cbc_t{t}", scale="nominal", label=f"Task {t}", labels={1: "1", 2: "2"})
+            for t in range(1, tasks + 1)
+        ]
+        variables.append(sg.Variable("cbc_version", scale="nominal", label="Version"))
+        question = sg.Conjoint(
+            "Which would you buy?",
+            variables,
+            attributes=attributes,
+            tasks=tasks,
+            seed=2,
+            id="q_cbc",
+            **kwargs,
+        )
+        return sg.Questionnaire(title="C", pages=[sg.Page(name="p", items=[question])])
+
+    def test_levels_travel_once_and_profiles_reference_them(self):
+        """A profile is level codes; the labels ship once per attribute rather
+        than once per task, which is the difference between a payload a phone
+        downloads and one it does not."""
+
+        payload = compile_react_payload(self._survey(alternatives=3, versions=5))
+        item = _page_by_name(payload, "p")["items"][0]
+        assert item["kind"] == "conjoint"
+        assert [a["label"] for a in item["attributes"]] == ["Brand", "Price per month"]
+        assert item["attributes"][0]["levels"] == {"1": "Acme", "2": "Globex", "3": "Initech"}
+        assert len(item["versions"]) == 5
+        for version in item["versions"]:
+            assert len(version) == 4
+            for task in version:
+                assert len(task) == 3  # alternatives
+                assert all(len(profile) == 2 for profile in task)  # one code per attribute
+
+    def test_variable_names_and_the_none_option_travel(self):
+        payload = compile_react_payload(self._survey(alternatives=2))
+        item = _page_by_name(payload, "p")["items"][0]
+        assert item["taskVars"] == ["cbc_t1", "cbc_t2", "cbc_t3", "cbc_t4"]
+        assert item["versionVar"] == "cbc_version"
+        assert item["noneLabel"] is None
+        with_none = compile_react_payload(self._survey(alternatives=2, none_label="Neither"))
+        assert _page_by_name(with_none, "p")["items"][0]["noneLabel"] == "Neither"
+
+    def test_the_same_seed_compiles_the_same_design(self):
+        first = compile_react_payload(self._survey(alternatives=3))
+        second = compile_react_payload(self._survey(alternatives=3))
+        assert (
+            _page_by_name(first, "p")["items"][0]["versions"]
+            == _page_by_name(second, "p")["items"][0]["versions"]
         )

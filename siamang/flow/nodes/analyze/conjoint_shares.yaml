@@ -1,0 +1,34 @@
+type: analyze.conjoint_shares
+category: analyze
+title: Share of preference
+description: What the estimated part-worths predict a market of these products would do.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+params:
+  question:
+    kind: string
+    required: true
+    label: Conjoint question
+  products:
+    kind: json
+    required: true
+    label: Products
+    help: 'Name → one level code per attribute, e.g. {"Ours": {"brand": 1, "price": 15}}. A half-specified product has no utility.'
+  include_none:
+    kind: bool
+    default: false
+    label: Include "none of these"
+    help: Only when the question offered it. Leaving it out rescales everyone who would have walked away into buyers.
+subtitle: '{question}'
+imports:
+- from siamang.data import conjoint
+template: |
+  # A simulator rather than a reading of the part-worths aloud: "what if we
+  # changed the price" is a question about the whole market at once, and the
+  # only honest way to answer it is to put the products through the model.
+  {out.table} = conjoint.shares(
+      {in.data}, {question!r}, {products!r}, include_none={include_none!r}
+  )
+preview: table

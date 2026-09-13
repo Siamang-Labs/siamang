@@ -2,7 +2,9 @@
 
 A MaxDiff question does not show its items; it shows a few of them at a time,
 several times over, and the *pattern* of which items met which decides what can
-be estimated afterward. That pattern is a design, and this module builds it.
+be estimated afterward. A choice-based conjoint does the same with whole
+products: which levels of which attributes appeared together, and against what.
+That pattern is a design, and this module builds it.
 
 Two things make a design trustworthy, and both are here rather than assumed:
 
@@ -21,13 +23,23 @@ Two things make a design trustworthy, and both are here rather than assumed:
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Hashable, Sequence
 from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Any
 
-__all__ = ["Balance", "MaxDiffDesign", "maxdiff_design"]
+import numpy as np
+
+__all__ = [
+    "Balance",
+    "CbcBalance",
+    "CbcDesign",
+    "MaxDiffDesign",
+    "cbc_design",
+    "maxdiff_design",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -284,3 +296,364 @@ def maxdiff_design(
         seed=seed,
         balance=balance,
     )
+
+
+# ─── Choice-based conjoint ───────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class CbcBalance:
+    """Whether every level got a fair hearing, and how precise the design is.
+
+    ``imbalance`` is the largest gap, *within* any one attribute, between its
+    most and least often shown level. Comparing counts across attributes would
+    be meaningless — an attribute with two levels shows each of them twice as
+    often as one with four — so the number that matters is whether each
+    attribute treated its own levels alike. Zero is even.
+
+    ``overlap`` is the average number of attributes per task whose level is
+    repeated across the alternatives. A task where every alternative has the
+    same price teaches nothing about price, so lower is better — but not all of
+    it is avoidable: an attribute with fewer levels than the task has
+    alternatives *must* repeat one. ``overlap_min`` is that floor, so the two
+    numbers together say whether the design did as well as it could rather than
+    leaving a reader to work it out.
+
+    ``d_error`` is the standard D-error under a null model:
+    ``det(information**-1) ** (1/p)``, lower being more precise. It is
+    comparable between candidate designs *of the same question* — which is what
+    it is used for here, to pick one — and is not an absolute score.
+
+    It is ``None`` when the design cannot estimate its own parameters at all:
+    too few tasks for the number of levels leaves the information matrix
+    singular, and no amount of fieldwork fixes that. Saying "not estimable" is
+    the useful answer; a very large number would read as merely imprecise.
+    """
+
+    imbalance: int
+    overlap: float
+    overlap_min: int
+    d_error: float | None
+    perfect: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "imbalance": self.imbalance,
+            "overlap": self.overlap,
+            "overlap_min": self.overlap_min,
+            "d_error": self.d_error,
+            "perfect": self.perfect,
+        }
+
+    def __str__(self) -> str:
+        levels = (
+            "each attribute shows its levels equally often"
+            if self.perfect
+            else f"levels within an attribute differ by up to {self.imbalance} showings"
+        )
+        forced = " (the least possible)" if self.overlap <= self.overlap_min else ""
+        precision = (
+            "not estimable — too few tasks for this many levels"
+            if self.d_error is None
+            else f"D-error {self.d_error:.4f}"
+        )
+        return f"{levels}, {self.overlap:.2f} repeated attributes per task{forced}, {precision}"
+
+
+@dataclass(frozen=True, slots=True)
+class CbcDesign:
+    """``versions`` blocks of ``tasks``, each a handful of whole products.
+
+    A profile is one level code per attribute, in the attributes' own order.
+    """
+
+    attributes: tuple[str, ...]
+    levels: tuple[tuple[Hashable, ...], ...]  # the codes of each attribute
+    alternatives: int
+    versions: tuple[tuple[tuple[tuple[Hashable, ...], ...], ...], ...]
+    seed: int | None = None
+    balance: CbcBalance | None = field(default=None)
+
+    @property
+    def tasks(self) -> int:
+        return len(self.versions[0]) if self.versions else 0
+
+    def task(self, version: int, task: int) -> tuple[tuple[Hashable, ...], ...]:
+        """The profiles shown in one task; the version wraps rather than raising."""
+
+        if not self.versions:
+            raise ValueError("This design has no versions.")
+        return self.versions[version % len(self.versions)][task]
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "attributes": list(self.attributes),
+            "levels": [list(codes) for codes in self.levels],
+            "alternatives": self.alternatives,
+            "versions": [
+                [[list(profile) for profile in task] for task in version]
+                for version in self.versions
+            ],
+        }
+        if self.seed is not None:
+            payload["seed"] = self.seed
+        if self.balance is not None:
+            payload["balance"] = self.balance.to_dict()
+        return payload
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> CbcDesign:
+        balance = payload.get("balance")
+        return cls(
+            attributes=tuple(payload["attributes"]),
+            levels=tuple(tuple(codes) for codes in payload["levels"]),
+            alternatives=int(payload["alternatives"]),
+            versions=tuple(
+                tuple(tuple(tuple(profile) for profile in task) for task in version)
+                for version in payload["versions"]
+            ),
+            seed=payload.get("seed"),
+            balance=CbcBalance(**balance) if balance else None,
+        )
+
+
+def _dummy(profile: Sequence[Hashable], levels: Sequence[Sequence[Hashable]]) -> list[float]:
+    """One profile as the row a main-effects model would fit on it.
+
+    The first level of each attribute is the reference and gets no column, so a
+    part-worth is read as "against that level" — the same convention the
+    estimator uses, which is why the design is scored on the matrix that will
+    actually be fitted rather than on a tidier one.
+    """
+
+    row: list[float] = []
+    for value, codes in zip(profile, levels, strict=True):
+        row.extend(1.0 if value == code else 0.0 for code in codes[1:])
+    return row
+
+
+def _task_information(
+    task: Sequence[Sequence[Hashable]], levels: Sequence[Sequence[Hashable]]
+) -> np.ndarray:
+    """What one choice task contributes when every alternative is equally likely.
+
+    ``X'(P - pp')X`` with ``p = 1/J`` — the Fisher information of a conditional
+    logit at the null, which is the standard thing a choice design is scored on
+    before any data exists.
+    """
+
+    block = np.array([_dummy(profile, levels) for profile in task])
+    share = 1.0 / len(task)
+    mean = block.mean(axis=0)
+    return share * (block.T @ block) - np.outer(mean, mean)
+
+
+def _d_error_of(information: np.ndarray) -> float:
+    """``det(information**-1) ** (1/p)`` — lower is more precise."""
+
+    width = information.shape[0]
+    if width == 0:
+        return float("inf")
+    sign, logdet = np.linalg.slogdet(information)
+    if sign <= 0 or not np.isfinite(logdet):
+        return float("inf")
+    # Through the log, because the determinant of a design of any size
+    # underflows to zero long before the design stops being informative.
+    return float(np.exp(-logdet / width))
+
+
+def _d_error(
+    blocks: Sequence[Sequence[Sequence[Sequence[Hashable]]]],
+    levels: Sequence[Sequence[Hashable]],
+) -> float:
+    information = _information_of(blocks, levels)
+    return _d_error_of(information)
+
+
+def _information_of(
+    blocks: Sequence[Sequence[Sequence[Sequence[Hashable]]]],
+    levels: Sequence[Sequence[Hashable]],
+) -> np.ndarray:
+    width = sum(len(codes) - 1 for codes in levels)
+    information = np.zeros((width, width))
+    for version in blocks:
+        for task in version:
+            information += _task_information(task, levels)
+    return information
+
+
+def _overlap(task: Sequence[Sequence[Hashable]]) -> int:
+    """Attributes whose level is repeated across this task's alternatives.
+
+    A task where every alternative has the same price says nothing about price.
+    """
+
+    return sum(1 for column in zip(*task, strict=True) if len(set(column)) < len(column))
+
+
+def _cbc_block(
+    levels: Sequence[Sequence[Hashable]],
+    alternatives: int,
+    tasks: int,
+    rng: random.Random,
+    decks: list[list[Hashable]],
+) -> list[list[tuple[Hashable, ...]]]:
+    """One version, dealt so each attribute's levels come up in turn.
+
+    ``decks`` run across versions for the same reason the MaxDiff deal does: it
+    is what makes the level counts of the whole design come out even instead of
+    each version deciding afresh which level gets the spare slot.
+    """
+
+    block: list[list[tuple[Hashable, ...]]] = []
+    for _ in range(tasks):
+        task: list[list[Hashable]] = [[] for _ in range(alternatives)]
+        for attribute, codes in enumerate(levels):
+            for position in range(alternatives):
+                if not decks[attribute]:
+                    fresh = list(codes)
+                    rng.shuffle(fresh)
+                    decks[attribute] += fresh
+                # Prefer a level this task has not used yet: a repeated level
+                # across alternatives is a comparison the task cannot make.
+                already = {task[other][attribute] for other in range(position) if task[other]}
+                pick = next((c for c in decks[attribute] if c not in already), decks[attribute][0])
+                decks[attribute].remove(pick)
+                task[position].append(pick)
+        block.append([tuple(profile) for profile in task])
+    return block
+
+
+def cbc_design(
+    attributes: Sequence[str],
+    levels: Sequence[Sequence[Hashable]],
+    *,
+    alternatives: int = 3,
+    tasks: int = 10,
+    versions: int = 20,
+    seed: int | None = None,
+    starts: int = 6,
+) -> CbcDesign:
+    """A choice design: whole products, several at a time, several times over.
+
+    Built the way choice designs are built in practice — several random starts,
+    each improved by swapping levels, keeping whichever came out most precise.
+    "Most precise" is the D-error, which is what the criterion exists for; the
+    level counts and the overlap are reported beside it because they are what a
+    researcher can check without taking the determinant on trust.
+
+    The same ``seed`` always returns the same design.
+    """
+
+    attributes = list(attributes)
+    levels = [list(dict.fromkeys(codes)) for codes in levels]
+    if len(attributes) != len(levels):
+        raise ValueError("Each attribute needs its own list of levels.")
+    if len(attributes) < 2:
+        raise ValueError("A conjoint needs at least two attributes to trade off.")
+    if any(len(codes) < 2 for codes in levels):
+        raise ValueError("Every attribute needs at least two levels — one is a constant.")
+    if alternatives < 2:
+        raise ValueError("A choice task needs at least two alternatives to choose between.")
+    if tasks < 1:
+        raise ValueError("A conjoint needs at least one task.")
+    if versions < 1:
+        raise ValueError("A conjoint needs at least one version.")
+    if starts < 1:
+        raise ValueError("starts must be at least 1.")
+
+    best_blocks: list[list[list[tuple[Hashable, ...]]]] | None = None
+    best_error = float("inf")
+    for start in range(starts):
+        # Each start needs its own stream, and all of them need to follow from
+        # the one seed, or "the same seed gives the same design" stops holding.
+        rng = random.Random(f"{seed}:{start}" if seed is not None else None)
+        decks: list[list[Hashable]] = [[] for _ in levels]
+        blocks = [_cbc_block(levels, alternatives, tasks, rng, decks) for _ in range(versions)]
+        blocks = _improve(blocks, levels, rng)
+        error = _d_error(blocks, levels)
+        # `best_blocks is None` covers the case where every start is singular:
+        # the question is under-identified whatever we deal, and the researcher
+        # still gets a design back, with the balance saying it cannot be fitted.
+        if best_blocks is None or error < best_error:
+            best_blocks, best_error = blocks, error
+
+    counts: dict[tuple[int, Hashable], int] = {}
+    for version in best_blocks:
+        for task in version:
+            for profile in task:
+                for attribute, value in enumerate(profile):
+                    counts[(attribute, value)] = counts.get((attribute, value), 0) + 1
+    # Within each attribute, never across them: an attribute with two levels
+    # shows each of them twice as often as one with four, and that is arithmetic,
+    # not imbalance.
+    spreads = [
+        max(counts.get((a, code), 0) for code in codes)
+        - min(counts.get((a, code), 0) for code in codes)
+        for a, codes in enumerate(levels)
+    ]
+    overlaps = [_overlap(task) for version in best_blocks for task in version]
+    balance = CbcBalance(
+        imbalance=max(spreads) if spreads else 0,
+        overlap=round(sum(overlaps) / len(overlaps), 3) if overlaps else 0.0,
+        # An attribute with fewer levels than the task has alternatives must
+        # repeat one; that part of the overlap is not the design's fault.
+        overlap_min=sum(1 for codes in levels if len(codes) < alternatives),
+        d_error=round(best_error, 5) if math.isfinite(best_error) else None,
+        perfect=bool(spreads) and max(spreads) == 0,
+    )
+    return CbcDesign(
+        attributes=tuple(attributes),
+        levels=tuple(tuple(codes) for codes in levels),
+        alternatives=alternatives,
+        versions=tuple(tuple(tuple(task) for task in version) for version in best_blocks),
+        seed=seed,
+        balance=balance,
+    )
+
+
+def _improve(
+    blocks: list[list[list[tuple[Hashable, ...]]]],
+    levels: Sequence[Sequence[Hashable]],
+    rng: random.Random,
+    passes: int = 600,
+) -> list[list[list[tuple[Hashable, ...]]]]:
+    """Swap one attribute's level between two alternatives, keep what helps.
+
+    Swapping rather than re-drawing keeps each attribute's level counts exactly
+    where the deal put them — the same property the MaxDiff swaps rely on — so
+    this is free to work on precision and overlap alone.
+
+    A swap touches one task, so only that task's contribution to the information
+    matrix is recomputed. Rescoring the whole design each time was what made a
+    thirty-version design take fourteen seconds at Save.
+    """
+
+    current = [[list(task) for task in version] for version in blocks]
+    information = _information_of(current, levels)
+    score = _d_error_of(information)
+    for _ in range(passes):
+        v = rng.randrange(len(current))
+        t = rng.randrange(len(current[v]))
+        task = current[v][t]
+        a, b = rng.randrange(len(task)), rng.randrange(len(task))
+        if a == b:
+            continue
+        attribute = rng.randrange(len(levels))
+        left, right = list(task[a]), list(task[b])
+        if left[attribute] == right[attribute]:
+            continue
+        before_overlap = _overlap(task)
+        before = _task_information(task, levels)
+        left[attribute], right[attribute] = right[attribute], left[attribute]
+        task[a], task[b] = tuple(left), tuple(right)
+        after = _task_information(task, levels)
+        candidate_information = information - before + after
+        candidate = _d_error_of(candidate_information)
+        # Precision decides; overlap breaks ties, because two designs of equal
+        # D-error are not equally readable to the respondent.
+        if candidate < score or (candidate == score and _overlap(task) < before_overlap):
+            information, score = candidate_information, candidate
+        else:
+            task[a], task[b] = tuple(right), tuple(left)
+    return [[list(task) for task in version] for version in current]

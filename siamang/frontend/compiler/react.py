@@ -30,6 +30,7 @@ from siamang.core.media import Media
 from siamang.core.option import Option
 from siamang.core.page import Page
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     Matrix,
     MaxDiff,
@@ -372,6 +373,33 @@ def _compile_question(question: Question) -> dict[str, Any]:
                 [best.name, worst.name]
                 for best, worst in (question.task_variables(t) for t in range(question.tasks))
             ],
+            "versionVar": question.version_variable.name,
+        }
+
+    if isinstance(question, Conjoint):
+        design = question.resolved_design()
+        return {
+            **base,
+            "kind": "conjoint",
+            # The attribute rows, in the order the respondent reads them, with
+            # every level's label — so a profile is rendered by lookup rather
+            # than by shipping the same strings once per task.
+            "attributes": [
+                {
+                    "name": attribute.name,
+                    "label": attribute.label or attribute.name,
+                    "levels": {str(level.code): level.label for level in attribute.levels},
+                }
+                for attribute in question.attributes
+            ],
+            "alternatives": question.alternatives,
+            "tasks": question.tasks,
+            "noneLabel": question.none_label,
+            "versions": [
+                [[list(profile) for profile in task] for task in version]
+                for version in design.versions
+            ],
+            "taskVars": [question.task_variable(t).name for t in range(question.tasks)],
             "versionVar": question.version_variable.name,
         }
 

@@ -98,6 +98,9 @@ def test_kitchen_sink_round_trip():
         # A MaxDiff's variables in the order it fills them: best and worst for
         # each task, then the version of the design the respondent was shown.
         "md_t1_best", "md_t1_worst", "md_t2_best", "md_t2_worst", "md_version",
+        # A conjoint's are lighter: the answer is which alternative was chosen,
+        # so one per task, and the version says which products those were.
+        "cbc_t1", "cbc_t2", "cbc_version",
         "score", "comment", "unused",
     ]  # fmt: skip
     assert [item["code"] for item in document["variables"]["region"]["labels"]] == [

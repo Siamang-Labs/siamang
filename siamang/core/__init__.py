@@ -1,5 +1,6 @@
 """Core domain objects for siamang."""
 
+from siamang.core.attribute import Attribute
 from siamang.core.block import Block
 from siamang.core.expression import (
     AND,
@@ -20,6 +21,7 @@ from siamang.core.page import (
     RedirectPage,
 )
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     Matrix,
     MaxDiff,
@@ -36,8 +38,10 @@ from siamang.core.script import Script
 from siamang.core.variable import MissingValue, ValidationIssue, Variable, VariableMap
 
 __all__ = [
+    "Attribute",
     "AND",
     "Block",
+    "Conjoint",
     "ContentPage",
     "DisqualificationPage",
     "Expression",

@@ -1,0 +1,24 @@
+type: analyze.conjoint
+category: analyze
+title: Conjoint
+description: Part-worths and attribute importance from a choice-based conjoint — what people gave up to get what.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  question:
+    kind: string
+    required: true
+    label: Conjoint question
+    help: The question's id or name. Its attributes and design are read from the questionnaire.
+subtitle: '{question}'
+template: |
+  # Attributes and design come from the questionnaire: they are what the
+  # respondent was shown, and a second copy here would be one more thing to get
+  # out of step with the first.
+  _conjoint = {in.data}.report.conjoint({question!r})
+  {out.table} = _conjoint
+  {out.stat} = _conjoint.stats
+preview: table

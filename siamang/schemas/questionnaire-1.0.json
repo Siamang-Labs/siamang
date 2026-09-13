@@ -250,6 +250,31 @@
       ],
       "additionalProperties": false
     },
+    "attribute": {
+      "description": "One dimension a conjoint product varies on, and the levels it takes.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/option"
+          },
+          "minItems": 2
+        }
+      },
+      "required": [
+        "name",
+        "levels"
+      ],
+      "additionalProperties": false
+    },
     "labels": {
       "description": "Value labels in display order. The object form is accepted as shorthand.",
       "anyOf": [
@@ -1488,6 +1513,162 @@
       ],
       "additionalProperties": false
     },
+    "Conjoint": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "Conjoint"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "var": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 2
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "show_if": {
+          "$ref": "#/$defs/condition"
+        },
+        "hide_if": {
+          "$ref": "#/$defs/condition"
+        },
+        "skip_to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "randomize": {
+          "type": "boolean"
+        },
+        "other_specify": {
+          "type": "boolean"
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/media"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/media"
+              }
+            }
+          ]
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attribute"
+          },
+          "minItems": 2
+        },
+        "alternatives": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "versions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "none_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "design": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "attributes": {
+              "type": "array",
+              "minItems": 2
+            },
+            "levels": {
+              "type": "array",
+              "minItems": 2
+            },
+            "alternatives": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "seed": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "versions": {
+              "type": "array",
+              "minItems": 1
+            },
+            "balance": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "attributes",
+            "levels",
+            "alternatives",
+            "versions"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "text",
+        "var"
+      ],
+      "additionalProperties": false
+    },
     "MaxDiff": {
       "type": "object",
       "properties": {
@@ -1672,6 +1853,9 @@
         },
         {
           "$ref": "#/$defs/Ranking"
+        },
+        {
+          "$ref": "#/$defs/Conjoint"
         },
         {
           "$ref": "#/$defs/MaxDiff"

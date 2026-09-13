@@ -105,7 +105,7 @@ def test_kitchen_sink_code_shape(tmp_path):
     document = import_module(FIXTURES / "kitchen_sink_questionnaire.py").document
     code = generate_questionnaire(document)
     assert "from datetime import datetime" in code
-    assert "from siamang import Media, MissingValue, Option, Quota" in code
+    assert "from siamang import Attribute, Media, MissingValue, Option, Quota" in code
     assert (
         "from siamang.core import ContentPage, DisqualificationPage, FinalPage, RedirectPage"
         in code

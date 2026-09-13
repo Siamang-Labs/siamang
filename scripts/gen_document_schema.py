@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     Matrix,
     MaxDiff,
@@ -158,6 +159,17 @@ DEFS: dict[str, Any] = {
             "media": ref("media"),
         },
         "required": ["code", "label"],
+        "additionalProperties": False,
+    },
+    "attribute": {
+        "description": "One dimension a conjoint product varies on, and the levels it takes.",
+        "type": "object",
+        "properties": {
+            "name": NONEMPTY,
+            "label": STRING,
+            "levels": {"type": "array", "items": ref("option"), "minItems": 2},
+        },
+        "required": ["name", "levels"],
         "additionalProperties": False,
     },
     "labels": {
@@ -406,6 +418,27 @@ _SPECIFIC: dict[type[Question], dict[str, Any]] = {
     Ranking: {
         "max_ranked": {"type": "integer", "minimum": 1},
         "choices": {"type": "array", "items": ref("option"), "minItems": 1},
+    },
+    Conjoint: {
+        "var": {"type": "array", "items": NONEMPTY, "minItems": 2},
+        "attributes": {"type": "array", "items": ref("attribute"), "minItems": 2},
+        "alternatives": {"type": "integer", "minimum": 2},
+        "tasks": {"type": "integer", "minimum": 1},
+        "versions": {"type": "integer", "minimum": 1},
+        "seed": {"type": ["integer", "null"]},
+        "none_label": {"type": ["string", "null"]},
+        "design": {
+            "type": ["object", "null"],
+            "properties": {
+                "attributes": {"type": "array", "minItems": 2},
+                "levels": {"type": "array", "minItems": 2},
+                "alternatives": {"type": "integer", "minimum": 2},
+                "seed": {"type": ["integer", "null"]},
+                "versions": {"type": "array", "minItems": 1},
+                "balance": {"type": "object"},
+            },
+            "required": ["attributes", "levels", "alternatives", "versions"],
+        },
     },
     MaxDiff: {
         "var": {"type": "array", "items": NONEMPTY, "minItems": 3},

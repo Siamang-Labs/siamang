@@ -204,7 +204,9 @@ class _Generator:
             lines.append("")
         lines.append("import siamang as sg")
         top = sorted(
-            name for name in self.imports if name in {"Media", "MissingValue", "Option", "Quota"}
+            name
+            for name in self.imports
+            if name in {"Attribute", "Media", "MissingValue", "Option", "Quota"}
         )
         if top:
             lines.append(f"from siamang import {', '.join(top)}")
@@ -336,7 +338,17 @@ class _Generator:
             return self._media(value)
         if key == "choices":
             return List(tuple(self._option(item, where) for item in value))
+        if key == "attributes":
+            return List(tuple(self._attribute(item, where) for item in value))
         return literal(value)
+
+    def _attribute(self, payload: dict[str, Any], where: str) -> Node:
+        self.imports.add("Attribute")
+        kwargs: list[tuple[str, Node]] = []
+        if payload.get("label") is not None:
+            kwargs.append(("label", literal(payload["label"])))
+        levels = List(tuple(self._option(level, where) for level in payload["levels"]))
+        return Call("Attribute", (literal(payload["name"]), levels), tuple(kwargs))
 
     def _option(self, payload: dict[str, Any], where: str) -> Node:
         self.imports.add("Option")

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from siamang.core.attribute import Attribute
 from siamang.core.media import Media
 from siamang.core.option import Option
 from siamang.core.variable import Variable
@@ -367,6 +369,115 @@ class MaxDiff(Question):
         return int.from_bytes(blake2b(material.encode("utf-8"), digest_size=4).digest(), "big")
 
 
+@dataclass(frozen=True, slots=True)
+class Conjoint(Question):
+    """Choice-based conjoint: whole products, side by side, pick one.
+
+    Asking how important price is gets an answer everybody gives the same way.
+    Showing three products that differ in price *and* in everything else, and
+    asking which one they would buy, makes the respondent spend something to
+    get something — and what they gave up is the measurement.
+
+    ``var`` holds one variable per task, recording which alternative was chosen,
+    plus one last for the version of the design shown. One per task rather than
+    one per attribute: the answer *is* the choice, and which levels that choice
+    carried is in the design.
+
+    ``none_label`` adds a "none of these" alternative. It is off by default,
+    because it changes what the question measures — with it, shares are of the
+    market including people who buy nothing, and without it they are shares of
+    those who buy something.
+    """
+
+    var: list[Variable]
+    attributes: list[Attribute] = field(default_factory=list)
+    alternatives: int = 3
+    tasks: int = 10
+    versions: int = 20
+    seed: int | None = None
+    none_label: str | None = None
+    design: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        Question.__post_init__(self)
+        if not isinstance(self.var, list) or not self.var:
+            raise TypeError("Conjoint expects var to be a list of Variables.")
+        if any(not isinstance(v, Variable) for v in self.var):
+            raise TypeError("Conjoint var must contain only Variable instances")
+        expected = self.tasks + 1
+        if len(self.var) != expected:
+            raise ValueError(
+                f"Conjoint with {self.tasks} tasks needs {expected} variables (one per task, "
+                f"then the design version) but has {len(self.var)}."
+            )
+        if self.tasks < 1:
+            raise ValueError("Conjoint needs at least one task.")
+        if self.versions < 1:
+            raise ValueError("Conjoint needs at least one version of the design.")
+        if self.alternatives < 2:
+            raise ValueError("A choice task needs at least two alternatives to choose between.")
+        if any(not isinstance(a, Attribute) for a in self.attributes):
+            raise TypeError("Conjoint attributes must be Attribute instances.")
+        names = [a.name for a in self.attributes]
+        if len(set(names)) != len(names):
+            raise ValueError("Conjoint attributes must have distinct names.")
+
+    @property
+    def version_variable(self) -> Variable:
+        return self.var[-1]
+
+    def task_variable(self, task: int) -> Variable:
+        """The variable recording which alternative was chosen in ``task``."""
+
+        return self.var[task]
+
+    def profile_labels(self, profile: Sequence[Any]) -> list[str]:
+        """A profile as the lines a respondent reads, attribute by attribute."""
+
+        return [
+            attribute.label_of(value)
+            for attribute, value in zip(self.attributes, profile, strict=True)
+        ]
+
+    def resolved_design(self):
+        """The stored design, or the one this question's parameters imply."""
+
+        from siamang.design import CbcDesign, cbc_design
+
+        if self.design:
+            return CbcDesign.from_dict(self.design)
+        if len(self.attributes) < 2:
+            raise ValueError(
+                f"Conjoint {self.id or self.var[0].name!r} needs at least two attributes "
+                "to trade off against each other."
+            )
+        return cbc_design(
+            [attribute.name for attribute in self.attributes],
+            [attribute.codes for attribute in self.attributes],
+            alternatives=self.alternatives,
+            tasks=self.tasks,
+            versions=self.versions,
+            seed=self.seed if self.seed is not None else self._implied_seed(),
+        )
+
+    def _implied_seed(self) -> int:
+        """As MaxDiff: an unset seed must not mean a different design each time."""
+
+        from hashlib import blake2b
+
+        material = "|".join(
+            str(part)
+            for part in (
+                self.id or self.name or self.var[0].name,
+                self.alternatives,
+                self.tasks,
+                self.versions,
+                *(f"{a.name}:{','.join(map(str, a.codes))}" for a in self.attributes),
+            )
+        )
+        return int.from_bytes(blake2b(material.encode("utf-8"), digest_size=4).digest(), "big")
+
+
 def _validate_choices(choices: list[Option] | None) -> None:
     if choices is None:
         return
@@ -399,6 +510,8 @@ def question_fallback_id(question: Question) -> str:
         return "multi_" + question.var[0].name
     if isinstance(question, MaxDiff):
         return "maxdiff_" + question.var[0].name
+    if isinstance(question, Conjoint):
+        return "conjoint_" + question.var[0].name
     return question_variable_names(question)[0]
 
 

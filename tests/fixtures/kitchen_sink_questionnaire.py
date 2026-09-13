@@ -5,7 +5,9 @@ from datetime import datetime
 from siamang.core import (
     AND,
     NOT,
+    Attribute,
     Block,
+    Conjoint,
     ContentPage,
     DisqualificationPage,
     FinalPage,
@@ -72,6 +74,25 @@ def build():
         for side in ("best", "worst")
     ]
     md.append(Variable("md_version", "nominal", label="MaxDiff design version"))
+    cbc_attributes = [
+        Attribute(
+            "brand",
+            [Option(1, "Acme"), Option(2, "Globex"), Option(3, "Initech")],
+            label="Brand",
+        ),
+        Attribute("price", [Option(10, "10"), Option(15, "15"), Option(20, "20")], label="Price"),
+        Attribute("warranty", [Option(1, "1 year"), Option(2, "2 years")], label="Warranty"),
+    ]
+    cbc = [
+        Variable(
+            f"cbc_t{t}",
+            "nominal",
+            label=f"Conjoint task {t}",
+            labels={1: "Concept 1", 2: "Concept 2", 3: "Concept 3"},
+        )
+        for t in (1, 2)
+    ]
+    cbc.append(Variable("cbc_version", "nominal", label="Conjoint design version"))
     unused = Variable("unused", "nominal", label="Registered but not asked")
 
     registry = VariableMap()
@@ -79,6 +100,7 @@ def build():
         [consent, age, region, gender, trust, owns_a, owns_b, m1, m2, rank, score, comment, unused]
     )
     registry.add_many(md)
+    registry.add_many(cbc)
 
     survey = Questionnaire(
         title="Kitchen sink",
@@ -225,6 +247,16 @@ def build():
                         versions=4,
                         seed=11,
                         id="q_maxdiff",
+                    ),
+                    Conjoint(
+                        "Which would you buy?",
+                        cbc,
+                        attributes=cbc_attributes,
+                        alternatives=3,
+                        tasks=2,
+                        versions=3,
+                        seed=13,
+                        id="q_conjoint",
                     ),
                     NumericInput("Score", score, display="slider", step=0.5, id="q_score"),
                     OpenText(

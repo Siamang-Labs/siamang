@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from siamang.core.question import (
+    Conjoint,
     LikertScale,
     Matrix,
     MaxDiff,
@@ -75,6 +76,22 @@ def question_to_dict(question: Question) -> dict:
             "type": "ranking",
             "choices": _choices(question),
             "maxDiff": {"perTask": question.per_task, "tasks": question.tasks},
+        }
+    if isinstance(question, Conjoint):
+        # SurveyJS has no choice-task type either; a radio group over the
+        # alternatives is the nearest an importer of this dialect can render,
+        # and the extra key says what it really is.
+        return {
+            **base,
+            "type": "radiogroup",
+            "choices": [
+                {"value": i + 1, "text": f"Concept {i + 1}"} for i in range(question.alternatives)
+            ],
+            "conjoint": {
+                "attributes": [attribute.to_dict() for attribute in question.attributes],
+                "alternatives": question.alternatives,
+                "tasks": question.tasks,
+            },
         }
     return {**base, "type": "text"}
 

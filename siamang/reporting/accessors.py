@@ -71,6 +71,13 @@ class ReportAccessor:
 
         return MaxDiffTable(data=self._data, question=question, method=method)
 
+    def conjoint(self, question: Any) -> Any:
+        """What a choice-based conjoint found: one row per level with its
+        part-worth, and each attribute's share of the decision beside it."""
+        from siamang.reporting.tables import ConjointTable
+
+        return ConjointTable(data=self._data, question=question)
+
     def themes(self, codeframe: Any) -> ThemeTable:
         """What a frozen codeframe coded these open answers as: one row per
         theme, plus how many answers it had no theme for."""
