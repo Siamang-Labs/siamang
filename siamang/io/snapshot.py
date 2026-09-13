@@ -20,9 +20,11 @@ from typing import Any
 
 import pandas as pd
 
+from siamang.core.question import MultiChoice, Ranking
 from siamang.core.questionnaire import Questionnaire
-from siamang.core.variable import VariableMap
+from siamang.core.variable import Variable, VariableMap
 from siamang.data.survey_data import SurveyData
+from siamang.io._frames import list_frame
 from siamang.io.dictionary import DictionaryReader, DictionaryWriter
 
 #: File suffixes :func:`read_snapshot` understands.
@@ -88,6 +90,8 @@ def read_snapshot(
     else:
         variables = None
 
+    if questionnaire is not None and suffix != ".parquet":
+        frame = list_frame(frame, _list_columns(questionnaire))
     if variables is not None:
         frame = _restore_integer_codes(frame, variables)
 
@@ -122,9 +126,13 @@ def write_snapshot(
     if suffix == ".parquet":
         data.frame.to_parquet(target, index=False, **write_kwargs)
     elif suffix == ".csv":
-        data.frame.to_csv(target, index=False, **write_kwargs)
+        from siamang.io.csv import CSVWriter
+
+        CSVWriter().write(data, target, **write_kwargs)
     elif suffix in {".xlsx", ".xls"}:
-        data.frame.to_excel(target, index=False, **write_kwargs)
+        from siamang.io.excel import ExcelWriter
+
+        ExcelWriter().write(data, target, **write_kwargs)
     elif suffix == ".sav":
         from siamang.io.spss import SPSSWriter
 
@@ -167,6 +175,22 @@ def _questionnaire_variables(questionnaire: Questionnaire) -> VariableMap:
             if variable.name not in variables:
                 variables.add(variable)
     return variables
+
+
+def _list_columns(questionnaire: Questionnaire) -> list[str]:
+    """Columns the questionnaire says hold several answers in one cell.
+
+    Taken from the questionnaire rather than guessed from the data: ``"1;3"``
+    and a free-text answer that happens to contain a semicolon look the same in
+    a CSV, and only the questionnaire knows which is which.
+    """
+
+    columns = []
+    for question in questionnaire.all_questions():
+        multiple = isinstance(question, MultiChoice) and question.mode == "array"
+        if (multiple or isinstance(question, Ranking)) and isinstance(question.var, Variable):
+            columns.append(question.var.name)
+    return columns
 
 
 def _restore_integer_codes(frame: pd.DataFrame, variables: VariableMap) -> pd.DataFrame:
