@@ -64,6 +64,47 @@ Since `SurveyData` is frozen and immutable, all data transformation methods retu
   Collapses or remaps discrete values (e.g., `{1: 0, 2: 0, 3: 1}` to collapse categories). The source column is never modified: if `into` is provided, the result is stored in that new column; otherwise it is stored in a new column named `<column>_recoded`. The new variable is registered either way. Values absent from `mapping` become `NaN`, so list every code you want to keep.
 * **`derive(*, name: str, expression: Expression, label: str | None = None, scale: str = "nominal", labels: dict[Any, str] | None = None) -> SurveyData`**:
   Evaluates a logical `Expression` row-by-row to create a new binary indicator variable (0/1). Registers the new variable with the specified metadata.
+* **`derive_formula(name: str, formula: str, *, label: str | None = None, scale: str = "ratio", labels: dict[Any, str] | None = None) -> SurveyData`**:
+  A new variable computed by arithmetic rather than by a condition: `"round(spend_year / 12, 2)"`, `"if age < 30 then 1 else 2"`. The formula is text, parsed by `siamang.data.formula` and evaluated in one vectorized pass; nothing is executed. The label defaults to the formula itself, so the codebook says how the number was made and carries that into every export's dictionary. Registers the new variable with the `"derived"` role.
+
+#### The formula language (`siamang.data.formula`)
+
+`parse(text) -> Formula` reads a formula and raises `FormulaError` — carrying the
+character reading stopped at — when it cannot. `Formula.variables()` lists the
+variables it names, so it can be checked against a codebook before anything runs;
+`Formula.evaluate(frame)` computes it.
+
+```
+expr    := ifexpr | orexpr
+ifexpr  := 'if' orexpr 'then' expr 'else' expr
+orexpr  := andexpr ('or' andexpr)*
+andexpr := notexpr ('and' notexpr)*
+notexpr := 'not' notexpr | compare
+compare := sum (('='|'!='|'>'|'>='|'<'|'<=') sum)?
+sum     := term (('+'|'-') term)*
+term    := unary (('*'|'/') unary)*
+unary   := '-' unary | atom
+atom    := number | name | func '(' expr (',' expr)* ')' | '(' expr ')'
+func    := mean | sum | min | max | abs | round | log | coalesce
+```
+
+`mean`, `sum`, `min`, `max` and `coalesce` work across their arguments, row by
+row. `round`'s digits and `log`'s base have to be plain numbers, not variables.
+
+Two behaviors are deliberate and worth knowing before you read a result:
+
+* **Missing stays missing.** A respondent who skipped a question has no value,
+  and arithmetic on it has none either. Dividing by zero gives missing rather
+  than infinity — an infinity reads as a number all the way into a report, where
+  it takes the mean with it — and so does `log` of a non-positive number. Write
+  `coalesce(x, 0)` when you mean "treat a blank as zero".
+* **A column of words is refused by name** rather than coerced into a column of
+  `NaN`, which would look exactly like a question nobody answered. Recode it
+  (`recode_values`) or explode it (`prepare.explode`) first.
+
+The comparison and logical operators mean what they mean in a questionnaire
+condition (`siamang.core.expression`). `contains` is the one that does not
+appear: it asks about a multiple answer, and a formula works on numbers.
 
 ### Composite Measures
 
@@ -163,7 +204,12 @@ class SurveyTables:
 
 ### `BannerTable`
 
-An immutable container representing a compiled banner table, ready for export.
+An immutable container representing a compiled banner table in **tidy** form —
+one row per (row value × column value), ready for export or for feeding to
+something else. For the wide cross-break a person reads, with blocks of columns,
+a base row and significance letters, use `data.report.banner(...)`
+(`siamang.reporting.tables.BannerTable`); it computes its numbers with the same
+helper, so the two cannot disagree.
 
 ```python
 @dataclass(frozen=True, slots=True)

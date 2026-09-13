@@ -38,9 +38,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   format R's hierarchical-Bayes packages read, with a column dictionary and a
   script, so individual-level utilities can be estimated outside the engine.
   `output.choice_data` and `output.conjoint_data` write it from a flow.
+- **`siamang.data.formula`** and **`SurveyData.derive_formula`** — a derived
+  variable computed by arithmetic rather than by a condition: the four
+  operators, `mean`/`sum`/`min`/`max`/`abs`/`round`/`log`/`coalesce`, and
+  `if … then … else`. The formula is text, parsed by hand into a tree and
+  evaluated vectorized; nothing is executed, and what cannot be read is
+  reported with the character reading stopped at. Missing stays missing —
+  dividing by zero gives no value rather than infinity, which would read as a
+  number all the way into a report. `formula` is a flow parameter kind, so
+  `check_flow` catches a typo before a run; `prepare.derive` runs it.
+- **`report.banner(...)`** and **`analyze.banner`** — the cross-break, in the
+  shape an agency reads: blocks of columns, a base row, and each cell carrying
+  its column percentage, its count and the letters of the columns it is
+  significantly higher than. Columns are compared only within a banner
+  variable, whose values are mutually exclusive; on weighted data the test uses
+  Kish's effective base, and a column under thirty respondents is not tested at
+  all. `data.tables.banner` still gives the same numbers in tidy form.
 
 ### Fixed
 
+- `data.tables.banner` died with "Grouper not 1-dimensional" when a variable was
+  used as both a row and a banner column — which is how you read a base
+  distribution across the banner. It now builds its own frame instead of
+  indexing the original by label.
 - `local_simulator` crashed on a half-open `valid_range` such as `(16, None)`,
   treated an unreadable string `hide_if` as met — hiding that question from
   every simulated respondent — and both produced columns of nulls, which look
