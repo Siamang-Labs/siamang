@@ -465,6 +465,24 @@ def _check_params(
                             node_id,
                         )
                     )
+        if known is not None and param.kind == "formula":
+            from siamang.data.formula import FormulaError, parse
+
+            try:
+                named = sorted(parse(value).variables())
+            except FormulaError:
+                named = []  # already reported as PARAM_INVALID above
+            for variable in named:
+                if variable not in known:
+                    issues.append(
+                        FlowIssue(
+                            "error",
+                            "UNKNOWN_VARIABLE",
+                            f"Parameter {name!r} of {node_id} names unknown variable "
+                            f"{variable!r}.",
+                            node_id,
+                        )
+                    )
         if known is not None and param.kind == "targets":
             for variable in value:
                 if variable not in known:
@@ -515,6 +533,15 @@ def _param_problem(param: ParamSpec, value: Any) -> str | None:
             return "expected an expression (raw string conditions cannot be evaluated on data)."
         if _has_raw(value):
             return "raw string conditions cannot be evaluated on data."
+    elif kind == "formula":
+        if not isinstance(value, str):
+            return f"expected a formula, got {type(value).__name__}."
+        from siamang.data.formula import FormulaError, parse
+
+        try:
+            parse(value)
+        except FormulaError as exc:
+            return exc.at()
     elif kind == "mapping":
         if not isinstance(value, dict) or not value:
             return "expected a non-empty code → value object."

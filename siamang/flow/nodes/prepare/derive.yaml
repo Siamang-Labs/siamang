@@ -1,0 +1,40 @@
+type: prepare.derive
+category: prepare
+title: Derive
+description: A new variable computed from the others — arithmetic, functions and if/then/else.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  name:
+    kind: string
+    required: true
+    creates: variable
+    label: New variable
+  formula:
+    kind: formula
+    required: true
+    label: Formula
+    help: 'e.g. round(spend_year / 12, 2), or: if age < 30 then 1 else 2. Functions: mean, sum, min, max, abs, round, log, coalesce. A missing answer stays missing; dividing by zero gives missing, not infinity.'
+  label:
+    kind: string
+    label: Label
+    help: Defaults to the formula itself — the most honest description of the number.
+  scale:
+    kind: enum
+    values:
+    - ratio
+    - interval
+    - ordinal
+    - nominal
+    default: ratio
+    label: Scale
+subtitle: '{name} = {formula}'
+template: |
+  # The formula travels as text, not as a lambda: what the researcher wrote is
+  # what a reviewer reads, and it is parsed rather than executed.
+  {out.data} = {in.data}.derive_formula(
+      {name!r}, {formula!r}, label={label!r}, scale={scale!r}
+  )
+preview: rows
