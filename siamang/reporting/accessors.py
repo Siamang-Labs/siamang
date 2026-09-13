@@ -13,7 +13,7 @@ These provide a fluent API:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         GroupMeanTable,
         NpsTable,
         QualityTable,
+        ThemeTable,
     )
 
 
@@ -61,6 +62,13 @@ class ReportAccessor:
         from siamang.reporting.tables import QualityTable
 
         return QualityTable(data=self._data, column=column)
+
+    def themes(self, codeframe: Any) -> ThemeTable:
+        """What a frozen codeframe coded these open answers as: one row per
+        theme, plus how many answers it had no theme for."""
+        from siamang.reporting.tables import ThemeTable
+
+        return ThemeTable(data=self._data, codeframe=codeframe)
 
     def nps(self, column: str) -> NpsTable:
         """Net Promoter Score of a 0–10 item: detractors / passives / promoters

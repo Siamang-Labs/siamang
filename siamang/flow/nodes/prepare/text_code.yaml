@@ -1,0 +1,35 @@
+type: prepare.text_code
+category: prepare
+title: Code open answers
+description: Apply a frozen codeframe to an open-text variable — the same answers get the same theme every time, with no model and no network.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+  table: Table
+params:
+  codeframe:
+    kind: path
+    required: true
+    label: Codeframe
+    help: The codeframe file (analysis/<name>.codeframe.json) built from these answers.
+  into:
+    kind: string
+    creates: variable
+    label: Theme variable
+    help: Defaults to the name the codeframe carries.
+  sentiment:
+    kind: bool
+    default: false
+    label: Also add sentiment
+    help: Only when the codeframe was built with it.
+subtitle: '{codeframe}'
+imports:
+- from siamang.data import text_coding
+template: |
+  _codeframe = text_coding.load({codeframe!r})
+  {out.data} = text_coding.apply(
+      {in.data}, _codeframe, into={into!r}, sentiment={sentiment!r}
+  )
+  {out.table} = {out.data}.report.themes(_codeframe)
+preview: table
