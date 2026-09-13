@@ -176,3 +176,62 @@ def test_sav_and_dta_store_list_answers_next_to_missing_ones(tmp_path):
         # A missing string reads back as NaN or "" depending on the format.
         gap = back["manage"].tolist()[1]
         assert gap == "" or pd.isna(gap)
+
+
+def test_every_text_format_writes_the_same_multiple_answer(tmp_path):
+    """Which download button was pressed must not change the answers.
+
+    CSV used to write the Python repr of a list (`"[1, 3]"`), Excel the same,
+    SPSS and Stata `1;3`. Same project, four files, three of them unreadable by
+    anything that did not already know they came from pandas.
+    """
+    import pandas as pd
+
+    import siamang as sg
+    from siamang.data import SurveyData
+    from siamang.io import read_snapshot, write_snapshot
+
+    reasons = sg.Variable("reasons", scale="nominal", labels={1: "Price", 2: "Habit"})
+    age = sg.Variable("age", scale="ratio", label="Age")
+    survey = sg.Questionnaire(
+        title="M",
+        pages=[
+            sg.Page(
+                name="p",
+                items=[
+                    sg.MultiChoice("Why?", var=reasons, mode="array"),
+                    sg.NumericInput("Age?", var=age),
+                ],
+            )
+        ],
+    )
+    frame = pd.DataFrame({"reasons": [[1, 2], [2], None], "age": [20, 30, 40]})
+    data = SurveyData(frame=frame, questionnaire=survey)
+
+    csv_path = write_snapshot(data, tmp_path / "x.csv", dictionary=False)
+    assert csv_path.read_text("utf-8").splitlines()[1] == "1;2,20"
+
+    for suffix in (".csv", ".xlsx", ".sav", ".dta", ".parquet"):
+        path = write_snapshot(data, tmp_path / f"x{suffix}", dictionary=False)
+        back = read_snapshot(path, questionnaire=survey).frame["reasons"]
+        assert list(back[0]) == [1, 2], suffix
+        assert list(back[1]) == [2], suffix
+        assert not isinstance(back[2], str), suffix  # never answered stays missing
+
+
+def test_lists_are_only_restored_where_the_questionnaire_says_so(tmp_path):
+    """A free-text answer with a semicolon in it is text, not two codes."""
+    import pandas as pd
+
+    import siamang as sg
+    from siamang.data import SurveyData
+    from siamang.io import read_snapshot, write_snapshot
+
+    comment = sg.Variable("comment", scale="nominal", label="Comment")
+    survey = sg.Questionnaire(
+        title="T", pages=[sg.Page(name="p", items=[sg.OpenText("Say more", var=comment)])]
+    )
+    frame = pd.DataFrame({"comment": ["fast; cheap", "ok"]})
+    path = write_snapshot(SurveyData(frame=frame), tmp_path / "t.csv", dictionary=False)
+    back = read_snapshot(path, questionnaire=survey).frame
+    assert back["comment"].tolist() == ["fast; cheap", "ok"]
