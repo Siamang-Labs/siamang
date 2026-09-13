@@ -1,17 +1,35 @@
 """Data layer for siamang.
 
-Besides :class:`SurveyData` and the table builders, three modules of plain
-pandas helpers cover the cleaning and weighting steps of a survey pipeline:
+Besides :class:`SurveyData` and the table builders, modules of plain pandas
+helpers cover the cleaning, weighting and analysis steps of a survey pipeline:
 
 - :mod:`siamang.data.respondents` — one row per respondent, completion time,
   partials and speeders;
+- :mod:`siamang.data.quality` — straightlining, contradictions, duplicate
+  answer patterns and failed attention checks;
 - :mod:`siamang.data.weights` — cell weights, raking, effective sample size;
 - :mod:`siamang.data.stats` — tidy frequencies, crosstabs and a chi-square test
-  on a bare frame.
+  on a bare frame;
+- :mod:`siamang.data.multi` — multiple-choice answers over a base of
+  respondents, and the indicator columns everything else needs;
+- :mod:`siamang.data.turf` — how many different people a shortlist of options
+  reaches together;
+- :mod:`siamang.data.text_coding` — a frozen codeframe applied to open answers.
 """
 
-from siamang.data import respondents, stats, weights
+from siamang.data import multi, quality, respondents, stats, text_coding, turf, weights
 from siamang.data.survey_data import SurveyData
 from siamang.data.tables import BannerTable, SurveyTables
 
-__all__ = ["BannerTable", "SurveyData", "SurveyTables", "respondents", "stats", "weights"]
+__all__ = [
+    "BannerTable",
+    "SurveyData",
+    "SurveyTables",
+    "multi",
+    "quality",
+    "respondents",
+    "stats",
+    "text_coding",
+    "turf",
+    "weights",
+]

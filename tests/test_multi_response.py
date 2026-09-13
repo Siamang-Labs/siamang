@@ -15,7 +15,7 @@ import siamang as sg
 from siamang.codegen.questionnaire import generate_questionnaire
 from siamang.core import Variable, VariableMap
 from siamang.core.expression import Expression, VarRef
-from siamang.data import SurveyData, multi, weights
+from siamang.data import SurveyData, multi, turf, weights
 from siamang.frontend.compiler.react import compile_react_payload
 from siamang.model.parse_python import parse_source
 
@@ -343,3 +343,86 @@ def test_proportion_ci_counts_people_who_chose_among_others():
     out = _data().analysis.proportion_ci("reasons", 3)
     assert out["n"] == 4.0
     assert out["p"] == pytest.approx(0.75)
+
+
+# ─── TURF ────────────────────────────────────────────────────────────────────
+
+
+def _portfolio() -> pd.DataFrame:
+    """Eight respondents where the popular option is the wrong first pick.
+
+    ``a`` and ``b`` each reach four people, ``c`` four others. The best pair is
+    b + c, which reaches everybody; a greedy search commits to ``a`` and never
+    finds it. That gap is the whole reason the search has to be named.
+    """
+
+    return pd.DataFrame(
+        {
+            "a": [1, 1, 1, 1, 0, 0, 0, 0],
+            "b": [1, 1, 0, 0, 1, 1, 0, 0],
+            "c": [0, 0, 1, 1, 0, 0, 1, 1],
+        }
+    )
+
+
+def test_turf_counts_each_respondent_once():
+    frame = _portfolio()
+    # Six memberships across a and b, but only six *people* — a+b is not 8.
+    assert turf.portfolio_reach(frame, ["a", "b"]) == pytest.approx(0.75)
+    assert list(turf.item_reach(frame, ["a", "b", "c"])) == [0.5, 0.5, 0.5]
+
+
+def test_turf_best_finds_a_pair_greedy_cannot():
+    best = turf.turf(_portfolio(), ["a", "b", "c"], max_size=2)
+    greedy = turf.turf(_portfolio(), ["a", "b", "c"], max_size=2, method="greedy")
+    assert best.method == "best" and greedy.method == "greedy"
+    assert list(best["items"]) == ["a", "b, c"]
+    assert list(best["reach_percent"]) == [50.0, 100.0]
+    assert list(greedy["items"]) == ["a", "a, b"]
+    assert list(greedy["reach_percent"]) == [50.0, 75.0]
+    assert best.base == greedy.base == 8
+
+
+def test_turf_base_is_the_respondents_who_answered():
+    frame = pd.DataFrame({"a": [1, 0, None], "b": [0, 1, None]}, dtype="Int64")
+    out = turf.turf(frame, ["a", "b"], max_size=2)
+    assert out.base == 2  # the third respondent never answered
+    assert list(out["reach_percent"]) == [50.0, 100.0]
+
+
+def test_turf_reports_frequency_and_the_gain_of_each_step():
+    out = turf.turf(_portfolio(), ["a", "b", "c"], max_size=3)
+    assert list(out["incremental"]) == [4.0, 4.0, 0.0]  # the third option adds nobody
+    assert out["frequency"].iloc[-1] > 1  # but the reached now choose more of them
+
+
+def test_turf_can_fix_options_already_committed():
+    out = turf.turf(_portfolio(), ["a", "b", "c"], max_size=2, include=["a"])
+    assert list(out["items"]) == ["a", "a, b"]
+
+
+def test_turf_refuses_what_it_cannot_answer():
+    frame = _portfolio()
+    with pytest.raises(ValueError, match="best' or 'greedy"):
+        turf.turf(frame, ["a"], method="nope")
+    with pytest.raises(KeyError, match="nope"):
+        turf.turf(frame, ["a", "nope"])
+    with pytest.raises(ValueError, match="not in the list"):
+        turf.turf(frame, ["a", "b"], include=["z"])
+    # A multiple-choice column of code lists is not a set of indicators, and
+    # silently reading it as one is how a TURF table becomes fiction.
+    with pytest.raises(TypeError, match="prepare.explode"):
+        turf.turf(pd.DataFrame({"reasons": [[1, 3], [2]]}), ["reasons"])
+    # And an exhaustive search that would never finish says so instead of hanging.
+    wide = pd.DataFrame({chr(97 + i): [1, 0] for i in range(26)})
+    with pytest.raises(ValueError, match="combinations"):
+        turf.turf(wide, list(wide.columns), max_size=13)
+
+
+def test_turf_runs_on_what_explode_produces():
+    """The advertised pipeline end to end: a list column becomes a TURF table."""
+
+    exploded = _data().explode_multi("reasons")
+    out = turf.turf(exploded.frame, ["reasons_1", "reasons_2", "reasons_3"], max_size=2)
+    assert out.base == 4  # the same base multi.frequencies reports
+    assert out["reach_percent"].iloc[-1] == 100.0
