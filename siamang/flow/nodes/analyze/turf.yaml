@@ -1,0 +1,54 @@
+type: analyze.turf
+category: analyze
+title: TURF
+description: How many different people a shortlist of options reaches together — each respondent counted once, however many options they chose.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  items:
+    kind: variables
+    required: true
+    label: Options
+    help: One 0/1 column per option. Run prepare.explode on a multiple-choice question to get them.
+  max_size:
+    kind: int
+    default: 3
+    minimum: 1
+    label: Largest portfolio
+  method:
+    kind: enum
+    values:
+    - best
+    - greedy
+    default: best
+    label: Search
+    help: Best tries every combination. Greedy extends the previous winner and is fast, but can miss the best portfolio — the table says which ran.
+  include:
+    kind: variables
+    default: []
+    label: Always include
+    help: Options that are in the portfolio whatever they add — shelf space already committed.
+subtitle: up to {max_size}, {method}
+imports:
+- from siamang.data import turf
+template: |
+  # Reach is respondents: somebody who chose two of the options still counts
+  # once. The base is the people who answered the question, so a reach of 60 %
+  # is 60 % of them and never of everyone in the file.
+  {out.table} = turf.turf(
+      {in.data}.frame,
+      {items!r},
+      max_size={max_size!r},
+      method={method!r},
+      include={include!r},
+      weight={in.data}.weight,
+  )
+  {out.stat} = dict(
+      Base={out.table}.base,
+      Search={out.table}.method,
+      Note="each respondent counted once; reach is of the respondents who answered",
+  )
+preview: table

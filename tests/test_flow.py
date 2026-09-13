@@ -439,6 +439,11 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         ("pca", "analyze.pca", {"items": ["age", "satisfaction", "trust_idx"], "n_components": 2}),
         ("clu", "analyze.cluster", {"items": ["age", "satisfaction"], "k": 2, "into": "segment"}),
         ("rel", "analyze.reliability", {"items": ["age", "satisfaction", "trust_idx"]}),
+        (
+            "turf",
+            "analyze.turf",
+            {"items": ["aware_1", "aware_2", "aware_3", "aware_99"], "max_size": 2},
+        ),
         ("box", "visualize.boxplot", {"y": "trust_idx", "by": "region2"}),
         ("heat", "visualize.heatmap", {"items": ["age", "satisfaction", "trust_idx"]}),
         ("scat", "visualize.scatter", {"x": "age", "y": "satisfaction", "hue": "gender"}),
@@ -470,6 +475,7 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
             "pca",
             "clu",
             "rel",
+            "turf",
             "box",
             "heat",
             "scat",
@@ -515,6 +521,11 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         result.output("sel").frame.dropna(subset=["age", "satisfaction"])
     )
     assert "alpha" in result.output("rel", "stat")
+    # Reach never exceeds the base and never shrinks as the portfolio grows.
+    reach = result.output("turf", "table")
+    assert list(reach["size"]) == [1, 2]
+    assert reach["reach"].is_monotonic_increasing
+    assert reach["reach"].max() <= result.output("turf", "stat")["Base"]
     assert (tmp_path / "outputs" / "all.md").read_text("utf-8").startswith("# All nodes")
     assert (tmp_path / "outputs" / "clean.csv").is_file()
     assert (tmp_path / "outputs" / "clean.dictionary.json").is_file()
