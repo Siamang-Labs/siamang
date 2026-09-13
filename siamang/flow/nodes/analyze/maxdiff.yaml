@@ -1,0 +1,33 @@
+type: analyze.maxdiff
+category: analyze
+title: MaxDiff
+description: What a best–worst question found — one row per item, with the counting score, the conditional-logit utility and the share it implies.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  question:
+    kind: string
+    required: true
+    label: MaxDiff question
+    help: The question's id or name. Its design is read from the questionnaire, so nothing has to be re-entered here.
+  method:
+    kind: enum
+    values:
+    - both
+    - counts
+    - utilities
+    default: both
+    label: Estimate
+    help: Counting is best minus worst over shown and anyone can recount it. Utilities are a conditional logit on the choices the design actually showed.
+subtitle: '{question} · {method}'
+template: |
+  # The design comes from the questionnaire, not from a parameter: it is what
+  # the respondent was shown, and re-entering it here would be a second copy to
+  # get wrong.
+  _maxdiff = {in.data}.report.maxdiff({question!r}, method={method!r})
+  {out.table} = _maxdiff
+  {out.stat} = _maxdiff.stats
+preview: table

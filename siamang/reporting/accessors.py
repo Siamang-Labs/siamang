@@ -63,6 +63,14 @@ class ReportAccessor:
 
         return QualityTable(data=self._data, column=column)
 
+    def maxdiff(self, question: Any, *, method: str = "both") -> Any:
+        """What a best–worst question found: one row per item, ordered best
+        first, with the counting score and — unless ``method="counts"`` — the
+        conditional-logit utilities and the shares they imply."""
+        from siamang.reporting.tables import MaxDiffTable
+
+        return MaxDiffTable(data=self._data, question=question, method=method)
+
     def themes(self, codeframe: Any) -> ThemeTable:
         """What a frozen codeframe coded these open answers as: one row per
         theme, plus how many answers it had no theme for."""
