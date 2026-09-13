@@ -287,6 +287,23 @@ To make this reporting API extremely convenient, two accessors are attached dire
   Creates a `CrossTable` instance.
 * **`means(column: str, *, by: str, test: bool = True) -> GroupMeanTable`**:
   Creates a `GroupMeanTable` instance.
+* **`banner(rows: list[str], columns: list[str], *, weight: str | None = None, test: bool = True, level: float = 0.05, correction: str = "none") -> BannerTable`**:
+  The cross-break: the questions in `rows` down the page, a block of columns per
+  variable in `columns`, and a base row. Each cell is a column percentage with
+  its count and, unless `test` is off, the letters of the columns it is
+  significantly higher than.
+
+  Columns are compared **only within a banner variable** — its values are
+  mutually exclusive groups of the same people, which is what a z-test of two
+  proportions assumes; columns belonging to different banner variables overlap,
+  so the table does not compare them. On weighted data the test uses Kish's
+  effective base, because weights make a sample behave like a smaller one, and a
+  column with fewer than thirty respondents takes no part at all. The test, its
+  level, the correction (`"none"` or `"bonferroni"`), any untested columns and
+  the kind of base are all reported in `stats`.
+
+  `data.tables.banner(...)` returns the same numbers in tidy form — one row per
+  pair of values — for feeding to something else.
 
 ### `data.plot` Accessor Methods
 

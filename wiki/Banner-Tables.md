@@ -123,10 +123,47 @@ banner.export_csv("out/banner.csv")
 
 ---
 
+## The one that is meant to be read: `data.report.banner`
+
+`data.tables.banner` gives you the numbers in tidy form — one row per pair of
+values — which is what a spreadsheet or another program wants. The version a
+person reads is `data.report.banner`, which lays the same numbers out the way an
+agency table is laid out:
+
+```python
+table = data.report.banner(["satisfaction", "recommend"], ["region", "age_band"])
+print(table.to_markdown())
+```
+
+| Question | Answer | Region: North (A) | Region: South (B) | Age: Under 35 (C) | Age: 35+ (D) |
+|---|---|---|---|---|---|
+| Base | respondents | 162 | 127 | 206 | 194 |
+| Satisfied? | Yes | 72.8% (118) B | 40.2% (51) | 55.8% (115) | 49.5% (96) |
+
+A letter says the column is **significantly higher** than the column that letter
+names. Three things decide whether that claim is honest, and all three are
+reported in `stats` rather than assumed:
+
+- **Only within a banner variable.** The values of `region` are mutually
+  exclusive groups of the same people, which is what a z-test of two proportions
+  assumes. Columns from *different* banner variables overlap — a northerner is
+  also under 35 — so the table never compares them.
+- **The effective base on weighted data.** Weights make a sample behave like a
+  smaller one; testing on the raw count would manufacture significance. The test
+  uses Kish's effective sample size, and `stats` says so.
+- **A floor under the base.** A column with fewer than thirty respondents is not
+  tested at all. A headline difference computed off seven people is noise with a
+  letter beside it.
+
+`correction="bonferroni"` is available; the default is `"none"`, as the industry
+does it, and either way the choice is named in `stats` beside the level.
+
 ## When to use which table
 
-- **Banner table** (`data.tables.banner`) — many subgroup breakdowns in one wide
-  export, tidy long format, ideal for spreadsheets.
+- **`data.report.banner`** — the cross-break to read or put in a report: blocks
+  of columns, a base row, significance letters.
+- **`data.tables.banner`** — the same numbers in tidy long format, ideal for
+  spreadsheets and for feeding to something else.
 - **`CrossTable`** ([[Reporting Tables|Reporting-Tables]]) — a single, labeled
   two-way table with Chi-square/Cramér's V and row/column percentages, ideal for
   inline Markdown/HTML and [[Report Document|Report-Document]] narratives.
