@@ -418,6 +418,55 @@ class SurveyData:
             weight=self.weight,
         )
 
+    def derive_formula(
+        self,
+        name: str,
+        formula: str,
+        *,
+        label: str | None = None,
+        scale: str = "ratio",
+        labels: dict[object, str] | None = None,
+    ) -> SurveyData:
+        """A new variable computed by arithmetic over the existing ones.
+
+        :meth:`derive` builds an indicator from a *condition* — the answer is
+        yes or no. This builds a number: spend per month from spend per year,
+        the gap between two ratings, a score rescaled. The formula is text,
+        parsed and evaluated by :mod:`siamang.data.formula`; nothing is
+        executed, and a formula that cannot be read says where reading stopped.
+
+        The default scale is ``ratio`` because arithmetic produces quantities.
+        Say otherwise when the result is a code rather than an amount.
+
+            data.derive_formula("spend_month", "round(spend_year / 12, 2)")
+            data.derive_formula("band", "if age < 30 then 1 else 2",
+                                scale="ordinal", labels={1: "Under 30", 2: "30+"})
+        """
+
+        from siamang.data.formula import parse
+
+        values = parse(formula).evaluate(self.frame)
+        frame = self.frame.copy()
+        frame[name] = values
+        variables = self._variables_with(
+            Variable(
+                name,
+                scale,
+                # The formula itself is the most honest label there is: it says
+                # exactly how the number was made, and it travels with the
+                # codebook into every export and dictionary.
+                label=label or formula,
+                labels=labels or {},
+                role="derived",
+            )
+        )
+        return SurveyData(
+            frame=frame,
+            variables=variables,
+            questionnaire=self.questionnaire,
+            weight=self.weight,
+        )
+
     def _variables_with(self, variable: Variable) -> VariableMap:
         variables = VariableMap()
         if self.variables is not None:

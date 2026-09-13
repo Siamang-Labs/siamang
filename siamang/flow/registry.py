@@ -51,6 +51,10 @@ PARAM_KINDS = (
     "bool",
     "string",
     "condition",
+    # Arithmetic over variables, written as text (siamang.data.formula). A kind
+    # of its own rather than a plain string so check_flow can read it and name a
+    # typo before a run rather than after one.
+    "formula",
     "mapping",
     "targets",
     "path",

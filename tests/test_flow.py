@@ -886,3 +886,85 @@ def test_the_conjoint_nodes_run_on_a_conjoint_questionnaire(tmp_path):
     assert (tmp_path / "outputs" / "cbc.csv").is_file()
     assert (tmp_path / "outputs" / "cbc.dictionary.json").is_file()
     assert (tmp_path / "outputs" / "cbc.hb.R").is_file()
+
+
+def test_the_derive_node_computes_a_variable_and_registers_it(tmp_path):
+    """A formula reaches the run as text and comes back as a column with a
+    Variable beside it — a column without one is invisible to describe(), to an
+    export's dictionary, and to any node that names it later."""
+
+    import siamang as sg
+    from siamang.model import to_document
+
+    survey = sg.Questionnaire(
+        title="Spend",
+        pages=[
+            sg.Page(
+                name="p",
+                items=[
+                    sg.NumericInput(
+                        "Yearly spend",
+                        sg.Variable("spend_year", "ratio", label="Spend", valid_range=(0, 1200)),
+                        id="q_spend",
+                    )
+                ],
+            )
+        ],
+    )
+    document = to_document(survey)
+
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 40, "seed": 3}),
+            (
+                "der",
+                "prepare.derive",
+                {
+                    "name": "spend_month",
+                    "formula": "round(spend_year / 12, 2)",
+                    "scale": "ratio",
+                },
+            ),
+            ("desc", "analyze.describe", {}),
+        ],
+        [("sim", "data", "der", "data"), ("der", "data", "desc", "data")],
+    )
+    assert check_flow(flow, questionnaire=document) == []
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=document).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    described = result.output("desc", "table")
+    described = described if hasattr(described, "columns") else described.to_frame()
+    assert "spend_month" in set(described["name"])
+    # The label defaults to the formula, so the codebook says how the number
+    # was made — and that travels into the dictionary beside any export.
+    label = described.loc[described["name"] == "spend_month", "label"].iloc[0]
+    assert label == "round(spend_year / 12, 2)"
+
+
+def test_the_derive_node_reports_a_bad_formula_before_anything_runs(questionnaire_doc):
+    """Both halves: a formula that cannot be read, and one that reads fine but
+    names a variable the codebook has not got. Neither should wait for a run."""
+
+    broken = _flow(
+        [
+            ("sim", "source.simulated", {}),
+            ("der", "prepare.derive", {"name": "x", "formula": "age / "}),
+        ],
+        [("sim", "data", "der", "data")],
+    )
+    issues = check_flow(broken, questionnaire=questionnaire_doc)
+    assert [i.code for i in issues] == ["PARAM_INVALID"]
+    assert "character" in issues[0].message
+
+    typo = _flow(
+        [
+            ("sim", "source.simulated", {}),
+            ("der", "prepare.derive", {"name": "x", "formula": "agee + 1"}),
+        ],
+        [("sim", "data", "der", "data")],
+    )
+    issues = check_flow(typo, questionnaire=questionnaire_doc)
+    assert [i.code for i in issues] == ["UNKNOWN_VARIABLE"]
+    assert "agee" in issues[0].message
