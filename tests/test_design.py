@@ -112,3 +112,22 @@ def test_a_design_that_cannot_work_says_why():
 def test_duplicate_items_are_collapsed_not_counted_twice():
     design = maxdiff_design(["a", "b", "c", "a", "d"], per_task=2, tasks=4, versions=2, seed=1)
     assert design.items == ("a", "b", "c", "d")
+
+
+def test_the_generator_itself_is_pinned():
+    """A golden, and the reason for one.
+
+    The design lives in a questionnaire as a seed and a handful of numbers, not
+    as a stored table, so what a past study actually showed its respondents is
+    whatever this function returns today for that seed. If the heuristic is ever
+    improved, every questionnaire written before the change quietly starts
+    describing tasks nobody was asked. This test makes that a failure instead of
+    a silence — and if the improvement is worth having, it is worth also
+    bumping the format and keeping the old path for old documents.
+    """
+
+    design = maxdiff_design([1, 2, 3, 4, 5], per_task=3, tasks=3, versions=2, seed=42)
+    assert [[list(task) for task in version] for version in design.versions] == [
+        [[4, 2, 3], [5, 1, 4], [3, 1, 5]],
+        [[2, 4, 3], [2, 1, 5], [2, 3, 4]],
+    ]

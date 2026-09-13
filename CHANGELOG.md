@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`MaxDiff`** — best–worst scaling. A few items at a time, and for each set
+  the respondent picks the best and the worst; the trade-off is the
+  measurement. `siamang.design.maxdiff_design` builds the balanced incomplete
+  block design and reports its own balance — how often each item and each pair
+  was shown — because a design nobody can check is a design nobody should
+  trust. The design is fixed by a seed (derived from the question when none is
+  given), so the same questionnaire always asks the same tasks.
+- **`siamang.data.choice`** — choice sets and a conditional logit fitted on
+  them by maximum likelihood, on numpy and scipy alone. The shape every
+  trade-off method needs: alternatives in rows, grouped into the sets one
+  choice was made from.
+- **`siamang.data.maxdiff`** — counting scores (best minus worst over shown,
+  per item and per respondent) and utilities with the shares they imply.
+  `report.maxdiff(...)` tabulates both against a base; `analyze.maxdiff` runs
+  it from a flow.
+- **`siamang.io.choice.write_maxdiff_choices`** — the choices in the long
+  format R's hierarchical-Bayes packages read, with a column dictionary and a
+  script, so individual-level utilities can be estimated outside the engine.
+  `output.choice_data` writes it from a flow.
+
+### Fixed
+
+- `local_simulator` crashed on a half-open `valid_range` such as `(16, None)`,
+  treated an unreadable string `hide_if` as met — hiding that question from
+  every simulated respondent — and both produced columns of nulls, which look
+  exactly like a question nobody reached.
+
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
   all seven question types, `Option`, `Media`, `Block`, `Page`,
