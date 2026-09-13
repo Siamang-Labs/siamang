@@ -6,7 +6,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-_COMPARISON_OPS = {"=", "!=", ">", ">=", "<", "<=", "in", "not in"}
+#: ``contains`` asks whether a *multiple* answer includes one code — the
+#: question "did they choose it", which ``=`` cannot answer for a MultiChoice:
+#: ``[1, 3] == 1`` is false, so a condition written with ``=`` silently matches
+#: nobody. The React runtime has had the operator since it was written; it was
+#: reachable only from a hand-written raw string until it landed here.
+_COMPARISON_OPS = {"=", "!=", ">", ">=", "<", "<=", "in", "not in", "contains", "not contains"}
 _LOGICAL_OPS = {"and", "or", "not"}
 _SUPPORTED_OPS = _COMPARISON_OPS | _LOGICAL_OPS | {"raw"}
 
@@ -141,6 +146,11 @@ def _evaluate_node(node: Any, answers: dict[str, Any]) -> Any:
         return left in right
     if node.op == "not in":
         return left not in right
+    if node.op in {"contains", "not contains"}:
+        # A single answer "contains" the value it is equal to, so a condition
+        # keeps working when a question is changed from one choice to several.
+        found = right in left if isinstance(left, list | tuple | set) else left == right
+        return found if node.op == "contains" else not found
     raise ValueError(f"Unsupported expression operator: {node.op}")
 
 

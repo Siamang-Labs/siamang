@@ -1,0 +1,31 @@
+type: prepare.explode
+category: prepare
+title: Explode multiple choice
+description: One 0/1 column per option of a multiple-answer question, so weights, regression, clustering and TURF can read it.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+params:
+  variable:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    label: Multiple-choice variable
+    help: A question whose answers are lists of codes.
+  prefix:
+    kind: string
+    label: Column prefix
+    help: Defaults to the variable's own name and an underscore, so option 1 becomes brand_1.
+  drop:
+    kind: bool
+    default: false
+    label: Drop the original column
+    help: Off by default — the list column still answers questions the indicators cannot, such as how many options each respondent picked.
+subtitle: '{variable} → indicators'
+template: |
+  # Non-respondents get missing values rather than zeros, so the base stays the
+  # respondents who answered — the same base a multiple response table reports.
+  {out.data} = {in.data}.explode_multi({variable!r}, prefix={prefix!r}, drop={drop!r})
+preview: rows

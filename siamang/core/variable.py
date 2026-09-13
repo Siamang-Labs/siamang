@@ -162,6 +162,20 @@ class Variable:
     def notin(self, values: Any) -> Expression:
         return compare(self.name, "not in", values)
 
+    def contains(self, value: Any) -> Expression:
+        """True when a multiple answer includes ``value``.
+
+        The question ``eq`` cannot answer for a MultiChoice: an answer of
+        ``[1, 3]`` is not equal to ``1``, so a condition written with ``eq``
+        matches nobody who chose it alongside something else. A single answer
+        contains the value it equals, so a condition survives a question that
+        changes from one choice to several.
+        """
+        return compare(self.name, "contains", value)
+
+    def notcontains(self, value: Any) -> Expression:
+        return compare(self.name, "not contains", value)
+
     def __gt__(self, other: Any) -> Expression:
         return self.gt(other)
 

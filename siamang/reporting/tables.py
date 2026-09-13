@@ -158,8 +158,13 @@ class FreqTable(SurveyTable):
     sort: str = "value"
 
     def _build(self) -> None:
+        from siamang.data import multi
+
         col = self.column
         series = self.data.frame[col]
+        if multi.is_multi(series):
+            self._build_multi(series)
+            return
 
         if self.exclude_missing:
             series = series.dropna()
@@ -203,6 +208,40 @@ class FreqTable(SurveyTable):
 
         self._result = df
         self._stats = {"Variable": _get_label(self.data, col), "N valid": int(total)}
+
+    def _build_multi(self, series: pd.Series) -> None:
+        """A multiple-choice question: one row per option, base of respondents.
+
+        Not a variant of the table above but a different table, because the
+        numbers mean something different. Each option's share is of the people
+        who answered the question, so the column sums above 100 % — which is why
+        the base is a row of its own and the footer says it in words. There is no
+        cumulative column: options overlap, so adding them up is meaningless.
+        """
+        from siamang.data import multi
+
+        labels = _get_value_labels(self.data, self.column)
+        counts = multi.frequencies(
+            self.data.frame, self.column, labels=labels or None, codes=list(labels) or None
+        )
+        rows = [
+            {"Value": row["value"], "Label": row["label"], "N": row["count"], "%": row["percent"]}
+            for _, row in counts.iterrows()
+        ]
+        if self.sort == "freq":
+            rows.sort(key=lambda r: (-r["N"], str(r["Label"])))
+        elif self.sort == "label":
+            rows.sort(key=lambda r: str(r["Label"]))
+        rows.append(
+            {"Value": "", "Label": "Base (respondents answering)", "N": counts.base, "%": 100.0}
+        )
+        self._result = pd.DataFrame(rows, columns=["Value", "Label", "N", "%"])
+        self._stats = {
+            "Variable": _get_label(self.data, self.column),
+            "Base": f"{counts.base} respondents",
+            "Answers": counts.answers,
+            "Note": "multiple answers allowed; percentages are of respondents",
+        }
 
 
 # ─── NpsTable ─────────────────────────────────────────────────────────────────
@@ -309,6 +348,11 @@ class CrossTable(SurveyTable):
     test: bool = True
 
     def _build(self) -> None:
+        from siamang.data import multi
+
+        if multi.is_multi(self.data.frame[self.row]):
+            self._build_multi()
+            return
         frame = self.data.frame[[self.row, self.col]].dropna()
         row_labels = _get_value_labels(self.data, self.row)
         col_labels = _get_value_labels(self.data, self.col)
@@ -364,6 +408,39 @@ class CrossTable(SurveyTable):
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
 
+    def _build_multi(self) -> None:
+        """A multiple-choice question against a group: reach within each column.
+
+        Percentages are of each group's own base, which is the number a reader
+        compares across columns. No chi-square: the categories overlap, so the
+        test's independence assumption does not hold and a p-value here would be
+        a number that looks like evidence and is not.
+        """
+        from siamang.data import multi
+
+        labels = _get_value_labels(self.data, self.row)
+        table = multi.crosstab(
+            self.data.frame,
+            self.row,
+            self.col,
+            labels=labels or None,
+            codes=list(labels) or None,
+        )
+        display = table.drop(columns=["value"]).rename(
+            columns={"label": _get_label(self.data, self.row)}
+        )
+        bases = table.base if isinstance(table.base, dict) else {}
+        display.loc[len(display)] = ["Base (respondents answering)", *bases.values()]
+        self._result = display
+        self._stats = {
+            "Variable": _get_label(self.data, self.row),
+            "Base": ", ".join(f"{group}: {size}" for group, size in bases.items()),
+            "Note": (
+                "multiple answers allowed; percentages are of each group, and no "
+                "chi-square is reported because the categories overlap"
+            ),
+        }
+
 
 # ─── GroupMeanTable ───────────────────────────────────────────────────────────
 
@@ -395,6 +472,11 @@ class GroupMeanTable(SurveyTable):
     test: bool = True
 
     def _build(self) -> None:
+        from siamang.data import multi
+
+        if multi.is_multi(self.data.frame[self.by]):
+            self._build_multi()
+            return
         frame = self.data.frame[[self.column, self.by]].dropna()
         by_labels = _get_value_labels(self.data, self.by)
         col_label = _get_label(self.data, self.column)
@@ -451,6 +533,43 @@ class GroupMeanTable(SurveyTable):
 
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
+
+    def _build_multi(self) -> None:
+        """Grouped by a multiple-choice question: one row per option.
+
+        The groups overlap — a respondent who named two barriers is in two rows
+        — which is exactly the comparison people want ("how satisfied are the
+        ones who mentioned price?") and exactly what makes a significance test
+        invalid here. So the table gives means and bases and says why there is
+        no p-value, rather than printing one that cannot mean what it looks like.
+        """
+        from siamang.data import multi
+
+        series = self.data.frame[self.by]
+        values = pd.to_numeric(self.data.frame[self.column], errors="coerce")
+        labels = _get_value_labels(self.data, self.by)
+        rows = []
+        for code in labels or multi.codes_in(series):
+            chose = multi.reach(series, code) & multi.responded(series)
+            group = values[chose].dropna()
+            rows.append(
+                {
+                    _get_label(self.data, self.by): (labels or {}).get(code, str(code)),
+                    "Mean": round(float(group.mean()), 3) if len(group) else None,
+                    "SD": round(float(group.std(ddof=1)), 3) if len(group) > 1 else None,
+                    "Median": round(float(group.median()), 3) if len(group) else None,
+                    "N": int(len(group)),
+                }
+            )
+        self._result = pd.DataFrame(rows)
+        self._stats = {
+            "Variable": _get_label(self.data, self.column),
+            "Base": f"{int(multi.base_size(series))} respondents",
+            "Note": (
+                "grouped by a multiple-choice question, so the groups overlap and "
+                "no significance test is reported"
+            ),
+        }
 
 
 # ─── QualityTable ─────────────────────────────────────────────────────────────

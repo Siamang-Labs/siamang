@@ -15,7 +15,7 @@ from siamang.flow.registry import NodeSpec
 
 _PLACEHOLDER = re.compile(r"\{(in|out)\.([a-z_][a-z0-9_]*)\}|\{([a-z_][a-z0-9_]*)!r\}")
 _IDENT = re.compile(r"[^0-9a-zA-Z_]+")
-_COMPARISONS = {"=", "!=", ">", ">=", "<", "<=", "in", "not in"}
+_COMPARISONS = {"=", "!=", ">", ">=", "<", "<=", "in", "not in", "contains", "not contains"}
 
 
 def output_names(node_id: str, spec: NodeSpec) -> dict[str, str]:

@@ -41,6 +41,8 @@ _COMPARISONS = {
     "<=": "le",
     "in": "isin",
     "not in": "notin",
+    "contains": "contains",
+    "not contains": "notcontains",
 }
 _LOGICAL = {"and": ("&", "AND"), "or": ("|", "OR")}
 _PAGE_FACTORIES = {

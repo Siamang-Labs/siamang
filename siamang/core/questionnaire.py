@@ -497,7 +497,11 @@ def _compared_values(node):
 
     if not isinstance(node, Expression):
         return
-    if node.op in {"=", "!=", "in", "not in"} and isinstance(node.left, VarRef):
+    # `contains` belongs here for the same reason as the rest: a code that no
+    # longer exists makes the branch unreachable, and a multiple-choice screener
+    # is exactly where nobody notices.
+    comparisons = {"=", "!=", "in", "not in", "contains", "not contains"}
+    if node.op in comparisons and isinstance(node.left, VarRef):
         right = node.right
         values = right if isinstance(right, (list, tuple, set)) else [right]
         for value in values:

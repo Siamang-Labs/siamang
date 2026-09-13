@@ -141,6 +141,8 @@
             "<=",
             "in",
             "not in",
+            "contains",
+            "not contains",
             "and",
             "or",
             "not",

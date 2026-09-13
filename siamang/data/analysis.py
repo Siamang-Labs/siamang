@@ -10,6 +10,25 @@ import pandas as pd
 from siamang.core.variable import VariableMap
 
 
+def _chose(series: pd.Series, value: object) -> pd.Series:
+    """True where the respondent gave ``value`` — one answer among several counts.
+
+    A multiple-choice answer is a list, so ``series == value`` is false for
+    everyone who chose it alongside something else: a proportion computed that
+    way reported 0 % for an option a quarter of the sample had named.
+    """
+    from siamang.data import multi
+
+    return multi.reach(series, value) if multi.is_multi(series) else series == value
+
+
+def _answered(series: pd.Series) -> pd.Series:
+    """True where there is an answer at all — an empty list is not one."""
+    from siamang.data import multi
+
+    return multi.responded(series) if multi.is_multi(series) else series.notna()
+
+
 @dataclass(frozen=True, slots=True)
 class DataAnalysis:
     frame: pd.DataFrame
@@ -228,7 +247,7 @@ class DataAnalysis:
             if self.weight_column is None:
                 raise ValueError("weighted=True requires SurveyData.weight to be set.")
             weights = self.frame[self.weight_column].astype(float)
-            indicator = (self.frame[column] == value).astype(float)
+            indicator = _chose(self.frame[column], value).astype(float)
             n_eff = self.effective_sample_size()
             weight_sum = float(weights.sum())
             if n_eff <= 0 or weight_sum <= 0:
@@ -236,10 +255,10 @@ class DataAnalysis:
             p = float((indicator * weights).sum() / weight_sum)
             n = n_eff
         else:
-            n = float(self.frame[column].notna().sum())
+            n = float(_answered(self.frame[column]).sum())
             if n <= 0:
                 return {"p": 0.0, "lower": 0.0, "upper": 0.0, "n": 0.0}
-            p = float((self.frame[column] == value).sum() / n)
+            p = float(_chose(self.frame[column], value).sum() / n)
         margin = z * ((p * (1 - p) / n) ** 0.5)
         lower = max(0.0, p - margin)
         upper = min(1.0, p + margin)

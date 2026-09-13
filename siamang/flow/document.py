@@ -384,7 +384,23 @@ def _known_variables(
             known.add(f"{params['variable']}_recoded")
         if spec.type == "prepare.speeders":
             known.update({"duration_s", "partial"})
+        if spec.type == "prepare.explode" and params.get("variable"):
+            known.update(_exploded_names(questionnaire, params))
     return known
+
+
+def _exploded_names(questionnaire: dict[str, Any], params: dict[str, Any]) -> set[str]:
+    """The indicator columns ``prepare.explode`` will create, by codebook order.
+
+    Named here rather than declared with ``creates`` because the node invents one
+    column per option instead of one per parameter, and a later node that cannot
+    name them is a node that cannot use them.
+    """
+
+    variable = params["variable"]
+    payload = (questionnaire.get("variables") or {}).get(variable) or {}
+    prefix = params.get("prefix") or f"{variable}_"
+    return {f"{prefix}{item.get('code')}" for item in payload.get("labels") or []}
 
 
 def _check_params(

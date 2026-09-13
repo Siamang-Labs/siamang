@@ -21,6 +21,25 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from siamang.data import multi
+
+
+def _require_categorical(df: pd.DataFrame, column: str) -> None:
+    """Refuse a multiple-choice column before pandas fails at it obscurely.
+
+    Weighting needs cells a respondent belongs to exactly one of. Somebody who
+    chose two brands is in two cells, so there is nothing to scale — the fix is
+    a decision about the data, not about the weighting.
+    """
+
+    if multi.is_multi(df[column]):
+        raise TypeError(
+            f"{column!r} holds multiple-choice answers (lists of codes), so a "
+            "respondent falls in several categories at once and there is no cell "
+            "to weight. Run prepare.explode to get one 0/1 column per option and "
+            "weight on those, or weight on a single-answer variable."
+        )
+
 
 def _target_proportions(targets: Mapping[Any, float]) -> dict[Any, float]:
     if not targets:
@@ -66,6 +85,7 @@ def cell_weights(
 
     if column not in df.columns:
         raise KeyError(f"column not found: {column!r}")
+    _require_categorical(df, column)
     props = _target_proportions(targets)
     observed = df[column].value_counts(normalize=True)
     factors = {
@@ -99,6 +119,7 @@ def rake_weights(
     for column in targets:
         if column not in df.columns:
             raise KeyError(f"column not found: {column!r}")
+        _require_categorical(df, column)
     n = len(df)
     weights = pd.Series(np.ones(n), index=df.index, dtype=float)
     norm = {column: _target_proportions(margin) for column, margin in targets.items()}
