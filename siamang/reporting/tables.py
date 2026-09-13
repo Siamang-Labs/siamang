@@ -506,3 +506,52 @@ class QualityTable(SurveyTable):
         rows.append({"Check": "Clean", "N": screened - flagged, "%": share(screened - flagged)})
         self._result = pd.DataFrame(rows, columns=["Check", "N", "%"])
         self._stats = {"Screened": screened, "Flagged": flagged}
+
+
+# ─── ThemeTable ───────────────────────────────────────────────────────────────
+
+
+@dataclass
+class ThemeTable(SurveyTable):
+    """What the open answers were coded as, and how much was left uncoded.
+
+    One row per theme with its share of the answers that were coded, then two
+    rows that keep the table honest: how many people answered at all, and how
+    many of those the codeframe had no theme for — answers collected after it
+    was built, or simply never seen. A theme share quoted without them is a
+    share of an unstated denominator.
+
+    The percentages are of coded answers, because that is what a theme can be a
+    share of; "answered" and "uncoded" are counts for the same reason.
+    """
+
+    codeframe: Any = None
+
+    def _build(self) -> None:
+        from siamang.data import text_coding
+
+        frame = self.data.frame
+        cf = self.codeframe
+        counts = text_coding.codes(frame[cf.variable], cf).value_counts()
+        cover = text_coding.coverage(frame, cf)
+        coded = cover["coded"]
+        share = lambda n: round(n / coded * 100, 1) if coded else 0.0  # noqa: E731
+        rows = [
+            {
+                "Theme": theme.label,
+                "N": int(counts.get(theme.code, 0)),
+                "%": share(int(counts.get(theme.code, 0))),
+            }
+            for theme in cf.themes
+        ]
+        rows.sort(key=lambda row: (-row["N"], row["Theme"]))
+        rows.append({"Theme": "Coded", "N": coded, "%": 100.0 if coded else 0.0})
+        rows.append({"Theme": "Uncoded", "N": cover["uncoded"], "%": share(cover["uncoded"])})
+        self._result = pd.DataFrame(rows, columns=["Theme", "N", "%"])
+        self._stats = {
+            "Variable": cf.variable,
+            "Answered": cover["answered"],
+            "Themes": len(cf.themes),
+        }
+        if cf.model:
+            self._stats["Codeframe"] = f"{cf.model}{f', {cf.built_at}' if cf.built_at else ''}"
