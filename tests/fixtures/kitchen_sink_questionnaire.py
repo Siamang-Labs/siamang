@@ -107,6 +107,10 @@ def build():
                     )
                 ],
                 next_if=[(consent.eq(2), "out")],
+                # Without this everyone lands on "out": the disqualification page
+                # is simply the next one in document order, and an implicit next
+                # does not step over a terminal page.
+                default_next="about",
             ),
             DisqualificationPage("out", body="<p>Bye</p>", redirect_url="https://x/out"),
             Page(

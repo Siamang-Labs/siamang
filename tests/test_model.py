@@ -500,3 +500,71 @@ def test_public_api_smoke():
     loaded = from_document(document)
     schema = loaded.survey.compile(**{k: v for k, v in loaded.options.items() if k != "ui"})
     assert schema.title == "Kitchen sink"
+
+
+def test_every_question_type_is_named_in_all_three_dispatch_chains():
+    """A type forgotten downstream degrades silently instead of raising.
+
+    ``question_to_dict`` falls through to a text box, ``_compile_question`` to
+    ``kind="text"`` — which the runtime's dispatcher then renders as *nothing*
+    — and ``_simulate_value`` returns None, so ``simulate()`` yields a column of
+    nulls. The output cannot tell the three apart from a legitimate answer (a
+    single-line ``OpenText`` serializes to exactly the fall-through), so this
+    asks the dispatch chains themselves whether they have heard of the type.
+    """
+
+    import inspect
+
+    from siamang.core.serialization import question_to_dict
+    from siamang.frontend.compiler.react import _compile_question
+    from siamang.local_simulator import _simulate_value
+    from siamang.model.document import QUESTION_TYPES
+
+    chains = {
+        "siamang/core/serialization.py": question_to_dict,
+        "siamang/frontend/compiler/react.py": _compile_question,
+        "siamang/local_simulator.py": _simulate_value,
+    }
+    for where, function in chains.items():
+        source = inspect.getsource(function)
+        forgotten = sorted(name for name in QUESTION_TYPES if name not in source)
+        assert not forgotten, f"{where} never mentions {', '.join(forgotten)}"
+
+    # And the fixture carries one of each, so the round-trip, codegen, schema
+    # and payload tests all cover every type rather than most of them.
+    survey, _options = _kitchen_sink()
+    present = {type(question).__name__ for question in survey.all_questions()}
+    missing = sorted(set(QUESTION_TYPES) - present)
+    assert not missing, f"kitchen_sink_questionnaire.py has no {', '.join(missing)}"
+
+
+def test_the_kitchen_sink_actually_collects_answers():
+    """The fixture has to produce data, not just parse.
+
+    It did not: three defects hid behind a simulation nobody looked at. The
+    disqualification page is next in document order after the screener and an
+    implicit next does not step over a terminal page, so *everyone* was screened
+    out; `age` is declared `(16, None)` and `int(None)` took the run down; and a
+    `hide_if` written as a string counted as "condition met", hiding that
+    question from every respondent. All three produced columns of nulls, which
+    look exactly like a question nobody reached.
+    """
+
+    from siamang.local_simulator import simulate_dataframe
+
+    survey, _options = _kitchen_sink()
+
+    # Ignoring routing, every question must yield a value — this is where a type
+    # that falls through _simulate_value shows up as a column of nulls.
+    everything = simulate_dataframe(survey.all_questions(), n=50, seed=5)
+    empty = sorted(c for c in everything.columns if everything[c].isna().all())
+    assert not empty, f"questions that simulate as null: {', '.join(empty)}"
+
+    # With routing, the screener splits the sample and the consenters go on.
+    frame = survey.simulate(n=300, seed=5).frame
+    consented = frame[frame["consent"] == 1]
+    assert 0 < len(consented) < len(frame)  # the screener does screen
+    assert consented["age"].notna().all()
+    assert consented["region"].notna().any()
+    # `gender` carries a string hide_if; unreadable here, it must not hide it.
+    assert frame["gender"].notna().any()
