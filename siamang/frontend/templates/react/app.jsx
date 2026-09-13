@@ -478,6 +478,30 @@ function buildDesignTrace(page, index, answers, visibilityEngine) {
   };
 }
 
+/* Where the respondent is, told to the transport that asked for it.
+   A transport may expose an optional onPage({ name, index, total }); when it
+   does, it is called on every page change. The runtime sends nothing and
+   stores nothing itself, and a transport without the hook behaves exactly as
+   before — so a hosted survey can record how far people get without the
+   questionnaire knowing what a host is, and a questionnaire.py run from
+   someone's own machine keeps working unchanged. Failures are swallowed:
+   telemetry must never cost a respondent their answers. */
+function useTransportPage(nav) {
+  const pageName = nav.currentPage ? nav.currentPage.name : null;
+  const index = nav.pageIdx;
+  const total = nav.pages.length;
+  useEffect(() => {
+    if (!pageName) return;
+    try {
+      const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
+      const transport = (window.SIAMANG_TRANSPORTS || window.SURVLIB_TRANSPORTS || {})[env.transport];
+      if (transport && typeof transport.onPage === "function") {
+        transport.onPage({ name: pageName, index: index, total: total });
+      }
+    } catch (e) { /* a transport must not be able to break the survey */ }
+  }, [pageName, index, total]);
+}
+
 function useDesignMode(nav, store, visibilityEngine, allPages) {
   const enabled = typeof window !== "undefined" && !!window.SIAMANG_DESIGN;
   const selectable = enabled && window.SIAMANG_DESIGN.select !== false;
@@ -794,6 +818,7 @@ function App() {
 
   // ─── Design mode (Studio preview only) ───
   const design = useDesignMode(nav, store, visibilityEngine, allPages);
+  useTransportPage(nav);
 
   // ─── Autosave ───
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);

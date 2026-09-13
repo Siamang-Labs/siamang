@@ -209,6 +209,8 @@ class TestRuntimeBundleMarkers:
             "AsyncFunction",
             "pickQuota",
             "_differs",
+            # The optional page hook a host transport can implement.
+            "onPage",
         ):
             assert marker in bundle, f"bundle is stale: missing {marker}"
 
