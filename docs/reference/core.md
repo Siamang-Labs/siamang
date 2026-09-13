@@ -10,7 +10,7 @@ from siamang.core import (
     Variable, MissingValue, ValidationIssue, VariableMap,
     Expression, VarRef, AND, OR, NOT, compare,
     Question, SingleChoice, MultiChoice, LikertScale,
-    NumericInput, OpenText, Matrix, Ranking,
+    NumericInput, OpenText, Matrix, Ranking, MaxDiff,
     Page, Block, Option, Media, Quota, Script, FilterRule,
     Questionnaire, LintWarning,
 )
@@ -305,6 +305,31 @@ The `Ranking` question presents a list of options that respondents must sort int
 | :--- | :--- | :--- | :--- |
 | `max_ranked` | `int \| None` | `None` | The maximum number of items the respondent is required to rank (e.g., "Rank your top 3"). Must be greater than 0. |
 | `choices` | `list[Option] \| None` | `None` | List of `Option` instances to rank. If `None`, choices are derived from the bound variable's `labels`. |
+
+---
+
+### `MaxDiff`
+
+The `MaxDiff` question shows a few of its items at a time and asks which is best
+and which is worst. Ratings of a long list cluster at the top because nothing
+forces a choice; a forced trade-off discriminates, which is why best–worst
+scaling exists.
+
+#### Additional Properties
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `choices` | `list[Option] \| None` | `None` | The items to compare. If `None`, taken from the first bound variable's `labels`. |
+| `per_task` | `int` | `4` | Items shown at once. At least 2, and fewer than the number of items — a task showing all of them is a complete design and teaches nothing about which items met. |
+| `tasks` | `int` | `8` | Sets one respondent answers. |
+| `versions` | `int` | `20` | Independent blocks of the design, so different respondents see different tasks. |
+| `seed` | `int \| None` | `None` | Fixes the design. When unset, one is derived from the question, so the design is still stable. |
+| `best_label` / `worst_label` | `str` | `"Best"` / `"Worst"` | Column headings the respondent reads. |
+| `design` | `dict \| None` | `None` | A frozen design; generated from the parameters when absent. |
+
+`var` must be a list of `2 × tasks + 1` variables: best and worst for each task,
+then the version of the design that respondent was shown — without which the
+picks cannot be read at all.
 
 ---
 

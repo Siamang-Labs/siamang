@@ -493,3 +493,19 @@ def test_maxdiff_lint_names_what_cannot_be_estimated():
     assert codes == ["MAXDIFF_COMPLETE_DESIGN"]
     codes = [w.code for w in survey(per_task=3, versions=1).lint("strict")]
     assert codes == ["MAXDIFF_SINGLE_VERSION"]
+
+
+def test_a_maxdiff_without_a_seed_still_gives_one_design():
+    """`seed=None` must not mean a fresh design on every compile: the survey a
+    respondent answered and the design the analysis reads it against would be
+    different tables, and nothing would say so."""
+
+    def question(qid: str = "q_md", per_task: int = 3) -> MaxDiff:
+        return MaxDiff("Q?", _maxdiff_variables(2), tasks=2, per_task=per_task, versions=3, id=qid)
+
+    first = question().resolved_design().to_dict()
+    assert first == question().resolved_design().to_dict()
+    # It follows the question, so a different question — or the same one with
+    # different tasks — gets its own design rather than borrowing this one.
+    assert first != question("q_other").resolved_design().to_dict()
+    assert first != question(per_task=2).resolved_design().to_dict()

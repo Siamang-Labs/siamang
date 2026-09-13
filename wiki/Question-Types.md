@@ -8,7 +8,7 @@ class, every type, and the `Option` and `Media` helpers that enrich answer choic
 ```python
 from siamang.core import (
     SingleChoice, MultiChoice, LikertScale, NumericInput,
-    OpenText, Matrix, Ranking, Option, Media,
+    OpenText, Matrix, Ranking, MaxDiff, Option, Media,
 )
 ```
 
@@ -299,11 +299,70 @@ q_rank = sg.Ranking("Rank these brands from best to worst", var=brands, max_rank
 
 ---
 
+## `MaxDiff`
+
+Best–worst scaling. A few items at a time, and for each set the respondent picks
+the best and the worst. Asking people to rate twenty things gets twenty ratings
+that all cluster at the top, because nothing forces a choice; here the
+trade-off *is* the measurement.
+
+```python
+@dataclass(frozen=True, slots=True)
+class MaxDiff(Question):
+    var: list[Variable]                 # 2 × tasks + 1
+    choices: list[Option] | None = None
+    per_task: int = 4
+    tasks: int = 8
+    versions: int = 20
+    seed: int | None = None
+    best_label: str = "Best"
+    worst_label: str = "Worst"
+    design: dict | None = None
+```
+
+| Field | Default | Description |
+| :--- | :--- | :--- |
+| `per_task` | `4` | Items shown at once. Must be at least 2 and fewer than the number of items — showing all of them makes the design complete, and nothing is learned from which items met. |
+| `tasks` | `8` | Sets one respondent answers. |
+| `versions` | `20` | Independent blocks of the design; different respondents get different tasks, so together they cover far more of the item space than any one respondent could sit through. |
+| `seed` | `None` | Fixes the design. Left unset, a seed is derived from the question itself, so the design is still the same on every compile. |
+| `design` | `None` | A frozen design (`siamang.design.maxdiff_design(...).to_dict()`). Generated from the parameters when absent. |
+
+`var` holds **two variables per task plus one**: best and worst for each task,
+then the version of the design the respondent was shown. The version is a
+variable rather than bookkeeping because without it the answers cannot be read —
+knowing somebody chose item 7 says nothing until you know what 7 was up against.
+
+Items come from the answer variables' labels, the way a matrix takes its columns
+from `var[0]`; `choices` overrides them.
+
+```python
+items = {1: "Price", 2: "Quality", 3: "Speed", 4: "Support", 5: "Range"}
+md = [
+    sg.Variable(f"md_t{t}_{side}", scale="nominal", labels=items)
+    for t in range(1, 9)
+    for side in ("best", "worst")
+]
+md.append(sg.Variable("md_version", scale="nominal", label="Design version"))
+
+q_md = sg.MaxDiff("Which matters most, and least?", md, per_task=4, tasks=8, seed=7)
+```
+
+Reading the answers:
+
+```python
+data.report.maxdiff("q_md")            # counting score, utilities, shares
+siamang.data.maxdiff.respondent_scores(data, "q_md")   # one score per person
+siamang.io.choice.write_maxdiff_choices(data, "q_md", "choices.csv")  # for HB in R
+```
+
+---
+
 ## `Option`
 
 Use `Option` instead of a plain `{code: label}` mapping when a choice needs
 conditional visibility or a media attachment. `Option` is accepted by the `choices=`
-field of `SingleChoice`, `MultiChoice`, and `Ranking`.
+field of `SingleChoice`, `MultiChoice`, `Ranking` and `MaxDiff`.
 
 ```python
 @dataclass(frozen=True, slots=True)

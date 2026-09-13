@@ -338,8 +338,33 @@ class MaxDiff(Question):
             per_task=self.per_task,
             tasks=self.tasks,
             versions=self.versions,
-            seed=self.seed,
+            seed=self.seed if self.seed is not None else self._implied_seed(),
         )
+
+    def _implied_seed(self) -> int:
+        """A seed derived from the question, for authors who did not pick one.
+
+        Without it ``seed=None`` would mean a fresh design on every compile: the
+        survey a respondent answered and the design the analysis reads it against
+        would be different tables, and nothing would say so. Derived from the
+        question's own identity and shape, so it is stable across processes and
+        machines — and changes when the question does, which is right, because a
+        question with different items is a different question.
+        """
+
+        from hashlib import blake2b
+
+        material = "|".join(
+            str(part)
+            for part in (
+                self.id or self.name or self.var[0].name,
+                self.per_task,
+                self.tasks,
+                self.versions,
+                *self.item_codes,
+            )
+        )
+        return int.from_bytes(blake2b(material.encode("utf-8"), digest_size=4).digest(), "big")
 
 
 def _validate_choices(choices: list[Option] | None) -> None:
