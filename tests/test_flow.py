@@ -737,3 +737,79 @@ def test_cli_flow_commands(flow_doc, questionnaire_doc, responses, tmp_path):
         assert run.returncode == 0, run.stderr
         assert "tile     tile_n [number] Clean respondents:" in run.stdout
         assert (tmp_path / "out" / "outputs" / "satisfaction_by_region.md").is_file()
+
+
+def test_the_maxdiff_node_runs_on_a_maxdiff_questionnaire(tmp_path):
+    """The node reads the design from the questionnaire rather than a parameter,
+    so the only thing a researcher has to name is the question."""
+
+    import siamang as sg
+    from siamang.model import to_document
+
+    items = {1: "Price", 2: "Quality", 3: "Speed", 4: "Support", 5: "Range"}
+    variables = [
+        sg.Variable(f"md_t{task}_{side}", "nominal", label=f"t{task} {side}", labels=items)
+        for task in (1, 2, 3)
+        for side in ("best", "worst")
+    ]
+    variables.append(sg.Variable("md_version", "nominal", label="Design version"))
+    question = sg.MaxDiff(
+        "Which matters most?", variables, per_task=3, tasks=3, versions=4, seed=2, id="q_md"
+    )
+    survey = sg.Questionnaire(title="MD", pages=[sg.Page(name="p", items=[question])])
+    document = to_document(survey)
+
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 120, "seed": 4}),
+            ("md", "analyze.maxdiff", {"question": "q_md", "method": "both"}),
+        ],
+        [("sim", "data", "md", "data")],
+    )
+    assert check_flow(flow, questionnaire=document) == []
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=document).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    table = result.output("md", "table").to_frame()
+    assert list(table["Item"]) and set(table["Item"]) <= set(items.values())
+    assert table["Score"].between(-1, 1).all()
+    stats = result.output("md", "stat")
+    assert "respondents" in stats["Base"]
+    assert "conditional logit" in stats["Method"]
+
+
+def test_the_choice_data_node_writes_what_an_hb_package_reads(tmp_path):
+    """Individual utilities come from hierarchical Bayes, which lives in R and
+    takes minutes; the node hands over the data instead of running a cut-down
+    version of it here."""
+
+    import siamang as sg
+    from siamang.model import to_document
+
+    items = {1: "Price", 2: "Quality", 3: "Speed", 4: "Support"}
+    variables = [
+        sg.Variable(f"md_t{task}_{side}", "nominal", label=f"t{task} {side}", labels=items)
+        for task in (1, 2)
+        for side in ("best", "worst")
+    ]
+    variables.append(sg.Variable("md_version", "nominal", label="Design version"))
+    question = sg.MaxDiff("Which?", variables, per_task=3, tasks=2, versions=3, seed=6, id="q_md")
+    survey = sg.Questionnaire(title="MD", pages=[sg.Page(name="p", items=[question])])
+    document = to_document(survey)
+
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 60, "seed": 2}),
+            ("out", "output.choice_data", {"question": "q_md", "path": "outputs/md.csv"}),
+        ],
+        [("sim", "data", "out", "data")],
+    )
+    assert check_flow(flow, questionnaire=document) == []
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=document).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    assert (tmp_path / "outputs" / "md.csv").is_file()
+    assert (tmp_path / "outputs" / "md.dictionary.json").is_file()
+    assert (tmp_path / "outputs" / "md.hb.R").is_file()

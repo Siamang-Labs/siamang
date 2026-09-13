@@ -1,0 +1,26 @@
+type: output.choice_data
+category: output
+title: Choice data for HB
+description: A MaxDiff's answers in the long format R's hierarchical Bayes packages read, with a column dictionary and a script that runs it.
+inputs:
+  data: SurveyData
+params:
+  question:
+    kind: string
+    required: true
+    label: MaxDiff question
+    help: The question's id or name. Its design is read from the questionnaire.
+  path:
+    kind: path
+    required: true
+    label: Path
+    help: Written as <name>.csv, with <name>.dictionary.json and <name>.hb.R beside it.
+subtitle: '{question} → {path}'
+imports:
+- from siamang.io.choice import write_maxdiff_choices
+template: |
+  # Individual-level utilities come from hierarchical Bayes, which lives in R
+  # and takes minutes. Rather than run a cut-down version of it here, this
+  # writes the choices in the shape those packages read — the estimate comes
+  # back from the researcher's own machine, with as many draws as it needs.
+  write_maxdiff_choices({in.data}, {question!r}, {path!r})

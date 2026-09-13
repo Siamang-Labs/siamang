@@ -674,3 +674,75 @@ class ThemeTable(SurveyTable):
         }
         if cf.model:
             self._stats["Codeframe"] = f"{cf.model}{f', {cf.built_at}' if cf.built_at else ''}"
+
+
+# ─── MaxDiffTable ─────────────────────────────────────────────────────────────
+
+
+@dataclass
+class MaxDiffTable(SurveyTable):
+    """What a best–worst question found, with the base it found it on.
+
+    One row per item, ordered best first. ``Score`` is the counting score — best
+    minus worst over shown — which anyone can recount from the data by hand.
+    ``Utility`` is the conditional-logit estimate, on an interval scale so the
+    distance between two items means something, and ``Share`` is that utility
+    as the percentage of picks the item would take if every item were offered
+    at once. The two orders normally agree; when they do not, the utilities are
+    the ones to trust, because they know which items each pick was made against.
+
+    The footer carries the base and the estimation method, because a preference
+    order without them is not a finding, and it names the reference item, since
+    utilities are read against one.
+    """
+
+    question: Any = None
+    method: str = "both"
+
+    def _build(self) -> None:
+        from siamang.data import maxdiff
+
+        question = maxdiff.question_of(self.data, self.question)
+        read = maxdiff.answers(self.data, question)
+        counts = maxdiff.counts(self.data, question)
+        frame = counts.rename(
+            columns={
+                "label": "Item",
+                "shown": "Shown",
+                "best": "Best",
+                "worst": "Worst",
+                "score": "Score",
+            }
+        )[["Item", "Shown", "Best", "Worst", "Score"]]
+
+        stats: dict[str, Any] = {
+            "Question": question.text,
+            "Base": f"{read.respondents} respondents",
+            "Tasks read": int(len(read.frame)),
+        }
+        if self.method in {"utilities", "both"}:
+            result = maxdiff.utilities(self.data, question)
+            utility = dict(zip(result.table["term"], result.table["estimate"], strict=True))
+            share = dict(zip(result.table["term"], result.table["share"], strict=True))
+            frame["Utility"] = [utility.get(item, 0.0) for item in frame["Item"]]
+            frame["Share %"] = [share.get(item, 0.0) for item in frame["Item"]]
+            frame = frame.sort_values("Utility", ascending=False).reset_index(drop=True)
+            stats["Method"] = "counting score and conditional logit"
+            stats["Reference"] = result.stats.get("reference", "")
+            stats["Pseudo R²"] = result.stats.get("pseudo_r2", 0.0)
+            if not result.stats.get("converged", True):
+                stats["Warning"] = "the model did not converge; read the utilities with care"
+        else:
+            stats["Method"] = "counting score"
+
+        if read.dropped:
+            # Answers that cannot be read against the design are named, not
+            # dropped quietly: an item picked that its task never showed means
+            # the design changed after fieldwork, which is a finding of its own.
+            stats["Unreadable answers"] = f"{read.dropped} ({_reasons(read.reasons)})"
+        self._result = frame
+        self._stats = stats
+
+
+def _reasons(reasons: dict[str, int]) -> str:
+    return ", ".join(f"{reason}: {count}" for reason, count in reasons.items())
