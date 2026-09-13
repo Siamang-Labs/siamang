@@ -249,6 +249,99 @@ class Ranking(Question):
         _validate_choices(self.choices)
 
 
+@dataclass(frozen=True, slots=True)
+class MaxDiff(Question):
+    """Best–worst scaling: a few items at a time, the best and the worst of them.
+
+    Asking people to rate twenty things gets twenty ratings that all cluster at
+    the top, because nothing forces a choice. MaxDiff shows four at a time and
+    asks which is best and which is worst; the trade-off is the measurement.
+
+    The items come from the answer variables' labels, the way a matrix takes its
+    columns from ``var[0]`` — each task's answer *is* one of the items — and
+    ``choices`` overrides them when a question needs its own labels or media.
+
+    ``var`` holds ``2 * tasks + 1`` variables: best and worst for each task, and
+    last the version of the design this respondent was shown. The version is a
+    variable rather than bookkeeping because without it the answers cannot be
+    read: knowing somebody picked item 7 says nothing until you know what 7 was
+    up against.
+    """
+
+    var: list[Variable]
+    choices: list[Option] | None = None
+    per_task: int = 4
+    tasks: int = 8
+    versions: int = 20
+    seed: int | None = None
+    best_label: str = "Best"
+    worst_label: str = "Worst"
+    design: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        Question.__post_init__(self)
+        if not isinstance(self.var, list) or not self.var:
+            raise TypeError("MaxDiff expects var to be a list of Variables.")
+        if any(not isinstance(v, Variable) for v in self.var):
+            raise TypeError("MaxDiff var must contain only Variable instances")
+        expected = 2 * self.tasks + 1
+        if len(self.var) != expected:
+            raise ValueError(
+                f"MaxDiff with {self.tasks} tasks needs {expected} variables "
+                f"(best and worst for each task, then the design version) "
+                f"but has {len(self.var)}."
+            )
+        if self.tasks < 1:
+            raise ValueError("MaxDiff needs at least one task.")
+        if self.versions < 1:
+            raise ValueError("MaxDiff needs at least one version of the design.")
+        if self.per_task < 2:
+            raise ValueError(
+                "A MaxDiff task must show at least two items — one has nothing " "to beat."
+            )
+        _validate_choices(self.choices)
+
+    @property
+    def item_codes(self) -> list[Any]:
+        """The pool the design draws from: explicit choices, else the labels."""
+
+        if self.choices:
+            return [option.code for option in self.choices]
+        return list(self.var[0].labels or {})
+
+    @property
+    def version_variable(self) -> Variable:
+        """The variable recording which version of the design was shown."""
+
+        return self.var[-1]
+
+    def task_variables(self, task: int) -> tuple[Variable, Variable]:
+        """The (best, worst) variables of task ``task``, counting from zero."""
+
+        return self.var[2 * task], self.var[2 * task + 1]
+
+    def resolved_design(self):
+        """The stored design, or the one this question's parameters imply.
+
+        Studio freezes the design into the document at Save, so it is visible,
+        diffable and carried into the snapshot. Generating it here when it is
+        absent means a hand-written questionnaire still works — and gives the
+        same design every time, because the seed is the questionnaire's.
+        """
+
+        from siamang.design import MaxDiffDesign, maxdiff_design
+
+        if self.design:
+            return MaxDiffDesign.from_dict(self.design)
+        return maxdiff_design(
+            self.item_codes,
+            per_task=self.per_task,
+            tasks=self.tasks,
+            versions=self.versions,
+            seed=self.seed,
+        )
+
+
 def _validate_choices(choices: list[Option] | None) -> None:
     if choices is None:
         return
@@ -279,6 +372,8 @@ def question_fallback_id(question: Question) -> str:
         return "matrix_" + question.var[0].name
     if isinstance(question, MultiChoice) and question.mode == "wide":
         return "multi_" + question.var[0].name
+    if isinstance(question, MaxDiff):
+        return "maxdiff_" + question.var[0].name
     return question_variable_names(question)[0]
 
 

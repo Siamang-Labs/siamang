@@ -736,6 +736,67 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   box-shadow: inset 0 0 0 3px var(--siamang-surface);
 }
 
+/* ─── MaxDiff ──────────────────────────────────────────────────────────── */
+
+.sd-maxdiff { display: flex; flex-direction: column; gap: 18px; }
+
+.sd-maxdiff__task {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--siamang-surface);
+  border: 1px solid var(--siamang-border);
+  border-radius: var(--siamang-radius);
+  overflow: hidden;
+}
+
+.sd-maxdiff__task th {
+  padding: 8px 10px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--siamang-muted);
+  text-align: center;
+  border-bottom: 1px solid var(--siamang-border);
+}
+
+/* The two choices are the edges and the item is the middle, so the eye reads
+   one row as "this one — against these — that one" rather than as a form. */
+.sd-maxdiff__side { width: 5.5em; }
+
+.sd-maxdiff__task td {
+  padding: 9px 10px;
+  text-align: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--siamang-border) 55%, transparent);
+}
+
+.sd-maxdiff__task tr:last-child td { border-bottom: none; }
+
+.sd-maxdiff__task td.sd-maxdiff__item { text-align: left; }
+
+.sd-maxdiff__pick {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid color-mix(in srgb, var(--siamang-muted) 50%, var(--siamang-border));
+  border-radius: 50%;
+  background: var(--siamang-surface);
+  cursor: pointer;
+  transition: transform 80ms ease, box-shadow 80ms ease, background-color 80ms ease;
+}
+
+.sd-maxdiff__pick:hover { border-color: var(--siamang-accent); }
+
+.sd-maxdiff__pick.is-selected {
+  border-color: var(--siamang-accent);
+  background: var(--siamang-accent);
+  box-shadow: inset 0 0 0 3px var(--siamang-surface);
+}
+
+@media (max-width: 480px) {
+  .sd-maxdiff__side { width: 4em; }
+  .sd-maxdiff__task th, .sd-maxdiff__task td { padding: 8px 6px; }
+}
+
 /* ─── Ranking ──────────────────────────────────────────────────────────── */
 
 .sd-ranking { display: flex; flex-direction: column; gap: 6px; }

@@ -12,6 +12,7 @@ from siamang.core.page import Page
 from siamang.core.question import (
     LikertScale,
     Matrix,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     OpenText,
@@ -56,7 +57,34 @@ def _simulate_value(question: Question, var=None):
         return [1]
     if isinstance(question, OpenText):
         return _simulate_text(question.format)
+    if isinstance(question, MaxDiff):
+        # The whole answer at once — best and worst have to come from the same
+        # task's items and cannot be the same item, so simulating one variable
+        # at a time would produce combinations the design never showed.
+        return _simulate_maxdiff(question)
     return None
+
+
+def _simulate_maxdiff(question: MaxDiff) -> dict[str, Any]:
+    """One respondent's picks: a version of the design, then best and worst.
+
+    Draws only from the items each task actually showed, which is what makes
+    simulated MaxDiff data usable for checking an estimator: feed it known
+    utilities and the recovered ones should match.
+    """
+
+    design = question.resolved_design()
+    version = random.randrange(len(design.versions))
+    answer: dict[str, Any] = {question.version_variable.name: version}
+    for index in range(question.tasks):
+        shown = list(design.task(version, index))
+        if len(shown) < 2:
+            continue
+        best, worst = random.sample(shown, 2)
+        best_var, worst_var = question.task_variables(index)
+        answer[best_var.name] = best
+        answer[worst_var.name] = worst
+    return answer
 
 
 def _simulate_text(fmt: str) -> str:
@@ -160,6 +188,8 @@ def _simulate_question_into_row(question: Question, row: dict[str, Any]) -> None
     """Simulate a single question's value(s) and write into the row dict."""
     if isinstance(question, MultiChoice) and question.mode == "wide":
         row.update(_simulate_wide_multichoice(question))
+    elif isinstance(question, MaxDiff):
+        row.update(_simulate_value(question))
     elif isinstance(question.var, list):
         for var in question.var:
             row[var.name] = _simulate_value(question, var=var)

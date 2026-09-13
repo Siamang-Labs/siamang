@@ -5,6 +5,7 @@ from __future__ import annotations
 from siamang.core.question import (
     LikertScale,
     Matrix,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     OpenText,
@@ -65,6 +66,16 @@ def question_to_dict(question: Question) -> dict:
         return {**base, "type": "matrix", "columns": columns, "rows": rows}
     if isinstance(question, Ranking):
         return {**base, "type": "ranking", "choices": _choices(question)}
+    if isinstance(question, MaxDiff):
+        # SurveyJS has no best–worst type; a ranking of the item pool is the
+        # nearest honest thing an importer of this dialect can render, and the
+        # extra keys say what it really is rather than pretending.
+        return {
+            **base,
+            "type": "ranking",
+            "choices": _choices(question),
+            "maxDiff": {"perTask": question.per_task, "tasks": question.tasks},
+        }
     return {**base, "type": "text"}
 
 

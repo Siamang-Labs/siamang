@@ -12,6 +12,7 @@ from siamang.core.expression import Expression, VarRef
 from siamang.core.page import Page
 from siamang.core.question import (
     LikertScale,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     Question,
@@ -448,6 +449,67 @@ def _strict_question_warnings(questions: list[Question]) -> list[LintWarning]:
             warnings.extend(_categorical_label_warnings(question_id, [question.var]))
         if isinstance(question, MultiChoice):
             warnings.extend(_categorical_label_warnings(question_id, _question_variables(question)))
+        if isinstance(question, MaxDiff):
+            # The version variable records which design was shown; it is filled
+            # by the runtime, so it has no labels to declare and is not a
+            # categorical answer in the sense this rule is about.
+            warnings.extend(
+                _categorical_label_warnings(
+                    question_id, question.var[:-1] if question.choices is None else []
+                )
+            )
+            warnings.extend(_maxdiff_warnings(question_id, question))
+    return warnings
+
+
+def _maxdiff_warnings(question_id: str, question: MaxDiff) -> list[LintWarning]:
+    """What a MaxDiff can be configured into that cannot be estimated.
+
+    A task showing every item is a complete design and teaches nothing about
+    which items were preferred *over which*; too few items for the task size
+    cannot be shown at all; and a single version means every respondent sees the
+    same tasks, which is legal but rarely intended and worth saying once.
+    """
+
+    warnings: list[LintWarning] = []
+    items = question.item_codes
+    if len(items) < 3:
+        warnings.append(
+            LintWarning(
+                code="MAXDIFF_TOO_FEW_ITEMS",
+                severity="error",
+                message=(
+                    f"MaxDiff '{question_id}' has {len(items)} items; it needs at least three "
+                    "for a best and a worst to mean anything."
+                ),
+                location=question_id,
+            )
+        )
+    elif question.per_task >= len(items):
+        warnings.append(
+            LintWarning(
+                code="MAXDIFF_COMPLETE_DESIGN",
+                severity="error",
+                message=(
+                    f"MaxDiff '{question_id}' shows {question.per_task} of {len(items)} items per "
+                    "task, so every task shows everything: nothing is learned from which items "
+                    "met. Show fewer items per task."
+                ),
+                location=question_id,
+            )
+        )
+    if question.versions == 1:
+        warnings.append(
+            LintWarning(
+                code="MAXDIFF_SINGLE_VERSION",
+                severity="warning",
+                message=(
+                    f"MaxDiff '{question_id}' has one version of the design, so every respondent "
+                    "sees the same tasks. More versions cover more of the item space."
+                ),
+                location=question_id,
+            )
+        )
     return warnings
 
 

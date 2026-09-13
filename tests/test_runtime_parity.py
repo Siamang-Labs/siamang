@@ -211,6 +211,12 @@ class TestRuntimeBundleMarkers:
             "_differs",
             # The optional page hook a host transport can implement.
             "onPage",
+            # MaxDiff: the component, the completeness rule that stops one
+            # answered task counting as an answered question, and the version
+            # draw that ties a respondent to one block of the design.
+            "maxdiff",
+            "maxDiffRemaining",
+            "versionVar",
         ):
             assert marker in bundle, f"bundle is stale: missing {marker}"
 
@@ -231,3 +237,59 @@ def test_question_qid_serialized_for_design_mode():
         # qid is present whenever the author gave the question an id.
         if "qid" in item:
             assert isinstance(item["qid"], str) and item["qid"]
+
+
+class TestMaxDiffPayload:
+    """What the runtime is handed for a best–worst question."""
+
+    def _survey(self, **kwargs):
+        items = {1: "Price", 2: "Quality", 3: "Speed", 4: "Support", 5: "Range"}
+        tasks = kwargs.pop("tasks", 3)
+        variables = [
+            sg.Variable(f"md_t{t}_{side}", scale="nominal", label=f"t{t} {side}", labels=items)
+            for t in range(1, tasks + 1)
+            for side in ("best", "worst")
+        ]
+        variables.append(sg.Variable("md_version", scale="nominal", label="Version"))
+        question = sg.MaxDiff(
+            "Which matters most?", variables, tasks=tasks, id="q_md", seed=3, **kwargs
+        )
+        return sg.Questionnaire(title="M", pages=[sg.Page(name="p", items=[question])])
+
+    def test_the_whole_design_travels_with_the_payload(self):
+        """The runtime picks a version from the respondent id rather than asking
+        the server which one to show — one fewer thing between a respondent and
+        their first question, and it works offline in a preview."""
+
+        payload = compile_react_payload(self._survey(per_task=3, versions=4))
+        item = _page_by_name(payload, "p")["items"][0]
+        assert item["kind"] == "maxdiff"
+        assert len(item["versions"]) == 4
+        assert all(len(version) == 3 for version in item["versions"])
+        assert all(len(task) == 3 for version in item["versions"] for task in version)
+        assert all(
+            len(set(task)) == 3 for version in item["versions"] for task in version
+        ), "an item shown twice in one task has nothing to beat"
+
+    def test_variable_names_travel_so_the_answer_is_one_key_per_variable(self):
+        """Without these the component would have to invent names, and the
+        answers would arrive under keys the codebook never heard of."""
+
+        payload = compile_react_payload(self._survey(per_task=3, versions=2))
+        item = _page_by_name(payload, "p")["items"][0]
+        assert item["taskVars"] == [
+            ["md_t1_best", "md_t1_worst"],
+            ["md_t2_best", "md_t2_worst"],
+            ["md_t3_best", "md_t3_worst"],
+        ]
+        assert item["versionVar"] == "md_version"
+        assert [option["label"] for option in item["options"]][:2] == ["Price", "Quality"]
+        assert item["bestLabel"] and item["worstLabel"]
+
+    def test_the_same_seed_compiles_the_same_design(self):
+        first = compile_react_payload(self._survey(per_task=3, versions=3))
+        second = compile_react_payload(self._survey(per_task=3, versions=3))
+        assert (
+            _page_by_name(first, "p")["items"][0]["versions"]
+            == (_page_by_name(second, "p")["items"][0]["versions"])
+        )

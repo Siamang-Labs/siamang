@@ -838,6 +838,108 @@ function Ranking({ q, value, onChange, num, error, onBlur, answers }) {
   );
 }
 
+/* MaxDiff — a few items at a time, best and worst of them.
+
+   All tasks are on one screen rather than one per page: the runtime has no
+   concept of a question spanning pages, and a respondent scrolling a short
+   list of tasks can also go back and change an earlier one, which a paged
+   version would have to reimplement.
+
+   The version of the design is chosen from the respondent id with the same
+   seeded hash Script.assign_condition uses, so a respondent who resumes gets
+   the tasks they already started, and it is written into the answer as an
+   ordinary variable — without it nobody can read the picks, because knowing
+   somebody chose item 7 says nothing until you know what 7 was up against. */
+function maxDiffVersion(q, answers) {
+  const total = (q.versions || []).length || 1;
+  /* The same respondent key Script.assign_condition draws arms from, and the
+     same FNV-1a hash, so one respondent lands in one version however many
+     things are assigned to them. Without a key — a build with no crypto API
+     sends no respondent id — the draw is random and does not survive a resume,
+     which the docs say out loud rather than hiding. */
+  const id = String((answers && (answers.__respondent__ || answers.respondent_id)) || "");
+  if (!id) return Math.floor(Math.random() * total);
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h) % total;
+}
+
+function MaxDiff({ q, value, onChange, num, error, onBlur, answers }) {
+  const v = value || {};
+  const labels = {};
+  for (const opt of q.options || []) labels[String(opt.code)] = opt.label;
+  const versions = q.versions || [];
+  const versionRef = useRef(null);
+  if (versionRef.current === null) {
+    const stored = v[q.versionVar];
+    versionRef.current = stored === undefined ? maxDiffVersion(q, answers) : stored;
+  }
+  const version = versionRef.current;
+  const tasks = versions.length ? versions[version % versions.length] : [];
+
+  const pick = (taskIdx, code, side) => {
+    const [bestVar, worstVar] = q.taskVars[taskIdx];
+    const mine = side === "best" ? bestVar : worstVar;
+    const other = side === "best" ? worstVar : bestVar;
+    const next = { ...v, [q.versionVar]: version };
+    // One item cannot be both the best and the worst of the same task; picking
+    // it on one side releases it from the other rather than silently keeping a
+    // contradiction the analysis would have to resolve.
+    if (next[other] === code) delete next[other];
+    next[mine] = next[mine] === code ? undefined : code;
+    if (next[mine] === undefined) delete next[mine];
+    onChange(next);
+  };
+
+  return (
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
+      <div className="sd-maxdiff">
+        {tasks.map((task, taskIdx) => {
+          const [bestVar, worstVar] = q.taskVars[taskIdx];
+          return (
+            <table className="sd-maxdiff__task" key={taskIdx} aria-label={`Task ${taskIdx + 1} of ${tasks.length}`}>
+              <thead>
+                <tr>
+                  <th className="sd-maxdiff__side">{q.bestLabel}</th>
+                  <th className="sd-maxdiff__item"></th>
+                  <th className="sd-maxdiff__side">{q.worstLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {task.map((code) => {
+                  const isBest = v[bestVar] === code;
+                  const isWorst = v[worstVar] === code;
+                  const label = labels[String(code)] !== undefined ? labels[String(code)] : String(code);
+                  return (
+                    <tr key={String(code)}>
+                      <td>
+                        <button type="button"
+                          className={"sd-maxdiff__pick" + (isBest ? " is-selected" : "")}
+                          aria-pressed={isBest}
+                          aria-label={`${q.bestLabel}: ${label}`}
+                          onClick={() => pick(taskIdx, code, "best")} />
+                      </td>
+                      <td className="sd-maxdiff__item">{label}</td>
+                      <td>
+                        <button type="button"
+                          className={"sd-maxdiff__pick" + (isWorst ? " is-selected" : "")}
+                          aria-pressed={isWorst}
+                          aria-label={`${q.worstLabel}: ${label}`}
+                          onClick={() => pick(taskIdx, code, "worst")} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          );
+        })}
+      </div>
+    </QuestionShell>
+  );
+}
+
+
 /* Internal dispatcher. SurveyPage passes a stable `setAnswer` plus the
    question's id; we build the per-question `onChange`/`onBlur` closures
    here so that they only get recreated when this dispatcher actually
@@ -856,6 +958,7 @@ function _QuestionDispatcher({ q, qId, value, setAnswer, num, error, handleBlur,
     case "searchable": return <SearchableDropdown q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "image":    return <ImageChoice  q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "ranking":  return <Ranking      q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
+    case "maxdiff":  return <MaxDiff      q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     default:         return null;
   }
 }

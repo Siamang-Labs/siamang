@@ -53,6 +53,7 @@ from siamang.core.page import Page
 from siamang.core.question import (
     LikertScale,
     Matrix,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     OpenText,
@@ -73,7 +74,16 @@ SCHEMA_VERSION = "1.0"
 #: Engine question classes by the ``type`` name used in documents.
 QUESTION_TYPES: dict[str, type[Question]] = {
     cls.__name__: cls
-    for cls in (SingleChoice, MultiChoice, LikertScale, NumericInput, OpenText, Matrix, Ranking)
+    for cls in (
+        SingleChoice,
+        MultiChoice,
+        LikertScale,
+        NumericInput,
+        OpenText,
+        Matrix,
+        Ranking,
+        MaxDiff,
+    )
 }
 
 #: Keys of the compiler ``options`` dict that travel in ``document["options"]``.

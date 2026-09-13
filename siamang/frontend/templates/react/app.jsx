@@ -91,8 +91,22 @@ function evalConditionMemoized(condition, answers) {
 function isAnswered(q, v) {
   if (v === undefined || v === null || v === "") return false;
   if (Array.isArray(v)) return v.length > 0;
+  /* A MaxDiff fills one object over several screens, so "has any key" would
+     call it answered after the first task. Every task needs both picks, or the
+     design has holes where the analysis expects comparisons. */
+  if (q && q.kind === "maxdiff") return maxDiffRemaining(q, v) === 0;
   if (typeof v === "object") return Object.keys(v).length > 0;
   return true;
+}
+
+/* How many of a MaxDiff's tasks are still missing a best or a worst. */
+function maxDiffRemaining(q, v) {
+  const answers = v || {};
+  let left = 0;
+  for (const [best, worst] of q.taskVars || []) {
+    if (answers[best] === undefined || answers[worst] === undefined) left += 1;
+  }
+  return left;
 }
 
 /* An OpenText with a format (email, phone, url, date, time) refuses a value

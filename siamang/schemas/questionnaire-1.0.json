@@ -1488,6 +1488,165 @@
       ],
       "additionalProperties": false
     },
+    "MaxDiff": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "MaxDiff"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "var": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 3
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "show_if": {
+          "$ref": "#/$defs/condition"
+        },
+        "hide_if": {
+          "$ref": "#/$defs/condition"
+        },
+        "skip_to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "randomize": {
+          "type": "boolean"
+        },
+        "other_specify": {
+          "type": "boolean"
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/media"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/media"
+              }
+            }
+          ]
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/option"
+          },
+          "minItems": 3
+        },
+        "per_task": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "versions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "best_label": {
+          "type": "string"
+        },
+        "worst_label": {
+          "type": "string"
+        },
+        "design": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "minItems": 3
+            },
+            "per_task": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "seed": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "versions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "minItems": 2
+                }
+              }
+            },
+            "balance": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "items",
+            "per_task",
+            "versions"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "text",
+        "var"
+      ],
+      "additionalProperties": false
+    },
     "item": {
       "oneOf": [
         {
@@ -1513,6 +1672,9 @@
         },
         {
           "$ref": "#/$defs/Ranking"
+        },
+        {
+          "$ref": "#/$defs/MaxDiff"
         }
       ]
     },

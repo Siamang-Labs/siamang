@@ -32,6 +32,7 @@ from siamang.core.page import Page
 from siamang.core.question import (
     LikertScale,
     Matrix,
+    MaxDiff,
     MultiChoice,
     NumericInput,
     OpenText,
@@ -350,6 +351,29 @@ def _compile_question(question: Question) -> dict[str, Any]:
         if question.max_ranked:
             payload["max"] = question.max_ranked
         return payload
+
+    if isinstance(question, MaxDiff):
+        design = question.resolved_design()
+        # Every version travels, and the runtime picks one from the respondent
+        # id: a round trip to the server to be told which design to show would
+        # be one more thing between a respondent and their first question.
+        return {
+            **base,
+            "kind": "maxdiff",
+            "options": _options_payload(question.var, question.choices),
+            "perTask": question.per_task,
+            "tasks": question.tasks,
+            "bestLabel": question.best_label,
+            "worstLabel": question.worst_label,
+            "versions": [[list(task) for task in version] for version in design.versions],
+            # Variable names, so the component writes one answer per variable
+            # instead of an object nothing downstream can read.
+            "taskVars": [
+                [best.name, worst.name]
+                for best, worst in (question.task_variables(t) for t in range(question.tasks))
+            ],
+            "versionVar": question.version_variable.name,
+        }
 
     return {**base, "kind": "text", "multiline": False}
 

@@ -32,9 +32,15 @@ def test_static_read_matches_execution_for_fixtures(fixture):
 def test_programmatic_fixture_is_refused_with_the_reason():
     """kitchen_sink builds its survey inside a function: that is exactly what
     the static reader will not run, and the error says where."""
+    source = (FIXTURES / "kitchen_sink_questionnaire.py").read_text(encoding="utf-8")
+    # Where the `def` actually is, so an unrelated edit to the fixture's imports
+    # does not fail this test for a reason that has nothing to do with it.
+    definition = next(
+        i for i, line in enumerate(source.splitlines(), 1) if line.startswith("def build(")
+    )
     with pytest.raises(DocumentError, match="functiondef statement") as exc:
         parse_file(FIXTURES / "kitchen_sink_questionnaire.py")
-    assert "line 33" in str(exc.value)
+    assert f"line {definition}" in str(exc.value)
 
 
 @pytest.mark.parametrize("path", sorted(DOCUMENTS.glob("*.questionnaire.json")))
