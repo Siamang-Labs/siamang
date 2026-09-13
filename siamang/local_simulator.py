@@ -25,10 +25,13 @@ def _simulate_value(question: Question, var=None):
     """Simulate a single value for a question (or a specific variable within a Matrix)."""
     if isinstance(question, NumericInput):
         v = var or question.var
-        if hasattr(v, "valid_range") and v.valid_range:
-            lo, hi = v.valid_range
-            return random.randint(int(lo), int(hi))
-        return random.randint(18, 70)
+        # A half-open range is ordinary — "16 or older" is written (16, None) —
+        # so an absent bound means unbounded, not zero. int(None) used to raise
+        # here and take the whole simulation down with it.
+        low, high = getattr(v, "valid_range", None) or (None, None)
+        low = int(low) if low is not None else 18
+        high = int(high) if high is not None else max(low + 1, 70)
+        return random.randint(low, high)
     if isinstance(question, LikertScale):
         return random.choice(question.values)
     if isinstance(question, Matrix):
@@ -107,11 +110,13 @@ def _simulate_wide_multichoice(question: MultiChoice) -> dict[str, int]:
     return {variable.name: int(variable.name in selected) for variable in variables}
 
 
-def _evaluate_condition(condition: Any, answers: dict[str, Any]) -> bool:
-    """Evaluate a show_if/hide_if condition against the current row answers.
+def _evaluate_condition(condition: Any, answers: dict[str, Any], *, unknown: bool = True) -> bool:
+    """Is this condition met, given the answers so far?
 
-    Returns True if the condition is met (i.e., the item should be shown).
-    Returns True (show) if condition is None.
+    ``unknown`` is the answer for a raw string condition, which the runtime's
+    parser can evaluate and this simulator cannot. It differs by side, which is
+    why it is a parameter: an unreadable ``show_if`` must not hide the question,
+    and an unreadable ``hide_if`` must not hide it either.
     """
     if condition is None:
         return True
@@ -121,8 +126,22 @@ def _evaluate_condition(condition: Any, answers: dict[str, Any]) -> bool:
         except (TypeError, ValueError, KeyError):
             # If evaluation fails (e.g., missing variable), default to not showing
             return False
-    # String expressions cannot be evaluated; default to showing
-    return True
+    return unknown
+
+
+def _is_visible(item: Any, answers: dict[str, Any]) -> bool:
+    """Show unless something the simulator can read says otherwise.
+
+    Both gates in one place because getting the pair wrong is silent: a
+    ``hide_if`` written as a string used to count as "condition met" and so hid
+    the question from *every* simulated respondent, leaving a column of nulls
+    that looks exactly like a question nobody reached.
+    """
+
+    if not _evaluate_condition(getattr(item, "show_if", None), answers, unknown=True):
+        return False
+    hide = getattr(item, "hide_if", None)
+    return hide is None or not _evaluate_condition(hide, answers, unknown=False)
 
 
 def _question_variable_names(question: Question) -> list[str]:
@@ -236,16 +255,10 @@ def simulate_from_pages(
         while 0 <= index < len(pages) and steps <= 2 * len(pages):
             steps += 1
             page = pages[index]
-            page_visible = _evaluate_condition(page.show_if, row) and not (
-                page.hide_if is not None and _evaluate_condition(page.hide_if, row)
-            )
+            page_visible = _is_visible(page, row)
             visible: list[Question] = []
             for q in page.flatten_questions():
-                q_visible = (
-                    page_visible
-                    and _evaluate_condition(q.show_if, row)
-                    and not (q.hide_if is not None and _evaluate_condition(q.hide_if, row))
-                )
+                q_visible = page_visible and _is_visible(q, row)
                 if q_visible:
                     _simulate_question_into_row(q, row)
                     visible.append(q)
