@@ -177,6 +177,35 @@ def _flow(nodes, edges):
     }
 
 
+def test_report_section_without_a_heading_is_a_plain_markdown_block(questionnaire_doc):
+    """A section is the report's paragraph as well as its chapter: with no
+    heading it contributes only its Markdown, so prose can sit between two
+    sections without inventing a heading to carry it."""
+
+    document = _flow(
+        [
+            ("prose", "output.report_section", {"text": "Everything below is weighted."}),
+            ("titled", "output.report_section", {"heading": "Results"}),
+            ("save", "output.save_report", {"title": "T", "path": "outputs/r.md"}),
+        ],
+        [
+            ("prose", "report", "save", "sections"),
+            ("titled", "report", "save", "sections"),
+        ],
+    )
+    # A missing heading is no longer a document error.
+    issues = check_flow(document, questionnaire=questionnaire_doc)
+    assert [i for i in issues if i.severity == "error"] == []
+
+    code = generate_flow(document, questionnaire_doc)
+    prose, titled = code.index("n_prose = Report()"), code.index("n_titled = Report()")
+    assert 'n_prose.text("Everything below is weighted.")' in code
+    # Only the titled section emits a heading call.
+    assert code.count(".heading(") == 1
+    assert 'n_titled.heading("Results")' in code
+    assert ".heading(" not in code[prose:titled]
+
+
 def test_check_flow_reports_graph_problems(questionnaire_doc):
     def codes(document):
         return sorted(

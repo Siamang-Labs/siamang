@@ -2,6 +2,7 @@ type: output.report_section
 category: output
 title: Report section
 description: A heading, text and any number of tables, charts and statistics.
+  Without a heading it is a plain block of Markdown between the sections around it.
 inputs:
   items:
     type:
@@ -15,7 +16,6 @@ outputs:
 params:
   heading:
     kind: string
-    required: true
     label: Heading
   text:
     kind: markdown
@@ -31,7 +31,10 @@ imports:
 - from siamang.reporting import Report
 template:
 - |
-  {out.report} = Report().heading({heading!r})
+  {out.report} = Report()
+- when: heading
+  code: |
+    {out.report}.heading({heading!r})
 - when: text
   code: |
     {out.report}.text({text!r})

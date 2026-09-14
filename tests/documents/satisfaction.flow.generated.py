@@ -96,7 +96,8 @@ n_means_stat = n_means_table.stats
 
 # ── Report section: Overall satisfaction by region ──────────────────────────────
 # studio: section
-n_section = Report().heading("Overall satisfaction by region")
+n_section = Report()
+n_section.heading("Overall satisfaction by region")
 n_section.text(
     "Column percentages, weighted by region × gender (raking). N after cleaning is reported below."
 )
