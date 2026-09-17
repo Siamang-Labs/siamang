@@ -13,7 +13,7 @@ class _FakeChart(SurveyChart):
     def __init__(self) -> None:  # noqa: D401 - intentionally no super().__init__
         pass
 
-    def save(self, path, dpi: int = 150) -> Path:
+    def save(self, path, dpi: int | None = None) -> Path:
         p = Path(path)
         p.write_bytes(b"\x89PNG\r\n\x1a\n-fake")
         return p

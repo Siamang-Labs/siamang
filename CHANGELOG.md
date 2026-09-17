@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`siamang.reporting.ReportTheme`** and a real HTML document. `Report.to_html()`
+  returned a bare `markdown.markdown()` fragment — no `<head>`, no charset, no
+  stylesheet — so every caller had to invent a look, which is another way of
+  saying the report had none of its own. `to_html(standalone=True)` and
+  `save("r.html")` now write a whole document with the theme's stylesheet in it,
+  its tables rendered by the table components (so `SurveyTable.to_html()` and its
+  `siamang-table` class are finally reached) and its figures in a `<figure>` with
+  their caption. The theme is the questionnaire's `UIConfig` shape — one named
+  preset plus tokens you may override, stored sparsely — and `academic`,
+  `modern` and `humanist` name the same typefaces in both. `Report(theme=…)`,
+  `Report.combine(…, theme=…)` and `ReportTheme.from_env()` (via
+  `SIAMANG_REPORT_THEME`, mirroring `SIAMANG_PROVENANCE`) are the ways in.
+  `to_html()` without `standalone` is unchanged, byte for byte, and Markdown is
+  untouched by any of it.
+
 - **Figure geometry on the chart nodes.** `visualize.bar` / `boxplot` /
   `scatter` take `width` and `height` in inches and a `palette`;
   `visualize.heatmap` takes `width`, `height` and `cmap`. `SurveyChart` and the

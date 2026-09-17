@@ -117,6 +117,69 @@ print(table.to_markdown())
 
 ---
 
+## 1b. The look of a report: `ReportTheme`
+
+`Report.to_html()` returns a fragment by default — the report's Markdown put
+through `markdown`, for splicing into a page of your own. `to_html(standalone=True)`
+(and `save("report.html")`) returns a whole document instead: a `<head>`, a
+stylesheet compiled from a `ReportTheme`, tables rendered by the table components
+themselves, and figures in a `<figure>` with their caption.
+
+```python
+from siamang.reporting import Report, ReportTheme
+
+theme = ReportTheme(font_preset="academic", page="a4", number_tables=True)
+Report(title="Satisfaction 2026", theme=theme).text("…").save("report.html")
+```
+
+The theme is the same shape as the questionnaire's `UIConfig`: **one named preset
+plus tokens you may override**, stored sparsely (`to_dict()` writes only what
+differs from the defaults). `academic`, `modern` and `humanist` name the same
+typefaces as the survey presets, so a report and the questionnaire it came from
+can be set in the same type.
+
+| Field | Values | What it does |
+| :--- | :--- | :--- |
+| `font_preset` | `academic` · `modern` · `humanist` | body and heading stacks |
+| `density` | `compact` · `comfortable` · `spacious` | type size, leading, block gap, cell padding |
+| `table_style` | `rules` · `grid` · `zebra` | `rules` is the research-paper table: horizontal only |
+| `page` | `screen` · `a4` · `letter` | adds an `@page` rule with the paper's margins |
+| `width` | a CSS length | the measure on screen (720px); ignored on paper |
+| `font_size`, `line_height`, `table_font_size` | CSS length / number | override the density |
+| `font_family`, `heading_font_family`, `mono_font_family` | a CSS font stack | override the preset |
+| `text_color`, `muted_text_color`, `border_color`, `accent_color`, `background_color` | a color | |
+| `table_width` | `auto` · `full` | |
+| `align_numeric` | bool | numbers right, on tabular figures |
+| `figure_width`, `figure_align` | CSS length, `left`/`center`/`right` | the default for a figure |
+| `figure_dpi` | 72–600 | what figures are written at |
+| `caption_position` | `below` · `above` | |
+| `number_tables`, `number_figures`, `table_label`, `figure_label` | bool, str | `Table 1.` prefixes; off by default |
+| `custom_css` | CSS | appended last, so it wins — and checked by nothing |
+
+`ReportTheme.from_env()` reads the JSON file named by `SIAMANG_REPORT_THEME`,
+the way `output.save_report` reads `SIAMANG_PROVENANCE`: whatever runs a flow can
+say how its reports should look without editing the flow. A missing or malformed
+file falls back to the defaults rather than failing the run.
+
+`stylesheet()` is a pure function of the theme — no clock, no locale, no network,
+no `@import` — so the same theme gives the same bytes on every machine.
+
+**Markdown and HTML carry different things, on purpose.** The `.md` is the
+report's content: text, order, captions, notes, the provenance footer. It stays
+plain Markdown that diffs and travels, and a theme never changes a byte of it.
+The `.html` is the document as it is meant to be read. Both are written from the
+same blocks, so neither can drift from the other.
+
+**Rendering it elsewhere.** There is no PDF writer here; `save("r.pdf")` says so
+and names the two things that work: print the HTML from a browser, or
+`pandoc report.html -o report.pdf` (`-o report.docx` for Word). Both honor the
+theme's `@page` rule.
+
+`sample_report(theme)` builds a short report using every kind of block, from
+literals rather than from data, so a theme can be previewed without a run.
+
+---
+
 ## 2. Visualization Components
 
 All chart components are subclasses of the base `SurveyChart` class.
