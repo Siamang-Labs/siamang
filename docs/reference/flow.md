@@ -83,6 +83,13 @@ The runner and the generator use the same order.
 Port types: `SurveyData`, `Table`, `Chart`, `Stat`, `Report`, `Any`. Weights
 and flags are columns inside a `SurveyData`.
 
+Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
+default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead
+of a palette, and ignores it when it draws a correlation matrix. These size the
+matplotlib figure itself rather than the picture of it, so the axis labels keep
+their proportion. Resolution is a field on the chart (`SurveyChart.dpi`,
+default 150) which `save()` uses unless a caller passes `dpi=` explicitly.
+
 `output.save_report` ends the report with a **provenance footer** when the
 environment variable `SIAMANG_PROVENANCE` is set (Markdown: questionnaire
 version, data snapshot, engine version — whatever ran the flow knows). A

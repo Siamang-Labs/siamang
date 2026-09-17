@@ -73,12 +73,15 @@ class SurveyChart:
         Seaborn/matplotlib color palette name.
     title : str | None
         Override the auto-generated title.
+    dpi : int
+        Resolution the figure is written at by :meth:`save`.
     """
 
     data: SurveyData
     figsize: tuple[float, float] = (10, 6)
     palette: str = "muted"
     title: str | None = None
+    dpi: int = 150
 
     _fig: Any = field(init=False, repr=False, default=None)
     _ax: Any = field(init=False, repr=False, default=None)
@@ -102,11 +105,17 @@ class SurveyChart:
         self._ensure_built()
         plt.show()
 
-    def save(self, path: str | Path, dpi: int = 150) -> Path:
-        """Save the chart to a file."""
+    def save(self, path: str | Path, dpi: int | None = None) -> Path:
+        """Save the chart to a file.
+
+        ``dpi`` defaults to the chart's own :attr:`dpi`, so a caller that holds
+        the figure but not the argument list — a report writing its figures out
+        — can raise the resolution of every chart at once by setting the field.
+        Passing it explicitly still wins.
+        """
         self._ensure_built()
         path = Path(path)
-        self._fig.savefig(path, dpi=dpi, bbox_inches="tight")
+        self._fig.savefig(path, dpi=dpi if dpi is not None else self.dpi, bbox_inches="tight")
         return path
 
     def _auto_title(self, *parts: str) -> str:
