@@ -107,16 +107,17 @@ n_section.heading("Overall satisfaction by region")
 n_section.text(
     "Column percentages, weighted by region × gender (raking). N after cleaning is reported below."
 )
-for _item, _caption in zip(
+for _item, _caption, _layout in zip(
     [n_xtab_table, n_bar, n_means_table],
     [
         "Table 1. Satisfaction × region (%)",
         "Figure 1. Distribution by region",
         "Table 2. Mean satisfaction by region",
     ],
+    [{}, {}, {}],
     strict=True,
 ):
-    n_section.add(_item, caption=_caption)
+    n_section.add(_item, caption=_caption, **_layout)
 
 # ── Live tile: Satisfaction × region ────────────────────────────────────────────
 # studio: tile_x
@@ -126,7 +127,7 @@ live.publish(
 
 # ── Save report: outputs/satisfaction_by_region.md ──────────────────────────────
 # studio: save
-n_save = Report.combine([n_section], title="Satisfaction 2026-Q3", toc=False)
+n_save = Report.combine([n_section], title="Satisfaction 2026-Q3", toc=False, theme=None)
 n_save.provenance(os.environ.get("SIAMANG_PROVENANCE"))
 n_save.save("outputs/satisfaction_by_region.md")
 n_save.save(Path("outputs/satisfaction_by_region.md").with_suffix(".html"))

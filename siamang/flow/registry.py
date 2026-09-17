@@ -60,6 +60,12 @@ PARAM_KINDS = (
     "path",
     "markdown",
     "captions",
+    # How a report looks (siamang.reporting.ReportTheme) and how one item in it
+    # is placed. Kinds of their own rather than `json` for the same reason
+    # `formula` is one: check_flow reads them, so a misspelled field or an
+    # impossible width is named on the canvas rather than raised in a sandbox.
+    "theme",
+    "layout",
     "json",
 )
 CATEGORIES = ("source", "prepare", "analyze", "visualize", "output")

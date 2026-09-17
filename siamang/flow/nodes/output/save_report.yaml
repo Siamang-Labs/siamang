@@ -2,6 +2,7 @@ type: output.save_report
 category: output
 title: Save report
 description: Combine sections into one report and save it as Markdown (and HTML).
+  Markdown carries the content; HTML carries the look the theme describes.
 inputs:
   sections:
     type: Report
@@ -25,6 +26,10 @@ params:
     kind: bool
     default: false
     label: Table of contents
+  theme:
+    kind: theme
+    label: Look
+    help: Typefaces, measure, table style and page size of the rendered report. The Markdown is unaffected.
 subtitle: '{path}'
 imports:
 - import os
@@ -34,7 +39,7 @@ imports:
 # research bundle's run.sh: the report's footer says what it was made from.
 template:
 - |
-  {out.report} = Report.combine({in.sections}, title={title!r}, toc={toc!r})
+  {out.report} = Report.combine({in.sections}, title={title!r}, toc={toc!r}, theme={theme!r})
   {out.report}.provenance(os.environ.get("SIAMANG_PROVENANCE"))
   {out.report}.save({path!r})
 - when: html

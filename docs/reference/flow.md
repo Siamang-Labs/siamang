@@ -90,6 +90,14 @@ matplotlib figure itself rather than the picture of it, so the axis labels keep
 their proportion. Resolution is a field on the chart (`SurveyChart.dpi`,
 default 150) which `save()` uses unless a caller passes `dpi=` explicitly.
 
+`output.save_report` takes a **`theme`** — the `ReportTheme` fields, as an
+object — and `output.report_section` takes a **`layout`**, one entry per
+connected item: `{"xtab": {"width": "75%", "align": "left"}}`. Both are checked
+by `check_flow`, so a misspelled field or a width like `"wide"` is named before
+the run rather than raised inside it, and both reach only the **HTML**: the
+Markdown is the report's content and carries no layout. A flow that names no
+theme leaves `SIAMANG_REPORT_THEME` to answer.
+
 `output.save_report` ends the report with a **provenance footer** when the
 environment variable `SIAMANG_PROVENANCE` is set (Markdown: questionnaire
 version, data snapshot, engine version — whatever ran the flow knows). A

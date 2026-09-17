@@ -556,6 +556,22 @@ def _param_problem(param: ParamSpec, value: Any) -> str | None:
         not isinstance(value, dict) or not all(isinstance(item, str) for item in value.values())
     ):
         return "expected node id → caption strings."
+    elif kind == "theme":
+        from siamang.reporting.theme import ReportTheme, ReportThemeError
+
+        try:
+            ReportTheme.from_dict(value)
+        except ReportThemeError as exc:
+            return str(exc)
+    elif kind == "layout":
+        from siamang.reporting.document import layout_problem
+
+        if not isinstance(value, dict):
+            return "expected node id → {width, align, break_before}."
+        for node, placement in value.items():
+            problem = layout_problem(placement)
+            if problem:
+                return f"{node}: {problem}"
     if kind in {"int", "float"} and not isinstance(value, bool) and isinstance(value, int | float):
         if param.minimum is not None and value < param.minimum:
             return f"must be at least {param.minimum}."

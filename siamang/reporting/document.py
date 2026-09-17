@@ -29,13 +29,15 @@ import pandas as pd
 
 from siamang.reporting.charts import SurveyChart
 from siamang.reporting.tables import SurveyTable, frame_to_html
-from siamang.reporting.theme import ReportTheme
+from siamang.reporting.theme import _LENGTH, ReportTheme
 
 # (kind, payload) blocks. payload depends on kind:
 #   "md"    -> str
-#   "table" -> (SurveyTable | pd.DataFrame, caption|None)
-#   "chart" -> (SurveyChart, caption|None)
-#   "image" -> (path: str, caption|None)
+#   "table" -> (SurveyTable | pd.DataFrame, caption|None, placement)
+#   "chart" -> (SurveyChart, caption|None, placement)
+#   "image" -> (path: str, caption|None, placement)
+# `placement` is {width?, align?, break_before?} and reaches the HTML only —
+# see Report.add.
 _Block = tuple[str, object]
 
 _HTML_ESCAPES = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}
@@ -50,6 +52,62 @@ def _esc(text: object) -> str:
 
 def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+_ALIGN = ("left", "center", "right")
+
+
+def layout_problem(placement: object) -> str | None:
+    """Why ``{width, align, break_before}`` cannot be used, or None.
+
+    Lives here rather than in the flow package so that the rule a report obeys
+    and the rule ``check_flow`` enforces are one rule: a width the document
+    would reject must be a Check issue on the canvas, not a TypeError in a run.
+    """
+
+    if not isinstance(placement, dict):
+        return "expected an object with width, align or break_before."
+    for key in placement:
+        if key not in ("width", "align", "break_before"):
+            return f"unknown key {key!r} (width, align, break_before)."
+    width = placement.get("width")
+    if width is not None and not _LENGTH.match(str(width)):
+        return f"width: {width!r} is not a CSS length (a number and a unit, e.g. '60%', '320px')."
+    align = placement.get("align")
+    if align is not None and align not in _ALIGN:
+        return f"align: {align!r} is not one of {', '.join(_ALIGN)}."
+    if not isinstance(placement.get("break_before", False), bool):
+        return "break_before: expected true or false."
+    return None
+
+
+def _as_theme(theme: ReportTheme | Mapping[str, object] | None) -> ReportTheme | None:
+    """A theme, a plain object holding one, or nothing.
+
+    Generated flow scripts pass the chosen fields as a dict — it needs no import
+    and every other parameter in such a script is data too — so every entry
+    point that takes a theme takes both.
+    """
+
+    if theme is None or isinstance(theme, ReportTheme):
+        return theme
+    return ReportTheme.from_dict(dict(theme))
+
+
+def _placement(width: str | None, align: str | None, break_before: bool) -> dict[str, object]:
+    """Validate and pack a block's placement, dropping what was not asked for."""
+
+    placement: dict[str, object] = {}
+    if width is not None:
+        placement["width"] = width
+    if align is not None:
+        placement["align"] = align
+    if break_before:
+        placement["break_before"] = True
+    problem = layout_problem(placement)
+    if problem:
+        raise ValueError(problem)
+    return placement
 
 
 def _frame_markdown(frame: pd.DataFrame) -> str:
@@ -105,14 +163,14 @@ class Report:
         self,
         title: str | None = None,
         description: str | None = None,
-        theme: ReportTheme | None = None,
+        theme: ReportTheme | Mapping[str, object] | None = None,
     ) -> None:
         self.title = title
         self.description = description
         # The theme rides on the document, so whatever renders it later — a
         # save, a host asking for HTML, a combine — gets the intended look
         # without being told about it separately.
-        self.theme = theme
+        self.theme = _as_theme(theme)
         self._blocks: list[_Block] = []
 
     # ── narrative (free text) ─────────────────────────────────────
@@ -155,13 +213,33 @@ class Report:
         return self
 
     # ── inserts ───────────────────────────────────────────────────
-    def add(self, component: object, *, caption: str | None = None) -> Report:
+    def add(
+        self,
+        component: object,
+        *,
+        caption: str | None = None,
+        width: str | None = None,
+        align: str | None = None,
+        break_before: bool = False,
+    ) -> Report:
+        """Put a table, a chart or a statistic in the report.
+
+        ``width`` (a CSS length: ``"60%"``, ``"320px"``) and ``align`` place it
+        on the page; ``break_before`` starts it on a new one when printed. All
+        three are checked here, when the report is built, so a typo fails where
+        it was written rather than in the renderer. **They apply to the HTML
+        only.** The Markdown is the report's content and does not carry layout:
+        an attribute like ``{width=50%}`` is stripped by GitHub and by most
+        pipelines, so it would vanish exactly where a `.md` is most likely to be
+        read, and supporting it would mean a Markdown dialect with two parsers.
+        """
+        placement = _placement(width, align, break_before)
         if isinstance(component, SurveyTable):
-            self._blocks.append(("table", (component, caption)))
+            self._blocks.append(("table", (component, caption, placement)))
         elif isinstance(component, SurveyChart):
-            self._blocks.append(("chart", (component, caption)))
+            self._blocks.append(("chart", (component, caption, placement)))
         elif isinstance(component, pd.DataFrame):
-            self._blocks.append(("table", (component, caption)))
+            self._blocks.append(("table", (component, caption, placement)))
         elif isinstance(component, Mapping):
             # A statistics dict (a table's .stats, an analysis result): one line.
             parts = [
@@ -177,8 +255,16 @@ class Report:
             )
         return self
 
-    def image(self, path: str | Path, *, caption: str | None = None) -> Report:
-        self._blocks.append(("image", (str(path), caption)))
+    def image(
+        self,
+        path: str | Path,
+        *,
+        caption: str | None = None,
+        width: str | None = None,
+        align: str | None = None,
+        break_before: bool = False,
+    ) -> Report:
+        self._blocks.append(("image", (str(path), caption, _placement(width, align, break_before))))
         return self
 
     # ── serialization ─────────────────────────────────────────────
@@ -252,7 +338,7 @@ class Report:
     def to_html(
         self,
         *,
-        theme: ReportTheme | None = None,
+        theme: ReportTheme | Mapping[str, object] | None = None,
         standalone: bool = False,
         embed_images: bool = True,
         asset_dir: str | Path = ".",
@@ -275,7 +361,11 @@ class Report:
             md = self.to_markdown(asset_dir=asset_dir, embed_images=embed_images)
             return md_lib.markdown(md, extensions=["tables"])
 
-        theme = theme or self.theme or ReportTheme()
+        # Nothing named one, so whatever runs this may have: SIAMANG_REPORT_THEME
+        # is how a platform and a research bundle hand a flow the project's
+        # house style without editing the flow (as SIAMANG_PROVENANCE does for
+        # the footer). Unset, that is the defaults.
+        theme = _as_theme(theme) or self.theme or ReportTheme.from_env()
         body = "\n".join(self._html_blocks(theme, Path(asset_dir), embed_images))
         title = _esc(self.title or "Report")
         return (
@@ -353,7 +443,9 @@ class Report:
                 )
         return out
 
-    def save(self, path: str | Path, *, theme: ReportTheme | None = None) -> Path:
+    def save(
+        self, path: str | Path, *, theme: ReportTheme | Mapping[str, object] | None = None
+    ) -> Path:
         path = Path(path)
         suffix = path.suffix.lower()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -383,10 +475,13 @@ class Report:
         *,
         title: str,
         toc: bool = True,
-        theme: ReportTheme | None = None,
+        theme: ReportTheme | Mapping[str, object] | None = None,
     ) -> Report:
         """Merge several reports into one document with an optional table of contents."""
-        merged = cls(title=title, theme=theme or next((r.theme for r in reports if r.theme), None))
+        merged = cls(
+            title=title,
+            theme=_as_theme(theme) or next((r.theme for r in reports if r.theme), None),
+        )
         sections = [r for r in reports if r.title or r._blocks]
 
         if toc:
