@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Figure geometry on the chart nodes.** `visualize.bar` / `boxplot` /
+  `scatter` take `width` and `height` in inches and a `palette`;
+  `visualize.heatmap` takes `width`, `height` and `cmap`. `SurveyChart` and the
+  `plot` accessor already accepted all of it — the node specifications simply
+  never passed it on, so a flow could not change the size of the figure it
+  drew. `SurveyChart.dpi` is a field now (default 150) and `save()` falls back
+  to it, so whatever writes a figure out can raise the resolution of every
+  chart at once without threading an argument through.
+
 - **`MaxDiff`** — best–worst scaling. A few items at a time, and for each set
   the respondent picks the best and the worst; the trade-off is the
   measurement. `siamang.design.maxdiff_design` builds the balanced incomplete

@@ -86,7 +86,13 @@ n_xtab_stat = n_xtab_table.stats
 # ── Bar chart: satisfaction ─────────────────────────────────────────────────────
 # studio: bar
 n_bar = n_apply.plot.bar(
-    "satisfaction", by="region", horizontal=False, show_values=True, title=None
+    "satisfaction",
+    by="region",
+    horizontal=False,
+    show_values=True,
+    title=None,
+    figsize=(10.0, 6.0),
+    palette="muted",
 )
 
 # ── Group means: satisfaction by region ─────────────────────────────────────────

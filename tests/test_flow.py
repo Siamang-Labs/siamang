@@ -389,6 +389,69 @@ def test_runner_with_a_snapshot_path_and_a_fake_db(questionnaire_doc, survey, re
 
 
 @pytest.mark.skipif(not HAS_MPL, reason="matplotlib")
+def test_a_chart_node_sizes_the_figure_it_draws(questionnaire_doc, survey, responses, tmp_path):
+    """The figure is the thing that is resized, not the picture of it: a chart
+    asked for 6×4 inches writes 6×4 inches of pixels at its own dpi, so the axis
+    labels keep their proportion instead of being scaled with the image."""
+
+    document = _flow(
+        [
+            ("src", "source.responses", {"table": "responses"}),
+            ("chart", "visualize.bar", {"variable": "satisfaction", "width": 6, "height": 4}),
+        ],
+        [("src", "data", "chart", "data")],
+    )
+    result = FlowRunner(document, questionnaire=survey).run(
+        sources={"src": responses}, cwd=tmp_path
+    )
+    assert result.ok
+    chart = result.output("chart", "chart")
+    assert chart.figsize == (6.0, 4.0) and chart.palette == "muted"
+
+    png = chart.save(tmp_path / "fig.png")
+    from PIL import Image
+
+    with Image.open(png) as image:
+        width, height = image.size
+    # bbox_inches="tight" trims the margins, so the written file is at most the
+    # figure box and clearly smaller than the 10x6 default would have been.
+    assert width <= 6 * chart.dpi and height <= 4 * chart.dpi
+    assert width > 4 * chart.dpi and height > 2 * chart.dpi
+
+    # dpi is a field now, so a caller holding only the chart can raise it.
+    chart.dpi = 300
+    with Image.open(chart.save(tmp_path / "fig300.png")) as image:
+        assert image.size[0] > width * 1.5
+    # An explicit argument still wins over the field.
+    with Image.open(chart.save(tmp_path / "fig150.png", dpi=150)) as image:
+        assert image.size[0] == width
+
+
+def test_chart_geometry_is_checked_before_a_run(questionnaire_doc):
+    """A figure of forty inches is a typo, and check_flow names the bound
+    rather than letting matplotlib decide what to do with it."""
+
+    def codes(params):
+        document = _flow(
+            [
+                ("src", "source.responses", {"table": "responses"}),
+                ("chart", "visualize.bar", {"variable": "satisfaction", **params}),
+            ],
+            [("src", "data", "chart", "data")],
+        )
+        return {
+            i.message
+            for i in check_flow(document, questionnaire=questionnaire_doc)
+            if i.severity == "error"
+        }
+
+    assert codes({"width": 12}) == set()
+    assert any("at most 30" in m for m in codes({"width": 40}))
+    assert any("at least 2" in m for m in codes({"height": 0.5}))
+    assert any("chartreuse" in m for m in codes({"palette": "chartreuse"}))
+
+
+@pytest.mark.skipif(not HAS_MPL, reason="matplotlib")
 def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, responses, tmp_path):
     """One flow through most of the registry, so each template is executed at least once."""
 

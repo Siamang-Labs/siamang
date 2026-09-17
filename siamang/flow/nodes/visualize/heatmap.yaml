@@ -20,6 +20,24 @@ params:
   title:
     kind: string
     label: Title
+  width:
+    kind: float
+    default: 10
+    minimum: 2
+    maximum: 30
+    label: Figure width (in)
+    help: The figure itself, in inches — the axis labels scale with it.
+  height:
+    kind: float
+    default: 6
+    minimum: 2
+    maximum: 30
+    label: Figure height (in)
+  cmap:
+    kind: string
+    default: YlOrRd
+    label: Color map
+    help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale.
 template: |
-  {out.chart} = {in.data}.plot.heatmap({items!r}, by={by!r}, title={title!r})
+  {out.chart} = {in.data}.plot.heatmap({items!r}, by={by!r}, title={title!r}, figsize=({width!r}, {height!r}), cmap={cmap!r})
 preview: chart

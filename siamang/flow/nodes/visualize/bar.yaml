@@ -28,7 +28,32 @@ params:
   title:
     kind: string
     label: Title
+  width:
+    kind: float
+    default: 10
+    minimum: 2
+    maximum: 30
+    label: Figure width (in)
+    help: The figure itself, in inches — the axis labels scale with it.
+  height:
+    kind: float
+    default: 6
+    minimum: 2
+    maximum: 30
+    label: Figure height (in)
+  palette:
+    kind: enum
+    values:
+    - muted
+    - deep
+    - pastel
+    - dark
+    - colorblind
+    - Set2
+    - tab10
+    default: muted
+    label: Palette
 subtitle: '{variable}'
 template: |
-  {out.chart} = {in.data}.plot.bar({variable!r}, by={by!r}, horizontal={horizontal!r}, show_values={show_values!r}, title={title!r})
+  {out.chart} = {in.data}.plot.bar({variable!r}, by={by!r}, horizontal={horizontal!r}, show_values={show_values!r}, title={title!r}, figsize=({width!r}, {height!r}), palette={palette!r})
 preview: chart
