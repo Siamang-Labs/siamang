@@ -6,6 +6,14 @@ already expose ``to_markdown()``/``to_html()`` and charts (BarChart/...) expose
 
 Every builder method returns ``self`` for fluent chaining; ``save()`` is the
 terminal call.
+
+Markdown and HTML carry different things on purpose. The Markdown is the
+document's *content* — its text, its order, its captions, its notes, its
+provenance footer — and stays plain text that diffs and travels. The HTML is the
+document as it is meant to be *read*: a :class:`~siamang.reporting.theme.ReportTheme`
+compiled into a stylesheet, tables rendered by the table components themselves
+rather than flattened through Markdown, and figures in a ``<figure>`` that can be
+sized. Both are written from the same blocks, so neither can drift from the other.
 """
 
 from __future__ import annotations
@@ -20,7 +28,8 @@ from pathlib import Path
 import pandas as pd
 
 from siamang.reporting.charts import SurveyChart
-from siamang.reporting.tables import SurveyTable
+from siamang.reporting.tables import SurveyTable, frame_to_html
+from siamang.reporting.theme import ReportTheme
 
 # (kind, payload) blocks. payload depends on kind:
 #   "md"    -> str
@@ -29,9 +38,61 @@ from siamang.reporting.tables import SurveyTable
 #   "image" -> (path: str, caption|None)
 _Block = tuple[str, object]
 
+_HTML_ESCAPES = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}
+
+
+def _esc(text: object) -> str:
+    out = str(text)
+    for char, entity in _HTML_ESCAPES.items():
+        out = out.replace(char, entity)
+    return out
+
 
 def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def _frame_markdown(frame: pd.DataFrame) -> str:
+    return frame.to_markdown(index=False)
+
+
+def _number(theme: ReportTheme, kind: str, n: int) -> str | None:
+    """ "Table 1." / "Figure 2." when the theme numbers them, else nothing."""
+
+    if kind == "table" and theme.number_tables:
+        return f"{theme.table_label} {n}."
+    if kind == "figure" and theme.number_figures:
+        return f"{theme.figure_label} {n}."
+    return None
+
+
+def _figure(
+    inner: str,
+    caption: str | None,
+    number: str | None,
+    layout: Mapping[str, object],
+    theme: ReportTheme,
+) -> str:
+    """A table or an image with its caption, in a sized <figure>.
+
+    `width` and `align` come from the block (Report.add), falling back to the
+    theme; the width is an inline custom property rather than an inline rule, so
+    a stylesheet can still override it and nothing here writes CSS syntax the
+    theme does not own.
+    """
+
+    align = str(layout.get("align") or theme.figure_align)
+    width = layout.get("width")
+    style = f' style="--fig-w:{_esc(width)}"' if width else ""
+    classes = "siamang-figure" + (" siamang-break" if layout.get("break_before") else "")
+    parts = [f'<figure class="{classes}" data-align="{_esc(align)}"{style}>', inner]
+    if caption or number:
+        label = f'<span class="siamang-number">{_esc(number)}</span> ' if number else ""
+        parts.append(
+            f'<figcaption class="siamang-figcaption">{label}{_esc(caption or "")}</figcaption>'
+        )
+    parts.append("</figure>")
+    return "\n".join(parts)
 
 
 def _data_uri(data: bytes, path: str) -> str:
@@ -40,9 +101,18 @@ def _data_uri(data: bytes, path: str) -> str:
 
 
 class Report:
-    def __init__(self, title: str | None = None, description: str | None = None) -> None:
+    def __init__(
+        self,
+        title: str | None = None,
+        description: str | None = None,
+        theme: ReportTheme | None = None,
+    ) -> None:
         self.title = title
         self.description = description
+        # The theme rides on the document, so whatever renders it later — a
+        # save, a host asking for HTML, a combine — gets the intended look
+        # without being told about it separately.
+        self.theme = theme
         self._blocks: list[_Block] = []
 
     # ── narrative (free text) ─────────────────────────────────────
@@ -126,17 +196,17 @@ class Report:
                 lines.append(payload)
             elif kind == "table":
                 assert isinstance(payload, tuple)
-                comp, caption = payload
+                comp, caption = payload[0], payload[1]
                 if caption:
                     lines.append(f"*{caption}*")
                 if isinstance(comp, SurveyTable):
                     lines.append(comp.to_markdown())
                 else:
                     assert isinstance(comp, pd.DataFrame)
-                    lines.append(comp.to_markdown(index=False))
+                    lines.append(_frame_markdown(comp))
             elif kind == "chart":
                 assert isinstance(payload, tuple)
-                comp, caption = payload
+                comp, caption = payload[0], payload[1]
                 assert isinstance(comp, SurveyChart)
                 ref = self._chart_ref(comp, i, asset_dir, embed_images)
                 lines.append(f"![{caption or ''}]({ref})")
@@ -144,7 +214,7 @@ class Report:
                     lines.append(f"*{caption}*")
             elif kind == "image":
                 assert isinstance(payload, tuple)
-                path, caption = payload
+                path, caption = payload[0], payload[1]
                 ref = self._image_ref(str(path), embed_images)
                 lines.append(f"![{caption or ''}]({ref})")
                 if caption:
@@ -152,15 +222,25 @@ class Report:
 
         return "\n\n".join(lines) + "\n"
 
-    def _chart_ref(self, chart: SurveyChart, index: int, asset_dir: Path, embed: bool) -> str:
+    def _chart_ref(
+        self,
+        chart: SurveyChart,
+        index: int,
+        asset_dir: Path,
+        embed: bool,
+        theme: ReportTheme | None = None,
+    ) -> str:
+        # The figure is written at the theme's resolution when one is rendering
+        # it; without a theme the chart's own `dpi` applies, as before.
+        dpi = theme.figure_dpi if theme is not None else None
         if embed:
             with tempfile.TemporaryDirectory() as tmp:
                 png = Path(tmp) / f"fig_{index}.png"
-                chart.save(png)
+                chart.save(png, dpi=dpi)
                 return _data_uri(png.read_bytes(), str(png))
         asset_dir.mkdir(parents=True, exist_ok=True)
         png = asset_dir / f"fig_{index}.png"
-        chart.save(png)
+        chart.save(png, dpi=dpi)
         return png.name
 
     def _image_ref(self, path: str, embed: bool) -> str:
@@ -169,31 +249,144 @@ class Report:
             return _data_uri(p.read_bytes(), path)
         return path
 
-    def to_html(self) -> str:
+    def to_html(
+        self,
+        *,
+        theme: ReportTheme | None = None,
+        standalone: bool = False,
+        embed_images: bool = True,
+        asset_dir: str | Path = ".",
+    ) -> str:
+        """The report as HTML.
+
+        ``standalone`` is the difference between a fragment and a document. A
+        fragment is the Markdown put through ``markdown`` and nothing else —
+        what this method has always returned, kept byte for byte so a caller
+        that splices it into a page of its own is unaffected. A document has a
+        ``<head>``, the theme's stylesheet, its tables rendered by the table
+        components (which know which columns are numbers) and its figures in a
+        ``<figure>`` with their caption, so it can be opened, printed and mailed
+        as it is.
+        """
+
         import markdown as md_lib
 
-        md = self.to_markdown(embed_images=True)
-        return md_lib.markdown(md, extensions=["tables"])
+        if not standalone:
+            md = self.to_markdown(asset_dir=asset_dir, embed_images=embed_images)
+            return md_lib.markdown(md, extensions=["tables"])
 
-    def save(self, path: str | Path) -> Path:
+        theme = theme or self.theme or ReportTheme()
+        body = "\n".join(self._html_blocks(theme, Path(asset_dir), embed_images))
+        title = _esc(self.title or "Report")
+        return (
+            "<!doctype html>\n"
+            '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            f'<meta name="siamang-report-theme" content="{_esc(theme.font_preset)}">\n'
+            f"<title>{title}</title>\n"
+            f"<style>\n{theme.stylesheet()}</style>\n</head>\n"
+            f'<body>\n<main class="siamang-report">\n{body}\n</main>\n</body>\n</html>\n'
+        )
+
+    def _html_blocks(self, theme: ReportTheme, asset_dir: Path, embed: bool) -> list[str]:
+        import markdown as md_lib
+
+        def md(text: str) -> str:
+            # `attr_list` lets a report's own Markdown carry an id or a class;
+            # `toc` gives headings the ids `Report.combine`'s contents links
+            # point at, which they have never resolved to before.
+            return md_lib.markdown(text, extensions=["tables", "attr_list", "toc"])
+
+        out: list[str] = []
+        if self.title:
+            out.append(f"<h1>{_esc(self.title)}</h1>")
+        if self.description:
+            out.append(f'<p class="siamang-figcaption">{_esc(self.description)}</p>')
+
+        tables = figures = 0
+        for i, (kind, payload) in enumerate(self._blocks):
+            if kind == "md":
+                assert isinstance(payload, str)
+                out.append(md(payload))
+                continue
+            assert isinstance(payload, tuple)
+            component, caption = payload[0], payload[1]
+            layout = payload[2] if len(payload) > 2 else {}
+            if kind == "table":
+                tables += 1
+                label = _number(theme, "table", tables)
+                # Both paths go through the table layer, so every table in the
+                # document carries `siamang-table` and none of them arrives with
+                # the inline `text-align` python-markdown writes into a pipe
+                # table — which would override the theme's own alignment.
+                inner = (
+                    component.to_html()
+                    if isinstance(component, SurveyTable)
+                    else frame_to_html(component)
+                )
+                out.append(_figure(inner, caption, label, layout, theme))
+            elif kind == "chart":
+                figures += 1
+                ref = self._chart_ref(component, i, asset_dir, embed, theme)
+                alt = _esc(caption or "")
+                out.append(
+                    _figure(
+                        f'<img src="{ref}" alt="{alt}">',
+                        caption,
+                        _number(theme, "figure", figures),
+                        layout,
+                        theme,
+                    )
+                )
+            elif kind == "image":
+                figures += 1
+                ref = self._image_ref(str(component), embed)
+                alt = _esc(caption or "")
+                out.append(
+                    _figure(
+                        f'<img src="{ref}" alt="{alt}">',
+                        caption,
+                        _number(theme, "figure", figures),
+                        layout,
+                        theme,
+                    )
+                )
+        return out
+
+    def save(self, path: str | Path, *, theme: ReportTheme | None = None) -> Path:
         path = Path(path)
         suffix = path.suffix.lower()
         path.parent.mkdir(parents=True, exist_ok=True)
         if suffix in (".md", ".markdown", ""):
             path.write_text(self.to_markdown(asset_dir=path.parent), encoding="utf-8")
         elif suffix in (".html", ".htm"):
-            path.write_text(self.to_html(), encoding="utf-8")
+            # Written as a document, not a fragment: a saved `.html` is opened
+            # by a person, so it carries its own stylesheet and its own images.
+            path.write_text(
+                self.to_html(theme=theme, standalone=True, embed_images=True), encoding="utf-8"
+            )
         elif suffix == ".pdf":
-            raise NotImplementedError("PDF rendering is added in the Stage 4 worker (HTML->PDF).")
+            raise NotImplementedError(
+                "Reports are written as Markdown and HTML; there is no PDF renderer here. "
+                "Save the HTML and convert it — `pandoc report.html -o report.pdf`, or print "
+                "it from a browser, both of which honor the theme's @page rule."
+            )
         else:
             raise ValueError(f"unsupported report format: {suffix!r}")
         return path
 
     # ── combine (Run all) ─────────────────────────────────────────
     @classmethod
-    def combine(cls, reports: list[Report], *, title: str, toc: bool = True) -> Report:
+    def combine(
+        cls,
+        reports: list[Report],
+        *,
+        title: str,
+        toc: bool = True,
+        theme: ReportTheme | None = None,
+    ) -> Report:
         """Merge several reports into one document with an optional table of contents."""
-        merged = cls(title=title)
+        merged = cls(title=title, theme=theme or next((r.theme for r in reports if r.theme), None))
         sections = [r for r in reports if r.title or r._blocks]
 
         if toc:

@@ -9,6 +9,7 @@ from siamang.reporting.accessors import PlotAccessor, ReportAccessor
 from siamang.reporting.charts import BarChart, BoxPlot, HeatMap, ScatterPlot
 from siamang.reporting.document import Report
 from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable, NpsTable
+from siamang.reporting.theme import ReportTheme, ReportThemeError, sample_report
 
 __all__ = [
     "FreqTable",
@@ -22,4 +23,7 @@ __all__ = [
     "ReportAccessor",
     "PlotAccessor",
     "Report",
+    "ReportTheme",
+    "ReportThemeError",
+    "sample_report",
 ]

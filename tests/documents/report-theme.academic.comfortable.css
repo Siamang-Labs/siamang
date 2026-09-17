@@ -1,0 +1,104 @@
+/* ── siamang report ─────────────────────────────────────────────────── */
+:root {
+  --report-width: 720px;
+  --report-font-size: 15.5px;
+  --report-line-height: 1.6;
+  --report-body-font: "Source Serif 4", "Charter", Georgia, "Times New Roman", serif;
+  --report-heading-font: "Source Serif 4", "Charter", Georgia, serif;
+  --report-mono-font: "JetBrains Mono", "Menlo", "Consolas", monospace;
+  --report-text: #1a1a1a;
+  --report-muted: #5a5a5a;
+  --report-border: #d9d9de;
+  --report-accent: #2c5f8a;
+  --report-bg: #ffffff;
+  --report-block-gap: 20px;
+  --report-cell-pad: 5px 10px;
+  --report-table-font-size: 0.87em;
+  --report-figure-width: 100%;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--report-bg);
+  color: var(--report-text);
+  font-family: var(--report-body-font);
+  font-size: var(--report-font-size);
+  line-height: var(--report-line-height);
+  -webkit-text-size-adjust: 100%;
+}
+.siamang-report {
+  max-width: var(--report-width);
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+}
+.siamang-report > * + * { margin-top: var(--report-block-gap); }
+h1, h2, h3, h4 {
+  font-family: var(--report-heading-font);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 { font-size: 1.8em; }
+h2 { font-size: 1.35em; }
+h3 { font-size: 1.12em; }
+h4 { font-size: 1em; }
+.siamang-report > h2 { margin-top: calc(var(--report-block-gap) * 1.8); }
+p { margin: 0; text-wrap: pretty; }
+a { color: var(--report-accent); }
+code, pre, .siamang-stats { font-family: var(--report-mono-font); font-size: 0.9em; }
+blockquote {
+  margin: 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--report-border);
+  color: var(--report-muted);
+}
+hr { border: 0; border-top: 1px solid var(--report-border); }
+ul, ol { margin: 0; padding-left: 1.4em; }
+li + li { margin-top: 4px; }
+/* The table of contents `Report.combine` writes, and the provenance footer. */
+.siamang-report h2#contents + ul { list-style: none; padding-left: 0; }
+
+table { border-collapse: collapse; font-size: var(--report-table-font-size); }
+th, td { padding: var(--report-cell-pad); border: 0; }
+thead th { border-bottom: 1.5px solid var(--report-text); font-weight: 600; text-align: left; }
+thead tr:first-child th { border-top: 1.5px solid var(--report-text); }
+tbody tr:last-child td { border-bottom: 1.5px solid var(--report-text); }
+
+tbody td:not(:first-child), thead th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.siamang-figure {
+  margin: 0 auto;
+  width: var(--fig-w, var(--report-figure-width));
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.siamang-figure img { width: 100%; height: auto; }
+.siamang-figure[data-align="left"] { margin-right: auto; margin-left: 0; }
+.siamang-figure[data-align="center"] { margin-left: auto; margin-right: auto; }
+.siamang-figure[data-align="right"] { margin-left: auto; margin-right: 0; }
+.siamang-figcaption, .siamang-stats {
+  margin: 0;
+  color: var(--report-muted);
+  font-size: 0.87em;
+  line-height: 1.45;
+}
+.siamang-number { color: var(--report-text); font-weight: 600; }
+/* Two half-width figures set side by side rather than stacked. */
+.siamang-figure + .siamang-figure[data-align="left"] { margin-top: 0; }
+
+@media print {
+  body { background: #fff; }
+  .siamang-report { max-width: none; padding: 0; }
+  table, figure, img, blockquote, pre { break-inside: avoid; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  pre { overflow: visible; white-space: pre-wrap; word-break: break-word; }
+  .siamang-break { break-before: page; }
+  a { color: inherit; text-decoration: none; }
+}

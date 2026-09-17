@@ -51,12 +51,21 @@ def _frame_to_markdown(df: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
-def _frame_to_html(df: pd.DataFrame, caption: str | None = None) -> str:
-    """Convert a DataFrame to a clean HTML table."""
+def frame_to_html(df: pd.DataFrame, caption: str | None = None) -> str:
+    """Convert a DataFrame to a clean HTML table.
+
+    Public because a report renders bare DataFrames through the same path as
+    its table components, so every table in a document carries the same class
+    and the stylesheet has one thing to style.
+    """
     html = df.to_html(index=False, classes="siamang-table", border=0)
     if caption:
-        html = html.replace("<table", f"<table>\n<caption>{caption}</caption", 1)
+        html = html.replace("<table", f"<caption>{caption}</caption>\n<table", 1)
     return html
+
+
+# Kept under its old private name for anything that reached for it.
+_frame_to_html = frame_to_html
 
 
 # ─── Base Class ───────────────────────────────────────────────────────────────
@@ -955,9 +964,7 @@ class BannerTable(SurveyTable):
             for row_value in self._values_of(row_variable):
                 cells: dict[str, Any] = {}
                 for block in blocks:
-                    marks = self._letters_for(
-                        block, row_value, shares, effective, letters, np
-                    )
+                    marks = self._letters_for(block, row_value, shares, effective, letters, np)
                     tested += len(block) if self.test else 0
                     for variable, value, header in block:
                         key = (row_value, variable, value)
