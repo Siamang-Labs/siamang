@@ -206,6 +206,132 @@ def test_report_section_without_a_heading_is_a_plain_markdown_block(questionnair
     assert ".heading(" not in code[prose:titled]
 
 
+def test_a_report_carries_its_look_and_the_placement_of_each_item(questionnaire_doc):
+    """Both are node parameters, so both are in the flow document, in the
+    generated script and in a research bundle — the look of a report is part of
+    the program you take with you, the way the questionnaire's theme is."""
+
+    document = _flow(
+        [
+            ("src", "source.responses", {"table": "responses"}),
+            ("xtab", "analyze.crosstab", {"row": "satisfaction", "col": "region"}),
+            ("bar", "visualize.bar", {"variable": "satisfaction"}),
+            (
+                "section",
+                "output.report_section",
+                {
+                    "heading": "Results",
+                    "captions": {"xtab": "Satisfaction by region"},
+                    "layout": {
+                        "xtab": {"width": "75%"},
+                        "bar": {"width": "48%", "align": "left", "break_before": True},
+                    },
+                },
+            ),
+            (
+                "save",
+                "output.save_report",
+                {
+                    "title": "T",
+                    "path": "outputs/r.md",
+                    "theme": {"font_preset": "modern", "page": "a4", "number_tables": True},
+                },
+            ),
+        ],
+        [
+            ("src", "data", "xtab", "data"),
+            ("src", "data", "bar", "data"),
+            ("xtab", "table", "section", "items"),
+            ("bar", "chart", "section", "items"),
+            ("section", "report", "save", "sections"),
+        ],
+    )
+    issues = check_flow(document, questionnaire=questionnaire_doc)
+    assert [i for i in issues if i.severity == "error"] == []
+
+    code = generate_flow(document, questionnaire_doc)
+    # Keyed by node in the document (so a rename carries it), positional in the
+    # code (so it lines up with the port the template zips over).
+    assert '[{"width": "75%"}, {"width": "48%", "align": "left", "break_before": True}]' in code
+    assert "n_section.add(_item, caption=_caption, **_layout)" in code
+    # The theme travels as data — no import to add, like every other parameter.
+    assert 'theme={"font_preset": "modern", "page": "a4", "number_tables": True}' in code
+    assert "ReportTheme" not in code
+
+
+def test_a_look_or_a_placement_that_cannot_work_is_named_before_the_run(questionnaire_doc):
+    def errors(section_params, save_params):
+        document = _flow(
+            [
+                ("src", "source.responses", {"table": "responses"}),
+                ("xtab", "analyze.crosstab", {"row": "satisfaction", "col": "region"}),
+                ("section", "output.report_section", {"heading": "R", **section_params}),
+                ("save", "output.save_report", {"title": "T", **save_params}),
+            ],
+            [
+                ("src", "data", "xtab", "data"),
+                ("xtab", "table", "section", "items"),
+                ("section", "report", "save", "sections"),
+            ],
+        )
+        return {
+            i.message
+            for i in check_flow(document, questionnaire=questionnaire_doc)
+            if i.severity == "error"
+        }
+
+    assert errors({}, {}) == set()
+    assert any("font_prest" in m for m in errors({}, {"theme": {"font_prest": "modern"}}))
+    assert any("not one of" in m for m in errors({}, {"theme": {"page": "a3"}}))
+    assert any("CSS length" in m for m in errors({}, {"theme": {"width": "wide"}}))
+    assert any("xtab: align" in m for m in errors({"layout": {"xtab": {"align": "middle"}}}, {}))
+    assert any("unknown key" in m for m in errors({"layout": {"xtab": {"size": "big"}}}, {}))
+
+
+@pytest.mark.skipif(not HAS_MPL, reason="matplotlib")
+def test_a_run_renders_the_report_in_the_look_the_flow_chose(
+    questionnaire_doc, survey, responses, tmp_path
+):
+    document = _flow(
+        [
+            ("src", "source.responses", {"table": "responses"}),
+            ("xtab", "analyze.crosstab", {"row": "satisfaction", "col": "region"}),
+            (
+                "section",
+                "output.report_section",
+                {"heading": "R", "layout": {"xtab": {"width": "60%"}}},
+            ),
+            (
+                "save",
+                "output.save_report",
+                {
+                    "title": "T",
+                    "path": "outputs/r.md",
+                    "html": True,
+                    "theme": {"font_preset": "modern", "page": "a4", "number_tables": True},
+                },
+            ),
+        ],
+        [
+            ("src", "data", "xtab", "data"),
+            ("xtab", "table", "section", "items"),
+            ("section", "report", "save", "sections"),
+        ],
+    )
+    result = FlowRunner(document, questionnaire=survey).run(
+        sources={"src": responses}, cwd=tmp_path
+    )
+    assert result.ok
+    html = (tmp_path / "outputs" / "r.html").read_text("utf-8")
+    assert '<meta name="siamang-report-theme" content="modern">' in html
+    assert "@page { size: A4" in html
+    assert "--fig-w:60%" in html
+    assert "Table 1." in html
+    # The Markdown is the content and says nothing about any of it.
+    markdown = (tmp_path / "outputs" / "r.md").read_text("utf-8")
+    assert "60%" not in markdown and "Table 1." not in markdown
+
+
 def test_check_flow_reports_graph_problems(questionnaire_doc):
     def codes(document):
         return sorted(
@@ -1063,9 +1189,7 @@ def test_the_derive_node_reports_a_bad_formula_before_anything_runs(questionnair
     assert "agee" in issues[0].message
 
 
-def test_the_banner_node_runs_and_only_compares_within_a_block(
-    questionnaire_doc, survey, tmp_path
-):
+def test_the_banner_node_runs_and_only_compares_within_a_block(questionnaire_doc, survey, tmp_path):
     """The letters are the reason this node exists, and the way to get them
     wrong is to compare columns that are not mutually exclusive."""
 
@@ -1081,9 +1205,9 @@ def test_the_banner_node_runs_and_only_compares_within_a_block(
         [("sim", "data", "ban", "data")],
     )
     assert check_flow(flow, questionnaire=questionnaire_doc) == []
-    result = FlowRunner(
-        flow, questionnaire=survey, questionnaire_document=questionnaire_doc
-    ).run(cwd=tmp_path)
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path
+    )
     assert result.ok
 
     # to_frame(), not a duck test: BannerTable has a `columns` field of its own

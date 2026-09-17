@@ -175,6 +175,11 @@ and names the two things that work: print the HTML from a browser, or
 `pandoc report.html -o report.pdf` (`-o report.docx` for Word). Both honor the
 theme's `@page` rule.
 
+`Report.add()` and `Report.image()` take a **`width`** (a CSS length), an
+**`align`** and a **`break_before`**, checked where they are written rather than
+where they are rendered. Two items at `width="48%"` with `align="left"` sit side
+by side. Like the theme, they reach the HTML only.
+
 `sample_report(theme)` builds a short report using every kind of block, from
 literals rather than from data, so a theme can be previewed without a run.
 

@@ -133,6 +133,28 @@ def _render_param(spec: NodeSpec, name: str, value: Any, graph: FlowGraph, node_
         sources = graph.inputs.get(node_id, {}).get(many.name, [])
         captions = value or {}
         return repr([captions.get(source) for source, _port in sources])
+    if kind == "layout":
+        # The same shape `captions` takes: keyed by source node in the document
+        # (so it survives a rename), positional in the code (so it lines up with
+        # the `many` port the template zips over).
+        many = next((port for port in spec.inputs.values() if port.many), None)
+        if many is None:
+            return "[]"
+        sources = graph.inputs.get(node_id, {}).get(many.name, [])
+        layout = value or {}
+        return repr([dict(layout.get(source) or {}) for source, _port in sources])
+    if kind == "theme":
+        if not value:
+            # Not "the default theme": no theme at all, so a house style handed
+            # to the run (SIAMANG_REPORT_THEME) still applies.
+            return "None"
+        # Only the fields that were chosen, in the dataclass's own order, so the
+        # script reads as a set of decisions. A plain dict rather than a
+        # constructor call: it needs no import, and every other parameter in a
+        # generated script is data too.
+        from siamang.reporting.theme import ReportTheme
+
+        return repr(ReportTheme.from_dict(value).to_dict())
     if kind == "float" and isinstance(value, int) and not isinstance(value, bool):
         return repr(float(value))
     return repr(value)

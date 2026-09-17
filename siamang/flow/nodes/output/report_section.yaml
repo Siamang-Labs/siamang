@@ -23,6 +23,10 @@ params:
   captions:
     kind: captions
     label: Captions
+  layout:
+    kind: layout
+    label: Size and placement
+    help: Per item — a width (60%, 320px), an alignment, or a page break before it. The Markdown is unaffected.
   note:
     kind: markdown
     label: Note
@@ -39,8 +43,8 @@ template:
   code: |
     {out.report}.text({text!r})
 - |
-  for _item, _caption in zip({in.items}, {captions!r}, strict=True):
-      {out.report}.add(_item, caption=_caption)
+  for _item, _caption, _layout in zip({in.items}, {captions!r}, {layout!r}, strict=True):
+      {out.report}.add(_item, caption=_caption, **_layout)
 - when: note
   code: |
     {out.report}.note({note!r})

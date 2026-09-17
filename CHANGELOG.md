@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`theme` and `layout` flow parameters** and per-item placement on `Report`.
+  `Report.add()` / `.image()` take a `width`, an `align` and a `break_before`,
+  validated where they are written; `output.save_report` takes a `theme` and
+  `output.report_section` a `layout` keyed by the item's node, both read by
+  `check_flow` so a misspelled field is named on the document rather than raised
+  in a run. They are kinds of their own for the same reason `formula` is one.
+  The theme travels as plain data in the generated script — no import to add —
+  and everything that accepts a theme accepts a mapping too. All of it reaches
+  the HTML only: Markdown is the report's content and carries no layout.
+
 - **`siamang.reporting.ReportTheme`** and a real HTML document. `Report.to_html()`
   returned a bare `markdown.markdown()` fragment — no `<head>`, no charset, no
   stylesheet — so every caller had to invent a look, which is another way of
