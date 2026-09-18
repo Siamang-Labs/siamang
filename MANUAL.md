@@ -592,7 +592,8 @@ ui = UIConfig(
     accent_color="#1f3a93",
     font_pair="mixed",          # serif headings + sans body
     progress_style="dots",
-    default_theme="system",     # respects prefers-color-scheme
+    default_theme="system",     # what the respondent starts on
+    allow_theme_switch=False,   # …and stays on: no light/dark button
     require_access_code=True,
     access_codes=["wave1-001", "wave1-002"],
     enable_analytics=True,      # Vercel Analytics if frontend=="vercel"

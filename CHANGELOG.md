@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`UIConfig.allow_theme_switch`** — whether the respondent may change the
+  survey's light/dark theme. The runtime has always shown that button and
+  remembered the choice, which made `default_theme` only ever a starting point:
+  a stored value beat it. Set it to `False` and the button is not rendered, the
+  stored value is not consulted, and the survey is pinned to `default_theme` —
+  the questionnaire is an instrument, and a presentation half the sample can
+  change is an uncontrolled variable. It stays `True` by default, because
+  reading on a dark screen is an accessibility need rather than a preference.
+  `default_theme` is now validated by `UIConfig` like its other enumerations.
+
 - **`theme` and `layout` flow parameters** and per-item placement on `Report`.
   `Report.add()` / `.image()` take a `width`, an `align` and a `break_before`,
   validated where they are written; `output.save_report` takes a `theme` and
@@ -18,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The theme travels as plain data in the generated script — no import to add —
   and everything that accepts a theme accepts a mapping too. All of it reaches
   the HTML only: Markdown is the report's content and carries no layout.
+
+- **The respondent's theme is remembered per survey.** The key was the constant
+  `siamang_theme`, and `localStorage` is per origin, so every survey served from
+  one host shared it: a respondent who chose dark in one study arrived in the
+  next one dark. It is now `siamang_theme_<survey id>`, the way the saved answers
+  beside it have always been keyed, and reading and writing it are wrapped —
+  storage does not merely come back empty in a private window, it throws.
 
 - **`siamang.reporting.ReportTheme`** and a real HTML document. `Report.to_html()`
   returned a bare `markdown.markdown()` fragment — no `<head>`, no charset, no

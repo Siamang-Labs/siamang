@@ -3,12 +3,31 @@
 
 /* ─── useTheme ─────────────────────────────────────────────────────────── */
 
-function useTheme(defaultTheme) {
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("siamang_theme");
-    if (saved) return saved;
+function useTheme(defaultTheme, allowSwitch, surveyId) {
+  /* Keyed by survey, the way the answers are (useAutosave below): the key used
+     to be the constant "siamang_theme", and localStorage is per origin, so a
+     respondent who chose dark in one study arrived in the next one dark — a
+     preference leaking between instruments that know nothing about each other.
+
+     And it is only read when the respondent is allowed to choose. With the
+     switch off the survey is pinned to what the researcher set, which is the
+     whole point of turning it off; reading a stored value there would let an
+     old choice override a decision made about this study. */
+  const storageKey = "siamang_theme_" + surveyId;
+  const preferred = () => {
     if (defaultTheme && defaultTheme !== "system") return defaultTheme;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  };
+
+  const [theme, setTheme] = useState(() => {
+    if (!allowSwitch) return preferred();
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved === "light" || saved === "dark") return saved;
+    } catch (err) {
+      /* Storage can throw outright in private mode, not merely come back empty. */
+    }
+    return preferred();
   });
 
   useEffect(() => {
@@ -18,8 +37,12 @@ function useTheme(defaultTheme) {
   const toggle = useCallback(() => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
-    localStorage.setItem("siamang_theme", next);
-  }, [theme]);
+    try {
+      localStorage.setItem(storageKey, next);
+    } catch (err) {
+      /* The choice still applies to this sitting; it just is not remembered. */
+    }
+  }, [theme, storageKey]);
 
   return { theme, toggle };
 }

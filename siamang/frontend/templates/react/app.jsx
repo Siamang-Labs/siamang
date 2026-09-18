@@ -828,7 +828,7 @@ function App() {
   const visibilityEngine = useVisibilityEngine(allPages, store);
 
   // ─── Theme ───
-  const { theme, toggle: toggleTheme } = useTheme(ui.defaultTheme);
+  const { theme, toggle: toggleTheme } = useTheme(ui.defaultTheme, ui.allowThemeSwitch !== false, surveyId);
 
   // ─── Navigation ───
   const pageIdxRef = useRef(0);
@@ -1213,11 +1213,13 @@ function App() {
           </div>
         )}
         <Footer />
-        <div className="siamang-footer__row" style={{ justifyContent: "center", marginTop: 12 }}>
-          <button type="button" className="siamang-theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
-            {theme === "light" ? "\uD83C\uDF19" : "\u2600\uFE0F"}
-          </button>
-        </div>
+        {ui.allowThemeSwitch !== false && (
+          <div className="siamang-footer__row" style={{ justifyContent: "center", marginTop: 12 }}>
+            <button type="button" className="siamang-theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
+              {theme === "light" ? "\uD83C\uDF19" : "\u2600\uFE0F"}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
