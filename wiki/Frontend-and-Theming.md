@@ -245,7 +245,10 @@ English: `next_button_text`, `prev_button_text`, `submit_button_text`,
 ### Advanced (navigation, access, analytics)
 
 `progress_style` (`"bar"` | `"dots"` | `"both"`), `default_theme` (`"light"` |
-`"dark"` | `"system"`), `redirect_url`, `allow_back`, `enable_analytics` (injects
+`"dark"` | `"system"`) with `allow_theme_switch` (default `True`) deciding
+whether the respondent may change it — off, the light/dark button is not shown
+and the survey stays on `default_theme` for the whole sample —
+`redirect_url`, `allow_back`, `enable_analytics` (injects
 Vercel Analytics when `frontend="vercel"`), and an access gate:
 `require_access_code`, `access_codes`, `access_title`, `access_body`,
 `access_placeholder`, `access_button`. `custom_css` is a raw escape hatch appended

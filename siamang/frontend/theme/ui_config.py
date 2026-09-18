@@ -9,6 +9,7 @@ _FONT_PAIR_VALUES = {"serif", "sans", "mixed"}
 _LOGO_POSITIONS = {"left", "right", "center"}
 _QUESTION_STYLES = {"plain", "divided", "carded", "accent"}
 _FONT_PRESET_VALUES = {"academic", "modern", "humanist"}
+_THEME_VALUES = {"light", "dark", "system"}
 
 
 # ─── Font preset definitions ─────────────────────────────────────────────────
@@ -122,8 +123,21 @@ class UIConfig:
     # --- progress style -------------------------------------------------
     progress_style: str = "bar"  # "bar" | "dots" | "both"
 
-    # --- theme default --------------------------------------------------
+    # --- theme ------------------------------------------------------------
+    # `default_theme` is what the respondent starts on; "system" follows their
+    # operating system. It is a starting point, not a decision: the runtime
+    # shows a light/dark button and remembers what they pick.
+    #
+    # `allow_theme_switch=False` takes that button away and pins the survey to
+    # `default_theme`. A questionnaire is a measurement instrument, and when
+    # half a sample answers on a dark ground the presentation is an
+    # uncontrolled variable: contrast, legibility, and any image stimulus with
+    # a light background all change. Leave it on where the respondent's comfort
+    # matters more than that — reading on a dark screen is a real accessibility
+    # need, not a preference — and turn it off where the instrument has to look
+    # the same for everyone.
     default_theme: str = "light"  # "light" | "dark" | "system"
+    allow_theme_switch: bool = True
 
     # --- redirect -------------------------------------------------------
     # Where a respondent goes after the survey: on completion (a final page
@@ -163,6 +177,8 @@ class UIConfig:
             raise ValueError(f"question_style must be one of: {sorted(_QUESTION_STYLES)}.")
         if self.font_preset not in _FONT_PRESET_VALUES:
             raise ValueError(f"font_preset must be one of: {sorted(_FONT_PRESET_VALUES)}.")
+        if self.default_theme not in _THEME_VALUES:
+            raise ValueError(f"default_theme must be one of: {sorted(_THEME_VALUES)}.")
 
     @property
     def effective_accent(self) -> str:

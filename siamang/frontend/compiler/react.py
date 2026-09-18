@@ -94,6 +94,7 @@ def compile_react_payload(
         "saveLocalAction": ui.save_local_action,
         "progressStyle": ui.progress_style,
         "defaultTheme": ui.default_theme,
+        "allowThemeSwitch": ui.allow_theme_switch,
         "redirectUrl": ui.redirect_url,
         "screenOutRedirectUrl": ui.screen_out_redirect_url,
         "quotaFullRedirectUrl": ui.quota_full_redirect_url,

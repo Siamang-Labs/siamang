@@ -187,7 +187,8 @@ completion_title, completion_body
 | Property | Default | Description |
 | :--- | :--- | :--- |
 | `progress_style` | `"bar"` | The style of the progress indicator. Allowed values: `"bar"` (linear progress bar), `"dots"` (step-by-step dots), or `"both"`. |
-| `default_theme` | `"light"` | The default color theme. Allowed values: `"light"`, `"dark"`, or `"system"` (respects browser preference). |
+| `default_theme` | `"light"` | The theme the respondent starts on. Allowed values: `"light"`, `"dark"`, or `"system"` (respects browser preference). A starting point, not a decision — see `allow_theme_switch`. |
+| `allow_theme_switch` | `True` | Whether the respondent may change it. On, the runtime shows a light/dark button and remembers the choice for this survey. Off, the button is not shown and the survey stays on `default_theme` for everyone — set it where the instrument has to look the same across the sample, and leave it on where the respondent's comfort matters more. |
 | `redirect_url` | `None` | Optional URL to automatically redirect the respondent to after successful submission (triggered after a 5-second countdown). |
 | `allow_back` | `True` | If `True`, displays the "Previous" button. Setting this to `False` disables backward navigation, which is useful for fixed-order surveys where allowing respondents to modify past answers would break branching logic or experimental designs [4]. |
 | `enable_analytics` | `False` | If `True` and deployed to Vercel, automatically injects the Vercel Web Analytics script. |

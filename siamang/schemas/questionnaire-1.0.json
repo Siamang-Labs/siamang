@@ -2280,6 +2280,9 @@
             "system"
           ]
         },
+        "allow_theme_switch": {
+          "type": "boolean"
+        },
         "redirect_url": {
           "anyOf": [
             {
