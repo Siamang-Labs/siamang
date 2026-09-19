@@ -98,6 +98,11 @@ the run rather than raised inside it, and both reach only the **HTML**: the
 Markdown is the report's content and carries no layout. A flow that names no
 theme leaves `SIAMANG_REPORT_THEME` to answer.
 
+Which is why `html` defaults to **true**: a node whose `theme` and `layout` are
+checked on every run but produce no file anyone can look at is a trap, and the
+two parameters describe a document that was not being written. `html: false`
+writes the Markdown alone.
+
 `output.save_report` ends the report with a **provenance footer** when the
 environment variable `SIAMANG_PROVENANCE` is set (Markdown: questionnaire
 version, data snapshot, engine version — whatever ran the flow knows). A
