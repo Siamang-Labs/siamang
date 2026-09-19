@@ -20,7 +20,7 @@ params:
     label: Path
   html:
     kind: bool
-    default: false
+    default: true
     label: Also save HTML
   toc:
     kind: bool
