@@ -182,7 +182,7 @@ def test_kitchen_sink_round_trip():
     about = next(page for page in document["pages"] if page["name"] == "about")
     gender_q = about["items"][2]
     assert gender_q["hide_if"] == {"type": "raw", "text": "{consent} == 2"}
-    assert gender_q["name"] == "gender_q" and gender_q["skip_to"] == "wrap"
+    assert gender_q["name"] == "gender" and gender_q["skip_to"] == "wrap"
     assert about["items"][0]["tag"] == ["screener", "demo"]
     assert about["items"][0]["metadata"] == {"group": "demo", "weight": 1.5}
     assert about["items"][1]["choices"][2]["show_if"] == {"type": "raw", "text": "{age} >= 18"}
