@@ -1,19 +1,34 @@
-# siamang & siamang Cloud
+# siamang, siamang Cloud & Siamang Studio
 
 **siamang** is a *research-as-code* framework for sociological surveys. You define
 variables, questionnaires, and logic in **pure Python** — then validate, preview,
-simulate, deploy, collect, and analyze, all from a single pipeline. No GUI builders,
-no drag-and-drop, no lock-in: a survey is just a Python module you can version,
-test, and reuse.
+simulate, deploy, collect, and analyze, all from a single pipeline. The engine has
+no GUI and no lock-in: a survey is just a Python module you can version, test, and
+reuse. (Siamang Studio, below, has a GUI — and it writes engine code.)
 
 **siamang Cloud** is the managed platform built on the siamang engine: keep your
 surveys as code in hosted projects, deploy them with one click, collect responses,
 run analysis, and share reports — all from your browser.
 
-> This wiki has **two parts**. Use the sidebar to navigate.
+**Siamang Studio** is the visual survey platform on the same engine: build the
+questionnaire, publish it, collect responses, analyze them on a node canvas and
+write the report — all by mouse, with every questionnaire and analysis
+downloadable as Python that runs without Studio.
+
+> This wiki has **three parts**. Use the sidebar to navigate.
 >
+> - 🎛️ **Siamang Studio** — the visual platform, no code required. Start at **[[Studio Overview|Studio-Overview]]**.
 > - 📚 **Library** — the `siamang` Python package. Start at **[[Quickstart]]**.
-> - ☁️ **siamang Cloud** — the hosted platform. Start at **[[Cloud Overview|Cloud-Overview]]**.
+> - ☁️ **siamang Cloud** — the hosted research-as-code platform. Start at **[[Cloud Overview|Cloud-Overview]]**.
+
+### Which part do I need?
+
+| You… | Go to |
+| :--- | :--- |
+| want to build and run surveys in the browser without writing code | 🎛️ [[Siamang Studio\|Studio-Overview]] — start with the [[Quick Start\|Studio-Quick-Start]] |
+| downloaded a `questionnaire.py` or a research bundle from Studio and want to run it | 📚 [[Installation]], then [[CLI Reference\|CLI-Reference]] and [[Reproducibility\|Studio-Reproducibility]] |
+| write surveys as Python and want them versioned in Git | 📚 [[Quickstart]] and ☁️ [[Cloud Overview\|Cloud-Overview]] |
+| came here from Studio's **Documentation** menu | 🎛️ [[Studio Overview\|Studio-Overview]] |
 
 ---
 
@@ -69,6 +84,7 @@ siamang deploy   my_survey.py --backend supabase --frontend vercel
 | **Deploy** | Local SQLite, Supabase, Google Sheets backends; Local, Vercel, Netlify frontends |
 | **Data I/O** | CSV, Excel, SPSS, Stata, R — SPSS/Stata round-trip labels and missing values; CSV/Excel carry data only (labels via the JSON dictionary) |
 | **Cloud** | Hosted survey projects, one-click deploy, response collection, live dashboards, scheduled analysis, shareable reports, team roles and plans |
+| **Studio** | Visual questionnaire builder, environments and permanent links, panel returns, email invitations, response database, node-based analysis canvas, live tiles, reports, version history, research bundles, AI assistant |
 
 ---
 
@@ -102,6 +118,21 @@ See the full list in the sidebar, or the manual **[[API Reference Index\|API-Ref
 | [[Project Config (siamang.yaml)\|Cloud-siamang-yaml]] · [[Analysis SDK\|Cloud-Analysis-SDK]] | Configure projects and write analysis scripts |
 | [[Plans & Billing\|Cloud-Subscription-Tiers]] | Plans, limits, and team roles |
 | [[FAQ & Troubleshooting\|Cloud-FAQ-and-Troubleshooting]] | Common questions and fixes |
+
+## 🎛️ Siamang Studio — start here
+
+| Page | What it covers |
+| :--- | :--- |
+| [[Studio Overview\|Studio-Overview]] | What Studio does, who it is for, and the full table of contents |
+| [[Quick Start\|Studio-Quick-Start]] | From sign-up to your first responses and your first table |
+| [[Key Concepts\|Studio-Key-Concepts]] | Organizations, projects, Saves, deployments, flows — the vocabulary |
+| [[Tutorial: A Study from Start to Finish\|Studio-Tutorial-End-to-End]] | One realistic study through every stage |
+| [[The Builder\|Studio-Builder-Overview]] · [[Question Types\|Studio-Question-Types]] · [[Logic and Branching\|Studio-Logic-and-Branching]] | Building the questionnaire |
+| [[Publishing and Environments\|Studio-Publishing-and-Environments]] · [[Email Invitations\|Studio-Email-Invitations]] | Getting the survey to respondents |
+| [[Responses and the Data Tab\|Studio-Responses-and-Data]] · [[Data Exports\|Studio-Data-Exports]] | Your data and every export format |
+| [[Analysis Flows\|Studio-Flows]] · [[Node Reference\|Studio-Node-Reference]] · [[Reports\|Studio-Reports]] | Analysis on the canvas and the report |
+| [[Reproducibility\|Studio-Reproducibility]] | Download .py, research bundles, citation |
+| [[Plans, Trial and Billing\|Studio-Plans-and-Billing]] · [[FAQ and Troubleshooting\|Studio-FAQ-and-Troubleshooting]] | Plans, limits, and fixes |
 
 ---
 
