@@ -292,3 +292,8 @@ jq -n --slurpfile s settings.json --argjson base "$SEQ" \
 - [[Data Exports|Studio-Data-Exports]]
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]] · [Studio contents](Studio-Overview#all-pages) · [[Working Together|Studio-Collaboration]] →

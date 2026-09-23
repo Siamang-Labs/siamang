@@ -145,3 +145,8 @@ To analyze external data today:
 - [[Connectors|Studio-Connectors]]
 - [[Theme and Branding|Studio-Theme-and-Branding]]
 - [[Limits and Quotas at a Glance|Studio-Limits-Reference]]
+
+<!-- studio-nav -->
+---
+
+← [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]] · [Studio contents](Studio-Overview#all-pages) · [[Connectors|Studio-Connectors]] →

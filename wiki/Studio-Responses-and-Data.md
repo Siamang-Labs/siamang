@@ -302,3 +302,8 @@ page. There is no automatic deletion after a period.
 - [[What Respondents See|Studio-Respondent-Experience]]
 - [[Analysis Flows|Studio-Flows]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Live Monitoring|Studio-Live-Monitoring]] · [Studio contents](Studio-Overview#all-pages) · [[Data Exports|Studio-Data-Exports]] →

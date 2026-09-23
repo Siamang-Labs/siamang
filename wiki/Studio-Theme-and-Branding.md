@@ -419,3 +419,8 @@ Custom CSS is a *(Plus)* feature at publishing time:
 - [[Organizations and Team|Studio-Organizations-and-Team]]
 - [[Scripts|Studio-Scripts]]
 - [[Testing Your Survey|Studio-Testing-Your-Survey]]
+
+<!-- studio-nav -->
+---
+
+← [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]] · [Studio contents](Studio-Overview#all-pages) · [[Scripts|Studio-Scripts]] →

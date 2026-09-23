@@ -450,3 +450,8 @@ when a contact list was imported with consent if a mailing is disputed.
 - [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
 - [[Working Together|Studio-Collaboration]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Account and Profile|Studio-Account-and-Profile]] · [Studio contents](Studio-Overview#all-pages) · [[Projects|Studio-Projects]] →

@@ -700,3 +700,8 @@ Report view, and while a colleague holds the edit lock. See
 - [[Reports|Studio-Reports]]
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
 - [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
+
+<!-- studio-nav -->
+---
+
+← [[Data Quality|Studio-Data-Quality]] · [Studio contents](Studio-Overview#all-pages) · [[Node Reference|Studio-Node-Reference]] →

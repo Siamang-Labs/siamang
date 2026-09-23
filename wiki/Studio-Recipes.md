@@ -23,7 +23,7 @@ short path; the linked pages have every option and caveat.
   [embed](#embed-the-survey-in-your-website)
 - Data and analysis: [erasure request](#handle-a-data-erasure-request) ·
   [SPSS / Stata / R](#get-labeled-data-into-spss-stata-or-r) ·
-  [weighted crosstab](#a-weighted-crosstab-with-a-significance-test) ·
+  [weighted table](#a-weighted-table-with-significance-tests) ·
   [banner table](#a-banner-table-for-a-client-deck) ·
   [clean once, reuse](#clean-once-and-reuse-the-clean-data-in-several-flows) ·
   [open answers](#code-open-ended-answers) ·
@@ -125,8 +125,7 @@ texts in the target language, then **More ▾ → Theme → Wording** and replac
 the runtime's fixed phrases (buttons, saving and failure messages). A few
 runtime texts are still English only — see
 [[Theme and Branding|Studio-Theme-and-Branding]]. For several languages, use
-one project per language, or one questionnaire per language in the same
-project history.
+one project per language.
 
 ### Move a Qualtrics survey into Studio
 
@@ -260,12 +259,19 @@ set the height to suit your page.
 Exports contain every row of the table — all environments and partial
 interviews; filter on `survey_id` and `partial`. → [[Data Exports|Studio-Data-Exports]]
 
-### A weighted crosstab with a significance test
+### A weighted table with significance tests
 
 In a flow: **Responses** → **Rake weights** (targets such as
 `{"region": {"1": 0.45, "2": 0.30, "3": 0.25}}`) → **Apply weight** →
-**Crosstab** (**Rows**, **Columns**, **Percentages** `col`, **Chi-square test**
-on). Every table and test after **Apply weight** uses the weight.
+**Banner table** (**Questions (down)** `satisfaction`, **Breakdowns (across)**
+`region`, **Significance letters** on). The banner shows weighted column
+percentages and tests on the effective base.
+
+> **Current limitation.** Only some nodes use the applied weight: **Banner
+> table**, **Net Promoter Score**, **Regression**, **TURF** and **Proportion
+> CI** (with **Weighted** ticked). **Frequencies**, **Crosstab**, **Group
+> means** and the charts are unweighted even after **Apply weight**.
+
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
 ### A banner table for a client deck
@@ -351,3 +357,8 @@ every flow on the bundled data; reports land in `outputs/`.
 - [[Tutorial: A Study from Start to Finish|Studio-Tutorial-End-to-End]]
 - [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]]
 - [[Key Concepts|Studio-Key-Concepts]]
+
+<!-- studio-nav -->
+---
+
+← [[Security and Privacy|Studio-Security-and-Privacy]] · [Studio contents](Studio-Overview#all-pages) · [[Limits and Quotas at a Glance|Studio-Limits-Reference]] →

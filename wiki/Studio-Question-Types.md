@@ -497,3 +497,8 @@ If your design needs one of these, say so through **Profile → Support**.
 - [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
 - [[Logic and Branching|Studio-Logic-and-Branching]]
 - [[Data Quality|Studio-Data-Quality]]
+
+<!-- studio-nav -->
+---
+
+← [[The Builder|Studio-Builder-Overview]] · [Studio contents](Studio-Overview#all-pages) · [[Codebook and Variables|Studio-Codebook-and-Variables]] →

@@ -312,3 +312,8 @@ project's activity log.
 - [[What Respondents See|Studio-Respondent-Experience]]
 - [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Panel Providers|Studio-Panel-Providers]] · [Studio contents](Studio-Overview#all-pages) · [[What Respondents See|Studio-Respondent-Experience]] →

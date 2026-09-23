@@ -314,3 +314,8 @@ never lost — but nothing converts old answers for you. Practical rules:
 - [[The Builder|Studio-Builder-Overview]]
 - [[Data Exports|Studio-Data-Exports]]
 - [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
+
+<!-- studio-nav -->
+---
+
+← [[Question Types|Studio-Question-Types]] · [Studio contents](Studio-Overview#all-pages) · [[Logic and Branching|Studio-Logic-and-Branching]] →

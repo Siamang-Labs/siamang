@@ -335,3 +335,8 @@ See [Preview deployments](Studio-Publishing-and-Environments#preview-deployments
 - [[Theme and Branding|Studio-Theme-and-Branding]]
 - [[AI Assistant|Studio-AI-Assistant]]
 - [[Data Quality|Studio-Data-Quality]]
+
+<!-- studio-nav -->
+---
+
+← [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]] · [Studio contents](Studio-Overview#all-pages) · [[AI Assistant|Studio-AI-Assistant]] →

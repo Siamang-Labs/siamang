@@ -157,3 +157,8 @@ pre-registration and deposits, comments and edit locks, API keys.
 - [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
 - [[Glossary|Studio-Glossary]]
+
+<!-- studio-nav -->
+---
+
+← [[Recipes|Studio-Recipes]] · [Studio contents](Studio-Overview#all-pages) · [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]] →

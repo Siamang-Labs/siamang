@@ -513,3 +513,8 @@ Saves are listed in History (see above).
 - [[Working Together|Studio-Collaboration]]
 - [[Project Settings|Studio-Project-Settings]]
 - [[Key Concepts|Studio-Key-Concepts]]
+
+<!-- studio-nav -->
+---
+
+← [[Reports|Studio-Reports]] · [Studio contents](Studio-Overview#all-pages) · [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]] →

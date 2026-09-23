@@ -178,3 +178,8 @@ node — see [[Reports|Studio-Reports]].
 - [[Key Concepts|Studio-Key-Concepts]]
 - [[Recipes|Studio-Recipes]]
 - [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]]
+
+<!-- studio-nav -->
+---
+
+← [[Siamang Studio — Overview|Studio-Overview]] · [Studio contents](Studio-Overview#all-pages) · [[Key Concepts|Studio-Key-Concepts]] →

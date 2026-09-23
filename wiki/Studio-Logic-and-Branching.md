@@ -533,3 +533,8 @@ See [[Testing Your Survey|Studio-Testing-Your-Survey]].
 - [[Scripts|Studio-Scripts]]
 - [[Testing Your Survey|Studio-Testing-Your-Survey]]
 - [[Panel Providers|Studio-Panel-Providers]]
+
+<!-- studio-nav -->
+---
+
+← [[Codebook and Variables|Studio-Codebook-and-Variables]] · [Studio contents](Studio-Overview#all-pages) · [[Quotas and Randomization|Studio-Quotas-and-Randomization]] →

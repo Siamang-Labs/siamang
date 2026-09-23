@@ -325,3 +325,8 @@ license for using the engine outside Studio, write to `info@siamang-team.org`.
 - [[Connectors|Studio-Connectors]]
 - [[AI Assistant|Studio-AI-Assistant]]
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
+
+<!-- studio-nav -->
+---
+
+← [[Project Settings|Studio-Project-Settings]] · [Studio contents](Studio-Overview#all-pages) · [[The Builder|Studio-Builder-Overview]] →

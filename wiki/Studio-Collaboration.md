@@ -195,3 +195,8 @@ The full matrix, and how to invite people and change roles, is in
 - [[The Builder|Studio-Builder-Overview]]
 - [[Analysis Flows|Studio-Flows]]
 - [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]]
+
+<!-- studio-nav -->
+---
+
+← [[API and API Keys|Studio-API-and-API-Keys]] · [Studio contents](Studio-Overview#all-pages) · [[Security and Privacy|Studio-Security-and-Privacy]] →

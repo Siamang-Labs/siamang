@@ -32,7 +32,8 @@ cleaning pass every 30 minutes during fieldwork."
    times (UTC). Each run lands in the history like a manual one; outputs and
    reports are replaced." — choose:
    - **What to run**: **Run all flows (in dependency order)**, or one flow by
-     name.
+     name. Despite the label, Run all runs flows in alphabetical order of
+     their names — see [[Analysis Flows|Studio-Flows]].
    - **When**: a preset or **Custom cron…**.
 3. Click **Schedule**. You see "Scheduled Run all" or "Scheduled *flow*".
 
@@ -243,3 +244,8 @@ small endpoint of your own that calls Slack.
 - [[API and API Keys|Studio-API-and-API-Keys]]
 - [[Organizations and Team|Studio-Organizations-and-Team]]
 - [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
+
+<!-- studio-nav -->
+---
+
+← [[Connectors|Studio-Connectors]] · [Studio contents](Studio-Overview#all-pages) · [[API and API Keys|Studio-API-and-API-Keys]] →

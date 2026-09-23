@@ -246,3 +246,8 @@ coding:
 - [[Security and Privacy|Studio-Security-and-Privacy]]
 - [[Analysis Flows|Studio-Flows]]
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
+
+<!-- studio-nav -->
+---
+
+← [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]] · [Studio contents](Studio-Overview#all-pages) · [[Reports|Studio-Reports]] →

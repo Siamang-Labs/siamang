@@ -324,3 +324,8 @@ A bundle is also a starting point if you want to work with the code directly:
 - [[Reports|Studio-Reports]]
 - [[Data Exports|Studio-Data-Exports]]
 - [[Coding Open Answers|Studio-Open-Answer-Coding]]
+
+<!-- studio-nav -->
+---
+
+← [[History and Versions|Studio-History-and-Versions]] · [Studio contents](Studio-Overview#all-pages) · [[Files|Studio-Files]] →

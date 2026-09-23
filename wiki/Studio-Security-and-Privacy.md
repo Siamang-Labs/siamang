@@ -233,3 +233,8 @@ For the current legal texts see the
 - [[Responses and the Data Tab|Studio-Responses-and-Data]]
 - [[AI Assistant|Studio-AI-Assistant]]
 - [[Email Invitations|Studio-Email-Invitations]]
+
+<!-- studio-nav -->
+---
+
+← [[Working Together|Studio-Collaboration]] · [Studio contents](Studio-Overview#all-pages) · [[Recipes|Studio-Recipes]] →
