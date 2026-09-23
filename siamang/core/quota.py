@@ -53,6 +53,14 @@ def validate_options(survey: Questionnaire, options: Mapping[str, Any] | None) -
     if survey.variables:
         for name, variable in survey.variables.items():
             variables.setdefault(name, variable)
+    # An arm drawn by `Script.assign_condition` is a variable too — the one a
+    # balanced assignment needs a quota cell per arm on — and its categories are
+    # the arm codes.
+    arms_of: dict[str, list[Any]] = {}
+    for script in getattr(survey, "scripts", []):
+        assigned = getattr(script, "assigns", None)
+        if assigned and assigned not in variables:
+            arms_of[assigned] = [arm[0] for arm in (script.context or {}).get("arms", [])]
 
     seen: list[tuple[str, Any]] = []
     for quota in quotas:
@@ -61,11 +69,19 @@ def validate_options(survey: Questionnaire, options: Mapping[str, Any] | None) -
                 f"options['quota'] must contain Quota objects, got {type(quota).__name__}."
             )
         bound = variables.get(quota.variable)
-        if bound is None:
+        if bound is None and quota.variable in arms_of:
+            codes = arms_of[quota.variable]
+            if not any(_same_code(code, quota.target_value) for code in codes):
+                known = ", ".join(str(code) for code in codes)
+                raise ValueError(
+                    f"Quota on '{quota.variable}' targets value {quota.target_value}, "
+                    f"which is not one of its arms ({known})"
+                )
+        elif bound is None:
             raise ValueError(f"Quota references unknown variable: {quota.variable}")
         # An empty codebook means there is nothing to check against — a quota on
         # an unlabelled variable (an external panel code, say) stays legal.
-        if bound.labels and not any(code == quota.target_value for code in bound.labels):
+        elif bound.labels and not any(code == quota.target_value for code in bound.labels):
             known = ", ".join(str(code) for code in bound.labels)
             raise ValueError(
                 f"Quota on '{quota.variable}' targets value {quota.target_value}, "
@@ -80,3 +96,10 @@ def validate_options(survey: Questionnaire, options: Mapping[str, Any] | None) -
         if any(key == existing for existing in seen):
             raise ValueError(f"Duplicate quota for '{quota.variable}' value {quota.target_value}.")
         seen.append(key)
+
+
+def _same_code(code: Any, value: Any) -> bool:
+    """Arm codes come from a script's context and the quota's value from a
+    document, so `1` and `"1"` are the same arm."""
+
+    return code == value or str(code) == str(value)

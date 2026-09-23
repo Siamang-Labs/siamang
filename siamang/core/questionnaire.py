@@ -221,11 +221,7 @@ class Questionnaire:
             raise ValueError("Cycle detected in page navigation graph.")
 
     def _validate_page_expressions(self) -> None:
-        known_vars = {
-            variable.name
-            for question in self.all_questions()
-            for variable in (question.var if isinstance(question.var, list) else [question.var])
-        }
+        known_vars = self._known_variable_names()
         pattern = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
         probe_answers = {name: 0 for name in known_vars}
 
@@ -251,6 +247,32 @@ class Questionnaire:
                 expr.evaluate(probe_answers)
             except Exception as exc:
                 raise ValueError(f"{location} has invalid {field} expression: {exc}") from exc
+
+    def _known_variable_names(self) -> set[str]:
+        """Every name a condition may read: what the questions collect, what the
+        codebook declares without a question (embedded data — a panel id, a
+        sample cell), and what a script writes before the first page
+        (``Script.assign_condition``)."""
+
+        known = {
+            variable.name
+            for question in self.all_questions()
+            for variable in (question.var if isinstance(question.var, list) else [question.var])
+        }
+        if self.variables is not None:
+            known.update(self.variables.keys())
+        known.update(self.assigned_variables())
+        return known
+
+    def assigned_variables(self) -> list[str]:
+        """Variables the scripts write for every respondent, in script order."""
+
+        names: list[str] = []
+        for script in self.scripts:
+            assigned = getattr(script, "assigns", None)
+            if assigned and assigned not in names:
+                names.append(assigned)
+        return names
 
     def _validate_page_expressions_for_export(self, target: str) -> None:
         if target != "surveyjs":
@@ -728,7 +750,11 @@ def _piping_warnings(survey: Questionnaire) -> list[LintWarning]:
 
     warnings: list[LintWarning] = []
     known = set(survey.variables.keys()) if survey.variables else set()
-    seen: set[str] = set()
+    # An assigned arm is written before the first page, so it is never a
+    # forward reference — it may be piped anywhere.
+    assigned = set(survey.assigned_variables())
+    known |= assigned
+    seen: set[str] = set(assigned)
     pages = survey.pages or []
     if not pages:
         for question in survey.all_questions():

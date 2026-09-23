@@ -108,6 +108,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `validate()` rejected a `show_if` / `next_if` on a variable no question
+  collects — the arm `Script.assign_condition` writes, or embedded data declared
+  in the codebook — as "unknown variables", which made the one thing an
+  assignment exists for impossible to publish. Both now count as known
+  (`Questionnaire.assigned_variables()`, `Script.assigns`); a name nothing
+  writes is still refused. `validate_options` likewise accepts a quota on an
+  assigned arm, checking the value against the arm codes — the cell a balanced
+  assignment needs — and the piping lint no longer calls an arm piped on the
+  first page a forward reference.
 - `data.tables.banner` died with "Grouper not 1-dimensional" when a variable was
   used as both a row and a banner column — which is how you read a base
   distribution across the banner. It now builds its own frame instead of
