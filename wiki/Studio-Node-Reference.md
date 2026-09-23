@@ -1044,3 +1044,8 @@ for other flows (**Project table**) and a table on the **Data** screen.
 - [[Coding Open Answers|Studio-Open-Answer-Coding]]
 - [[Reports|Studio-Reports]]
 - [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
+
+<!-- studio-nav -->
+---
+
+← [[Analysis Flows|Studio-Flows]] · [Studio contents](Studio-Overview#all-pages) · [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]] →

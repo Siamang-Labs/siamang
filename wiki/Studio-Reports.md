@@ -370,3 +370,8 @@ updated by it. See [Run all](Studio-Flows#run-all).
 - [[Project Settings|Studio-Project-Settings]]
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
 - [[Live Monitoring|Studio-Live-Monitoring]]
+
+<!-- studio-nav -->
+---
+
+← [[Coding Open Answers|Studio-Open-Answer-Coding]] · [Studio contents](Studio-Overview#all-pages) · [[History and Versions|Studio-History-and-Versions]] →

@@ -255,3 +255,8 @@ weights** for one variable, **Rake weights** for several margins.
 - [[Key Concepts|Studio-Key-Concepts]]
 - [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]]
 - [[Limits and Quotas at a Glance|Studio-Limits-Reference]]
+
+<!-- studio-nav -->
+---
+
+← [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]] · [Studio contents](Studio-Overview#all-pages)

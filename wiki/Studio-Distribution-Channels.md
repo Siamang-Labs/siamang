@@ -259,3 +259,8 @@ sample from a search.
 - [[Panel Providers|Studio-Panel-Providers]]
 - [[Email Invitations|Studio-Email-Invitations]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Publishing and Environments|Studio-Publishing-and-Environments]] · [Studio contents](Studio-Overview#all-pages) · [[Panel Providers|Studio-Panel-Providers]] →

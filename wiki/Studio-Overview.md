@@ -175,3 +175,8 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
   slug and the Save number; that is usually enough to reproduce anything.
 - Legal: [Terms of Use](https://siamang.org/terms-of-use) ·
   [Privacy Policy](https://siamang.org/privacy-policy)
+
+<!-- studio-nav -->
+---
+
+[Studio contents](Studio-Overview#all-pages) · [[Quick Start|Studio-Quick-Start]] →

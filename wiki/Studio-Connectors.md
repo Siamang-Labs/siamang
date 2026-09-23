@@ -388,3 +388,8 @@ Messages you may see when a run is refused or fails:
 - [[API and API Keys|Studio-API-and-API-Keys]]
 - [[Data Exports|Studio-Data-Exports]]
 - [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
+
+<!-- studio-nav -->
+---
+
+← [[Files|Studio-Files]] · [Studio contents](Studio-Overview#all-pages) · [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]] →

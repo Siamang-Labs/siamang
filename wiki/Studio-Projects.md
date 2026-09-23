@@ -379,3 +379,8 @@ Details in [[Project Settings|Studio-Project-Settings]].
 - [[Project Settings|Studio-Project-Settings]]
 - [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]]
 - [[Key Concepts|Studio-Key-Concepts]]
+
+<!-- studio-nav -->
+---
+
+← [[Organizations and Team|Studio-Organizations-and-Team]] · [Studio contents](Studio-Overview#all-pages) · [[Project Settings|Studio-Project-Settings]] →

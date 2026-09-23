@@ -295,3 +295,8 @@ the arm depends on who answered first").
 - [[Publishing and Environments|Studio-Publishing-and-Environments]]
 - [[Live Monitoring|Studio-Live-Monitoring]]
 - [[Testing Your Survey|Studio-Testing-Your-Survey]]
+
+<!-- studio-nav -->
+---
+
+← [[Logic and Branching|Studio-Logic-and-Branching]] · [Studio contents](Studio-Overview#all-pages) · [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]] →

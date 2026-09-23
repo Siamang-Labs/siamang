@@ -191,8 +191,8 @@ and **Report**.
   **Write table** node it reaches does write its table, though).
 - **Run** executes the flow's stored Python for the current Save in an
   isolated sandbox and records a **run** with its log and output files.
-- **Run all** runs every flow in dependency order and assembles a combined
-  report.
+- **Run all** runs every flow one after another, in alphabetical order of
+  their names, and assembles a combined report.
 
 There is no code box anywhere in a flow: every node is a documented engine
 call, which is why each flow downloads as a readable `.py`.
@@ -244,3 +244,8 @@ expect.
 - [[Quick Start|Studio-Quick-Start]]
 - [[Tutorial: A Study from Start to Finish|Studio-Tutorial-End-to-End]]
 - [[Glossary|Studio-Glossary]]
+
+<!-- studio-nav -->
+---
+
+← [[Quick Start|Studio-Quick-Start]] · [Studio contents](Studio-Overview#all-pages) · [[Tutorial: A Study from Start to Finish|Studio-Tutorial-End-to-End]] →

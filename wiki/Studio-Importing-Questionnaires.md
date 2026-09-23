@@ -225,3 +225,8 @@ Messages you may see:
 - [[Question Types|Studio-Question-Types]]
 - [[Testing Your Survey|Studio-Testing-Your-Survey]]
 - [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]]
+
+<!-- studio-nav -->
+---
+
+← [[Scripts|Studio-Scripts]] · [Studio contents](Studio-Overview#all-pages) · [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]] →

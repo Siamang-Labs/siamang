@@ -283,3 +283,8 @@ experience**. The paused, closed and cap notices cannot be changed. See
 - [[Theme and Branding|Studio-Theme-and-Branding]]
 - [[Responses and the Data Tab|Studio-Responses-and-Data]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Email Invitations|Studio-Email-Invitations]] · [Studio contents](Studio-Overview#all-pages) · [[Live Monitoring|Studio-Live-Monitoring]] →

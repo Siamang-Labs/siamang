@@ -201,3 +201,8 @@ Good to know:
 - [[The Builder|Studio-Builder-Overview]]
 - [[Question Types|Studio-Question-Types]]
 - [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
+
+<!-- studio-nav -->
+---
+
+← [[Importing Questionnaires|Studio-Importing-Questionnaires]] · [Studio contents](Studio-Overview#all-pages) · [[Testing Your Survey|Studio-Testing-Your-Survey]] →

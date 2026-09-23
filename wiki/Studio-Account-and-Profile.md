@@ -256,3 +256,8 @@ Respondent data is a separate matter; see
 - [[Organizations and Team|Studio-Organizations-and-Team]]
 - [[API and API Keys|Studio-API-and-API-Keys]]
 - [[Security and Privacy|Studio-Security-and-Privacy]]
+
+<!-- studio-nav -->
+---
+
+← [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]] · [Studio contents](Studio-Overview#all-pages) · [[Organizations and Team|Studio-Organizations-and-Team]] →

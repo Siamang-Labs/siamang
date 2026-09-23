@@ -9,8 +9,8 @@ stop and come back.
 customers of a regional service, fielded in three regions, with a consent page,
 an age screener, an attention check, a Net Promoter Score, a satisfaction
 rating and an open comment for unhappy customers. The analysis cleans the data,
-weights it to the regional customer mix, cross-tabulates satisfaction by region
-and publishes a report and a live dashboard.
+weights it to the regional customer mix, tabulates satisfaction by region and
+publishes a report and a live dashboard.
 
 ```
 Part 1  Plan                     Part 5  Build the analysis on simulated data
@@ -38,7 +38,7 @@ For this study:
 | Key measures | satisfaction (5-point), NPS (0–10) |
 | Quality | one attention check; flag, don't drop |
 | Weighting | to the known customer mix: North 45 %, Centre 30 %, South 25 % |
-| Deliverables | a report with a crosstab and a chart, a live tile for the client, a research bundle |
+| Deliverables | a report with a weighted table and a chart, a live tile for the client, a research bundle |
 
 Two naming rules make everything downstream easier:
 
@@ -244,7 +244,7 @@ Drag these nodes from the palette and connect each node's `data` output to the
 next node's `data` input:
 
 ```
-Simulated data ─▶ Response quality ─▶ Rake weights ─▶ Apply weight ─┬─▶ Crosstab ──┐
+Simulated data ─▶ Response quality ─▶ Rake weights ─▶ Apply weight ─┬─▶ Banner table ┐
                         │                                             ├─▶ Bar chart ─┤
                         │                                             └─▶ Net Promoter Score
                         └──(table)───────────────────────────────────────────────────┤
@@ -262,7 +262,7 @@ Set the parameters:
 | | **Mode** | `flag` (adds `quality_flags` and `quality_score`, keeps everyone) |
 | **Rake weights** | **Targets (variable → code → share)** | `{"region": {"1": 0.45, "2": 0.30, "3": 0.25}}` |
 | **Apply weight** | **Weight column** | `weight` |
-| **Crosstab** | **Rows** · **Columns** · **Percentages** | `satisfaction` · `region` · `col` |
+| **Banner table** | **Questions (down)** · **Breakdowns (across)** · **Significance letters** | `satisfaction` · `region` · on |
 | **Bar chart** | **Variable** · **By** | `satisfaction` · `region` |
 | **Net Promoter Score** | **0–10 item** | `nps` |
 | **Report section** | **Heading** · **Text** | *Satisfaction by region* · a sentence of context |
@@ -271,14 +271,22 @@ Set the parameters:
 | **Save report** | **Title** · **Path** | *Customer Pulse 2026* · `outputs/satisfaction.md` |
 | **Live tile** | **Kind** · **Label** · **Show** | `number` · *Respondents so far* · `rows` |
 
-Connect the Crosstab's `table`, the Bar chart's `chart`, the NPS `table` and the
+Connect the Banner table's `table`, the Bar chart's `chart`, the NPS `table` and the
 Response quality `table` (counts per quality flag) to the Report section's
 `items` input in the order they should appear.
 
+> **Why a Banner table and not a Crosstab?** Only some nodes use the weight
+> that **Apply weight** sets: **Banner table**, **Net Promoter Score**,
+> **Regression**, **TURF** and **Proportion CI** do; **Frequencies**,
+> **Crosstab**, **Group means** and the charts currently ignore it. The bar
+> chart here therefore shows the unweighted distribution — say so in its
+> caption. See [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]].
+
 ### Preview and check
 
-- Select **Crosstab** and press `Ctrl/Cmd + Enter` (**Run to here**) — the
-  weighted table appears in the inspector.
+- Select **Banner table** and press `Ctrl/Cmd + Enter` (**Run to here**) — the
+  weighted table appears in the inspector, with column percentages, counts and
+  significance letters.
 - Press **Check** — the engine should report no errors. Fix anything it lists
   **before** saving: a flow saved with engine errors stops every run in the
   project and blocks publishing from that Save.
@@ -431,3 +439,8 @@ and citable.
 - [[Recipes|Studio-Recipes]]
 - [[Key Concepts|Studio-Key-Concepts]]
 - [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]]
+
+<!-- studio-nav -->
+---
+
+← [[Key Concepts|Studio-Key-Concepts]] · [Studio contents](Studio-Overview#all-pages) · [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]] →

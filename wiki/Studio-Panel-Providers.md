@@ -219,3 +219,8 @@ use a flow or the Data tab.
 - [[What Respondents See|Studio-Respondent-Experience]]
 - [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
 - [[Logic and Branching|Studio-Logic-and-Branching]]
+
+<!-- studio-nav -->
+---
+
+← [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]] · [Studio contents](Studio-Overview#all-pages) · [[Email Invitations|Studio-Email-Invitations]] →

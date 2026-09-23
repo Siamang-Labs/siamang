@@ -321,3 +321,8 @@ When you Save, the engine checks scripts:
 - [[Theme and Branding|Studio-Theme-and-Branding]]
 - [[Testing Your Survey|Studio-Testing-Your-Survey]]
 - [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
+
+<!-- studio-nav -->
+---
+
+← [[Theme and Branding|Studio-Theme-and-Branding]] · [Studio contents](Studio-Overview#all-pages) · [[Importing Questionnaires|Studio-Importing-Questionnaires]] →

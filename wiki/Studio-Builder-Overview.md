@@ -594,3 +594,8 @@ of the screen, so you never have to scroll back to the header to save.
 - [[Logic and Branching|Studio-Logic-and-Branching]]
 - [[Testing Your Survey|Studio-Testing-Your-Survey]]
 - [[Projects|Studio-Projects]]
+
+<!-- studio-nav -->
+---
+
+← [[Plans, Trial and Billing|Studio-Plans-and-Billing]] · [Studio contents](Studio-Overview#all-pages) · [[Question Types|Studio-Question-Types]] →

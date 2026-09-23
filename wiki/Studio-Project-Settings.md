@@ -289,3 +289,8 @@ download what you need — a research bundle with the responses (History → a S
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
 - [[Publishing and Environments|Studio-Publishing-and-Environments]]
 - [[Projects|Studio-Projects]]
+
+<!-- studio-nav -->
+---
+
+← [[Projects|Studio-Projects]] · [Studio contents](Studio-Overview#all-pages) · [[Plans, Trial and Billing|Studio-Plans-and-Billing]] →

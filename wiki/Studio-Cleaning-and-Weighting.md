@@ -329,3 +329,8 @@ get the numbers into your report and onto Live:
 - [[Data Quality|Studio-Data-Quality]]
 - [[Codebook and Variables|Studio-Codebook-and-Variables]]
 - [[Reports|Studio-Reports]]
+
+<!-- studio-nav -->
+---
+
+← [[Node Reference|Studio-Node-Reference]] · [Studio contents](Studio-Overview#all-pages) · [[Coding Open Answers|Studio-Open-Answer-Coding]] →

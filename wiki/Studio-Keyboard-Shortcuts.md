@@ -142,3 +142,8 @@ browser.
 - [[Analysis Flows|Studio-Flows]]
 - [[Working Together|Studio-Collaboration]]
 - [[History and Versions|Studio-History-and-Versions]]
+
+<!-- studio-nav -->
+---
+
+← [[Limits and Quotas at a Glance|Studio-Limits-Reference]] · [Studio contents](Studio-Overview#all-pages) · [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]] →

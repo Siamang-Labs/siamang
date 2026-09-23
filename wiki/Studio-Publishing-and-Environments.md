@@ -470,3 +470,8 @@ Activity**).
 - [[Live Monitoring|Studio-Live-Monitoring]]
 - [[History and Versions|Studio-History-and-Versions]]
 - [[Project Settings|Studio-Project-Settings]]
+
+<!-- studio-nav -->
+---
+
+← [[AI Assistant|Studio-AI-Assistant]] · [Studio contents](Studio-Overview#all-pages) · [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]] →

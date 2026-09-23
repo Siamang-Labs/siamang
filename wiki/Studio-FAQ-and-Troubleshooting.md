@@ -328,3 +328,8 @@ again with it unticked and a production Zenodo token.
 - [[Limits and Quotas at a Glance|Studio-Limits-Reference]]
 - [[Glossary|Studio-Glossary]]
 - [[Key Concepts|Studio-Key-Concepts]]
+
+<!-- studio-nav -->
+---
+
+← [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]] · [Studio contents](Studio-Overview#all-pages) · [[Glossary|Studio-Glossary]] →
