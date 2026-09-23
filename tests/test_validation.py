@@ -619,3 +619,106 @@ def test_conjoint_lint_catches_a_design_nobody_could_fit():
     assert "CONJOINT_NOT_ESTIMABLE" in codes
     # Versions pool: the same single task in three versions is estimable.
     assert "CONJOINT_NOT_ESTIMABLE" not in [w.code for w in survey(1, 3).lint("strict")]
+
+
+# ── Variables no question collects ───────────────────────────────────────────
+
+
+def _assigned_arm_survey(*, gate: str = "condition", declare: bool = False) -> Questionnaire:
+    """An A/B split: the arm is drawn by a script, and a page branches on it."""
+
+    from siamang.core import Script, VariableMap
+
+    news = _news()
+    treatment = Page(
+        "treatment", items=[SingleChoice("Ad seen?", var=news)], show_if=compare(gate, "=", 2)
+    )
+    pages = [
+        Page(
+            "intro",
+            items=[SingleChoice("News?", var=Variable("warmup", "nominal", labels={1: "a"}))],
+        ),
+        treatment,
+    ]
+    variables = None
+    if declare:
+        variables = VariableMap()
+        variables.add_many([news, pages[0].items[0].var])
+        variables.add(Variable("condition", "nominal", labels={1: "Control", 2: "Treatment"}))
+    return Questionnaire(
+        title="Split",
+        pages=pages,
+        variables=variables,
+        scripts=[Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])],
+    )
+
+
+def test_a_page_may_branch_on_an_arm_a_script_assigns():
+    """`assign_condition` writes the arm before the first page; no question
+    collects it, and validate() used to call it unknown — which made the
+    one thing the script exists for impossible to publish."""
+
+    survey = _assigned_arm_survey()
+    assert survey.assigned_variables() == ["condition"]
+    survey.validate()  # must not raise
+    survey.validate(strict=True)
+
+
+def test_a_page_may_branch_on_a_codebook_variable_no_question_collects():
+    """Embedded data — a panel id, a sample cell — is declared in the codebook
+    and filled from outside the questionnaire."""
+
+    from siamang.core import VariableMap
+
+    news = _news()
+    cell = Variable("sample_cell", "nominal", labels={1: "Urban", 2: "Rural"})
+    variables = VariableMap()
+    variables.add_many([news, cell])
+    survey = Questionnaire(
+        title="Embedded",
+        pages=[
+            Page("a", items=[SingleChoice("News?", var=news)]),
+            Page("b", items=[OpenText("Why?", var=Variable("why", "nominal"))], show_if=cell.eq(2)),
+        ],
+        variables=None,
+    )
+    with pytest.raises(ValueError, match="unknown variables: sample_cell"):
+        survey.validate()
+    variables.add(Variable("why", "nominal"))
+    Questionnaire(title="Embedded", pages=survey.pages, variables=variables).validate()
+
+
+def test_a_name_nothing_writes_is_still_unknown():
+    survey = _assigned_arm_survey(gate="conditon")
+    with pytest.raises(ValueError, match="unknown variables: conditon"):
+        survey.validate()
+
+
+def test_an_assigned_arm_is_never_a_forward_reference_when_piped():
+    from siamang.core import Script
+
+    news = _news()
+    survey = Questionnaire(
+        title="Split",
+        pages=[
+            Page(
+                "a",
+                title="You are in group {answer:condition}",
+                items=[SingleChoice("News?", var=news)],
+            )
+        ],
+        scripts=[Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])],
+    )
+    assert not [w for w in survey.lint() if w.code.startswith("PIPE_")]
+
+
+def test_a_quota_may_balance_an_assigned_arm():
+    """`assign_condition(balance=True)` needs a quota cell per arm; the arm is
+    no question's variable, so validate_options must know it from the script."""
+
+    survey = _assigned_arm_survey()
+    validate_options(survey, {"quota": [Quota("condition", 1, 50), Quota("condition", "2", 50)]})
+    with pytest.raises(ValueError, match="not one of its arms"):
+        validate_options(survey, {"quota": [Quota("condition", 3, 50)]})
+    with pytest.raises(ValueError, match="unknown variable: cond"):
+        validate_options(survey, {"quota": [Quota("cond", 1, 50)]})

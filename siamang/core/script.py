@@ -82,6 +82,25 @@ class Script:
         if self.name is not None and not self.name.strip():
             raise ValueError("Script name must not be empty when provided.")
 
+    @property
+    def assigns(self) -> str | None:
+        """The variable this script writes for every respondent, or None.
+
+        Only ``assign_condition`` says so — its parameters ride in ``context`` —
+        and that is enough for the questionnaire to treat the arm as a known
+        variable: a page may branch on it and a quota may balance it although
+        no question collects it.
+        """
+        context = self.context or {}
+        variable = context.get("variable")
+        if (
+            (self.name or "").startswith("assign_")
+            and isinstance(variable, str)
+            and isinstance(context.get("arms"), list)
+        ):
+            return variable
+        return None
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
