@@ -18,7 +18,7 @@ the codebook side of each question see
 | **+ Question** menu label | What the respondent does | Variables written | Scale |
 |---|---|---|---|
 | **Single choice** | picks one option | 1 | nominal |
-| **Multiple choice** | picks any number of options | 1 | nominal |
+| **Multiple choice** | picks any number of options | 1, or 1 per choice in the wide layout | nominal |
 | **Likert scale** | picks a point on a numbered scale or stars | 1 | ordinal |
 | **Number** | types a number or moves a slider | 1 | ratio |
 | **Open text** | types text, an email, a phone number, a web address, a date or a time | 1 | nominal (text) |
@@ -43,17 +43,17 @@ Presets: **Yes / No**, **Rating (stars)**, **NPS (0–10)**, **CES (1–7)**,
 | **Attention check** | Question | Single choice, Likert scale, Number and Open text — see [Attention checks](#attention-checks). |
 | **Variable** | Variable | The codebook entry the question writes — [[Codebook and Variables\|Studio-Codebook-and-Variables]]. |
 | **Show if** / **Hide if** / **Skip to** | Logic | [[Logic and Branching\|Studio-Logic-and-Branching]]. |
-| **Id** | Advanced | A stable reference used by logic and comments: letters, digits and `_` (other characters turn into `_`). Must be non-empty and unique. |
+| **Id** | Advanced | The question's own handle ("stable reference; used in logic"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question. |
 | **Tags** | Advanced | Free labels, comma-separated, for your own organization of the instrument. |
 | **Media URL** | Advanced | An image, or a video if the link ends in `.mp4`/`.webm`, shown with the question. Use a stable public URL (a download link from **Files** expires after 5 minutes). |
 
 To respondents, questions are numbered `Q01`, `Q02`, …
 
-> **Important — Id and variable name.** For single-answer questions the data
-> column is named after the question's **Id**, while conditions, piping and
-> quotas look the answer up by **variable name**. Keep the two identical: new
-> presets (Id `q5`, variable `nps_5`) and renamed variables are the usual
-> cause of a mismatch. Fix it with **Advanced → Id**. Details:
+> **Note — Id and variable name.** The answer is stored under the question's
+> **variable name**: that is its column in your data, and the name conditions,
+> piping and quotas use. The **Id** may differ from it — a preset starts with
+> Id `q5` and variable `nps_5` — as long as no question's Id is another
+> question's variable name. Details:
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ### The options editor
@@ -131,23 +131,40 @@ counter shows "2 of 3 selected" / "Maximum reached".
 | **Min answers** | a whole number, 0 or more | empty |
 | **Max answers** | a whole number; "empty = no limit" | empty |
 | **Exclusive choices** | a chip per choice; "picking one clears the rest" | none |
-| **Data layout** | **array** · **wide** ("array: one column of codes · wide: one 0/1 column per choice") | array |
+| **Data layout** | **array** · **wide** ("array: one column of codes · wide: one 0/1 variable per choice") | array |
 | **Add “Other (please specify)”** | on/off | off |
 
-**Coding.** One variable, nominal, with the choices as value labels. The
-answer is the list of chosen codes. In CSV, Excel, SPSS and Stata exports it is
-written as codes separated by semicolons (`1;3`); Parquet keeps a list.
-Frequency tables of such a question use **respondents** as the base, so the
-shares add up to more than 100 %. In conditions, use **chose** / **did not
-choose** — `=` compares the whole list.
+**Coding — array layout** (the default). One variable, nominal, with the
+choices as value labels. The answer is the list of chosen codes. In CSV,
+Excel, SPSS and Stata exports it is written as codes separated by semicolons
+(`1;3`); Parquet keeps a list. Frequency tables of such a question use
+**respondents** as the base, so the shares add up to more than 100 %. In
+conditions, use **chose** / **did not choose** — `=` compares the whole list.
 
-> **Current limitation.** Choosing **Data layout → wide** in the Builder makes
-> the questionnaire invalid: Save is refused with "MultiChoice wide mode expects
-> vars to be a non-empty list of Variables." Keep **array**. When an analysis
-> needs one 0/1 column per option (weighting, regression, TURF), add an
-> **Explode multiple choice** node in the flow — see
-> [[Node Reference|Studio-Node-Reference]]. Questions that arrive in the wide
-> layout from a template or an import keep it; leave their layout as it is.
+**Coding — wide layout.** Clicking **wide** replaces the question's one
+variable with one variable per choice, named after the old variable and the
+choice's code (`q7` becomes `q7_1`, `q7_2`, `q7_3`; `_2` is added to a name
+that is taken). Each is nominal, coded `0` No / `1` Yes, and takes the choice's
+label as its variable label. Studio keeps them in step with the choices: a new
+choice gets a new variable, a removed choice's variable leaves the codebook,
+and relabeling a choice relabels its variable. Clicking **array** collapses
+them back into one variable (`q7`) with the choices as value labels. A wide
+question that came from a template or an import without a list of choices
+keeps its variables as they are while you edit it; switching it to **array**
+replaces them with a single variable and leaves the question without choices
+until you add some.
+
+> **Current limitation.** The published survey does not store the wide layout
+> as 0/1 columns yet. It records one column named after the question's **Id**,
+> holding the variable names of the chosen options (for example `q7_1` and
+> `q7_3`); the per-choice variables stay empty in your data, conditions, piping
+> and quotas on them do not see the answer, and **Exclusive choices** have no
+> effect. **Test → Simulate** does produce 0/1 columns, so simulated data
+> looks right while real responses do not. For fieldwork keep **array**, use
+> **chose** / **did not choose** in conditions, and when an analysis needs one
+> 0/1 column per option (weighting, regression, TURF), add an **Explode
+> multiple choice** node in the flow — see
+> [[Node Reference|Studio-Node-Reference]].
 
 > **Current limitation.** **Min answers** is not enforced when the respondent
 > clicks **Next**; it only adds the hint "Select at least N more" under the
@@ -162,8 +179,10 @@ choose** — `=` compares the whole list.
 > chosen (**Show if** *variable* **chose** *code*).
 
 **Rules.** Min answers 0 or more; Max answers at least Min answers
-("max_answers must be >= min_answers"); exclusive codes should be among the
-choices (otherwise the warning `EXCLUSIVE_CODE_UNKNOWN`).
+("max_answers must be >= min_answers"); in the wide layout, Max answers no
+more than the number of per-choice variables ("max_answers cannot exceed
+number of wide-mode variables"); exclusive codes should be among the choices
+(otherwise the warning `EXCLUSIVE_CODE_UNKNOWN`, array layout only).
 
 ---
 
@@ -390,9 +409,11 @@ an ordinary question of its type — change anything you like.
 
 `<n>` is the question's number, and the question's Id is `q<n>`.
 
-> **Important.** A preset's Id (`q5`) and variable (`nps_5`) differ. Set
-> **Advanced → Id** to the variable name (`nps_5`) straight away — see the box
-> in [Fields every question has](#fields-every-question-has).
+> **Note.** A preset's Id (`q5`) and variable (`nps_5`) differ on purpose. The
+> answer is stored under the variable, `nps_5` — the column in your data and
+> the name to use in conditions — so there is nothing to fix. Rename either
+> one if you like; see
+> [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 The question bank's NPS, CSAT and CES blocks are **Single choice** questions
 with an open follow-up, not Likert scales — see
@@ -410,15 +431,52 @@ in the **Question** section:
 2. Set **Expected answer** ("what a reading respondent gives") — a list of the
    question's codes, or a free field for open questions. Until it is set the
    Inspector warns "Until an answer is set, this question checks nothing."
-3. Optionally turn on **Also end the survey for respondents who fail**. Studio
-   adds an ordinary **Branch (next if)** rule to the question's page that sends
-   anyone who answered something else to a Screen-out page (creating one if
-   the questionnaire has none). The rule is evaluated when the page is left, a
-   respondent who skipped the question is not screened out, and the response
-   is still recorded as screened out. You can edit or delete the rule in the
-   page's **Logic** section like any other. A Screen-out page created this way
-   is added at the very end, so make sure a **Final** page comes before it —
-   otherwise respondents who pass the check walk into it.
+3. Optionally turn on **Also end the survey for respondents who fail** (hint:
+   "adds a screen-out branch", then "branches to *page*"). Studio adds an
+   ordinary **Branch (next if)** rule to the question's page that sends anyone
+   who answered something else to a Screen-out page. The rule is evaluated
+   when the page is left, a respondent who skipped the question is not
+   screened out, and a failing respondent's answers are still collected and
+   counted as screened out. You can edit or delete the rule (or change its
+   target page) in the page's **Logic** section like any other; turning the
+   option off removes the rule and leaves the page.
+   - If the questionnaire already has a Screen-out page, the rule points at
+     the first one.
+   - Otherwise Studio creates one ("Thank you" / "You do not qualify for this
+     study.") and inserts it **just before the first Final or Redirect
+     page**.
+   - If there is no Final or Redirect page either, Studio also adds a **Final**
+     page ("Thank you" / "Thank you for taking part.") after the last content
+     page and puts the Screen-out page before it.
+
+   Check the result before fielding. A Screen-out page that Studio places in
+   front of the Final page also catches respondents who **pass**, because
+   pages run in order. In the consent templates the existing Screen-out page is
+   hidden from anyone who consented, so a failing respondent is sent back to
+   the first question page. Both limitations and their fixes are explained in
+   [Attention checks](Studio-Logic-and-Branching#attention-checks).
+
+> **Current limitation — check the route after turning this on.** Pages run
+> in order, and a Screen-out page ends the interview for everyone who reaches
+> it, not only for those the rule sends there.
+>
+> - **A Screen-out page Studio created** sits between your last content page
+>   and the Final page, so respondents who *pass* the check walk into it when
+>   they click **Next** on that last content page and are screened out too. Fix: in the pages
+>   rail, drag the Screen-out page **below** the Final page. The Final page
+>   then ends the interview for everyone who passes, and the rule still sends
+>   failing respondents to the Screen-out page.
+> - **An existing Screen-out page with its own Show if** — such as the
+>   consent screen-out of the built-in templates, shown only to people who
+>   decline — is hidden when the rule fires, and a branch to a hidden page
+>   goes on to the next visible page after it instead. Failing respondents are
+>   not screened out; when that page lies earlier in the questionnaire, the
+>   Save is marked `errors` with "Cycle detected in page navigation graph."
+>   Fix: select the Final page, add a separate Screen-out page after it with
+>   **+ Page → Screen-out page**, and choose that page as the rule's target in
+>   the question page's **Logic → Branch (next if)**.
+>
+> Walk through both answers in **Preview** before you publish.
 
 Without step 3 nobody is screened out during the interview: the check is
 scored afterwards by the **Response quality** node, whose **Attention checks**
@@ -450,14 +508,15 @@ Save.
 
 - an empty survey title, question text or question Id;
 - an option with an empty label, or two options with the same code;
-- a multiple choice question switched to **wide** in the Builder;
 - **Multi-line** together with a text **Format**;
 - **Step** of 0 or less; **Rank at most** of 0; **Max characters** of 0;
-- **Max answers** smaller than **Min answers**;
+- **Max answers** smaller than **Min answers**, or — in the wide layout —
+  larger than the number of per-choice variables;
 - a valid range whose Min is greater than its Max;
 - a redirect **Delay (s)** that is not a whole number;
-- missing codes entered in the Codebook tab (see
-  [[Codebook and Variables|Studio-Codebook-and-Variables]]);
+- a missing code without a label (possible only in the **Source** tab — the
+  Codebook tab always writes one; see
+  [Missing codes](Studio-Codebook-and-Variables#missing-codes));
 - a MaxDiff with fewer than three items; a conjoint with fewer than two
   attributes, an attribute with fewer than two levels, an attribute name that
   is not a plain identifier, or two attributes with the same name.
@@ -467,9 +526,10 @@ Save.
 > instead — if the message does not make sense, look for an empty text, label
 > or Id on that question.
 
-Other problems — a duplicate question Id, **Skip to** a page that no longer
-exists, a page nobody can reach — do **not** stop the Save; the Save is marked
-`errors` and cannot be published. The Validation tab lists them; see
+Other problems — a duplicate question Id, a question Id that is another
+question's variable name, **Skip to** a page that no longer exists, a page
+nobody can reach — do **not** stop the Save; the Save is marked `errors` and
+cannot be published. The Validation tab lists them; see
 [[Testing Your Survey|Studio-Testing-Your-Survey]].
 
 ---

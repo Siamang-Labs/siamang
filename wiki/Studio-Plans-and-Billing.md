@@ -130,7 +130,9 @@ The day count is rounded up, so a trial with a few hours left shows `1d`.
   paid features."
 
 **One trial per email address.** Signing up again with the same address does
-not start a new trial, and organizations you create later start on Free.
+not start a new trial, and organizations you create later (see
+[Creating another organization](Studio-Organizations-and-Team#creating-another-organization))
+start on Free.
 
 ---
 
@@ -152,7 +154,7 @@ Concretely, once the trial is over:
 | Flows | Runs get Free's 5 minutes and 512 MB. Saves may not add flows beyond 3 per project; existing ones stay. |
 | **Run to here** | 30 per hour per project, one at a time. |
 | Live | Tiles no longer recompute on their own (you can still refresh them by hand); public Live share links stop answering. |
-| Schedules, webhooks, connectors | Scheduled runs are skipped; connector runs, new webhooks and new schedules need Plus. |
+| Schedules, webhooks, connectors | Scheduled runs are skipped; connector runs, new webhooks and new schedules need Plus. In **Flows**, **Schedule a run** is replaced by **Requires Plus**. |
 | Email invitations, AI assistant | Not available on Free. |
 | Storage | Uploads that would take the organization past 250 MB are refused; existing files stay. |
 | Library | Saving to the organization library needs Plus; items already saved can still be used. |
@@ -272,6 +274,11 @@ checkout it answers "Could not open the billing portal. No billing account yet
   billing starts right away.
 - **Switching between Plus and Pro** on an existing subscription takes effect
   immediately. The difference is charged or credited pro rata.
+- **A subscription that has already ended.** If the payment provider has
+  already canceled or expired the organization's subscription before Studio
+  heard about it, **Upgrade** takes you to a new checkout: Studio drops the
+  ended subscription and sells a fresh one, as for an organization that never
+  subscribed. The Activity log records this as `billing.subscription.stale`.
 - **Downgrading and canceling** happen in the payment portal (**Manage
   billing**). A cancellation takes effect at the end of the period you have
   paid for; until then the plan stays. Buying the same plan again before that
@@ -292,7 +299,7 @@ checkout it answers "Could not open the billing portal. No billing account yet
 
 | Limit | What you see |
 |---|---|
-| Projects | **New project** is disabled ("Your plan allows 2 projects — upgrade to add more") with the note "You've reached the **2-project** limit on the free plan. **Upgrade your plan** to add more." The API answers "Could not create project. Plan 'free' allows up to 2 projects; upgrade to add more." |
+| Projects | **New project** is disabled on the **Projects** tab and in the workspace chip menu ("Your plan allows 2 projects — upgrade to add more"). The **Projects** tab adds the note "You've reached the **2-project** limit on the free plan. **Upgrade your plan** to add more." The API answers "Could not create project. Plan 'free' allows up to 2 projects; upgrade to add more." |
 | Members | **Invite member** is disabled ("Your plan allows 2 members — upgrade to add more") with a similar note. Pending invitations count toward the limit: "Could not add member. Plan 'free' allows up to 2 members; upgrade to add more." |
 | Responses | The survey stops accepting new completed responses once it has reached the cap. |
 | Storage | "Upload failed. Plan 'free' allows up to 250 MB of stored files; delete files or upgrade to add more." |
@@ -302,6 +309,7 @@ checkout it answers "Could not open the billing portal. No billing account yet
 | Flow run time or memory | the run stops, and its log names the limit (see [How the numbers are counted](#how-the-numbers-are-counted)) |
 | Email invitations | the mailing is refused with the month's or day's count, e.g. "this mailing would exceed the plus plan's 300 invitation emails per day (… sent today, … to send) — send the rest tomorrow", or "an organization's first mailing is limited to 200 recipients (… selected) — start with a smaller list, then send the rest" |
 | AI assistant | "the assistant is not included in the free plan — upgrade to Plus", or the daily or monthly allowance message with the credits used |
+| Schedules | In **Flows**, the **Schedule a run** button reads **Requires Plus** (hover: "Schedules are available from the Plus plan") and opens **Billing** |
 | A Plus or Pro feature on a lower plan | the control shows a card such as "**Webhooks is a Plus feature** — Upgrade your plan to unlock webhooks." with **View plans**, which opens **Billing** |
 
 Nothing is deleted when you reach a limit or downgrade: the data stays and

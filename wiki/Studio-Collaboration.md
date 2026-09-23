@@ -166,7 +166,26 @@ do in the areas on this page:
 | Upload and delete files, create schedules, add connectors | yes | yes | yes |
 | Run connectors, add or delete secrets, manage webhooks | — | yes | yes |
 | Create, rename and delete projects; delete responses | — | yes | yes |
+| See the organization-wide Activity | — | yes | yes |
 | Billing, the AI assistant consent | — | — | yes |
+
+Most owner-and-admin controls tell a member up front — they are disabled with
+a short reason, or left out:
+
+| Control | What a member sees |
+|---|---|
+| **New project** | disabled — "Only owners and admins can create projects"; an empty Projects screen adds "Only owners and admins can create projects — ask one to set it up." |
+| **Save changes** on Settings → General (rename) | disabled — "Only owners and admins can rename a project." |
+| **Add secret** and **Delete** on Settings → Secrets | disabled — "Only owners and admins can add or delete secrets." |
+| **Run export** / **Run import** on a connector | disabled — "Only owners and admins can run a connector" |
+| **Delete** on a row of the `responses` table (**Data** tab) | not shown |
+| **Webhooks** card in Organization settings → Integrations | "Only owners and admins can see and manage the organization's webhooks." |
+| **Activity** tab in Organization settings | not shown |
+
+Two of these actions still answer only when used: **Delete project** in
+Settings → **Danger Zone** ("Could not delete project. You do not have
+permission to do this.") and **Save secret** inside a connector's dialog
+("Could not add secret. You do not have permission to do this.").
 
 The full matrix, and how to invite people and change roles, is in
 [[Organizations and Team|Studio-Organizations-and-Team]].

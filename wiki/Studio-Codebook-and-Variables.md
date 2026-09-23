@@ -26,11 +26,12 @@ Names may contain letters, digits and underscores; other characters turn into
 `_` as you type. Keep them short and analysis-friendly — they become column
 names everywhere downstream.
 
-> **Important — Id and variable name.** For a single-answer question, the
-> data column is named after the question's **Id**, while conditions, piping
-> and quotas look the answer up by **variable name**. Keep the two identical.
-> A new preset (Id `q5`, variable `nps_5`) and a variable renamed in the
-> Variable card both break this; fix it with **Advanced → Id**. See
+> **Note — the variable is the column.** A question's answer is stored under
+> its **variable name**, so that is the column name in the Data tab, in
+> exports and in flows, and the name conditions, piping and quotas use. The
+> question's **Id** may differ from it (a preset starts with Id `q5` and
+> variable `nps_5`), but no question's Id may be another question's variable
+> name. See
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ---
@@ -41,17 +42,20 @@ When you add a question, Studio creates its variable for you:
 
 - **Name** — the question's Id (`q7`); for a preset, the preset's name and
   number (`nps_7`, `yes_no_7`); for a Matrix, `q7_1`, `q7_2`, … one per row;
-  for MaxDiff and Conjoint, one per task plus a version variable (see
+  for a Multiple choice switched to the wide layout, one per choice named
+  after the choice's code (`q7_1`, `q7_2`, …); for MaxDiff and Conjoint, one
+  per task plus a version variable (see
   [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]). If a name is taken,
   `_2`, `_3`, … is added.
-- **Label** — the question's **Id** (because a new question's text is just
-  "New question"). Write a real label — it is what SPSS, the Data tab and every
-  table show.
+- **Label** — the question's text when the variable is created, or its **Id**
+  while the text is still "New question" (so most new questions get the Id);
+  for a wide Multiple choice, each choice's label. Write a real label — it is
+  what SPSS, the Data tab and every table show.
 - **Scale** — from the type:
 
   | Type | Scale |
   |---|---|
-  | Single choice, Multiple choice, Open text, MaxDiff, Conjoint | nominal |
+  | Single choice, Multiple choice (both layouts), Open text, MaxDiff, Conjoint | nominal |
   | Likert scale, Matrix rows, Ranking | ordinal |
   | Number | ratio |
 
@@ -69,7 +73,7 @@ In the Builder, select the question: its **Variable** section (marked
 
 | Field | Notes |
 |---|---|
-| name | editable for single-variable questions; applied when you leave the field or press `Enter` (see [Renaming a variable](#renaming-a-variable)). Matrix, MaxDiff and Conjoint variables are named by the question and cannot be renamed here. |
+| name | editable, including each variable of a wide Multiple choice; applied when you leave the field or press `Enter` (see [Renaming a variable](#renaming-a-variable)). Matrix, MaxDiff and Conjoint variables are named by the question and cannot be renamed here. |
 | scale | **nominal**, **ordinal**, **interval**, **ratio** |
 | **Variable label (as in SPSS)** | the label |
 | value labels | shown read-only as `1=Strongly disagree · 2 · …` |
@@ -92,8 +96,9 @@ table:
 Opening a row shows three more fields: **Value labels** (code and label rows,
 **+ Label**, and — for a variable a question writes — the hint "choice
 questions overwrite these on edit"), **Description** and **Missing codes**
-(but read [Missing codes](#missing-codes) first). With no questions yet the tab
-says "No variables yet — every question you add creates one."
+("code, then its label — e.g. -9 Refused, -8 Don't know"; see
+[Missing codes](#missing-codes)). With no questions yet the tab says "No
+variables yet — every question you add creates one."
 
 The valid range is edited in the Variable card, not in the Codebook tab. A
 variable that has a valid range and no value labels shows its range in
@@ -127,7 +132,8 @@ question:
 
 | Type | Value labels come from | Rewritten on every edit of the question |
 |---|---|---|
-| Single choice, Multiple choice, Ranking | the choices | yes |
+| Single choice, Multiple choice (array layout), Ranking | the choices | yes |
+| Multiple choice (wide layout) | `0` No, `1` Yes on every per-choice variable; the choice's label becomes the variable label | yes |
 | Likert scale | the points: `1 — <left label>`, `2`, …, `N — <right label>` | yes |
 | Matrix | the columns, coded `1` … *n* | yes (every row variable) |
 | MaxDiff | the items | yes (every task variable) |
@@ -136,7 +142,8 @@ question:
 
 So: change answer wording in the question (choices, scale labels, columns), not
 in the Codebook tab — edits there to a variable of the types marked "yes" are
-overwritten the next time you touch the question. For a Likert scale this means
+overwritten the next time you touch the question (for a wide Multiple choice,
+the variable labels too). For a Likert scale this means
 the middle points are labeled with their numbers only; if every point needs
 words, use a **Single choice** with **Display → buttons** and one option per
 point.
@@ -171,47 +178,53 @@ A **missing code** is a value that is stored but must not be treated as data:
   [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]);
 - keep means and percentages honest.
 
-> **Current limitation.** Entering missing codes in the **Missing codes**
-> field of the Codebook tab makes the questionnaire invalid: the next Save is
-> refused with "questionnaire: variables/<name>/missing/0: 'label' is a
-> required property", and the Preview stops working. If that happened, clear
-> the field again.
+Every missing code needs a label — the questionnaire format requires one.
 
-**Declaring missing codes today — in the Source tab.** Each missing code needs
-a label. This works, validates, and reaches the SPSS and Stata exports:
+**Declaring missing codes in the Codebook tab**
 
 1. If the code is an answer option (a "Don't know" choice), add it to the
    question's choices first — for example `98` "Don't know" — so it is also a
    value label.
-2. Open **More ▾ → Source**, find the variable under `"variables"` and add a
-   `"missing"` list:
+2. In **Builder → Codebook**, open the variable's row (click its **Values**
+   entry) and type the codes in **Missing codes**: each code followed by its
+   label, entries separated by commas — the field's hint is "code, then its
+   label — e.g. -9 Refused, -8 Don't know". `-7=Not asked` works too.
+3. Save.
 
-   ```json
-   "q1": {
-     "scale": "nominal",
-     "label": "Satisfaction with the service",
-     "labels": [
-       {"code": 1, "label": "Satisfied"},
-       {"code": 2, "label": "Not satisfied"},
-       {"code": 98, "label": "Don't know"}
-     ],
-     "missing": [
-       {"code": 98, "label": "Don't know", "kind": "dont_know"}
-     ]
-   }
-   ```
+How the field reads what you type:
 
-   `kind` is optional; allowed values are `dont_know`, `not_applicable`,
-   `not_asked`, `refusal` and `system_missing` (the default).
-3. Click **Check** (it should report no issues), then **Apply**, then Save.
+- A code typed without a label keeps the label it already had; failing that,
+  it takes the variable's value label for that code; failing that, it is
+  labeled `Missing (<code>)` — so `98` alone becomes `98 Don't know` when
+  `98` is labeled "Don't know".
+- A code that looks like a number is stored as a number (`-9`), anything else
+  as text (`NA`).
+- The comma separates entries, so a label cannot contain one.
+- The field shows the codes back with their labels, for example
+  `-9 Refused, -8 Don't know`.
 
-Afterwards the Codebook tab shows the codes in **Missing codes**; do not edit
-that field, or the labels are lost again. A missing code that is not among the
-variable's value labels triggers the warning `MISSING_CODE_NOT_IN_LABELS` — it
-still works, but the refusal code never appears as a category.
+A missing code that is not among the variable's value labels triggers the
+warning `MISSING_CODE_NOT_IN_LABELS` — it still works, but the refusal code
+never appears as a category.
 
-If you would rather not edit JSON, keep `98` as an ordinary value label and
-exclude it in your flow, for example with a **Filter rows** or **Recode** node.
+**In the Source tab.** Two things need **More ▾ → Source**:
+
+- the **kind** of a missing code. Add `"kind"` to the entry in the variable's
+  `"missing"` list:
+
+  ```json
+  "missing": [
+    {"code": 98, "label": "Don't know", "kind": "dont_know"}
+  ]
+  ```
+
+  Allowed values are `dont_know`, `not_applicable`, `not_asked`, `refusal`
+  and `system_missing` (the default). The Codebook field keeps a kind you set
+  here as long as the code stays in the list.
+- missing codes for a variable whose Codebook row cannot be opened — one with
+  a valid range and no value labels (see [The Codebook tab](#the-codebook-tab)).
+
+Click **Check**, then **Apply**, then Save.
 
 ---
 
@@ -236,12 +249,21 @@ Codebook tab.
 
 - **array** — one variable holding the list of selected codes. Exports write it
   as `1;3`; frequency tables use respondents as the base.
-- **wide** — one 0/1 variable per choice.
+- **wide** — one 0/1 variable per choice. Clicking **wide** under **Options →
+  Data layout** replaces the question's variable with `<variable>_<code>` for
+  each choice (`brands` becomes `brands_1`, `brands_2`), each coded `0` No /
+  `1` Yes and labeled with its choice. Adding, removing or relabeling a choice
+  keeps the variables in step, and clicking **array** collapses them back
+  into one variable. Details in
+  [Multiple choice](Studio-Question-Types#multiple-choice).
 
-> **Current limitation.** Switching a question to **wide** in the Builder
-> makes the questionnaire invalid. Keep **array**, and when an analysis needs
-> one 0/1 column per option, add an **Explode multiple choice** node in the
-> flow ("One 0/1 column per option of a multiple-answer question, so weights,
+> **Current limitation.** The published survey does not yet write the wide
+> layout as 0/1 columns: real responses arrive as one column named after the
+> question's Id, listing the chosen options' variable names, and the
+> per-choice variables stay empty (simulated data on **Test** does show 0/1
+> columns). Keep **array** for fieldwork, and when an analysis needs one 0/1
+> column per option, add an **Explode multiple choice** node in the flow ("One
+> 0/1 column per option of a multiple-answer question, so weights,
 > regression, clustering and TURF can read it."): **Multiple-choice
 > variable**, **Column prefix** (default: the variable's name and an
 > underscore, so option 1 becomes `brand_1`) and **Drop the original column**
@@ -252,8 +274,13 @@ Codebook tab.
 ## Renaming a variable
 
 Type the new name in the Variable card and press `Enter` (or leave the field).
-If the name is taken, `_2` is appended. The codebook entry — label, scale,
-value labels — is copied to the new name.
+The name is lower-cased, and if it is taken, `_2` is appended. The new name
+gets a fresh codebook entry, the one Studio proposes for a new question: the
+question's text (or its Id) as its label, the type's default scale and, for choice
+questions, the choices as value labels. A label, scale, valid range, missing
+codes or description you had set stay on the **old** entry — copy them over
+in the Variable card or the Codebook tab. From then on the question's answers
+are stored under the new name.
 
 What renaming does **not** do:
 
@@ -262,8 +289,11 @@ What renaming does **not** do:
 - it does not remove the old entry: it stays in the Codebook tab as
   **unused** (delete it there), and because it still exists no check warns
   about the conditions that refer to it;
-- it does not change the question's **Id** — set **Advanced → Id** to the new
-  name as well (see the box at the top of this page).
+- it does not change the question's **Id**. That is fine — the Id and the
+  variable name may differ — but do not give a variable the name of another
+  question's Id: the Save is then marked `errors` ("Question '…' has the id
+  under which question '…' stores its answer; …"). See
+  [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 After a rename, open **Logic map** and **Validation** and update every
 condition, quota and pipe that used the old name. Renaming a **page** is

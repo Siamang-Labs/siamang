@@ -107,11 +107,16 @@ changes)". Actions that save on their own use fixed messages:
 | Settings → Reports | "Update report settings", "Apply the report house style to *N* flows" |
 | Adding a connector | "Add connector *name*" |
 | Generating access codes | "Generate *N* access codes" |
+| Importing access codes (**Import CSV**) | "Import *N* access codes" |
+| Turning access codes off | "Turn off access codes" |
 | Captcha on / off | "Turn on the captcha" / "Turn off the captcha" |
 | Panel setup | "Configure panel" |
 | Restoring | "Restore version #*N*" |
 
-History marks automatic messages with **auto**.
+History marks automatic messages with **auto**. A Save that adds access codes
+(generated or imported) is also recorded in the project's Activity as
+`access_codes.generate`, with the number of codes added (see
+[Activity](Studio-Project-Settings#activity)).
 
 ### When a Save is refused
 
@@ -315,9 +320,13 @@ you are editing, deploy it:
    "saved with warnings").
 3. Choose the **Environment** and click **Deploy #12**.
 
-Your working documents stay as they are. Because every deployment points at a
-Save and every response points at its deployment, you can always tell which
-questionnaire collected which answer. Publishing is covered in
+Your working documents stay as they are. Every deployment points at a Save,
+so the **live** pill in History always shows which version each environment
+serves. Responses, however, do not record the Save that collected them: a
+republish keeps the environment's link and `survey_id`. To tell which version
+collected an answer, compare its `created_at` with the publish times in
+**Settings → Activity** (`deploy.create`; its **Export CSV** includes each
+publish's Save number). Publishing is covered in
 [[Publishing and Environments|Studio-Publishing-and-Environments]].
 
 **More ▾ → Preview** builds a preview of that Save for looking at — it never

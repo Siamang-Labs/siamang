@@ -91,7 +91,10 @@ A toast reports the result: **12 contacts added, 3 updated, 1 skipped**.
 ## Sending a mailing
 
 **New mailing** needs at least one subscribed contact and a **live**
-environment (a paused environment does not count).
+environment (a paused environment does not count). Studio does not check the
+questionnaire's [deadline](Studio-Publishing-and-Environments#deadlines): an
+environment past its deadline still counts as live and a mailing to it is
+sent, but the survey no longer accepts answers — move the deadline first.
 
 | Field | Default | Notes |
 |---|---|---|
@@ -167,15 +170,26 @@ The table has one row per mailing:
 
 | Status | Meaning |
 |---|---|
-| `queued` / `sending` | waiting in the send queue / being sent now |
+| `queued` / `sending` | waiting in the send queue / being sent now, or waiting for an automatic retry (below) |
 | `sent` | the email was accepted for delivery |
-| `failed` | it could not be sent, or it was skipped because the contact had unsubscribed, "complained earlier" or "bounced earlier" |
+| `failed` | the email service refused it, or it still failed after the automatic retries; or it was skipped because the contact had unsubscribed, "complained earlier" or "bounced earlier" |
 | `started` | the respondent began answering and their progress reached Studio (after answering something and moving on a page, or leaving the tab) — opening the link alone does not count |
 | `completed` | the respondent submitted |
 | `bounced` | the recipient's mail server rejected the email after it was sent |
 | `complained` | the recipient marked it as spam |
 
 A mailing whose emails all failed ends as `failed`.
+
+### Temporary sending errors
+
+When the email service has a passing problem — a server error, a request to
+slow down, a dropped connection — the email is not marked `failed`. Studio
+retries it automatically: up to five attempts in all, about 2, 4, 8 and 16
+minutes apart. Meanwhile the invitation stays `sending` and the mailing's
+**Sent** column shows **sending…**; the mailing gets its final counts once
+every invitation has either gone out or failed for good. Only an email the
+service refuses outright, or one that still fails at the fifth attempt, ends
+as `failed`, with the reason on hover in **Recipients**.
 
 > **Note.** A personal link is not single-use. Someone who forwards it, or
 > opens it twice in different browsers, creates a separate response each time;

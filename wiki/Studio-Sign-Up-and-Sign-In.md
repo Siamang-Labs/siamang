@@ -141,7 +141,9 @@ you signed up with email or with Google or Microsoft:
 
 One trial per email address. Addresses are matched without regard to
 upper/lower case, and accounts are not deleted, so signing up again with the
-same address does not give you a new trial.
+same address does not give you a new trial. Organizations you add later with
+**Create organization** start on the Free plan (see
+[Creating another organization](Studio-Organizations-and-Team#creating-another-organization)).
 
 After sign-in you arrive in your organization, on the **Projects** tab.
 
@@ -289,7 +291,7 @@ to sign in** if not.
 
 | You see | Why, and what to do |
 |---|---|
-| **Create your account** although you already have an account | The address has a typo (check the sentence at the top), or Studio could not look the address up just then, for example after several attempts in a minute. Go **← Use a different email**, wait a minute, and try again. If you signed up but never clicked the confirmation link, find that email first. |
+| **Create your account** although you already have an account | The address has a typo (check the sentence at the top), or Studio could not look the address up just then. From one network address, Studio answers at most 10 lookups a minute for the same email, and at most 20 a minute for all emails together. So this can happen after repeated tries, or when many people sign in at once from a shared network such as a classroom or an office. Go **← Use a different email**, wait a minute, and try again. If you signed up but never clicked the confirmation link, find that email first. |
 | "This email already has an account — sign in instead." | You tried to sign up with an address that already has an account. Use **← Use a different email**, then sign in. |
 | "Could not sign you in. Invalid login credentials." | Wrong password, or the account was created with Google or Microsoft and has no password. Use **Forgot password?** or the provider button. |
 | "Could not sign you in. Email not confirmed." | Click the link in the confirmation email first. |

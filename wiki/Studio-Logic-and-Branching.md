@@ -6,13 +6,19 @@ condition editor, every kind of routing and the order in which it applies,
 screen-out pages, piping, the Logic map, and the checks that catch broken
 logic before you publish.
 
-> **Important.** In the published survey, logic, piping and quotas only work
-> on a question whose **Id** (Inspector → **Advanced**) is identical to its
-> variable name. Presets (e.g. Id `q5`, variable `nps_5`) and variables
-> renamed in the Inspector break this. When the two differ, conditions,
-> branch rules and piping that read that question never fire. Before you
-> build logic, make the Id and the variable name the same. See
+> **Note.** Logic reads a question's **variable name**, and the survey stores
+> the answer under that same name. The question's **Id** (Inspector →
+> **Advanced**) is only its handle in the Builder and in script targets, so
+> the two may differ: a preset, for example, gets Id `q5` and variable
+> `nps_5`, and conditions, piping and quotas on `nps_5` work. See
 > [[The Builder|Studio-Builder-Overview]].
+>
+> A survey published with an earlier version of Studio stored such a
+> question's answer under its **Id**, so in that build, conditions and piping
+> that read the variable never fire. Answers that build still sends are filed
+> under the variable when they arrive, so **Data** and the quota counts are
+> right. To fix the routing in the respondent's browser, publish the survey
+> again.
 
 ---
 
@@ -65,11 +71,13 @@ Show if   (age ≥ 18) and (region in [1, 2])      Edit  Clear
   the visual editor.
 - **Done** closes the editor. **Clear** removes the whole condition.
 - The variable list holds **every** variable of the questionnaire, sorted
-  alphabetically: question variables plus codebook entries, including
-  variables asked **later**. Picking a later one is allowed but is flagged
-  (see [Studio's check](#studios-check)).
-- With no questions yet, **+ Condition** is disabled with "Add a question
-  first — conditions reference its variable."
+  alphabetically: question variables plus codebook entries (such as the arm
+  of **Assign to a condition**), including variables asked **later**.
+  Picking a later one is allowed but is flagged (see
+  [Studio's check](#studios-check)).
+- With no variables yet (no question and no codebook entry), **+ Condition**
+  is disabled with "Add a question first — conditions reference its
+  variable."
 
 ### Operators
 
@@ -177,10 +185,16 @@ On a page, Inspector → **Logic**:
   rule matched. **— following page —** means the next **visible** page in
   document order.
 
-> **Current limitation.** A rule whose condition is empty never matches, even
-> though the empty condition shows the placeholder "otherwise" and the Logic
-> map labels it "always". A new rule from **+ Rule** starts out empty. Give
-> every rule a condition, and use **Default next** for "everyone else".
+A rule whose condition is empty never matches: it is not an "otherwise". A
+new rule from **+ Rule** starts out empty, so Studio flags it until you give
+it a condition:
+
+- under the rule in the Inspector: "Add a condition — an empty rule never
+  fires.";
+- on the Logic map, its arc is labeled "no condition — never fires";
+- in **Validation → Structure**: `<page>: the branch to "<target>" has no condition — an empty rule never fires; add one, or use Default next`.
+
+Give every rule a condition, and use **Default next** for "everyone else".
 
 ### What happens when Next is pressed
 
@@ -224,8 +238,8 @@ page**. When routing reaches an end page, the interview ends there:
 - The body of an end page is shown as written. [Piping](#piping) does not work
   there.
 - If the survey ends on a content page instead, the respondent presses
-  **Submit** and sees the completion screen (see
-  [[Theme and Branding|Studio-Theme-and-Branding]]).
+  **Submit responses** and sees the completion screen (see
+  [Completion screen](Studio-Theme-and-Branding#completion-screen)).
 - Panel providers can receive each outcome on its own return URL (see
   [[Panel Providers|Studio-Panel-Providers]]).
 
@@ -269,16 +283,42 @@ By default, a failed check is only flagged in the data, for your analysis to
 decide (see [[Data Quality|Studio-Data-Quality]]). To stop the interview
 instead, tick **Also end the survey for respondents who fail**. This adds an
 ordinary branch rule to the page ("branches to <page>"): answers other than
-the expected one send the respondent to the first Screen-out page. If there is
-none, Studio creates one at the end of the questionnaire. The rule is checked
-when the page is left, so respondents finish the page first, and their answers
-are still stored and counted as screened out. The rule appears in the page's
-**Logic** section like any other, and unticking the box removes it.
+the expected one send the respondent to the first Screen-out page. The rule is
+checked when the page is left, so respondents finish the page first, and their
+answers are still stored and counted as screened out. The rule appears in the
+page's **Logic** section like any other, and unticking the box removes it.
 
-> **Note.** A Screen-out page created this way is added **after** your last
-> page. If your questionnaire does not end with a **Final** page, qualified
-> respondents walk into it after the last content page. Add a Final page
-> before it, as in the layout above.
+If the questionnaire has no Screen-out page yet, Studio creates one and places
+it directly **before** the first **Final** or **Redirect** page. If there is no
+Final or Redirect page either, Studio first adds a Final page after your last
+content page, then places the Screen-out page in front of it:
+
+```
+before:  screener → about_you → thanks (Final)
+after:   screener → about_you → screenout (Screen-out) → thanks (Final)
+```
+
+> **Current limitation.** In that layout the new Screen-out page sits in front
+> of the Final page, and pages run in order: respondents who **pass** the
+> check reach it when they press **Next** on the page before it, and are
+> recorded as screened out. After ticking the box, drag the Screen-out page
+> below the Final page in the page rail, as in the
+> [dependable pattern](#screening-people-out) (the branch rule points at the
+> page by name, so it follows). Then walk the survey once as a respondent who
+> passes.
+
+> **Current limitation.** If the questionnaire already has a Screen-out page,
+> the rule points at that one. Every template that asks for consent has one:
+> `screen_out`, right after the consent page, with **Show if** `consent = 0`, so
+> only people who decline see it. For everyone who consented that page is
+> hidden, and a branch to a hidden page lands on the first visible page after
+> it (see [What happens when Next is pressed](#what-happens-when-next-is-pressed)),
+> which is the first question page. A respondent who fails the check is sent back
+> to the start of the questionnaire, not screened out. Add a second Screen-out
+> page below the Final page. Then, in the **Logic** section of the page that
+> holds the check, change the rule's target (the page after **→**) to the new
+> page. The question's inspector then reads "branches to" that page, and
+> unticking the box still removes the rule.
 
 ---
 
@@ -309,7 +349,8 @@ Text:  You told us you mostly use {label:main_brand}. How satisfied are you with
   given.
 - Validation warns about piping a variable that does not exist
   (`PIPE_UNKNOWN_VARIABLE`) or one that is answered later
-  (`PIPE_FORWARD_REFERENCE`).
+  (`PIPE_FORWARD_REFERENCE`). The arm of **Assign to a condition** is never
+  a forward reference: it exists before the first page.
 
 **Redirect URLs** (a Redirect page's **Redirect URL** and the panel return
 URLs) accept the same tokens plus `{url:NAME}`, the value of the `?NAME=`
@@ -326,19 +367,39 @@ Studio has no embedded-data element. What exists:
   columns (see [URL parameters](Studio-Distribution-Channels#url-parameters)).
   Conditions cannot read them. Only redirect URLs can, through `{url:NAME}`.
 - **Assign to a condition** (Scripts) draws each respondent into an
-  experimental arm and writes the arm's code to a variable (see
-  [[Scripts|Studio-Scripts]]).
+  experimental arm and writes the arm's code to a variable, which it declares
+  in the codebook with the arm labels (see [[Scripts|Studio-Scripts]]).
 - **Custom JavaScript** can write values into the answers (see
   [[Scripts|Studio-Scripts]]).
 
-> **Current limitation.** A condition may only read variables that a
-> **question** collects. A condition that reads anything else fails the
-> engine's check when you Save: the arm variable of **Assign to a condition**,
-> a variable you declared in the codebook only, or a value written by custom
-> JavaScript. The message is "… references unknown variables: <name>", the
-> Save is marked **errors**, and it cannot be published. Until this is lifted,
-> use the arm for analysis (it is stored with each response and labeled in
-> the codebook) and for quota balancing, but not for show if / branch rules.
+A condition may read any variable that:
+
+- a **question** collects;
+- **Assign to a condition** writes. The arm is drawn before the first page,
+  so a show if, hide if or branch rule anywhere in the survey, the first page
+  included, can read it. Pick it in the condition editor like any other
+  variable: `condition = Treatment (2)` on a page's **Show if** shows that page
+  to one arm only;
+- the codebook declares without a question. The Codebook tab has no button
+  for this; add the entry under `variables` in the **Source** tab. Use it for a
+  value your custom JavaScript writes: the condition reads whatever the script
+  has stored by the time the condition is checked.
+
+A condition that reads any other name fails the engine's check when you
+Save: "… references unknown variables: <name>". The Save is marked
+**errors** and cannot be published.
+
+> **Note.** Because a codebook entry counts as a known variable, a condition
+> that reads a name left over in the codebook passes both checks, but it never
+> sees an answer: **=**, **in** or **chose** on it never match anyone, and
+> **≠**, **not in** or **did not choose** match everyone. That happens when
+> you rename a variable in the Inspector: the
+> conditions that read it are not updated, and the old name stays in the
+> codebook. Rename variables before you write logic. If you rename one later,
+> edit each condition that reads the old name. In the Logic map's
+> **Questions** lens, such a condition's **Reads answers from** shows the old
+> name as "not collected by any question", and the Save carries an
+> `UNUSED_VARIABLE` warning for it.
 
 ---
 
@@ -362,7 +423,7 @@ show the routing:
 |---|---|---|
 | short arrow between neighbors | next page | none |
 | arc | **Default next** | "otherwise" |
-| arc | **Branch (next if)** rule | the condition, or "always" for an empty one (which in fact never fires, see above) |
+| arc | **Branch (next if)** rule | the condition, or "no condition — never fires" for an empty one |
 | thin arc | **Skip to** | "<question> answered" |
 | red arc | part of a cycle | none |
 
@@ -379,12 +440,15 @@ Two problems are listed above the map. The engine refuses both at Save:
   cycles in the page graph."
 
 Skip to arcs are drawn but, as in the engine, they do not make a page
-reachable. Only the page order, default next and branch rules do.
+reachable. Only the page order, default next and branch rules do. A branch
+rule with an empty condition still counts here, although no respondent ever
+takes it.
 
 Select a page (or click an arc) to fill the side panel:
 
-- **Leads to**: "next page X", "otherwise X", "if <condition> → X", "skip to
-  X when <question> is answered", or "end of the survey".
+- **Leads to**: "next page X", "otherwise X", "if <condition> → X" ("if no
+  condition — never fires → X" for an empty rule), "skip to X when
+  <question> is answered", or "end of the survey".
 - **Reached from**: the pages and rules that lead here, "the first page", or
   "nothing — unreachable".
 - **Edit page logic →** opens the page in **Structure** with its Logic
@@ -456,7 +520,8 @@ Two layers check logic, and they are not the same.
 ### Studio's check
 
 Studio's check runs as you edit. It appears under **Validation → Structure**
-and on the Logic map, and it never blocks a Save:
+(the condition problems also on the Logic map's **Questions** lens), and it
+never blocks a Save:
 
 - **Forward references.** A condition that
   reads an answer not yet given:
@@ -467,6 +532,10 @@ and on the Logic map, and it never blocks a Save:
   questions.
 - A condition that reads a variable no question collects and the codebook does
   not declare: `<item>: the condition reads "<var>", which no question collects and the codebook does not declare`.
+  A variable that only the codebook declares (the arm of **Assign to a
+  condition**, for example) is not flagged.
+- A branch rule with an empty condition:
+  `<page>: the branch to "<target>" has no condition — an empty rule never fires; add one, or use Default next`.
 - `<question>: skip_to points at unknown page "<page>"`,
   `<page>: next_if target "<t>" does not exist`,
   `<page>: default_next "<t>" does not exist`.
@@ -479,14 +548,24 @@ and block publishing:
 - unreachable pages and cycles in the page routing;
 - a Skip to, branch or default-next target that does not exist;
 - duplicate question ids, empty or duplicate page names;
-- a condition that reads a variable no question collects (see
+- a condition that reads a variable that no question collects, no **Assign
+  to a condition** writes and the codebook does not declare (see
   [Assignment and "embedded data"](#assignment-and-embedded-data));
-- the same variable written by two questions.
+- the same variable written by two questions;
+- a question whose **Id** is another question's variable name ("Question
+  '<id>' has the id under which question '<other>' stores its answer; an id
+  may not be another question's variable or output name."). Logic and script
+  targets could not tell the two apart;
+- a Matrix, MaxDiff, Conjoint or wide Multiple choice whose **Id** is another
+  question's variable name ("Duplicate answer key in questionnaire: questions
+  '<a>' and '<b>' both store their answer under '<name>'."). Such a question
+  stores its answers under its Id, so the two would share one name.
 
 It also returns warnings, which do not block. Examples: a condition that
 compares with a code the variable no longer has (`UNKNOWN_CONDITION_VALUE`),
 `CONTRADICTORY_VISIBILITY`, `REQUIRED_CONDITIONAL` and the piping warnings.
-The engine does **not** detect forward references; only Studio's check does.
+The engine does **not** detect forward references or empty branch rules; only
+Studio's check does.
 
 See [[Testing Your Survey|Studio-Testing-Your-Survey]] for the whole
 Validation tab.
@@ -500,9 +579,10 @@ Validation tab.
   whether a Skip to fires, and where **Next** will take you.
 - **Test → Simulate**: synthetic respondents that follow page show / hide,
   Skip to, branch rules and default next. Simulate does not apply block
-  conditions or answer-option conditions, and it does not reveal the
-  Id-versus-variable problem described at the top of this page. The
-  Walkthrough does.
+  conditions or answer-option conditions, and it does not draw an arm for
+  **Assign to a condition**, so conditions on the arm are checked as if it
+  were unanswered. The Walkthrough runs the assignment (with the weighted
+  draw), so you can walk each arm's route.
 - **Logic map** for reachability and forward references at a glance.
 - **Validation** for the engine's own verdict.
 
@@ -512,8 +592,9 @@ See [[Testing Your Survey|Studio-Testing-Your-Survey]].
 
 ## Practical advice
 
-- Keep each question's **Id** and variable name identical. Logic that reads a
-  question whose Id differs never fires in the published survey.
+- Settle variable names before you write logic. Renaming a variable does not
+  update the conditions that read it (see the note under
+  [Assignment and "embedded data"](#assignment-and-embedded-data)).
 - Name pages meaningfully (`screener`, `about_you`, `thanks`). Page names are
   what rules and the Logic map show. Renaming a page updates the rules that
   point at it.

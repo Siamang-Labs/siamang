@@ -67,7 +67,9 @@ preset**, and the house style gives you your own starting point.
 | **Borders** | `#e6e4df` |
 
 Each color has a picker and a text field. The text field accepts hex
-(`#1f5fd6`) or any CSS color.
+(`#1f5fd6`) or any CSS color. The picker swatch follows the text field while
+it holds a 3- or 6-digit hex value; for anything else (a named color,
+`rgb(…)`, a half-typed value) it shows the default.
 
 **Contrast readouts.** Under the colors Studio prints the contrast ratio of
 the pairs that decide whether the survey can be read:
@@ -98,29 +100,39 @@ The fonts load from Google Fonts. To use your own typefaces, see
 | **Style** | **plain**, **carded**, **divided**, **accent** | plain |
 | **Progress** ("hidden removes the indicator entirely") | **bar**, **dots**, **both**, **hidden** | bar |
 
-> **Current limitation.** The **Progress** setting does not yet behave as its
-> labels say, and published surveys differ from the Builder's previews:
+The published survey, the header **Preview** and the Builder's previews
+(canvas, Walkthrough, share link) all show the same indicator:
+
+| Progress | What respondents see |
+|---|---|
+| **bar** | a bar with a section label |
+| **dots** | the bar **and** a row of page dots |
+| **both** | the bar and the page dots |
+| **hidden** | no bar; but if **dots** or **both** was chosen before, the page dots stay |
+
+Choosing **bar**, **dots** or **both** switches the indicator on;
+**hidden** switches it off. A questionnaire that says nothing about progress
+shows the bar.
+
+> **Current limitation.** The **Progress** setting does not yet behave
+> exactly as its labels say:
 >
-> | Progress | Published survey (and the header **Preview**) | Builder previews (canvas, Walkthrough, share link) |
-> |---|---|---|
-> | **bar** | no progress indicator | a bar with a section label |
-> | **dots** | a row of page dots | the bar **and** the dots |
-> | **both** | a row of page dots | the bar and the dots |
-> | **hidden** | nothing; but if **dots** or **both** was chosen before, the dots stay | no bar; dots stay as on the left |
->
-> - To show **no indicator anywhere**: choose **bar**, then **hidden**.
-> - To show a **bar in the published survey**: open the **Source** tab, add
->   `"show_progress": true` inside `"options"`, press **Apply** and Save.
->   Clicking a Progress pill later removes it again.
-> - Questionnaires started from a library template already carry that
->   setting, so their published surveys show the bar until you click a
->   Progress pill.
+> - **dots** shows the bar as well as the dots, the same as **both**.
+> - To show **no indicator at all**: choose **bar**, then **hidden**.
 > - The text beside the bar is always "Welcome" on the first page, "Section N
 >   of M" in between and "Final thoughts" on the last page. It cannot be
 >   changed.
 > - The page dots can be clicked. Respondents can jump **forward** to any
 >   page, past unanswered required questions and your routing. Prefer the bar
 >   when routing or required answers matter.
+
+> **Note.** Earlier versions of Studio published surveys **without** the
+> progress bar (only the page dots, for **dots** or **both**) unless the
+> questionnaire's `options` held `"show_progress": true`, whatever the
+> Builder's previews showed. A survey still in the field from that time keeps
+> its look until you publish it again; the new build follows the
+> **Progress** setting. If respondents should keep seeing no bar, choose
+> **bar**, then **hidden** before you republish.
 
 ---
 
@@ -209,20 +221,16 @@ responses** and sees the completion screen: a title, a message, their
 
 | Label | Placeholder |
 |---|---|
-| **Title** | "Thank you for participating" |
 | **Message** | "Your responses help inform open research." |
 
-> **Current limitation.** Setting **Title** makes the questionnaire
-> **invalid**: Save is refused and the canvas preview stops rendering. If you
-> set it, clear the field again. The title respondents see is always "Thank
-> you for participating".
->
-> **Message** works. If you leave it empty, respondents see "Thank you for
-> your participation!", not the placeholder.
->
-> For your own title and text, end the survey on a **Final (thank you)** page
-> instead. It shows its own title and body (see
-> [[Logic and Branching|Studio-Logic-and-Branching]]).
+- **Message** is the text under the title. If you leave it empty,
+  respondents see "Thank you for your participation!", not the placeholder.
+- The title is always "Thank you for participating". There is no control for
+  it, because no questionnaire setting changes it.
+
+For your own title and text, end the survey on a **Final (thank you)** page
+instead. It shows its own title and body (see
+[[Logic and Branching|Studio-Logic-and-Branching]]).
 
 ---
 
@@ -372,6 +380,12 @@ studies will start from the engine's defaults again. The studies you already
 have keep their look.") are for owners and admins. Members see "Only owners
 and admins can set the house style." See
 [Branding](Studio-Organizations-and-Team#branding).
+
+A house style is copied into every new study, so its size is limited:
+**Custom CSS** up to 64 KB, every other value up to 4 KB, and 128 KB for the
+whole style. **Save changes** on a larger one is refused with a message that
+names the field ("… is longer than 64 KB, which is more than a house style
+can hold; shorten it") or the total ("… larger than 128 KB altogether …").
 
 ### A stamp, not a setting
 

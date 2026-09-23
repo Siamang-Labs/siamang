@@ -146,9 +146,10 @@ responses), as SurveyData labeled by the questionnaire's codebook.
 |---|---|---|---|---|
 | **Table** | text | required | — | Name of a project table written by a **Write table** node (or another table in **Data**). |
 
-- Reading a table does **not** make this flow run after the flow that writes
-  it. **Run all** runs flows in alphabetical order of their names, so name the
-  writer so it sorts first (for example `a_clean` and `b_tables`). See
+- **Run all** runs this flow after the flow whose **Write table** writes the
+  table named here, whatever the flows are called, and skips it (marked
+  failed) when that flow fails. Running this flow on its own does not run the
+  writer first: it reads the table as it is. See
   [Run all](Studio-Flows#run-all).
 - Only the rows and columns are stored in a table, not codebook entries for
   variables another flow created; see
@@ -176,16 +177,30 @@ already carries one).
 |---|---|---|---|---|
 | **Weight column** | text | `weight` | — | The column holding the weights. |
 
-> **Current limitation.** Not every downstream node uses the applied weight
-> yet. These do: **Banner table** (with Kish's effective base for its tests),
-> **Net Promoter Score**, **Regression** (OLS becomes weighted least squares),
-> **TURF**, and **Proportion CI** when its **Weighted** box is ticked. These
-> currently compute **unweighted** even after Apply weight: **Frequencies**,
-> **Crosstab**, **Group means**, **Compare groups**, **Correlation**,
-> **MaxDiff**, **Conjoint**, **Share of preference**, **Cluster (k-means)**,
-> **Principal components**, **Scale reliability** and all four charts. For
-> weighted percentages today, use a **Banner table**; for a weighted share
-> with its interval, **Proportion CI** with **Weighted** on.
+These nodes use the applied weight:
+
+| Node | Weighted |
+|---|---|
+| **Frequencies** | N is the sum of the weights and the percentages follow it, with an **Unweighted N** column beside it (see [Frequencies](#frequencies)) |
+| **Crosstab** | cells and totals are sums of weights and the percentages are taken from them; the chi-square test uses Kish's effective base (see [Crosstab](#crosstab)) |
+| **Group means** | means, SDs and medians; N and the significance test stay unweighted (see [Group means](#group-means)) |
+| **Banner table** | percentages and counts; tests on Kish's effective base |
+| **Net Promoter Score** | the shares and the score (its standard error on Kish's effective base); N counts respondents |
+| **Regression** | linear models become weighted least squares; logistic models are weighted too |
+| **TURF** | the base and each portfolio's reach |
+| **MaxDiff** | the counts (**Shown**, **Best**, **Worst**) and the **Score** — not the **Utility** and **Share %** columns; the base counts respondents |
+| **Proportion CI** | only when its **Weighted** box is ticked |
+
+> **Current limitation.** The palette describes Apply weight as "Use a weight
+> column in every table and statistic downstream", but these nodes still
+> compute **unweighted** after it: **Compare groups**, **Correlation**,
+> **Cluster (k-means)**, **Principal components**, **Scale reliability**,
+> **Conjoint**, **Share of preference**, the **Utility** and **Share %**
+> columns of **MaxDiff**, and all four charts. **Describe** and the tables of
+> **Response quality** and **Code open answers** count respondents as well. A
+> **Bar chart** of means by group can therefore disagree with a weighted
+> **Group means** table, and a MaxDiff's utilities with its weighted scores —
+> say which results are weighted in the section's note.
 
 ### Cell weights
 
@@ -590,7 +605,9 @@ sits at zero. Importance is an attribute's range of part-worths over the sum of
 all ranges — **of the levels you tested**: price from £10 to £12 will look
 unimportant beside price from £10 to £100, and that is a fact about your
 design. Estimates are aggregate; for individual-level part-worths, export with
-**Conjoint data for HB**. See [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]].
+**Conjoint data for HB**. The model is fitted unweighted, even after **Apply
+weight**. See
+[[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]].
 
 ### Share of preference
 
@@ -607,7 +624,8 @@ market of specific products would do.
 
 A half-specified product has no utility, so give every attribute a level.
 Leaving "none of these" out when the question offered it rescales the people
-who would have walked away into buyers.
+who would have walked away into buyers. The part-worths behind the shares
+are fitted unweighted, as in **Conjoint**, even after **Apply weight**.
 
 ### Correlation
 
@@ -639,6 +657,17 @@ For a multiple-answer row variable the table counts respondents, not answers,
 and does not offer a chi-square test (its independence assumption does not
 hold).
 
+After **Apply weight**, the cells and totals are sums of weights (to one
+decimal) and the percentages are taken from them the same way. The
+chi-square test is run on the counts scaled down to the effective (Kish)
+sample size, as the **Banner table** does: weights make a sample behave like a
+smaller one. With **Chi-square test** on, the statistics keep **N** (the
+respondents counted) and add
+**Weighted N**, **Effective N**, **Weight** and **Base** ("effective (Kish)
+for the test; weighted counts shown"). For a multiple-answer row variable the
+percentages are of each column's weighted base, and an **Unweighted base** row
+follows the "Base (respondents answering)" row.
+
 ### Describe
 
 `analyze.describe` — a summary table of the data: one row per codebook
@@ -668,6 +697,14 @@ For a multiple-answer question, each option's share is of the respondents who
 answered, so the column sums above 100 %; the base is a row of its own and
 there is no cumulative column.
 
+After **Apply weight**, **N** is the sum of the weights (to one decimal) and
+the percentages are taken from it, an **Unweighted N** column beside **N** gives the respondents
+actually counted — the number a reader judges a percentage by — and the
+statistics add **Weighted N** and **Weight**. For a multiple-answer question
+the weighted counts are rounded to whole numbers, the base row carries the
+unweighted base under **Unweighted N**, and the statistics read, for example,
+"812 respondents (798 weighted)".
+
 ### MaxDiff
 
 `analyze.maxdiff` — what a best–worst question found: one row per item, best
@@ -683,7 +720,11 @@ implies.
 
 The design is read from the questionnaire, so the only thing to name is the
 question. Utilities come from an **aggregate** conditional logit; individual
-ones need hierarchical Bayes, which **Choice data for HB** exports for.
+ones need hierarchical Bayes, which **Choice data for HB** exports for. After
+**Apply weight**, the counts (**Shown**, **Best**, **Worst**, rounded to whole
+numbers) and the **Score** are weighted, but the **Utility** and **Share %**
+columns are still fitted unweighted — so on weighted data the two orders can
+differ for that reason alone. The base in the footer counts respondents.
 
 ### Group means
 
@@ -697,6 +738,13 @@ matching significance test chosen by the engine.
 | **Variable** | variable | required | ordinal / interval / ratio variables | The variable whose mean is compared. |
 | **By** | variable | required | nominal / ordinal variables | The grouping variable. |
 | **Significance test** | checkbox | on | — | Add the matching significance test. |
+
+After **Apply weight**, each group's mean, SD and median are weighted (the SD
+is scaled so that equal weights give exactly the ordinary sample SD; the
+median is the value at which the cumulative weight reaches half). **N** stays
+the number of respondents and the significance test stays unweighted; the
+statistics add **Weight** and the note "means, SD and medians are weighted; N
+and the test are not".
 
 ### Net Promoter Score
 
@@ -741,7 +789,8 @@ its confidence interval.
 ### Regression
 
 `analyze.regression` — linear (OLS) or logistic regression with a coefficient
-table. With a weight applied, OLS becomes weighted least squares. Nominal
+table. With a weight applied, OLS becomes weighted least squares and the
+logistic model is weighted too. Nominal
 predictors are dummy-coded against their first category, using the codebook's
 labels.
 
@@ -801,7 +850,9 @@ SurveyData in, **Chart** out. All four accept a **Title**, a **Figure width
 (in)** and **Figure height (in)** (2–30 inches, 10 × 6 by default) and a
 **Palette** — **Heatmap** takes a **Color map** instead. Width and height
 resize the figure the engine draws, not the picture of it, so the axis labels
-keep their proportion. Charts are drawn unweighted.
+keep their proportion. Charts are drawn unweighted, even after **Apply
+weight** — a bar chart of means by group can differ from a weighted **Group
+means** table of the same variables.
 
 ### Bar chart
 

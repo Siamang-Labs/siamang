@@ -38,7 +38,7 @@ The chip opens a two-column menu:
  [LB] Lab of Behavior      member       ● Employee Pulse Q3
  ─────────────────────                  ● Course Evaluation
  Manage organizations                   ───────────────────
-                                        All projects
+ Create organization                    All projects
                                         New project
 ```
 
@@ -48,12 +48,18 @@ The chip opens a two-column menu:
   organization to switch to it. You land on its **Projects** tab.
 - **Manage organizations** opens the **Organizations** screen (see
   [[Organizations and Team|Studio-Organizations-and-Team]]).
+- **Create organization** opens the **Create organization** dialog. It is
+  there however many organizations you already belong to; see
+  [Creating another organization](Studio-Organizations-and-Team#creating-another-organization).
 - **Projects** lists up to ten projects of the current organization with a
   status dot, and a ✓ on the one you are in. Clicking one opens it. If you were
   already inside a project, the other project opens on the same tab (for
   example **Data**); otherwise it opens in the **Builder**.
 - **All projects** goes to the organization's **Projects** tab. **New
   project** opens the **New project** dialog (see [[Projects|Studio-Projects]]).
+  It is disabled when the organization has reached its plan's project limit
+  (on Free, hovering it says "Your plan allows 2 projects — upgrade to add
+  more") and for members ("Only owners and admins can create projects").
 
 Press `Esc` or click outside to close the menu.
 
@@ -202,7 +208,11 @@ What to know about keys:
 - Keys created here **do not expire**. Revoke keys you no longer use.
 - When you leave an organization, your keys lose access to it along with you.
   Revoke keys you created for a team's automation when you hand it over.
-- Creating and revoking keys is not recorded in an organization's Activity log.
+- Creating and revoking a key is recorded in the Activity log of every
+  organization you belong to (`api_key.create`, `api_key.revoke`), under your
+  name. The entry names the key by its first characters (`sck_ab12cd34`), the
+  same way this list does; the full token is never recorded. Owners and admins
+  of those organizations can see these entries.
 
 ### Support
 
@@ -223,8 +233,9 @@ Four tiles:
   role. Passwords and Google or Microsoft sign-ins are handled by a managed
   authentication service; Studio's own servers never receive your password.
 - **Your actions inside an organization**, recorded in its Activity log under
-  your name: Saves, publishing, deletions, member changes and so on. See
-  [Activity](Studio-Organizations-and-Team#activity).
+  your name: Saves, publishing, deletions, member changes and so on, plus the
+  creation and revocation of your API keys, which appear in every organization
+  you belong to. See [Activity](Studio-Organizations-and-Team#activity).
 - **Personal drafts**: your unsaved Builder and Flows edits, stored per person
   so a colleague taking over a document cannot lose them.
 - **Your API keys**: name, first characters, creation and last-use time. The
@@ -247,7 +258,7 @@ Respondent data is a separate matter; see
   their own organization.
 - **Delete your account.** Not self-service in the beta. Write to
   `info@siamang-team.org` from the address you signed up with.
-- **Delete a project.** Self-service and permanent; see
+- **Delete a project.** Self-service for owners and admins, and permanent; see
   [[Project Settings|Studio-Project-Settings]].
 
 ## See also

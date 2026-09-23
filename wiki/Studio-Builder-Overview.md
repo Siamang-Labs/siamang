@@ -88,21 +88,53 @@ more tabs move into **More ▾**; the tab you are on always stays visible. The
 
 ## Question Id and variable name
 
-> **Important — keep each question's Id identical to its variable name.**
-> A single-answer question (Single choice, Likert scale, Number, Open text,
-> Ranking, and Multiple choice in the array layout) stores its answer under the
-> question's **Id** — that is the name of its column in your data. Conditions,
-> piping and quotas, on the other hand, look an answer up by its **variable
-> name**. When the two differ, a condition on that variable never matches,
-> piping shows the placeholder instead of the answer, a quota on it never
-> fills, and the data column is not called what your codebook says.
-> **Presets** create exactly this mismatch (Id `q5`, variable `nps_5`), and so
-> does renaming a variable in the Variable card.
-> **Fix:** select the question, open **Advanced → Id** and set it to the
-> variable name (for example `nps_5`). Every question card shows
-> `id → variable` in its header, so a mismatch is easy to spot. Matrix,
-> MaxDiff and Conjoint questions already store each answer under its own
-> variable name.
+Every question has two names, shown together as `id → variable` in its card
+header and in the Inspector header:
+
+- The **Id** (**Advanced → Id**) is the question's own handle. Scripts on the
+  **Scripts** tab target a question by its Id, comments are attached to it,
+  checks and validation messages quote it, the Codebook's **Used by** column
+  lists it, and the MaxDiff and Conjoint analysis nodes pick their question by
+  it.
+- The **variable** (the **Variable** section) is the answer. A single-answer
+  question — Single choice, Likert scale, Number, Open text, Ranking, and
+  Multiple choice in the array layout — stores its answer under its
+  **variable name**: that is the column in the **Data** tab and in every
+  export, and the name conditions, piping, quotas and attention-check scoring
+  read. Matrix, MaxDiff and Conjoint questions write several variables, and
+  each becomes its own column in your data. (For Multiple choice in the wide
+  layout, see [Multiple choice](Studio-Question-Types#multiple-choice).)
+
+The two names may differ. **Presets** differ by design (Id `q5`, variable
+`nps_5`), and so does a question whose variable you rename in the Variable
+card; logic, piping and quotas on the variable work either way. What still
+matters:
+
+- **An Id must not be another question's variable name.** The survey could
+  not tell which of the two questions is meant, so such a Save is marked
+  `errors`: "Question 'q2' has the id under which question 'q1'
+  stores its answer; an id may not be another question's variable or output
+  name." Rename one of the two.
+- **Renaming a variable does not update the conditions, quotas, piping or
+  scripts that use the old name** — see
+  [Renaming a variable](Studio-Codebook-and-Variables#renaming-a-variable).
+- **In custom JavaScript, answers are keyed by variable name**:
+  `answers["nps_5"]`, and `answers.__errors__["nps_5"]` for a validation
+  message. When Studio builds the survey it translates accesses written with
+  the Id (`answers["q5"]`, `answers.q5`); Validation warns with
+  `SCRIPT_STALE_QUESTION_ID` about other mentions of the Id it cannot
+  translate. See [[Scripts|Studio-Scripts]].
+
+> **Note — answers collected before this change.** Earlier versions of Studio
+> stored a single-answer question's answer under its **Id**, so logic, piping
+> and quotas on a question whose Id differed from its variable never matched,
+> and its data column carried the Id. Studio has moved the answers already
+> collected that way to the variable's name and recounted the quota cells
+> involved; where a move could have mixed two questions' answers, the old
+> column was left as it was. A survey published before the change keeps its
+> old build: its answers are filed under the variable name as they arrive, but
+> its show-if conditions, branching and piping on such questions only work
+> once you publish it again.
 
 ---
 
@@ -153,7 +185,8 @@ page**, or at the end of the **selected block** when a block is selected. See
 
 New questions are called **New question**, are optional, and get the next free
 id `q1`, `q2`, … Their variable is named after the id (`q7`) — or, for a
-preset, after the preset (`nps_7`, `yes_no_7`) — see
+preset, after the preset (`nps_7`, `yes_no_7`); the answer is stored under the
+variable — see
 [Question Id and variable name](#question-id-and-variable-name).
 
 ### The canvas bar
@@ -278,7 +311,9 @@ Select a page (click it in the rail, or its title in the pager) to edit it:
 - **Logic** section — **Show if**, **Hide if**, **Branch (next if)** ("first
   matching rule wins"; **+ Rule** adds one, each rule is a condition → target
   page) and **Default next** ("when no rule matches"; **— following page —**
-  by default). See [[Logic and Branching|Studio-Logic-and-Branching]];
+  by default). A rule without a condition never fires, so until you add one
+  it shows "Add a condition — an empty rule never fires."; for "otherwise",
+  use **Default next**. See [[Logic and Branching|Studio-Logic-and-Branching]];
 - **Comments** — a discussion thread on this page for your team
   ([[Working Together|Studio-Collaboration]]).
 
@@ -454,9 +489,9 @@ saves.
   failed." followed by the engine's reason. The usual causes are listed in
   [What the engine refuses](Studio-Question-Types#what-the-engine-refuses).
 - A document the engine can read but that breaks a rule (a duplicate question
-  id, a skip to a page that does not exist, a page nobody can reach, …) **is**
-  saved, marked `errors`, and cannot be published until you fix it and Save
-  again.
+  id, a question Id that is another question's variable name, a skip to a page
+  that does not exist, a page nobody can reach, …) **is** saved, marked
+  `errors`, and cannot be published until you fix it and Save again.
 
 ### When a colleague saved first
 
@@ -538,8 +573,9 @@ or revert source edits before saving"). If the text is not valid JSON you see
 JSON object."
 
 Source is the escape hatch for anything the Builder does not offer yet, such as
-text-only pages or missing-value codes (see
-[[Codebook and Variables|Studio-Codebook-and-Variables]]).
+text-only pages, the *kind* of a missing-value code, or missing codes for a
+variable whose Codebook row cannot be opened (see
+[Missing codes](Studio-Codebook-and-Variables#missing-codes)).
 
 ---
 

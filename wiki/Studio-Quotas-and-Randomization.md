@@ -85,9 +85,18 @@ them, but **Source → Check** and every Save do.
 > fills, because a multiple-choice answer is a list of codes rather than one
 > code. Put quotas on single-answer questions.
 
-> **Important.** A cell only counts when the question's **Id** is identical
-> to its variable name (Inspector → **Advanced**). See
-> [[The Builder|Studio-Builder-Overview]].
+A cell is matched against the answer stored under its **variable**, whatever
+the question's **Id** is (see [[The Builder|Studio-Builder-Overview]]).
+
+> **Note.** Earlier versions of Studio stored the answer of a question whose
+> Id differed from its variable name (every preset, for example) under the
+> Id, so it never reached its cell. Those stored answers have been moved to
+> the variable once, wherever that was unambiguous (an answer already stored
+> under the variable is never overwritten, and an Id that could belong to
+> something else is left alone). The cells of each variable that received
+> answers this way were recounted from the completed responses, so their
+> counts may have changed. A survey published before the change keeps counting
+> correctly: its answers are filed under the variable as they arrive.
 
 ### Where to watch the fill
 
@@ -196,24 +205,28 @@ other.
 There is no page switch. Add **Scripts → Add script → Randomize pages**
 (row "page order").
 
-- The **first** and the **last** page of the questionnaire stay where they
-  are. Every page in between is shuffled for each respondent, **end pages
-  included**.
-- It does nothing unless the questionnaire has **more than 3 pages**.
+- The **first** page, the **last** page and every **end page** (Final,
+  Screen-out, Redirect) keep their positions, wherever they sit.
+- Every other page is shuffled into the remaining positions for each
+  respondent.
+- Nothing is shuffled unless at least **two** pages are free to move.
 
-This matters for end pages. A Final or Screen-out page that is not last can be
-shuffled into the middle, and respondents who reach it there end the
-interview early. With Randomize pages:
+Routing still follows the shuffled order: **— following page —** and
+sequential **Next** go to the next page of the respondent's order, while
+branch rules and **Default next** jump to a page by name. So:
 
-- make the first page your introduction or screener, since it stays first;
-- keep at most **one** end page, and make it the last page. If you also need
-  a screen-out, a working layout is: no Final page (the survey ends with the
-  completion screen after the last content page), a Screen-out page **last**
-  with a **Show if** holding the failing condition, and a branch rule from
-  the screener to it. Qualified respondents never see the hidden screen-out
-  page; failing ones are sent to it. See
-  [[Logic and Branching|Studio-Logic-and-Branching]].
+- make the first page your introduction or screener: apart from the last
+  page, it is the only content page that keeps its place;
+- put your end pages after the last content page, as in the usual layout
+  (content pages, then the **Final** page, then the **Screen-out** page; see
+  [Screening people out](Studio-Logic-and-Branching#screening-people-out)).
+  An end page between content pages keeps its position, but the shuffled
+  pages around it change, so a respondent can reach it by pressing **Next**
+  on whichever page was dealt into the slot before it;
 - or shuffle blocks on a page instead of pages.
+
+A survey published with an earlier version of Studio kept only the first and
+last page in place. Publish it again to get this behavior.
 
 ### Seeded option order
 
@@ -268,22 +281,35 @@ the arm depends on who answered first").
 > **Current limitation.** A **seeded** assignment sends **every respondent
 > to the same arm**. Leave **Seed** empty.
 
-> **Current limitation.** You cannot yet branch on the arm. A show if, hide if
-> or branch rule that reads the assignment variable makes the Save fail the
-> engine's check ("… references unknown variables: condition"), and the Save
-> cannot be published. Use the arm for analysis and quota balancing. Showing
-> different questions to different arms is not possible yet.
+**Branching on the arm.** The assignment variable is an ordinary variable for
+Logic. Pick it in any condition editor (it is in the codebook with the arm
+labels, so the value list reads `Control (1)`, `Treatment (2)`):
+
+- a **Show if** such as `condition = Treatment (2)` on a question, block or
+  page shows it to one arm only. This is how vignette versions and A/B
+  stimuli are built;
+- a **Branch (next if)** rule on the arm sends each arm down its own route;
+- piping `{answer:condition}` inserts the arm's code. `{label:condition}`
+  inserts the code too, not the label: piped labels come from a question's
+  answer options, and no question asks the arm.
+
+The arm is drawn before the first page, so conditions on the first page can
+read it too, and Studio's check never reports it as a forward reference. See
+[Assignment and "embedded data"](Studio-Logic-and-Branching#assignment-and-embedded-data).
 
 ---
 
 ## Checking both before launch
 
-- **Test → Walkthrough** shows the survey in a randomized order (press
-  **Restart** for a new draw), but the side panel does not list option or
-  page order.
+- **Test → Walkthrough** shows the survey in a randomized order and draws an
+  arm with the weighted draw (press **Restart** for a new draw), but the side
+  panel does not list option or page order. Restart until you have walked
+  each arm's route.
 - **Test → Simulate** applies **no** randomization, no assignment and no
   quotas: simulated rows are in document order, the assignment variable is
-  not filled, and quotas are not counted.
+  not filled, and quotas are not counted. Conditions that read the arm are
+  checked as if it were unanswered, so a question with a Show if such as
+  `condition = Treatment (2)` stays empty in every simulated row.
 - Publish to `pilot` and answer it a few times: the quota bars on the pilot
   card fill with your test answers, which confirms each cell is counted. Pilot
   counters are separate from `main`.

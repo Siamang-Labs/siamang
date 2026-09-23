@@ -40,12 +40,13 @@ with a role that can see only their own project.
   names exist.
 - **Roles** decide what a member can do: see
   [Roles](Studio-Organizations-and-Team#roles). For example, only owners and
-  admins can delete a response or read the organization-wide Activity log.
+  admins can delete a response, manage webhooks or read the organization-wide
+  Activity log; members don't see those controls at all.
 - **Public by design, and only when you create them:**
 
 | Public surface | What it shows | Lifetime |
 |---|---|---|
-| A published survey link, or the survey embedded in your site | the questionnaire, for respondents to answer | until you close or unpublish it |
+| A published survey link, or the survey embedded in your site | the questionnaire, for respondents to answer | until you close or unpublish it. If the questionnaire sets a deadline, the survey stops accepting answers once it passes. |
 | A **share preview** link | the respondent view of a draft, for reviewers. Answers given there are not stored. | 24 hours. Each person can create up to 50 per day. |
 | A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
 | The **unsubscribe** link in invitation emails | a page where the recipient opts out of further mailings | sent with every invitation email |
@@ -76,7 +77,8 @@ Nothing else is public.
 
 1. Find the response in **Data**: by `respondent_id`, by invitation address,
    or by a panel id in the URL parameters.
-2. Delete it. Only owners and admins can.
+2. Delete it. Only owners and admins can; members don't see the **Delete**
+   button on response rows.
 3. The row is removed from the database, and the deletion is recorded in the
    Activity log (`response.delete`) **without** its content, which gives you
    the evidence.
@@ -113,19 +115,29 @@ question, and route anyone who declines to the end of the survey (see
 
 Project secrets (connector credentials, tokens) are **encrypted at rest** and
 **write-only**: once saved, nobody can read them back through Studio, you
-included. Only their names are listed. They are handed to runs by name. To
-rotate a secret, overwrite it; to revoke it, delete it. Only owners and admins
-can set or delete secrets, and both actions are recorded in the Activity log.
-See [[Project Settings|Studio-Project-Settings]].
+included. Only their names are listed. Connectors and repository deposits read
+them by name; analysis flow runs never receive them. To rotate a secret,
+overwrite it; to revoke it, delete it. Only owners and admins can set or delete
+secrets (members see **Add secret** disabled), and both actions are recorded in
+the Activity log. See [[Project Settings|Studio-Project-Settings]].
+
+**Webhook secrets.** A webhook's signing **Secret**, set when an owner or admin
+adds the webhook under **Settings → Integrations**, is stored encrypted and is
+never shown again. Each delivery then carries an `X-Siamang-Signature` header
+(`sha256=` followed by an HMAC-SHA256 of the request body), so your endpoint
+can check that the request came from Studio. A webhook added without a secret
+is sent unsigned. See
+[Integrations](Studio-Organizations-and-Team#integrations).
 
 ## API keys
 
 Personal API keys (`sck_…`) are stored **only as a hash** and shown **once**,
 when you create them. A key acts as you, with your role, in every organization
 you belong to. Keys created in the app **do not expire**, so revoke the ones
-you no longer use. Creating and revoking keys is not recorded in the Activity
-log. See [[Account and Profile|Studio-Account-and-Profile]] and
-[[API and API Keys|Studio-API-and-API-Keys]].
+you no longer use. Creating and revoking a key is recorded in the Activity log
+of every organization its owner belongs to, with the key's first characters
+and never the full token. See [[Account and Profile|Studio-Account-and-Profile]]
+and [[API and API Keys|Studio-API-and-API-Keys]].
 
 ---
 
@@ -161,11 +173,13 @@ leave the assistant off. See [[AI Assistant|Studio-AI-Assistant]] and the
 Each organization keeps an append-only **Activity** log: Saves, restores,
 publishing, pausing and closing, runs, response deletions, bundle downloads,
 Live share links, contact imports, mailings (including bounces and spam
-complaints), member changes, secret changes, plan and billing events, and the
-AI assistant switch. Owners and admins read the organization-wide log; every
-member can read a single project's log. Sign-ins, profile changes, API keys,
-organization renames, webhook changes and access-code generation are **not**
-recorded. The full list is under
+complaints), member changes, secret changes, plan and billing events, the AI
+assistant switch, organization renames, webhooks added or deleted (with the
+endpoint, never the signing secret), personal API keys created or revoked
+(by their first characters, never the token), and Saves that add access codes
+(the count, never the codes). Owners and admins read the organization-wide
+log; every member can read a single project's log. Sign-ins and profile or
+password changes are **not** recorded. The full list is under
 [Activity](Studio-Organizations-and-Team#activity).
 
 ---
@@ -178,7 +192,10 @@ recorded. The full list is under
 - **Captcha** (Cloudflare Turnstile) protects sign-up, sign-in and password
   reset when it is enabled.
 - **Too many attempts** are slowed down: the sign-in service limits attempts,
-  and Studio limits how fast the same address can be looked up.
+  and Studio limits how often it tells whether an email address has an
+  account. From one network (IP) address it answers at most 10 lookups a
+  minute for the same email and at most 20 a minute across all emails, so a
+  list of addresses cannot be checked quickly.
 - **Google and Microsoft** sign-in inherit the provider's protections,
   including its two-factor authentication. This is the recommended route for
   sensitive studies. A provider sign-in whose email address is not verified

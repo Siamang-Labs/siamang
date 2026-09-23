@@ -27,13 +27,18 @@ cleaning pass every 30 minutes during fieldwork."
 
 ### Create a schedule
 
-1. Click **Schedule a run** (it needs at least one flow).
+1. Click **Schedule a run** (it needs at least one flow). On the Free plan the
+   heading shows **Requires Plus** in its place (tooltip "Schedules are
+   available from the Plus plan"); it opens **Billing** in the organization
+   settings.
 2. In **Schedule a run** — "The worker runs it on the current Save at the given
    times (UTC). Each run lands in the history like a manual one; outputs and
    reports are replaced." — choose:
    - **What to run**: **Run all flows (in dependency order)**, or one flow by
-     name. Despite the label, Run all runs flows in alphabetical order of
-     their names — see [[Analysis Flows|Studio-Flows]].
+     name. Run all runs a flow after the flows whose tables it reads (a table
+     one flow writes with **Write table** and another reads with **Project
+     table**), in alphabetical order among flows that do not depend on each
+     other — see [Run all](Studio-Flows#run-all).
    - **When**: a preset or **Custom cron…**.
 3. Click **Schedule**. You see "Scheduled Run all" or "Scheduled *flow*".
 
@@ -71,7 +76,15 @@ The **When** column describes common shapes in words — "every 30 min",
   moment** — the same as clicking **Run**. Unsaved edits are never used.
 - The run appears in **Run history** like a manual one; its outputs and report
   replace the previous ones under **Files** and **Reports**.
+- A scheduled Run all behaves like a manual one: a failed flow does not stop
+  it. Every flow that does not read the failed flow's tables still runs;
+  those that do are marked failed without running ("skipped: needs *flow*,
+  which failed" in the log). The run then ends as **failed**, with no
+  combined report.
 - Its end sends the `run.completed` or `run.failed` webhook (below).
+- When a run the timer started fails, every **owner** of the organization gets
+  an email, "Scheduled analysis failed: *org/project*", with the run number
+  and a link to open the run log. Runs started with **Run now** send no email.
 - Studio checks schedules once a minute. A new schedule starts from the moment
   you create it; it does not back-fill earlier times.
 - A schedule is skipped while it is paused, while the project has never been
@@ -94,10 +107,13 @@ The **When** column describes common shapes in words — "every 30 min",
 | **Pause** / **Resume** | stops or restarts the timer; the schedule and its history stay ("Schedule paused" / "Schedule resumed") |
 | trash icon | **Remove schedule** — "Stop *X* from running *when*? Past runs stay in the history." → **Remove** |
 
-Any member can create, run, pause and remove schedules. Creating one on the
-Free plan is refused with "'schedules' is not available on the 'free' plan;
-upgrade to enable it". To change a schedule's time, remove it and create a new
-one (the API can also change the cron in place).
+Any member can create, run, pause and remove schedules. On the Free plan the
+app offers **Requires Plus** instead of **Schedule a run**; through the API,
+creating one is refused with "'schedules' is not available on the 'free' plan;
+upgrade to enable it". Schedules created before the organization moved to
+Free stay listed and can still be run with **Run now**, paused and removed,
+but the timer skips them. To change a schedule's time, remove it and create a
+new one (the API can also change the cron in place).
 
 ---
 
@@ -110,7 +126,8 @@ your own pipeline.
 Webhooks belong to the **organization** — they fire for events in all its
 projects. Manage them in **Organization settings → Integrations → Webhooks**.
 They need *(Plus)* (on Free the card says "Webhooks is a Plus feature") and the
-**owner** or **admin** role.
+**owner** or **admin** role. Members see the card with only "Only owners and
+admins can see and manage the organization's webhooks."
 
 ### Add a webhook
 
@@ -119,30 +136,45 @@ They need *(Plus)* (on Free the card says "Webhooks is a Plus feature") and the
 | Field | Notes |
 |---|---|
 | **Endpoint URL** | an `http://` or `https://` address on the public internet, up to 500 characters. Private and internal addresses (`localhost`, private IP ranges, single-word host names) are refused: "webhook URL must target a public hostname" / "webhook URL must not target a private or reserved address" |
-| **Secret** *(optional)* | "used to sign the request payload"; **Generate secret** fills in a random `whsec_…` value |
-| **Events** | "none selected = receive everything"; chips **Deploys**, **Runs**, **Terminal** |
+| **Secret** *(optional)* | "used to sign the request payload" (placeholder "leave blank to skip"); **Generate secret** fills in a random `whsec_…` value. With a secret, every delivery carries a signature (see [Request format and signature](#request-format-and-signature)) |
+| **Events** | "none selected = receive everything". Two rows of chips: **Deploys** — **live**, **failed**, **stopped**; **Runs** — **completed**, **failed**. Hover a chip to see its event name (for example `deploy.failed`) |
+
+Select any combination of chips to receive only those events; leave them all
+unselected to receive every event.
 
 Click **Add webhook** (or press `Enter` in the URL field). The webhook appears
-in the list with its URL, "all events" (or its event list), and **Delete**
-(**Delete webhook** — "Stop sending events to *url*?").
+in the list with its URL, "all events" or the event names you chose (for
+example `deploy.failed, run.failed`), and **Delete** (**Delete webhook** —
+"Stop sending events to *url*?"). With none yet the card says "No webhooks
+configured yet."
 
-> **Current limitation — leave Events unselected.** In the current build,
-> selecting any of the **Events** chips stops that webhook from receiving
-> anything. Leave all three unselected to receive every event, and filter on
-> the `event` field at your end.
+> **Important.** Copy the secret into your receiving system **before** you
+> click **Add webhook**. The form clears it once the webhook is added, and
+> Studio never shows it again — the list does not even say which webhooks
+> have one. If you lose it, delete the webhook and add it again with a new
+> secret.
 
-> **Current limitation — signing secrets.** A secret typed or generated in this
-> form is not stored, so webhooks created here are sent **unsigned**. To get
-> signed deliveries (or an event filter that works), create the webhook through
-> the API as shown below.
+Adding and deleting a webhook is recorded in the organization's **Activity**
+as `webhook.create` and `webhook.delete`, with the endpoint URL (and, for a
+new webhook, its event list) — never the secret.
 
 There is no way to edit, pause or test a webhook in the app. To change one,
 delete it and add it again.
 
-### Create a signed webhook through the API
+> **Note — webhooks added in earlier versions.** Earlier versions of Studio
+> offered the chips **Deploys**, **Runs** and **Terminal**, which saved the
+> event names `deploy`, `run` and `terminal`. No event carries those names, so
+> a webhook that lists any of them in its row receives nothing. Earlier
+> versions also did not store the **Secret** typed in the form, so webhooks
+> added in the app back then send unsigned requests. Delete such a webhook
+> and add it again. A webhook that shows "all events" and needs no signature
+> works as it is.
 
-With an API key of an owner or admin (see
-[[API and API Keys|Studio-API-and-API-Keys]]):
+### Create a webhook through the API
+
+The same webhook can be created with an API key of an owner or admin (see
+[[API and API Keys|Studio-API-and-API-Keys]]), for example from a setup
+script:
 
 ```bash
 curl -X POST https://api.studio.siamang.org/orgs/acme-research/webhooks \
@@ -156,20 +188,39 @@ curl -X POST https://api.studio.siamang.org/orgs/acme-research/webhooks \
       }'
 ```
 
-`events` takes the exact event names from the table below; an empty list
-(`[]`) means every event. The webhook then appears in the app's list as usual.
+`events` takes the exact event names from the table below — the same names
+the chips send; an empty list (`[]`) means every event. The webhook then
+appears in the app's list as usual.
 
 ### Events and payloads
 
-| Event | When | Body |
-|---|---|---|
-| `deploy.live` | a deployment finished building and is serving | `{"event": "deploy.live", "deployment_id": 42, "url": "https://study.siamang.org/3f9a1c07b2de/", "survey_id": "3f9a1c07b2de"}` |
-| `deploy.failed` | a deployment build failed | `{"event": "deploy.failed", "deployment_id": 42, "project": "acme-research/brand-2026", "environment": "main"}` |
-| `deploy.stopped` | a deployment or preview was stopped | `{"event": "deploy.stopped", "deployment_id": 42, "project": "acme-research/brand-2026", "environment": "main"}` |
-| `run.completed` | a flow run or Run all finished (manual or scheduled) | `{"event": "run.completed", "run_id": 311, "kind": "run_script", "script": "tables", "status": "completed"}` — for Run all: `{"event": "run.completed", "run_id": 312, "kind": "run_all", "status": "completed"}` |
-| `run.failed` | a flow run or Run all failed | as `run.completed`, with `"event": "run.failed"` and `"status": "failed"` |
+Every body is a JSON object with the `event` name, a one-line `text` summary
+for people, and the event's fields:
 
-"Run to here" previews, connector runs, deposits and Saves send nothing.
+| Event | When | Fields besides `event` and `text` | `text` example |
+|---|---|---|---|
+| `deploy.live` | a deployment finished building and is serving | `deployment_id`, `project`, `environment`, `url`, `survey_id` | `deploy.live · acme-research/brand-2026 (main) · https://study.siamang.org/3f9a1c07b2de/` |
+| `deploy.failed` | a deployment build failed | `deployment_id`, `project`, `environment` | `deploy.failed · acme-research/brand-2026 (main)` |
+| `deploy.stopped` | a deployment or preview was stopped | `deployment_id`, `project`, `environment` | `deploy.stopped · acme-research/brand-2026 (main)` |
+| `run.completed` | a flow run or Run all finished (manual or scheduled) | `run_id`, `kind` (`run_script` or `run_all`), `project`, `script` (the flow's name; not for Run all), `status` | `run.completed · acme-research/brand-2026 · flow tables · completed` — for Run all: `run.completed · acme-research/brand-2026 · all flows · completed` |
+| `run.failed` | a flow run or Run all failed | as `run.completed`, with `"status": "failed"` | `run.failed · acme-research/brand-2026 · flow tables · failed` |
+
+`project` is `<organization-slug>/<project-slug>`. A complete body:
+
+```json
+{
+  "event": "deploy.live",
+  "text": "deploy.live · acme-research/brand-2026 (main) · https://study.siamang.org/3f9a1c07b2de/",
+  "deployment_id": 42,
+  "project": "acme-research/brand-2026",
+  "environment": "main",
+  "url": "https://study.siamang.org/3f9a1c07b2de/",
+  "survey_id": "3f9a1c07b2de"
+}
+```
+
+Parse the fields rather than `text`, which is a summary for people. "Run to
+here" previews, connector runs, deposits and Saves send nothing.
 
 ### Request format and signature
 
@@ -203,9 +254,9 @@ Your endpoint should answer with a 2xx status within **10 seconds**.
 
 ### Recent deliveries
 
-Below the list of webhooks: **Recent deliveries** — "retried automatically with
-backoff" — the organization's latest 50 deliveries, one row per event and
-endpoint:
+Below the list of webhooks (once there is at least one): **Recent deliveries**
+— "retried automatically with backoff" — the organization's latest 50
+deliveries, one row per event and endpoint:
 
 | Column | Shows |
 |---|---|
@@ -221,12 +272,15 @@ events appear here after a deploy or run finishes."
 
 ### Slack and other chat tools
 
-The payload is plain JSON without a `text` field. **A Slack incoming-webhook URL
-does not accept it** — Slack refuses the request, and the delivery is marked
-**failed**. The same applies to other chat tools that expect their own message
-format. To get messages into chat, point the webhook at something that turns
-the JSON into a message: an automation service such as Zapier or Make, or a
-small endpoint of your own that calls Slack.
+Because every payload carries a `text` line, you can paste a **Slack
+incoming-webhook URL** as the **Endpoint URL**: Slack accepts the delivery and
+posts the line, for example "run.failed · acme-research/brand-2026 · flow
+tables · failed".
+
+Other chat tools expect their own message format. For those, or for a richer
+message than one line, point the webhook at something that turns the JSON into
+a message: an automation service such as Zapier or Make, or a small endpoint
+of your own.
 
 ### Typical uses
 

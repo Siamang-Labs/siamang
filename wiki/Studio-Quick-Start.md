@@ -62,11 +62,16 @@ In the Builder's **Structure** tab:
 5. Add a second question the same way, e.g. an **Open text** question
    *Anything else you would like to tell us?*
 
-> **Important.** Keep each question's **Id** (Inspector → **Advanced**)
-> identical to its variable name. Plain types start that way (`q1` / `q1`);
-> presets such as **NPS (0–10)** do not (`q3` / `nps_3`), so set the Id to the
-> variable name when you add one. Conditions, piping and quotas depend on it.
-> See [[The Builder|Studio-Builder-Overview]].
+> **Note.** A question has two names, shown as `id → variable` in its card
+> and Inspector header. The answer is stored under the **variable name**: it
+> is the column in **Data** and in exports, and the name conditions, piping
+> and quotas read. The **Id** (Inspector → **Advanced**) is the question's
+> handle in the Builder — scripts target it, and the Logic map and validation
+> messages show it. Plain types start with the two equal (`q1` / `q1`);
+> presets such as **NPS (0–10)** do not (`q3` / `nps_3`), and that is fine.
+> One rule: an Id must not be **another** question's variable name, or the
+> Save is marked `errors`. See
+> [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 → [[Question Types|Studio-Question-Types]] ·
 [[Codebook and Variables|Studio-Codebook-and-Variables]]
@@ -121,8 +126,10 @@ Open the link in a new tab, answer, and submit. The thank-you screen shows a
 ## 8. Look at the data
 
 Open the **Data** tab and pick the `responses` table in the rail. Your row is
-there: one column per variable, plus `survey_id`, `respondent_id`, `partial`,
-timestamps and a `meta` column with fieldwork details.
+at the top — the grid shows the newest rows first: one column per variable
+(named after the variable, not the question's Id), plus `survey_id`,
+`respondent_id`, `partial`, timestamps and a `meta` column with fieldwork
+details.
 
 - **Insights** — instant frequencies and crosstabs, no setup.
 - **Export ▾** — CSV, Excel, SPSS, Parquet or SQLite of the whole table.

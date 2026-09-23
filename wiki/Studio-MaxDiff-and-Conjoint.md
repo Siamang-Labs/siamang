@@ -244,6 +244,12 @@ summary lists the question, the base ("247 respondents"), the tasks read, the
 method, the reference item, a warning if the model did not converge, and how
 many answers could not be read.
 
+After **Apply weight**, the counts (**Shown**, **Best**, **Worst**, rounded to
+whole numbers) and the **Score** are weighted, but **Utility** and **Share %**
+are still fitted unweighted, so on weighted data the two can rank items
+differently. The base still counts respondents. See
+[Apply weight](Studio-Node-Reference#apply-weight).
+
 ### Choice data for HB (MaxDiff)
 
 For individual-level utilities, **Choice data for HB** writes "A MaxDiff's
@@ -272,7 +278,9 @@ The table has one row per level: **Attribute**, **Level**, **Part-worth**
 attribute's share of the decision. The summary adds the base, the tasks read,
 the method (conditional logit, aggregate) and the note "importance is of the
 levels tested, not of the attribute in general": price from £10 to £12 will
-look unimportant beside price from £10 to £100.
+look unimportant beside price from £10 to £100. The model is fitted
+unweighted, even after **Apply weight** — and so are the part-worths behind
+**Share of preference** below.
 
 ### Share of preference
 

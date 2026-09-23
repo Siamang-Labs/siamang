@@ -16,18 +16,21 @@ quality checks in [[Data Quality|Studio-Data-Quality]].
 │ ▦ clean_        │ Showing the first 100 of 1,284 rows. Filtering and sorting search only what is loaded —      │
 │   responses 1,190│ exports always use the whole table.                                                          │
 │ ▦ quota_        │ q1_age  q2_region  q3_aware  …  id    survey_id     meta             partial  created_at     │
-│   counters   6  │ 34      2          1         …  1     3f9a1c07b2de  {"started_at"…}  false    2026-06-04 …   │
+│   counters   6  │ 34      2          1         …  1284  3f9a1c07b2de  {"started_at"…}  false    2026-06-04 …   │
 │ ▦ responses 1,284│ …                                                                          [Delete]        │
 │ ▦ survey_meta 2 │ [Prev]  Showing 1–25 of 100 rows  [Next]                                  [Export ▾]      │
 └─────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - The rail on the left, **Tables**, lists every table of the project with its
-  row count (for large tables the count is an estimate).
-- The bar shows the table's name and row count, the quick filters, the search
-  field and the three views: **Data**, **Schema**, **Insights**.
+  row count (for large tables the count is an estimate; `—` while it is not
+  known).
+- The bar shows the table's name and row count (**N rows loaded** when the
+  count is not known), the quick filters, the search field and the three
+  views: **Data**, **Schema**, **Insights**.
 
-Every member of the organization can open Data and export.
+Every member of the organization can open Data and export. Deleting a response
+is for owners and admins (see [Deleting a response](#deleting-a-response)).
 
 ---
 
@@ -61,6 +64,27 @@ by the table's own columns:
 
 If one of your variables is called like a table column (`id`, `partial`, …),
 the variable keeps the name and the table column gets an underscore (`_id`).
+
+Answers are stored under their **variable name** — the name in the Codebook —
+not under the question's **Id**, so a column is called after the variable
+even when the two names differ (a preset's Id `q5` and variable `nps_5` give
+the column `nps_5`). See
+[Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
+The exception is a Multiple choice in the wide layout, which published surveys
+still record in one column named after the question's Id (see
+[Multiple choice](Studio-Question-Types#multiple-choice)).
+
+> **Note — responses collected before this rule.** Earlier versions of Studio
+> stored a single-answer question's answer under its Id. Studio has moved the
+> answers already collected that way to the variable's column, once, and
+> recounted the quota cells involved. Where the move could have mixed two
+> questions' answers (for example, an Id that is also another question's
+> variable), the answers stayed under the Id, so you may still see such a
+> column next to the variable's. Surveys published before the change keep
+> sending answers under the Id; Studio files each of them under the variable
+> as it arrives, so no new rows land in the old column. (Their conditions,
+> branching and piping on such questions work only once you
+> [republish](Studio-Publishing-and-Environments#republishing).)
 
 Answer columns appear in the order the database returns them — shorter names
 first — not in questionnaire order. Flows and exports can reorder them.
@@ -101,20 +125,28 @@ In a flow, the **Speeders & partials** node drops them (see
 
 ## The Data view
 
-The grid shows **the first 100 rows** of the selected table, 25 per page. A
-note above it says so:
+The grid loads **100 rows** of the selected table, **newest first**, and shows
+them 25 per page. In `responses` that means the most recently started
+interviews (by `created_at`) come first, so new interviews appear at the top.
+A table a flow wrote is ordered the same way when it has a `created_at` or
+`id` column; otherwise its rows come in the order the database returns them. A
+note above the grid says what is loaded:
 
 - "Showing the first 100 of 1,284 rows. Filtering and sorting search only what
-  is loaded — exports always use the whole table."
+  is loaded — exports always use the whole table." — "first" here means the
+  100 newest.
 - "All 87 rows loaded. Exports use the whole table." — for a small table.
+- "87 rows loaded. Filtering and sorting search only what is loaded — exports
+  always use the whole table." — when the table's row count is not known.
 
-> **Current limitation.** The grid cannot page beyond those first 100 rows,
-> which are usually the oldest. To look at newer or specific responses in a
-> large table, export it, or filter it in a flow.
+> **Current limitation.** The grid cannot page beyond those 100 rows. To look
+> at older or specific responses in a large table, export it, or filter it in
+> a flow.
 
 What you can do with the loaded rows:
 
-- **Sort** — click a column header (again to reverse: ▲ / ▼).
+- **Sort** — click a column header (again to reverse: ▲ / ▼). Until you do,
+  the rows keep the newest-first order.
 - **Search** — type in **Filter loaded rows…**; it matches any cell, including
   the JSON of `meta`.
 - **Quick filters** — chips that appear only when the loaded rows support
@@ -224,9 +256,9 @@ The row is removed at once (toast **Response deleted**) and the deletion is
 recorded in the project's activity log — as `response.delete` with the row
 number, without the content.
 
-- The **Delete** button appears only in the `responses` table. Members see it
-  too, but only **owners and admins** can delete; for a member the attempt
-  fails.
+- The **Delete** button appears only in the `responses` table, and only for
+  **owners and admins**. Members do not see it; ask an owner or admin to erase
+  a response.
 - Quota counters and invitation statuses are **not** rolled back. Adjust a
   quota target if it matters.
 - Copies you already exported, or tables a flow wrote from the responses, are
@@ -237,7 +269,8 @@ number, without the content.
 - **By Response ID.** The thank-you page shows the respondent a **Response
   ID** — the `id` column. Asking for it is the simplest route.
 - **In the grid.** Search **Filter loaded rows…** for the id, a panel id or an
-  invitation token — this works when the row is among the first 100 loaded.
+  invitation token — this works when the row is among the 100 newest, which
+  are the ones loaded.
 - **In a large table.** Export the table (CSV) or use a flow to find the row's
   `id` — by `url_<name>` for a panel id, or by answers the respondent can
   describe — then locate it for deletion.
@@ -266,7 +299,9 @@ record which Save collected them. To see which version was in the field when,
 compare `created_at` with the publish times in **Settings → Activity** (its
 **Export CSV** includes each publish's Save number). Watch for:
 
-- a variable renamed mid-field — two columns where you expect one;
+- a variable renamed mid-field — two columns where you expect one (renaming
+  only the **Id** of a single-answer question does not split its column,
+  since the answer is stored under the variable name);
 - an option code that changed meaning;
 - a question added later — empty for earlier respondents.
 

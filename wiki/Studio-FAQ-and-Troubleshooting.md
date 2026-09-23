@@ -19,9 +19,11 @@ You were already signed in, and the sign-in page sends signed-in people to the
 app. Sign out (or use a private window) and open the link again.
 
 **Studio asked me to create an account although I have one.**
-The address check can fail on a slow network or after several attempts in a
-minute, and Studio then assumes the address is new. Go **← Use a different
-email**, wait a moment, and enter the address again.
+The address check can fail on a slow network or after too many attempts in a
+minute — 10 for the same address, or 20 from one network across all
+addresses (a busy office or campus network can reach that) — and Studio then
+assumes the address is new. Go **← Use a different email**, wait a minute,
+and enter the address again.
 
 **"Your session expired. Please sign in again."**
 Sign in again. Unsaved Builder and flow edits are kept as your server-side
@@ -38,9 +40,20 @@ Every new account also gets its own trial organization. Switch with the
 workspace chip. → [[Organizations and Team|Studio-Organizations-and-Team]]
 
 **How do I create a second organization?**
-The **Create organization** button is offered only to accounts that belong to
-no organization. If you need a separate workspace for a client or a grant,
-write to support. → [[Organizations and Team|Studio-Organizations-and-Team]]
+Open the workspace chip in the topbar and choose **Create organization** (the
+**Organizations** screen has the same button). The new organization starts on
+the **Free** plan with you as its owner — the Pro trial comes once per email
+address, with the organization you got at sign-up.
+→ [Creating another organization](Studio-Organizations-and-Team#creating-another-organization)
+
+**"Only owners and admins can create projects" (or rename a project, add a
+secret, run a connector).**
+Your role in this organization is **member**. Members build, publish and
+analyze, but creating and renaming projects, adding or deleting secrets,
+running connectors, deleting responses, managing webhooks and reading the
+organization's **Activity** are for owners and admins; those controls are
+disabled or hidden for you. Ask an owner or admin, or to be made an admin.
+→ [Things members may notice](Studio-Organizations-and-Team#things-members-may-notice)
 
 **My trial ended. What changed?**
 The organization is now on the **Free** plan. Nothing is deleted and surveys
@@ -59,40 +72,73 @@ end of a trial.)
 ## Building the questionnaire
 
 **My show-if / branch rule / piping does nothing in the published survey.**
-Almost always the question's **Id** differs from its variable name — every
-preset starts that way (`q5` / `nps_5`), and renaming a variable in the
-Inspector does not rename the Id. Set **Advanced → Id** to exactly the variable
-name, **Save** and republish. → [[The Builder|Studio-Builder-Overview]]
+Conditions, piping and quotas read a question's **variable name**, and the
+answer is stored under that name, so the question's Id does not matter. Check,
+in this order:
+
+- **A renamed variable.** Renaming a variable does not update the conditions,
+  piping and quotas that use the old name. Find them with the **Logic map**
+  and update them.
+- **An old build.** Earlier versions of Studio stored an answer under the
+  question's **Id**, so logic on a question whose Id differs from its variable
+  (every preset, `q5` / `nps_5`) never matched. A survey published before that
+  change keeps its old build until you publish it again: **Save** (with
+  nothing changed, Save re-validates with the current engine) and press
+  **Republish #N** on the environment's card.
+- **The rule itself.** Take the path in **Test → Walkthrough**: the side panel
+  shows which conditions fired.
+
+→ [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name)
+
+**"Question '…' has the id under which question '…' stores its answer".**
+One question's **Id** is another question's variable name, so the survey
+could not tell which one a script or a **Skip to** means. Change that Id
+(**Advanced → Id**) or rename one of the variables, then Save. "Duplicate
+answer key in questionnaire: questions '…' and '…' both store their answer
+under '…'" is the same clash with a Matrix, MaxDiff, Conjoint or wide Multiple
+choice, which store their answers under their Id: change that question's Id.
 
 **A branch rule never fires.**
-A rule with an empty condition never matches, even though it shows
-"otherwise". Give it a condition, or use **Default next** for "everyone else".
-→ [[Logic and Branching|Studio-Logic-and-Branching]]
+A rule with an empty condition never matches — it is not an "otherwise".
+Studio says so under the rule ("Add a condition — an empty rule never
+fires."), on the Logic map ("no condition — never fires") and in **Validation
+→ Structure**. Give it a condition, or use **Default next** for "everyone
+else". → [[Logic and Branching|Studio-Logic-and-Branching]]
 
 **Skip to jumps for every answer, not just one.**
 That is how **Skip to** works: when the question is answered, Next goes to the
 chosen page. For a jump that depends on the answer, use a **Branch (next if)**
 rule on the page.
 
-**Save failed: "…'label' is a required property".**
-Missing codes entered in the **Codebook** tab are saved without labels, which
-the engine refuses. Remove them from the Codebook tab and see
-[[Codebook and Variables|Studio-Codebook-and-Variables]] for the workaround.
+**How do I enter missing codes?**
+In **Builder → Codebook**, open the variable's row and type each code followed
+by its label, separated by commas: `-9 Refused, -8 Don't know` (`-7=Not asked`
+works too). A code typed without a label borrows the value label for that
+code, or is labeled `Missing (<code>)`.
+→ [Missing codes](Studio-Codebook-and-Variables#missing-codes)
 
-**Save failed: "MultiChoice wide mode expects vars to be a non-empty list of Variables."**
-The **wide** data layout cannot currently be switched on from the Builder. Set
-**Data layout** back to **array**; use the **Explode multiple choice** node in a
-flow to get one 0/1 column per option.
+**I want one 0/1 column per option of a Multiple choice question.**
+**Options → Data layout → wide** turns the question into one 0/1 variable
+per choice (`brands_1`, `brands_2`, …) and keeps them in step with the
+choices; **array** turns them back into one variable. The published survey
+does not yet store real answers in that shape, though, so for fieldwork keep
+**array** and add an **Explode multiple choice** node in the flow.
+→ [Multiple-choice layouts](Studio-Codebook-and-Variables#multiple-choice-layouts)
 
-**Save failed: "…Additional properties are not allowed ('completion_title' was unexpected)".**
-Clear **Theme → Completion screen → Title**. Use the **Message** field, or end
-the survey on a **Final** page with its own title and body.
+**How do I change the title of the completion screen?**
+You cannot: **Theme → Completion screen** offers only the **Message**, and the
+title is always "Thank you for participating". For your own title and text,
+end the survey on a **Final** page with its own **Title** and **Body**.
+→ [Completion screen](Studio-Theme-and-Branding#completion-screen)
 
 **"…references unknown variables: …" and the Save is `errors`.**
-A condition reads a variable that no question collects — for example the arm
-of **Assign to a condition**, or a variable that exists only in the codebook.
-Conditions can only read variables that questions collect.
-→ [[Logic and Branching|Studio-Logic-and-Branching]]
+A condition names a variable that nothing in the questionnaire writes: no
+question collects it, no **Assign to a condition** script assigns it, and the
+codebook does not declare it. Usually it is a typo or a variable that no
+longer exists. Conditions may read the arm of **Assign to a condition** and
+variables declared only in the codebook (for example a value your custom
+JavaScript writes), but not URL parameters.
+→ [Assignment and "embedded data"](Studio-Logic-and-Branching#assignment-and-embedded-data)
 
 **The Save badge says `errors`.**
 Click it (it opens the Save in History) or open **Builder → Validation**. A Save
@@ -113,12 +159,14 @@ On a page with questions the Body is not shown; it appears on text-only,
 question's **Hint**.
 
 **Piping shows `{answer:x}` literally.**
-The variable name is wrong, the question has not been answered yet at that
-point, or the question's Id differs from the variable name (see above).
+The variable name is wrong (piping uses the variable name, not the question's
+Id), or the question has not been answered yet at that point.
 
 **I renamed a variable and a condition or flow broke.**
 Renaming does not update conditions, quotas, piping, scripts or flow
-parameters. Update them, or rename back.
+parameters. Update them, or rename back. Answers are stored under the
+variable name, so renaming a variable and republishing during fieldwork
+leaves you with two columns (see *Two columns where I expect one* below).
 
 **I cannot edit — "*Name* is editing".**
 A colleague holds the edit lock; you are following their draft live. **Take
@@ -144,24 +192,33 @@ or the custom CSS, or upgrade. → [[Plans, Trial and Billing|Studio-Plans-and-B
 Check that the card's `#N` is the Save you expect — press **Republish #N** if
 not — and hard-refresh the page (browsers cache survey files).
 
-**There is no progress bar in my published survey.**
-A current limitation: published surveys show no progress bar whatever the
-**Progress** setting (the canvas preview does show one).
-→ [[Theme and Branding|Studio-Theme-and-Branding]]
+**The published survey's progress indicator differs from the preview.**
+Published surveys follow **Theme → Progress** (**bar**, **dots**, **both** or
+**hidden**; the bar when you never chose), like the Builder's previews. A
+survey published with an earlier version of Studio shows no bar until you
+publish it again — **Save**, then **Republish #N**. To show no indicator at
+all, choose **bar** and then **hidden**.
+→ [Question style and progress](Studio-Theme-and-Branding#question-style-and-progress)
 
 **A quota cell is full but respondents keep coming.**
 Quota cells are counted, not enforced. Add a branch rule that screens out the
 full cell's value and republish; the environment's response cap is the only
 automatic stop. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
 
-**The survey did not close at the deadline.**
-Deadlines and "Closes" dates are shown on the card but do not close the survey.
-Press **Close** on the card. → [[Publishing and Environments|Studio-Publishing-and-Environments]]
+**The deadline passed but the card still says ● Live.**
+That is expected. When the questionnaire's deadline passes, the environment
+stops accepting responses — anyone who submits sees "This survey is closed" —
+but the card does not change and the link still opens the survey. Press
+**Close** when you want the link itself to show the closed page. A closing
+date or redirect declared for the **environment** in `studio/settings.json`
+is only displayed on the card; it does not close anything.
+→ [Deadlines](Studio-Publishing-and-Environments#deadlines)
 
-**Respondents answered everything and then saw "This survey is paused" / "Thank you for your interest…".**
-Pause and the response cap take effect when a respondent submits. Their
-answers are not stored. Resume, or raise the cap (new projects cap `main` at
-1,200 and `pilot` at 50).
+**Respondents answered everything and then saw "This survey is paused" / "This survey is closed" / "Thank you for your interest…".**
+Pause, the questionnaire's deadline and the response cap take effect when a
+respondent submits — and so does **Close**, for someone who already had the
+survey open. Their answers are not stored. Resume, move the deadline in a new
+Save, or raise the cap (new projects cap `main` at 1,200 and `pilot` at 50).
 
 **The count is not moving.**
 Check you are looking at the right environment, that it is not paused, and
@@ -179,11 +236,12 @@ Generating codes creates a new Save; republish the environment.
 Preview builds never accept answers. Test with the `pilot` environment
 instead. → [[Testing Your Survey|Studio-Testing-Your-Survey]]
 
-**Prolific / Cint outcomes show no respondent ids.**
-A current limitation of the **Outcomes** block for id parameters in capital
-letters. The completed / screened-out / partial counts are right; match ids
-from a **Data** export (`meta` column) if you need them.
-→ [[Panel Providers|Studio-Panel-Providers]]
+**Where do I get the panel ids to reconcile with Prolific / Cint?**
+From **Outcomes · reconcile with the provider** at the end of the **Panel**
+chip on a live environment's card: its completed, screened-out and partial
+CSVs list each respondent's provider id (up to 5,000 responses). The id
+parameter is matched however it is capitalized (`PROLIFIC_PID`, `RID`).
+→ [Reconciling outcomes](Studio-Panel-Providers#reconciling-outcomes)
 
 ---
 
@@ -195,9 +253,10 @@ filter (environment, **Only completed responses**, dedup, speeders, filters).
 Run to each node and watch the row count.
 
 **I cannot find a response in the grid.**
-The grid loads only the first 100 rows of a table. Export the table to find
-the row; to delete it, see [[Recipes|Studio-Recipes]] (*Handle a data erasure
-request*).
+The grid loads the **newest** 100 rows of a table (25 per page), and
+**Filter loaded rows…** and sorting work on those rows only. For an older
+response, export the table to find the row; to delete it, see
+[Handle a data erasure request](Studio-Recipes#handle-a-data-erasure-request).
 
 **My export has no URL parameters or durations.**
 Exports from Data leave out the `meta` column. Those values are available in
@@ -206,19 +265,24 @@ node. → [[Data Exports|Studio-Data-Exports]]
 
 **SPSS labels are missing or look wrong.**
 Exports are labeled with the **current** Save's codebook. Fill in labels in
-**Builder → Codebook**, Save, and export again. If a column is named like a
-question Id (`q5`) rather than its variable, see the Id rule above.
+**Builder → Codebook**, Save, and export again.
 
 **Two columns where I expect one.**
-A variable was renamed mid-fieldwork. Harmonize the two in a flow with
-**Recode** or **Derive** rather than editing the raw table.
+Usually a variable was renamed mid-fieldwork. Another cause: a column named
+like a question's Id (`q5`) next to its variable (`nps_5`). Earlier versions
+of Studio stored answers under the question's Id; Studio has since moved
+those answers to the variable name, except where the move could have mixed
+two questions' answers — those stay under the Id. Either way, harmonize the
+two in a flow with **Recode** or **Derive** rather than editing the raw
+table.
 
 **"Respondents" equals "Responses".**
 Studio does not identify people across sessions, so each completed interview
 counts as a respondent.
 
-**"Delete" fails with a permission error.**
-Only owners and admins can delete responses.
+**There is no Delete button on the rows.**
+Only owners and admins can delete responses, so only they see **Delete** on
+the rows of the `responses` table. Ask one of them to handle the request.
 
 ---
 
@@ -234,10 +298,24 @@ One flow in the project was saved with engine errors, and that stops every run
 and blocks publishing from that Save. Open that flow, press **Check**, fix it
 and **Save**. → [[Analysis Flows|Studio-Flows]]
 
-**Run all ran my flows in the wrong order.**
-**Run all** runs flows in alphabetical order of their names and stops at the
-first failure. Name the flow that writes a table so it sorts first
-(`a_clean`, `b_tables`).
+**In what order does Run all run my flows?**
+In dependency order: a flow that reads a table another flow writes (through a
+**Project table** node, or a **Responses** node set to that table) runs after
+the flow with the **Write table** node. Flows that do not depend on each other
+run in alphabetical order of their names; you do not need to name flows so
+that a writer sorts first. → [Run all](Studio-Flows#run-all)
+
+**Run all failed, but some flows ran.**
+One failed flow does not stop the run. The others still run, except those
+that read a table the failed flow writes — their log line reads "skipped:
+needs *flow*, which failed". The run ends as failed and no combined report is
+written; **View logs** lists every flow as ok or failed, with each error. Fix
+the flows it names and run again.
+
+**The Schedules section shows "Requires Plus" instead of "Schedule a run".**
+Schedules are available from the Plus plan ("Schedules are available from the
+Plus plan"); on Free the button opens the plans. Run flows by hand, or
+upgrade. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 **How do I delete, rename or duplicate a flow?**
 Not possible from the interface yet. Restoring a Save made before the flow
@@ -292,21 +370,30 @@ reminder's link still count as not completed on the original invitation.
 
 ## Integrations
 
-**My webhook never fires.**
-Leave **Events** unselected when you add it — selecting an event currently
-stops deliveries. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
+**My webhook does not fire for some events.**
+A webhook receives only the events selected under **Events** when it was
+added — **Deploys**: live, failed, stopped; **Runs**: completed, failed — and
+every event when none is selected. A webhook whose row lists `deploy`, `run`
+or `terminal` was added with an earlier version of the chips: those names
+match no event, so it receives nothing — delete it and add it again. Check
+**Recent deliveries** for errors from your endpoint. Webhooks are *(Plus)*,
+and only owners and admins can see and manage them: for members the
+**Webhooks** card holds only that notice.
+→ [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
-**Slack rejects the webhook.**
-Slack needs a `text` field that Studio's payload does not have. Point the
-webhook at a relay (Zapier, Make or your own endpoint) that posts to Slack.
+**Can a webhook post to Slack?**
+Yes. Add the Slack incoming-webhook URL as the endpoint: every payload carries
+a one-line `text` (for example `deploy.live · acme/pulse (main) · <link>`),
+which Slack posts as the message.
+→ [Slack and other chat tools](Studio-Schedules-and-Webhooks#slack-and-other-chat-tools)
 
 **Saving a connector fails with "…String should match pattern…".**
 Connector names may contain only lower-case letters, digits and `_`, and must
 start with a letter. → [[Connectors|Studio-Connectors]]
 
 **Can I use a project secret in a flow?**
-No — secrets are used by connectors and deposits only; flow runs have no
-network access.
+No — as the Secrets tab says, connectors and repository deposits read them by
+key; flow runs cannot, and they have no network access anyway.
 
 **The Zenodo DOI starts with 10.5072 / points to sandbox.zenodo.org.**
 **Use sandbox.zenodo.org** is ticked by default in the Deposit dialog. Deposit

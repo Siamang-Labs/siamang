@@ -25,6 +25,8 @@ https://study.siamang.org/3f9a1c07b2de/
 - **Copy** next to the link on the card copies it.
 - After **Close**, the same link shows "This survey is closed — The researchers
   have stopped collecting responses."
+- After the questionnaire's [deadline](Studio-Publishing-and-Environments#deadlines),
+  the link still opens the survey, but submitting shows that same notice.
 - Surveys published before the switch to survey-id links may also answer on an
   older `…/<organization>/<project>/<environment>/` address; those links keep
   working.
@@ -175,6 +177,11 @@ is already taken — choose another prefix".
 While codes are on, the panel reads **Access codes · N codes** and tells you
 whether the published Save has them ("Save #18 is published") or not yet ("the
 published Save #17 may differ from the current #18 — republish to apply").
+
+Every Save that adds codes — generated or imported — is recorded in **Settings
+→ Activity** as `access_codes.generate`, with the Save number (`#18`). The
+activity log's **Export CSV** includes how many codes were added; the codes
+themselves are never logged.
 
 ### Plan limits
 

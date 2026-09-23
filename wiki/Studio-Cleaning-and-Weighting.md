@@ -253,27 +253,40 @@ Raking on region and gender (**Targets (variable → code → share)**):
 
 ### Checking the weights
 
-After **Apply weight**, add a **Proportion CI** for a category of each
-weighting variable with **Weighted** ticked — for example **Variable**
-`region`, **Answer code** `1` — and preview it: the share should equal your
-target (0.45). A **Banner table** with the weighting variables as questions
-also shows weighted percentages. Large caps, or targets far from the sample,
-are the usual reasons for a miss.
+After **Apply weight**, add a **Frequencies** node for each weighting variable
+and preview it: the **%** column should equal your targets (45 % for code `1`
+of `region`), with the respondents actually counted in the **Unweighted N**
+column beside it. For a share with its confidence interval, use a
+**Proportion CI** with **Weighted** ticked — for example **Variable**
+`region`, **Answer code** `1` — which should give 0.45. A **Banner table** with
+the weighting variables as questions also shows weighted percentages. Large
+caps, or targets far from the sample, are the usual reasons for a miss.
 
 ### Making tables and tests use the weight
 
-**Apply weight** tells the dataset which column to use.
+**Apply weight** tells the dataset which column to use, and from there on
+most tables and models use it:
 
-> **Current limitation.** Not every node uses the applied weight yet.
-> **Weighted:** **Banner table** (tests on Kish's effective base), **Net
-> Promoter Score**, **Regression**, **TURF**, and **Proportion CI** with
-> **Weighted** on. **Unweighted even after Apply weight:** **Frequencies**,
-> **Crosstab**, **Group means**, **Compare groups**, **Correlation**,
-> **MaxDiff**, **Conjoint**, **Share of preference**, **Cluster (k-means)**,
-> **Principal components**, **Scale reliability** and the charts. For weighted
-> percentages in a report, use a **Banner table**; for a weighted share with
-> its interval, **Proportion CI**. Say in the table's note which results are
-> weighted.
+- **Frequencies** and **Crosstab** — counts and percentages are sums of
+  weights. A frequency table shows the unweighted N in a column beside them, a
+  crosstab in its statistics (with the chi-square test on), and the crosstab's
+  chi-square test uses Kish's effective base.
+- **Group means** — weighted means, SDs and medians; N and the significance
+  test stay unweighted, and the table says so.
+- **Banner table** (tests on Kish's effective base), **Net Promoter Score**,
+  **Regression** and **TURF**.
+- **MaxDiff** — the counts and the **Score** only.
+- **Proportion CI**, when its **Weighted** box is ticked.
+
+The details per node are in [Apply weight](Studio-Node-Reference#apply-weight).
+
+> **Current limitation.** These still compute **unweighted** after Apply
+> weight: **Compare groups**, **Correlation**, **Cluster (k-means)**,
+> **Principal components**, **Scale reliability**, **Conjoint**, **Share of
+> preference**, the **Utility** and **Share %** columns of **MaxDiff**, and
+> all four charts. A **Bar chart** of means by group can therefore show
+> different numbers from a weighted **Group means** table beside it. Say in
+> the section's note which results are weighted.
 
 ## Writing the cleaned data to a table
 
@@ -282,13 +295,17 @@ To clean once and analyze in several flows:
 1. End the cleaning flow with **Write table**: **Table name** `clean_responses`,
    **If it exists** `replace`.
 2. Start each analysis flow with **Project table**, **Table** `clean_responses`.
-3. **Name the flows so the cleaning flow sorts first** — `a_clean`,
-   `b_tables`, `c_models`. **Run all** runs flows in alphabetical order of
-   their names and nothing else decides the order; if `b_tables` ran first it
-   would read yesterday's table. Flows cannot be renamed yet, so choose names
-   when you create them. (The example study's `cleaning` and `tables` happen
-   to sort correctly.)
-4. The table also appears on the **Data** screen.
+3. Use **Run all** (or schedule it) to refresh everything. It sees that the
+   analysis flows read `clean_responses` and runs the cleaning flow before
+   them, whatever the flows are called. If the cleaning flow fails, the flows
+   that read its table are not run — they are marked failed with "skipped:
+   needs cleaning, which failed" (for a cleaning flow named `cleaning`) —
+   rather than analyzing yesterday's table; flows that do not read it still
+   run. See [Run all](Studio-Flows#run-all).
+4. Running one analysis flow on its own reads `clean_responses` as it is: it
+   does not run the cleaning flow first. After new responses arrive, run the
+   cleaning flow (or **Run all**) before you rerun an analysis flow.
+5. The table also appears on the **Data** screen.
 
 Things to know:
 

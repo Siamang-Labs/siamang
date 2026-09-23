@@ -37,6 +37,7 @@ and clicking it opens the item in Structure. The messages:
 | `<id>: pipes {label:x}, but no variable "x" exists` | fix the piping token |
 | `duplicate page name "<name>"` | rename one page |
 | `<page>: next_if target "<t>" does not exist` / `<page>: default_next "<t>" does not exist` | pick an existing page |
+| `<page>: the branch to "<target>" has no condition — an empty rule never fires; add one, or use Default next` | give the rule a condition, or remove it and set **Default next** |
 | `<item>: the condition reads "<var>", which no question collects and the codebook does not declare` | a typo, or a variable that no longer exists |
 | `<item>: the condition reads "<var>", but <question> on page <page> has not been answered when this condition is evaluated — it can never be true` | a forward reference: move the question earlier or the condition later |
 
@@ -99,7 +100,15 @@ stored.
   exist;
 - duplicate question ids, empty or duplicate page names, and the same
   variable written by two questions;
-- a condition that reads a variable no question collects ("… references
+- a question whose Id is another question's variable name ("Question '<id>'
+  has the id under which question '<other>' stores its answer …");
+- a Matrix, MaxDiff, Conjoint or wide Multiple choice whose Id is another
+  question's variable name. These questions store their answers under their
+  Id, so the two would share one name ("Duplicate answer key in
+  questionnaire: questions '<a>' and '<b>' both store their answer under
+  '<name>'.");
+- a condition that reads a variable that no question collects, no **Assign
+  to a condition** writes and the codebook does not declare ("… references
   unknown variables: …");
 - a script whose target no longer exists;
 - quota cells on an unknown variable, on a value that is not one of the
@@ -124,13 +133,14 @@ stored.
 | `PIPE_UNKNOWN_VARIABLE`, `PIPE_FORWARD_REFERENCE` | piping a variable that does not exist, or one answered later |
 | `REDUNDANT_NAVIGATION` | a default next that is the next page anyway |
 | `MISSING_NAVIGATION` | a page with no way onward |
-| `UNUSED_VARIABLE` | a codebook variable no question writes |
+| `UNUSED_VARIABLE` | a codebook variable no question writes: the arm of **Assign to a condition** (expected), or a name left behind when you renamed a variable (check the conditions that still read it) |
+| `SCRIPT_STALE_QUESTION_ID`, `SCRIPT_TARGET_IS_A_PAGE`, `SCRIPT_TARGET_IS_A_QUESTION` | a custom script that names a question by an Id its answer is not stored under, or targets the wrong kind of thing for its trigger (see [Checks and errors](Studio-Scripts#checks-and-errors)) |
 | `EXCLUSIVE_CODE_UNKNOWN`, `OPTION_CODE_WITHOUT_LABEL`, `LIKERT_POINTS_LABEL_MISMATCH`, `MISSING_CODE_NOT_IN_LABELS`, `RANGE_LABEL_MISMATCH` | question options, value labels, missing codes and ranges out of step (see [[Codebook and Variables|Studio-Codebook-and-Variables]]) |
 | `CONJOINT_SINGLE_VERSION`, `MAXDIFF_SINGLE_VERSION` | every respondent sees the same design |
 | `EMPTY_QUESTIONNAIRE` | nothing to ask yet |
 
-The engine does not detect forward references in conditions. Only the
-**Structure** section and the Logic map do.
+The engine does not detect forward references in conditions or branch rules
+with an empty condition. Only the **Structure** section and the Logic map do.
 
 ---
 
@@ -154,10 +164,11 @@ edit.
 - A document that cannot be built shows "Could not build the preview…" and
   "Fix the document to render the preview."
 
-The canvas preview shows the theme's progress bar where the published survey
-may not (see
+The canvas preview shows the same progress indicator as the published survey
+(see
 [Question style and progress](Studio-Theme-and-Branding#question-style-and-progress)).
-Check the published look with the header [Preview](#the-preview-button).
+For the exact published build of a Save, use the header
+[Preview](#the-preview-button).
 
 ---
 
@@ -195,9 +206,9 @@ visible questions). Answer-option conditions, option order and scripts are
 not listed.
 
 Take the walkthrough at least twice: once as someone who qualifies, once as
-someone who is screened out. It is the fastest way to debug routing. It also
-shows the problem a mismatched question Id causes: a branch that should
-match reads "no match".
+someone who is screened out. It is the fastest way to debug routing. Scripts
+run here, so an **Assign to a condition** arm is drawn (with the weighted
+draw) and conditions on it are evaluated; press **Restart** to draw again.
 
 ---
 
@@ -233,9 +244,9 @@ screen-outs and branches split the sample. Answers are drawn at random:
 
 **What it ignores:** block show if / hide if (questions in a hidden block are
 still answered), answer-option conditions, randomization, scripts (so the
-**Assign to a condition** arm is not filled), quotas, required answers and
-attention checks. It also works on variable names, so a question whose Id
-differs from its variable name looks fine here but fails in the real survey.
+**Assign to a condition** arm is not filled, and conditions that read it are
+checked as if it were unanswered), quotas, required answers and attention
+checks.
 
 The questionnaire must pass the engine's check: a `VALIDATION` error gives
 "Simulation failed…" with the reason.
@@ -266,8 +277,6 @@ Studio account.
   previews per day; reuse an existing link".
 - It is a plain respondent page, without the Walkthrough panel. Submitting
   shows the completion screen, but nothing is stored.
-- Like the canvas preview, it may show a progress bar that the published
-  survey does not.
 
 Use it for wording review and client sign-off. For a real pilot that records
 answers, publish to the `pilot` environment
@@ -300,33 +309,33 @@ See [Preview deployments](Studio-Publishing-and-Environments#preview-deployments
 
 ## A pre-launch checklist
 
-1. **Ids match variables.** For every question, Inspector → **Advanced** →
-   **Id** is identical to its variable name. Otherwise logic, piping and
-   quotas on that question do not work (see
-   [[The Builder|Studio-Builder-Overview]]).
-2. **Validation.** The last Save is **valid**, or every warning and red lint
+1. **Validation.** The last Save is **valid**, or every warning and red lint
    finding is understood. The **Structure** section is empty.
-3. **Logic map.** No issues on either lens, and no branch rule labeled
-   "always" (an empty rule never fires).
-4. **Walkthrough, twice**: once qualifying, once screened out. Check that
-   each route ends on the page you intended.
-5. **Quotas.** Quota cells count but do not stop anyone. Set the environment's
+2. **Logic map.** No issues on either lens, and no branch rule labeled
+   "no condition — never fires".
+3. **Walkthrough, twice**: once qualifying, once screened out. Check that
+   each route ends on the page you intended. If you used **Also end the
+   survey for respondents who fail**, make sure the Screen-out page sits
+   after the Final page (see
+   [Attention checks](Studio-Logic-and-Branching#attention-checks)).
+4. **Quotas.** Quota cells count but do not stop anyone. Set the environment's
    response cap for your total, put quota questions early, and decide how you
    will react when a cell fills
    ([[Quotas and Randomization|Studio-Quotas-and-Randomization]]).
-6. **Randomization.** If you use **Randomize pages**, your only end page is
-   the last page.
-7. **Theme.** The completion **Title** is empty. Contact email, privacy link
-   and ethics statement are filled in. The expected duration is written into
-   the first page (the **Estimated minutes** field is not shown).
-8. **Simulate** 200 respondents, download the SPSS file and open it. Do the
+5. **Randomization.** If you use **Randomize pages**, your introduction or
+   screener is the first page and your end pages come after the last content
+   page.
+6. **Theme.** Contact email, privacy link and ethics statement are filled in.
+   The expected duration is written into the first page (the **Estimated
+   minutes** field is not shown).
+7. **Simulate** 200 respondents, download the SPSS file and open it. Do the
    labels and missing codes look right? Build your flow on the simulated
    data ([[Analysis Flows|Studio-Flows]]).
-9. **Header Preview.** Look at the progress indicator, logo, footer and
+8. **Header Preview.** Look at the progress indicator, logo, footer and
    completion screen as respondents will see them.
-10. **Pilot.** Publish to `pilot`, answer it along each route, and look at
-    **Data**: responses, screen-outs, and the quota bars on the pilot card.
-11. Only then publish to `main`.
+9. **Pilot.** Publish to `pilot`, answer it along each route, and look at
+   **Data**: responses, screen-outs, and the quota bars on the pilot card.
+10. Only then publish to `main`.
 
 ## See also
 

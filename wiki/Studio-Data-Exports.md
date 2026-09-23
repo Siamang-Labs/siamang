@@ -33,7 +33,7 @@ For the `responses` table:
 
 | Included | Notes |
 |---|---|
-| one column per variable | the answers; a matrix gives one column per row |
+| one column per variable | the answers, each column named after its variable (not the question's Id); a matrix gives one column per row. A Multiple choice in the wide layout is still one column named after the question's Id — see [Multiple choice](Studio-Question-Types#multiple-choice) |
 | `__status` | `completed`, `screened_out` or `redirect` for interviews that ended on a special page; empty otherwise |
 | `id` | the row number (the respondent's **Response ID**) |
 | `survey_id` | the environment that collected the row |
@@ -53,6 +53,10 @@ For the `responses` table:
   them to a file (see [Other routes out](#other-routes-out)).
 - If a variable is named like a table column (`id`, `partial`, …), the
   variable keeps the name and the table column becomes `_id`, `_partial`, ….
+- Answers collected by earlier versions of Studio under a question's Id have
+  been moved to the variable's column; the few that could not be moved safely
+  stay in a column named after the Id (see
+  [The responses table](Studio-Responses-and-Data#the-responses-table)).
 
 ### Multiple answers
 
@@ -94,7 +98,8 @@ Good for: colleagues, quick pivots.
 The file carries the codebook of your questionnaire:
 
 - **variable labels**,
-- **value labels** (including labels of missing codes),
+- **value labels** (including the labels you give missing codes in the
+  Codebook, e.g. `-9 Refused`),
 - **declared missing values**,
 - the **measurement level** (nominal, ordinal, scale).
 

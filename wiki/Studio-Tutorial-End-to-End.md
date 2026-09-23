@@ -40,14 +40,18 @@ For this study:
 | Weighting | to the known customer mix: North 45 %, Centre 30 %, South 25 % |
 | Deliverables | a report with a weighted table and a chart, a live tile for the client, a research bundle |
 
-Two naming rules make everything downstream easier:
+Two naming habits make everything downstream easier:
 
 - **Name variables for analysis** — `consent`, `age`, `region`, `satisfaction`,
-  `nps`, `attention`, `comment`.
-- **Keep each question's Id identical to its variable name.** Conditions,
-  piping and quota counting find answers by variable name, and the data column
-  is named after the Id; if the two differ, logic on that question silently does
-  nothing. See [[The Builder|Studio-Builder-Overview]].
+  `nps`, `attention`, `comment`. Each answer is stored under its variable
+  name: that is the data column, and the name conditions, piping and quota
+  counting read.
+- **Give each question the same Id as its variable.** The Id is the
+  question's handle in the Builder: the Logic map and validation messages name
+  questions by it. Logic works whatever the Id is, but `satisfaction` is easier
+  to read there than `q7`. The one thing Studio refuses is an Id that is
+  **another** question's variable name. See
+  [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ---
 
@@ -126,9 +130,11 @@ operator **=**, value **No (0)** → **Done**. Set the rule's target to
 **Screen out minors.** Select `screener` and add a rule: `age` **<** `18` →
 `disqualification`.
 
-> A branch rule with an **empty** condition never fires, even though its
-> placeholder reads "otherwise". Give every rule a condition and use **Default
-> next** for "everyone else".
+> A branch rule with an **empty** condition never fires — it is not an
+> "otherwise". Until you give a new rule its condition, Studio shows "Add a
+> condition — an empty rule never fires." under it, and the Logic map labels
+> its arrow "no condition — never fires". Use **Default next** for "everyone
+> else".
 
 **Ask for a comment only from detractors.** Select the `comment` question.
 **Logic → Show if → Add condition**: `nps` **≤** `6` → **Done**.
@@ -171,7 +177,9 @@ and fix what it lists.
 Open **More ▾ → Theme**.
 
 1. **Appearance** — set a **Primary** color that matches your brand; read the
-   contrast line under the colors (it turns red below the WCAG floor).
+   contrast line under the colors (it turns red below the WCAG floor). Leave
+   **Progress** on **bar**: published surveys show the indicator this setting
+   chooses.
 2. **Branding** — **Institution** *Customer Insights Team*. For a logo, paste
    a **Logo URL** from a stable public address (your website). Do not use a
    link from **Files** — those download links expire after a few minutes.
@@ -180,11 +188,13 @@ Open **More ▾ → Theme**.
 4. **Wording** — optionally rephrase the runtime's fixed texts (buttons,
    saving and failure messages).
 
-> **Current limitations.** Leave **Completion screen → Title** empty — setting
-> it makes the questionnaire invalid; this study ends on its own Final page
-> anyway. Published surveys currently show no progress bar whatever the
-> **Progress** setting. **Estimated minutes** is not shown to respondents. See
-> [[Theme and Branding|Studio-Theme-and-Branding]].
+> **Note.** **Completion screen** has only a **Message**: its title cannot be
+> changed there. This study ends on its own Final page, whose **Title** and
+> **Body** you already set, so the completion screen is not used.
+
+> **Current limitation.** **Estimated minutes** is not shown to respondents —
+> say how long the survey takes in the consent question's hint, as on page 1.
+> See [[Theme and Branding|Studio-Theme-and-Branding]].
 
 Switch the canvas to **Structure | Preview** and check both **Desktop** and
 **Mobile**. **Save** (*Theme*).
@@ -275,12 +285,17 @@ Connect the Banner table's `table`, the Bar chart's `chart`, the NPS `table` and
 Response quality `table` (counts per quality flag) to the Report section's
 `items` input in the order they should appear.
 
-> **Why a Banner table and not a Crosstab?** Only some nodes use the weight
-> that **Apply weight** sets: **Banner table**, **Net Promoter Score**,
-> **Regression**, **TURF** and **Proportion CI** do; **Frequencies**,
-> **Crosstab**, **Group means** and the charts currently ignore it. The bar
-> chart here therefore shows the unweighted distribution — say so in its
-> caption. See [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]].
+> **Which outputs are weighted?** After **Apply weight**, these nodes use the
+> weight: **Banner table**, **Frequencies**, **Crosstab**, **Group means**,
+> **Net Promoter Score**, **Regression**, **TURF**, and **Proportion CI** with
+> **Weighted** ticked. A Banner table is used here for its
+> significance letters; a **Crosstab** (**Rows** `satisfaction`, **Columns**
+> `region`, **Percentages** `col`) would also give weighted column percentages,
+> with a chi-square test on the effective base instead of letters. The charts
+> (and **Compare groups** and **Correlation**) still ignore the weight, so the
+> bar chart here shows the **unweighted** distribution — say so in its
+> caption. See
+> [Making tables and tests use the weight](Studio-Cleaning-and-Weighting#making-tables-and-tests-use-the-weight).
 
 ### Preview and check
 
@@ -381,7 +396,9 @@ Alternative channels:
 
 On the `main` card press **Close** → **Close survey**. Respondents now see
 "This survey is closed". (**Reopen** would rebuild the same Save into the same
-link.)
+link.) If you know the end date in advance, you can instead give the
+questionnaire a **deadline**: collection stops by itself when it passes — see
+[Deadlines](Studio-Publishing-and-Environments#deadlines).
 
 ### Final run and report
 
@@ -407,7 +424,7 @@ table (all environments, partials included — filter on `survey_id` and
    zip — questionnaire and flow code, documents, codebook, `METHODS.md`,
    `CITATION.cff`, `PROVENANCE.md` and the data.
 4. **More ▾ → Deposit** *(needs a Zenodo token stored under **Settings →
-   Secrets**)*: choose **Zenodo**, pick the token, **untick "Use
+   Secrets**, which an owner or admin adds)*: choose **Zenodo**, pick the token, **untick "Use
    sandbox.zenodo.org"** for a real DOI, decide on **Publish immediately**, and
    **Deposit**.
 
