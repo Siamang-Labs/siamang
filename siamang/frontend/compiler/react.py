@@ -22,6 +22,7 @@ once at load time instead of interpreting a JSON AST on every render.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from siamang.core.block import Block
@@ -40,6 +41,8 @@ from siamang.core.question import (
     Question,
     Ranking,
     SingleChoice,
+    answer_key_aliases,
+    question_fallback_id,
     question_output_name,
 )
 from siamang.core.questionnaire import Questionnaire
@@ -108,15 +111,37 @@ def compile_react_payload(
         "allowBack": ui.allow_back,
     }
 
+    # The runtime's item id is the answer key — the variable for a
+    # single-variable question — while authors name questions by id. Wherever
+    # the payload names a question, the compiler hands the runtime something
+    # it resolves without that id: a `skip_to` to a question becomes the name
+    # of the page that holds it (the runtime resolves a target page-name first
+    # and then by item id, so the outcome is the same and no id is left to
+    # translate; a page name, even one equal to a question id, is left alone),
+    # and a script's target and code are translated to the key below.
+    page_names = {page.name for page in pages_src}
+    skip_targets = {
+        question_fallback_id(question): page.name
+        for page in pages_src
+        for question in page.flatten_questions()
+        if question_fallback_id(question) not in page_names
+    }
+
     pages: list[dict[str, Any]] = []
     total = len(pages_src)
     for index, page in enumerate(pages_src):
-        pages.append(_compile_page(page, index=index, total=total))
+        pages.append(_compile_page(page, index=index, total=total, skip_targets=skip_targets))
 
-    # Serialize scripts
+    # Serialize scripts. The runtime matches a question-scoped script's target
+    # — and a library script reads answers and options — by the item's answer
+    # key, so a script naming an id whose key differs is rewritten to the key.
+    from siamang.model.scripts import script_for_runtime
+
+    aliases = answer_key_aliases(survey.all_questions())
+
     scripts_list = []
     for script in getattr(survey, "scripts", []):
-        scripts_list.append(script.to_dict())
+        scripts_list.append(script_for_runtime(script, aliases).to_dict())
     survey_meta["scripts"] = scripts_list
 
     if any(s.trigger == "onRandomize" for s in getattr(survey, "scripts", [])):
@@ -144,7 +169,9 @@ def _pages_for_react(survey: Questionnaire):
     yield Page(name="page1", items=items)
 
 
-def _compile_page(page: Page, *, index: int, total: int) -> dict[str, Any]:
+def _compile_page(
+    page: Page, *, index: int, total: int, skip_targets: Mapping[str, str] | None = None
+) -> dict[str, Any]:
     section = f"Section {index} of {max(0, total - 1)}" if total > 1 and index > 0 else None
     if index == 0:
         section = "Welcome"
@@ -193,24 +220,42 @@ def _compile_page(page: Page, *, index: int, total: int) -> dict[str, Any]:
         for item in page.items:
             if isinstance(item, Block):
                 if loose:
-                    blocks.append({"title": "", "items": [_compile_question(q) for q in loose]})
+                    blocks.append(
+                        {
+                            "title": "",
+                            "items": [
+                                _compile_question(q, skip_targets=skip_targets) for q in loose
+                            ],
+                        }
+                    )
                     loose = []
-                blocks.append(_compile_block(item))
+                blocks.append(_compile_block(item, skip_targets=skip_targets))
             else:
                 loose.append(item)
         if loose:
-            blocks.append({"title": "", "items": [_compile_question(q) for q in loose]})
+            blocks.append(
+                {
+                    "title": "",
+                    "items": [_compile_question(q, skip_targets=skip_targets) for q in loose],
+                }
+            )
         payload["blocks"] = blocks
     else:
-        payload["items"] = [_compile_question(q) for q in page.flatten_questions()]
+        payload["items"] = [
+            _compile_question(q, skip_targets=skip_targets) for q in page.flatten_questions()
+        ]
 
     return payload
 
 
-def _compile_block(block: Block) -> dict[str, Any]:
+def _compile_block(
+    block: Block, *, skip_targets: Mapping[str, str] | None = None
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "title": block.title or "",
-        "items": [_compile_question(q) for q in block.flatten_questions()],
+        "items": [
+            _compile_question(q, skip_targets=skip_targets) for q in block.flatten_questions()
+        ],
         # Marks a real authored Block (vs. a wrapper for loose questions), so
         # the runtime knows which entries page-level randomize_blocks may move.
         "isBlock": True,
@@ -226,7 +271,14 @@ def _compile_block(block: Block) -> dict[str, Any]:
     return payload
 
 
-def _compile_question(question: Question) -> dict[str, Any]:
+def _compile_question(
+    question: Question, *, skip_targets: Mapping[str, str] | None = None
+) -> dict[str, Any]:
+    """One runtime item. ``skip_targets`` maps a design-time question id to
+    the name of the page that holds the question, for every id that is not
+    also a page name; a ``skip_to`` that names a question is emitted as that
+    page name, and a ``skip_to`` that names a page is left alone."""
+
     base: dict[str, Any] = {
         "id": question_output_name(question),
         "title": question.text,
@@ -250,7 +302,11 @@ def _compile_question(question: Question) -> dict[str, Any]:
     if media is not None:
         base["media"] = media
     if question.skip_to is not None:
-        base["skipTo"] = question.skip_to
+        # A page name, or a question id. The runtime resolves the target by
+        # page name first and then by item id — the answer key, which need not
+        # be the id — so a question is named by its page, where the runtime
+        # would have landed anyway.
+        base["skipTo"] = (skip_targets or {}).get(question.skip_to, question.skip_to)
     if question.randomize:
         base["randomize"] = True
 

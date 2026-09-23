@@ -133,6 +133,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   weighted while N stays the people counted. A weighted frequency table adds an
   `Unweighted N` column and a weighted multiple-choice table an unweighted
   base row; unweighted output is unchanged.
+- A single-variable question whose `id` differed from its variable's name stored
+  the answer under the **id**, while every `show_if` / `next_if`, quota,
+  `{answer:…}` and the codebook read the **variable**. Nothing built on such a
+  question ever fired in the field, and its column came out under the id.
+  `question_output_name` now returns the variable for a question that writes
+  one — a `name` no longer overrides it, and `validate()` rejects a
+  single-variable question whose `name` is not its variable; matrix, wide,
+  MaxDiff and Conjoint items keep their `name` or id — so the runtime's item
+  `id`, the answer key, is the variable and `qid` stays the author's id. A
+  `skip_to` and a script still
+  name questions by id: the compiler emits a `skip_to` that names a question
+  as the name of the page holding it (a page name is left alone), translates
+  the target of an `onQuestionShow` / `onAnswer` script — the triggers the
+  runtime dispatches with a key; a page-scoped target is a page name and is
+  left alone — as well as a `randomize_options` / `timed_question` question
+  and the two `validate_fields_match` fields to the key, and rewrites the
+  `answers["q1"]`, `answers.q1`, `__errors__[…]`, `__options__[…]` and
+  `__timers__[…]` accesses of such an id in a custom script's code.
+  `lint(level="strict")` reports `SCRIPT_STALE_QUESTION_ID` where a custom
+  script still names such an id as a string or a bare identifier the compiler
+  does not translate (a comment, or a string that merely mentions the id, does
+  not count), and `SCRIPT_TARGET_IS_A_PAGE` / `SCRIPT_TARGET_IS_A_QUESTION`
+  where an `onQuestionShow` / `onAnswer` script targets a page or an
+  `onPageEnter` / `onPageExit` script targets a question — a target the
+  runtime never dispatches those triggers with, so the script never ran;
+  `validate()` accepts a target by either name and rejects a document in which
+  two questions share a key or a question's id is another question's key.
+  Responses collected before this change under such an id are not moved.
 - `data.tables.banner` died with "Grouper not 1-dimensional" when a variable was
   used as both a row and a banner column — which is how you read a base
   distribution across the banner. It now builds its own frame instead of

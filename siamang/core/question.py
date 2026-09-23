@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -516,4 +516,39 @@ def question_fallback_id(question: Question) -> str:
 
 
 def question_output_name(question: Question) -> str:
-    return question.name or question_fallback_id(question)
+    """The key an answer is stored under — the runtime's item ``id``.
+
+    For a question that writes exactly one variable, that variable: the column
+    the codebook describes, the name a condition, a quota or ``{answer:…}``
+    reads. An explicit ``name`` does not override it — ``validate()`` rejects
+    a single-variable question whose ``name`` is not its variable's name,
+    because the answer would then sit under a key that nothing reading the
+    variable looks at. A Matrix, a wide MultiChoice, a MaxDiff or a Conjoint
+    writes several variables under one item, so its key is its ``name`` or
+    else its id, as before, and the runtime spreads the object by variable
+    name.
+
+    The author-facing ``id`` is a different thing (``question_fallback_id``):
+    the runtime carries it as ``qid`` for design mode and script targets.
+    """
+    if not isinstance(question.var, list):
+        return question.var.name
+    if question.name:
+        return question.name
+    return question_fallback_id(question)
+
+
+def answer_key_aliases(questions: Iterable[Question]) -> dict[str, str]:
+    """Design-time question id → answer key, for the questions where the two
+    differ (``question_fallback_id`` vs ``question_output_name``).
+
+    Empty for a survey whose ids are its variable names — the common case, in
+    which nothing that names a question needs translating for the runtime.
+    """
+    aliases: dict[str, str] = {}
+    for question in questions:
+        design_id = question_fallback_id(question)
+        key = question_output_name(question)
+        if design_id != key:
+            aliases[design_id] = key
+    return aliases

@@ -37,6 +37,15 @@ _VALID_TRIGGERS = {
     "onRandomize",  # Runs to determine randomization
 }
 
+# How the React runtime dispatches a trigger. onQuestionShow and onAnswer run
+# with the question's answer key as the target
+# (`ScriptRunner.runForQuestion(q.id)`, `run("onAnswer", …, id)`); onPageEnter
+# and onPageExit with the page's name; onInit, onSubmit and onRandomize with
+# no target at all. A script's `target` is matched against that, so a
+# question-scoped script must target a question and a page-scoped one a page.
+_QUESTION_SCOPED_TRIGGERS = frozenset({"onQuestionShow", "onAnswer"})
+_PAGE_SCOPED_TRIGGERS = frozenset({"onPageEnter", "onPageExit"})
+
 
 @dataclass(frozen=True, slots=True)
 class Script:

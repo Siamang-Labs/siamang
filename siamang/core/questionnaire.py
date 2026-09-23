@@ -18,10 +18,15 @@ from siamang.core.question import (
     NumericInput,
     Question,
     SingleChoice,
+    answer_key_aliases,
     question_fallback_id,
     question_output_name,
 )
-from siamang.core.script import _VALID_TRIGGERS
+from siamang.core.script import (
+    _PAGE_SCOPED_TRIGGERS,
+    _QUESTION_SCOPED_TRIGGERS,
+    _VALID_TRIGGERS,
+)
 from siamang.core.variable import VariableMap
 
 
@@ -80,7 +85,10 @@ class Questionnaire:
             if script.trigger not in _VALID_TRIGGERS:
                 raise ValueError(f"Script '{script.name}' has unknown trigger '{script.trigger}'.")
             if script.target:
+                # A target may be the author's id or the answer key — the
+                # compiler hands the runtime whichever it matches on.
                 all_q_ids = {question_output_name(q) for q in self.all_questions()}
+                all_q_ids |= {question_fallback_id(q) for q in self.all_questions()}
                 all_page_names = {p.name for p in (self.pages or [])}
                 if script.target not in all_q_ids and script.target not in all_page_names:
                     raise ValueError(
@@ -98,6 +106,9 @@ class Questionnaire:
                     known = self.variables.require(var.name)
                     if known != var:
                         raise ValueError(f"Variable '{var.name}' differs from registry instance.")
+        # After the variable check: two questions bound to one variable share
+        # a key too, and 'Duplicate variable' is the message that names why.
+        self._validate_answer_keys()
         if strict:
             errors = [issue for issue in self.lint(level="strict") if issue.severity == "error"]
             if errors:
@@ -123,6 +134,48 @@ class Questionnaire:
             if question.skip_to is not None and question.skip_to not in known_targets:
                 raise ValueError(
                     f"Question '{question_fallback_id(question)}' skip_to references unknown target: {question.skip_to}"
+                )
+
+    def _validate_answer_keys(self) -> None:
+        """The runtime stores each answer under the question's output name
+        (``question_output_name``: the variable for a single-variable question,
+        the ``name`` or id for a matrix or a wide MultiChoice) and resolves a
+        ``skip_to`` or a script target against it. A single-variable question's
+        ``name``, when given, must be its variable — a different one would put
+        the answer where no condition, quota or piping on the variable looks.
+        Two questions may not share a key, and no question may carry as its id
+        the key of another — the runtime could not tell which of the two was
+        meant."""
+
+        for question in self.all_questions():
+            if isinstance(question.var, list) or not question.name:
+                continue
+            if question.name != question.var.name:
+                raise ValueError(
+                    f"Question '{question_fallback_id(question)}' has name "
+                    f"'{question.name}' but writes variable '{question.var.name}'; a "
+                    f"single-variable question's answer is stored under its variable, "
+                    f"so its name, when given, must be '{question.var.name}'."
+                )
+        owner_by_key: dict[str, str] = {}
+        for question in self.all_questions():
+            question_id = question_fallback_id(question)
+            key = question_output_name(question)
+            if key in owner_by_key:
+                raise ValueError(
+                    f"Duplicate answer key in questionnaire: questions "
+                    f"'{owner_by_key[key]}' and '{question_id}' both store their answer "
+                    f"under '{key}'."
+                )
+            owner_by_key[key] = question_id
+        for question in self.all_questions():
+            question_id = question_fallback_id(question)
+            owner = owner_by_key.get(question_id)
+            if owner is not None and owner != question_id:
+                raise ValueError(
+                    f"Question '{question_id}' has the id under which question "
+                    f"'{owner}' stores its answer; an id may not be another question's "
+                    f"variable or output name."
                 )
 
     def preview(self) -> str:
@@ -355,6 +408,8 @@ class Questionnaire:
         warnings.extend(_piping_warnings(self))
         if level == "strict":
             warnings.extend(_strict_question_warnings(self.all_questions()))
+            warnings.extend(_script_answer_key_warnings(self))
+            warnings.extend(_script_target_scope_warnings(self))
             if self.variables is not None:
                 used = {
                     var.name
@@ -484,6 +539,110 @@ def _strict_question_warnings(questions: list[Question]) -> list[LintWarning]:
             warnings.extend(_maxdiff_warnings(question_id, question))
         if isinstance(question, Conjoint):
             warnings.extend(_conjoint_warnings(question_id, question))
+    return warnings
+
+
+def _script_answer_key_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """A custom script that goes on naming a question by an id the runtime
+    will not know it by.
+
+    Where a question's id is not its answer key, the compiler translates the
+    script's target and the ``answers[…]`` / ``__errors__[…]`` /
+    ``__options__[…]`` / ``__timers__[…]`` accesses that name the id, and
+    nothing else — it cannot know what ``const q = "q1"`` or ``{q1: 1}`` is
+    for. The author can, so each such id is reported, by script, rather than
+    the script going dark in the field."""
+
+    aliases = answer_key_aliases(survey.all_questions())
+    if not aliases or not survey.scripts:
+        return []
+    # ``siamang.model`` builds on ``siamang.core``: import here, not at the top.
+    from siamang.model.scripts import stale_answer_key_references
+
+    warnings: list[LintWarning] = []
+    for index, script in enumerate(survey.scripts):
+        name = script.name or f"script #{index + 1}"
+        for design_id in stale_answer_key_references(script, aliases):
+            key = aliases[design_id]
+            warnings.append(
+                LintWarning(
+                    code="SCRIPT_STALE_QUESTION_ID",
+                    severity="warning",
+                    message=(
+                        f"Script '{name}' still names question '{design_id}' as a string or "
+                        f"a bare identifier; its answer is stored under '{key}', and only the "
+                        f"answers[…], __errors__[…], __options__[…] and __timers__[…] accesses "
+                        f"of '{design_id}' are translated for the runtime. Where the script "
+                        f"means the question, write '{key}'."
+                    ),
+                    location=name,
+                )
+            )
+    return warnings
+
+
+def _script_target_scope_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """A script whose target is the wrong kind of thing for its trigger.
+
+    ``validate()`` accepts any question id, answer key or page name as a
+    target. The runtime, though, matches an ``onQuestionShow`` / ``onAnswer``
+    target against the question being shown or answered and an
+    ``onPageEnter`` / ``onPageExit`` target against the page being entered or
+    left — so a question-scoped script aimed at a page, or a page-scoped
+    script aimed at a question, validates and is never dispatched. A name that
+    is both a page's and a question's is not reported: it does match on its
+    trigger's side."""
+
+    if not survey.scripts:
+        return []
+    questions = survey.all_questions()
+    question_names = {question_fallback_id(question) for question in questions}
+    question_names |= {question_output_name(question) for question in questions}
+    page_names = {page.name for page in (survey.pages or [])}
+    warnings: list[LintWarning] = []
+    for index, script in enumerate(survey.scripts):
+        target = script.target
+        if not target:
+            continue
+        name = script.name or f"script #{index + 1}"
+        if (
+            script.trigger in _QUESTION_SCOPED_TRIGGERS
+            and target in page_names
+            and target not in question_names
+        ):
+            warnings.append(
+                LintWarning(
+                    code="SCRIPT_TARGET_IS_A_PAGE",
+                    severity="warning",
+                    message=(
+                        f"Script '{name}' runs on {script.trigger} but its target "
+                        f"'{target}' is a page, not a question; the runtime dispatches "
+                        f"{script.trigger} with the question's key, so the script would "
+                        f"never run. Target a question, or use onPageEnter / onPageExit "
+                        f"for page '{target}'."
+                    ),
+                    location=name,
+                )
+            )
+        elif (
+            script.trigger in _PAGE_SCOPED_TRIGGERS
+            and target in question_names
+            and target not in page_names
+        ):
+            warnings.append(
+                LintWarning(
+                    code="SCRIPT_TARGET_IS_A_QUESTION",
+                    severity="warning",
+                    message=(
+                        f"Script '{name}' runs on {script.trigger} but its target "
+                        f"'{target}' is a question, not a page; the runtime dispatches "
+                        f"{script.trigger} with the page's name, so the script would "
+                        f"never run. Target the page that holds question '{target}', or "
+                        f"use onQuestionShow / onAnswer."
+                    ),
+                    location=name,
+                )
+            )
     return warnings
 
 

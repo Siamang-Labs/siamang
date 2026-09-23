@@ -185,7 +185,7 @@ def build():
                         hide_if="{consent} == 2",
                         skip_to="wrap",
                         id="q_gender",
-                        name="gender_q",
+                        name="gender",
                     ),
                 ],
                 default_next="devices",

@@ -22,6 +22,10 @@ when the questionnaire is sound. It is intentionally strict about anything that
 would produce a broken survey:
 
 - **Duplicate question IDs** and **duplicate variable names**.
+- **Answer keys** — a question that writes one variable stores its answer under
+  that variable, so a `name` that differs from it is rejected; two questions may
+  not store their answers under one key, and no question's id may be the key of
+  another.
 - **Unknown `skip_to` targets** — a question may only skip to a known question
   ID or page name.
 - **Page integrity** (pages mode): no empty/duplicate page names, every
@@ -118,13 +122,16 @@ every level:
 
 ### Extra `strict` checks
 
-`level="strict"` adds four question-level and registry checks:
+`level="strict"` adds seven question-level, script and registry checks:
 
 | Code | Severity | Meaning |
 | :--- | :--- | :--- |
 | `REQUIRED_CONDITIONAL` | warning | A required question also has conditional visibility. |
 | `INCOMPATIBLE_QUESTION_SCALE` | error | `NumericInput` not on interval/ratio, or `LikertScale` not on ordinal. |
 | `CATEGORICAL_WITHOUT_LABELS` | error | A `SingleChoice`/`MultiChoice` variable has no value labels. |
+| `SCRIPT_STALE_QUESTION_ID` | warning | A custom script still names a question whose answer is stored under a different key (its id is not its variable) as a string or a bare identifier — outside the `answers[…]` / `__errors__[…]` / `__options__[…]` / `__timers__[…]` accesses the compiler translates. Comments, and strings that merely mention the id, do not count. |
+| `SCRIPT_TARGET_IS_A_PAGE` | warning | An `onQuestionShow` / `onAnswer` script targets a page name. The runtime dispatches those triggers with a question's key, so the script would never run. |
+| `SCRIPT_TARGET_IS_A_QUESTION` | warning | An `onPageEnter` / `onPageExit` script targets a question. The runtime dispatches those triggers with a page's name, so the script would never run. |
 | `UNUSED_VARIABLE` | warning | A registered variable is never used in the questionnaire. |
 
 ```python
