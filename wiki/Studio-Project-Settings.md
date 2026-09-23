@@ -26,7 +26,7 @@ part of any Save.
 
 | Field | Notes |
 |---|---|
-| **Project name** | Editable. Click **Save changes**; you see "Settings saved". Renaming needs the **owner** or **admin** role. Other members get "Could not save settings. You do not have permission to do this." The name is not part of a Save |
+| **Project name** | Editable. Click **Save changes**; you see "Settings saved". Renaming needs the **owner** or **admin** role: for other members **Save changes** stays disabled (tooltip "Only owners and admins can do this") and the card says "Only owners and admins can rename a project." The name is not part of a Save |
 | **Slug** | "read-only after creation". It is the project's address (`…/projects/<slug>`) and what **Delete project** asks you to type |
 | **Survey host** | "where deployments are served", shown as `study.siamang.org/<org>/<project>/<environment>` |
 
@@ -176,7 +176,8 @@ Publishing is covered in
 ## Secrets
 
 "Encrypted, write-only project secrets. Values are never shown again after
-creation."
+creation — connectors and repository deposits read them by key; flow runs
+cannot."
 
 Secrets hold the credentials Studio uses on your behalf:
 
@@ -186,10 +187,8 @@ Secrets hold the credentials Studio uses on your behalf:
   [Depositing to Zenodo or OSF](Studio-History-and-Versions#depositing-to-zenodo-or-osf)).
 
 Secrets are **not** passed to flow runs. Flows run without network access and
-without credentials.
-
-> **Note.** The tab's empty-state text says values are "injected into flow
-> runs". They are not; secrets are only read by connectors and deposits.
+without credentials. With no secrets yet the tab says "No secrets yet — values
+are write-only, read by connectors and repository deposits."
 
 ### Add or replace a secret
 
@@ -214,8 +213,9 @@ its next run.
 Who can do what:
 
 - **Owners and admins** add, replace and delete secrets. Members see the key
-  names; if they try to add one they get "Could not add secret. You do not have
-  permission to do this."
+  names, but **Add secret** and each row's **Delete** are disabled for them
+  (tooltip "Only owners and admins can do this"), and the tab says "Only
+  owners and admins can add or delete secrets."
 - Adding and deleting secrets is recorded in **Activity** (`secret.set`,
   `secret.delete`).
 
@@ -227,7 +227,8 @@ The connector catalog and your configured connectors: export response tables
 to spreadsheets, storage, warehouses and CRMs, or import a table from Postgres.
 *(Plus)* — on Free the tab shows "Connectors is a Plus feature" with **View
 plans**. Adding a connector creates a Save; running one needs the owner or
-admin role. Everything is covered in [[Connectors|Studio-Connectors]].
+admin role (members see **Run export** / **Run import** disabled). Everything
+is covered in [[Connectors|Studio-Connectors]].
 
 ---
 
@@ -238,9 +239,18 @@ connector exports, schedules and secret changes."
 
 - Shows the **latest 100 events** of this project, newest first: the action
   (for example `snapshot.save`, `snapshot.restore`, `snapshot.tag`,
-  `bundle.download`, `bundle.deposit`, `deploy.live`, `run.completed`,
+  `bundle.download`, `bundle.deposit`, `deploy.create`, `deploy.stop`,
   `connector.run`, `schedule.create`, `secret.set`, `response.delete`), its
   target, who did it and when.
+- A Save that adds access codes (**Generate codes** / **Generate more** or
+  **Import CSV** on **Distribute**) is also recorded as
+  `access_codes.generate`, with the Save number as the target and the number
+  of codes added — never the codes themselves.
+- What Studio records in the background when a build or a run ends —
+  `deploy.live`, `deploy.failed`, `run.completed`, `run.failed`,
+  `connector.completed`, `connector.failed` — is not tied to the project, so
+  it does not appear here. Owners and admins find those events in the
+  organization-wide log, where they show "—" in place of a project.
 - The range buttons **24h**, **7d** (default), **30d** and **All** filter the
   list. With nothing in range you see "No activity in this period" and **Show
   all activity**.
@@ -248,7 +258,7 @@ connector exports, schedules and secret changes."
   meta) as `<project-slug>-activity.csv`.
 - **Every member** of the organization can read a project's activity. The
   organization-wide log (Organization settings → **Activity**) is for owners and
-  admins.
+  admins; members do not see that tab.
 
 ---
 
@@ -277,7 +287,9 @@ response database, files and run outputs, secrets, schedules, runs, deposit
 records and comments. Published survey links show a closed page and previews
 are removed. Deposits already on Zenodo or OSF stay there.
 
-Only the **owner** or an **admin** can delete a project. Before you do,
+Only the **owner** or an **admin** can delete a project; a member who tries
+gets "Could not delete project. You do not have permission to do this." Before
+you do,
 download what you need — a research bundle with the responses (History → a Save
 → **More** → **With the responses so far**) and your data exports (see
 [[Data Exports|Studio-Data-Exports]]).

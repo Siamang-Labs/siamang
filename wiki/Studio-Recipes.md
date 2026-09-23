@@ -33,10 +33,15 @@ short path; the linked pages have every option and caveat.
 - Keeping it: [pre-register and cite](#pre-register-and-get-a-doi) ·
   [reproduce on a laptop](#reproduce-the-study-on-your-own-computer)
 
-> **One rule for every recipe.** Keep each question's **Id** (Inspector →
-> **Advanced**) identical to its variable name. Presets and renamed variables
-> start out different; conditions, piping and quotas on such questions do
-> nothing until you align them. See [[The Builder|Studio-Builder-Overview]].
+> **Names in these recipes.** Conditions, piping, quotas and your data use a
+> question's **variable name** (`consent`, `nps`). When a recipe says "rename
+> the variable", type the new name in the Inspector's **Variable** card. The
+> question's **Id** (Inspector → **Advanced**) may stay as Studio numbered it;
+> setting it to the same name makes the Logic map and validation messages,
+> which name questions by Id, easier to read. Rename variables **before** you
+> write conditions on them —
+> renaming does not update conditions that already use the old name. See
+> [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ---
 
@@ -45,12 +50,15 @@ short path; the linked pages have every option and caveat.
 ### A consent page that screens out non-consenters
 
 1. On the first page add **+ Question → Presets → Yes / No** — *Do you agree
-   to take part?* — and turn **Required** on. Rename the variable and the Id
-   to `consent`.
+   to take part?* — and turn **Required** on. Rename the variable to
+   `consent`.
 2. Put the information text in the question's **Hint** (a page's Body is not
    shown on pages with questions).
 3. **+ Page → Screen-out page** (Studio names it `disqualification`); write a
-   polite message in its **Body**. Drag it to the end of the page list.
+   polite message in its **Body**. Drag it to the end of the page list,
+   **after** a Final page (add one with **+ Page → Final page** if you have
+   none): pages run in order, so everyone who passes stops at the Final page
+   and only the rule below reaches the Screen-out page.
 4. Select the consent page → **Logic → Branch (next if) → + Rule** →
    **Add condition**: `consent` **=** **No (0)** → **Done**; target
    `disqualification`.
@@ -81,15 +89,25 @@ condition reads an answer the respondent has not given yet.
 ### An attention check that ends the survey
 
 1. **+ Question → Presets → Attention check** (a required single choice,
-   already marked, with its expected answer). Rename variable and Id to
+   already marked, with its expected answer). Rename the variable to
    `attention`.
 2. In the Inspector, tick **Also end the survey for respondents who fail** —
-   Studio adds a branch rule to a Screen-out page (creating one at the end of
-   the questionnaire if there is none). **Make sure a Final page comes before
-   that Screen-out page** — otherwise respondents who pass the check continue
-   page by page into it and are recorded as screened out. Confirm with
-   **Test → Walkthrough**, answering the check correctly.
-3. To flag rather than exclude, leave that box off and use the **Response
+   Studio adds a branch rule from the check's page to the first Screen-out
+   page. If there is none, Studio creates one and places it directly
+   **before** the first Final (or Redirect) page, adding a Final page after
+   your last content page when there is none.
+3. **Check the page order.** Pages run in order, so a Screen-out page placed
+   in front of the Final page is where respondents who **pass** the check end
+   up too — recorded as screened out. Drag the Screen-out page **below** the
+   Final page in the page rail (the rule follows it by name), as in
+   [Screening people out](Studio-Logic-and-Branching#screening-people-out).
+   If the project started from a template with a consent page, its
+   `screen_out` page is visible only to people who decline consent, and the rule
+   points at it. Add a Screen-out page of your own below the Final page, then
+   set the rule's target to it in the page's **Logic** section.
+   Confirm with **Test → Walkthrough** twice: once answering the check
+   correctly, once failing it.
+4. To flag rather than exclude, leave that box off and use the **Response
    quality** node in your flow (**Fill from the questionnaire** picks up the
    check).
 
@@ -97,7 +115,7 @@ condition reads an answer the respondent has not given yet.
 
 ### Measure and report NPS
 
-1. **+ Question → Presets → NPS (0–10)**; rename variable and Id to `nps`.
+1. **+ Question → Presets → NPS (0–10)**; rename the variable to `nps`.
 2. Optionally add an **Open text** follow-up shown if `nps` **≤** `6`.
 3. In a flow: source → **Net Promoter Score** (**0–10 item** `nps`) — the
    score (promoters minus detractors) with a confidence interval. Connect its
@@ -110,10 +128,10 @@ condition reads an answer the respondent has not given yet.
   last; "None of the above" is shuffled with the rest.
 - Questions inside a block: select the block → **Randomize question order**.
 - Blocks on a page: select the page → **Randomize block order**.
-- Pages: **More ▾ → Scripts → Randomize pages**. It keeps the **first and last**
-  page in place and shuffles everything in between, so keep screen-out and
-  final pages at the end and do not use it when a terminal page sits in the
-  middle.
+- Pages: **More ▾ → Scripts → Randomize pages**. It keeps the **first** and
+  the **last** page in place, and every **Final**, **Screen-out** and
+  **Redirect** page wherever it sits, and shuffles the other pages among the
+  remaining positions.
 - **More ▾ → Randomization** lists every shuffle in one table.
 
 → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
@@ -132,8 +150,9 @@ one project per language.
 1. In Qualtrics: **Tools → Import/Export → Export survey** (`.qsf`).
 2. In Studio: **Builder → More ▾ → Import**, drop the file, read the **Not
    imported** list, press **Check with the engine**, then **Import**.
-3. Review Ids against variable names, recreate anything listed as not
-   imported (embedded data, quotas, loop & merge are not carried), **Save**.
+3. Review the variable names — they become your data columns and the names
+   conditions read — recreate anything listed as not imported (embedded data,
+   quotas, loop & merge are not carried), **Save**.
 
 → [[Importing Questionnaires|Studio-Importing-Questionnaires]]
 
@@ -236,9 +255,10 @@ set the height to suit your page.
    ID** — that is the `id` column. Otherwise search by a panel id or an
    invitation in the `meta` column.
 2. **Data → responses**: type the id in **Filter loaded rows…** and press
-   **Delete** on the row (owners and admins), confirm.
-3. The grid loads only the first 100 rows of a table. If the response is not
-   among them, an owner or admin can delete it with the API
+   **Delete** on the row, confirm. Only owners and admins see the **Delete**
+   button.
+3. The grid loads the **newest** 100 rows of the table. If the response is
+   older than that, an owner or admin can delete it with the API
    (`DELETE /projects/{id}/database/responses/{response_id}`) — see
    [[API and API Keys|Studio-API-and-API-Keys]].
 4. The deletion is recorded in the Activity log (without its content) — keep
@@ -267,10 +287,17 @@ In a flow: **Responses** → **Rake weights** (targets such as
 `region`, **Significance letters** on). The banner shows weighted column
 percentages and tests on the effective base.
 
-> **Current limitation.** Only some nodes use the applied weight: **Banner
-> table**, **Net Promoter Score**, **Regression**, **TURF** and **Proportion
-> CI** (with **Weighted** ticked). **Frequencies**, **Crosstab**, **Group
-> means** and the charts are unweighted even after **Apply weight**.
+For a single weighted crosstab, a **Crosstab** node after **Apply weight**
+works too: **Rows** `satisfaction`, **Columns** `region`, **Percentages**
+`col`. Its cells are sums of weights, and its chi-square test uses the
+effective base.
+
+> **Note.** After **Apply weight**, **Frequencies**, **Crosstab**, **Group
+> means**, **Banner table**, **Net Promoter Score**, **Regression**, **TURF**
+> and **Proportion CI** (with **Weighted** ticked) use the weight. The charts,
+> **Compare groups**, **Correlation** and several other analyses (the full
+> list is on the linked page) are still unweighted — say so in the report
+> section's note.
 
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
@@ -286,9 +313,13 @@ across (**Breakdowns**), **Significance letters** on. Connect it to a
    partials** → **Write table** (`clean`).
 2. Flow `b_tables`: **Project table** (`clean`) → your analysis.
 
-**Run all** runs flows in **alphabetical order of their names**, so name the
-writer to sort first. In a downloaded bundle, flows read the responses file
-instead of the table — see [[Reproducibility|Studio-Reproducibility]].
+**Run all** sees that `b_tables` reads the table `a_clean` writes and runs
+`a_clean` first, whatever the names. If `a_clean` fails, `b_tables` is
+skipped ("skipped: needs a_clean, which failed") while unrelated flows still
+run. Running `b_tables` on its own does not run `a_clean` first — it reads
+the table as it was last written. In a downloaded bundle, flows read the
+responses file instead of the table — see
+[[Reproducibility|Studio-Reproducibility]].
 
 ### Code open-ended answers
 
@@ -303,7 +334,8 @@ answers' text is sent to the AI provider — check your consent wording first.
 *(Plus and above.)* **Flows → Schedules → Schedule a run** → **What to run**:
 your flow (or all flows) → **When**: **Daily at 02:00** (UTC) → **Schedule**.
 Each run replaces the report on **Reports**; owners get an email if a
-scheduled run fails. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
+scheduled run fails. On Free, the button reads **Requires Plus** and opens
+the plans instead. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 ### A live dashboard for a client
 
@@ -320,7 +352,8 @@ responses** in the flow settings, **Save** and **Run** once. On **Live**, press
 **Spreadsheet ID**, **Range**, **Source table** `responses`, and a
 **Credentials secret** holding the service-account JSON → **+ Add & Save**.
 Press **Run export** whenever you want a refresh (connectors run on demand,
-not on a schedule). → [[Connectors|Studio-Connectors]]
+not on a schedule; only owners and admins can run one). →
+[[Connectors|Studio-Connectors]]
 
 ---
 
@@ -331,7 +364,7 @@ not on a schedule). → [[Connectors|Studio-Connectors]]
 1. **Settings → General → Study & citation**: authors (`Name; ORCID;
    affiliation`), license, keywords, abstract → **Save study metadata**.
 2. **History** → open the Save you field with → **More ▾ → Pre-register**.
-3. Add your Zenodo token under **Settings → Secrets**.
+3. Add your Zenodo token under **Settings → Secrets** (owners and admins).
 4. **More ▾ → Deposit** → **Zenodo**, pick the token, **untick "Use
    sandbox.zenodo.org"**, tick **Publish immediately** for a DOI now →
    **Deposit**.

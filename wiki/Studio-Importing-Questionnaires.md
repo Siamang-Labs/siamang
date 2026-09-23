@@ -175,11 +175,12 @@ whose pages contain `elements` is recognized automatically.
 | Encoding | UTF-8 text |
 | File types | `.json`, `.py`, `.qsf`, `.lss` |
 
-Messages you may see:
+Messages you may see (for a file read on the server — `.py`, `.qsf`, `.lss`,
+SurveyJS — they follow "Could not read the file."):
 
 | Message | Meaning |
 |---|---|
-| "file larger than 2 MB" | the file is too big to import |
+| "File larger than 2 MB." | the file is too big to import |
 | "The file is not UTF-8 text." | re-save the file as UTF-8 |
 | "Not valid JSON: line N: …" / "This is not valid JSON" | the file or pasted text is not valid JSON — a file with any other extension is treated as pasted text, so save a LimeSurvey `.xml` export as `.lss` |
 | "Not a questionnaire document: expected an object with a "pages" array …" | a JSON file that is none of the recognized formats |
@@ -194,18 +195,27 @@ Messages you may see:
 
 1. **Read the not-imported list** and rebuild what matters (a skipped quota, a
    validation, logic on embedded data) in the Builder.
-2. **Check each question's Id against its variable name.** The card header
-   shows `id → variable`; importers usually make them equal, but a name clash
-   can give one of them a suffix. Where they differ, set **Advanced → Id** to
-   the variable name — see
+2. **Check the variable names.** Each question's answer is stored under its
+   variable name, which becomes the column in your data; the card header
+   shows `id → variable`. An Id that differs from its variable is fine, but a
+   question's Id must not be another question's variable name — if the engine
+   check reports that a question "has the id under which question … stores
+   its answer", change that question's **Advanced → Id**. See
    [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 3. **Look for introductory text.** A page that held only text becomes a
    text-only page and is shown as before. Text that shared a page with
    questions lands in that page's **Body**, which respondents do not see on a
    question page — move it to a question's **Hint** or a text-only page (see
    [Pages and page kinds](Studio-Builder-Overview#pages-and-page-kinds)).
-4. **Leave imported multiple-choice layouts alone.** A question that arrived in
-   the wide layout keeps working; switching layouts in the Builder does not.
+4. **Review wide multiple-choice questions.** When the source survey's logic
+   tests individual choices, the importer stores the question as one yes/no
+   variable per choice and warns "stored as one yes/no variable per choice
+   (…) because logic tests its choices." In the published survey those
+   per-choice variables stay empty, so the imported conditions on them do not
+   see the respondent's answer — see
+   [Multiple choice](Studio-Question-Types#multiple-choice).
+   Switch the question to **array**, add its choices under **Choices**, and
+   rewrite those conditions with **chose** / **did not choose**.
 5. **Check matrix codes.** Matrix answers are stored as column positions (1 …
    *n*). If an imported matrix's value labels use other codes (Qualtrics
    recodes, a 0–10 scale), plan a recode in your flow — see

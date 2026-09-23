@@ -59,7 +59,7 @@ under it while a review is open), **Pipeline**, **Schedules**, **Run history**.
 
 | Control | What it does |
 |---|---|
-| **More ▾ → Run all flows** | Runs every flow of the current Save, one after another (see [Run all](#run-all)). Tooltip: "Run every flow in order". |
+| **More ▾ → Run all flows** | Runs every flow of the current Save as one run, each flow after the flows whose tables it reads (see [Run all](#run-all)). Tooltip: "Run every flow in order". |
 | **More ▾ → Show archive** / **Back to current** | Switches the run list to runs hidden by **Reset history**, and back. |
 | **More ▾ → Reset history** | Archives finished runs (shown only when there are some). See [Reset history and the archive](#reset-history-and-the-archive). |
 | **+ New flow** | Opens the **New flow** dialog. |
@@ -93,25 +93,28 @@ and `tables`.)
 ### Pipeline
 
 The strip shows every flow as a chip with the status of its latest run, in
-the order **Run all** uses — **alphabetical order of the flow names**. The
-sub-title "flows run in order · each step may read the previous step's table"
-means exactly that order; nothing reorders flows by what they read or write.
-Click a chip to open the **Run flow** dialog with that flow selected.
+**alphabetical order of the flow names** — the order of the flows table. Its
+sub-title reads "flows run in order · each step may read the previous step's
+table". **Run all** does not always follow the strip: a flow that reads a
+table another flow writes runs after that flow, even when its chip comes
+first (see [Run all](#run-all)). The strip does not show the order **Run all**
+uses. Click a chip to open the **Run flow** dialog with that flow
+selected.
 
 ### The Run flow dialog
 
 | Field | Content |
 |---|---|
-| **Flow** | the flow to run; the hint says where it sits in the Run all order, e.g. "step 2 of 3 — runs after cleaning" or "step 1 of 3 — runs first" |
+| **Flow** | the flow to run; the hint gives its place in the **Pipeline** strip, e.g. "step 2 of 3 — runs after cleaning" or "step 1 of 3 — runs first" ("flows run against the current Save" when the project has one flow). The hint counts the strip's alphabetical order, so for a flow that reads a table written by a flow that sorts after it, the hint differs from the order **Run all** uses |
 | **Description** | read-only |
 | **Runs as** | read-only, `scripts/<name>.py` — the generated script |
 | **Report** | read-only, the report path, "written when the run completes" |
 
 Buttons: **Open on canvas** and **Run** ("Already running…" while a run of that
 flow is in progress). Running one flow runs only that flow — not the flows
-before it in the pipeline. With no flows yet the dialog says "No flows yet —
-create one on the Flows canvas (Load → Clean → Analyze → Report), Save, and run
-it from here." and offers **Open Flows**.
+whose tables it reads; it reads those tables as they are. With no flows yet
+the dialog says "No flows yet — create one on the Flows canvas (Load → Clean →
+Analyze → Report), Save, and run it from here." and offers **Open Flows**.
 
 ### Run history and run cards
 
@@ -133,9 +136,9 @@ ten more, up to the 50 most recent runs.
 | Status | **success**, **warnings**, **failed** or **running** |
 | Type | **flow**, **run all** or **connector** (open-answer coding jobs also appear, as **flow**) |
 | `#id`, time | the run number and when it started |
-| Steps | **Queued → Run → Done** with "ran in 0m 34s"; a Run all shows one step per flow, advancing as each finishes |
+| Steps | **Queued → Run → Done** with "ran in 0m 34s"; a Run all shows one step per flow, in the order of the flows table, each marked as that flow finishes (a cross for a flow that failed or was skipped) |
 | Entry | the flow name (or script path) and "· Save #N" — the Save it ran |
-| Error line | for a failed run, the last line of its log (for example the Python error), or "Run failed — open the logs for details." |
+| Error line | for a failed run, the last line of its log (for example the Python error), or "Run failed — open the logs for details." For a Run all it is the log's last line, which may be about a flow that succeeded (`task tables: ok`) — **View logs** shows every flow's outcome |
 | Output chips | one per file the run kept, with its size; click to download |
 | **View logs** / **Hide logs** | the run's log; while a run is in progress the logs are open and end with "running…" |
 | **Re-run** | runs the same flow (or Run all) again |
@@ -519,7 +522,13 @@ stuck without any sign of life for 40 minutes is marked failed ("[reaper] run
 timed out and was marked failed").
 
 **What a run keeps.** Only files the flow writes **under `outputs/`** are kept:
-up to 50 files and 200 MB per run. They appear:
+up to 50 files and 200 MB per run. When a run writes more, Studio keeps `.json`
+files first, then the report documents (`.md`, `.html`), then everything else
+— figures, data files — each group in alphabetical order of its path. A file
+that would take the run past 200 MB is left out, and smaller files after it
+are still kept. So a flow that draws many charts still delivers its report;
+the charts past the cap are missing next to its `.md`, while its `.html`
+carries its charts inside. The kept files appear:
 
 - in **Files**, as `outputs/<flow>/<file>` — each run of the flow replaces the
   previous version there;
@@ -536,20 +545,36 @@ The log lists what was kept ("outputs: outputs/tables/tables.md, …").
 
 **More ▾ → Run all flows** runs every flow of the current Save as one run:
 
-1. The flows run **one after another, in alphabetical order of their names**
-   — the order of the **Pipeline** strip.
-2. The first flow that fails stops the whole run; the card's steps show which
-   one ("task tables: failed" and its error).
-3. When all succeed, Studio assembles the **combined report**.
+1. **Flows run in dependency order.** A flow that reads a table another flow
+   writes runs after that flow. "Reads" means a **Project table** node — or a
+   **Responses** node whose **Table** is set to that table — naming a table
+   that a **Write table** node of the other flow writes. Studio first runs,
+   in alphabetical order of their names, every flow that reads no other
+   flow's table; then, again alphabetically, every flow whose tables have now
+   been written by the flows before it; and so on. Studio works the order
+   out from the flows at every run, so you do not need to name flows so that
+   a writer sorts first.
+2. **A failed flow does not stop the run.** The flows after it still run —
+   except those that read a table it writes (and, in turn, the flows that read
+   theirs): they would read an old table or none at all, so they are marked
+   failed without running. In the log such a flow's "task tables: failed" line
+   is followed by "skipped: needs cleaning, which failed".
+3. When every flow has succeeded, Studio assembles the **combined report**. If
+   any flow failed or was skipped, the run ends as **failed** once every flow
+   has had its turn and no combined report is written; **View logs** lists
+   each flow as ok or failed, with each failed flow's error under it — one Run
+   all names every broken flow, not only the first.
+
+Flows that read each other's tables in a circle (each needs a table the other
+writes) cannot be put in order: they, and the flows that read their tables,
+run last, in alphabetical order.
 
 A project can have one Run all in progress at a time ("A run-all is already in
 progress — see Run history").
 
-> **Important.** Nothing reorders flows by the tables they read and write. If
-> one flow reads a table another flow writes, **name them so the writer sorts
-> first**, for example `a_clean` and `b_tables`. (Since flows cannot be renamed
-> yet, choose names with this in mind when you create them.) Running a single
-> flow never runs the flows before it.
+> **Note.** Running a single flow never runs the flows it reads from; it reads
+> their tables as they are. The **Pipeline** strip and the hint in the **Run
+> flow** dialog list flows alphabetically and do not show the dependency order.
 
 **What Run all keeps.** Only the combined report (and its figures). Each
 flow's own report and files are **not** saved by Run all, and Live tiles are
@@ -564,25 +589,28 @@ with an `.html` twin in the project's report house style, and appears on
 **Reports** with a **combined** badge. The path can be changed in **Settings →
 Reports**.
 
-A flow without a **Report path** is left out. A flow whose **Report path**
-names a file the flow does not write makes the whole Run all fail — keep the
-**Report path** equal to the **Save report** node's **Path** (the Report view
-sets both when it creates the node). See [[Reports|Studio-Reports]].
+The sections follow the order in which the flows ran. A flow without a
+**Report path** is left out. A flow whose **Report path** names a file the
+flow does not write makes the whole Run all fail at once — the flows after it
+do not run, and the log shows only the missing file's path. Keep the **Report
+path** equal to the **Save report** node's **Path** (the Report view sets both
+when it creates the node). See [[Reports|Studio-Reports]].
 
 ---
 
 ## Schedules *(Plus)*
 
 **Schedule a run** on the **Schedules** heading runs a flow — or **Run all
-flows (in dependency order)**, which is in fact the alphabetical order above —
+flows (in dependency order)**, the order described in [Run all](#run-all) —
 on a timer: **Every 30 minutes**, **Hourly**, **Daily at 02:00** (default),
 **Weekdays at 08:00**, **Weekly, Monday 09:00**, or **Custom cron…** (five
 fields, UTC). Scheduled runs use the Save that is current when they fire and
 land in **Run history** like manual ones; **Run now** fires one immediately,
 **Pause** / **Resume** stop and restart it. If a scheduled run fails, the
-organization's owners get an email. On the Free plan creating a schedule is
-refused ("'schedules' is not available on the 'free' plan; upgrade to enable
-it."). Full details: [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]].
+organization's owners get an email. On the Free plan the heading shows
+**Requires Plus** in place of **Schedule a run** (tooltip "Schedules are
+available from the Plus plan"); it opens **Billing** in the organization
+settings. Full details: [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]].
 
 ---
 
@@ -670,9 +698,12 @@ Simulated data (n 500, seed 42)
 On launch day, swap the source: nodes cannot change their type, so add a
 **Responses** node, connect its `data` output to **Dedup respondents** (the
 new wire replaces the old one), delete **Simulated data**, **Check**, Save.
-Every table in the report now recomputes from real responses. The weighted
-banner is used here because **Frequencies**, **Crosstab** and **Group means**
-do not apply weights yet (see [Apply weight](Studio-Node-Reference#apply-weight)).
+Every table in the report now recomputes from real responses. The banner and
+the **Group means** table use the applied weight (the means are weighted;
+their N and test are not — see [Group means](Studio-Node-Reference#group-means)).
+The **Bar chart** is drawn unweighted, so its bars can differ from the
+weighted means in the table: say so in its caption, or leave it out of a
+weighted report (see [Apply weight](Studio-Node-Reference#apply-weight)).
 
 ---
 

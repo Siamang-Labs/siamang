@@ -57,6 +57,10 @@ against the environment's cap, and one bar per quota cell
 (`region="north"` `240/400`). Cards refresh every 30 seconds while the tab is
 visible.
 
+An environment whose questionnaire deadline has passed still has a **● Live**
+card here, although it no longer accepts responses; its counts simply stop
+moving. See [Deadlines](Studio-Publishing-and-Environments#deadlines).
+
 With nothing live: "Nothing is live — Deploy a Save to an environment and the
 fieldwork monitor shows up here — responses, quota cells and the per-day
 trend." with **New deployment**.
@@ -110,7 +114,10 @@ the Save in [[History|Studio-History-and-Versions]].
 
 Each quota cell shows `current/target` and a bar that stops at 100 %. Counts
 advance once per completed response that falls in the cell; each environment
-counts separately, so `pilot` never fills `main`'s cells.
+counts separately, so `pilot` never fills `main`'s cells. A cell counts the
+answers of its variable whatever the question's Id is. Cells that had missed
+answers stored under a question's Id — before Studio stored every answer under
+its variable name — were recounted from the stored responses.
 
 > **Current limitation.** A full quota cell does not yet stop new respondents.
 > Counts can go past the target (the bar stays at 100 %). Watch the bars; when

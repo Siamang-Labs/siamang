@@ -42,6 +42,12 @@ Three rules make sure a report arrives:
 3. There is no PDF writer: a **Path** ending in `.pdf` fails. Print or convert
    the HTML instead ([below](#pdf-and-word)).
 
+A run keeps at most 50 files (and 200 MB) under `outputs/`. When a flow
+writes more — a report with dozens of charts — the report's `.md` and `.html`
+are kept before the figures, so the report still arrives; the charts past the
+cap are missing next to the `.md`, while the `.html` carries its charts
+inside. See [What a run keeps](Studio-Flows#running-a-flow).
+
 A report produced by a run on the platform always ends with a
 [provenance footer](#the-provenance-footer).
 
@@ -326,21 +332,27 @@ which adds the data file's row count and hash (see
 writes one combined document, "Combined report":
 
 - a **Contents** list, then one section per flow, in the order the flows ran
-  (alphabetical by name), titled with the flow's title and containing that
-  flow's report;
+  — a flow after the flows whose tables it reads, alphabetical where that
+  leaves a choice (see [Run all](Studio-Flows#run-all)) — titled with the
+  flow's title and containing that flow's report;
 - only flows whose **Report path** (Flow settings) names their report are
   included;
 - written to `reports/report.md` (or the path in **Settings → Reports**) with
   an `.html` twin in the house style; charts are copied beside it as
-  `<flow>__fig_N.png`.
+  `<flow>__fig_N.png` (an `_` in the flow name becomes `-`).
 
 Because it is assembled from each flow's Markdown, the combined HTML has the
 house style's typefaces, measure and page box but plainer tables than a single
 flow's own HTML.
 
+The combined report is written only when every flow succeeded. If a flow
+fails, **Run all** still runs the flows that do not depend on it, but ends as
+failed without a combined report, so the **Reports** screen keeps the last
+combined report that was written.
+
 > **Important.** If a flow's **Report path** names a file the flow does not
-> write, the whole **Run all** fails. Keep **Report path** equal to the **Save
-> report** node's **Path**.
+> write, the whole **Run all** fails at once. Keep **Report path** equal to the
+> **Save report** node's **Path**.
 
 **Run all** keeps only the combined report — each flow's own report is not
 updated by it. See [Run all](Studio-Flows#run-all).

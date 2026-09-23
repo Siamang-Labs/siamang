@@ -15,6 +15,8 @@ consent text, and use it to answer respondents' questions.
 - A link whose first build has not finished yet shows a plain "not found" page.
 - A closed environment shows "This survey is closed — The researchers have
   stopped collecting responses." instead of the survey.
+- A survey past the questionnaire's deadline still opens; the "closed" notice
+  comes at submit (see [below](#paused-closed-and-full-surveys)).
 
 What they see first depends on your setup: the access-code gate (if you use
 codes), then your first page.
@@ -82,13 +84,31 @@ button.
 "This question requires an answer." under it and scrolls to it. Format checks
 (email, phone, web address, date, time) show their own messages.
 
-**Progress.** Published surveys show no progress bar, because page counts
-shift under branching. If you choose **dots** or **both** under Builder →
-Theme → Appearance → **Progress**, a row of dots, one per page, appears at the
-top.
+**Progress.** Unless you hide it, a progress bar runs across the top of every
+question page. Beside it stands "Welcome" on the questionnaire's first page,
+"Section N of M" on the pages after it and "Final thoughts" on its last page
+(fixed English texts). These labels follow each page's position in the
+questionnaire, end pages included, not the respondent's path: M counts the
+end pages too, and because a **Final**, **Screen-out** or **Redirect** page
+shows no bar, a survey that ends on one never shows "Final thoughts". Page
+counts shift under branching, so the bar is approximate on routed surveys. The
+setting is Builder → Theme → Appearance → **Progress**:
 
-> **Current limitation.** Choosing **bar** does not yet add a progress bar to a
-> published survey.
+| Progress | Respondents see |
+|---|---|
+| **bar** (default) | the progress bar |
+| **dots** or **both** | the progress bar and, under it, a row of dots, one per page |
+| **hidden** | no progress bar; dots chosen earlier stay |
+
+The published survey follows this setting the same way the Builder's previews
+do. An environment keeps the build it was last published with, so one
+published before Studio added the bar to published surveys usually shows none
+until you republish it.
+See [[Theme and Branding|Studio-Theme-and-Branding]].
+
+> **Current limitation.** The page dots can be clicked, and a respondent can
+> jump **forward** to any page, past unanswered required questions and your
+> routing. Prefer **bar** when routing or required answers matter.
 
 **Light and dark.** Unless you fixed the color mode (Theme → Respondent
 experience → **Color mode**: **Always light** / **Always dark**), a small
@@ -148,8 +168,11 @@ Then the thank-you page:
    Submitted     6/4/2026, 2:41:07 PM
 ```
 
-- The title and message are yours to set (Builder → Theme → Respondent
-  experience → **Title** / **Message**).
+- The message is yours to set (Builder → Theme → Respondent experience →
+  **Completion screen** → **Message**). The title "Thank you for participating"
+  cannot be changed there; for a title of your own, end the survey on a
+  **Final (thank you)** page, whose title and body you write (see
+  [Ending on a special page](#ending-on-a-special-page)).
 - **Response ID** is the row number of the response — the `id` column in the
   Data tab. It is the simplest way for a respondent to identify their answers
   in a withdrawal or erasure request: ask them to note it, and see
@@ -179,8 +202,9 @@ environment's response cap. Panel redirects are covered in
 
 ## When submitting fails
 
-If the answers cannot be saved (a network problem, a rejected captcha), a
-dialog appears:
+If the answers cannot be saved (a network problem, a rejected captcha, or an
+interview whose answers exceed 256 KB — a whole submission over 2 MB is
+refused before it is even read), a dialog appears:
 
 ```
 Submission failed
@@ -208,12 +232,16 @@ questionnaire first.
 |---|---|---|---|
 | Environment **paused** | at submit | **This survey is paused** | "The researchers have paused collection. Please try again later." |
 | Environment **closed** | on opening the link; or at submit if they already had the page open | **This survey is closed** | "The researchers have stopped collecting responses." |
+| Questionnaire **deadline** passed | at submit — the survey itself still opens | **This survey is closed** | "The researchers have stopped collecting responses." |
 | **Response cap** reached | at submit | **Thank you for your interest** | "We have already reached our target sample for participants like you." — followed, after 3 seconds, by the panel's quota-full URL if you set one |
 | **Preview** deployment | at submit | the "Submission failed" dialog | previews never collect |
 
 A paused respondent's answers stay in their browser for 24 hours: if you resume
 collection within that time and they reopen the link, they can pick up where
-they left off. These notices are fixed texts and cannot be reworded.
+they left off. While a survey is paused, closed or past its deadline, progress
+of unfinished interviews is not saved to your database either. These notices
+are fixed texts and cannot be reworded. See
+[Deadlines](Studio-Publishing-and-Environments#deadlines).
 
 > **Current limitation.** Full quota cells do not yet turn respondents away;
 > only the environment's response cap does. See
@@ -225,7 +253,7 @@ they left off. These notices are fixed texts and cannot be reworded.
 
 | Recorded | Detail |
 |---|---|
-| Answers | one field per variable |
+| Answers | one field per variable (see [[Responses and the Data Tab\|Studio-Responses-and-Data]]) |
 | `started_at`, `duration_seconds` | when the page was opened, and how long until submission |
 | `last_page` | the page they were on |
 | URL parameters | `url_<name>` for up to 8 parameters of the link (a panel id, a source tag, an invitation token) |
@@ -272,8 +300,10 @@ Wording**, grouped as **Buttons and navigation** (Next, Previous, Submit,
 **Saving and resuming** ("Submitting your responses…", "Saving…", the resume
 prompt and its buttons), **When something fails** (the submission-failed dialog
 and its buttons) and **Access code** (the gate's title, text, field and
-button). The thank-you title and message are under **Theme → Respondent
-experience**. The paused, closed and cap notices cannot be changed. See
+button). The thank-you message is under **Theme → Respondent experience →
+Completion screen**; the thank-you title, the progress labels ("Welcome",
+"Section N of M", "Final thoughts") and the paused, closed and cap notices
+cannot be changed. See
 [[Theme and Branding|Studio-Theme-and-Branding]].
 
 ## See also

@@ -109,12 +109,17 @@ The organization's **Projects** tab lists every study in the workspace.
   *this browser* first), **Sort: Name** (A–Z) or **Sort: Date created**
   (newest first).
 - **Empty organization** — **No projects yet** — "Each project is a
-  questionnaire, its flows and its own response database." — with two buttons:
-  **New project** and **Start from the example study**.
+  questionnaire, its flows and its own response database. Create it, preview
+  it as a respondent, then Save and deploy." — with two buttons: **New
+  project** and **Start from the example study**. For a member (not an owner
+  or admin) both are disabled, with the line "Only owners and admins can
+  create projects — ask one to set it up."
 
 The workspace chip in the topbar (organization / project name) also lists up to
 ten projects, plus **All projects** and **New project**. Switching project from
-there keeps you on the same tab.
+there keeps you on the same tab. **New project** in the chip is disabled in the
+same cases as the button on the list: at your plan's project cap, and for
+members.
 
 ### Project caps
 
@@ -124,18 +129,26 @@ there keeps you on the same tab.
 | Plus | 10 |
 | Pro, Corporate | unlimited |
 
-At the cap the **New project** button is disabled ("Your plan allows 2 projects
-— upgrade to add more") and the list shows: "You've reached the **2-project**
-limit on the free plan. **Upgrade your plan** to add more." See
+At the cap the **New project** buttons (on the list, in the workspace chip and
+**Start from the example study** on an empty list) are disabled — hovering says
+"Your plan allows 2 projects — upgrade to add more" — and the list shows:
+"You've reached the **2-project** limit on the free plan. **Upgrade your
+plan** to add more." The **New project** buttons on the **Library** tab stay
+clickable, but at the cap creating the project is refused: "Could not create
+project. Plan 'free' allows up to 2 projects; upgrade to add more." See
 [[Plans, Trial and Billing|Studio-Plans-and-Billing]].
 
 ---
 
 ## Creating a project
 
-> **Plan and role.** Only **owners** and **admins** can create projects. A
-> member who tries gets "only owners and admins can create projects". Members
-> can open, edit and Save every project in the organization.
+> **Plan and role.** Only **owners** and **admins** can create projects. For a
+> member, **New project** on the **Projects** list and in the workspace chip
+> is disabled ("Only owners and admins can create projects" when you hover
+> it). The **New project** buttons on the **Library** tab are not disabled, but
+> a member who uses one gets "Could not create project. Only owners and admins
+> can create projects." Members can open, edit and Save every project in the
+> organization.
 
 1. On **Projects**, click **New project** (or **Start from the example study**
    on an empty list, or **New project** on a template or saved questionnaire in
@@ -350,7 +363,8 @@ after **Reports** move into a **More** menu; below 1024 pixels, the tabs after
 Both are in **Settings** and are for **owners and admins** only:
 
 - **Settings → General → Project name**, then **Save changes** — 1 to 120
-  characters. The slug does not change.
+  characters. The slug does not change. A member sees **Save changes**
+  disabled, with the note "Only owners and admins can rename a project."
 - **Settings → Danger Zone → Delete project** — you type the slug to confirm.
   Deleting removes the questionnaire, the flows, every Save, all deployments
   and every response, immediately and permanently; live survey links stop

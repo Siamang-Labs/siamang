@@ -39,9 +39,12 @@ And the life of that study, left to right:
 ## Organization
 
 A **workspace**. It owns projects, members, the plan and the bill. You get one
-automatically when you sign up, and you can belong to several (your own plus
-any you are invited to). Plans and limits are **per organization**, not per
+automatically when you sign up, and you can belong to several: your own, any
+you are invited to, and any you add with **Create organization** (in the
+workspace chip menu). Plans and limits are **per organization**, not per
 person. Members have one of three roles: **owner**, **admin**, **member**.
+Owners and admins manage the organization and create projects; members do the
+research work in them.
 
 → [[Organizations and Team|Studio-Organizations-and-Team]] ·
 [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
@@ -137,6 +140,9 @@ and panel setups stay valid across versions.
 **One Save published into one environment.** Publishing builds the survey from
 the Python stored with that Save and serves it on the environment's link. A
 deployment is **live**, **paused**, **closed**, **building** or **failed**.
+If the questionnaire sets a **deadline**, a live deployment stops accepting
+responses once that moment passes (see
+[Deadlines](Studio-Publishing-and-Environments#deadlines)).
 Every response records the environment (survey id) that collected it. The
 environment keeps its id across republishes, so to know which Save was live on
 a given day, use the project's **Activity** log: every publish is recorded
@@ -175,6 +181,13 @@ Every question writes one or more **variables**. A variable carries its
 **codebook** — built while you write questions, not afterwards. It is why SPSS
 exports arrive labeled and why tables show "Capital region" instead of `1`.
 
+Answers are stored under the **variable name**: it names the column in your
+data, and it is what conditions, piping and quotas read. A question also has
+an **Id** — its handle in the Builder, which scripts target and the Logic map
+and validation messages show. The two may differ (presets start as `q3` /
+`nps_3`), but an Id must not be another question's variable name. See
+[Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
+
 → [[Codebook and Variables|Studio-Codebook-and-Variables]]
 
 ## Flow, node, run
@@ -191,8 +204,12 @@ and **Report**.
   **Write table** node it reaches does write its table, though).
 - **Run** executes the flow's stored Python for the current Save in an
   isolated sandbox and records a **run** with its log and output files.
-- **Run all** runs every flow one after another, in alphabetical order of
-  their names, and assembles a combined report.
+- **Run all** runs every flow of the Save one after another and assembles a
+  combined report. A flow that reads a table another flow writes runs after
+  that flow; independent flows run in alphabetical order of their names. A
+  failed flow does not stop the others — only the flows that read its tables
+  are skipped — and the combined report is written only when every flow
+  succeeded. See [Run all](Studio-Flows#run-all).
 
 There is no code box anywhere in a flow: every node is a documented engine
 call, which is why each flow downloads as a readable `.py`.

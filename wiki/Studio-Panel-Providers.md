@@ -112,6 +112,7 @@ sent to the provider as literal braces. In the **Quota full** URL only
 | reaches a **Screen-out** page | the **Screened out** URL | 5 seconds |
 | reaches a **Redirect** page | the page's own **Redirect URL** (the **Completed** URL if the page has none) | the page's **Delay (s)**, 5 by default |
 | submission refused because the environment's response cap is reached | the **Quota full** URL | 3 seconds after the "Thank you for your interest" notice |
+| submission refused because the environment is paused, closed or past the questionnaire's [deadline](Studio-Publishing-and-Environments#deadlines) | nowhere — the respondent stays on the "This survey is paused" or "This survey is closed" notice | — |
 
 A terminal page with its own redirect keeps it — the page wins over the
 survey-level URL; the Panel chip lists those pages. On terminal pages the
@@ -194,18 +195,27 @@ reconcile with the provider**:
 
 Each count with at least one response has a **CSV** button. The file
 (`<project>-<environment>-<outcome>.csv`) has one row per response with
-`response_id`, `outcome`, a column named after your id parameter, and
-`submitted_at`. The CSVs cover up to the first 5,000 responses of the
-environment.
+`response_id`, `outcome`, a column named after your id parameter (spelled as
+in **Respondent id parameter**, e.g. `PROLIFIC_PID`) holding each respondent's
+provider id, and `submitted_at`. The CSVs cover up to the first 5,000
+responses of the environment.
 
-"… quota-full returns are not counted here — the response is refused, the
-provider's count is the record." Respondents turned away by the cap leave no
-response, so the provider's own report is the reference for them.
+Under the counts, a line says how many responses carry an id — **`972` of
+`1,184` responses carry a `PROLIFIC_PID`;** (or "Set the id parameter to see
+provider ids;" before you set one) — followed by "quota-full returns are not
+counted here — the response is refused, the provider's count is the record."
+Respondents turned away by the cap leave no response, so the provider's own
+report is the reference for them.
 
-> **Tip.** The dependable place to read each respondent's provider id is a
-> flow: the responses data carries it as `url_<parameter>` in lower case
-> (`url_prolific_pid`, `url_rid`, `url_psid`), next to `__status` and
-> `partial`. A small flow with an **Export file** node produces a
+Studio stores URL parameter names in lower case (`url_prolific_pid`), and the
+outcomes match your id parameter regardless of case, so the upper-case ids of
+the Prolific (`PROLIFIC_PID`) and Cint (`RID`) presets are found like any
+other.
+
+> **Tip.** For more than 5,000 responses, or to put the provider id next to
+> answers, use a flow: the responses data carries the id as `url_<parameter>`
+> in lower case (`url_prolific_pid`, `url_rid`, `url_psid`), next to
+> `__status` and `partial`. A small flow with an **Export file** node produces a
 > reconciliation file for any number of responses. See
 > [[Analysis Flows|Studio-Flows]].
 

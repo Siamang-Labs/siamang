@@ -59,8 +59,11 @@ that matches nothing: **Nothing matches** and **Clear the search**.
 "start a project from a complete questionnaire" — one card per built-in
 template with its description, its size (`8 pages · 12 questions · 18
 variables`) and **New project**, which opens the New project dialog with the
-template already chosen. The twelve templates and what they contain are listed
-in [Built-in templates](Studio-Projects#built-in-templates).
+template already chosen. Only owners and admins can create the project — a
+member who tries gets "Could not create project. Only owners and admins can
+create projects." (see [Creating a project](Studio-Projects#creating-a-project)).
+The twelve templates and what they contain are listed in
+[Built-in templates](Studio-Projects#built-in-templates).
 
 ### Question bank
 
@@ -127,25 +130,35 @@ failed to load.
 Inserted questions and variables never overwrite what is already in the
 questionnaire:
 
-- a **variable** whose name exists gets `_2`, `_3`, … (`nps` → `nps_2`);
-- a **question Id** that exists gets a number with no underscore (`nps` →
-  `nps1`, `nps2`, …);
-- conditions (**Show if**, **Hide if**) inside the inserted block that refer
-  to its own renamed variables are updated to the new names.
+- a question whose **Id and variable name are the same** — every
+  single-answer question in the question bank — is renamed as one: both get
+  the first name that is free as an Id *and* as a variable, adding `_2`,
+  `_3`, … (`nps` → Id `nps_2`, variable `nps_2`);
+- any other **variable** whose name exists gets `_2`, `_3`, … (a matrix row
+  `trust_police` → `trust_police_2`);
+- any other **question Id** that exists gets a number with no underscore
+  (the matrix `trust` → `trust1`, `trust2`, …);
+- conditions (**Show if**, **Hide if**) on the inserted questions and blocks
+  that refer to the inserted block's own renamed variables are updated to
+  the new names.
 
 What is **not** adjusted:
 
 - conditions that refer to variables *outside* the block keep the names they
   had — they work only if this questionnaire has variables of those names;
+- conditions on individual options are not renamed;
 - **Skip to** targets are page names; if the page does not exist here, the
-  Save is marked `errors` until you change or clear it.
+  Save is marked `errors` until you change or clear it;
+- the Id of an inserted matrix (or other multi-variable question) is checked
+  only against other Ids; if it equals a variable name already in the
+  questionnaire, the Save is marked `errors` — change the matrix's
+  **Advanced → Id**.
 
-> **Important.** Because variables and Ids are renamed differently, a renamed
-> question ends up with Id `nps1` and variable `nps_2`. Set **Advanced → Id** to
-> the variable name — see
+> **Note.** A question saved to your organization's library with an Id that
+> differs from its variable (a preset such as Id `q5`, variable `nps_5`)
+> keeps that difference when it is inserted. That is fine: the answer is
+> stored under the variable — see
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
-> Blocks inserted into a questionnaire with no clashes keep matching Ids and
-> variable names.
 
 ---
 

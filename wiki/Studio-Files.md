@@ -95,9 +95,14 @@ here:
 - a flow's outputs are kept under `outputs/<flow>/<file>` and **replaced every
   time that flow runs**, so Files always holds the latest run's version (earlier
   runs keep their own file lists in the run history);
-- **Run all** also stores its combined report under `reports/`;
+- **Run all** also stores its combined report, by default
+  `reports/report.md` (set under
+  [Settings → Reports](Studio-Project-Settings#reports)), only when every
+  flow succeeds — a Run all with a failed flow writes no combined report;
 - each run stores at most **50 files** and **200 MB**; files beyond that are
-  skipped.
+  skipped. When a run produces more, the report documents (`.md`, `.html`)
+  are kept ahead of figures and other files, so a flow that draws many charts
+  still stores its report.
 
 Reports also appear on the **Reports** tab. See [[Analysis Flows|Studio-Flows]]
 and [[Reports|Studio-Reports]].

@@ -51,8 +51,8 @@ feature". See [Integrations](Studio-Organizations-and-Team#integrations).
 
 | Feature | Sent to the provider |
 |---|---|
-| **Review wording** | the questionnaire title and description, page names and titles, and for each question its id, type, text, whether it is required, and its answer labels; plus the engine's own findings, so they are not repeated |
-| **Reword**, **Suggest options** | that one question (id, type, text, required, answer labels), the survey's title and description, and your note |
+| **Review wording** | the questionnaire title and description, page names and titles, and for each question its id, type, text, hint, whether it is required, the scale of its variable, and its answer labels; plus the engine's own findings, so they are not repeated |
+| **Reword**, **Suggest options** | that one question (id, type, text, hint, required, scale, answer labels), the survey's title and description, and your note |
 | **Draft from a brief** | your brief, the working title and the language you named |
 | Flow **review** | the flow's title and description, its steps with their settings and connections, and the codebook (variable names, labels, scales) |
 | **Code open answers** | the open answers of one variable, and the question text |
@@ -92,8 +92,13 @@ What a draft contains:
   no matrix, ranking, MaxDiff or conjoint;
 - choice questions with 2 to 12 options, coded 1, 2, 3…, and a codebook entry
   for every question;
-- question ids `q1`, `q2`, … and readable variable names chosen by the
-  assistant (`visit_frequency`, `would_recommend`);
+- readable variable names chosen by the assistant (`visit_frequency`,
+  `would_recommend`): lower case, letters, digits and `_`, at most 30
+  characters before any suffix. A name used twice gets `_2`, `_3`…, and a
+  question without a usable name is numbered by its position (`q7`). Each
+  question's **Id** is the same as its variable name;
+- a hint under a question when the assistant writes one (up to 300
+  characters);
 - no theme settings. Your organization's house style is not applied; use
   **Theme → Use the organization's house style** afterwards.
 
@@ -104,13 +109,6 @@ to learn from them, and try again — the attempt was still charged." with
 
 On **Pro** and **Corporate**, and during the Pro trial, drafting uses a
 larger model. Plus uses the standard one.
-
-> **Current limitation.** In a drafted questionnaire each question's **Id**
-> (`q3`) differs from its variable name (`visit_frequency`). In the published
-> survey, logic, piping and quotas only work when the two are identical. After
-> using a draft, set each question's **Id** (Inspector → **Advanced**) to its
-> variable name before you add conditions, piping or quotas. See
-> [[The Builder|Studio-Builder-Overview]].
 
 ---
 
@@ -302,9 +300,11 @@ reason:
 - Use **What to fix** to steer a rewrite. "Make it neutral" or "simpler for
   teenagers" works better than a bare request.
 - After **Replace options**, check the codebook: removed options disappear
-  from the question, and new ones take new codes.
-- After **Use this draft**, set each question's Id to its variable name, add
-  your theme, and read every question as a respondent would.
+  from the question, and new ones take new codes. On a multiple-choice
+  question in the wide layout, each new option also gets its own 0/1
+  variable, and a removed option's variable goes.
+- After **Use this draft**, add your theme and read every question as a
+  respondent would.
 - Tell your ethics board and your respondents' consent text what you send to
   the provider, if your institution requires it.
 

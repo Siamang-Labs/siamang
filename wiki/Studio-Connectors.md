@@ -60,7 +60,7 @@ Configured  from studio/settings.json
 | Button | What it does |
 |---|---|
 | **Validate** | a quick check in your browser of the plan, the secret and the target (see below). Nothing is contacted |
-| **Run export** / **Run import** | queues a run: "Connector *name* queued (run #*N*)" |
+| **Run export** / **Run import** | queues a run: "Connector *name* queued (run #*N*)". Owners and admins only — for members the button is disabled (tooltip "Only owners and admins can run a connector") |
 | **Requires Pro** (or another plan) | shown instead of Run when the target is above your plan; opens the plans |
 | **soon** | shown instead of Run for a target that does not run yet |
 | **History** | expands this connector's runs underneath, newest first ("No runs yet for this connector.") |
@@ -98,7 +98,9 @@ It does not test the credential itself. The first real test is a run.
    to create one here: a key (pre-filled with a suggested name such as
    `GSHEETS_SA`), the value, then **Save secret**. Under the field the dialog
    shows **Format:** with the exact shape the target expects, and where to get
-   it. Creating secrets needs the owner or admin role.
+   it. Creating secrets needs the owner or admin role; a member who clicks
+   **Save secret** gets "Could not add secret. You do not have permission to
+   do this." — ask an owner or admin to add the secret, then choose it here.
 7. Click **Add & Save**. You see "Connector *name* added — saved to
    studio/settings.json".
 
@@ -342,8 +344,9 @@ runs also appear in **Flows → Run history**.
 | completed | the log reads "*name*: *N* rows · *destination*", for example `s3://my-bucket/exports/responses.csv`, `sheets:1AbC…!A1`, `bigquery:proj.dataset.table`, `hubspot:contacts` |
 | failed | the log gives the reason |
 
-Only **owners and admins** can run a connector. A member who clicks **Run
-export** sees "Connector run failed. You do not have permission to do this."
+Only **owners and admins** can run a connector. Members see **Run export** /
+**Run import** disabled, with the tooltip "Only owners and admins can run a
+connector"; they can still open **History** and follow the runs.
 
 Messages you may see when a run is refused or fails:
 
@@ -370,8 +373,8 @@ Messages you may see when a run is refused or fails:
   HTTP need *(Pro)*; Custom MCP servers *(Corporate)*. The plan is checked again
   on every run, so a connector stops running if the organization moves to a
   lower plan.
-- **Roles.** Any member can add a connector (it is a Save). Only owners and
-  admins can run one or create its secret.
+- **Roles.** Any member can add a connector (it is a Save) and validate it.
+  Only owners and admins can run one or create its secret.
 - **Whole-table, current-state exports.** Each run sends the entire table as it
   is at that moment, all values as text.
 - **Row limits fail the whole run.** 100,000 rows, Google Sheets 50,000, Excel

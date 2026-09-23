@@ -11,7 +11,9 @@ creates a Save; republish the environment to apply them. The check happens in
 the respondent's browser. → [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]]
 
 **Activity** — the audit log: who saved, published, ran, exported or deleted
-what. Per organization (owners and admins) and per project (all members).
+what, and who renamed the organization, added or removed a webhook, created
+or revoked an API key or generated access codes. Per organization (owners and
+admins) and per project (all members).
 → [[Organizations and Team|Studio-Organizations-and-Team]]
 
 **AI assistant** — optional suggestions from a language model: reviews of
@@ -41,7 +43,8 @@ together. → [[The Builder|Studio-Builder-Overview]]
 
 **Branch (next if)** — an ordered list of `condition → page` rules on a page;
 the first rule whose condition is true decides where the respondent goes
-next. → [[Logic and Branching|Studio-Logic-and-Branching]]
+next. A rule without a condition never fires.
+→ [[Logic and Branching|Studio-Logic-and-Branching]]
 
 **Build log** — the log of turning a Save into a published survey, on the
 environment's card in Distribute.
@@ -71,6 +74,11 @@ asks which one the respondent would choose.
 **Connector** — a configured link that exports a project table to another
 system (Sheets, a warehouse, storage, a CRM) or imports one.
 → [[Connectors|Studio-Connectors]]
+
+**Deadline** — a date and time set in the questionnaire after which a
+published environment accepts no more responses; the environment's card shows
+it as **Closes `<date>`**.
+→ [Deadlines](Studio-Publishing-and-Environments#deadlines)
 
 **Default next** — where a page leads when none of its branch rules matches;
 empty means the next visible page.
@@ -109,6 +117,12 @@ settings → **Branding**), stamped into each new project; and, separately, a
 project's default report look (Project settings → **Reports**).
 → [[Theme and Branding|Studio-Theme-and-Branding]] · [[Reports|Studio-Reports]]
 
+**Id (question)** — a question's own handle in the Builder (**Advanced →
+Id**): scripts target it, and the Logic map and validation messages name the
+question by it. It may differ from the question's own variable name, but it
+must not be another question's variable name.
+→ [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name)
+
 **Insights** — instant frequencies and crosstabs computed by the server from a
 table in **Data**, without a flow. → [[Responses and the Data Tab|Studio-Responses-and-Data]]
 
@@ -126,7 +140,9 @@ and asks for the best and the worst.
 with `[...]` where you must fill in. → [[History and Versions|Studio-History-and-Versions]]
 
 **Missing code** — a value that means "no valid answer" (`98 = Don't know`),
-exported as a declared missing value to SPSS and Stata.
+declared with its label in the Codebook and exported as a declared missing
+value to SPSS and Stata.
+→ [Missing codes](Studio-Codebook-and-Variables#missing-codes)
 
 **Node** — one box in a flow: a source, a preparation step, an analysis, a
 chart or an output. → [[Node Reference|Studio-Node-Reference]]
@@ -186,8 +202,11 @@ an interview can resume; not an identity.
 **Run** — one execution of a flow (or of all flows) in the sandbox, with a log
 and output files. → [[Analysis Flows|Studio-Flows]]
 
-**Run all** — running every flow of the project one after another, in
-alphabetical order of their names, and assembling the combined report.
+**Run all** — running every flow of the project one after another and
+assembling the combined report. Flows run in dependency order (a flow that
+reads a table another flow writes comes after it), alphabetically otherwise;
+a failed flow skips only the flows that read its tables.
+→ [Run all](Studio-Flows#run-all)
 
 **Run to here** — executing a flow up to the selected node to see its result,
 without producing a report or a run-history entry.
@@ -237,17 +256,24 @@ ships twelve, and your organization can save its own.
 publishing; warnings ask for confirmation.
 → [[Testing Your Survey|Studio-Testing-Your-Survey]]
 
-**Variable** — one column of data with its codebook entry. Keep a question's
-Id identical to its variable name. → [[Codebook and Variables|Studio-Codebook-and-Variables]]
+**Variable** — one column of data with its codebook entry. A question's answer
+is stored under its variable name, which conditions, piping and quotas read.
+→ [[Codebook and Variables|Studio-Codebook-and-Variables]]
 
 **Walkthrough** — taking the survey yourself with a panel that shows which
 conditions fired and where you are routed.
 
-**Webhook** — a URL Studio calls when a deployment or a run finishes.
-→ [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
+**Webhook** — a URL Studio calls when a deployment goes live, fails or is
+stopped, or a run completes or fails — for every event, or only the ones you
+select. Each call carries a one-line `text` summary, so it can post straight
+to Slack. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 **Weighting** — adjusting respondents to known population shares: **Cell
-weights** for one variable, **Rake weights** for several margins.
+weights** for one variable, **Rake weights** for several margins. **Apply
+weight** then makes the tables (**Frequencies**, **Crosstab**, **Group
+means**, **Banner table**), **Net Promoter Score**, **Regression** and **TURF**
+after it use the weight; the charts, **Compare groups**, **Correlation** and
+several other analyses still compute unweighted.
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
 ## See also

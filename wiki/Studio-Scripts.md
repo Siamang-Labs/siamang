@@ -49,6 +49,10 @@ generated Python and keep working when the engine is updated.
 
 ## The library
 
+Library scripts pick their questions by Id. They work whether or not a
+question's Id matches its variable name: Studio builds their code for the
+name the answer is stored under.
+
 ### Timer on question
 
 "Auto-advance after N seconds on one question — for timed tasks and
@@ -119,15 +123,17 @@ Summary: "email must match email_confirm".
 
 "Content pages are served in random order for each respondent." The form
 says "No settings. Terminal pages (final, screen-out, redirect) keep their
-place." That is not what happens:
+place."
 
-- The **first** and **last** pages keep their place, and everything between
-  them is shuffled, **end pages included**.
-- Nothing is shuffled unless the questionnaire has **more than 3 pages**.
+- The **first** page, the **last** page and every end page (Final,
+  Screen-out, Redirect) keep their positions. The other pages are shuffled
+  into the remaining positions.
+- Nothing is shuffled unless at least **two** pages are free to move.
 
-Keep at most one end page, and make it the last page. See
-[Page order](Studio-Quotas-and-Randomization#page-order) for layouts that
-work. Summary: "Randomize page order".
+Put your introduction or screener on the first page and your end pages after
+the last content page. See
+[Page order](Studio-Quotas-and-Randomization#page-order) for why. Summary:
+"Randomize page order".
 
 ### Assign to a condition
 
@@ -142,15 +148,15 @@ split-ballot, vignettes, A/B stimuli. Branch on it in Logic."
 | **Arms** | **Code**, **Label**, **Weight**, **Share**; **Add arm**; at least two ("An assignment needs at least two arms") |
 
 The draw happens once, before the first page. On **Add**/**Apply** the
-variable is written to the codebook with the arms as its value labels.
-Summary: "Assign condition · 2 arms · balanced". The full description, with
-balancing against quotas, is in
-[Experimental assignment](Studio-Quotas-and-Randomization#experimental-assignment).
+variable is written to the codebook with the arms as its value labels. As
+the hint says, you can then branch on it in Logic: a show if, hide if or
+branch rule that reads the arm variable works anywhere in the survey, the
+first page included. Summary: "Assign condition · 2 arms · balanced". The
+full description, with balancing against quotas and branching on the arm, is
+in [Experimental assignment](Studio-Quotas-and-Randomization#experimental-assignment).
 
 > **Current limitation.** A **seeded** assignment sends every respondent to
-> the same arm. Leave **Seed** empty. And despite the hint, a show if, hide if
-> or branch rule that reads the arm variable fails the engine's check, so that
-> Save cannot be published. Use the arm for analysis and quota balancing only.
+> the same arm. Leave **Seed** empty.
 
 ---
 
@@ -163,7 +169,7 @@ respondent's browser at a moment you choose.
 |---|---|
 | **Name** (placeholder "Flag speeders") | optional; shown in the table |
 | **Trigger** | when it runs (see below); default **onPageEnter** |
-| **Target** ("optional — every one when empty") | for page and question triggers only: **— any page —** / **— any question —**, or one page or question |
+| **Target** ("optional — every one when empty") | for page and question triggers only: **— any page —** / **— any question —**, or one page or question. Questions are listed by Id; a question whose Id differs from its variable name is listed as `id → variable` (the script targets the Id, and its answer is stored under the variable). Changing the **Trigger** clears the target |
 | **Code** ("JavaScript · n/2000") | up to 2,000 characters |
 
 ### Triggers
@@ -174,8 +180,8 @@ respondent's browser at a moment you choose.
 | **onRandomize** | "after the declared randomization ran" | right after **onInit** | none |
 | **onPageEnter** | "when a page is shown (target: page name)" | each time a page is shown | page |
 | **onPageExit** | "when the respondent leaves a page (target: page name)" | when leaving a page, with **Next** or **Previous** | page |
-| **onQuestionShow** | "when a question becomes visible (target: question id)" | the first time a question becomes visible in the session | question |
-| **onAnswer** | "when an answer changes (target: question id)" | after each change to an answer | question |
+| **onQuestionShow** | "when a question becomes visible (target: question id; its answer is keyed by the variable)" | the first time a question becomes visible in the session | question |
+| **onAnswer** | "when an answer changes (target: question id; its answer is keyed by the variable)" | after each change to an answer | question |
 | **onSubmit** | "right before the answers are sent" | on the last page's submit, and when an end page is reached | none |
 
 With a target, the script runs only for that page or question. Without one,
@@ -184,17 +190,28 @@ it runs for every page or question.
 ### What your code receives
 
 The code runs as the body of `async function(answers, utils, api, context)`,
-so `await` is allowed:
+so `await` is allowed. The form reminds you: "Writes to answers flow back into
+the store; its keys are variable names, not question ids
+(answers.__errors__[variable] shows a validation message)."
 
 | Argument | What it gives you |
 |---|---|
-| `answers` | the respondent's live answers, keyed by question **Id**. What you write into it flows back into the survey, and it is **submitted with the response** |
-| `answers.__errors__` | write `answers.__errors__["<question id>"] = "message"` to show a message under a question; it also blocks **Next** until cleared. Changing that question's answer clears it |
-| `answers.__options__` | `answers.__options__["<question id>"]` is the question's option list in display order; replace it to reorder the options |
+| `answers` | the respondent's live answers, keyed by **variable name** (the name in the codebook), not by question Id. What you write into it flows back into the survey, and it is **submitted with the response** |
+| `answers.__errors__` | write `answers.__errors__["<variable>"] = "message"` to show a message under a question; it also blocks **Next** until cleared. Changing that question's answer clears it |
+| `answers.__options__` | `answers.__options__["<variable>"]` is the question's option list in display order; replace it to reorder the options |
 | `answers.__pages__` | the list of pages in the order they will be served |
 | `utils` | `shuffle(list)` (a shuffled copy), `sample(list, n)`, `clamp(value, min, max)`, `debounce(fn, ms)`, `now()` (the time in milliseconds), `formatDate(date)` (`YYYY-MM-DD`) |
 | `api` | `get(url)` and `post(url, data)`: JSON requests that return the parsed reply, or `null` if the request fails |
 | `context` | currently always empty |
+
+A question that writes several variables (a matrix, a multiple-choice
+question in the wide layout, MaxDiff, conjoint) keeps its answer in `answers`
+under its **Id**, and its `__errors__` and `__options__` entries are keyed by
+its Id too. For a matrix, MaxDiff or conjoint that answer is an object with
+one entry per variable — for a matrix `trust`, `answers["trust"]["trust_police"]`
+— which your data shows as one column per variable. A multiple-choice
+question in the wide layout holds the list of its chosen options' variable
+names (see [Multiple choice](Studio-Question-Types#multiple-choice)).
 
 An error inside your code is written to the browser's console, and the survey
 carries on.
@@ -203,10 +220,28 @@ carries on.
 > `context.startedAt`, which is never set, so it never flags anyone. Use the
 > examples below instead.
 
+### Question Ids in your code
+
+For most questions the Id and the variable name are the same, and nothing
+below matters. Where they differ (a preset gives Id `q5` and variable `nps_5`,
+for example), write the **variable name** in your code.
+
+Scripts written with the Id keep working in the common forms: when Studio
+builds the survey (previews and published surveys alike), it rewrites
+`answers["q5"]`, `answers.q5` and the same forms on `__errors__`,
+`__options__` and `__timers__` to the variable name. It does not rewrite an Id
+used any other way, for example stored in a constant (`const id = "q5"`) or
+used as an object key. The engine's check then warns `SCRIPT_STALE_QUESTION_ID`
+("Script '<name>' still names question 'q5' as a string or a bare identifier;
+its answer is stored under 'nps_5' … Where the script means the question,
+write 'nps_5'."). Comments and longer strings that merely mention the Id are
+not reported.
+
 ### Examples
 
 These examples were checked against how the survey runs scripts. Replace
-the ids with your own.
+the variable names (`q_age`, `q_brand`) with your own, and pick the question
+as **Target**.
 
 #### Flag fast completions
 
@@ -246,11 +281,11 @@ With the question's **Randomize option order** switched **off**:
 
 ```js
 // Trigger: onQuestionShow · Target: q_brand
-const id = "q_brand";
-const opts = answers.__options__[id];
+const key = "q_brand"; // the question's variable name, not its Id
+const opts = answers.__options__[key];
 if (Array.isArray(opts) && opts.length > 2) {
   const last = opts[opts.length - 1];
-  answers.__options__[id] = utils.shuffle(opts.slice(0, -1)).concat([last]);
+  answers.__options__[key] = utils.shuffle(opts.slice(0, -1)).concat([last]);
 }
 ```
 
@@ -289,15 +324,30 @@ requests to other sites may be blocked by those sites.
 
 When you Save, the engine checks scripts:
 
-- A script whose target no longer exists (a page renamed, a question deleted
-  or its id changed) makes the Save **errors**, so it cannot be published:
-  "Script '<name>' targets '<x>' which is not a known question ID or page
-  name." (an unnamed script shows as `'None'`). Renaming a page updates branch
-  rules that point at it, but **not** script targets. Edit the script and
-  pick the new target.
+- A script whose target is no longer a page name, a question Id or a
+  question's variable name (a page renamed, a question deleted) makes the
+  Save **errors**, so it cannot be published: "Script '<name>' targets '<x>'
+  which is not a known question ID or page name." (an unnamed script shows as
+  `'None'`). Renaming a page updates branch rules that point at it, but
+  **not** script targets, and changing a question's Id breaks a script that
+  targets the old Id unless the old Id is also the question's variable name.
+  Edit the script and pick the new target.
 - For **Assign to a condition**: fewer than two arms, duplicate codes, an
   empty label or a seed combined with balancing are refused. The form
   prevents all four.
+
+The engine also returns three script **warnings**, shown in **Validation →
+Engine** and with the Save (whose state becomes **warnings**). They do not
+block publishing, but the script they name does not do what you meant:
+
+| Code | Meaning |
+|---|---|
+| `SCRIPT_STALE_QUESTION_ID` | a custom script names a question by an Id that differs from its variable name, in a form Studio does not rewrite (see [Question Ids in your code](#question-ids-in-your-code)) |
+| `SCRIPT_TARGET_IS_A_PAGE` | an **onQuestionShow** or **onAnswer** script targets a page, so it never runs. Target a question, or use **onPageEnter** / **onPageExit** |
+| `SCRIPT_TARGET_IS_A_QUESTION` | an **onPageEnter** or **onPageExit** script targets a question, so it never runs. Target the page that holds the question, or use **onQuestionShow** / **onAnswer** |
+
+The form cannot produce the last two, because changing the trigger clears the
+target; they come from the **Source** tab or an import.
 
 ---
 

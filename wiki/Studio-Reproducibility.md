@@ -63,10 +63,22 @@ if args.data:  # research bundle: reproduce from a data snapshot
 # ── Crosstab: satisfaction × region ──────────────────────────────────────
 # studio: xtab
 n_xtab_table = n_apply.report.crosstab("satisfaction", "region", pct="col", test=True)
+n_xtab_stat = n_xtab_table.stats
+…
+# ── Save report: outputs/satisfaction_by_region.md ───────────────────────
+# studio: save
+n_save = Report.combine([n_section], title="Satisfaction 2026-Q3", toc=False, theme=None)
+n_save.provenance(os.environ.get("SIAMANG_PROVENANCE"))
+n_save.save("outputs/satisfaction_by_region.md")
+n_save.save(Path("outputs/satisfaction_by_region.md").with_suffix(".html"))
 ```
 
 Each node is a commented block — its title and summary, then `# studio:
 <node id>` — and its results are named after the node id (`n_xtab_table`).
+The **Save report** block adds the provenance footer from the
+`SIAMANG_PROVENANCE` environment variable, which the platform sets on every
+run and a research bundle's `run.sh` sets from `PROVENANCE.md`; run by hand
+without it, the report has no footer.
 
 A flow script is **not standalone**:
 
@@ -154,6 +166,16 @@ released in the public package, and the bundle says so:
   **Notes** warn that the public package does not contain them. Ask support
   for the engine build before you rely on such a bundle.
 
+Studio's engine changes — including the weighted **Frequencies**,
+**Crosstab** and **Group means** tables and answers stored under their
+variable names — have since been merged into the engine's source code (the
+`main` branch of the repository this wiki belongs to), but they have not been
+released as a new version: the engine's version number is still 0.6.0, the
+version the bundle pins, and the bundle's comment above is unchanged.
+Installing the engine from that source, as [[Installation]] describes for
+unreleased code, gives you an engine with the changes; install it before you
+run `run.sh`, whose pin it already satisfies.
+
 ---
 
 ## Running a bundle
@@ -169,6 +191,13 @@ bash environment/run.sh
 `SIAMANG_REPORT_THEME` (`report/theme.json`) and `PYTHONPATH=.`; then runs
 every flow script, alphabetically, with `--data data/responses.csv`. It stops
 at the first error. Reports and files land in `outputs/`.
+
+Unlike **Run all** on the platform, `run.sh` does not reorder flows by the
+tables they read and write, and does not carry on past a failed flow. In a
+bundle the order makes no difference to the data a flow sees, because no flow
+reads another flow's table there: **Project table** reads the `--data` file
+and **Write table** is skipped (see
+[What reproduces](#what-reproduces-and-what-does-not)).
 
 A bundle **without** responses needs the data file:
 

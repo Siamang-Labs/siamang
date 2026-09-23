@@ -65,7 +65,8 @@ pre-registration and deposits, comments and edit locks, API keys.
 | Organization slug | 3–40 characters (`a–z`, `0–9`, `-`), generated from the name, permanent |
 | Team invitation link | valid 7 days |
 | API key name | 1–80 characters; the key is shown once; keys made in the app do not expire |
-| Email lookup on the sign-in page | 10 per minute per address and network |
+| Email lookup on the sign-in page | 10 per minute per address and network, and 20 per minute per network across all addresses |
+| Organization house style (**Branding**) | **Custom CSS** up to 64 KB; every other value up to 4 KB; 128 KB for the whole style |
 
 ## Projects and the Builder
 
@@ -92,6 +93,7 @@ pre-registration and deposits, comments and edit locks, API keys.
 |---|---|
 | Survey link | `study.siamang.org/<12-character survey id>/`, one per environment, stable across republishes |
 | Response cap | the tighter of the environment's cap and the plan's; checked when a respondent submits; screen-outs count |
+| Deadline | the questionnaire's `deadline`, as of the published Save, stops submissions and progress saves once it passes (read as UTC when it has no time zone) |
 | Preview deployments | removed automatically after 7 days |
 | URL parameters stored per response | the first 8; names lower-cased, up to 40 characters; values up to 200 characters |
 | Browser autosave for respondents | 24 hours, same browser only |
@@ -100,6 +102,7 @@ pre-registration and deposits, comments and edit locks, API keys.
 | Access codes | format `PREFIX-NNNN` (prefix up to 8 characters, 10,000 codes per prefix); 1–5,000 generated at a time |
 | Captcha: completions without a token | 3 per hour per survey per network address |
 | Submissions | 60 requests per minute per survey per network address |
+| One submission | answers up to 256 KB and 2,000 answer keys (key names up to 200 characters); the whole request up to 2 MB |
 | Contacts import | up to 20,000 lines per import |
 | Mailing | subject up to 200 characters; message up to 20,000; sent in batches; month and day boundaries in UTC |
 | Automatic mailing pause | complaints ≥ 1 and ≥ 0.05 % of delivered, or bounces ≥ 3 and ≥ 2 % |
@@ -110,7 +113,7 @@ pre-registration and deposits, comments and edit locks, API keys.
 
 | Item | Limit |
 |---|---|
-| Data grid | first 100 rows of a table, 25 per page |
+| Data grid | 100 rows of a table, newest first (tables with a `created_at` or `id` column), 25 per page |
 | Export (Data tab, API, bundle with data) | up to 100,000 rows per file |
 | Insights | top 50 values per frequency; top 2,500 cells per crosstab |
 | Panel outcome CSVs | up to 5,000 rows |
@@ -121,7 +124,7 @@ pre-registration and deposits, comments and edit locks, API keys.
 | Item | Limit |
 |---|---|
 | Flow run | 1 CPU, no internet; time and memory by plan (above) |
-| Outputs collected per run | 50 files, 200 MB in total, written under `outputs/` |
+| Outputs collected per run | 50 files, 200 MB in total, written under `outputs/`; when a run writes more, report documents (`.md`, `.html`) are kept ahead of figures and other files |
 | Preview run | 512 MB, 2 minutes, on every plan |
 | Run history shown | the latest 50 runs |
 | Output download links | valid 5 minutes |

@@ -52,10 +52,32 @@ question, in the inspector's **Question** section:
    "adds a screen-out branch", or "branches to `<page>`" once added). This adds
    an ordinary branch rule to the page, editable in Logic: it is evaluated when
    the page is left, so respondents finish the page first, and their answers
-   are still collected and counted as screened out. If Studio has to create
-   the Screen-out page, it adds it at the end of the questionnaire — make sure
-   a **Final** page comes before it. Leave the option off to keep everyone and
-   decide in the analysis instead.
+   are still collected and counted as screened out. The rule points at the
+   first Screen-out page. If there is none, Studio creates one and places it
+   directly **before** the first **Final** or **Redirect** page — adding a
+   **Final** page after your last question page first, when there is no end
+   page at all. Leave the option off to keep everyone and decide in the
+   analysis instead.
+
+> **Current limitation.** Pages run in order, and an end page reached in order
+> ends the interview. With the Screen-out page Studio creates sitting in front
+> of the Final page, respondents who **pass** the check reach it when they
+> press **Next** on the page before it, and are recorded as screened out.
+> After checking the box, move the Screen-out page below the Final page — drag
+> it in the page rail, or open it and press **↓** ("Move page down") in the
+> canvas bar; the branch rule follows it by name — and walk the survey once as
+> a respondent who passes. See
+> [Attention checks](Studio-Logic-and-Branching#attention-checks) and
+> [Screening people out](Studio-Logic-and-Branching#screening-people-out).
+
+> **Current limitation.** When the questionnaire already has a Screen-out page,
+> the rule uses that one. In every template that asks for consent, that page is
+> `screen_out`, which only people who decline consent see. Everyone else skips
+> it, so the branch lands on the first visible page after it. A respondent who
+> fails the check goes back to the start of the questionnaire instead of being
+> screened out. Add your own Screen-out page below the Final page and point the
+> rule at it, as described under
+> [Attention checks](Studio-Logic-and-Branching#attention-checks).
 
 Rules:
 
@@ -151,7 +173,7 @@ The quick filters of the grid:
 | **Captcha unavailable** | responses stored without a captcha token |
 | **Quality flags** | rows with a non-empty `quality_flags` — in a table a flow wrote after a **Response quality** node |
 
-The chips work on the rows loaded in the grid (the first 100). See
+The chips work on the rows loaded in the grid (the 100 newest). See
 [[Responses and the Data Tab|Studio-Responses-and-Data]].
 
 ---

@@ -34,6 +34,11 @@ What a key can do:
   stops working after that time.
 - Only a hash of the token is kept; a lost key cannot be shown again — create a
   new one.
+- Creating and revoking a key is recorded in the **Activity** of every
+  organization you belong to (`api_key.create`, `api_key.revoke`), with the
+  key's first characters (`sck_ab12cd34`) as the target and its name in the
+  details — never the token. The organization-wide Activity is visible to
+  owners and admins.
 
 ---
 
@@ -63,7 +68,7 @@ invalid input, a list of the fields that failed.
 | 403 | your role is not enough (`"insufficient role"`), or the workspace is frozen and read-only |
 | 404 | not found — also returned for organizations and projects you are not a member of |
 | 409 | a conflict: someone saved since your `base_seq`, a run is already in progress, the project was never saved |
-| 413 | an export or bundle is larger than 100,000 rows |
+| 413 | an export or bundle is larger than 100,000 rows, or an upload is larger than 50 MB |
 | 422 | a document or body did not validate |
 | 429 | a rate limit (for example preview runs per hour) |
 
@@ -95,7 +100,7 @@ the member role or higher.
 |---|---|
 | `GET /projects/{id}/database/tables` | the project's tables with row counts |
 | `GET /projects/{id}/database/tables/{table}/schema` | a table's columns |
-| `GET /projects/{id}/database/tables/{table}/preview?limit=100` | the first rows |
+| `GET /projects/{id}/database/tables/{table}/preview?limit=100` | up to `limit` rows (1–1,000; default 100), newest first when the table has a `created_at` or `id` column (as `responses` does) |
 | `GET /projects/{id}/database/tables/{table}/export?format=…` | the whole table as a file: `csv`, `xlsx`, `parquet`, `sav` (SPSS), `dta` (Stata) or `sqlite`; SPSS and Stata files carry the codebook labels; up to 100,000 rows |
 | `DELETE /projects/{id}/database/responses/{response_id}` **(admin)** | delete one response (recorded in Activity) |
 
@@ -216,10 +221,14 @@ while true; do
 done
 ```
 
-A run's `status` goes `queued` → `running` → `completed` or `failed`. Starting
-a second Run all while one is in progress answers 409 ("a run-all is already in
-progress for this project"). A project with no flows answers 409 ("project has
-no flows to run"). To run one flow use `POST $API/projects/42/scripts/tables/run`.
+A run's `status` goes `queued` → `running` → `completed` or `failed`. Run all
+runs the flows in dependency order (a flow after the flows whose tables it
+reads) and does not stop at a failed flow: the flows that do not need its
+tables still run, and the run ends as `failed` once every flow has had its
+turn, with each failed or skipped flow named in its log. Starting a second Run
+all while one is in progress answers 409 ("a run-all is already in progress
+for this project"). A project with no flows answers 409 ("project has no flows
+to run"). To run one flow use `POST $API/projects/42/scripts/tables/run`.
 
 ### 5. Download an output file of the latest run
 
@@ -246,10 +255,13 @@ curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" \
        "enabled": true}'
 ```
 
-Needs the owner or admin role and the Plus plan. The event names and the
-signature format are in
-[[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]; this is currently
-the only way to set a signing secret or an event filter.
+Needs the owner or admin role and the Plus plan. The event names, the payloads
+and the signature format are in
+[[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]. The same webhook —
+secret and event filter included — can also be added in **Organization
+settings → Integrations → Webhooks**; either way the secret is never returned
+by the API or shown again. Creating and deleting webhooks is recorded in the
+organization's Activity (`webhook.create`, `webhook.delete`).
 
 ---
 

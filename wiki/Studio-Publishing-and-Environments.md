@@ -2,8 +2,9 @@
 
 **Distribute** is where a Save becomes a live survey. This page covers
 environments, the Distribute screen, publishing and republishing, rolling back,
-pausing and closing, failed builds, preview deployments and response caps. For
-the ways you hand the link out — QR codes, embeds, access codes, captcha — see
+pausing and closing, deadlines, failed builds, preview deployments and response
+caps. For the ways you hand the link out — QR codes, embeds, access codes,
+captcha — see
 [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]].
 
 ---
@@ -133,11 +134,9 @@ version still serves the link, the card adds **· previous version still live**.
 
 **Closes line.** If the questionnaire has a deadline (or the environment
 declares a closing date or a post-close redirect), the card shows **Closes
-`<date>` → redirect `<url>`**.
-
-> **Current limitation.** The deadline and closing date are only displayed:
-> nothing closes the survey automatically when the date passes. Close the
-> environment by hand (see [Closing and reopening](#closing-and-reopening)).
+`<date>` → redirect `<url>`**. The questionnaire's deadline stops collection
+when it passes; the environment's own closing date and redirect are only
+displayed. See [Deadlines](#deadlines).
 
 **Monitor block.** A **Responses** bar (`247/1,200`, with the percentage when
 there is a cap), one bar per quota cell (`region="north"` `90/400`), and **Last
@@ -216,7 +215,16 @@ The Publish panel does the same for the selected target. When you republish:
 - until the new build is ready, the previous version keeps serving the link;
 - quota counters keep their counts (targets are updated from the new Save);
 - a **paused** environment becomes **live** again;
-- respondents who already have the old page open can still submit.
+- respondents who already have the old page open can still submit;
+- the environment takes the [deadline](#deadlines) of the new Save (none, if
+  the new Save has none).
+
+> **Note.** A survey published before Studio began storing each answer under
+> its variable name keeps that older build until you republish it. Its answers
+> are filed under the variable name as they arrive, but show-if conditions,
+> branching and piping on a question whose Id differs from its variable only
+> work in the new build. Republish such an environment. See
+> [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ### Rolling back with New deployment
 
@@ -252,6 +260,7 @@ survey you publish is exactly the version you saw in the Builder." and offers
 | Failed rebuild | a republish failed | the previous version, still collecting | **✕ Failed**, **· previous version still live**, **Close** |
 | Paused | **Pause** | the survey opens and can be answered; at submit: "This survey is paused — The researchers have paused collection. Please try again later." | **‖ Paused**, **Resume**, **Close** |
 | Closed | **Close** | a page "This survey is closed — The researchers have stopped collecting responses."; someone with the old page open gets the same message at submit | **○ Closed**, **Reopen** |
+| Past the deadline | the questionnaire's deadline passed | the survey opens and can be answered; at submit: "This survey is closed — The researchers have stopped collecting responses." | unchanged — still **● Live** |
 | Cap reached | completed responses reached the cap | the survey opens and can be answered; at submit: "Thank you for your interest — We have already reached our target sample for participants like you." | unchanged |
 | Preview | **Preview** | a staged copy at its own address; submissions fail | `preview` pill, **Remove** |
 
@@ -299,6 +308,41 @@ environment instead.
 A closed environment keeps its responses and its drop-off funnel. Its
 **Codebook** chip shows the closed version until the environment is published
 again with another Save.
+
+---
+
+## Deadlines
+
+A questionnaire can carry a **deadline**: the date and time after which it
+takes no more responses. The Builder has no field for it. Add it at the top
+level of the questionnaire in **Builder → Source** — for example
+`"deadline": "2026-07-01T00:00:00+02:00"` — press **Apply** and Save, or import
+a `questionnaire.py` that sets one. A deadline written without a time zone is
+read as UTC.
+
+Each publish records the deadline of the Save it builds, and the card shows it
+as **Closes `<date>`**. Once that moment has passed:
+
+- The environment stops accepting responses. A respondent who submits sees
+  "This survey is closed — The researchers have stopped collecting responses."
+  — the same notice as after **Close**.
+- The link still opens the survey, so someone can answer every page before
+  meeting the notice at submit. Progress of unfinished interviews is no longer
+  saved either, so the drop-off funnel stops growing and invitations no longer
+  turn `started`.
+- The card does not change: it still reads **● Live**, with **Pause** and
+  **Close**. Close the environment when you want the link itself to show the
+  closed page.
+
+To move or remove a deadline, change it in a new Save and publish that Save to
+the environment (**Republish #N**). **Resume** and **Reopen** do not help:
+Reopen rebuilds the same Save, deadline included.
+
+> **Current limitation.** A closing date (`closes_at`) or a post-close redirect
+> (`redirect_after_close`) declared for an environment in
+> `studio/settings.json` is only displayed on the card: it does not close the
+> survey, and nobody is redirected. Use the questionnaire's deadline, or close
+> the environment by hand (see [Closing and reopening](#closing-and-reopening)).
 
 ---
 
@@ -444,7 +488,9 @@ questionnaire.
 Mid-field changes therefore need care:
 
 - **Safe:** fixing a typo, adding a page after the current ones, changing a
-  theme color.
+  theme color. Changing the **Id** of a single-answer question does not change
+  your data either: its answer is stored under the variable name (see
+  [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name)).
 - **Risky:** renaming a variable, changing option codes, removing a question —
   your dataset now has two shapes. If you must, harmonize later with a
   **Recode** node ([[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]).
