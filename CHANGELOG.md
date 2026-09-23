@@ -123,6 +123,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`disqualification`, `final`, `redirect`) now keeps its own position, along
   with the first and last page; the other pages are dealt into the remaining
   slots.
+- `FreqTable`, `CrossTable` and `GroupMeanTable` ignored `SurveyData.weight`
+  while the banner, NPS and regression honoured it, so a report built after
+  `with_weight()` (the flow's Apply weight node) showed unweighted frequencies,
+  crosstabs and means under a weighted heading. They now weight: frequencies
+  and crosstab cells are sums of weights with the same percentage
+  normalisation, the χ² is computed on counts scaled to the effective (Kish)
+  sample size as the banner does, and group means, SDs and medians are
+  weighted while N stays the people counted. A weighted frequency table adds an
+  `Unweighted N` column and a weighted multiple-choice table an unweighted
+  base row; unweighted output is unchanged.
 - `data.tables.banner` died with "Grouper not 1-dimensional" when a variable was
   used as both a row and a banner column — which is how you read a base
   distribution across the banner. It now builds its own frame instead of
