@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -31,6 +32,44 @@ def _get_value_labels(data: SurveyData, var_name: str) -> dict[Any, str]:
     if data.variables and var_name in data.variables:
         return data.variables[var_name].labels or {}
     return {}
+
+
+def _weights_of(data: SurveyData, index: pd.Index) -> pd.Series | None:
+    """The weight of each row in ``index``, or None when the data is unweighted.
+
+    ``data.weight`` names the column (``SurveyData.with_weight``, the flow's
+    Apply weight node); a weight that is missing or not a number counts 0.
+    """
+    column = data.weight
+    if column is None:
+        return None
+    if column not in data.frame.columns:
+        raise ValueError(f"Weight column '{column}' not found in frame.")
+    raw = data.frame.loc[index, column]
+    return pd.to_numeric(raw, errors="coerce").fillna(0.0).astype(float)
+
+
+def _weighted_summary(values: np.ndarray, weights: np.ndarray) -> tuple[float, float, float, int]:
+    """Weighted mean, SD and median of ``values``, and their unweighted count.
+
+    The SD is the weighted variance scaled by n / (n - 1), so equal weights give
+    exactly the sample SD the unweighted table shows. The median is the value at
+    which the cumulative weight first reaches half the total.
+    """
+    n = int(len(values))
+    total = float(weights.sum())
+    if n == 0 or total <= 0:
+        return float("nan"), float("nan"), float("nan"), n
+    mean = float(np.average(values, weights=weights))
+    if n > 1:
+        variance = float(np.average((values - mean) ** 2, weights=weights)) * n / (n - 1)
+        sd = variance**0.5
+    else:
+        sd = float("nan")
+    order = np.argsort(values, kind="stable")
+    cumulative = np.cumsum(weights[order])
+    at = min(int(np.searchsorted(cumulative, total / 2.0)), n - 1)
+    return mean, sd, float(values[order][at]), n
 
 
 def _get_scale(data: SurveyData, var_name: str) -> str | None:
@@ -179,44 +218,61 @@ class FreqTable(SurveyTable):
             series = series.dropna()
 
         counts = series.value_counts(dropna=self.exclude_missing)
+        # Weighted data: N and the percentages are sums of weights, and the raw
+        # count stands beside them — it is the number a reader trusts a
+        # percentage by. Unweighted, the table is exactly what it was.
+        weights = _weights_of(self.data, series.index)
+        weighted = (
+            weights.groupby(series, dropna=self.exclude_missing).sum()
+            if weights is not None
+            else None
+        )
         value_labels = _get_value_labels(self.data, col)
 
         rows = []
         for value in sorted(counts.index):
             n = int(counts[value])
             label = value_labels.get(value, str(value))
-            rows.append({"Value": value, "Label": label, "N": n})
+            row: dict[str, Any] = {"Value": value, "Label": label, "N": n}
+            if weighted is not None:
+                row["N"] = round(float(weighted.get(value, 0.0)), 1)
+                row["Unweighted N"] = n
+            rows.append(row)
 
+        columns = ["Value", "Label", "N"] + (["Unweighted N"] if weighted is not None else [])
         if rows:
-            df = pd.DataFrame(rows)
+            df = pd.DataFrame(rows, columns=columns)
         else:
-            df = pd.DataFrame(columns=["Value", "Label", "N"])
+            df = pd.DataFrame(columns=columns)
 
         if self.sort == "freq" and not df.empty:
             df = df.sort_values("N", ascending=False).reset_index(drop=True)
         elif self.sort == "label" and not df.empty:
             df = df.sort_values("Label").reset_index(drop=True)
 
-        total = int(df["N"].sum()) if not df.empty else 0
+        total = float(df["N"].sum()) if not df.empty else 0.0
+        n_valid = int(counts.sum())
         df["%"] = (df["N"] / total * 100).round(1) if total > 0 else 0.0
         df["Cumulative %"] = df["%"].cumsum().round(1) if not df.empty else 0.0
 
         # Append total row
-        total_row = pd.DataFrame(
-            [
-                {
-                    "Value": "",
-                    "Label": "Total",
-                    "N": total,
-                    "%": 100.0,
-                    "Cumulative %": 100.0,
-                }
-            ]
-        )
+        total_entry: dict[str, Any] = {
+            "Value": "",
+            "Label": "Total",
+            "N": round(total, 1) if weighted is not None else int(total),
+            "%": 100.0,
+            "Cumulative %": 100.0,
+        }
+        if weighted is not None:
+            total_entry["Unweighted N"] = n_valid
+        total_row = pd.DataFrame([total_entry])
         df = pd.concat([df, total_row], ignore_index=True)
 
         self._result = df
-        self._stats = {"Variable": _get_label(self.data, col), "N valid": int(total)}
+        self._stats = {"Variable": _get_label(self.data, col), "N valid": n_valid}
+        if weighted is not None:
+            self._stats["Weighted N"] = round(total, 1)
+            self._stats["Weight"] = self.data.weight
 
     def _build_multi(self, series: pd.Series) -> None:
         """A multiple-choice question: one row per option, base of respondents.
@@ -230,27 +286,58 @@ class FreqTable(SurveyTable):
         from siamang.data import multi
 
         labels = _get_value_labels(self.data, self.column)
-        counts = multi.frequencies(
+        weight = self.data.weight
+        if weight is not None and weight not in self.data.frame.columns:
+            raise ValueError(f"Weight column '{weight}' not found in frame.")
+        raw = multi.frequencies(
             self.data.frame, self.column, labels=labels or None, codes=list(labels) or None
         )
-        rows = [
-            {"Value": row["value"], "Label": row["label"], "N": row["count"], "%": row["percent"]}
-            for _, row in counts.iterrows()
-        ]
+        counts = (
+            multi.frequencies(
+                self.data.frame,
+                self.column,
+                labels=labels or None,
+                codes=list(labels) or None,
+                weight=weight,
+            )
+            if weight is not None
+            else raw
+        )
+        rows = []
+        for (_, row), (_, raw_row) in zip(counts.iterrows(), raw.iterrows(), strict=True):
+            entry: dict[str, Any] = {
+                "Value": row["value"],
+                "Label": row["label"],
+                "N": row["count"],
+                "%": row["percent"],
+            }
+            if weight is not None:
+                entry["Unweighted N"] = raw_row["count"]
+            rows.append(entry)
         if self.sort == "freq":
             rows.sort(key=lambda r: (-r["N"], str(r["Label"])))
         elif self.sort == "label":
             rows.sort(key=lambda r: str(r["Label"]))
-        rows.append(
-            {"Value": "", "Label": "Base (respondents answering)", "N": counts.base, "%": 100.0}
-        )
-        self._result = pd.DataFrame(rows, columns=["Value", "Label", "N", "%"])
+        base_row: dict[str, Any] = {
+            "Value": "",
+            "Label": "Base (respondents answering)",
+            "N": counts.base,
+            "%": 100.0,
+        }
+        if weight is not None:
+            base_row["Unweighted N"] = raw.base
+        rows.append(base_row)
+        columns = ["Value", "Label", "N", *(["Unweighted N"] if weight is not None else []), "%"]
+        self._result = pd.DataFrame(rows, columns=columns)
         self._stats = {
             "Variable": _get_label(self.data, self.column),
             "Base": f"{counts.base} respondents",
             "Answers": counts.answers,
             "Note": "multiple answers allowed; percentages are of respondents",
         }
+        if weight is not None:
+            self._stats["Base"] = f"{raw.base} respondents ({counts.base} weighted)"
+            self._stats["Weight"] = weight
 
 
 # ─── NpsTable ─────────────────────────────────────────────────────────────────
@@ -366,8 +453,15 @@ class CrossTable(SurveyTable):
         row_labels = _get_value_labels(self.data, self.row)
         col_labels = _get_value_labels(self.data, self.col)
 
-        # Build contingency table
-        contingency = pd.crosstab(frame[self.row], frame[self.col])
+        # Build contingency table — of weights when the data is weighted, so the
+        # percentages below are weighted with the same normalisation.
+        weights = _weights_of(self.data, frame.index)
+        if weights is None:
+            contingency = pd.crosstab(frame[self.row], frame[self.col])
+        else:
+            contingency = pd.crosstab(
+                frame[self.row], frame[self.col], values=weights, aggfunc="sum"
+            ).fillna(0.0)
 
         # Apply percentage normalization
         if self.pct == "row":
@@ -388,8 +482,12 @@ class CrossTable(SurveyTable):
             display.columns = [col_labels.get(v, str(v)) for v in display.columns]
 
         # Add row/column totals
-        display["Total"] = contingency.sum(axis=1).values
+        row_totals = contingency.sum(axis=1).values
         total_col = list(contingency.sum(axis=0).values) + [contingency.values.sum()]
+        if weights is not None:
+            row_totals = np.round(row_totals, 1)
+            total_col = [round(float(value), 1) for value in total_col]
+        display["Total"] = row_totals
         display.loc["Total"] = total_col[: len(display.columns)]
 
         # Reset index for clean output
@@ -403,8 +501,18 @@ class CrossTable(SurveyTable):
             try:
                 from scipy.stats import chi2_contingency
 
-                chi2_stat, p_value, dof, _ = chi2_contingency(contingency.values)
-                n = contingency.values.sum()
+                table = contingency.values
+                if weights is not None:
+                    # Weights make a sample behave like a smaller one; a test on
+                    # the weighted counts as if they were people would find
+                    # significance the data does not support. The counts are
+                    # scaled to the effective sample size (Kish), as the banner
+                    # table does.
+                    total_w = float(weights.sum())
+                    n_eff = total_w**2 / float((weights**2).sum()) if total_w > 0 else 0.0
+                    table = table * (n_eff / total_w) if total_w > 0 else table
+                chi2_stat, p_value, dof, _ = chi2_contingency(table)
+                n = table.sum()
                 min_dim = min(contingency.shape[0] - 1, contingency.shape[1] - 1)
                 cramers_v = (chi2_stat / (n * min_dim)) ** 0.5 if n > 0 and min_dim > 0 else 0.0
                 self._stats = {
@@ -412,8 +520,13 @@ class CrossTable(SurveyTable):
                     "df": int(dof),
                     "p": round(p_value, 4),
                     "Cramér's V": round(cramers_v, 3),
-                    "N": int(n),
+                    "N": int(frame.shape[0]),
                 }
+                if weights is not None:
+                    self._stats["Weighted N"] = round(total_w, 1)
+                    self._stats["Effective N"] = round(n_eff, 1)
+                    self._stats["Weight"] = self.data.weight
+                    self._stats["Base"] = "effective (Kish) for the test; weighted counts shown"
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
 
@@ -428,18 +541,37 @@ class CrossTable(SurveyTable):
         from siamang.data import multi
 
         labels = _get_value_labels(self.data, self.row)
+        weight = self.data.weight
+        if weight is not None and weight not in self.data.frame.columns:
+            raise ValueError(f"Weight column '{weight}' not found in frame.")
         table = multi.crosstab(
             self.data.frame,
             self.row,
             self.col,
             labels=labels or None,
             codes=list(labels) or None,
+            weight=weight,
         )
         display = table.drop(columns=["value"]).rename(
             columns={"label": _get_label(self.data, self.row)}
         )
         bases = table.base if isinstance(table.base, dict) else {}
         display.loc[len(display)] = ["Base (respondents answering)", *bases.values()]
+        if weight is not None:
+            # The weighted base is what the percentages are of; the people
+            # behind it are the other number a reader needs.
+            raw = multi.crosstab(
+                self.data.frame,
+                self.row,
+                self.col,
+                labels=labels or None,
+                codes=list(labels) or None,
+            )
+            raw_bases = raw.base if isinstance(raw.base, dict) else {}
+            display.loc[len(display)] = [
+                "Unweighted base",
+                *(raw_bases.get(group, 0) for group in bases),
+            ]
         self._result = display
         self._stats = {
             "Variable": _get_label(self.data, self.row),
@@ -449,6 +581,9 @@ class CrossTable(SurveyTable):
                 "chi-square is reported because the categories overlap"
             ),
         }
+        if weight is not None:
+            self._stats["Base"] += " (weighted)"
+            self._stats["Weight"] = weight
 
 
 # ─── GroupMeanTable ───────────────────────────────────────────────────────────
@@ -491,8 +626,20 @@ class GroupMeanTable(SurveyTable):
         col_label = _get_label(self.data, self.column)
         col_scale = _get_scale(self.data, self.column)
 
-        grouped = frame.groupby(self.by)[self.column]
-        agg = grouped.agg(["mean", "std", "median", "count"])
+        weights = _weights_of(self.data, frame.index)
+        if weights is None:
+            grouped = frame.groupby(self.by)[self.column]
+            agg = grouped.agg(["mean", "std", "median", "count"])
+        else:
+            # Weighted mean, SD and median per group; N stays the people counted.
+            summaries = {}
+            for value, group in frame.assign(_weight=weights.to_numpy()).groupby(self.by):
+                values = pd.to_numeric(group[self.column], errors="coerce").to_numpy(dtype=float)
+                summaries[value] = _weighted_summary(values, group["_weight"].to_numpy(dtype=float))
+            agg = pd.DataFrame.from_dict(
+                summaries, orient="index", columns=["mean", "std", "median", "count"]
+            )
+            agg.index.name = self.by
         agg = agg.round(3)
 
         # Apply group labels
@@ -512,36 +659,40 @@ class GroupMeanTable(SurveyTable):
 
             if n_groups < 2:
                 self._stats = {"note": "fewer than 2 groups, no test performed"}
-                return
+            else:
+                self._test(groups, col_scale, col_label, int(frame.shape[0]))
+        if weights is not None:
+            self._stats["Weight"] = self.data.weight
+            self._stats["Note"] = "means, SD and medians are weighted; N and the test are not"
 
-            try:
-                from scipy import stats as sp_stats
+    def _test(self, groups: list, col_scale: str | None, col_label: str, n: int) -> None:
+        n_groups = len(groups)
+        try:
+            from scipy import stats as sp_stats
 
-                # Choose test based on scale and number of groups
-                use_nonparametric = col_scale in ("ordinal", None)
+            # Choose test based on scale and number of groups
+            use_nonparametric = col_scale in ("ordinal", None)
 
-                if n_groups == 2:
-                    if use_nonparametric:
-                        stat, p = sp_stats.mannwhitneyu(
-                            groups[0], groups[1], alternative="two-sided"
-                        )
-                        self._stats = {"Mann-Whitney U": round(stat, 3), "p": round(p, 4)}
-                    else:
-                        stat, p = sp_stats.ttest_ind(groups[0], groups[1])
-                        self._stats = {"t": round(stat, 3), "p": round(p, 4)}
+            if n_groups == 2:
+                if use_nonparametric:
+                    stat, p = sp_stats.mannwhitneyu(groups[0], groups[1], alternative="two-sided")
+                    self._stats = {"Mann-Whitney U": round(stat, 3), "p": round(p, 4)}
                 else:
-                    if use_nonparametric:
-                        stat, p = sp_stats.kruskal(*groups)
-                        self._stats = {"Kruskal-Wallis H": round(stat, 3), "p": round(p, 4)}
-                    else:
-                        stat, p = sp_stats.f_oneway(*groups)
-                        self._stats = {"F": round(stat, 3), "p": round(p, 4)}
+                    stat, p = sp_stats.ttest_ind(groups[0], groups[1])
+                    self._stats = {"t": round(stat, 3), "p": round(p, 4)}
+            else:
+                if use_nonparametric:
+                    stat, p = sp_stats.kruskal(*groups)
+                    self._stats = {"Kruskal-Wallis H": round(stat, 3), "p": round(p, 4)}
+                else:
+                    stat, p = sp_stats.f_oneway(*groups)
+                    self._stats = {"F": round(stat, 3), "p": round(p, 4)}
 
-                self._stats["N"] = int(frame.shape[0])
-                self._stats["Variable"] = col_label
+            self._stats["N"] = n
+            self._stats["Variable"] = col_label
 
-            except ImportError:
-                self._stats = {"error": "scipy not installed"}
+        except ImportError:
+            self._stats = {"error": "scipy not installed"}
 
     def _build_multi(self) -> None:
         """Grouped by a multiple-choice question: one row per option.
@@ -556,17 +707,29 @@ class GroupMeanTable(SurveyTable):
 
         series = self.data.frame[self.by]
         values = pd.to_numeric(self.data.frame[self.column], errors="coerce")
+        weights = _weights_of(self.data, self.data.frame.index)
         labels = _get_value_labels(self.data, self.by)
         rows = []
         for code in labels or multi.codes_in(series):
-            chose = multi.reach(series, code) & multi.responded(series)
-            group = values[chose].dropna()
+            chose = multi.reach(series, code) & multi.responded(series) & values.notna()
+            group = values[chose]
+            if weights is None:
+                mean = round(float(group.mean()), 3) if len(group) else None
+                sd = round(float(group.std(ddof=1)), 3) if len(group) > 1 else None
+                median = round(float(group.median()), 3) if len(group) else None
+            else:
+                w_mean, w_sd, w_median, _ = _weighted_summary(
+                    group.to_numpy(dtype=float), weights[chose].to_numpy(dtype=float)
+                )
+                mean = round(w_mean, 3) if len(group) else None
+                sd = round(w_sd, 3) if len(group) > 1 else None
+                median = round(w_median, 3) if len(group) else None
             rows.append(
                 {
                     _get_label(self.data, self.by): (labels or {}).get(code, str(code)),
-                    "Mean": round(float(group.mean()), 3) if len(group) else None,
-                    "SD": round(float(group.std(ddof=1)), 3) if len(group) > 1 else None,
-                    "Median": round(float(group.median()), 3) if len(group) else None,
+                    "Mean": mean,
+                    "SD": sd,
+                    "Median": median,
                     "N": int(len(group)),
                 }
             )
@@ -579,6 +742,9 @@ class GroupMeanTable(SurveyTable):
                 "no significance test is reported"
             ),
         }
+        if weights is not None:
+            self._stats["Weight"] = self.data.weight
+            self._stats["Note"] += "; means, SD and medians are weighted, N is not"
 
 
 # ─── QualityTable ─────────────────────────────────────────────────────────────
