@@ -494,9 +494,11 @@ Messages that need your attention appear in a band under the header:
 | "Could not check for a saved draft. Your current edits are kept in this tab." | a network problem; your edits in this tab are fine |
 | "Could not clear the previous draft. Reopen the editor to review it before publishing." | reopen the Builder before you publish |
 
-When you come back to the Builder after leaving with unsaved edits, a toast
-says **Unsaved edits restored — Save to keep them as a version**. To throw
-them away, use **More ▾ → Discard changes**. If you try to close or reload the
+Switching to another project tab and back simply picks your edits up again.
+When you open the Builder after a reload, in a new tab or on another computer
+and Studio finds unsaved edits you made earlier, a toast says **Unsaved edits
+restored — Save to keep them as a version**. To throw them away, use **More ▾
+→ Discard changes**. If you try to close or reload the
 tab with unsaved edits, the browser asks whether you really want to leave.
 
 ---
@@ -582,9 +584,8 @@ where you can restore one as a new Save
 
 ## On a phone
 
-On a narrow screen the columns stack, and a bar with **Preview** and **Save**
-stays at the bottom of the screen so you never have to scroll back to the
-header to save.
+On a phone-width screen a bar with **Preview** and **Save** stays at the bottom
+of the screen, so you never have to scroll back to the header to save.
 
 ## See also
 
