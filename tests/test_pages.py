@@ -90,3 +90,70 @@ def test_react_payload_carries_page_kinds():
     assert by_name["dq"]["kind"] == "disqualification"
     assert by_name["dq"]["body"] == "<p>Not eligible</p>"
     assert by_name["rd"]["redirectUrl"] == "https://x"
+
+
+# ── Script.randomize_pages keeps terminal pages where the author put them ─────
+
+
+def _run_script_in_node(script, pages: list[dict]) -> list[str]:
+    """Run a script's code the way the runtime does, on a deck of page objects,
+    with a `shuffle` that reverses — deterministic, and visibly not identity."""
+
+    import json
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    harness = f"""
+        const utils = {{ shuffle: (items) => [...items].reverse() }};
+        const context = {{}};
+        const answers = {{ __pages__: {json.dumps(pages)} }};
+        (function () {{ {script.code} }})();
+        console.log(JSON.stringify(answers.__pages__.map((p) => p.name)));
+    """
+    result = subprocess.run([node, "-e", harness], capture_output=True, text=True, check=True)
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def test_randomize_pages_pins_terminal_pages_not_just_the_ends():
+    """A screen-out is gated on the questions before it; shuffled into an
+    earlier slot it would be evaluated before those answers exist."""
+
+    from siamang.core import Script
+
+    deck = [
+        {"name": "intro"},
+        {"name": "a"},
+        {"name": "b"},
+        {"name": "screen_out", "kind": "disqualification"},
+        {"name": "c"},
+        {"name": "stimulus", "kind": "content"},
+        {"name": "quota_full", "kind": "redirect"},
+        {"name": "d"},
+        {"name": "thanks", "kind": "final"},
+    ]
+    order = _run_script_in_node(Script.randomize_pages(), deck)
+    # Pinned: first, last, and every terminal page — at their own index.
+    assert order[0] == "intro" and order[-1] == "thanks"
+    assert order[3] == "screen_out" and order[6] == "quota_full"
+    # Everything else — an engine content page included — is dealt into the
+    # remaining slots, here by the reversing shuffle.
+    assert [order[i] for i in (1, 2, 4, 5, 7)] == ["d", "stimulus", "c", "b", "a"]
+    assert sorted(order) == sorted(page["name"] for page in deck)
+
+
+def test_randomize_pages_leaves_a_deck_with_one_movable_page_alone():
+    from siamang.core import Script
+
+    deck = [{"name": "intro"}, {"name": "only"}, {"name": "thanks", "kind": "final"}]
+    assert _run_script_in_node(Script.randomize_pages(), deck) == ["intro", "only", "thanks"]
+
+
+def test_randomize_pages_is_still_recognised_as_the_library_script():
+    from siamang.core import Script
+    from siamang.model.scripts import script_from_document, script_to_document
+
+    assert script_to_document(Script.randomize_pages()) == {"type": "randomize_pages"}
+    assert script_from_document({"type": "randomize_pages"}) == Script.randomize_pages()

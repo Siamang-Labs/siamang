@@ -132,16 +132,27 @@ class Script:
 
     @classmethod
     def randomize_pages(cls) -> Script:
-        """Factory: shuffle all visible page order on init."""
+        """Factory: shuffle the page order on init.
+
+        The first page (welcome), the last page and every terminal page — a
+        screen-out, a thank-you, a redirect, wherever it sits — keep their
+        place; the remaining pages are shuffled among the remaining slots. A
+        screen-out is gated on the questions before it, so a shuffle that
+        moved it would show it before the answers it depends on exist.
+        """
         code = """
-            // Shuffle all visible pages except the first (welcome) and last
+            // Shuffle the pages a respondent can be routed through. The first
+            // (welcome) and last page and every terminal page keep their own
+            // position: the pages between them are dealt into the other slots.
             const pages = answers.__pages__ || [];
-            if (pages.length > 3) {
-                const first = pages[0];
-                const last = pages[pages.length - 1];
-                const middle = pages.slice(1, -1);
-                const shuffled = utils.shuffle(middle);
-                answers.__pages__ = [first, ...shuffled, last];
+            const terminal = { disqualification: true, final: true, redirect: true };
+            const pinned = pages.map((p, i) =>
+                i === 0 || i === pages.length - 1 || !!(p && terminal[p.kind]));
+            const movable = pages.filter((p, i) => !pinned[i]);
+            if (movable.length > 1) {
+                const shuffled = utils.shuffle(movable);
+                let next = 0;
+                answers.__pages__ = pages.map((p, i) => (pinned[i] ? p : shuffled[next++]));
             }
         """
         return cls(

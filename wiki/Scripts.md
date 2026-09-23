@@ -96,8 +96,11 @@ shuffle_party = sg.Script.randomize_options("q_party")
 
 ### `Script.randomize_pages()`
 
-Shuffle visible page order on `onInit`, keeping the first (welcome) and last page
-fixed. Runs globally.
+Shuffle the page order on `onInit`. The first (welcome) page, the last page and
+every terminal page (`DisqualificationPage`, `FinalPage`, `RedirectPage`) keep
+their place wherever they sit — a screen-out is gated on the questions before
+it — and the remaining pages are shuffled among the remaining slots. Runs
+globally.
 
 ```python
 shuffle_pages = sg.Script.randomize_pages()

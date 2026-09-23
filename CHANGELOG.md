@@ -117,6 +117,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   assigned arm, checking the value against the arm codes — the cell a balanced
   assignment needs — and the piping lint no longer calls an arm piped on the
   first page a forward reference.
+- `Script.randomize_pages()` pinned the first and last page and shuffled
+  everything between them — a screen-out in the middle of the deck included,
+  which put it in front of the questions it is gated on. Every terminal page
+  (`disqualification`, `final`, `redirect`) now keeps its own position, along
+  with the first and last page; the other pages are dealt into the remaining
+  slots.
 - `data.tables.banner` died with "Grouper not 1-dimensional" when a variable was
   used as both a row and a banner column — which is how you read a base
   distribution across the banner. It now builds its own frame instead of
