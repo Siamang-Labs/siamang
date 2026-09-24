@@ -299,6 +299,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is submitted or ended by a full quota; and the next-page hook does nothing
   once the interview is over, while it is being submitted, or on a terminal
   page. A timer still runs once per question.
+- `Script.randomize_options(question, seed=…)` ignored its seed: the runtime
+  shuffled with `Math.random`, so "same seed, same order" held for nobody and
+  a reload reshuffled. The order is now drawn from `"<seed>:<respondent id>"`
+  with the FNV-1a/mulberry32 pair a seeded `assign_condition` uses: each
+  respondent keeps one order across reloads and resumes, and it can be
+  recomputed from the seed and their id. `utils.shuffle(list, seed)` and
+  `utils.sample(list, n, seed)` take the optional seed for custom scripts;
+  without one they are random as before.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

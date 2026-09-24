@@ -287,17 +287,47 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 // dead backend costs a moment and a little balance, never the session.
 const INIT_AWAIT_TIMEOUT_MS = 2000;
 
+/* Seeded draws. A seed is any string; the same seed gives the same sequence
+   in every browser — a 32-bit FNV-1a hash of it starts a mulberry32
+   generator, the pair Script.assign_condition inlines, so its first draw for
+   a key is the draw assign_condition makes for that key. Without a seed
+   (undefined, null or "") it is Math.random. */
+function hasSeed(seed) {
+  return seed !== undefined && seed !== null && seed !== "";
+}
+function seededRandom(seed) {
+  if (!hasSeed(seed)) return Math.random;
+  const key = String(seed);
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  let state = h | 0;
+  return () => {
+    state = (state + 0x6D2B79F5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Fisher–Yates on a copy, driven by `random` (a () => [0, 1) function). */
+function shuffleWith(arr, random) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 const ScriptRunner = {
   _utils: {
-    shuffle: (arr) => {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    },
-    sample: (arr, n) => ScriptRunner._utils.shuffle(arr).slice(0, n),
+    // shuffle(list[, seed]) / sample(list, n[, seed]): with a seed, the same
+    // seed and list give the same order everywhere.
+    shuffle: (arr, seed) => shuffleWith(arr, seededRandom(seed)),
+    sample: (arr, n, seed) => ScriptRunner._utils.shuffle(arr, seed).slice(0, n),
     clamp: (v, min, max) => Math.min(Math.max(v, min), max),
     debounce: (fn, ms) => {
       let timer;
