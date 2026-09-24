@@ -81,7 +81,10 @@ let _pipeLabelIndex = null;
 function pipeLabelIndex() {
   if (_pipeLabelIndex) return _pipeLabelIndex;
   const index = {};
-  const survey = (typeof window !== "undefined" && window.SURVEY) || {};
+  // The pages are window.PAGES; SURVEY carries the study's metadata only, so
+  // an index built from SURVEY.pages was always empty and {label:x} piped the
+  // raw code.
+  const pages = (typeof window !== "undefined" && window.PAGES) || [];
   const visit = (items) => {
     for (const q of items || []) {
       if (!q) continue;
@@ -99,7 +102,7 @@ function pipeLabelIndex() {
       }
     }
   };
-  for (const p of survey.pages || []) {
+  for (const p of pages) {
     visit(p.items);
     for (const b of p.blocks || []) visit(b.items);
   }

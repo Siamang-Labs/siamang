@@ -420,5 +420,54 @@ def test_maxdiff_and_conjoint_tasks_are_stored_by_variable(tmp_path):
         assert key in submitted, key
     assert submitted["md_version"] == 0
     assert submitted["cj_t1"] == 2 and submitted["cj_t2"] == 2 and submitted["cj_version"] == 0
-    # A condition on a conjoint task fires, and a MaxDiff pick pipes.
-    assert "Why " in state["shown"]
+    # A condition on a conjoint task fires, and a MaxDiff pick pipes its label.
+    assert f"Why {state['firstBest']}?" in state["shown"]
+
+
+# ── Piping ───────────────────────────────────────────────────────────────────
+
+
+def test_label_piping_inserts_the_chosen_options_label(tmp_path):
+    document = {
+        "schema_version": "1.0",
+        "title": "Piping",
+        "variables": {
+            "fruit": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Apple"}, {"code": 2, "label": "Pear"}],
+            },
+            "why": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {"type": "SingleChoice", "id": "fruit", "var": "fruit", "text": "Which fruit?"}
+                ],
+            },
+            {
+                "name": "p2",
+                "title": "About {label:fruit}",
+                "items": [
+                    {
+                        "type": "OpenText",
+                        "id": "why",
+                        "var": "why",
+                        "text": "Why {label:fruit} (code {answer:fruit})?",
+                    }
+                ],
+            },
+        ],
+    }
+    scenario = (
+        """
+        await page.click("text=Pear");
+    """
+        + _NEXT
+        + """
+        return await page.textContent(".sd-page");
+    """
+    )
+    shown = run_in_browser(document, scenario, tmp_path)
+    assert "About Pear" in shown
+    assert "Why Pear (code 2)?" in shown
