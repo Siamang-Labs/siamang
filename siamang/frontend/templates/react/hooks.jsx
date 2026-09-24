@@ -147,6 +147,24 @@ function computeRouteTarget(page, answers, visibilityEngine) {
   return null;
 }
 
+/* A timer a script started (answers.__timers__, where Script.timed_question
+   keeps its handle) belongs to the page it was started on. Left running, a
+   timed question's timer fired after the respondent had moved on and pressed
+   Next on whatever page was showing then — the last one included, which
+   submitted the survey. Every page change and the submission cancel them; a
+   timer runs once per question, so going back to the page does not restart
+   it. */
+function cancelScriptTimers(store) {
+  const timers = store.get("__timers__");
+  if (!timers || typeof timers !== "object") return;
+  const handles = Object.values(timers).filter((h) => h !== null && h !== undefined);
+  if (!handles.length) return;
+  for (const handle of handles) {
+    try { clearTimeout(handle); clearInterval(handle); } catch (e) { /* not a timer */ }
+  }
+  store.set("__timers__", {});
+}
+
 function useSurveyNav(allPages, store, visibilityEngine) {
   const [pageIdx, setPageIdx] = useState(0);
   const [transitionDir, setTransitionDir] = useState(null);
@@ -207,6 +225,7 @@ function useSurveyNav(allPages, store, visibilityEngine) {
 
     if (from) {
       historyRef.current.push(from.name);
+      cancelScriptTimers(store);
       ScriptRunner.run("onPageExit", answers, {}, from.name);
     }
     setPageIdx(nextIdx);
@@ -217,6 +236,7 @@ function useSurveyNav(allPages, store, visibilityEngine) {
     setTransitionDir("prev");
     setTimeout(() => setTransitionDir(null), 140);
     const from = pages[pageIdx] || null;
+    cancelScriptTimers(store);
     if (from) ScriptRunner.run("onPageExit", store.snapshot(), {}, from.name);
     // Retrace the actual path (skips land back where the respondent was).
     while (historyRef.current.length > 0) {
@@ -234,8 +254,9 @@ function useSurveyNav(allPages, store, visibilityEngine) {
 
   // Design mode's jump (Studio's canvas): to any page, no questions asked.
   const goTo = useCallback((idx) => {
+    cancelScriptTimers(store);
     setPageIdx(idx);
-  }, []);
+  }, [store]);
 
   /* The page dots. A respondent may go back to a page they have actually
      seen — one on the path that led here — and never forward: a dot ahead
@@ -253,6 +274,7 @@ function useSurveyNav(allPages, store, visibilityEngine) {
     setTransitionDir("prev");
     setTimeout(() => setTransitionDir(null), 140);
     const from = pages[pageIdx] || null;
+    cancelScriptTimers(store);
     if (from) ScriptRunner.run("onPageExit", store.snapshot(), {}, from.name);
     const at = historyRef.current.lastIndexOf(pages[idx].name);
     historyRef.current = historyRef.current.slice(0, at);
