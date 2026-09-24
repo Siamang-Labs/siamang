@@ -226,7 +226,8 @@ class _Generator:
         chunks = [_banner("Variables (codebook)")]
         for name, payload in variables.items():
             chunks.append(
-                f"# studio: var {name}\n{self.variables[name]} = {render(self._variable(name, payload))}"
+                f"# studio: var {emit.comment_text(name)}\n"
+                f"{self.variables[name]} = {render(self._variable(name, payload))}"
             )
         return "\n\n".join(chunks)
 
@@ -295,7 +296,8 @@ class _Generator:
         for question in questions:
             qid = question["id"]
             chunks.append(
-                f"# studio: {qid}\n{self.questions[qid]} = {render(self._question(question))}"
+                f"# studio: {emit.comment_text(qid)}\n"
+                f"{self.questions[qid]} = {render(self._question(question))}"
             )
         return "\n\n".join(chunks)
 
@@ -461,7 +463,8 @@ class _Generator:
         chunks = [_banner("Pages")]
         for page in pages:
             chunks.append(
-                f"# studio: page {page['name']}\n{self.pages[page['name']]} = {render(self._page(page))}"
+                f"# studio: page {emit.comment_text(page['name'])}\n"
+                f"{self.pages[page['name']]} = {render(self._page(page))}"
             )
         return "\n\n".join(chunks)
 
@@ -663,6 +666,7 @@ class _Generator:
 
 
 def _banner(title: str) -> str:
+    title = emit.comment_text(title)
     return f"# ── {title} " + "─" * max(0, 76 - len(title))
 
 

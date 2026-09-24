@@ -262,6 +262,53 @@ def test_multiline_custom_script_and_identifier_clashes(tmp_path):
     assert 'sg.Expression(">", 3, sg.VarRef("age"))' in code
 
 
+def test_a_name_with_a_line_break_stays_on_its_comment_line(tmp_path):
+    """Each definition is marked ``# studio: <question id>`` (a variable's
+    name, a page's name). An id with a line break ended the comment there and
+    the rest ran when the module was imported — as a research bundle's flow
+    scripts import it."""
+
+    import ast
+
+    marker = tmp_path / "PLANTED"
+    planted = f"import os; os.system('touch {marker}')"
+    document = {
+        "schema_version": "1.0",
+        "title": "T",
+        "variables": {
+            f"v1\r{planted} #": {"scale": "nominal", "labels": [{"code": 1, "label": "A"}]},
+        },
+        "pages": [
+            {
+                "name": f"p1\n{planted} #",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": f"q1\n{planted} #",
+                        "var": f"v1\r{planted} #",
+                        "text": "?",
+                    }
+                ],
+            }
+        ],
+    }
+    code = generate_questionnaire(document)
+    tree = ast.parse(code)
+    imported = [
+        a.name for node in ast.walk(tree) if isinstance(node, ast.Import) for a in node.names
+    ]
+    assert "os" not in imported
+    markers = [line.rstrip() for line in code.split("\n") if line.startswith("# studio:")]
+    assert markers == [
+        f"# studio: var v1 {planted} #",
+        f"# studio: q1 {planted} #",
+        f"# studio: page p1 {planted} #",
+    ]
+    module = _exec(code, tmp_path)
+    assert not marker.exists()
+    assert module.survey.pages[0].name == f"p1\n{planted} #"
+
+
 def test_generation_without_ruff_is_still_valid(tmp_path, monkeypatch):
     document = import_module(FIXTURES / "digital_life_questionnaire.py").document
     monkeypatch.setattr("siamang.codegen.questionnaire.format_source", _raise_unavailable)
