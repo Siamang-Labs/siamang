@@ -1867,6 +1867,33 @@ def test_a_seeded_assignment_spreads_respondents_and_keeps_each_ones_arm(tmp_pat
     assert arms[0] == arms[-1]
 
 
+# Whether leaving the page now would ask "Leave site?": the runtime's
+# beforeunload handler, called the way the browser calls it.
+_LEAVING = """
+    const leaving = () => page.evaluate(() => {
+        const event = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+    });
+"""
+
+
+def test_leaving_asks_first_only_once_the_respondent_has_answered(tmp_path):
+    scenario = (
+        _LEAVING
+        + """
+        const untouched = await leaving();
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+        return { untouched, answered: await leaving() };
+    """
+    )
+    # The assignment writes its arm into the answers at load; that is not the
+    # respondent's work, and a survey opened and left untouched asks nothing.
+    state = run_in_browser(_assigned_document(), scenario, tmp_path, init=_RID_FROM_URL)
+    assert state == {"untouched": False, "answered": True}
+
+
 def _pinned_document() -> dict[str, Any]:
     def labels(prefix: str, extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [{"code": i, "label": f"{prefix}{i}"} for i in range(1, 7)] + extra

@@ -435,6 +435,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loosely (`== null` / `!= null`, and an unanswered value counts as `null` in
   an `in` list), in the compiled conditions and in the runtime's evaluator of
   expression trees alike, matching `Expression.evaluate`.
+- The runtime asked "Leave site?" when a respondent closed or reloaded a
+  survey they had not touched, whenever a script had written a variable at
+  load — the arm `Script.assign_condition` draws, an id an `onInit` script
+  notes: it counted any answer key in the store as the respondent's. It now
+  asks only once the respondent has answered something in this sitting (and
+  the interview is not over).
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

@@ -596,14 +596,16 @@ function useTouchGestures(onNext, onPrev, allowBack) {
 
 /* ─── useBeforeUnload ──────────────────────────────────────────────────── */
 
-function useBeforeUnload(storeRef, phaseRef) {
+/* Leaving the page asks first once the respondent has answered something in
+   this sitting and the interview is still running. What scripts wrote on
+   their own — the arm an assignment draws at load, a respondent id noted by
+   an onInit script — is not the respondent's work: counting it asked
+   "Leave site?" of everyone who opened such a survey and closed or reloaded
+   it untouched. */
+function useBeforeUnload(answeredRef, phaseRef) {
   useEffect(() => {
     const handler = (e) => {
-      const store = storeRef.current;
-      if (!store) return;
-      const answers = store.snapshot();
-      const hasAnswers = Object.keys(answers).some((k) => !k.startsWith("__"));
-      if (hasAnswers && phaseRef.current === "running") {
+      if (answeredRef.current && phaseRef.current === "running") {
         e.preventDefault();
         e.returnValue = "";
       }
