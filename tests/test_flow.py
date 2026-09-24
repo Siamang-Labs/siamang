@@ -1268,8 +1268,8 @@ def test_the_banner_node_runs_and_only_compares_within_a_block(questionnaire_doc
 
 
 def test_simulated_data_draws_the_arm_an_assignment_script_writes():
-    """The Simulated data node ran `survey.simulate()`, which never sees the
-    questionnaire's scripts, so an assigned arm was a column that did not
+    """The Simulated data node ran `survey.simulate()`, which did not see the
+    questionnaire's scripts then, so an assigned arm was a column that did not
     exist and every page gated on it was empty."""
 
     import siamang as sg

@@ -439,7 +439,10 @@ print(data.codebook())
 `simulate()` honours visibility (invisible questions and choices are
 not sampled), respects `min_answers` / `max_answers` / `exclusive` on
 multi-choice, samples from `choices=` when present, falls back to
-`Variable.labels` otherwise.
+`Variable.labels` otherwise. It follows the routing and runs the
+assignment and page-shuffle scripts (`Script.assign_condition`,
+`Script.randomize_pages`); `siamang.local_simulator.simulate_survey(survey,
+n, seed, quotas=…)` adds the quotas.
 
 ---
 
