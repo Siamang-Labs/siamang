@@ -103,6 +103,82 @@ class TestRandomizationPayload:
         assert "randomize" not in page["blocks"][1]
 
 
+def _texts(*names):
+    return [
+        sg.OpenText(name.upper(), var=sg.Variable(name, scale="nominal", dtype="str"))
+        for name in names
+    ]
+
+
+class TestNestedBlockPayload:
+    """A nested block's conditions and shuffle reach the runtime: they used to
+    be flattened away, while the model and the simulator honour them."""
+
+    def _page(self, *items):
+        route = sg.Variable("route", scale="nominal", labels={1: "A", 2: "B"})
+        survey = sg.Questionnaire(
+            title="N",
+            pages=[
+                sg.Page(name="p0", items=[sg.SingleChoice("Route?", var=route)]),
+                sg.Page(name="p", items=list(items)),
+            ],
+        )
+        return _page_by_name(compile_react_payload(survey), "p")
+
+    def test_questions_in_nested_blocks_carry_their_conditions(self):
+        a, b, c, d = _texts("a", "b", "c", "d")
+        route = sg.Variable("route", scale="nominal", labels={1: "A", 2: "B"})
+        deep = sg.Block(title="Deep", items=[c], hide_if=route.eq(2))
+        inner = sg.Block(title="Inner", items=[b, deep], show_if=route.eq(1))
+        (block,) = self._page(sg.Block(title="Outer", items=[a, inner, d]))["blocks"]
+        items = {item["id"]: item for item in block["items"]}
+        assert list(items) == ["a", "b", "c", "d"]  # every question, in document order
+        assert "gates" not in items["a"] and "gates" not in items["d"]
+        (inner_gate,) = items["b"]["gates"]
+        assert inner_gate["title"] == "Inner" and inner_gate["showIf"]["deps"] == ["route"]
+        assert [gate["title"] for gate in items["c"]["gates"]] == ["Inner", "Deep"]
+        assert "hideIf" in items["c"]["gates"][1]
+        # Nothing shuffles, so there is no layout to deal.
+        assert "layout" not in block
+
+    def test_a_shuffle_with_nested_blocks_is_sent_as_a_layout(self):
+        a, b, c, d, e = _texts("a", "b", "c", "d", "e")
+        inner = sg.Block(items=[b, c], randomize=True)
+        kept, mixed = self._page(
+            sg.Block(items=[a, inner]),
+            sg.Block(items=[d, sg.Block(items=[e])], randomize=True),
+        )["blocks"]
+        assert kept["layout"] == [0, {"randomize": True, "items": [1, 2]}]
+        assert "randomize" not in kept
+        assert mixed["randomize"] is True
+        assert mixed["layout"] == [0, {"randomize": False, "items": [1]}]
+        # A nested block without a condition gates nothing.
+        assert all("gates" not in item for item in [*kept["items"], *mixed["items"]])
+
+    def test_a_block_without_nested_blocks_compiles_as_before(self):
+        a, b = _texts("a", "b")
+        (block,) = self._page(sg.Block(title="B", items=[a, b], randomize=True))["blocks"]
+        assert set(block) == {"title", "items", "isBlock", "randomize"}
+
+    def test_a_questionnaire_of_blocks_keeps_each_blocks_condition_and_shuffle(self):
+        a, b, c = _texts("a", "b", "c")
+        route = sg.Variable("route", scale="nominal", labels={1: "A", 2: "B"})
+        survey = sg.Questionnaire(
+            title="Blocks",
+            blocks=[
+                sg.Block(title="One", items=[sg.SingleChoice("Route?", var=route)]),
+                sg.Block(title="Two", items=[a, b], show_if=route.eq(1), randomize=True),
+                sg.Block(title="Three", items=[c], hide_if=route.eq(2)),
+            ],
+        )
+        one, two, three = compile_react_payload(survey)["PAGES"]
+        assert "showIf" not in one and "hideIf" not in one
+        assert two["showIf"]["deps"] == ["route"]
+        (block,) = two["blocks"]
+        assert block["randomize"] is True and [q["id"] for q in block["items"]] == ["a", "b"]
+        assert three["hideIf"]["deps"] == ["route"] and "blocks" not in three
+
+
 class TestChoicePayload:
     def test_multichoice_exclusive_codes(self):
         v = sg.Variable("v", scale="nominal", labels={1: "A", 2: "B", 99: "None"})

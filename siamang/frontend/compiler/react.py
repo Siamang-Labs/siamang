@@ -268,7 +268,17 @@ def _pages_for_react(survey: Questionnaire):
         for index, block in enumerate(items, start=1):
             assert isinstance(block, Block)
             page_name = _slugify(block.title) if block.title else f"page{index}"
-            yield Page(name=page_name, title=block.title, items=block.items)
+            # The block's conditions gate its page, and a shuffling block
+            # shuffles the page's items.
+            yield Page(
+                name=page_name,
+                title=block.title,
+                items=[Block(items=block.items, randomize=True)]
+                if block.randomize
+                else block.items,
+                show_if=block.show_if,
+                hide_if=block.hide_if,
+            )
         return
     yield Page(name="page1", items=items)
 
@@ -358,18 +368,33 @@ def _compile_block(
     skip_targets: Mapping[str, str] | None = None,
     texts: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
+    """A page's block. Its ``items`` are all its questions, nested blocks'
+    included, in document order — what the runtime walks for answers,
+    options, labels and ``skip_to``. A nested block is not flattened away:
+
+    * each question inside nested blocks with a ``show_if`` / ``hide_if``
+      carries those blocks' conditions as ``gates`` (outermost first), and is
+      shown only while every gate and its own condition allow it;
+    * a block that holds nested blocks and shuffles — itself or one of them —
+      carries its ``layout``: its entries in order, a question as its index in
+      ``items`` and a nested block as ``{"randomize", "items": [...]}``. A
+      shuffle moves a block's entries, a nested block as one piece, and a
+      nested block's own ``randomize`` shuffles inside it.
+    """
+
+    items: list[dict[str, Any]] = []
+    layout = _block_entries(block, items, gates=[], key="", skip_targets=skip_targets, texts=texts)
     payload: dict[str, Any] = {
         "title": block.title or "",
-        "items": [
-            _compile_question(q, skip_targets=skip_targets, texts=texts)
-            for q in block.flatten_questions()
-        ],
+        "items": items,
         # Marks a real authored Block (vs. a wrapper for loose questions), so
         # the runtime knows which entries page-level randomize_blocks may move.
         "isBlock": True,
     }
     if block.randomize:
         payload["randomize"] = True
+    if any(isinstance(item, Block) for item in block.items) and _shuffles(block):
+        payload["layout"] = layout
     show_if = _compile_condition(block.show_if)
     if show_if is not None:
         payload["showIf"] = show_if
@@ -377,6 +402,56 @@ def _compile_block(
     if hide_if is not None:
         payload["hideIf"] = hide_if
     return payload
+
+
+def _block_entries(
+    block: Block,
+    items: list[dict[str, Any]],
+    *,
+    gates: list[dict[str, Any]],
+    key: str,
+    skip_targets: Mapping[str, str] | None,
+    texts: Mapping[str, str] | None,
+) -> list[Any]:
+    """Compile ``block``'s questions into ``items`` (under the ``gates`` of
+    the nested blocks around them) and return its layout entries."""
+
+    entries: list[Any] = []
+    for position, item in enumerate(block.items):
+        if isinstance(item, Block):
+            inner_key = f"{key}.{position}" if key else str(position)
+            gate: dict[str, Any] = {"key": inner_key, "title": item.title or ""}
+            show_if = _compile_condition(item.show_if)
+            if show_if is not None:
+                gate["showIf"] = show_if
+            hide_if = _compile_condition(item.hide_if)
+            if hide_if is not None:
+                gate["hideIf"] = hide_if
+            gated = "showIf" in gate or "hideIf" in gate
+            inner = _block_entries(
+                item,
+                items,
+                gates=[*gates, gate] if gated else gates,
+                key=inner_key,
+                skip_targets=skip_targets,
+                texts=texts,
+            )
+            entries.append({"randomize": bool(item.randomize), "items": inner})
+            continue
+        question = _compile_question(item, skip_targets=skip_targets, texts=texts)
+        if gates:
+            question["gates"] = list(gates)
+        entries.append(len(items))
+        items.append(question)
+    return entries
+
+
+def _shuffles(block: Block) -> bool:
+    """Whether ``block`` or a block nested in it shuffles its items."""
+
+    return block.randomize or any(
+        _shuffles(item) for item in block.items if isinstance(item, Block)
+    )
 
 
 def _compile_question(

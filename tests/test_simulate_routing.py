@@ -364,3 +364,42 @@ def test_a_shuffled_block_decides_which_skip_is_met_first():
     assert 0.35 < via_y.mean() < 0.65
     # Both questions are still answered by everyone: the shuffle moved them.
     assert shuffled[["x", "y"]].notna().all().all()
+
+
+def test_a_shuffled_block_moves_a_nested_block_as_one_piece():
+    """A block's shuffle deals its entries, as the runtime does: a nested
+    block is one of them and keeps its own order, so its second question is
+    never shown before its first."""
+
+    from siamang.local_simulator import simulate_from_pages
+
+    def to(name: str) -> sg.Page:
+        return sg.Page(name=f"to_{name}", items=[_choice(f"a{name}", name)], default_next="end")
+
+    pages = [
+        sg.Page(
+            name="p1",
+            items=[
+                sg.Block(
+                    randomize=True,
+                    items=[
+                        _choice("x", "X?", skip_to="to_x"),
+                        sg.Block(
+                            items=[
+                                _choice("y1", "Y1?", skip_to="to_y1"),
+                                _choice("y2", "Y2?", skip_to="to_y2"),
+                            ]
+                        ),
+                    ],
+                )
+            ],
+        ),
+        to("x"),
+        to("y1"),
+        to("y2"),
+        FinalPage("end", title="Thanks"),
+    ]
+    frame = simulate_from_pages(pages, n=400, seed=3)
+    assert frame["ay2"].isna().all()
+    assert 0.35 < frame["ay1"].notna().mean() < 0.65
+    assert (frame["ax"].notna() ^ frame["ay1"].notna()).all()
