@@ -281,24 +281,17 @@ class Questionnaire:
         return pipeline.run(self, options=options or None)
 
     def simulate(self, n: int = 100, seed: int | None = 42):
-        from siamang.data.survey_data import SurveyData
-        from siamang.local_simulator import simulate_dataframe, simulate_from_pages
+        """``n`` synthetic respondents walking the questionnaire as the runtime
+        would move them, with its scripts: the arm of every
+        ``Script.assign_condition`` and the page order ``Script.randomize_pages``
+        deals. It is :func:`siamang.local_simulator.simulate_survey` without
+        quotas, which live in the compiler options — pass them to
+        ``simulate_survey`` for their effect. A questionnaire without those
+        scripts gets the frame it always got."""
 
-        if self.pages:
-            frame = simulate_from_pages(self.pages, n=n, seed=seed)
-        else:
-            frame = simulate_dataframe(self.all_questions(), n=n, seed=seed)
-        variables = self.variables or VariableMap()
-        if not variables:
-            variables = VariableMap()
-            for question in self.all_questions():
-                vars_in_question = (
-                    question.var if isinstance(question.var, list) else [question.var]
-                )
-                for variable in vars_in_question:
-                    if variable.name not in variables:
-                        variables.add(variable)
-        return SurveyData(frame=frame, variables=variables, questionnaire=self)
+        from siamang.local_simulator import simulate_survey
+
+        return simulate_survey(self, n=n, seed=seed)
 
     def collect(self):
         raise NotImplementedError(

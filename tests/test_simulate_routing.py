@@ -403,3 +403,34 @@ def test_a_shuffled_block_moves_a_nested_block_as_one_piece():
     assert frame["ay2"].isna().all()
     assert 0.35 < frame["ay1"].notna().mean() < 0.65
     assert (frame["ax"].notna() ^ frame["ay1"].notna()).all()
+
+
+def test_questionnaire_simulate_runs_the_scripts_and_changes_nothing_else():
+    """Questionnaire.simulate() is simulate_survey(self, n, seed): an
+    assignment's arm is drawn (with its codebook entry) and gates its page, and
+    a questionnaire without such scripts gets the frame the page walk alone
+    gives, as before."""
+
+    from siamang.local_simulator import simulate_from_pages
+
+    survey = _survey()
+    data = survey.simulate(n=200, seed=11)
+    assert data.frame.equals(simulate_from_pages(survey.pages, n=200, seed=11))
+
+    seen = _yes_no("seen")
+    assigned = sg.Questionnaire(
+        title="A",
+        pages=[
+            sg.Page(
+                name="treated",
+                show_if=sg.compare("condition", "=", 2),
+                items=[sg.SingleChoice("Seen the ad?", var=seen, id="q_seen")],
+            )
+        ],
+        scripts=[sg.Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])],
+    )
+    data = assigned.simulate(n=200, seed=3)
+    assert set(data.frame["condition"]) == {1, 2}
+    assert data.frame.loc[data.frame["condition"] == 1, "seen"].isna().all()
+    assert data.frame.loc[data.frame["condition"] == 2, "seen"].notna().all()
+    assert data.variables["condition"].labels == {1: "Control", 2: "Treatment"}

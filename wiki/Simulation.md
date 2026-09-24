@@ -29,7 +29,8 @@ questionnaire itself attached.
 
 If the questionnaire has no explicit `variables` registry, `simulate` builds one
 on the fly from the bound question variables, so the returned `SurveyData` always
-carries metadata (labels, scales) for reporting.
+carries metadata (labels, scales) for reporting. The questionnaire's scripts are
+run too (see [Scripts and quotas](#scripts-and-quotas-simulate_survey) below).
 
 ### How values are drawn
 
@@ -105,9 +106,10 @@ print(int(data.frame["autonomy"].isna().sum()))
 
 ### Scripts and quotas: `simulate_survey`
 
-`Questionnaire.simulate()` sees the pages only. The questionnaire's scripts
-live on the questionnaire and its quotas in the compiler options, so
-`siamang.local_simulator.simulate_survey` takes both:
+`Questionnaire.simulate(n, seed)` is `siamang.local_simulator.simulate_survey(survey,
+n=n, seed=seed)`: it runs the questionnaire's scripts listed below. Quotas are
+not on the questionnaire — they are compiler options — so to see their effect
+call `simulate_survey` with them:
 
 ```python
 from siamang.local_simulator import simulate_survey
@@ -131,7 +133,7 @@ data = simulate_survey(survey, n=500, seed=42, quotas=options["quota"])
   the data depends on order, and option shuffles are not drawn at all. As in
   the runtime, a shuffling block moves a nested block as one piece, in its
   own order.
-- **Quotas** — leaving a page that answered a quota's variable, a respondent
+- **Quotas** (`simulate_survey(..., quotas=…)` only) — leaving a page that answered a quota's variable, a respondent
   whose answer falls in a full cell ends there (the runtime's "quota full"
   screen, not a complete); a multiple-choice answer meets every cell it names.
   Only completes fill a cell — a screen-out never does — so the quota's effect

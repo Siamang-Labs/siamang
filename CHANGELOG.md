@@ -174,9 +174,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   answer falls in a full cell ends on that page, only completes filling a cell.
   `simulate_questionnaire(survey, …, quotas=)` passes the questionnaire's own
   scripts, and `simulate_survey()` returns the `SurveyData` with a codebook
-  entry for each arm; the flow's `source.simulated` node now runs it. The walk
-  stays deterministic under its seed, and a survey with none of these features
-  simulates exactly as before.
+  entry for each arm; the flow's `source.simulated` node now runs it, and so
+  does `Questionnaire.simulate(n, seed)` (without quotas, which are compiler
+  options). The walk stays deterministic under its seed, and a survey with
+  none of these features simulates exactly as before.
 - A single-variable question whose `id` differed from its variable's name stored
   the answer under the **id**, while every `show_if` / `next_if`, quota,
   `{answer:…}` and the codebook read the **variable**. Nothing built on such a
