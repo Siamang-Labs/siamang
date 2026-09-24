@@ -1080,3 +1080,25 @@ def test_the_body_of_a_page_with_questions_is_shown_above_them_as_html(tmp_path)
     assert result["order"] == ["sd-page__html", "sd-question"]
     # A piped answer is text, never markup.
     assert result["piped"] == "<p>Thanks, &lt;i&gt;Ann&lt;/i&gt;.</p>"
+
+
+def test_a_terminal_page_pipes_answers_into_its_title_and_body(tmp_path):
+    scenario = (
+        """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        await page.click("text=Pear");
+    """
+        + _NEXT
+        + """
+        const title = await page.textContent(".sd-completedpage__title");
+        const body = await page.$eval(".sd-completedpage__body", (el) => el.innerHTML);
+        return { title, body };
+    """
+    )
+    result = run_in_browser(_body_document(), scenario, tmp_path)
+    assert result["title"] == "Thanks Ann"
+    assert result["body"] == "<p>You chose <b>Pear</b>, Ann.</p>"

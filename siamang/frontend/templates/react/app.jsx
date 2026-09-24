@@ -788,11 +788,14 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
   const wrapCls = screenedOut ? "siamang-closed" : "sd-completedpage";
   const titleCls = screenedOut ? "siamang-closed__title" : "sd-completedpage__title";
   const bodyCls = screenedOut ? "siamang-closed__body" : "sd-completedpage__body";
+  // The last page pipes answers like every other one ({answer:x}, {label:x}):
+  // the answers are final by now.
+  const answers = store.snapshot();
   return (
     <div className={wrapCls}>
-      <h2 className={titleCls}>{page.title || (screenedOut ? "Thank you" : uiTexts.completedTitle)}</h2>
+      <h2 className={titleCls}>{processPipedText(page.title, answers) || (screenedOut ? "Thank you" : uiTexts.completedTitle)}</h2>
       {page.body
-        ? <div className={"sd-page__html " + bodyCls} dangerouslySetInnerHTML={{ __html: page.body }} />
+        ? <div className={"sd-page__html " + bodyCls} dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body, answers) }} />
         : <p className={bodyCls}>{uiTexts.completedBody}</p>}
       {(submitId || submittedAt) && !screenedOut ? (
         <dl className="sd-completedpage__meta">
