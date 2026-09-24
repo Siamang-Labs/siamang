@@ -43,7 +43,7 @@ class ChoiceSets:
     chosen: np.ndarray  # bool, exactly one True per group
     group: np.ndarray  # int, non-decreasing
     names: list[str]
-    weight: np.ndarray | None = None  # one per group, not per row
+    weight: np.ndarray | None = None  # one per group, not per row; None = unweighted
     reference: str = "(reference)"  # the alternative held at utility zero
 
     def __post_init__(self) -> None:
@@ -142,13 +142,23 @@ def mnl(sets: ChoiceSets, *, max_iter: int = 200, shares: bool = True) -> MnlRes
     alternatives, as in a MaxDiff. Where a row is one attribute level of a
     larger product — a conjoint — the levels never compete with each other and a
     share column would invite exactly the reading it cannot support.
+
+    Weighted sets (``sets.weight``) are rescaled to sum to Kish's effective
+    number of sets, (Σw)² / Σw², before fitting. The estimates do not change —
+    the likelihood is maximised at the same place whatever the weights' scale —
+    but the standard errors do: weights of mean 1 would report the precision of
+    the raw sample, which weighting has made smaller, and population-sized
+    weights would report the precision of a census. Equal weights give exactly
+    the unweighted fit.
     """
 
     from scipy.optimize import minimize
     from scipy.stats import norm
 
     weights = (
-        np.ones(sets.n_sets, dtype=float) if sets.weight is None else np.asarray(sets.weight, float)
+        np.ones(sets.n_sets, dtype=float)
+        if sets.weight is None
+        else _effective(np.asarray(sets.weight, float))
     )
     start = np.zeros(sets.design.shape[1], dtype=float)
     null_loglik = -_log_likelihood(start, sets, weights)[0]
@@ -197,9 +207,26 @@ def mnl(sets: ChoiceSets, *, max_iter: int = 200, shares: bool = True) -> MnlRes
         "converged": bool(fit.success),
         "reference": sets.reference,
     }
+    if sets.weight is not None:
+        stats["weighted"] = True
+        stats["effective_sets"] = round(float(weights.sum()), 1)
     if not fit.success:
         stats["message"] = str(fit.message)
     return MnlResult(table=table, stats=stats, coefficients=beta)
+
+
+def _effective(weights: np.ndarray) -> np.ndarray:
+    """Weights rescaled to sum to Kish's effective number of choice sets."""
+
+    if np.any(weights < 0) or not np.all(np.isfinite(weights)):
+        raise ValueError("Choice-set weights must be finite and not negative.")
+    total, squares = float(weights.sum()), float((weights**2).sum())
+    if total <= 0:
+        raise ValueError(
+            "Every choice set has a weight of zero, so there is nothing to fit. "
+            "Check the weight column."
+        )
+    return weights * (total / squares)
 
 
 def shares(utilities: np.ndarray) -> np.ndarray:

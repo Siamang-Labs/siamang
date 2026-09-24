@@ -133,6 +133,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   weighted while N stays the people counted. A weighted frequency table adds an
   `Unweighted N` column and a weighted multiple-choice table an unweighted
   base row; unweighted output is unchanged.
+- MaxDiff and conjoint read `SurveyData.weight` for their counts but fitted the
+  conditional logit unweighted: `choice_sets()` resolved each row's weight and
+  then passed the set weights to the model only when a `weight=` argument was
+  given, which no flow node does. So after Apply weight the Score and the
+  Utility of one MaxDiff table described two different samples, and conjoint
+  part-worths, importance and share of preference were the raw sample's. The
+  resolved weight now reaches the model, and `mnl()` rescales set weights to
+  sum to Kish's effective number of sets — the estimates are unchanged by the
+  scale, the standard errors become those of the effective base rather than of
+  the raw rows or of a population total (this also changes the standard errors
+  of an explicit `weight=`). The MaxDiff, conjoint and new `ShareTable`
+  (`data.report.conjoint_shares`) footers name the `Weight` and give the base as
+  `N respondents (W weighted)`; `analyze.conjoint_shares` gains a `stat` output.
 - A single-variable question whose `id` differed from its variable's name stored
   the answer under the **id**, while every `show_if` / `next_if`, quota,
   `{answer:…}` and the codebook read the **variable**. Nothing built on such a

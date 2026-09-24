@@ -869,6 +869,10 @@ class MaxDiffTable(SurveyTable):
     The footer carries the base and the estimation method, because a preference
     order without them is not a finding, and it names the reference item, since
     utilities are read against one.
+
+    On weighted data every column is weighted — Shown, Best and Worst are sums
+    of weights, and the utilities are fitted on the weighted choices — and the
+    footer names the weight and gives the weighted base beside the people.
     """
 
     question: Any = None
@@ -892,9 +896,11 @@ class MaxDiffTable(SurveyTable):
 
         stats: dict[str, Any] = {
             "Question": question.text,
-            "Base": f"{read.respondents} respondents",
+            "Base": _base(self.data, read.respondents, question.version_variable.name),
             "Tasks read": int(len(read.frame)),
         }
+        if self.data.weight is not None:
+            stats["Weight"] = self.data.weight
         if self.method in {"utilities", "both"}:
             result = maxdiff.utilities(self.data, question)
             utility = dict(zip(result.table["term"], result.table["estimate"], strict=True))
@@ -923,6 +929,20 @@ def _reasons(reasons: dict[str, int]) -> str:
     return ", ".join(f"{reason}: {count}" for reason, count in reasons.items())
 
 
+def _base(data: SurveyData, respondents: int, version: str) -> str:
+    """The base: the respondents, and their weighted total when the data is weighted.
+
+    A choice question's base is everyone with a design version, the same rows
+    its reader counts as respondents.
+    """
+    if data.weight is None:
+        return f"{respondents} respondents"
+    frame = data.frame
+    weights = _weights_of(data, frame.index[frame[version].notna()])
+    total = float(weights.sum()) if weights is not None else 0.0
+    return f"{respondents} respondents ({_round_base(total)} weighted)"
+
+
 # ─── ConjointTable ────────────────────────────────────────────────────────────
 
 
@@ -941,6 +961,9 @@ class ConjointTable(SurveyTable):
     tested from £10 to £12 will look unimportant beside price tested from £10 to
     £100, and that is a fact about the design; the footer says so rather than
     leaving a client to infer a market truth from a design decision.
+
+    On weighted data the part-worths, and so the importances, are fitted on the
+    weighted choices; the footer names the weight and the weighted base.
     """
 
     question: Any = None
@@ -979,18 +1002,60 @@ class ConjointTable(SurveyTable):
 
         stats: dict[str, Any] = {
             "Question": question.text,
-            "Base": f"{read.respondents} respondents",
+            "Base": _base(self.data, read.respondents, question.version_variable.name),
             "Tasks read": int(len(read.frame)),
             "Method": "conditional logit (aggregate)",
             "Reference": result.stats.get("reference", ""),
             "Pseudo R²": result.stats.get("pseudo_r2", 0.0),
             "Note": ("importance is of the levels tested, not of the attribute in general"),
         }
+        if self.data.weight is not None:
+            stats["Weight"] = self.data.weight
         if not result.stats.get("converged", True):
             stats["Warning"] = "the model did not converge; read the part-worths with care"
         if read.dropped:
             stats["Unreadable answers"] = f"{read.dropped} ({_reasons(read.reasons)})"
         self._result = frame
+        self._stats = stats
+
+
+# ─── ShareTable ───────────────────────────────────────────────────────────────
+
+
+@dataclass
+class ShareTable(SurveyTable):
+    """What the conjoint's part-worths predict a market of these products would do.
+
+    The rows are :func:`siamang.data.conjoint.shares` unchanged — ``product``,
+    ``utility`` and ``share`` — and the footer says what they rest on: the
+    base, the model, and on weighted data the weight the part-worths were
+    fitted with, so a share never looks like a count of anyone.
+    """
+
+    question: Any = None
+    products: Any = None
+    include_none: bool = False
+
+    def _build(self) -> None:
+        from siamang.data import conjoint
+
+        question = conjoint.question_of(self.data, self.question)
+        read = conjoint.answers(self.data, question)
+        self._result = conjoint.shares(
+            self.data, question, self.products, include_none=self.include_none
+        )
+        stats: dict[str, Any] = {
+            "Question": question.text,
+            "Base": _base(self.data, read.respondents, question.version_variable.name),
+            "Method": "logit rule on aggregate conditional-logit part-worths",
+            "Note": (
+                "shares of the products listed"
+                + (" and of choosing none" if self.include_none else "")
+                + ", not market shares"
+            ),
+        }
+        if self.data.weight is not None:
+            stats["Weight"] = self.data.weight
         self._stats = stats
 
 

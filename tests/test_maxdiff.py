@@ -260,6 +260,87 @@ def test_weights_change_the_answer_and_are_taken_from_the_data():
         md.counts(data, "q_md", weight="nope")
 
 
+def test_weighted_choice_sets_fit_the_weighted_estimate_by_hand():
+    """Two alternatives, one parameter: the MLE is the log of the weighted odds.
+
+    A is picked in sets weighing 1 and 3, B in two sets weighing 1: unweighted
+    that is 2 : 2 and β = 0; weighted it is 4 : 2 and β = log 2. The weights
+    are rescaled to Kish's effective number of sets, (1+3+1+1)² / (1+9+1+1) =
+    3, so the information is 3 · p(1 − p) at p = 2/3 and the standard error
+    √1.5 — neither the raw sample's (√(9/8)) nor that of six sets (√0.75).
+    """
+
+    design = np.array([[1.0], [0.0]] * 4)
+    chosen = np.array([True, False, True, False, False, True, False, True])
+    group = np.repeat(np.arange(4), 2)
+
+    def fit(weight):
+        return mnl(
+            ChoiceSets(design=design, chosen=chosen, group=group, names=["A"], weight=weight)
+        )
+
+    plain = fit(None)
+    assert plain.coefficients[0] == pytest.approx(0.0, abs=1e-6)
+    assert plain.table["std_error"][0] == pytest.approx(1.0, abs=1e-4)
+    assert "effective_sets" not in plain.stats
+
+    weighted = fit(np.array([1.0, 3.0, 1.0, 1.0]))
+    assert weighted.coefficients[0] == pytest.approx(np.log(2.0), abs=1e-4)
+    assert weighted.table["std_error"][0] == pytest.approx(np.sqrt(1.5), abs=1e-3)
+    assert weighted.table["share"].tolist() == [66.7, 33.3]
+    assert weighted.stats["effective_sets"] == 3.0
+
+    # Equal weights of any size are no weights at all.
+    same = fit(np.full(4, 7.0))
+    assert same.coefficients[0] == pytest.approx(0.0, abs=1e-6)
+    assert same.table["std_error"][0] == pytest.approx(1.0, abs=1e-4)
+    with pytest.raises(ValueError, match="weight of zero"):
+        fit(np.zeros(4))
+
+
+def test_the_utilities_carry_the_weight_the_counts_do():
+    """The data's weight reached Shown, Best, Worst and the Score but not the
+    model, so the Score and Utility columns of one table described two
+    different samples. Integer weights are frequency weights: a respondent of
+    weight 3 must read exactly like three respondents of weight 1, to the model
+    as to the counts."""
+
+    question = _question(tasks=6, per_task=3, versions=4)
+    data = _fieldwork(question, n=80)
+    w = np.where(np.arange(80) % 4 == 0, 3.0, 1.0)
+    weighted = data.with_frame(data.frame.assign(w=w)).with_weight("w")
+    expanded = data.with_frame(
+        data.frame.loc[data.frame.index.repeat(w.astype(int))].reset_index(drop=True)
+    )
+
+    fitted = md.utilities(weighted, "q_md")
+    frequency = md.utilities(expanded, "q_md")
+    plain = md.utilities(data, "q_md")
+    assert np.allclose(fitted.coefficients, frequency.coefficients, atol=2e-3)
+    assert not np.allclose(fitted.coefficients, plain.coefficients, atol=2e-3)
+    assert fitted.stats["weight"] == "w" and "weight" not in plain.stats
+    # The same weight named explicitly is the same fit.
+    explicit = md.utilities(data.with_frame(data.frame.assign(w=w)), "q_md", weight="w")
+    assert np.allclose(explicit.coefficients, fitted.coefficients)
+
+    # Standard errors are those of the effective base, not of the 120 rows the
+    # expanded file pretends to have: larger by √(Σw² / Σw) over the sets.
+    sets = md.choice_sets(weighted, "q_md")
+    ratio = np.sqrt((sets.weight**2).sum() / sets.weight.sum())
+    assert np.allclose(
+        fitted.table["std_error"][:-1], frequency.table["std_error"][:-1] * ratio, rtol=1e-2
+    )
+
+    table = weighted.report.maxdiff("q_md")
+    frame = table.to_frame().set_index("Item")
+    by_hand = expanded.report.maxdiff("q_md").to_frame().set_index("Item")
+    for column in ("Shown", "Best", "Worst", "Score", "Utility", "Share %"):
+        assert np.allclose(frame[column], by_hand.loc[frame.index, column], atol=2e-3), column
+    assert table.stats["Weight"] == "w"
+    assert table.stats["Base"] == "80 respondents (120 weighted)"
+    assert "Weight" not in data.report.maxdiff("q_md").stats
+
+
 def test_the_data_has_to_carry_the_questions_variables():
     question = _question(tasks=2, per_task=3, versions=2)
     data = _fieldwork(question, n=5)

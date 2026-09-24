@@ -246,6 +246,11 @@ def choice_sets(
     slightly the weaker model for exactly the reason above, and it is what the
     export writes, because every task then has the same number of alternatives
     — which is what the R packages that run hierarchical Bayes require.
+
+    Each set carries its respondent's weight — ``weight`` when given, else the
+    data's own (:meth:`SurveyData.with_weight`), the same resolution
+    :func:`counts` makes, so the counting score and the utilities in one table
+    are never on two different samples.
     """
 
     if coding not in {"sequential", "paired"}:
@@ -298,17 +303,23 @@ def choice_sets(
         chosen=np.array(chosen),
         group=np.array(group),
         names=[labels.get(code, str(code)) for code in items[:-1]],
-        weight=np.array(set_weights) if weight is not None else None,
+        weight=np.array(set_weights) if weights_by_row is not None else None,
         reference=labels.get(reference, str(reference)),
     )
 
 
 def utilities(data: SurveyData, question: MaxDiff | str, *, weight: str | None = None) -> MnlResult:
-    """Interval-scale preference for each item, and the shares it implies."""
+    """Interval-scale preference for each item, and the shares it implies.
+
+    Weighted by ``weight`` or, without it, by the data's own weight column.
+    """
 
     question = question_of(data, question)
     read = answers(data, question)
     result = mnl(choice_sets(data, question, weight=weight))
+    column = weight or data.weight
+    if column:
+        result.stats["weight"] = column
     result.stats["respondents"] = read.respondents
     result.stats["tasks_used"] = int(len(read.frame))
     if read.dropped:

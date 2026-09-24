@@ -78,6 +78,16 @@ class ReportAccessor:
 
         return ConjointTable(data=self._data, question=question)
 
+    def conjoint_shares(self, question: Any, products: Any, *, include_none: bool = False) -> Any:
+        """What the part-worths predict a market of ``products`` would do: one
+        row per product with its utility and share, and the base, the model
+        and — on weighted data — the weight in stats."""
+        from siamang.reporting.tables import ShareTable
+
+        return ShareTable(
+            data=self._data, question=question, products=products, include_none=include_none
+        )
+
     def themes(self, codeframe: Any) -> ThemeTable:
         """What a frozen codeframe coded these open answers as: one row per
         theme, plus how many answers it had no theme for."""
