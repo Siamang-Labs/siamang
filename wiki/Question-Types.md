@@ -360,11 +360,15 @@ quota or `{answer:trust_govt}` names the row's variable. A cell stores a **code 
 row variables' codebook**, not the column's position —
 `Matrix.columns()` returns the `(code, header)` pairs the runtime uses. Without
 `column_labels` the columns are the first row variable's value labels in code order,
-so a codebook `{1: …, 5: …, 9: "Refused"}` stores 9 for "Refused". With
+so a codebook `{1: …, 5: …, 9: "Refused"}` stores 9 for "Refused" — less the
+`not_applicable` code when `na_option` is on, since the N/A column stores it. With
 `column_labels`, each header takes the code of the value label with the same text
 (when every header names exactly one); else the label in the same position (when
 there are as many labels as headers: headers `0` … `10` over labels coded 0 … 10
-store 0 … 10); else 1, 2, 3 … in column order, which is all there is to go on when
+store 0 … 10); else the same with the codebook's declared missing codes set apart —
+a header naming one of them (say "Don't know") takes its code, and the others line
+up with the remaining labels, so a labelled N/A −1 or refusal 77 does not shift
+`0` … `10`; else 1, 2, 3 … in column order, which is all there is to go on when
 the codebook says nothing.
 
 ---
