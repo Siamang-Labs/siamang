@@ -268,9 +268,10 @@ class DataAnalysis:
     ) -> dict[str, Any]:
         """Share choosing ``value`` with a normal-approximation interval.
 
-        ``weighted=True`` weights the share and takes ``n`` as Kish's effective
-        base. Unweighted on weighted data, the result says the weight is not
-        applied.
+        The base is the respondents who answered ``column``. ``weighted=True``
+        weights the share and takes ``n`` as Kish's effective base of those
+        respondents (a missing weight counts as 0). Unweighted on weighted
+        data, the result says the weight is not applied.
         """
         if confidence <= 0 or confidence >= 1:
             raise ValueError("confidence must be in (0, 1)")
@@ -278,10 +279,15 @@ class DataAnalysis:
         if weighted:
             if self.weight_column is None:
                 raise ValueError("weighted=True requires SurveyData.weight to be set.")
-            weights = self.frame[self.weight_column].astype(float)
-            indicator = _chose(self.frame[column], value).astype(float)
-            n_eff = self.effective_sample_size()
+            # Of those who answered, as the unweighted share and the weighted
+            # frequencies are: counting the others diluted the share.
+            answered = _answered(self.frame[column])
+            weights = pd.to_numeric(self.frame[self.weight_column], errors="coerce")
+            weights = weights.fillna(0.0).astype(float)[answered]
+            indicator = _chose(self.frame[column], value)[answered].astype(float)
             weight_sum = float(weights.sum())
+            weight_sq = float((weights**2).sum())
+            n_eff = weight_sum**2 / weight_sq if weight_sum > 0 and weight_sq > 0 else 0.0
             if n_eff <= 0 or weight_sum <= 0:
                 return {
                     "p": 0.0,

@@ -139,7 +139,9 @@ Set a default weight column once with `with_weight(...)`, then pass
 `weighted=True` to any method that supports it (`mean`, `grouped_mean`,
 `frequencies`, `crosstab`, `proportion_ci`). `proportion_ci` says which it did:
 `"weight": "w"` when weighted, and `"weight": "unweighted (the weight 'w' is not
-applied)"` when called without `weighted=True` on weighted data.
+applied)"` when called without `weighted=True` on weighted data. Weighted or not,
+its base is the respondents who answered the question: weights of 1 give the
+unweighted `p` and `n`.
 
 The models read the weight on their own: `regression` fits WLS or a weighted
 logit, and `pca` and `reliability` work from the weighted covariance matrix

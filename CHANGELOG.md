@@ -207,7 +207,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cov.wt`; equal weights reproduce the unweighted result), and the `analysis`
   accessor passes the data's weight. `kruskal`, `mannwhitney`, `spearman`,
   `cluster()`, an unweighted `proportion_ci`, and the quality and theme tables
-  say `unweighted (the weight 'w' is not applied)`. `describe_variables()` adds
+  say `unweighted (the weight 'w' is not applied)`. A weighted
+  `proportion_ci` counted respondents who did not answer in its base, as a
+  share of 0, and took Kish's `n` over every row, so a routed or skipped
+  question got a diluted share and too narrow an interval (weights of 1 did
+  not give the unweighted result); its base is now those who answered, as
+  for the unweighted share and the weighted frequencies. `describe_variables()` adds
   `weighted_n_valid`; regression, NPS, TURF and a crosstab without a test name
   the weight. Apply weight's description no longer promises "every table and
   statistic downstream": its help lists what is weighted and what is not.
