@@ -159,6 +159,11 @@ q_sources = sg.MultiChoice(
 )
 ```
 
+Each variable is stored under its own name: `1` when its option is chosen,
+`0` when the question is answered and it is not. Pass `choices` (one per
+variable) to give the options codes of their own — `exclusive` then names
+those codes.
+
 ### Likert scale
 
 ```python
@@ -169,6 +174,11 @@ q_trust = sg.LikertScale(
     na_option=True,             # show a "Not applicable" choice
 )
 ```
+
+N/A stores the variable's `not_applicable` missing code (declare one with
+`missing=(sg.MissingValue(-1, "Not applicable", "not_applicable"),)`), or the
+text `"na"` when there is none. "Other (please specify)" and "None of the
+above" store codes too — see the wiki's Question Types page.
 
 ### Numeric input
 
@@ -346,9 +356,13 @@ quotas = [
 survey.deploy(backend="supabase", frontend="vercel", quota=quotas)
 ```
 
-When a respondent's submission matches a filled cell the backend
-returns `{"status": "quota_full"}`; the frontend shows the closed
-screen.
+When a respondent leaves a page that answered a quota variable, the
+survey runtime asks the backend's quota check about the answer; when the
+cell is full it ends the interview on the "quota full" screen (and
+follows `UIConfig.quota_full_redirect_url`, if set) without submitting
+anything. A backend that rejects the final submission with
+`{"status": "quota_full"}` gets the same screen. See the wiki's Quotas
+page for what each backend counts.
 
 ---
 
