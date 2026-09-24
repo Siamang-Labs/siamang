@@ -584,8 +584,13 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
         const answers = store.snapshot();
         const items = visibilityEngine.visibleItems(page, answers);
         for (const q of items) {
-          if (q.kind === "likert" && n <= q.points) {
-            store.set(q.id, n);
+          // The digit is the point's value: 1 … points, or 0 … points - 1 on
+          // a scale that starts at 0 (Likert's `start`).
+          const start = q.start === 0 ? 0 : 1;
+          if (q.kind === "likert" && n >= start && n < start + q.points) {
+            // As a click answers: saved, onAnswer scripts run, the question's
+            // error cleared.
+            nav.setAnswer(q.id, n);
             break;
           }
         }
