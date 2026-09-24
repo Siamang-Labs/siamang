@@ -1006,6 +1006,7 @@ function App() {
     const items = visibilityEngine.visibleItems(page, answers);
     const errs = {};
     const se = answers.__errors__ || {};
+    let scriptBlocked = false;
     for (const q of items) {
       const formatError = textFormatError(q, answers[q.id], uiTexts);
       if (q.required && !isAnswered(q, itemValue(q, answers))) {
@@ -1013,11 +1014,14 @@ function App() {
       } else if (formatError) {
         errs[q.id] = formatError;
       } else if (se[q.id]) {
-        // Script-written validation message blocks navigation too.
-        errs[q.id] = se[q.id];
+        // A script-written validation message blocks navigation too. It is
+        // shown straight from the store (scriptErrors), not copied here: the
+        // script that wrote it may clear it when another field is corrected,
+        // and a copy would linger on screen after it had.
+        scriptBlocked = true;
       }
     }
-    if (Object.keys(errs).length > 0) {
+    if (Object.keys(errs).length > 0 || scriptBlocked) {
       setErrors(errs);
       requestAnimationFrame(() => {
         const el = document.querySelector(".sd-question.has-error");

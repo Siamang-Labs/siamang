@@ -109,8 +109,9 @@ shuffle_pages = sg.Script.randomize_pages()
 ### `Script.validate_fields_match(field_a, field_b, message="Fields do not match.")`
 
 Validate that two answer fields hold the same value (e.g. email confirmation). Runs on
-`onAnswer`, scoped to `field_b`, and writes `message` to `answers.__errors__[field_b]`
-on mismatch.
+`onAnswer` for every answer (it has no target), so correcting **either** field
+re-checks the pair: on a mismatch it writes `message` to `answers.__errors__[field_b]`
+— shown under `field_b`, and Next is blocked — and once they match it removes it.
 
 ```python
 match_emails = sg.Script.validate_fields_match(

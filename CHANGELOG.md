@@ -257,6 +257,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   institution was set: the header was shown for them and always included the
   title. The payload now carries `showTitle` apart from `showHeader`, and the
   header leaves the title out when it is false.
+- `Script.validate_fields_match` re-checked only when the *second* field
+  changed, and never removed its message: correcting the first field left the
+  error in place and Next blocked. The script now has no target, so it runs on
+  every answer, sets the message on a mismatch and removes it on a match; and
+  the runtime shows a script-written message from the store instead of a copy
+  taken when Next was pressed, so a cleared message disappears at once.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
