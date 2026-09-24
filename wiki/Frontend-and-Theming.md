@@ -183,6 +183,23 @@ env = ClientEnv(survey_id="abc", backend="supabase", settings={"url": "...", "an
 service keys never reach the bundle. The `DeployPipeline` selects the matching
 template for you based on the backend name (see [[Deployment]]).
 
+### What the React runtime hands a transport
+
+`submit(answers)` receives one object. Every key is a **codebook variable** and every
+value one of its codes, plus `__status` (`"completed"`, `"screened_out"` or
+`"redirect"` when a terminal page ended the survey):
+
+| Question | Stored as |
+| :--- | :--- |
+| one variable (`SingleChoice`, `LikertScale`, `NumericInput`, `OpenText`, `Ranking`, array `MultiChoice`) | `{"<var>": code}` — a list of codes for `MultiChoice` / `Ranking` |
+| `Matrix` | one key per row variable, value = the column's code |
+| wide `MultiChoice` | one key per option variable: `1` chosen, `0` answered and not chosen |
+| `MaxDiff`, `Conjoint` | one key per task variable and the version variable |
+| "Other (please specify)" | the Other code in the variable, the text under `"<var>_other"` |
+
+The runtime's own state (`__pages__`, `__options__`, `__errors__`, `__timers__`) is
+never sent. See [[Question Types|Question-Types]] for the codes.
+
 ---
 
 ## `UIConfig` — the design system

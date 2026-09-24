@@ -220,6 +220,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they resume; responses already collected keep them. The Qualtrics importer
   sets `other_code` to the recode of the text-entry choice, which was shown
   twice before — as itself and as the runtime's own "Other".
+- A completed response carried the runtime's own state next to the answers:
+  `__pages__` (the whole questionnaire, in the respondent's order),
+  `__options__`, `__errors__`, `__timers__`. Besides bloating every row, a
+  reader that unwraps nested objects one level turned `__options__` into
+  columns named after the questions, over the answers. A submission now holds
+  the answers and `__status` only.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

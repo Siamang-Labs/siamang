@@ -244,6 +244,24 @@ function useSurveyNav(allPages, store, visibilityEngine) {
 
 /* ─── useSubmission ────────────────────────────────────────────────────── */
 
+/* What a submission sends: the answers — every key a codebook variable — and
+   the outcome (__status: completed, screened_out, redirect). The rest of the
+   store is the runtime's own state and never an answer: __pages__ is the whole
+   questionnaire in this respondent's order, __options__ every option list,
+   __errors__ and a timed question's __timers__ bookkeeping. They used to go
+   out with every completion, where a reader that unwraps nested objects
+   turned __options__ into columns named after the questions — over the
+   answers themselves. Keys a script cleared (undefined) are left out too. */
+function submittedAnswers(snapshot) {
+  const out = {};
+  for (const [key, value] of Object.entries(snapshot || {})) {
+    if (value === undefined) continue;
+    if (key.startsWith("__") && key !== "__status") continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 function useSubmission(store, clearSaved) {
   const [phase, setPhase] = useState("running"); // "running" | "completed" | "closed"
   // Why the survey closed on this respondent: "quota_full" (the sample is
@@ -263,7 +281,7 @@ function useSubmission(store, clearSaved) {
     try {
       ScriptRunner.runOnSubmit(store.snapshot());
       if (transport && typeof transport.submit === "function") {
-        const res = await transport.submit(store.snapshot());
+        const res = await transport.submit(submittedAnswers(store.snapshot()));
         if (res && res.status === "quota_full") {
           setSubmitting(false);
           setClosedReason("quota_full");
