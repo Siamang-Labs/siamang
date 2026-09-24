@@ -62,6 +62,9 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   const AUTO_SAVE_KEY = "siamang_answers_" + surveyId;
   const saveTimerRef = useRef(null);
   const savingTimerRef = useRef(null);
+  // Set once the interview has ended (submitted, or closed on a full quota):
+  // nothing is saved after that. See finish().
+  const endedRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [savedData, setSavedData] = useState(null);
 
@@ -81,6 +84,7 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   const doSave = useCallback((currentAnswers, currentPage) => {
     const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
     ric(() => {
+      if (endedRef.current) return;
       try {
         const cleanAnswers = {};
         for (const [k, v] of Object.entries(currentAnswers || {})) {
@@ -95,6 +99,7 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   }, [AUTO_SAVE_KEY, historyRef]);
 
   const scheduleSave = useCallback(() => {
+    if (endedRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     if (savingTimerRef.current) clearTimeout(savingTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -105,15 +110,29 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   }, [store, doSave, pageIdxRef]);
 
   const clearSaved = useCallback(() => {
-    localStorage.removeItem(AUTO_SAVE_KEY);
+    try { localStorage.removeItem(AUTO_SAVE_KEY); } catch (e) {}
     setSavedData(null);
   }, [AUTO_SAVE_KEY]);
+
+  /* The interview has ended: its autosave goes, and so does the save still
+     pending from the last answer — given, as it usually is, less than 2 s
+     before Next or Submit. Left to run, it wrote the finished interview back
+     after the thank-you or quota-full screen, and the next visit offered to
+     resume it (and a platform transport that reads the autosave for partial
+     responses posted it as one). */
+  const finish = useCallback(() => {
+    endedRef.current = true;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (savingTimerRef.current) clearTimeout(savingTimerRef.current);
+    setSaving(false);
+    clearSaved();
+  }, [clearSaved]);
 
   const saveNow = useCallback(() => {
     doSave(store.snapshot(), pageIdxRef.current);
   }, [store, doSave, pageIdxRef]);
 
-  return { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow };
+  return { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish };
 }
 
 /* ─── useSurveyNav ─────────────────────────────────────────────────────── */
@@ -480,7 +499,7 @@ function submittedAnswers(snapshot) {
   return out;
 }
 
-function useSubmission(store, clearSaved, surveyId) {
+function useSubmission(store, finishSaved, surveyId) {
   const [phase, setPhase] = useState("running"); // "running" | "completed" | "closed"
   // Why the survey closed on this respondent: "quota_full" (the sample is
   // complete) or "error" (the response could not be saved); null otherwise.
@@ -501,6 +520,9 @@ function useSubmission(store, clearSaved, surveyId) {
       if (transport && typeof transport.submit === "function") {
         const res = await transport.submit(submittedAnswers(store.snapshot()));
         if (res && res.status === "quota_full") {
+          // Ended like a full quota found on leaving a page.
+          finishSaved();
+          forgetInterview(surveyId);
           setSubmitting(false);
           setClosedReason("quota_full");
           setPhase("closed");
@@ -513,7 +535,7 @@ function useSubmission(store, clearSaved, surveyId) {
         }
       }
       setSubmittedAt(stamp.toLocaleString());
-      clearSaved();
+      finishSaved();
       forgetInterview(surveyId);
       setSubmitAttempts(0);
       setSubmitting(false);
@@ -528,7 +550,7 @@ function useSubmission(store, clearSaved, surveyId) {
         setPhase("closed");
       }
     }
-  }, [store, clearSaved, submitAttempts, surveyId]);
+  }, [store, finishSaved, submitAttempts, surveyId]);
 
   return { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
 }

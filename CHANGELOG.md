@@ -532,6 +532,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `store_response` counts a completed response — anything but
   `__status: "screened_out"` — in every cell its answers fill, a list answer
   in the cell of each value it holds, as Studio counts them.
+- The autosave of an interview that had ended was written back after it
+  ended. It is written 2 s after the last answer, and ending the interview
+  (Submit, a full quota on leaving a page or in the reply to a submission)
+  removed the saved answers without cancelling the save still pending from an
+  answer given just before — the usual case. The thank-you or quota-full
+  screen was followed by a fresh `siamang_answers_<survey_id>`, the next visit
+  within a day offered to resume the finished interview (a second completed
+  response when accepted), and Studio's transport, which reads that key for
+  partial responses, posted it as one. An ended interview now cancels the
+  pending save and writes none afterwards; a submission refused as a full
+  quota also forgets the saved answers and the interview id, as a full quota
+  found on leaving a page does.
 
 ## [0.6.0] — 2026-08-30
 
