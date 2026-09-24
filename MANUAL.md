@@ -192,7 +192,10 @@ q_age = sg.NumericInput(
 ```
 
 If `age.valid_range=(min, max)` is set, the React runtime forwards it
-as the input's `min`/`max`.
+as the input's `min`/`max` and enforces it: an answer outside the range
+shows "Minimum value is …" / "Maximum value is …" and Next waits until it
+is corrected. A `MultiChoice`'s `min_answers` is enforced the same way
+once the question is answered ("Select at least N more").
 
 ### Open text
 
@@ -378,8 +381,8 @@ custom = sg.Script(
     name="log_dwell",
     trigger="onPageExit",
     code="""
-        const ms = Date.now() - (context.entered ?? Date.now());
-        api.post('/dwell', { page: context.page_name, ms });
+        const ms = utils.now() - context.pageEnteredAt;
+        api.post('/dwell', { page: context.page, ms });
     """,
 )
 
@@ -391,8 +394,14 @@ survey = sg.Questionnaire(
 
 Triggers: `onInit`, `onPageEnter`, `onPageExit`, `onQuestionShow`,
 `onAnswer`, `onSubmit`, `onRandomize`. Each snippet sees
-`answers`, `utils` (shuffle, sample, clamp, now, formatDate),
-`api` (get, post), and `context`.
+`answers`, `utils` (shuffle, sample and shuffleOptions — each with an
+optional seed — clamp, now, formatDate), `api` (get, post), and `context`:
+the script's own static context plus `trigger`, `startedAt`,
+`respondentId`, `surveyId`, `page`, `pageEnteredAt` and, for a question
+trigger, `question`. Scripts run as part of the survey page; `sandbox`
+is recorded but not applied. A seeded `randomize_options` gives each
+respondent their own stable order (seed + respondent id); a timed
+question's timer is cancelled when its page is left.
 
 ---
 
@@ -605,13 +614,13 @@ ui = UIConfig(
     primary_color="#a8324b",
     accent_color="#1f3a93",
     font_pair="mixed",          # serif headings + sans body
-    progress_style="dots",
+    progress_style="dots",      # the page dots only ("bar", "both")
     default_theme="system",     # what the respondent starts on
     allow_theme_switch=False,   # …and stays on: no light/dark button
     require_access_code=True,
     access_codes=["wave1-001", "wave1-002"],
     enable_analytics=True,      # Vercel Analytics if frontend=="vercel"
-    estimated_minutes=8,
+    estimated_minutes=8,        # "About 8 minutes" under the first page's title
     privacy_url="https://example.com/privacy",
     contact_email="research@example.com",
     ethics_statement="IRB #2026-…",
@@ -619,6 +628,11 @@ ui = UIConfig(
 
 survey.deploy(backend="supabase", frontend="vercel", ui=ui)
 ```
+
+Every fixed phrase of the runtime has a `UIConfig` field too (`next_button_text`,
+`welcome_text`, `section_text="Section {n} of {total}"`, `other_text`,
+`quota_full_title`, …; `None` keeps the English) — the list with defaults is in the
+wiki's *Frontend and Theming* page.
 
 Full field reference: [`docs/reference/frontend.md#uiconfig`](docs/reference/frontend.md#uiconfig).
 
