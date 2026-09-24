@@ -28,6 +28,12 @@ would produce a broken survey:
   another.
 - **Unknown `skip_to` targets** — a question may only skip to a known question
   ID or page name.
+- **Other and None codes** — an `other_code` / `none_code` must be a number or
+  a string; a "None of the above" code may not be one of the question's answers
+  or its Other code; a question whose choices already use the default Other code
+  (`-66`) must name its own `other_code`; and the Other text key
+  (`<variable>_other`) may not be a variable or an answer key of any question.
+  See [[Question Types|Question-Types#other-none-and-na-codes]].
 - **Page integrity** (pages mode): no empty/duplicate page names, every
   `show_if`/`hide_if`/`next_if` expression references only known variables and
   is itself evaluable, all navigation targets exist, every page is reachable
@@ -96,8 +102,8 @@ class LintWarning:
 
 ### What `basic` checks
 
-Every run of `lint()` — including the default `level="basic"` — applies eleven
-rules. Four are structural:
+Every run of `lint()` — including the default `level="basic"` — applies the
+rules below. Four are structural:
 
 | Code | Severity | Meaning |
 | :--- | :--- | :--- |
@@ -106,7 +112,7 @@ rules. Four are structural:
 | `REDUNDANT_NAVIGATION` | warning | `default_next` duplicates the implicit next page. |
 | `MISSING_NAVIGATION` | warning | Any page other than the last one has no outgoing navigation edges. |
 
-Seven more check codebook and logic consistency — a questionnaire that compiles
+The others check codebook and logic consistency — a questionnaire that compiles
 and runs but silently collects the wrong thing. All of them are warnings at
 every level:
 
@@ -118,17 +124,19 @@ every level:
 | `OPTION_CODE_WITHOUT_LABEL` | warning | An `Option.code` has no matching value label on the bound variable. |
 | `LIKERT_POINTS_LABEL_MISMATCH` | warning | A `LikertScale`'s `points` disagrees with the number of labelled codes. |
 | `MISSING_CODE_NOT_IN_LABELS` | warning | A declared missing-value code is not among the variable's value labels. |
+| `ADDED_CODE_WITHOUT_LABEL` | warning | A question stores "Other (please specify)" or "None of the above" as a code (`metadata["other_code"]`, default `-66`; `metadata["none_code"]`, default `-77`) that its variable has no value label for — the answer would arrive with no text. |
 | `RANGE_LABEL_MISMATCH` | warning | A variable labels values that fall outside its `valid_range`. |
 
 ### Extra `strict` checks
 
-`level="strict"` adds seven question-level, script and registry checks:
+`level="strict"` adds question-level, script and registry checks:
 
 | Code | Severity | Meaning |
 | :--- | :--- | :--- |
 | `REQUIRED_CONDITIONAL` | warning | A required question also has conditional visibility. |
 | `INCOMPATIBLE_QUESTION_SCALE` | error | `NumericInput` not on interval/ratio, or `LikertScale` not on ordinal. |
 | `CATEGORICAL_WITHOUT_LABELS` | error | A `SingleChoice`/`MultiChoice` variable has no value labels. |
+| `NA_STORED_AS_TEXT` | warning | A `LikertScale` or `Matrix` offers "Not applicable" but its variable declares no missing value of kind `not_applicable`, so N/A is stored as the text `"na"`; declare one (and label it) to store its code. |
 | `SCRIPT_STALE_QUESTION_ID` | warning | A custom script still names a question whose answer is stored under a different key (its id is not its variable) as a string or a bare identifier — outside the `answers[…]` / `__errors__[…]` / `__options__[…]` / `__timers__[…]` accesses the compiler translates. Comments, and strings that merely mention the id, do not count. |
 | `SCRIPT_TARGET_IS_A_PAGE` | warning | An `onQuestionShow` / `onAnswer` script targets a page name. The runtime dispatches those triggers with a question's key, so the script would never run. |
 | `SCRIPT_TARGET_IS_A_QUESTION` | warning | An `onPageEnter` / `onPageExit` script targets a question. The runtime dispatches those triggers with a page's name, so the script would never run. |
