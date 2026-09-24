@@ -133,9 +133,10 @@ data = simulate_survey(survey, n=500, seed=42, quotas=options["quota"])
   the data depends on order, and option shuffles are not drawn at all. As in
   the runtime, a shuffling block moves a nested block as one piece, in its
   own order.
-- **Quotas** (`simulate_survey(..., quotas=…)` only) — leaving a page that answered a quota's variable, a respondent
-  whose answer falls in a full cell ends there (the runtime's "quota full"
-  screen, not a complete); a multiple-choice answer meets every cell it names.
+- **Quotas** (given to `simulate_survey`) — leaving a page that answered a
+  quota's variable, a respondent whose answer falls in a full cell ends there
+  (the runtime's "quota full" screen, not a complete); a multiple-choice answer
+  meets every cell it names.
   Only completes fill a cell — a screen-out never does — so the quota's effect
   on the sample shows: once ten owners have completed, the eleventh stops at
   the screener.

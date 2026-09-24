@@ -32,9 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The respondent's theme is remembered per survey.** The key was the constant
   `siamang_theme`, and `localStorage` is per origin, so every survey served from
   one host shared it: a respondent who chose dark in one study arrived in the
-  next one dark. It is now `siamang_theme_<survey id>`, the way the saved answers
-  beside it have always been keyed, and reading and writing it are wrapped —
-  storage does not merely come back empty in a private window, it throws.
+  next one dark. It is now `siamang_theme_<survey id>`, keyed like the saved
+  answers beside it by the transport's `survey_id` (the id the runtime read
+  before was never set; see the storage entry under *Fixed*), and reading and
+  writing it are wrapped: storage does not merely come back empty in a private
+  window, it throws.
 
 - **`siamang.reporting.ReportTheme`** and a real HTML document. `Report.to_html()`
   returned a bare `markdown.markdown()` fragment — no `<head>`, no charset, no
@@ -105,6 +107,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   variable, whose values are mutually exclusive; on weighted data the test uses
   Kish's effective base, and a column under thirty respondents is not tested at
   all. `data.tables.banner` still gives the same numbers in tidy form.
+- **`siamang.model`** — the questionnaire as a JSON document.
+  `to_document(survey, options)` serializes every core object (`Variable`,
+  all seven question types, `Option`, `Media`, `Block`, `Page`,
+  `Expression`, `Script`, `Quota`, `UIConfig`, compiler options, deadline)
+  into a plain dict; `from_document(doc)` rebuilds them. The round trip is
+  lossless: the rebuilt survey compiles to the same `SurveySchema`, and
+  re-serializing it returns the same document. Factory-made scripts are
+  stored by name and parameters; codebook codes keep their type and order.
+- **JSON Schema** for the document format
+  (`siamang/schemas/questionnaire-1.0.json`, generated from the dataclasses
+  by `scripts/gen_document_schema.py`) and `validate_document()` on top of
+  it. `jsonschema` is a new dependency.
+- **`siamang model import`** writes a module's `survey` + `options` as a
+  document; **`siamang model check`** validates a document the way
+  `siamang validate` validates a module.
+- **`siamang.codegen`** — `generate_questionnaire(document)` renders a
+  document as the Python file a researcher would have written: variables,
+  questions, pages (with the page factories), scripts, `survey`, `options`,
+  each object marked with `# studio: …`. Output is deterministic, laid out
+  like `ruff format` and passed through it when ruff is installed
+  (`pip install "siamang[codegen]"`), and converts back to the same
+  document with `siamang.model.to_document`. CLI: **`siamang codegen
+  questionnaire.json [-o questionnaire.py]`**.
+- **Pipeline helpers in `siamang.data`** — `respondents` (`dedup_responses`,
+  `completion_time`, `partial_flag`, `speeders`), `weights`
+  (`cell_weights`, `rake_weights` with an optional `cap`,
+  `effective_sample_size`) and `stats` (`frequencies`, `crosstab`, `chi2`
+  on a bare frame). Plain pandas functions that combine with
+  `SurveyData.with_frame`; the first two sets were previously only
+  available in the Siamang Cloud SDK.
+- **`siamang.flow`** — analysis flows. A flow document (`flow-1.0.json`
+  schema) is a graph of typed nodes from a YAML **node registry**
+  (30 nodes: sources, prepare, analyze, visualize, output; `siamang flow
+  nodes`). `check_flow` validates it against the registry and the
+  questionnaire's codebook; `FlowRunner` executes it in-process on a
+  `SurveyData` or a snapshot, with `live.capture()` collecting the tiles
+  `output.live_tile` nodes publish; `generate_flow` renders the script a
+  researcher would have written, with a `--data` switch between the
+  platform database and a local snapshot. Runner and generator use the
+  node templates verbatim, so the script reproduces the runner's report.
+  `PyYAML` is a new dependency. CLI: **`siamang flow check | run | nodes`**
+  and **`siamang codegen <name>.flow.json --questionnaire …`**.
+- `SurveyData.filter(expression)` keeps the rows matching a questionnaire
+  condition; `SurveyTable.stats` exposes a table's statistics as a dict;
+  `Report.add` accepts a statistics mapping.
+- **Snapshots** — `siamang.io.read_snapshot` / `write_snapshot`: a data
+  file (Parquet, CSV, Excel, SPSS, Stata) plus `<name>.dictionary.json`,
+  read back into a `SurveyData` with the codebook, embedded metadata or the
+  questionnaire's variables. Parquet via the new `siamang[parquet]` extra;
+  `SurveyDataReader` accepts `.parquet`.
 
 ### Fixed
 
@@ -470,57 +522,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `store_response` counts a completed response — anything but
   `__status: "screened_out"` — in every cell its answers fill, a list answer
   in the cell of each value it holds, as Studio counts them.
-
-- **`siamang.model`** — the questionnaire as a JSON document.
-  `to_document(survey, options)` serializes every core object (`Variable`,
-  all seven question types, `Option`, `Media`, `Block`, `Page`,
-  `Expression`, `Script`, `Quota`, `UIConfig`, compiler options, deadline)
-  into a plain dict; `from_document(doc)` rebuilds them. The round trip is
-  lossless: the rebuilt survey compiles to the same `SurveySchema`, and
-  re-serializing it returns the same document. Factory-made scripts are
-  stored by name and parameters; codebook codes keep their type and order.
-- **JSON Schema** for the document format
-  (`siamang/schemas/questionnaire-1.0.json`, generated from the dataclasses
-  by `scripts/gen_document_schema.py`) and `validate_document()` on top of
-  it. `jsonschema` is a new dependency.
-- **`siamang model import`** writes a module's `survey` + `options` as a
-  document; **`siamang model check`** validates a document the way
-  `siamang validate` validates a module.
-- **`siamang.codegen`** — `generate_questionnaire(document)` renders a
-  document as the Python file a researcher would have written: variables,
-  questions, pages (with the page factories), scripts, `survey`, `options`,
-  each object marked with `# studio: …`. Output is deterministic, laid out
-  like `ruff format` and passed through it when ruff is installed
-  (`pip install "siamang[codegen]"`), and converts back to the same
-  document with `siamang.model.to_document`. CLI: **`siamang codegen
-  questionnaire.json [-o questionnaire.py]`**.
-- **Pipeline helpers in `siamang.data`** — `respondents` (`dedup_responses`,
-  `completion_time`, `partial_flag`, `speeders`), `weights`
-  (`cell_weights`, `rake_weights` with an optional `cap`,
-  `effective_sample_size`) and `stats` (`frequencies`, `crosstab`, `chi2`
-  on a bare frame). Plain pandas functions that combine with
-  `SurveyData.with_frame`; the first two sets were previously only
-  available in the Siamang Cloud SDK.
-- **`siamang.flow`** — analysis flows. A flow document (`flow-1.0.json`
-  schema) is a graph of typed nodes from a YAML **node registry**
-  (30 nodes: sources, prepare, analyze, visualize, output; `siamang flow
-  nodes`). `check_flow` validates it against the registry and the
-  questionnaire's codebook; `FlowRunner` executes it in-process on a
-  `SurveyData` or a snapshot, with `live.capture()` collecting the tiles
-  `output.live_tile` nodes publish; `generate_flow` renders the script a
-  researcher would have written, with a `--data` switch between the
-  platform database and a local snapshot. Runner and generator use the
-  node templates verbatim, so the script reproduces the runner's report.
-  `PyYAML` is a new dependency. CLI: **`siamang flow check | run | nodes`**
-  and **`siamang codegen <name>.flow.json --questionnaire …`**.
-- `SurveyData.filter(expression)` keeps the rows matching a questionnaire
-  condition; `SurveyTable.stats` exposes a table's statistics as a dict;
-  `Report.add` accepts a statistics mapping.
-- **Snapshots** — `siamang.io.read_snapshot` / `write_snapshot`: a data
-  file (Parquet, CSV, Excel, SPSS, Stata) plus `<name>.dictionary.json`,
-  read back into a `SurveyData` with the codebook, embedded metadata or the
-  questionnaire's variables. Parquet via the new `siamang[parquet]` extra;
-  `SurveyDataReader` accepts `.parquet`.
 
 ## [0.6.0] — 2026-08-30
 
