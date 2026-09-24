@@ -249,6 +249,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now shown above the questions on every page. It is HTML, inserted as the
   author wrote it, with piped answers escaped — as documented; a question's
   text and hint stay plain text.
+- The title and body of a terminal page (`final`, `disqualification`,
+  `redirect`) were shown as written: `{answer:x}` / `{label:x}` stayed
+  literal braces on exactly the page that thanks a respondent by name. They
+  are piped now, the body's values escaped, as on every other page.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
