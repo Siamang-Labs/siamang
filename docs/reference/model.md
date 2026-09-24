@@ -140,7 +140,9 @@ Executes a questionnaire module (like `siamang validate` does) and returns
 
 Converts a Qualtrics Survey Format export (the JSON of "Export survey") into
 a document without touching Qualtrics: questions, choices with recodes,
-"other" entries, forced response, randomization, display logic on answers,
+"other" entries (the text-entry choice stays a choice and becomes the Other
+option: `other_specify` with `metadata.other_code` set to its recode),
+forced response, randomization, display logic on answers,
 page breaks, the block order of the survey flow, branches (page `show_if`)
 and end-of-survey elements inside branches (disqualification pages).
 `QsfImportResult(document, warnings, skipped)`: `skipped` lists, per

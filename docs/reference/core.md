@@ -198,12 +198,12 @@ The base `Question` class defines the properties shared by all question types. I
 | `hide_if` | `Expression \| str \| None` | `None` | An expression determining when this question should be hidden. |
 | `skip_to` | `str \| None` | `None` | The ID of a target page or question to jump to if this question is answered. |
 | `randomize` | `bool` | `False` | If `True`, the display order of the answer choices will be randomized. |
-| `other_specify` | `bool` | `False` | If `True`, adds an "Other (please specify)" choice with a text entry field. |
+| `other_specify` | `bool` | `False` | `SingleChoice` / `MultiChoice`: if `True`, adds an "Other (please specify)" choice with a text entry field. The choice stores `metadata["other_code"]` (default `-66`, `DEFAULT_OTHER_CODE`) like any other code; the typed text is stored under `<variable>_other` (a wide `MultiChoice`: `<name or id>_other`) while Other is chosen. An `other_code` equal to one of the question's choices makes that choice the Other option. |
 | `tag` | `str \| list[str] \| None` | `None` | Optional tag or list of tags for categorization and filtering. |
 | `id` | `str \| None` | `None` | Explicit unique identifier for the question. If omitted, it is automatically derived from the bound variable name. |
 | `name` | `str \| None` | `None` | The key the answer is stored under. A question that writes one variable stores its answer under that variable's name, and a `name` that differs from it is a `validate()` error; for `Matrix`, wide-mode `MultiChoice`, `MaxDiff` and `Conjoint`, which write several variables, each variable is stored under its own name and `name` (default: the question ID) is only the item's handle — what a script targets and a validation message is keyed by. |
 | `media` | `Media \| list[Media] \| None` | `None` | A `Media` instance or list of media attachments (images, videos, or audio) to display with the question. |
-| `metadata` | `dict[str, Any]` | `{}` | Extensible dictionary for custom parameters (e.g., `{"other_placeholder": "Specify..."}`). |
+| `metadata` | `dict[str, Any]` | `{}` | Extensible dictionary for custom parameters. The runtime reads `other_code`, `other_label`, `other_placeholder` and `none_code` (e.g., `{"other_code": 96, "other_placeholder": "Specify..."}`). |
 
 ---
 
@@ -216,7 +216,7 @@ The `SingleChoice` question presents a list of mutually exclusive options.
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `display` | `str` | `"radio"` | The UI representation. Allowed values are: `"radio"`, `"dropdown"`, or `"buttons"` (segmented button group). |
-| `none_of_above` | `bool` | `False` | If `True`, appends a "None of the above" option that deselects other choices. |
+| `none_of_above` | `bool` | `False` | If `True`, appends a "None of the above" option that deselects other choices. It stores `metadata["none_code"]` (default `-77`, `DEFAULT_NONE_CODE`), which must differ from every choice's code and from the Other code. |
 | `choices` | `list[Option] \| None` | `None` | Explicit list of `Option` instances. If `None`, choices are automatically populated from the bound variable's `labels`. |
 
 ---
@@ -248,7 +248,7 @@ The `LikertScale` question presents a symmetric, horizontal rating scale represe
 | `points` | `int` | `5` | The number of points on the scale. Must be greater than or equal to 2. |
 | `left_label` | `str \| None` | `None` | Text label displayed on the far-left end of the scale (e.g., `"Strongly disagree"`). |
 | `right_label` | `str \| None` | `None` | Text label displayed on the far-right end of the scale (e.g., `"Strongly agree"`). |
-| `na_option` | `bool \| str` | `False` | If `True`, adds a "Not applicable" option. If a string is provided, that string is used as the option's label. |
+| `na_option` | `bool \| str` | `False` | If `True`, adds a "Not applicable" option. If a string is provided, that string is used as the option's label. It stores the variable's first missing value of kind `not_applicable` (`na_code(variable)`), or the text `"na"` when the codebook declares none. |
 
 ---
 
@@ -296,7 +296,7 @@ A cell stores a code of the row variables' codebook, never the column's position
 `Matrix.columns()` returns the `(code, header)` pairs: a header takes the code of the
 value label with the same text, else of the label in the same position when the
 counts match, else 1, 2, 3 … in column order.
-| `na_option` | `bool \| str` | `False` | If `True`, appends a "Not applicable" column. If a string is provided, that string is used as the column header. |
+| `na_option` | `bool \| str` | `False` | If `True`, appends a "Not applicable" column. If a string is provided, that string is used as the column header. A cell stores its row variable's `not_applicable` missing code, or the text `"na"` when the codebook declares none. |
 
 ---
 

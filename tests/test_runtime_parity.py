@@ -121,7 +121,8 @@ class TestChoicePayload:
         )
         payload = compile_react_payload(survey)
         options = _page_by_name(payload, "p")["items"][0]["options"]
-        assert options[-1]["code"] == "__none__"
+        # A code of the variable (DEFAULT_NONE_CODE), not a sentinel string.
+        assert options[-1]["code"] == sg.core.question.DEFAULT_NONE_CODE
         assert options[-1]["noneOfAbove"] is True
         assert len(options) == 3
 

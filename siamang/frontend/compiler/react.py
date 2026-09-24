@@ -42,6 +42,10 @@ from siamang.core.question import (
     Ranking,
     SingleChoice,
     answer_key_aliases,
+    na_code,
+    none_code,
+    other_code,
+    other_text_key,
     question_fallback_id,
     question_output_name,
 )
@@ -314,10 +318,10 @@ def _compile_question(
         kind = "dropdown" if question.display == "dropdown" else "single"
         options = _options_payload(question.var, question.choices)
         if question.none_of_above:
-            # Sentinel code mirrors the runtime's "__other__" convention.
+            # A code of the variable (none_code), like every other answer.
             options = [
                 *options,
-                {"code": "__none__", "label": "None of the above", "noneOfAbove": True},
+                {"code": none_code(question), "label": "None of the above", "noneOfAbove": True},
             ]
         payload = {
             **base,
@@ -326,12 +330,7 @@ def _compile_question(
             "options": options,
         }
         if question.other_specify:
-            payload["otherSpecify"] = True
-            other_meta = question.metadata or {}
-            if other_meta.get("other_label"):
-                payload["otherLabel"] = other_meta["other_label"]
-            if other_meta.get("other_placeholder"):
-                payload["otherPlaceholder"] = other_meta["other_placeholder"]
+            payload.update(_other_payload(question))
         return payload
     if isinstance(question, MultiChoice):
         if question.mode == "wide":
@@ -350,15 +349,10 @@ def _compile_question(
         if question.exclusive:
             payload["exclusive"] = list(question.exclusive)
         if question.other_specify:
-            payload["otherSpecify"] = True
-            other_meta = question.metadata or {}
-            if other_meta.get("other_label"):
-                payload["otherLabel"] = other_meta["other_label"]
-            if other_meta.get("other_placeholder"):
-                payload["otherPlaceholder"] = other_meta["other_placeholder"]
+            payload.update(_other_payload(question))
         return payload
     if isinstance(question, LikertScale):
-        return {
+        payload = {
             **base,
             "kind": "likert",
             "points": question.points,
@@ -370,6 +364,11 @@ def _compile_question(
             if isinstance(question.na_option, str)
             else ("Not applicable" if question.na_option else None),
         }
+        if question.na_option and na_code(question.var) is not None:
+            # The codebook's not_applicable code; without one the runtime
+            # stores "na" (see na_code).
+            payload["naCode"] = na_code(question.var)
+        return payload
     if isinstance(question, NumericInput):
         payload = {**base, "kind": "numeric", "display": question.display}
         if question.unit:
@@ -402,6 +401,11 @@ def _compile_question(
             ]
         else:
             rows = [{"id": v.name, "label": v.label or v.name} for v in question.var]
+        if question.na_option:
+            # Each row stores its own variable's not_applicable code, or "na".
+            for row, variable in zip(rows, question.var, strict=False):
+                if na_code(variable) is not None:
+                    row["naCode"] = na_code(variable)
         payload = {
             **base,
             "kind": "matrix",
@@ -484,6 +488,25 @@ def _options_payload(var: Any, choices: list[Option] | None) -> list[dict[str, A
     primary = variables[0]
     labels = getattr(primary, "labels", {}) or {}
     return [{"code": code, "label": label} for code, label in labels.items()]
+
+
+def _other_payload(question: SingleChoice | MultiChoice) -> dict[str, Any]:
+    """ "Other (please specify)": the code the choice stores (``other_code``)
+    and the key its text goes to (``other_text_key``). When the code is one of
+    the question's own options, that option is the Other one and the runtime
+    adds none of its own."""
+
+    payload: dict[str, Any] = {
+        "otherSpecify": True,
+        "otherCode": other_code(question),
+        "otherKey": other_text_key(question),
+    }
+    other_meta = question.metadata or {}
+    if other_meta.get("other_label"):
+        payload["otherLabel"] = other_meta["other_label"]
+    if other_meta.get("other_placeholder"):
+        payload["otherPlaceholder"] = other_meta["other_placeholder"]
+    return payload
 
 
 def _wide_options(question: MultiChoice) -> list[dict[str, Any]]:

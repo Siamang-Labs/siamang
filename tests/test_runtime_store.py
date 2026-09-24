@@ -171,3 +171,37 @@ def test_a_wide_answer_saved_as_variable_names_is_upgraded():
         "b_1": 1,
         "b_2": 0,
     }
+
+
+_FRUIT = {
+    "id": "fruit",
+    "kind": "single",
+    "options": [{"code": 1, "label": "Apple"}],
+    "otherSpecify": True,
+    "otherCode": -66,
+    "otherKey": "fruit_other",
+}
+
+
+def test_other_is_a_code_with_its_text_beside_it():
+    result = run_js(
+        f"""(() => {{
+          const q = {_js(_FRUIT)};
+          const chosen = answerUpdates(q, {{ code: -66, text: "Kiwi" }});
+          const apple = answerUpdates(q, 1);
+          return {{ chosen, apple, appleHasText: "fruit_other" in apple &&
+                   apple.fruit_other !== undefined, value: itemValue(q, chosen) }};
+        }})()"""
+    )
+    assert result["chosen"] == {"fruit": -66, "fruit_other": "Kiwi"}
+    assert result["apple"] == {"fruit": 1}
+    assert result["appleHasText"] is False
+    assert result["value"] == {"code": -66, "text": "Kiwi"}
+
+
+def test_a_multiple_answer_with_other_keeps_a_list_and_the_text():
+    q = {**_FRUIT, "id": "snacks", "kind": "multi", "otherKey": "snacks_other"}
+    assert run_js(f"answerUpdates({_js(q)}, {{ selected: [1, -66], otherText: 'Salsa' }})") == {
+        "snacks": [1, -66],
+        "snacks_other": "Salsa",
+    }

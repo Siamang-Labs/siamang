@@ -46,12 +46,12 @@ class Question:
 | `hide_if` | `Expression \| str \| None` | `None` | Hide when this evaluates true. |
 | `skip_to` | `str \| None` | `None` | Jump to a target page/question id after answering. |
 | `randomize` | `bool` | `False` | Shuffle the answer choices. |
-| `other_specify` | `bool` | `False` | Add an "Other (please specify)" free-text choice. |
+| `other_specify` | `bool` | `False` | `SingleChoice` / `MultiChoice`: add an "Other (please specify)" choice with a text box — see [Other, None and N/A codes](#other-none-and-na-codes). |
 | `tag` | `str \| list[str] \| None` | `None` | Tag(s) for categorization/filtering. |
 | `id` | `str \| None` | `None` | Explicit question id; defaults to the variable name — except for `Matrix` and wide-mode `MultiChoice`, where the fallback is `matrix_<first var>` / `multi_<first var>`. |
 | `name` | `str \| None` | `None` | The key the answer is stored under. A question that writes one variable stores its answer under that variable's name, with or without a `name` — a `name` that differs is a `validate()` error. For `Matrix`, wide-mode `MultiChoice`, `MaxDiff` and `Conjoint`, which write several variables, each variable is stored under its own name and `name` (default: the id) is only the item's handle — what a script targets and a validation message is keyed by. |
 | `media` | `Media \| list[Media] \| None` | `None` | Image/video/audio attached to the prompt. |
-| `metadata` | `dict[str, Any]` | `{}` | Free-form extra parameters. |
+| `metadata` | `dict[str, Any]` | `{}` | Free-form extra parameters. The runtime reads `other_code`, `other_label`, `other_placeholder` and `none_code` (below). |
 
 `show_if` / `hide_if` / `skip_to` are detailed in
 [[Visibility and Branching|Visibility-and-Branching]]; `media` is covered under
@@ -86,7 +86,7 @@ class SingleChoice(Question):
 | Field | Default | Description |
 | :--- | :--- | :--- |
 | `display` | `"radio"` | UI style: `"radio"`, `"dropdown"`, or `"buttons"` (segmented). |
-| `none_of_above` | `False` | Append a "None of the above" option that deselects others; it is stored with the code `"__none__"`. |
+| `none_of_above` | `False` | Append a "None of the above" option; it stores the code `metadata["none_code"]`, default `-77` (see [below](#other-none-and-na-codes)). |
 | `choices` | `None` | Explicit `Option` list; if `None`, derived from the variable's `labels`. |
 
 `var` must be a single `Variable`. When `choices` is omitted, the options come from
@@ -169,6 +169,57 @@ q_sources = sg.MultiChoice(
 
 ---
 
+## Other, None and N/A codes
+
+"Other (please specify)", a `SingleChoice`'s "None of the above" and a scale's or a
+matrix's "Not applicable" are answers like any other, so they store **codes of the
+question's variable** — never a sentinel string in a column of numbers:
+
+| Answer | Code stored | Set by |
+| :--- | :--- | :--- |
+| Other (please specify) | `-66` (`siamang.core.question.DEFAULT_OTHER_CODE`) | `metadata={"other_code": …}` |
+| None of the above (`SingleChoice`) | `-77` (`DEFAULT_NONE_CODE`) | `metadata={"none_code": …}` |
+| Not applicable (`LikertScale`, `Matrix`) | the variable's first `missing` value of kind `not_applicable`; the text `"na"` when there is none | the codebook |
+
+The **text typed into Other** is stored apart, under `<variable>_other` (for a
+wide `MultiChoice`, `<name or id>_other`): present — `""` if nothing was typed —
+exactly while Other is chosen, and removed when the respondent picks something
+else. `{label:x}` of an Other answer pipes the text typed.
+
+```python
+fruit = sg.Variable("fruit", scale="nominal",
+                    labels={1: "Apple", 2: "Pear", 96: "Other", 97: "None of these"})
+q_fruit = sg.SingleChoice("Favourite fruit?", var=fruit,
+                          choices=[sg.Option(1, "Apple"), sg.Option(2, "Pear")],
+                          other_specify=True, none_of_above=True,
+                          metadata={"other_code": 96, "none_code": 97})
+# answers: {"fruit": 96, "fruit_other": "Kiwi"}  or  {"fruit": 97}
+```
+
+`other_code` may name one of the question's own choices: that choice then *is* the
+Other option (it gets the text box, and no second "Other" is added). Label every
+added code in the codebook — `lint()` reports `ADDED_CODE_WITHOUT_LABEL` for an
+unlabelled Other or None code and `NA_STORED_AS_TEXT` for an N/A with no
+`not_applicable` code (strict lint). `validate()` refuses a code that is not a number or a string,
+a "None of the above" whose code is already an answer's, a question whose choices
+already use the *default* Other code, and an Other text key that is another
+question's variable or key. A condition may read the Other text
+(`fruit_other != ""`). N/A is declared as a missing value so the analysis leaves it
+out of means:
+
+```python
+sat = sg.Variable("sat", scale="ordinal",
+                  labels={1: "1", 2: "2", 3: "3", 4: "4", 5: "5", -1: "Not applicable"},
+                  missing=(sg.MissingValue(-1, "Not applicable", "not_applicable"),))
+```
+
+Before these codes existed the runtime stored `{"code": "__other__", "text": …}`
+for a single answer, `{"selected": […, "__other__"], "otherText": …}` for a
+multiple one, `"__none__"` and `"na"`; responses collected then keep those values,
+and answers a respondent saved in the browser are converted when they resume.
+
+---
+
 ## `LikertScale`
 
 A symmetric ordinal rating scale.
@@ -187,7 +238,7 @@ class LikertScale(Question):
 | `points` | `5` | Number of scale points. Must be `>= 2`. |
 | `left_label` | `None` | Anchor label on the far left (e.g. `"Strongly disagree"`). |
 | `right_label` | `None` | Anchor label on the far right (e.g. `"Strongly agree"`). |
-| `na_option` | `False` | `True` adds a "Not applicable" choice; a string sets its label. An NA answer is stored as the value `"na"`. |
+| `na_option` | `False` | `True` adds a "Not applicable" choice; a string sets its label. It stores the variable's `not_applicable` missing code, or the text `"na"` when the codebook declares none (see [below](#other-none-and-na-codes)). |
 
 `var` must be a single `Variable` (ideally `ordinal`).
 
@@ -284,7 +335,7 @@ class Matrix(Question):
 | `var` | *required* | Non-empty list of `Variable` — one per row. |
 | `subquestions` | `None` | Row labels; default to each variable's `label`. |
 | `column_labels` | `None` | Column headers; default to the first row variable's value `labels`, in code order. |
-| `na_option` | `False` | `True` adds a "Not applicable" column; a string sets its header. An NA cell is stored as the value `"na"`. |
+| `na_option` | `False` | `True` adds a "Not applicable" column; a string sets its header. A cell stores its row variable's `not_applicable` missing code, or the text `"na"` when the codebook declares none (see [below](#other-none-and-na-codes)). |
 
 ```python
 def trust_dim(name, label):

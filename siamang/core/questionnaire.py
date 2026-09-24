@@ -13,12 +13,19 @@ from siamang.core.page import Page
 from siamang.core.question import (
     Conjoint,
     LikertScale,
+    Matrix,
     MaxDiff,
     MultiChoice,
     NumericInput,
     Question,
     SingleChoice,
     answer_key_aliases,
+    choice_codes,
+    na_code,
+    none_code,
+    other_code,
+    other_text_key,
+    question_answer_keys,
     question_fallback_id,
     question_output_name,
 )
@@ -109,6 +116,7 @@ class Questionnaire:
         # After the variable check: two questions bound to one variable share
         # a key too, and 'Duplicate variable' is the message that names why.
         self._validate_answer_keys()
+        self._validate_added_codes()
         if strict:
             errors = [issue for issue in self.lint(level="strict") if issue.severity == "error"]
             if errors:
@@ -177,6 +185,60 @@ class Questionnaire:
                     f"'{owner}' stores its answer; an id may not be another question's "
                     f"variable or output name."
                 )
+
+    def _validate_added_codes(self) -> None:
+        """The codes the runtime stores for "Other (please specify)" and a
+        SingleChoice's "None of the above" (``other_code`` / ``none_code``), and
+        the key the Other text goes to (``other_text_key``).
+
+        A code must be a number or a string. "None of the above" must not share
+        a code with a choice or with Other — the data could not tell them
+        apart. Other may name one of its question's choices in
+        ``metadata["other_code"]`` (that choice becomes the Other option), but
+        the *default* code on a question whose choices already use it is a
+        clash nobody asked for. And the text key must not be a variable or an
+        answer key of any question: the runtime would overwrite that answer."""
+
+        taken: dict[str, str] = {}
+        for question in self.all_questions():
+            question_id = question_fallback_id(question)
+            for name in question_variable_names_of(question):
+                taken.setdefault(name, question_id)
+            taken.setdefault(question_output_name(question), question_id)
+        for question in self.all_questions():
+            if not isinstance(question, SingleChoice | MultiChoice):
+                continue
+            question_id = question_fallback_id(question)
+            codes = choice_codes(question)
+            metadata = question.metadata or {}
+            other = other_code(question) if question.other_specify else None
+            if question.other_specify:
+                _require_code(other, f"Question '{question_id}' metadata other_code")
+                if "other_code" not in metadata and any(_same(other, c) for c in codes):
+                    raise ValueError(
+                        f"Question '{question_id}' offers “Other (please specify)”, stored as "
+                        f"{other!r} by default, but one of its choices already has that code. "
+                        "Set metadata other_code to the code Other should store (it may be "
+                        "the code of a choice that is the Other option)."
+                    )
+                key = other_text_key(question)
+                owner = taken.get(key)
+                if owner is not None:
+                    raise ValueError(
+                        f"Question '{question_id}' stores its “Other (please specify)” text "
+                        f"under '{key}', which question '{owner}' already stores an answer "
+                        "under."
+                    )
+                taken[key] = question_id
+            if isinstance(question, SingleChoice) and question.none_of_above:
+                none = none_code(question)
+                _require_code(none, f"Question '{question_id}' metadata none_code")
+                if any(_same(none, c) for c in codes) or (other is not None and _same(none, other)):
+                    raise ValueError(
+                        f"Question '{question_id}' stores “None of the above” as {none!r}, "
+                        "which is already the code of one of its answers. Set metadata "
+                        "none_code to a code of its own."
+                    )
 
     def preview(self) -> str:
         return f"Questionnaire<{self.title}> with {len(self.all_questions())} questions"
@@ -307,11 +369,7 @@ class Questionnaire:
         sample cell), and what a script writes before the first page
         (``Script.assign_condition``)."""
 
-        known = {
-            variable.name
-            for question in self.all_questions()
-            for variable in (question.var if isinstance(question.var, list) else [question.var])
-        }
+        known = {key for question in self.all_questions() for key in question_answer_keys(question)}
         if self.variables is not None:
             known.update(self.variables.keys())
         known.update(self.assigned_variables())
@@ -408,6 +466,7 @@ class Questionnaire:
         warnings.extend(_piping_warnings(self))
         if level == "strict":
             warnings.extend(_strict_question_warnings(self.all_questions()))
+            warnings.extend(_na_code_warnings(self))
             warnings.extend(_script_answer_key_warnings(self))
             warnings.extend(_script_target_scope_warnings(self))
             if self.variables is not None:
@@ -430,6 +489,21 @@ class Questionnaire:
 
 def _question_variables(question: Question):
     return question.var if isinstance(question.var, list) else [question.var]
+
+
+def question_variable_names_of(question: Question) -> list[str]:
+    return [variable.name for variable in _question_variables(question)]
+
+
+def _require_code(value: Any, where: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
+        raise ValueError(f"{where} must be a number or a string, not {value!r}.")
+
+
+def _same(a: Any, b: Any) -> bool:
+    """Codes are compared as the runtime compares them: 1 and "1" are one code."""
+
+    return a == b or str(a) == str(b)
 
 
 class _ConditionRef(NamedTuple):
@@ -798,6 +872,68 @@ def _single_variable(question: Question):
     return None if isinstance(question.var, list) else question.var
 
 
+def _added_code_warnings(question: Question, question_id: str, bound) -> list[LintWarning]:
+    """The codes the runtime adds to a question's own — Other, None of the
+    above, Not applicable — should be in its codebook, or they arrive in the
+    data with no text (Other, None) or as text in a numeric column (N/A)."""
+
+    warnings: list[LintWarning] = []
+    added: list[tuple[str, Any]] = []
+    if (
+        question.other_specify
+        and isinstance(question, SingleChoice | MultiChoice)
+        and not isinstance(question.var, list)
+    ):
+        added.append(("“Other (please specify)”", other_code(question)))
+    if isinstance(question, SingleChoice) and question.none_of_above:
+        added.append(("“None of the above”", none_code(question)))
+    if bound is not None and bound.labels:
+        for what, code in added:
+            if not _known(code, _variable_codes(bound)):
+                warnings.append(
+                    LintWarning(
+                        code="ADDED_CODE_WITHOUT_LABEL",
+                        severity="warning",
+                        message=(
+                            f"Question '{question_id}' stores {what} as {code!r}, which "
+                            f"variable '{bound.name}' has no value label for."
+                        ),
+                        location=question_id,
+                    )
+                )
+    return warnings
+
+
+def _na_code_warnings(survey: Questionnaire) -> list[LintWarning]:
+    """An N/A answer without a declared ``not_applicable`` code is stored as
+    the text "na" — safe, since no mean takes it in, but not a code of the
+    variable. Advice for strict lint rather than a defect."""
+
+    warnings: list[LintWarning] = []
+    for question in survey.all_questions():
+        if not getattr(question, "na_option", False):
+            continue
+        if not isinstance(question, LikertScale | Matrix):
+            continue
+        undeclared = [v.name for v in _question_variables(question) if na_code(v) is None]
+        if undeclared:
+            question_id = question_fallback_id(question)
+            warnings.append(
+                LintWarning(
+                    code="NA_STORED_AS_TEXT",
+                    severity="warning",
+                    message=(
+                        f"Question '{question_id}' offers “Not applicable”, stored as the "
+                        f"text 'na' because {', '.join(repr(n) for n in undeclared)} "
+                        "declares no missing value of kind not_applicable; declare one "
+                        "(and label it) to store its code."
+                    ),
+                    location=question_id,
+                )
+            )
+    return warnings
+
+
 def _compared_values(node):
     """Yield ``(variable_name, value)`` for each literal compared to a variable."""
 
@@ -917,13 +1053,13 @@ def _piping_warnings(survey: Questionnaire) -> list[LintWarning]:
     pages = survey.pages or []
     if not pages:
         for question in survey.all_questions():
-            known.update(var.name for var in _question_variables(question))
+            known.update(question_answer_keys(question))
         pages_items: list[tuple[str, list[tuple[str, str | None]], list[Question]]] = [
             ("questionnaire", [], survey.all_questions())
         ]
     else:
         for question in survey.all_questions():
-            known.update(var.name for var in _question_variables(question))
+            known.update(question_answer_keys(question))
         pages_items = [
             (
                 page.name,
@@ -988,7 +1124,7 @@ def _piping_warnings(survey: Questionnaire) -> list[LintWarning]:
                                 location=question_id,
                             )
                         )
-            seen.update(var.name for var in _question_variables(question))
+            seen.update(question_answer_keys(question))
     return warnings
 
 
@@ -1057,6 +1193,8 @@ def _codebook_warnings(survey: Questionnaire) -> list[LintWarning]:
                         location=question_id,
                     )
                 )
+
+        warnings.extend(_added_code_warnings(question, question_id, bound))
 
     for name, variable in _survey_variables(survey).items():
         if not variable.labels:

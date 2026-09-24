@@ -587,3 +587,81 @@ def answer_key_aliases(questions: Iterable[Question]) -> dict[str, str]:
         if design_id != key:
             aliases[design_id] = key
     return aliases
+
+
+# ── Codes the runtime adds to a question's own ───────────────────────────────
+#
+# "Other (please specify)", a SingleChoice's "None of the above" and the "Not
+# applicable" of a scale or a matrix are answers too, and they are stored as
+# codes of the question's variable, like every other answer: a column that
+# mixes 1, 2, 3 with "__other__" or "na" is a column no analysis can type.
+
+#: What "Other (please specify)" stores unless the question's
+#: ``metadata["other_code"]`` names a code. Negative, so it cannot collide with a
+#: choice list coded 0, 1, 2 …; the typed text is stored apart, under
+#: :func:`other_text_key`.
+DEFAULT_OTHER_CODE = -66
+
+#: What a SingleChoice's "None of the above" stores unless the question's
+#: ``metadata["none_code"]`` names a code.
+DEFAULT_NONE_CODE = -77
+
+
+def other_code(question: Question) -> Any:
+    """The code a question's "Other (please specify)" stores.
+
+    ``metadata["other_code"]`` when the question sets it — which may be the code
+    of one of its own choices, and that choice then *is* the Other option: it
+    gets the text box, and no extra option is added — else
+    :data:`DEFAULT_OTHER_CODE`.
+    """
+
+    return (question.metadata or {}).get("other_code", DEFAULT_OTHER_CODE)
+
+
+def none_code(question: Question) -> Any:
+    """The code a SingleChoice's "None of the above" stores:
+    ``metadata["none_code"]``, else :data:`DEFAULT_NONE_CODE`."""
+
+    return (question.metadata or {}).get("none_code", DEFAULT_NONE_CODE)
+
+
+def other_text_key(question: Question) -> str:
+    """Where the text typed into "Other (please specify)" is stored:
+    ``<variable>_other`` — for a wide MultiChoice, ``<name or id>_other``."""
+
+    return f"{question_output_name(question)}_other"
+
+
+def na_code(variable: Variable) -> Any | None:
+    """The code a "Not applicable" answer stores for ``variable``: the first
+    missing value the codebook declares with kind ``not_applicable``, or None
+    when it declares none — the runtime then stores the text ``"na"``, as it
+    always has, rather than a number the analysis would average in."""
+
+    for missing in variable.missing:
+        if missing.kind == "not_applicable":
+            return missing.code
+    return None
+
+
+def choice_codes(question: Question) -> list[Any]:
+    """The codes a choice question offers: its ``choices``, else its (single)
+    variable's value labels. Empty for a wide MultiChoice without choices."""
+
+    choices = getattr(question, "choices", None)
+    if choices:
+        return [option.code for option in choices]
+    if isinstance(question.var, list):
+        return []
+    return list(question.var.labels or {})
+
+
+def question_answer_keys(question: Question) -> list[str]:
+    """Every key the runtime stores for ``question``: its variables, and the
+    "Other (please specify)" text when it offers one."""
+
+    keys = question_variable_names(question)
+    if question.other_specify and isinstance(question, SingleChoice | MultiChoice):
+        keys.append(other_text_key(question))
+    return keys
