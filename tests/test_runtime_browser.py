@@ -1714,3 +1714,76 @@ def test_a_seeded_assignment_spreads_respondents_and_keeps_each_ones_arm(tmp_pat
     # Both arms are used, and the same respondent lands in the same one again.
     assert set(arms) == {"Arm 1", "Arm 2"}
     assert arms[0] == arms[-1]
+
+
+def _pinned_document() -> dict[str, Any]:
+    def labels(prefix: str, extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [{"code": i, "label": f"{prefix}{i}"} for i in range(1, 7)] + extra
+
+    return {
+        "schema_version": "1.0",
+        "title": "Pinned",
+        "variables": {
+            "pet": {"scale": "nominal", "labels": labels("P", [])},
+            "fruit": {"scale": "nominal", "labels": labels("F", [{"code": 98, "label": "Other"}])},
+            "brands": {
+                "scale": "nominal",
+                "labels": labels("B", [{"code": 99, "label": "None of these"}]),
+            },
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "pet",
+                        "var": "pet",
+                        "text": "Pet?",
+                        "none_of_above": True,
+                        "randomize": True,
+                    },
+                    {
+                        "type": "SingleChoice",
+                        "id": "fruit",
+                        "var": "fruit",
+                        "text": "Fruit?",
+                        "other_specify": True,
+                        "metadata": {"other_code": 98},
+                        "randomize": True,
+                    },
+                    {
+                        "type": "MultiChoice",
+                        "id": "brands",
+                        "var": "brands",
+                        "text": "Brands?",
+                        "exclusive": [99],
+                    },
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [{"type": "randomize_options", "question": "brands", "seed": "7"}],
+    }
+
+
+# A repeatable Math.random, so the switch's shuffle is the same on every run.
+_FIXED_RANDOM = """
+Math.random = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+"""
+
+
+def test_a_shuffle_keeps_none_of_the_above_exclusive_answers_and_other_in_place(tmp_path):
+    scenario = """
+        return await page.$$eval(".sd-question", (qs) => qs.map(
+            (q) => Array.from(q.querySelectorAll(".sd-choice-label"), (l) => l.textContent)));
+    """
+    pet, fruit, brands = run_in_browser(
+        _pinned_document(), scenario, tmp_path, init=_FIXED_RANDOM + _RID_FROM_SESSION
+    )
+    assert pet[-1] == "None of the above" and sorted(pet[:-1]) == [f"P{i}" for i in range(1, 7)]
+    assert pet[:-1] != [f"P{i}" for i in range(1, 7)]  # the rest was shuffled
+    assert fruit[-1] == "Other" and len(fruit) == 7  # no second "Other" is added
+    assert fruit[:-1] != [f"F{i}" for i in range(1, 7)]
+    # The seeded script deals the movable options only; "None of these" stays last.
+    assert brands == seeded_shuffle([f"B{i}" for i in range(1, 7)], "7:r1") + ["None of these"]

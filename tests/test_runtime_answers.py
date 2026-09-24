@@ -109,7 +109,7 @@ class TestWideMultiChoice:
         assert item["options"] == [
             {"code": 1, "label": "Acme", "var": "b_1"},
             {"code": 2, "label": "Globex", "var": "b_2"},
-            {"code": 99, "label": "None of these", "var": "b_99"},
+            {"code": 99, "label": "None of these", "var": "b_99", "fixed": True},
         ]
         # `exclusive` names choice codes, which are now the options' codes.
         assert item["exclusive"] == [99]
@@ -161,6 +161,7 @@ class TestOtherNoneAndNa:
             "code": DEFAULT_NONE_CODE,
             "label": "None of the above",
             "noneOfAbove": True,
+            "fixed": True,
         }
         item = _only_item(_survey(_fruit(none_of_above=True, metadata={"none_code": 97})))
         assert item["options"][-1]["code"] == 97
@@ -323,3 +324,32 @@ def test_the_payload_says_whether_to_show_the_title_apart_from_the_header():
     assert meta["showHeader"] is True and meta["showTitle"] is False
     meta = compile_react_payload(survey, ui=UIConfig())["SURVEY"]
     assert meta["showHeader"] is True and meta["showTitle"] is True
+
+
+# ── Shuffles keep the closing answers in place ───────────────────────────────
+
+
+class TestPinnedOptions:
+    def test_none_of_the_above_exclusive_answers_and_other_are_fixed(self):
+        single = _only_item(_survey(_fruit(none_of_above=True, randomize=True)))
+        assert [o.get("fixed", False) for o in single["options"]] == [False, False, True]
+
+        var = sg.Variable("m", scale="nominal", labels={1: "A", 2: "B", 99: "None"})
+        multi = _only_item(_survey(sg.MultiChoice("M?", var=var, exclusive=[99], randomize=True)))
+        assert [o.get("fixed", False) for o in multi["options"]] == [False, False, True]
+
+        # A choice that is the question's Other (metadata other_code) stays put.
+        other = _only_item(
+            _survey(
+                _fruit(
+                    labels={1: "Apple", 2: "Pear", 98: "Other"},
+                    other_specify=True,
+                    metadata={"other_code": 98},
+                )
+            )
+        )
+        assert [o.get("fixed", False) for o in other["options"]] == [False, False, True]
+
+    def test_an_ordinary_list_has_nothing_fixed(self):
+        item = _only_item(_survey(_fruit(randomize=True)))
+        assert all("fixed" not in option for option in item["options"])

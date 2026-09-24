@@ -134,6 +134,10 @@ class Script:
         same seed and the same number of options get the same order for a
         respondent, which keeps a list in one order across questions; give
         them different seeds for independent orders.
+
+        "None of the above", exclusive answers and a choice that is the
+        question's "Other" keep their place; the other options are shuffled
+        among the remaining positions.
         """
         qid = json.dumps(question_id)
         code = f"""
@@ -144,7 +148,7 @@ class Script:
                 const key = seed === undefined || seed === null || seed === ""
                     ? undefined
                     : String(seed) + ":" + String(answers.__respondent__ || "");
-                answers.__options__[qid] = utils.shuffle(opts, key);
+                answers.__options__[qid] = utils.shuffleOptions(opts, key);
             }}
         """
         return cls(

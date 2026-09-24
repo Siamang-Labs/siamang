@@ -229,18 +229,11 @@ function extractOptions(pages) {
 
 function applyRandomization(pages) {
   let touched = false;
-  const shuffle = (arr) => {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  };
+  const shuffle = (arr) => shuffleWith(arr, Math.random);
   const mapQ = (q) => {
     if (q && q.randomize && Array.isArray(q.options) && q.options.length > 1) {
       touched = true;
-      return { ...q, options: shuffle(q.options) };
+      return { ...q, options: shuffleOptionsWith(q.options, Math.random) };
     }
     return q;
   };
@@ -322,12 +315,31 @@ function shuffleWith(arr, random) {
   return a;
 }
 
+/* An option list shuffled with its closing answers in place: an option the
+   compiler marked `fixed` — "None of the above", an exclusive answer, a
+   choice that is the question's Other — keeps its position, and the others
+   are dealt into the remaining slots (as randomize_pages deals pages). */
+function isFixedOption(option) {
+  return !!option && typeof option === "object" && (option.fixed === true || option.noneOfAbove === true);
+}
+function shuffleOptionsWith(options, random) {
+  const list = Array.isArray(options) ? options : [];
+  const movable = list.filter((o) => !isFixedOption(o));
+  if (movable.length < 2) return [...list];
+  const shuffled = shuffleWith(movable, random);
+  let next = 0;
+  return list.map((o) => (isFixedOption(o) ? o : shuffled[next++]));
+}
+
 const ScriptRunner = {
   _utils: {
     // shuffle(list[, seed]) / sample(list, n[, seed]): with a seed, the same
     // seed and list give the same order everywhere.
     shuffle: (arr, seed) => shuffleWith(arr, seededRandom(seed)),
     sample: (arr, n, seed) => ScriptRunner._utils.shuffle(arr, seed).slice(0, n),
+    // shuffleOptions(answers.__options__[key][, seed]): the same, keeping
+    // "None of the above", exclusive answers and Other where they are.
+    shuffleOptions: (options, seed) => shuffleOptionsWith(options, seededRandom(seed)),
     clamp: (v, min, max) => Math.min(Math.max(v, min), max),
     debounce: (fn, ms) => {
       let timer;
