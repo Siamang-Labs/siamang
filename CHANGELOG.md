@@ -159,6 +159,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `weighted_n_valid`; regression, NPS, TURF and a crosstab without a test name
   the weight. Apply weight's description no longer promises "every table and
   statistic downstream": its help lists what is weighted and what is not.
+- The simulator (`siamang.local_simulator`, behind `Questionnaire.simulate()`
+  and Studio's Test → Simulate) replayed page and question conditions and the
+  routing, but answered every question of a hidden block, picked answer options
+  their own conditions hide, never filled the arm of `Script.assign_condition`
+  — so a page gated on the arm was empty in every row — and knew nothing of
+  page shuffles or quotas. Block `show_if` / `hide_if` (nested blocks too) and
+  option `show_if` / `hide_if` now apply; a question whose options are all
+  hidden is left unanswered. `simulate_from_pages()` takes `scripts=` and
+  `quotas=`: each assignment draws its arm before the first page by the arms'
+  weights (balanced against the quota cells, as the platform picks, when it
+  asks to be), `Script.randomize_pages` deals each respondent a page order,
+  block shuffles decide which `skip_to` is met first, and a respondent whose
+  answer falls in a full cell ends on that page, only completes filling a cell.
+  `simulate_questionnaire(survey, …, quotas=)` passes the questionnaire's own
+  scripts, and `simulate_survey()` returns the `SurveyData` with a codebook
+  entry for each arm; the flow's `source.simulated` node now runs it. The walk
+  stays deterministic under its seed, and a survey with none of these features
+  simulates exactly as before.
 - A single-variable question whose `id` differed from its variable's name stored
   the answer under the **id**, while every `show_if` / `next_if`, quota,
   `{answer:…}` and the codebook read the **variable**. Nothing built on such a

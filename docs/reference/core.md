@@ -524,7 +524,7 @@ The `Questionnaire` class is the aggregate root of a survey design. It combines 
 * **`deploy(backend: str = "local", frontend: str = "local", **options) -> DeployResult`**:
   Deploys the survey to a specified environment (e.g., local server or cloud services like Supabase and Vercel) [2].
 * **`simulate(n: int = 100, seed: int = 42) -> SurveyData`**:
-  Generates `n` synthetic, logically valid responses using Monte Carlo simulation, which is useful for testing analytical pipelines before data collection [1].
+  Generates `n` synthetic, logically valid responses using Monte Carlo simulation, which is useful for testing analytical pipelines before data collection [1]. Each respondent walks the pages as the runtime would move them: page, block, question and answer-option `show_if` / `hide_if`, `skip_to`, `next_if`, `default_next` and terminal pages. It does not see the questionnaire's scripts or the compiler options' quotas; `siamang.local_simulator.simulate_survey(survey, n, seed, quotas=…)` returns the same `SurveyData` with them — the arm of every `Script.assign_condition` (balanced against the quotas when it asks to be), the page order `Script.randomize_pages` deals, and quota cells that close once their completes reach the limit.
 * **`preview() -> str`**:
   Returns a one-line summary string of the form `Questionnaire<Title> with N questions`. For a browsable rendering of the survey, use the `siamang preview` CLI command instead.
 * **`collect()`**:

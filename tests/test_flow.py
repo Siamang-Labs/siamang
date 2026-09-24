@@ -1250,3 +1250,33 @@ def test_the_banner_node_runs_and_only_compares_within_a_block(questionnaire_doc
     stats = result.output("ban", "stat")
     assert "within each banner variable only" in stats["Test"]
     assert "none" in stats["Correction"]
+
+
+def test_simulated_data_draws_the_arm_an_assignment_script_writes():
+    """The Simulated data node ran `survey.simulate()`, which never sees the
+    questionnaire's scripts, so an assigned arm was a column that did not
+    exist and every page gated on it was empty."""
+
+    import siamang as sg
+
+    yes_no = sg.Variable("seen", "nominal", label="Seen", labels={1: "Yes", 0: "No"})
+    survey = sg.Questionnaire(
+        title="A",
+        pages=[
+            sg.Page(
+                name="treated",
+                show_if=sg.compare("condition", "=", 2),
+                items=[sg.SingleChoice("Seen the ad?", var=yes_no, id="q_seen")],
+            )
+        ],
+        scripts=[sg.Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])],
+    )
+    flow = _flow([("sim", "source.simulated", {"n": 200, "seed": 3})], [])
+    data = FlowRunner(flow, questionnaire=survey).run().output("sim")
+    assert set(data.frame["condition"]) == {1, 2}
+    assert data.frame.loc[data.frame["condition"] == 2, "seen"].notna().all()
+    assert data.frame.loc[data.frame["condition"] == 1, "seen"].isna().all()
+    assert data.variables["condition"].labels == {1: "Control", 2: "Treatment"}
+    code = generate_flow(flow)
+    assert "from siamang.local_simulator import simulate_survey" in code
+    assert "n_sim = simulate_survey(survey, n=200, seed=3)" in code

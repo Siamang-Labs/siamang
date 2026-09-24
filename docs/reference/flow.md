@@ -98,6 +98,13 @@ Response quality and Code open answers. Describe counts rows and adds a
 `analyze.conjoint_shares` has a `stat` output (base, model, weight) beside its
 table.
 
+`source.simulated` generates its rows with
+`siamang.local_simulator.simulate_survey(survey, n=…, seed=…)`: conditions at
+every level (page, block, question, answer option), the routing, and the
+questionnaire's scripts — an assigned arm is drawn, a `randomize_pages` order
+dealt. Quotas are deploy options, not part of the questionnaire, so none
+closes in a flow.
+
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead
 of a palette, and ignores it when it draws a correlation matrix. These size the

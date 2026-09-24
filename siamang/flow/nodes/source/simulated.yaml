@@ -1,7 +1,7 @@
 type: source.simulated
 category: source
 title: Simulated data
-description: Synthetic responses generated from the questionnaire, for building a flow before fieldwork.
+description: Synthetic responses generated from the questionnaire's logic — conditions, routing, assigned arms — for building a flow before fieldwork.
 outputs:
   data: SurveyData
 params:
@@ -15,6 +15,11 @@ params:
     default: 42
     label: Seed
 subtitle: n = {n}
+imports:
+- from siamang.local_simulator import simulate_survey
 template: |
-  {out.data} = survey.simulate(n={n!r}, seed={seed!r})
+  # Every respondent walks the questionnaire as the runtime would move them,
+  # its scripts included: an assigned arm is drawn and a page shuffle dealt.
+  # Quotas are deploy options, not part of the questionnaire, so none closes.
+  {out.data} = simulate_survey(survey, n={n!r}, seed={seed!r})
 preview: rows
