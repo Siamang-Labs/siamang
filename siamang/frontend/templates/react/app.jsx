@@ -1229,8 +1229,14 @@ function App() {
   const qStart = nav.pages.slice(0, nav.pageIdx)
     .reduce((acc, p) => acc + visibilityEngine.visibleItems(p, store.snapshot()).length, 0);
 
+  // The progress indicator: `show_progress` switches it on or off (Studio's
+  // "hidden"), `progress_style` says which — the bar with its text, the page
+  // dots, or both. The dots used to follow the style alone, so "dots" showed
+  // the bar as well and "hidden" kept the dots.
   const showProgress = ui.showProgress !== false;
   const progressStyle = ui.progressStyle || "bar";
+  const showBar = showProgress && progressStyle !== "dots";
+  const showDots = showProgress && (progressStyle === "dots" || progressStyle === "both");
 
   // ─── Access gate ───
   if (ui.requireAccessCode && !accessGranted) {
@@ -1320,7 +1326,7 @@ function App() {
             </div>
           </div>
         )}
-        {showProgress ? (
+        {showBar ? (
           <div className="siamang-progress" role="status" aria-live="polite">
             <span className="siamang-progress__bar" aria-hidden="true">
               <span className="siamang-progress__fill" style={{ width: nav.progressPct + "%" }}></span>
@@ -1332,7 +1338,7 @@ function App() {
             </span>
           </div>
         ) : null}
-        {(progressStyle === "dots" || progressStyle === "both") && (
+        {showDots && (
           <nav className="siamang-step-dots" aria-label="Survey progress">
             {nav.pages.map((p, i) => {
               // Only a page on the path that led here can be gone back to;
