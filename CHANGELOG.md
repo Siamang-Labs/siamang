@@ -486,8 +486,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `check != None and check != 3`, as Studio writes it) screened out everyone
   who left an optional check empty. Comparisons with `None` are now compiled
   loosely (`== null` / `!= null`, and an unanswered value counts as `null` in
-  an `in` list), in the compiled conditions and in the runtime's evaluator of
-  expression trees alike, matching `Expression.evaluate`.
+  an `in` list), in the compiled conditions, in the runtime's evaluator of
+  expression trees and in its parser of string conditions alike, matching
+  `Expression.evaluate`; in a string condition (`"{x} != null"`, as
+  `Expression.to_surveyjs()` writes `None`) `null` is now the literal rather
+  than a variable of that name, so `{x} in [null, 3]` also holds for an
+  answer stored as `null`.
 - The runtime asked "Leave site?" when a respondent closed or reloaded a
   survey they had not touched, whenever a script had written a variable at
   load — the arm `Script.assign_condition` draws, an id an `onInit` script

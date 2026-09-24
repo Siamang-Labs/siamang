@@ -278,15 +278,22 @@ def test_a_condition_on_null_means_in_the_browser_what_it_means_in_python(answer
 
     conditions = _null_conditions()
     compiled = [_compile_condition(condition) for condition in conditions]
-    # The compiled {deps, fn} a payload carries, and the expression tree an
-    # older payload (or one the compiler could not turn into code) carries.
+    # The compiled {deps, fn} a payload carries, the expression tree an older
+    # payload (or one the compiler could not turn into code) carries, and the
+    # string Expression.to_surveyjs() writes ("{x} != null"), which the
+    # runtime parses itself.
+    strings = [condition.to_surveyjs() for condition in conditions]
     got = run_js(
         f"const answers = {_js(answers)};"
         f"[{_js(compiled)}.map((c) => evaluateCondition(c, answers)),"
-        f" {_js([c.to_dict() for c in conditions])}.map((c) => evaluateCondition(c, answers))]"
+        f" {_js([c.to_dict() for c in conditions])}.map((c) => evaluateCondition(c, answers)),"
+        f" {_js(strings)}.map((c) => evaluateCondition(c, answers)),"
+        f" {_js(strings)}.map((c) => getConditionDeps(c))]"
     )
     expected = [condition.evaluate(dict(answers)) for condition in conditions]
-    assert got == [expected, expected]
+    assert got[:3] == [expected, expected, expected]
+    # `null` in a string is the literal, not a variable named "null".
+    assert got[3] == [["x"]] * len(conditions)
     if not answers:
         # Nobody answered x: "x != null" does not hold, so an attention check
         # "x != null and x != 3" leaves an empty optional check alone.

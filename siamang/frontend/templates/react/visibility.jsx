@@ -74,7 +74,7 @@ function __tokenizeCondition(src) {
       while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
       const word = src.slice(i, j);
       const lower = word.toLowerCase();
-      if (["and", "or", "not", "in", "empty", "notempty", "notin", "contains", "notcontains", "true", "false"].includes(lower)) {
+      if (["and", "or", "not", "in", "empty", "notempty", "notin", "contains", "notcontains", "true", "false", "null"].includes(lower)) {
         tokens.push({ t: "kw", v: lower });
       } else {
         tokens.push({ t: "ident", v: word });
@@ -107,18 +107,24 @@ function __parseConditionString(src) {
     if (tok.t === "num") { eat(); return { code: JSON.stringify(tok.v) }; }
     if (tok.t === "str") { eat(); return { code: JSON.stringify(tok.v) }; }
     if (tok.t === "kw" && (tok.v === "true" || tok.v === "false")) { eat(); return { code: tok.v }; }
+    // `null` — what Expression.to_surveyjs() writes for None — is the literal,
+    // not a variable of that name; the comparisons below are loose, so
+    // "{x} != null" is false for a question nobody answered (undefined).
+    if (tok.t === "kw" && tok.v === "null") { eat(); return { code: "null", isNull: true }; }
     if (tok.t === "[") {
       eat();
       const items = [];
+      let holdsNull = false;
       while (peek() && peek().t !== "]") {
         const item = parseOperand();
         if (!item) return null;
         items.push(item.code);
+        holdsNull = holdsNull || !!item.isNull;
         if (peek() && peek().t === ",") eat();
       }
       if (!peek()) return null;
       eat(); // ]
-      return { code: "[" + items.join(",") + "]" };
+      return { code: "[" + items.join(",") + "]", holdsNull };
     }
     return null;
   }
@@ -144,18 +150,20 @@ function __parseConditionString(src) {
       return "(" + left.code + tok.v + right.code + ")";
     }
     if (tok && tok.t === "kw") {
+      // In a list that holds null, an unanswered value (undefined) is null.
+      const member = (right) => right.holdsNull ? "(" + left.code + "===undefined?null:" + left.code + ")" : left.code;
       if (tok.v === "in" || tok.v === "notin") {
         eat();
         const right = parseOperand();
         if (!right) return null;
-        const test = "(Array.isArray(" + right.code + ")&&" + right.code + ".includes(" + left.code + "))";
+        const test = "(Array.isArray(" + right.code + ")&&" + right.code + ".includes(" + member(right) + "))";
         return tok.v === "in" ? test : "(!" + test + ")";
       }
       if (tok.v === "not" && tokens[pos + 1] && tokens[pos + 1].t === "kw" && tokens[pos + 1].v === "in") {
         eat(); eat();
         const right = parseOperand();
         if (!right) return null;
-        return "(!(Array.isArray(" + right.code + ")&&" + right.code + ".includes(" + left.code + ")))";
+        return "(!(Array.isArray(" + right.code + ")&&" + right.code + ".includes(" + member(right) + ")))";
       }
       if (tok.v === "contains" || tok.v === "notcontains") {
         eat();
