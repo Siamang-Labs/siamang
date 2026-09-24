@@ -171,10 +171,50 @@ _STATE = """
     return { submitted: T.submitted, quotaCalls: T.quotaCalls, pages: T.pages };
 """
 
+# Next, then a moment for the runtime to act on it — and, behind whatever the
+# page already had queued when the moment is up (a busy machine starves it),
+# two frames, so what is read next is what the page did with the click.
 _NEXT = """
     await page.click(".sd-navigation__next-btn, .sd-navigation__complete-btn");
     await page.waitForTimeout(250);
+    await page.evaluate(() => new Promise((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done()))));
 """
+
+# `reload(ready)` loads the page again and `visit(query, ready)` loads it with
+# another query string (`?rid=…`, see _RID_FROM_URL); both wait until the
+# *new* document shows `ready`. The old document is marked first, so nothing
+# read afterwards can come from the interview that was on screen before.
+_RELOAD = """
+    const fresh = async (ready) => {
+        await page.waitForFunction(() => !window.__stale, null, { timeout: 10000 });
+        await page.waitForSelector(ready);
+    };
+    const reload = async (ready = ".sd-page") => {
+        await page.evaluate(() => { window.__stale = true; });
+        await page.reload();
+        await fresh(ready);
+    };
+    const visit = async (query, ready = ".sd-page") => {
+        await page.evaluate(() => { window.__stale = true; });
+        await page.goto(page.url().split("?")[0] + query);
+        await fresh(ready);
+    };
+"""
+
+
+def _autosaved(check: str) -> str:
+    """Wait until the autosave — written 2 s after the last answer, when the
+    browser is idle — holds answers for which the JS expression ``check`` (on
+    ``answers``) is true, instead of sleeping and hoping it has run."""
+
+    return f"""
+        await page.waitForFunction(() => Object.keys(localStorage).some((key) => {{
+            if (!key.startsWith("siamang_answers_")) return false;
+            try {{ const answers = JSON.parse(localStorage.getItem(key)).answers; return {check}; }}
+            catch (e) {{ return false; }}
+        }}), null, {{ timeout: 15000 }});
+    """
 
 
 def _labels(codes: list[int]) -> list[dict[str, Any]]:
@@ -1321,10 +1361,10 @@ def test_the_transports_respondent_id_is_the_interviews(tmp_path):
 def test_without_one_the_runtime_keeps_its_own_until_the_interview_ends(tmp_path):
     key = "siamang_interview_t"  # the transport's survey_id
     scenario = (
-        f"""
+        _RELOAD
+        + f"""
         const first = await page.evaluate(() => localStorage.getItem("{key}"));
-        await page.reload();
-        await page.waitForSelector(".sd-page");
+        await reload();
         const again = await page.evaluate(() => localStorage.getItem("{key}"));
     """
         + _FINISH_BODY_DOCUMENT
@@ -1361,13 +1401,24 @@ def test_an_embedded_survey_tells_its_host_its_height(tmp_path):
     scenario = """
         await page.goto(page.url().replace("index.html", "host.html"));
         const frame = page.frameLocator("#f");
+        // Until the last height the host was told is the survey's (a frame
+        // later than the render, and later still on a busy machine).
+        const told = async () => {
+            for (let i = 0; i < 100; i++) {
+                const last = await page.evaluate(() => (window.heights.slice(-1)[0] || {}).height);
+                const content = await frame.locator("#root").evaluate(
+                    (el) => Math.ceil(el.getBoundingClientRect().height));
+                if (last === content) return;
+                await page.waitForTimeout(50);
+            }
+        };
         await frame.locator(".sd-page").waitFor();
-        await page.waitForTimeout(300);
+        await told();
         const first = await page.evaluate(() => window.heights.slice());
         await frame.locator("input.sd-input").fill("Ann");
         await frame.locator(".sd-navigation__next-btn").click();
         await frame.locator("text=Pear").waitFor();
-        await page.waitForTimeout(300);
+        await told();
         const all = await page.evaluate(() => window.heights.slice());
         const frameHeight = await page.$eval("#f", (f) => f.getBoundingClientRect().height);
         const content = await frame.locator("#root").evaluate(
@@ -1519,6 +1570,7 @@ def test_page_dots_do_not_go_back_when_going_back_is_off(tmp_path):
 def test_a_resumed_interview_keeps_the_path_the_dots_go_back_along(tmp_path):
     scenario = (
         _WHERE
+        + _RELOAD
         + """
         await page.click("text=Stay");
     """
@@ -1527,9 +1579,10 @@ def test_a_resumed_interview_keeps_the_path_the_dots_go_back_along(tmp_path):
         + """
         await page.fill("input.sd-input", "x");
         await page.click("body");
-        await page.waitForTimeout(2600);   // the autosave runs 2 s after an answer
-        await page.reload();
-        await page.waitForSelector(".siamang-resume-banner");
+    """
+        + _autosaved('answers.c === "x"')
+        + """
+        await reload(".siamang-resume-banner");
         await page.click(".siamang-resume-banner .sd-navigation__next-btn");
         await page.waitForTimeout(250);
         return { resumed: await where() };
@@ -1650,8 +1703,11 @@ def _timed_document() -> dict[str, Any]:
 
 
 def test_a_timed_question_still_moves_a_respondent_who_waits(tmp_path):
+    # Page two comes up by itself once the question's second is over.
     scenario = """
-        await page.waitForTimeout(1600);
+        await page.waitForFunction(
+            () => (document.querySelector(".sd-page__title") || {}).textContent === "Two",
+            null, { timeout: 10000 });
         return { title: await page.textContent(".sd-page__title") };
     """
     assert run_in_browser(_timed_document(), scenario, tmp_path)["title"] == "Two"
@@ -1687,9 +1743,13 @@ def test_a_timed_questions_timer_ends_with_its_page(tmp_path):
 
 # ── Seeded randomisation ─────────────────────────────────────────────────────
 
-# The transport's respondent id comes from sessionStorage, so a scenario can
-# change respondent between reloads of one page.
-_RID_FROM_SESSION = 'window.__T = { rid: sessionStorage.getItem("rid") || "r1" };'
+# The transport's respondent id comes from the page's query string
+# (`index.html?rid=r2`, as a panel link carries it), so a scenario changes
+# respondent by loading the page again with another one (`visit`). It used to
+# come from sessionStorage, set just before a reload: in a tab Playwright had
+# just opened, the reloaded document now and then found sessionStorage empty —
+# every key the first document had set, gone — and was respondent "r1" again.
+_RID_FROM_URL = 'window.__T = { rid: new URLSearchParams(location.search).get("rid") || "r1" };'
 
 
 def _shuffled_document(**script: Any) -> dict[str, Any]:
@@ -1720,19 +1780,17 @@ _ORDER = """
 """
 
 _AS_R2 = """
-    await page.evaluate(() => sessionStorage.setItem("rid", "r2"));
-    await page.reload();
-    await page.waitForSelector(".sd-page");
+    await visit("?rid=r2");
 """
 
 
 def test_a_seeded_option_shuffle_is_the_respondents_own_and_reproducible(tmp_path):
     scenario = (
         _ORDER
+        + _RELOAD
         + """
         const first = await order();
-        await page.reload();
-        await page.waitForSelector(".sd-page");
+        await reload();
         const reloaded = await order();
     """
         + _AS_R2
@@ -1740,9 +1798,7 @@ def test_a_seeded_option_shuffle_is_the_respondents_own_and_reproducible(tmp_pat
         return { first, reloaded, other: await order() };
     """
     )
-    state = run_in_browser(
-        _shuffled_document(seed="42"), scenario, tmp_path, init=_RID_FROM_SESSION
-    )
+    state = run_in_browser(_shuffled_document(seed="42"), scenario, tmp_path, init=_RID_FROM_URL)
     labels = [f"B{i}" for i in range(1, 9)]
     # The order is drawn from "<seed>:<respondent id>" and nothing else.
     assert state["first"] == seeded_shuffle(labels, "42:r1")
@@ -1787,17 +1843,23 @@ def _seeded_arm(seed: str, respondent: str, codes: list[int]) -> int:
 
 def test_a_seeded_assignment_spreads_respondents_and_keeps_each_ones_arm(tmp_path):
     respondents = [f"r{i}" for i in range(12)] + ["r0"]
-    scenario = f"""
-        const arms = [];
+    # Each respondent is a new document: the id its transport hands over, and
+    # the arm on its first page.
+    scenario = (
+        _RELOAD
+        + f"""
+        const seen = [];
         for (const rid of {json.dumps(respondents)}) {{
-            await page.evaluate((r) => sessionStorage.setItem("rid", r), rid);
-            await page.reload();
-            await page.waitForSelector(".sd-page__title");
-            arms.push(await page.textContent(".sd-page__title"));
+            await visit("?rid=" + rid, ".sd-page__title");
+            seen.push(await page.evaluate(() => [
+                window.__T.rid, document.querySelector(".sd-page__title").textContent]));
         }}
-        return arms;
+        return seen;
     """
-    arms = run_in_browser(_assigned_document(), scenario, tmp_path, init=_RID_FROM_SESSION)
+    )
+    seen = run_in_browser(_assigned_document(), scenario, tmp_path, init=_RID_FROM_URL)
+    assert [rid for rid, _ in seen] == respondents
+    arms = [title for _, title in seen]
     expected = [f"Arm {_seeded_arm('s1', rid, [1, 2])}" for rid in respondents]
     assert arms == expected
     # Both arms are used, and the same respondent lands in the same one again.
@@ -1868,7 +1930,7 @@ def test_a_shuffle_keeps_none_of_the_above_exclusive_answers_and_other_in_place(
             (q) => Array.from(q.querySelectorAll(".sd-choice-label"), (l) => l.textContent)));
     """
     pet, fruit, brands = run_in_browser(
-        _pinned_document(), scenario, tmp_path, init=_FIXED_RANDOM + _RID_FROM_SESSION
+        _pinned_document(), scenario, tmp_path, init=_FIXED_RANDOM + _RID_FROM_URL
     )
     assert pet[-1] == "None of the above" and sorted(pet[:-1]) == [f"P{i}" for i in range(1, 7)]
     assert pet[:-1] != [f"P{i}" for i in range(1, 7)]  # the rest was shuffled
@@ -1967,16 +2029,18 @@ def test_a_scripts_context_carries_what_the_runtime_knows(tmp_path):
 
 def test_a_resumed_interview_keeps_the_time_it_started(tmp_path):
     scenario = (
-        """
+        _RELOAD
+        + """
         await page.fill("input.sd-input", "Ann");
         await page.click("body");
-        await page.waitForTimeout(2600);   // the autosave runs 2 s after an answer
+    """
+        + _autosaved('answers.name === "Ann"')
+        + """
         const saved = await page.evaluate(() => {
             const key = Object.keys(localStorage).find((k) => k.startsWith("siamang_answers_"));
             return JSON.parse(localStorage.getItem(key)).startedAt;
         });
-        await page.reload();
-        await page.waitForSelector(".siamang-resume-banner");
+        await reload(".siamang-resume-banner");
         await page.click(".siamang-resume-banner .sd-navigation__next-btn");
         await page.waitForTimeout(200);
     """
@@ -2282,12 +2346,16 @@ def test_the_quota_full_screen_speaks_the_surveys_wording(tmp_path):
 
 
 def test_what_the_browser_keeps_is_keyed_by_the_transports_survey_id(tmp_path):
-    scenario = """
+    scenario = (
+        """
         await page.fill("input.sd-input", "Ann");
         await page.click("body");
-        await page.waitForTimeout(2600);   // the autosave runs 2 s after an answer
+    """
+        + _autosaved('answers.name === "Ann"')
+        + """
         return await page.evaluate(() => Object.keys(localStorage).sort());
     """
+    )
     keys = run_in_browser(_body_document(), scenario, tmp_path)
     # The test transport's survey_id is "t"; a host such as Studio reads
     # siamang_answers_<survey_id> to post partial responses.
