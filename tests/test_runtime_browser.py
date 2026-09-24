@@ -853,3 +853,15 @@ def test_a_wide_multichoice_other_writes_its_text_beside_the_zeros(tmp_path):
     (submitted,) = state["submitted"]
     assert (submitted["brands_1"], submitted["brands_2"], submitted["brands_99"]) == (0, 1, 0)
     assert submitted["brands_other"] == "Initech"
+
+
+# ── What a submission carries ────────────────────────────────────────────────
+
+
+def test_a_submission_carries_the_answers_and_the_outcome_only(tmp_path):
+    """Not the runtime's own state: __pages__ (the whole questionnaire),
+    __options__, __errors__."""
+
+    state = run_in_browser(_trust_matrix_document(), _CLICK_MATRIX + _NEXT + _STATE, tmp_path)
+    (submitted,) = state["submitted"]
+    assert submitted == {"trust_parl": 2, "trust_pol": 10, "__status": "completed"}
