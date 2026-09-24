@@ -279,7 +279,9 @@ English: `next_button_text`, `prev_button_text`, `submit_button_text`,
 
 ### Advanced (navigation, access, analytics)
 
-`progress_style` (`"bar"` | `"dots"` | `"both"`), `default_theme` (`"light"` |
+`progress_style` (`"bar"` | `"dots"` | `"both"`; a page dot takes the respondent back
+to a page they have already seen on the way to the current one, never forward past
+required questions or routing, and not at all with `allow_back=False`), `default_theme` (`"light"` |
 `"dark"` | `"system"`) with `allow_theme_switch` (default `True`) deciding
 whether the respondent may change it — off, the light/dark button is not shown
 and the survey stays on `default_theme` for the whole sample —

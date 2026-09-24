@@ -273,6 +273,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "auto-height" embed kept its initial height and scrolled inside the page.
   In an iframe the runtime now posts `{type: "siamang:height", height}` to
   its parent on load and whenever its content's height changes.
+- The **page dots** (`progress_style="dots"` / `"both"`) jumped to any page,
+  forward included: a respondent could skip past unanswered required questions
+  and the routing between the current page and the one clicked. A dot now goes
+  back only to a page on the path that led to the current one (and not at all
+  with `allow_back=False`); a dot ahead, or of a page the routing skipped, is
+  disabled. Going back by a dot runs `onPageExit` like Previous and retraces
+  the path, which the autosave now keeps, so a resumed interview can still go
+  back the way it came.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

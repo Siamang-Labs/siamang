@@ -1740,6 +1740,13 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   cursor: not-allowed;
   opacity: 0.5;
 }
+.siamang-step-dot[disabled]:hover { border-color: var(--siamang-border); }
+/* The page being answered: not a place to go, but not greyed out either. */
+.siamang-step-dot.is-active[disabled] {
+  cursor: default;
+  opacity: 1;
+  border-color: var(--siamang-accent);
+}
 
 /* ─── Celebration / confetti ───────────────────────────────────────── */
 .siamang-celebration {

@@ -1290,3 +1290,160 @@ def test_an_embedded_survey_tells_its_host_its_height(tmp_path):
     # The frame follows the survey: it ends up as tall as the content.
     assert result["all"][-1]["height"] == result["content"]
     assert abs(result["frameHeight"] - result["content"]) <= 1
+
+
+# ── Page dots ────────────────────────────────────────────────────────────────
+
+
+def _dots_document(**ui: Any) -> dict[str, Any]:
+    route = {
+        "type": "expression",
+        "op": "=",
+        "left": {"type": "var", "name": "route"},
+        "right": 1,
+    }
+    return {
+        "schema_version": "1.0",
+        "title": "Dots",
+        "ui": {"progress_style": "both", **ui},
+        "variables": {
+            "route": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Jump"}, {"code": 2, "label": "Stay"}],
+            },
+            "b": {"scale": "nominal", "dtype": "str"},
+            "c": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "title": "One",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "route",
+                        "var": "route",
+                        "text": "Route?",
+                        "required": True,
+                    }
+                ],
+                "next_if": [{"condition": route, "target": "p3"}],
+            },
+            {
+                "name": "p2",
+                "title": "Two",
+                "items": [{"type": "OpenText", "id": "b", "var": "b", "text": "B?"}],
+            },
+            {
+                "name": "p3",
+                "title": "Three",
+                "items": [{"type": "OpenText", "id": "c", "var": "c", "text": "C?"}],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+# The page title on screen, and which dots are enabled.
+_WHERE = """
+    const where = async () => ({
+        title: await page.textContent(".sd-page__title"),
+        enabled: await page.$$eval(".siamang-step-dot", (ds) => ds.map((d) => !d.disabled)),
+    });
+"""
+
+
+def test_a_page_dot_never_jumps_ahead_of_the_respondent(tmp_path):
+    scenario = (
+        _WHERE
+        + """
+        const start = await where();
+        // A dot ahead of an unanswered required question does nothing.
+        await page.$eval(".siamang-step-dot:nth-child(3)", (d) => d.click());
+        await page.waitForTimeout(200);
+        const afterForward = await where();
+        await page.click("text=Stay");
+    """
+        + _NEXT
+        + _NEXT
+        + """
+        const onThree = await where();
+        await page.$eval(".siamang-step-dot:nth-child(1)", (d) => d.click());
+        await page.waitForTimeout(250);
+        const back = await where();
+        return { start, afterForward, onThree, back };
+    """
+    )
+    state = run_in_browser(_dots_document(), scenario, tmp_path)
+    assert state["start"]["enabled"] == [False, False, False, False]
+    assert state["afterForward"]["title"] == "One"
+    # On page three, the two pages seen before are reachable; nothing ahead is.
+    assert state["onThree"]["title"] == "Three"
+    assert state["onThree"]["enabled"] == [True, True, False, False]
+    assert state["back"]["title"] == "One"
+    assert state["back"]["enabled"] == [False, False, False, False]
+
+
+def test_a_page_dot_does_not_reach_a_page_routing_skipped(tmp_path):
+    scenario = (
+        _WHERE
+        + """
+        await page.click("text=Jump");
+    """
+        + _NEXT
+        + """
+        const onThree = await where();
+        await page.$eval(".siamang-step-dot:nth-child(2)", (d) => d.click());
+        await page.waitForTimeout(200);
+        const after = await where();
+        return { onThree, after };
+    """
+    )
+    state = run_in_browser(_dots_document(), scenario, tmp_path)
+    # p2 lies before p3 but was never shown: its dot stays disabled.
+    assert state["onThree"]["title"] == "Three"
+    assert state["onThree"]["enabled"] == [True, False, False, False]
+    assert state["after"]["title"] == "Three"
+
+
+def test_page_dots_do_not_go_back_when_going_back_is_off(tmp_path):
+    scenario = (
+        _WHERE
+        + """
+        await page.click("text=Stay");
+    """
+        + _NEXT
+        + """
+        const onTwo = await where();
+        await page.$eval(".siamang-step-dot:nth-child(1)", (d) => d.click());
+        await page.waitForTimeout(200);
+        return { onTwo, after: await where() };
+    """
+    )
+    state = run_in_browser(_dots_document(allow_back=False), scenario, tmp_path)
+    assert state["onTwo"]["enabled"] == [False, False, False, False]
+    assert state["after"]["title"] == "Two"
+
+
+def test_a_resumed_interview_keeps_the_path_the_dots_go_back_along(tmp_path):
+    scenario = (
+        _WHERE
+        + """
+        await page.click("text=Stay");
+    """
+        + _NEXT
+        + _NEXT
+        + """
+        await page.fill("input.sd-input", "x");
+        await page.click("body");
+        await page.waitForTimeout(2600);   // the autosave runs 2 s after an answer
+        await page.reload();
+        await page.waitForSelector(".siamang-resume-banner");
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(250);
+        return { resumed: await where() };
+    """
+    )
+    state = run_in_browser(_dots_document(), scenario, tmp_path)
+    assert state["resumed"]["title"] == "Three"
+    assert state["resumed"]["enabled"] == [True, True, False, False]
