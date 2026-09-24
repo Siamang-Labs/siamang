@@ -38,14 +38,34 @@ Since `SurveyData` is frozen and immutable, all data transformation methods retu
 * **`with_frame(frame: pd.DataFrame) -> SurveyData`**:
   Returns a new instance with the underlying DataFrame replaced.
 * **`with_weight(column: str | None) -> SurveyData`**:
-  Sets the default weight column. Raises a `ValueError` if the specified column is not present in the DataFrame.
+  Sets the default weight column. Raises a `ValueError` if the specified column is not present in the DataFrame. See [What the weight reaches](#what-the-weight-reaches).
+
+#### What the weight reaches
+
+Once `with_weight()` is set (the flow's **Apply weight** node), a result either uses the weight and says so, or has no standard weighted form and says it is unweighted. A missing or non-numeric weight counts 0 everywhere.
+
+| Result | With the weight |
+| :--- | :--- |
+| `report.freq`, `report.crosstab`, `report.means` | Weighted counts and percentages (an `Unweighted N` beside them), crosstab χ² on Kish's effective base; group means, SDs and medians weighted while N and the test are not. Stats: `Weight`. |
+| `report.banner`, `report.nps`, `analysis.regression`, TURF | Weighted; tests and the NPS standard error on Kish's effective base; stats `Weight` (`weight` for regression). |
+| `report.maxdiff`, `report.conjoint`, `report.conjoint_shares` and `siamang.data.maxdiff` / `conjoint` | Every column weighted: Shown/Best/Worst are sums of weights, Score, Utility, Share %, part-worths, importance and shares come from the weighted choices. Stats: `Weight` and a base of `N respondents (W weighted)`. |
+| `analysis.pca`, `analysis.reliability` | The weighted covariance (or correlation) matrix; stats `weight`. |
+| `analysis.proportion_ci` | Weighted only with `weighted=True` (then `weight`: the column); otherwise `weight`: `unweighted (the weight 'w' is not applied)`. |
+| `analysis.kruskal`, `analysis.mannwhitney`, `analysis.spearman`, `cluster()` | Unweighted — rank tests and k-means have no standard weighted form. Their result has `weight`: `unweighted (the weight 'w' is not applied)`. |
+| `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
+| `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
+| `plot.bar`, `plot.heatmap(by=…)` | Weighted counts and weighted means; the axis (or colour bar) says "Weighted". |
+| `plot.boxplot`, `plot.scatter`, `plot.heatmap()` without `by` | Unweighted; the title's second line reads `unweighted (the weight 'w' is not applied)`. |
+| The HB exports (`siamang.io.choice`) | The files carry no weight column (the R packages take none); weight the individual utilities when you aggregate them. |
+
+Weighted conditional-logit fits (MaxDiff, conjoint) rescale the weights to sum to Kish's effective number of choice sets before fitting: the estimates are those of the weighted likelihood, and the standard errors are those of the effective base rather than of the raw sample or of a population-sized total.
 
 ### Inspection and Validation
 
 * **`codebook() -> pd.DataFrame`**:
   Generates a comprehensive codebook DataFrame containing metadata (`name`, `scale`, `label`, `labels`, `missing_values`) for all registered variables. Raises a `ValueError` if `variables` is unset.
 * **`describe_variables() -> pd.DataFrame`**:
-  Generates a summary table containing the number of valid responses (`n`), missing responses (`n_missing`), and unique values (`n_unique`) for each variable.
+  Generates a summary table containing the number of rows (`n`), missing responses (`n_missing`), and unique values (`n_unique`) for each variable. On weighted data a `weighted_n_valid` column adds the sum of the weights of the rows that have a value — the weighted base a table of that variable reports.
 * **`validate(raise_on_error: bool = False) -> list[ValidationIssue]`**:
   Validates the underlying DataFrame against the `VariableMap` schema. It checks column presence, data types, value ranges, category labels, and weight constraints. Raises a `ValueError` if `raise_on_error=True` and issues are found.
 
@@ -154,17 +174,26 @@ class DataAnalysis:
 
 These methods require `scipy` to be installed.
 
-* **`kruskal(column: str, group: str) -> dict[str, float]`**:
-  Performs a Kruskal-Wallis H-test for independent samples. Returns a dictionary with `"statistic"` and `"pvalue"`.
-* **`mannwhitney(column: str, group: str) -> dict[str, float]`**:
-  Performs a Mann-Whitney U-test for two independent samples. Returns a dictionary with `"statistic"`, `"pvalue"`, `"n1"`, and `"n2"`.
-* **`spearman(x: str, y: str) -> dict[str, float]`**:
-  Calculates Spearman's rank correlation coefficient. Returns a dictionary with `"rho"`, `"pvalue"`, and `"n"`.
+* **`kruskal(column: str, group: str) -> dict[str, Any]`**:
+  Performs a Kruskal-Wallis H-test for independent samples. Returns a dictionary with `"statistic"`, `"p_value"` and `"groups"`.
+* **`mannwhitney(column: str, group: str) -> dict[str, Any]`**:
+  Performs a Mann-Whitney U-test for two independent samples. Returns a dictionary with `"statistic"`, `"p_value"`, `"group_a"`, and `"group_b"`.
+* **`spearman(x: str, y: str) -> dict[str, Any]`**:
+  Calculates Spearman's rank correlation coefficient. Returns a dictionary with `"rho"`, `"p_value"`, and `"n"`.
+
+The three rank tests have no standard weighted form, so they run on the respondents as they are. On weighted data each result also carries `"weight": "unweighted (the weight '<column>' is not applied)"`.
+
+### Models
+
+* **`regression(y: str, predictors: list[str], *, kind: str = "auto")`**: OLS, or a logit for a two-valued outcome; weighted (WLS / weighted logit) when the data is, with `stats["weight"]` naming the column.
+* **`pca(items: list[str], *, n_components: int | None = None, standardize: bool = True)`**: loadings and explained variance. On weighted data the components are those of the weighted covariance (standardized: correlation) matrix, `Σ pᵢ (xᵢ − m)(xᵢ − m)ᵀ / (1 − Σ pᵢ²)` with `pᵢ = wᵢ / Σw` — R's `cov.wt` — so equal weights give the unweighted result exactly. `stats["n"]` stays the rows analyzed; `stats["weight"]` names the column.
+* **`reliability(items: list[str])`**: Cronbach's alpha, item means, item–total correlations and alpha if deleted — all from the same weighted moments on weighted data, with `stats["weight"]`.
+* `SurveyData.cluster(items, *, k, into, seed, standardize)` is k-means on the respondents as they are; on weighted data `stats["weight"]` says the weight is not applied. A Frequencies table of the cluster variable on the weighted data gives the segments' weighted sizes.
 
 ### Confidence Intervals & Sample Size
 
-* **`proportion_ci(column: str, value: Any, confidence: float = 0.95, weighted: bool = False) -> dict[str, float]`**:
-  Calculates a binomial confidence interval for a specific category proportion. Returns `"proportion"`, `"ci_low"`, `"ci_high"`, and `"n"`.
+* **`proportion_ci(column: str, value: Any, confidence: float = 0.95, weighted: bool = False) -> dict[str, Any]`**:
+  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"` (Kish's effective base when `weighted=True`). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`.
 * **`effective_sample_size() -> float`**:
   Calculates Kish's effective sample size (ESS) for weighted datasets: $ESS = \frac{(\sum w)^2}{\sum w^2}$. Raises a `ValueError` if no weight column is set.
 

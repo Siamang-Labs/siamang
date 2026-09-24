@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from statistics import NormalDist
+from typing import Any
 
 import pandas as pd
 
@@ -29,11 +30,30 @@ def _answered(series: pd.Series) -> pd.Series:
     return multi.responded(series) if multi.is_multi(series) else series.notna()
 
 
+def unweighted_note(weight: str) -> str:
+    """What a result that cannot use the data's weight says about it."""
+    return f"unweighted (the weight '{weight}' is not applied)"
+
+
 @dataclass(frozen=True, slots=True)
 class DataAnalysis:
+    """Tests and models on the frame, with the data's weight column when set.
+
+    The rank tests (:meth:`kruskal`, :meth:`mannwhitney`, :meth:`spearman`)
+    have no standard weighted form, so on weighted data they run on the
+    respondents as they are and their result carries a ``weight`` entry
+    saying so. :meth:`regression`, :meth:`pca` and :meth:`reliability` use
+    the weight; :meth:`proportion_ci` uses it when asked (``weighted=True``).
+    """
+
     frame: pd.DataFrame
     weight_column: str | None = None
     variables: VariableMap | None = None
+
+    def _unweighted(self, result: dict[str, Any]) -> dict[str, Any]:
+        if self.weight_column is not None:
+            result["weight"] = unweighted_note(self.weight_column)
+        return result
 
     def mean(self, column: str, weighted: bool = False) -> float:
         values = self.frame[column].dropna().astype(float)
@@ -90,7 +110,7 @@ class DataAnalysis:
             rows.append(row)
         return pd.DataFrame(rows)
 
-    def kruskal(self, column: str, group: str) -> dict[str, float]:
+    def kruskal(self, column: str, group: str) -> dict[str, Any]:
         try:
             from scipy.stats import kruskal
         except ImportError as exc:
@@ -102,13 +122,15 @@ class DataAnalysis:
         if len(groups) < 2:
             raise ValueError("kruskal() requires at least two non-empty groups.")
         statistic, p_value = kruskal(*groups)
-        return {
-            "statistic": float(statistic),
-            "p_value": float(p_value),
-            "groups": float(len(groups)),
-        }
+        return self._unweighted(
+            {
+                "statistic": float(statistic),
+                "p_value": float(p_value),
+                "groups": float(len(groups)),
+            }
+        )
 
-    def mannwhitney(self, column: str, group: str) -> dict[str, float | object]:
+    def mannwhitney(self, column: str, group: str) -> dict[str, Any]:
         try:
             from scipy.stats import mannwhitneyu
         except ImportError as exc:
@@ -122,27 +144,31 @@ class DataAnalysis:
             values_b[column].astype(float),
             alternative="two-sided",
         )
-        return {
-            "statistic": float(statistic),
-            "p_value": float(p_value),
-            "group_a": group_a,
-            "group_b": group_b,
-        }
+        return self._unweighted(
+            {
+                "statistic": float(statistic),
+                "p_value": float(p_value),
+                "group_a": group_a,
+                "group_b": group_b,
+            }
+        )
 
-    def spearman(self, x: str, y: str) -> dict[str, float]:
+    def spearman(self, x: str, y: str) -> dict[str, Any]:
         try:
             from scipy.stats import spearmanr
         except ImportError as exc:
             raise ImportError("spearman() requires scipy to be installed.") from exc
         frame = self.frame[[x, y]].dropna()
         if frame.empty:
-            return {"rho": 0.0, "p_value": 1.0, "n": 0.0}
+            return self._unweighted({"rho": 0.0, "p_value": 1.0, "n": 0.0})
         result = spearmanr(frame[x], frame[y])
-        return {
-            "rho": float(result.statistic),
-            "p_value": float(result.pvalue),
-            "n": float(frame.shape[0]),
-        }
+        return self._unweighted(
+            {
+                "rho": float(result.statistic),
+                "p_value": float(result.pvalue),
+                "n": float(frame.shape[0]),
+            }
+        )
 
     def frequencies(
         self,
@@ -239,7 +265,13 @@ class DataAnalysis:
         value: object,
         confidence: float = 0.95,
         weighted: bool = False,
-    ) -> dict[str, float]:
+    ) -> dict[str, Any]:
+        """Share choosing ``value`` with a normal-approximation interval.
+
+        ``weighted=True`` weights the share and takes ``n`` as Kish's effective
+        base. Unweighted on weighted data, the result says the weight is not
+        applied.
+        """
         if confidence <= 0 or confidence >= 1:
             raise ValueError("confidence must be in (0, 1)")
         z = NormalDist().inv_cdf((1 + confidence) / 2)
@@ -251,18 +283,28 @@ class DataAnalysis:
             n_eff = self.effective_sample_size()
             weight_sum = float(weights.sum())
             if n_eff <= 0 or weight_sum <= 0:
-                return {"p": 0.0, "lower": 0.0, "upper": 0.0, "n": 0.0}
+                return {
+                    "p": 0.0,
+                    "lower": 0.0,
+                    "upper": 0.0,
+                    "n": 0.0,
+                    "weight": self.weight_column,
+                }
             p = float((indicator * weights).sum() / weight_sum)
             n = n_eff
         else:
             n = float(_answered(self.frame[column]).sum())
             if n <= 0:
-                return {"p": 0.0, "lower": 0.0, "upper": 0.0, "n": 0.0}
+                return self._unweighted({"p": 0.0, "lower": 0.0, "upper": 0.0, "n": 0.0})
             p = float(_chose(self.frame[column], value).sum() / n)
         margin = z * ((p * (1 - p) / n) ** 0.5)
         lower = max(0.0, p - margin)
         upper = min(1.0, p + margin)
-        return {"p": p, "lower": lower, "upper": upper, "n": n}
+        result: dict[str, Any] = {"p": p, "lower": lower, "upper": upper, "n": n}
+        if weighted:
+            result["weight"] = self.weight_column
+            return result
+        return self._unweighted(result)
 
     # ── models (siamang.data.models) ──────────────────────────────
     def regression(self, y: str, predictors: list[str], *, kind: str = "auto"):
@@ -279,14 +321,24 @@ class DataAnalysis:
         )
 
     def pca(self, items: list[str], *, n_components: int | None = None, standardize: bool = True):
+        """Principal components, of the weighted matrix when the data is weighted;
+        see :func:`siamang.data.models.pca`."""
         from siamang.data.models import pca
 
-        return pca(self.frame, items, n_components=n_components, standardize=standardize)
+        return pca(
+            self.frame,
+            items,
+            n_components=n_components,
+            standardize=standardize,
+            weight=self.weight_column,
+        )
 
     def reliability(self, items: list[str]):
+        """Cronbach's alpha, weighted when the data is; see
+        :func:`siamang.data.models.reliability`."""
         from siamang.data.models import reliability
 
-        return reliability(self.frame, items)
+        return reliability(self.frame, items, weight=self.weight_column)
 
     def effective_sample_size(self) -> float:
         if self.weight_column is None:

@@ -23,7 +23,7 @@ class ClusterAssignment:
 
     data: SurveyData
     centroids: pd.DataFrame
-    stats: dict[str, float | int] = field(default_factory=dict)
+    stats: dict[str, float | int | str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,8 +200,20 @@ class SurveyData:
         return pd.DataFrame(rows)
 
     def describe_variables(self) -> pd.DataFrame:
+        """One row per codebook variable: rows, missing and distinct values.
+
+        These count records, which is what a completeness check is about. On
+        weighted data a ``weighted_n_valid`` column stands beside them: the
+        sum of the weights of the rows that have a value, which is the weighted
+        base a table of that variable would report.
+        """
         if self.variables is None:
             raise ValueError("SurveyData has no variable metadata. Attach VariableMap first.")
+        weights = None
+        if self.weight is not None:
+            if self.weight not in self.frame.columns:
+                raise ValueError(f"Weight column '{self.weight}' not found in frame.")
+            weights = pd.to_numeric(self.frame[self.weight], errors="coerce").fillna(0.0)
         rows = []
         for variable in self.variables.values():
             series = (
@@ -209,16 +221,18 @@ class SurveyData:
                 if variable.name in self.frame.columns
                 else pd.Series(dtype="object")
             )
-            rows.append(
-                {
-                    "name": variable.name,
-                    "label": variable.label or variable.name,
-                    "scale": variable.scale,
-                    "n": int(series.shape[0]),
-                    "n_missing": int(series.isna().sum()) if series.shape[0] else 0,
-                    "n_unique": int(series.nunique(dropna=True)) if series.shape[0] else 0,
-                }
-            )
+            row = {
+                "name": variable.name,
+                "label": variable.label or variable.name,
+                "scale": variable.scale,
+                "n": int(series.shape[0]),
+                "n_missing": int(series.isna().sum()) if series.shape[0] else 0,
+                "n_unique": int(series.nunique(dropna=True)) if series.shape[0] else 0,
+            }
+            if weights is not None:
+                valid = series.notna() if series.shape[0] else pd.Series(dtype=bool)
+                row["weighted_n_valid"] = round(float(weights[valid[valid].index].sum()), 1)
+            rows.append(row)
         return pd.DataFrame(rows)
 
     def validate(self, raise_on_error: bool = False) -> list[ValidationIssue]:
@@ -535,7 +549,12 @@ class SurveyData:
     ) -> ClusterAssignment:
         """k-means on ``items``: a copy of the data with the cluster number in
         ``into`` (a nominal variable labeled "Cluster 1".."Cluster k") and the
-        centroid table (:func:`siamang.data.models.kmeans`)."""
+        centroid table (:func:`siamang.data.models.kmeans`).
+
+        The segmentation is drawn on the respondents as they are, never on the
+        weight: on weighted data ``stats["weight"]`` says it is not applied.
+        Weight the segments afterwards — a Frequencies table of ``into`` on
+        the weighted data gives their weighted sizes."""
         from siamang.data.models import kmeans
 
         result = kmeans(
@@ -560,7 +579,12 @@ class SurveyData:
         data = SurveyData(
             frame=frame, variables=variables, questionnaire=self.questionnaire, weight=self.weight
         )
-        return ClusterAssignment(data=data, centroids=result.centroids, stats=result.stats)
+        stats = dict(result.stats)
+        if self.weight is not None:
+            from siamang.data.analysis import unweighted_note
+
+            stats["weight"] = unweighted_note(self.weight)
+        return ClusterAssignment(data=data, centroids=result.centroids, stats=stats)
 
     def _numeric_items_frame(self, items: list[str]) -> pd.DataFrame:
         missing_normalized = self.apply_missing_values() if self.variables is not None else self

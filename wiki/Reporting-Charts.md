@@ -42,6 +42,15 @@ figure is built lazily on first use.
 | `show()` | `None` | Display inline (Jupyter) or in a window. |
 | `save(path, dpi=150)` | `Path` | Write to file (the directory must already exist); `bbox_inches="tight"`. |
 
+**Weighted data.** After `with_weight(...)` a chart never disagrees in silence
+with the weighted tables beside it. `BarChart` draws sums of weights (axis
+"Weighted count") or weighted means ("Weighted mean …"), and `HeatMap` with `by`
+draws weighted means (colour bar "Weighted mean"). `BoxPlot`, `ScatterPlot` and
+the correlation `HeatMap` have no standard weighted form, so they draw the
+respondents as they are and add a second title line, `unweighted (the weight
+'w' is not applied)` — under a title you set yourself too. `chart.weight_note`
+returns that line (or `"weighted by 'w'"`, or `None` on unweighted data).
+
 ---
 
 ## `BarChart`

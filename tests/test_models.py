@@ -126,3 +126,66 @@ def test_reliability_reports_alpha_and_item_diagnostics():
     assert mixed.alpha < result.alpha
     with pytest.raises(ValueError, match="at least two"):
         reliability(frame, ["a1"])
+
+
+# ── weights ──────────────────────────────────────────────────────────────────
+#
+# x = 1, 2, 3 and y = 1, 3, 2 with weights 1, 1, 2. By hand: the weighted means
+# are 2.25 and 2; the deviations weigh Σw·dx² = 2.75, Σw·dy² = 2 and
+# Σw·dx·dy = 1, so the weighted correlation is 1 / √5.5 = 0.4264 (unweighted
+# it is 0.5). With p = w / Σw the variances are Σp·d² / (1 − Σp²):
+# var x = 0.6875 / 0.625 = 1.1, var y = 0.8, cov = 0.4, var(x + y) = 2.7, and
+# Cronbach's alpha = 2 · (1 − 1.9 / 2.7) = 16 / 27.
+
+
+def _tiny() -> pd.DataFrame:
+    return pd.DataFrame({"x": [1.0, 2.0, 3.0], "y": [1.0, 3.0, 2.0], "w": [1.0, 1.0, 2.0]})
+
+
+def test_pca_of_weighted_data_is_the_pca_of_the_weighted_correlation_matrix():
+    r = 1 / np.sqrt(5.5)
+    result = pca(_tiny(), ["x", "y"], weight="w")
+    # Two items: eigenvalues 1 ± r, loadings √((1 + r) / 2) on the first component.
+    assert np.allclose(result.variance["eigenvalue"], [1 + r, 1 - r])
+    assert np.allclose(result.loadings["PC1"].abs(), np.sqrt((1 + r) / 2))
+    assert result.stats["weight"] == "w" and result.stats["n"] == 3
+    assert np.allclose(pca(_tiny(), ["x", "y"]).variance["eigenvalue"], [1.5, 0.5])
+    assert "weight" not in pca(_tiny(), ["x", "y"]).stats
+
+
+def test_equal_weights_reproduce_the_unweighted_pca_and_alpha():
+    frame = _frame().assign(w=2.5)
+    items = ["a1", "a2", "a3", "b1", "b2", "b3"]
+    for standardize in (True, False):
+        a = pca(frame, items, standardize=standardize, weight="w")
+        b = pca(frame, items, standardize=standardize)
+        assert np.allclose(a.variance["eigenvalue"], b.variance["eigenvalue"])
+        assert np.allclose(a.loadings[["PC1", "PC2"]].abs(), b.loadings[["PC1", "PC2"]].abs())
+    a, b = reliability(frame, items[:3], weight="w"), reliability(frame, items[:3])
+    assert a.alpha == pytest.approx(b.alpha)
+    columns = ["mean", "item_total_correlation", "alpha_if_deleted"]
+    assert np.allclose(a.items[columns], b.items[columns])
+
+
+def test_reliability_of_weighted_data_by_hand():
+    result = reliability(_tiny(), ["x", "y"], weight="w")
+    assert result.alpha == pytest.approx(16 / 27)
+    items = result.items.set_index("item")
+    assert items.loc["x", "mean"] == pytest.approx(2.25) and items.loc["y", "mean"] == 2.0
+    assert np.allclose(items["item_total_correlation"], 1 / np.sqrt(5.5))
+    assert result.stats["weight"] == "w"
+    # Unweighted: var x = var y = 1, var(x + y) = 3, alpha = 2 · (1 − 2/3).
+    assert reliability(_tiny(), ["x", "y"]).alpha == pytest.approx(2 / 3)
+    # A missing weight weighs nothing but keeps its row among the people counted.
+    frame = _tiny().assign(w=[1.0, 1.0, None])
+    assert reliability(frame, ["x", "y"], weight="w").stats["n"] == 3
+    with pytest.raises(ValueError, match="one row"):
+        reliability(frame.assign(w=[0.0, 0.0, 1.0]), ["x", "y"], weight="w")
+
+
+def test_the_analysis_accessor_weights_pca_reliability_and_regression():
+    data = SurveyData(frame=_frame().assign(w=np.linspace(0.5, 1.5, 400))).with_weight("w")
+    assert data.analysis.pca(["a1", "a2", "a3"]).stats["weight"] == "w"
+    assert data.analysis.reliability(["a1", "a2", "a3"]).stats["weight"] == "w"
+    assert data.analysis.regression("satisfaction", ["age"]).stats["weight"] == "w"
+    assert data.analysis.regression("recommend", ["age"]).stats["weight"] == "w"

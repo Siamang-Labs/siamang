@@ -49,6 +49,15 @@ def _weights_of(data: SurveyData, index: pd.Index) -> pd.Series | None:
     return pd.to_numeric(raw, errors="coerce").fillna(0.0).astype(float)
 
 
+def _unweighted_note(data: SurveyData) -> str | None:
+    """What a table that does not use the data's weight says about it, or None."""
+    if data.weight is None:
+        return None
+    from siamang.data.analysis import unweighted_note
+
+    return unweighted_note(data.weight)
+
+
 def _weighted_summary(values: np.ndarray, weights: np.ndarray) -> tuple[float, float, float, int]:
     """Weighted mean, SD and median of ``values``, and their unweighted count.
 
@@ -412,6 +421,8 @@ class NpsTable(SurveyTable):
             "CI95 high": round(min(100.0, score + 1.96 * se), 1) if se == se else None,
             "N valid": n,
         }
+        if self.data.weight and self.data.weight in frame.columns:
+            self._stats["Weight"] = self.data.weight
 
 
 # ─── CrossTable ───────────────────────────────────────────────────────────────
@@ -529,6 +540,8 @@ class CrossTable(SurveyTable):
                     self._stats["Base"] = "effective (Kish) for the test; weighted counts shown"
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
+        elif weights is not None:
+            self._stats = {"Weighted N": round(float(weights.sum()), 1), "Weight": self.data.weight}
 
     def _build_multi(self) -> None:
         """A multiple-choice question against a group: reach within each column.
@@ -800,6 +813,10 @@ class QualityTable(SurveyTable):
         rows.append({"Check": "Clean", "N": screened - flagged, "%": share(screened - flagged)})
         self._result = pd.DataFrame(rows, columns=["Check", "N", "%"])
         self._stats = {"Screened": screened, "Flagged": flagged}
+        # Screening is about the responses received, not the population they
+        # stand for, so the counts are of responses whatever the weight.
+        if (note := _unweighted_note(self.data)) is not None:
+            self._stats["Weight"] = note
 
 
 # ─── ThemeTable ───────────────────────────────────────────────────────────────
@@ -849,6 +866,8 @@ class ThemeTable(SurveyTable):
         }
         if cf.model:
             self._stats["Codeframe"] = f"{cf.model}{f', {cf.built_at}' if cf.built_at else ''}"
+        if (note := _unweighted_note(self.data)) is not None:
+            self._stats["Weight"] = note
 
 
 # ─── MaxDiffTable ─────────────────────────────────────────────────────────────

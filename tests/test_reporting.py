@@ -378,3 +378,136 @@ def test_a_weighted_multiple_choice_frequency_shows_both_bases():
     assert rows["N"].tolist() == [4, 2, 5] and rows["Unweighted N"].tolist() == [2, 2, 3]
     assert rows["%"].tolist() == [80.0, 40.0, 100.0]
     assert table.stats["Base"] == "3 respondents (5 weighted)"
+
+
+# ── Every other result either uses the weight or says it does not ─────────────
+#
+# The same two groups as above: in each, the second respondent weighs three
+# times the first. Expected numbers are again arithmetic by hand.
+
+
+def _close_figures():
+    import matplotlib.pyplot as plt
+
+    plt.close("all")
+
+
+def test_the_bar_chart_draws_the_weighted_counts_and_means():
+    data = _weighted_pair()
+    weighted = data.with_weight("w")
+
+    # Yes: respondents weighing 1 and 1; No: 3 and 3.
+    chart = weighted.plot.bar("ans")
+    ax = chart.plot()
+    assert [patch.get_height() for patch in ax.patches] == [2.0, 6.0]
+    assert ax.get_ylabel() == "Weighted count" and chart.weight_note == "weighted by 'w'"
+    plain = data.plot.bar("ans")
+    assert [patch.get_height() for patch in plain.plot().patches] == [2.0, 2.0]
+    assert plain.plot().get_ylabel() == "Count" and plain.weight_note is None
+
+    # Left: (10·1 + 20·3) / 4 = 17.5; Right: (30·1 + 40·3) / 4 = 37.5.
+    means = weighted.plot.bar("score", by="grp")
+    heights = [patch.get_height() for patch in means.plot().patches]
+    assert heights == [17.5, 37.5] and means.plot().get_ylabel() == "Weighted mean Score"
+    assert [p.get_height() for p in data.plot.bar("score", by="grp").plot().patches] == [15, 35]
+    _close_figures()
+
+
+def test_a_heatmap_of_means_is_weighted_and_a_correlation_heatmap_says_it_is_not():
+    import numpy as np
+
+    weighted = _weighted_pair().with_weight("w")
+    heat = weighted.plot.heatmap(["score"], by="grp")
+    cells = np.asarray(heat.plot().collections[0].get_array()).ravel().tolist()
+    assert cells == [17.5, 37.5] and heat.weight_note == "weighted by 'w'"
+    assert heat.plot().figure.axes[-1].get_ylabel() == "Weighted mean"  # the colour bar
+    plain = _weighted_pair().plot.heatmap(["score"], by="grp").plot()
+    assert plain.figure.axes[-1].get_ylabel() == ""
+
+    note = "unweighted (the weight 'w' is not applied)"
+    corr = weighted.plot.heatmap(["score", "ans"])
+    assert corr.weight_note == note and corr.plot().get_title().endswith("\n" + note)
+    _close_figures()
+
+
+def test_box_and_scatter_plots_say_the_weight_is_not_applied():
+    data = _weighted_pair()
+    note = "unweighted (the weight 'w' is not applied)"
+    for chart in (
+        data.with_weight("w").plot.boxplot("score", by="grp"),
+        data.with_weight("w").plot.scatter("score", "ans", title="Mine"),
+    ):
+        assert chart.weight_note == note
+        assert chart.plot().get_title().split("\n")[1] == note
+    # Even a title set by hand keeps the note; unweighted data has none.
+    assert data.with_weight("w").plot.scatter("score", "ans", title="Mine").plot().get_title() == (
+        f"Mine\n{note}"
+    )
+    assert data.plot.boxplot("score", by="grp").plot().get_title() == "Score by Group"
+    _close_figures()
+
+
+def test_the_crosstab_without_a_test_still_names_the_weight():
+    table = _weighted_pair().with_weight("w").report.crosstab("grp", "ans", test=False)
+    assert table.stats == {"Weighted N": 8.0, "Weight": "w"}
+    assert _weighted_pair().report.crosstab("grp", "ans", test=False).stats == {}
+
+
+def test_rank_tests_and_clusters_say_they_are_unweighted():
+    data = _weighted_pair().with_weight("w")
+    note = "unweighted (the weight 'w' is not applied)"
+    assert data.analysis.mannwhitney("score", "grp")["weight"] == note
+    assert data.analysis.kruskal("score", "grp")["weight"] == note
+    assert data.analysis.spearman("score", "ans")["weight"] == note
+    assert data.cluster(["score"], k=2).stats["weight"] == note
+    plain = _weighted_pair()
+    assert "weight" not in plain.analysis.spearman("score", "ans")
+    assert "weight" not in plain.cluster(["score"], k=2).stats
+
+
+def test_a_proportion_says_whether_the_weight_was_used():
+    data = _weighted_pair().with_weight("w")
+    unweighted = data.analysis.proportion_ci("ans", 1)
+    assert unweighted["p"] == 0.5
+    assert unweighted["weight"] == "unweighted (the weight 'w' is not applied)"
+    # Yes weighs 2 of 8; n is Kish's 8² / (1 + 9 + 1 + 9) = 3.2.
+    weighted = data.analysis.proportion_ci("ans", 1, weighted=True)
+    assert weighted["p"] == 0.25 and weighted["n"] == 3.2 and weighted["weight"] == "w"
+
+
+def test_describe_counts_rows_and_adds_the_weighted_base():
+    import pandas as pd
+
+    data = _weighted_pair()
+    frame = data.frame.copy()
+    frame.loc[3, "score"] = None
+    weighted = data.with_frame(frame).with_weight("w").describe_variables().set_index("name")
+    # score: rows weighing 1, 3 and 1 answered; the fourth (weight 3) did not.
+    assert weighted.loc["score", "weighted_n_valid"] == 5.0
+    assert weighted.loc["score", "n"] == 4 and weighted.loc["score", "n_missing"] == 1
+    assert weighted.loc["grp", "weighted_n_valid"] == 8.0
+    assert "weighted_n_valid" not in data.describe_variables().columns
+    assert isinstance(weighted, pd.DataFrame)
+
+
+def test_the_quality_table_counts_responses_and_says_so():
+    from siamang.reporting.tables import QualityTable
+
+    data = _weighted_pair()
+    frame = data.frame.assign(quality_flags=["", "straightlining", "", ""])
+    table = QualityTable(data=data.with_frame(frame).with_weight("w"))
+    assert table.to_frame()["N"].tolist() == [1, 1, 3]
+    assert table.stats["Weight"] == "unweighted (the weight 'w' is not applied)"
+    assert "Weight" not in QualityTable(data=data.with_frame(frame)).stats
+
+
+def test_nps_names_the_weight_it_used():
+    import pandas as pd
+
+    from siamang.data import SurveyData
+
+    frame = pd.DataFrame({"nps": [10, 0, 9, 5], "w": [1.0, 3.0, 1.0, 1.0]})
+    table = SurveyData(frame=frame).with_weight("w").report.nps("nps")
+    # Promoters weigh 2 of 6, detractors 4 of 6: NPS = 33.3 − 66.7.
+    assert table.stats["NPS"] == -33.3 and table.stats["Weight"] == "w"
+    assert "Weight" not in SurveyData(frame=frame).report.nps("nps").stats

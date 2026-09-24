@@ -4,7 +4,9 @@ scale reliability — on plain frames, with numpy and SciPy only.
 Every function returns a small result object whose pieces drop straight
 into a report: a coefficient table (``DataFrame``) and a statistics
 mapping, loadings and explained variance, cluster centroids and sizes.
-Weighted variants take a weight column the way the descriptives do.
+Weighted variants take a weight column the way the descriptives do:
+regression, principal components and reliability. k-means does not — a
+segmentation is drawn on the respondents as they are.
 """
 
 from __future__ import annotations
@@ -29,21 +31,21 @@ class RegressionResult:
 class PcaResult:
     loadings: pd.DataFrame  # item × component
     variance: pd.DataFrame  # component, eigenvalue, variance_pct, cumulative_pct
-    stats: dict[str, float | int] = field(default_factory=dict)
+    stats: dict[str, float | int | str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
 class ClusterResult:
     labels: pd.Series  # 1..k, NaN where an item was missing
     centroids: pd.DataFrame  # cluster, size, share, one column per item
-    stats: dict[str, float | int] = field(default_factory=dict)
+    stats: dict[str, float | int | str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
 class ReliabilityResult:
     alpha: float
     items: pd.DataFrame  # item, mean, item_total_correlation, alpha_if_deleted
-    stats: dict[str, float | int] = field(default_factory=dict)
+    stats: dict[str, float | int | str] = field(default_factory=dict)
 
 
 # ── design matrices ──────────────────────────────────────────────────────────
@@ -89,6 +91,49 @@ def _complete(frame: pd.DataFrame, columns: list[str], weight: str | None) -> pd
     return frame[keep].dropna().reset_index(drop=True)
 
 
+def _numeric_items(
+    frame: pd.DataFrame, items: list[str], weight: str | None
+) -> tuple[pd.DataFrame, np.ndarray | None]:
+    """The complete rows of ``items`` as numbers, and their weights.
+
+    A row is dropped for a missing item, never for a missing weight: that
+    weighs 0, as it does in every weighted table, so the people counted stay
+    the same with or without the weight.
+    """
+
+    data = frame[items].apply(pd.to_numeric, errors="coerce").dropna()
+    if weight is None:
+        return data, None
+    if weight not in frame.columns:
+        raise KeyError(f"column not found: {weight!r}")
+    weights = pd.to_numeric(frame.loc[data.index, weight], errors="coerce").fillna(0.0)
+    values = weights.to_numpy(dtype=float)
+    if np.any(values < 0):
+        raise ValueError(f"The weight column {weight!r} has negative values.")
+    if values.sum() <= 0:
+        raise ValueError(f"The weights in {weight!r} of the complete rows sum to zero.")
+    return data, values
+
+
+def _weighted_moments(matrix: np.ndarray, weights: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Weighted means and covariance matrix of the columns of ``matrix``.
+
+    The covariance is Σ pᵢ (xᵢ − m)(xᵢ − m)ᵀ / (1 − Σ pᵢ²) with pᵢ = wᵢ / Σw —
+    the unbiased estimate for reliability weights (R's ``cov.wt``). It does not
+    depend on the weights' scale, and equal weights give exactly the sample
+    covariance an unweighted analysis computes.
+    """
+
+    share = weights / weights.sum()
+    mean = share @ matrix
+    centred = matrix - mean
+    correction = 1.0 - float((share**2).sum())
+    if correction <= 0:
+        raise ValueError("All the weight is on one row, so there is no variance to analyze.")
+    covariance = (centred * share[:, None]).T @ centred / correction
+    return mean, covariance
+
+
 # ── regression ───────────────────────────────────────────────────────────────
 
 
@@ -128,8 +173,12 @@ def regression(
         if float(positive).is_integer():
             positive = int(positive)
         target = (target == values[1]).astype(float)
-        return _logit(x, target, w, names, y, len(data), positive=positive)
-    return _ols(x, target, w, names, y, len(data))
+        result = _logit(x, target, w, names, y, len(data), positive=positive)
+    else:
+        result = _ols(x, target, w, names, y, len(data))
+    if weight:
+        result.stats["weight"] = weight
+    return result
 
 
 def _p_from_t(t: np.ndarray, df: int) -> np.ndarray:
@@ -242,24 +291,44 @@ def pca(
     *,
     n_components: int | None = None,
     standardize: bool = True,
+    weight: str | None = None,
 ) -> PcaResult:
     """Principal components of ``items`` (complete rows). Without
     ``n_components`` the components with an eigenvalue above 1 are kept
-    (Kaiser), at least one."""
+    (Kaiser), at least one.
+
+    With ``weight`` the components are those of the weighted covariance (or,
+    standardized, correlation) matrix — see :func:`_weighted_moments`; equal
+    weights give the unweighted result. ``n`` stays the rows analyzed."""
 
     if len(items) < 2:
         raise ValueError("pca needs at least two items.")
-    data = frame[items].apply(pd.to_numeric, errors="coerce").dropna()
+    data, weights = _numeric_items(frame, items, weight)
     if len(data) < 3:
         raise ValueError("pca: fewer than three complete rows.")
     matrix = data.to_numpy(dtype=float)
-    matrix = matrix - matrix.mean(axis=0)
-    if standardize:
-        sd = matrix.std(axis=0, ddof=1)
-        sd[sd == 0] = 1.0
-        matrix = matrix / sd
-    _, singular, vt = np.linalg.svd(matrix, full_matrices=False)
-    eigen = singular**2 / (len(data) - 1)
+    if weights is None:
+        matrix = matrix - matrix.mean(axis=0)
+        if standardize:
+            sd = matrix.std(axis=0, ddof=1)
+            sd[sd == 0] = 1.0
+            matrix = matrix / sd
+        _, singular, vt = np.linalg.svd(matrix, full_matrices=False)
+        eigen = singular**2 / (len(data) - 1)
+    else:
+        # The SVD of the centred rows scaled by √(pᵢ / (1 − Σp²)) is the
+        # eigen-decomposition of the weighted covariance: the same route as the
+        # unweighted branch, so equal weights land on the same numbers.
+        mean, covariance = _weighted_moments(matrix, weights)
+        matrix = matrix - mean
+        if standardize:
+            sd = np.sqrt(np.clip(np.diag(covariance), 0.0, None))
+            sd[sd == 0] = 1.0
+            matrix = matrix / sd
+        share = weights / weights.sum()
+        scale = np.sqrt(share / (1.0 - float((share**2).sum())))
+        _, singular, vt = np.linalg.svd(matrix * scale[:, None], full_matrices=False)
+        eigen = singular**2
     total = float(eigen.sum()) or 1.0
     keep = n_components or max(1, int((eigen > 1).sum()))
     keep = min(keep, len(items))
@@ -276,7 +345,13 @@ def pca(
             "cumulative_pct": np.cumsum(share),
         }
     )
-    stats = {"n": int(len(data)), "components": keep, "explained_pct": float(share[:keep].sum())}
+    stats: dict[str, float | int | str] = {
+        "n": int(len(data)),
+        "components": keep,
+        "explained_pct": float(share[:keep].sum()),
+    }
+    if weight:
+        stats["weight"] = weight
     return PcaResult(loadings=loadings, variance=variance, stats=stats)
 
 
@@ -345,29 +420,52 @@ def kmeans(
         for i, item in enumerate(items):
             row[item] = float(members[:, i].mean()) if len(members) else float("nan")
         rows.append(row)
-    stats = {"n": int(len(complete)), "k": k, "inertia": inertia}
+    stats: dict[str, float | int | str] = {"n": int(len(complete)), "k": k, "inertia": inertia}
     return ClusterResult(labels=series, centroids=pd.DataFrame(rows), stats=stats)
 
 
 # ── reliability ──────────────────────────────────────────────────────────────
 
 
-def reliability(frame: pd.DataFrame, items: list[str]) -> ReliabilityResult:
-    """Cronbach's alpha with item–total correlations and alpha if deleted."""
+def reliability(
+    frame: pd.DataFrame, items: list[str], *, weight: str | None = None
+) -> ReliabilityResult:
+    """Cronbach's alpha with item–total correlations and alpha if deleted.
+
+    With ``weight`` the variances, the item means and the item–total
+    correlations are weighted (:func:`_weighted_moments`); equal weights give
+    the unweighted result. ``n`` stays the rows analyzed."""
 
     if len(items) < 2:
         raise ValueError("reliability needs at least two items.")
-    data = frame[items].apply(pd.to_numeric, errors="coerce").dropna()
+    data, weights = _numeric_items(frame, items, weight)
     n = len(data)
     if n < 3:
         raise ValueError("reliability: fewer than three complete rows.")
+
+    def variance(values: pd.Series | pd.DataFrame) -> Any:
+        """Sample variance of a column (or of each column), weighted when asked."""
+        if weights is None:
+            return values.var(axis=0, ddof=1)
+        matrix = values.to_numpy(dtype=float)
+        _, covariance = _weighted_moments(matrix.reshape(len(matrix), -1), weights)
+        diagonal = np.diag(covariance)
+        return diagonal if values.ndim > 1 else float(diagonal[0])
+
+    def correlation(a: pd.Series, b: pd.Series) -> float:
+        if weights is None:
+            return float(a.corr(b))
+        pair = np.column_stack([a.to_numpy(dtype=float), b.to_numpy(dtype=float)])
+        _, covariance = _weighted_moments(pair, weights)
+        scale = float(np.sqrt(covariance[0, 0] * covariance[1, 1]))
+        return float(covariance[0, 1] / scale) if scale > 0 else float("nan")
 
     def alpha_of(columns: list[str]) -> float:
         k = len(columns)
         if k < 2:
             return float("nan")
-        item_var = data[columns].var(axis=0, ddof=1).sum()
-        total_var = data[columns].sum(axis=1).var(ddof=1)
+        item_var = float(np.sum(variance(data[columns])))
+        total_var = float(variance(data[columns].sum(axis=1)))
         return float((k / (k - 1)) * (1 - item_var / total_var)) if total_var > 0 else 0.0
 
     alpha = alpha_of(items)
@@ -375,14 +473,21 @@ def reliability(frame: pd.DataFrame, items: list[str]) -> ReliabilityResult:
     for item in items:
         others = [i for i in items if i != item]
         rest = data[others].sum(axis=1)
-        corr = float(data[item].corr(rest)) if rest.std(ddof=1) > 0 else float("nan")
+        corr = correlation(data[item], rest) if variance(rest) > 0 else float("nan")
+        mean = (
+            float(data[item].mean())
+            if weights is None
+            else float(np.average(data[item].to_numpy(dtype=float), weights=weights))
+        )
         rows.append(
             {
                 "item": item,
-                "mean": float(data[item].mean()),
+                "mean": mean,
                 "item_total_correlation": corr,
                 "alpha_if_deleted": alpha_of(others),
             }
         )
-    stats = {"alpha": alpha, "n_items": len(items), "n": int(n)}
+    stats: dict[str, float | int | str] = {"alpha": alpha, "n_items": len(items), "n": int(n)}
+    if weight:
+        stats["weight"] = weight
     return ReliabilityResult(alpha=alpha, items=pd.DataFrame(rows), stats=stats)

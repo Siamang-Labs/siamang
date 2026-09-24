@@ -97,12 +97,33 @@ def with_weight(self, column: str) -> SurveyData: ...
 ```
 
 Sets the default survey weight column, used by every `weighted=True` statistic
-in [[Analysis]]. Raises `ValueError` if the column is not in the frame.
+in [[Analysis]] and read directly by the declarative tables, charts and models.
+Raises `ValueError` if the column is not in the frame.
 
 ```python
 weighted = data.with_weight("design_weight")
 weighted.analysis.mean("age", weighted=True)
+weighted.report.freq("region")          # N and % are sums of weights
 ```
+
+#### What the weight reaches
+
+A result either uses the weight and says so, or has no standard weighted form
+and says it is unweighted — nothing ignores it in silence. A missing or
+non-numeric weight counts 0.
+
+| Result | With a weight set |
+| :--- | :--- |
+| `report.freq` / `crosstab` / `means` | weighted counts and %; χ² on Kish's effective base; means, SD, median weighted (N and the test are not) |
+| `report.banner` / `nps`, `analysis.regression`, TURF | weighted; tests and the NPS error on Kish's effective base |
+| `report.maxdiff` / `conjoint` / `conjoint_shares` | every column weighted, the utilities and part-worths too; base `N respondents (W weighted)` |
+| `analysis.pca` / `reliability` | weighted covariance matrix; `stats["weight"]` |
+| `analysis.proportion_ci` | weighted with `weighted=True`, otherwise says it is not |
+| `analysis.kruskal` / `mannwhitney` / `spearman`, `cluster()` | unweighted: `"weight": "unweighted (the weight 'w' is not applied)"` |
+| `report.quality` / `themes` | count responses; `stats["Weight"]` says the weight is not applied |
+| `describe_variables()` | counts rows, adds `weighted_n_valid` |
+| `plot.bar`, `plot.heatmap(by=…)` | weighted counts / means, axis labelled "Weighted …" |
+| `plot.boxplot`, `plot.scatter`, `plot.heatmap()` | unweighted; the title's second line says so |
 
 ---
 
@@ -124,6 +145,9 @@ Returns a metadata-only DataFrame — one row per registered variable with `name
 ```python
 def describe_variables(self) -> pd.DataFrame: ...
 ```
+
+On weighted data the table adds `weighted_n_valid` — the sum of the weights of
+the rows that have a value — beside the row counts.
 
 Returns a quick completeness summary — `name`, `label`, `scale`, plus `n`
 (rows), `n_missing` (NaN count), and `n_unique` per variable. Also requires

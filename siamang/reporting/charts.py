@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pandas as pd
+
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
 
@@ -49,6 +51,42 @@ def _get_scale(data: SurveyData, var_name: str) -> str | None:
     return None
 
 
+def _weights(data: SurveyData, index: pd.Index) -> pd.Series | None:
+    """The weight of each row in ``index``, or None when the data is unweighted.
+
+    Same resolution as the tables (``SurveyData.with_weight``, the flow's Apply
+    weight node): a weight that is missing or not a number counts 0.
+    """
+    column = data.weight
+    if column is None:
+        return None
+    if column not in data.frame.columns:
+        raise ValueError(f"Weight column '{column}' not found in frame.")
+    weights: pd.Series = pd.to_numeric(data.frame.loc[index, column], errors="coerce")
+    return weights.fillna(0.0).astype(float)
+
+
+def _weighted_means(
+    frame: pd.DataFrame, columns: list[str], by: str, weights: pd.Series
+) -> pd.DataFrame:
+    """Weighted mean of each of ``columns`` per value of ``by`` (rows complete)."""
+    rows = {}
+    for value, group in frame.assign(_w=weights.to_numpy()).groupby(by):
+        total = float(group["_w"].sum())
+        rows[value] = {
+            column: float((group[column].astype(float) * group["_w"]).sum() / total)
+            if total > 0
+            else float("nan")
+            for column in columns
+        }
+    return pd.DataFrame.from_dict(rows, orient="index", columns=columns)
+
+
+def _format_value(value: float) -> str:
+    """A bar's label: whole counts as integers, weighted ones to one decimal."""
+    return str(int(round(value))) if abs(value - round(value)) < 1e-9 else f"{value:.1f}"
+
+
 def _require_matplotlib():
     if plt is None:
         raise ImportError(
@@ -85,6 +123,7 @@ class SurveyChart:
 
     _fig: Any = field(init=False, repr=False, default=None)
     _ax: Any = field(init=False, repr=False, default=None)
+    _weight_note: str | None = field(init=False, repr=False, default=None)
 
     def _build(self) -> None:
         """Build the chart. Subclasses must implement this."""
@@ -124,6 +163,28 @@ class SurveyChart:
             return self.title
         return " by ".join(parts)
 
+    @property
+    def weight_note(self) -> str | None:
+        """What the chart says about the data's weight, or None when there is none.
+
+        A chart either draws the weighted numbers (the bar chart, a heatmap of
+        means) or says under its title that it does not — a picture beside a
+        weighted table must never disagree with it in silence.
+        """
+        self._ensure_built()
+        return self._weight_note
+
+    def _unweighted(self, title: str) -> str:
+        """``title`` with the note that the weight is not applied, when there is one."""
+        if self.data.weight is None:
+            return title
+        self._weight_note = f"unweighted (the weight '{self.data.weight}' is not applied)"
+        return f"{title}\n{self._weight_note}"
+
+    def _weighted(self) -> None:
+        if self.data.weight is not None:
+            self._weight_note = f"weighted by '{self.data.weight}'"
+
 
 # ─── BarChart ─────────────────────────────────────────────────────────────────
 
@@ -134,6 +195,10 @@ class BarChart(SurveyChart):
 
     If only `column` is specified, plots frequency distribution.
     If `by` is also specified, plots mean values of `column` grouped by `by`.
+
+    On weighted data (``SurveyData.with_weight``) the bars are sums of weights,
+    or weighted means, so they match the Frequencies and Group means tables
+    of the same data; the axis says so.
 
     Parameters
     ----------
@@ -166,7 +231,14 @@ class BarChart(SurveyChart):
         if self.by is None:
             # Frequency bar chart
             series = self.data.frame[self.column].dropna()
-            counts = series.value_counts().sort_index()
+            weights = _weights(self.data, series.index)
+            if weights is None:
+                counts = series.value_counts().sort_index()
+                axis = "Count"
+            else:
+                counts = weights.groupby(series).sum().sort_index()
+                axis = "Weighted count"
+                self._weighted()
 
             if value_labels:
                 labels = [value_labels.get(v, str(v)) for v in counts.index]
@@ -177,22 +249,22 @@ class BarChart(SurveyChart):
                 ax.barh(
                     labels, counts.values, color=sns.color_palette(self.palette) if sns else None
                 )
-                ax.set_xlabel("Count")
+                ax.set_xlabel(axis)
                 ax.set_ylabel(col_label)
             else:
                 ax.bar(
                     labels, counts.values, color=sns.color_palette(self.palette) if sns else None
                 )
-                ax.set_ylabel("Count")
+                ax.set_ylabel(axis)
                 ax.set_xlabel(col_label)
                 plt.xticks(rotation=30, ha="right")
 
             if self.show_values:
                 for i, v in enumerate(counts.values):
                     if self.horizontal:
-                        ax.text(v + 0.5, i, str(v), va="center")
+                        ax.text(v + 0.5, i, _format_value(float(v)), va="center")
                     else:
-                        ax.text(i, v + 0.5, str(v), ha="center")
+                        ax.text(i, v + 0.5, _format_value(float(v)), ha="center")
 
             ax.set_title(self._auto_title(col_label))
 
@@ -202,7 +274,14 @@ class BarChart(SurveyChart):
             by_value_labels = _get_value_labels(self.data, self.by)
 
             frame = self.data.frame[[self.column, self.by]].dropna()
-            grouped = frame.groupby(self.by)[self.column].mean()
+            weights = _weights(self.data, frame.index)
+            if weights is None:
+                grouped = frame.groupby(self.by)[self.column].mean()
+                axis = f"Mean {col_label}"
+            else:
+                grouped = _weighted_means(frame, [self.column], self.by, weights)[self.column]
+                axis = f"Weighted mean {col_label}"
+                self._weighted()
 
             if by_value_labels:
                 labels = [by_value_labels.get(v, str(v)) for v in grouped.index]
@@ -211,11 +290,11 @@ class BarChart(SurveyChart):
 
             if self.horizontal:
                 ax.barh(labels, grouped.values)
-                ax.set_xlabel(f"Mean {col_label}")
+                ax.set_xlabel(axis)
                 ax.set_ylabel(by_label)
             else:
                 ax.bar(labels, grouped.values)
-                ax.set_ylabel(f"Mean {col_label}")
+                ax.set_ylabel(axis)
                 ax.set_xlabel(by_label)
                 plt.xticks(rotation=30, ha="right")
 
@@ -240,6 +319,10 @@ class BoxPlot(SurveyChart):
     """Distribution comparison box plot.
 
     Compares the distribution of a continuous variable across categories.
+
+    Quartiles and whiskers are of the respondents as they are: a box has no
+    standard weighted form, so on weighted data the title says the weight is
+    not applied rather than leaving the reader to assume it was.
 
     Parameters
     ----------
@@ -304,7 +387,7 @@ class BoxPlot(SurveyChart):
 
         ax.set_xlabel(by_label)
         ax.set_ylabel(col_label)
-        ax.set_title(self._auto_title(col_label, by_label))
+        ax.set_title(self._unweighted(self._auto_title(col_label, by_label)))
         plt.xticks(rotation=30, ha="right")
         plt.tight_layout()
 
@@ -324,8 +407,10 @@ class HeatMap(SurveyChart):
     columns : list[str]
         List of variables to include in the matrix.
     by : str | None
-        If specified, plots mean of each column grouped by this variable.
-        If None, plots a correlation matrix between the columns.
+        If specified, plots mean of each column grouped by this variable
+        (weighted means on weighted data). If None, plots a Spearman
+        correlation matrix between the columns, which is never weighted —
+        the title then says so.
     annot : bool
         If True, annotates cells with numeric values.
     cmap : str
@@ -362,7 +447,12 @@ class HeatMap(SurveyChart):
             by_label = _get_label(self.data, self.by)
 
             frame = self.data.frame[self.columns + [self.by]].dropna()
-            grouped = frame.groupby(self.by)[self.columns].mean()
+            weights = _weights(self.data, frame.index)
+            if weights is None:
+                grouped = frame.groupby(self.by)[self.columns].mean()
+            else:
+                grouped = _weighted_means(frame, self.columns, self.by, weights)
+                self._weighted()
 
             if by_value_labels:
                 grouped.index = [by_value_labels.get(v, str(v)) for v in grouped.index]
@@ -379,6 +469,8 @@ class HeatMap(SurveyChart):
                 vmax=self.vmax,
                 ax=ax,
                 linewidths=0.5,
+                # Unweighted, the colour bar stays unlabelled as it always was.
+                cbar_kws={"label": "Weighted mean"} if weights is not None else None,
             )
             ax.set_title(self._auto_title("Mean Values", by_label))
             ax.set_xlabel(by_label)
@@ -401,7 +493,7 @@ class HeatMap(SurveyChart):
                 linewidths=0.5,
                 center=0,
             )
-            ax.set_title(self._auto_title("Spearman Correlation Matrix"))
+            ax.set_title(self._unweighted(self._auto_title("Spearman Correlation Matrix")))
 
         plt.tight_layout()
 
@@ -423,6 +515,9 @@ class ScatterPlot(SurveyChart):
         Optional grouping variable for color coding.
     trendline : bool
         If True, adds a linear regression trendline.
+
+    Every respondent is one point and the trend line is fitted unweighted, so
+    on weighted data the title says the weight is not applied.
     """
 
     x: str = ""
@@ -478,5 +573,5 @@ class ScatterPlot(SurveyChart):
 
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
-        ax.set_title(self._auto_title(y_label, x_label))
+        ax.set_title(self._unweighted(self._auto_title(y_label, x_label)))
         plt.tight_layout()
