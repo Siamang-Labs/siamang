@@ -85,6 +85,71 @@ class TestMatrixColumnCodes:
         assert matrix.columns() == [(7, "Same"), (8, "Other")]
 
 
+def _missing_matrix(column_labels, labels, missing, **kwargs):
+    rows = [
+        sg.Variable(name, scale="ordinal", labels=dict(labels), missing=tuple(missing))
+        for name in ("r1", "r2")
+    ]
+    return sg.Matrix("Rate", var=rows, column_labels=column_labels, **kwargs)
+
+
+_ESS = {0: "No trust at all", **{n: str(n) for n in range(1, 10)}, 10: "Complete trust"}
+_NA = MissingValue(-1, "Not applicable", kind="not_applicable")
+_REFUSED_DK = (
+    MissingValue(77, "Refusal", kind="refusal"),
+    MissingValue(88, "Don't know", "dont_know"),
+)
+
+
+class TestMatrixColumnsBesideMissingCodes:
+    """The codebook also labels its missing codes — the N/A code the N/A
+    column stores, a refusal, a don't know. They are not scale columns: the
+    headers line up with the rest of the labels, not 1, 2, 3 … (a "10" stored
+    as 11, a code nothing labels)."""
+
+    def test_a_declared_na_code_does_not_push_the_scale_to_one_to_n(self):
+        matrix = _missing_matrix(
+            [str(n) for n in range(11)], {**_ESS, -1: "Not applicable"}, [_NA], na_option=True
+        )
+        assert [code for code, _ in matrix.columns()] == list(range(11))
+        item = _only_item(_survey(matrix))
+        assert item["columnCodes"] == list(range(11))
+        assert [row["naCode"] for row in item["rows"]] == [-1, -1]
+
+    def test_refusal_and_dont_know_labels_do_not_either(self):
+        labels = {**_ESS, 77: "Refusal", 88: "Don't know"}
+        matrix = _missing_matrix([str(n) for n in range(11)], labels, _REFUSED_DK)
+        assert [code for code, _ in matrix.columns()] == list(range(11))
+
+    def test_a_header_that_names_a_missing_code_takes_it(self):
+        labels = {**_ESS, 77: "Refusal", 88: "Don't know"}
+        headers = [*(str(n) for n in range(11)), "Don't know"]
+        matrix = _missing_matrix(headers, labels, _REFUSED_DK)
+        assert [code for code, _ in matrix.columns()] == [*range(11), 88]
+
+    def test_without_headers_na_options_code_is_its_own_column_only(self):
+        labels = {1: "Never", 2: "Sometimes", 3: "Always", -1: "Not applicable"}
+        matrix = _missing_matrix(None, labels, [_NA], na_option=True)
+        assert matrix.columns() == [(1, "Never"), (2, "Sometimes"), (3, "Always")]
+        item = _only_item(_survey(matrix))
+        assert item["columns"] == ["Never", "Sometimes", "Always"]
+        assert item["naOption"] == "Not applicable"
+
+    def test_without_na_option_a_labelled_na_code_stays_a_column(self):
+        """Nothing else offers it then: the codebook's column is how it is answered."""
+
+        labels = {1: "Never", 2: "Sometimes", 3: "Always", -1: "Not applicable"}
+        matrix = _missing_matrix(None, labels, [_NA])
+        assert [code for code, _ in matrix.columns()] == [-1, 1, 2, 3]
+
+    def test_headers_that_line_up_with_every_label_keep_their_codes(self):
+        """A codebook as long as the headers is placed by position, missing codes included."""
+
+        labels = {1: "a", 2: "b", 3: "c", 9: "d"}
+        matrix = _missing_matrix(["1", "2", "3", "DK"], labels, [MissingValue(9, "d", "dont_know")])
+        assert [code for code, _ in matrix.columns()] == [1, 2, 3, 9]
+
+
 # ── Wide MultiChoice: one 0/1 variable per choice ────────────────────────────
 
 

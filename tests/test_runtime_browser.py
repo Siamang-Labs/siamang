@@ -268,6 +268,81 @@ def test_a_matrix_cell_stores_its_columns_code_not_its_position(tmp_path):
     assert submitted["trust_pol"] == 10
 
 
+def test_a_labelled_na_code_leaves_the_scale_columns_where_they_are(tmp_path):
+    """The ESS scale, labelled "No trust at all" … "Complete trust" under
+    headers "0" … "10", with the N/A column's code declared and labelled: the
+    headers still store 0 … 10, and N/A its code."""
+
+    document = _trust_matrix_document()
+    for name in ("trust_parl", "trust_pol"):
+        labels = document["variables"][name]["labels"]
+        labels[0]["label"], labels[10]["label"] = "No trust at all", "Complete trust"
+        labels.append({"code": -1, "label": "Not applicable"})
+        document["variables"][name]["missing"] = [
+            {"code": -1, "label": "Not applicable", "kind": "not_applicable"}
+        ]
+    document["pages"][0]["items"][0]["na_option"] = True
+    scenario = (
+        _CLICK_MATRIX
+        + """
+        const headers = await page.$$eval("table.sd-matrix thead th", (els) => els.map((e) => e.textContent.trim()));
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { headers,")
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["headers"] == ["", *(str(n) for n in range(11)), "Not applicable"]
+    (submitted,) = state["submitted"]
+    assert submitted == {"trust_parl": 2, "trust_pol": 10, "__status": "completed"}
+
+
+def test_without_headers_the_na_column_is_offered_once(tmp_path):
+    labels = [
+        {"code": 1, "label": "Never"},
+        {"code": 2, "label": "Sometimes"},
+        {"code": 3, "label": "Always"},
+        {"code": -1, "label": "Not applicable"},
+    ]
+    missing = [{"code": -1, "label": "Not applicable", "kind": "not_applicable"}]
+    document = {
+        "schema_version": "1.0",
+        "title": "Often",
+        "variables": {
+            "a": {"scale": "ordinal", "labels": labels, "missing": missing},
+            "b": {"scale": "ordinal", "labels": labels, "missing": missing},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "Matrix",
+                        "id": "often",
+                        "text": "How often…",
+                        "var": ["a", "b"],
+                        "na_option": True,
+                    }
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+    scenario = (
+        """
+        const headers = await page.$$eval("table.sd-matrix thead th", (els) => els.map((e) => e.textContent.trim()));
+        const rows = await page.$$("table.sd-matrix tbody tr");
+        await (await rows[0].$$("button.sd-matrix__cell"))[0].click();
+        await (await rows[1].$$("button.sd-matrix__cell"))[3].click();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { headers,")
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["headers"] == ["", "Never", "Sometimes", "Always", "Not applicable"]
+    (submitted,) = state["submitted"]
+    assert submitted == {"a": 1, "b": -1, "__status": "completed"}
+
+
 def _gated_on_rows(document: dict[str, Any]) -> dict[str, Any]:
     """The trust matrix, then a page gated on one row and a question gated on
     the other, whose text pipes a row's label."""

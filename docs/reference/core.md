@@ -295,7 +295,10 @@ The `Matrix` question displays a grid of subquestions (rows) sharing a common se
 A cell stores a code of the row variables' codebook, never the column's position.
 `Matrix.columns()` returns the `(code, header)` pairs: a header takes the code of the
 value label with the same text, else of the label in the same position when the
-counts match, else 1, 2, 3 … in column order.
+counts match (also once the codebook's declared missing codes are set apart, a
+header naming one of them taking its code), else 1, 2, 3 … in column order.
+Without `column_labels`, the `not_applicable` code `na_option` stores is not also
+a column.
 | `na_option` | `bool \| str` | `False` | If `True`, appends a "Not applicable" column. If a string is provided, that string is used as the column header. A cell stores its row variable's `not_applicable` missing code, or the text `"na"` when the codebook declares none. |
 
 ---
