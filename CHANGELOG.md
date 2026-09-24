@@ -222,8 +222,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `quotas=`: each assignment draws its arm before the first page by the arms'
   weights (balanced against the quota cells, as the platform picks, when it
   asks to be), `Script.randomize_pages` deals each respondent a page order,
-  block shuffles decide which `skip_to` is met first, and a respondent whose
-  answer falls in a full cell ends on that page, only completes filling a cell.
+  block shuffles decide which `skip_to` is met first, and a respondent holding
+  a value in a full cell ends on the page being left — an answer, or the arm
+  drawn before the first page, as the runtime checks it — only completes
+  filling a cell.
   `simulate_questionnaire(survey, …, quotas=)` passes the questionnaire's own
   scripts, and `simulate_survey()` returns the `SurveyData` with a codebook
   entry for each arm; the flow's `source.simulated` node now runs it, and so

@@ -133,13 +133,14 @@ data = simulate_survey(survey, n=500, seed=42, quotas=options["quota"])
   the data depends on order, and option shuffles are not drawn at all. As in
   the runtime, a shuffling block moves a nested block as one piece, in its
   own order.
-- **Quotas** (given to `simulate_survey`) — leaving a page that answered a
-  quota's variable, a respondent whose answer falls in a full cell ends there
-  (the runtime's "quota full" screen, not a complete); a multiple-choice answer
-  meets every cell it names.
-  Only completes fill a cell — a screen-out never does — so the quota's effect
-  on the sample shows: once ten owners have completed, the eleventh stops at
-  the screener.
+- **Quotas** (given to `simulate_survey`) — leaving a page, a respondent holding a
+  value in a full cell ends there (the runtime's "quota full" screen, not a
+  complete): an answer given so far, a multiple-choice answer meeting every cell it
+  names, and the assigned arm, which the first page left already holds. Only
+  completes fill a cell — a screen-out never does — so the quota's effect on the
+  sample shows: once ten owners have completed, the eleventh stops at the
+  screener, and once an arm's cell is full its respondents stop on the first page
+  (with `balance=True` too, once every arm's cell is full).
 
 Other scripts are JavaScript and are not run. A flow's **Simulated data** node
 (`source.simulated`) runs `simulate_survey` on the project's questionnaire, so

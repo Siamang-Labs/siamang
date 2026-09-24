@@ -3,6 +3,8 @@ default_next and skip_to shape the synthetic data the way the runtime would."""
 
 from __future__ import annotations
 
+import pytest
+
 import siamang as sg
 from siamang.core.page import DisqualificationPage, FinalPage
 
@@ -241,6 +243,34 @@ def test_a_balanced_assignment_fills_its_quota_cells_in_proportion():
     # A cell on only one arm cannot balance: the weighted draw stands.
     partial = simulate_questionnaire(survey, n=60, seed=1, quotas=quotas[:1])
     assert partial["condition"].value_counts().sum() == 60
+
+
+@pytest.mark.parametrize("balance", [False, True])
+def test_a_full_arm_ends_the_interview_on_the_first_page(balance):
+    """The runtime checks every quota variable holding a value when a page is
+    left — the arm an assignment drew before the first page too — so once an
+    arm's cell is full its respondents end on the first page. With every
+    cell full a balanced pick keeps the draw, and the check ends it. The
+    arms used to complete 41 and 59 against limits of 5."""
+
+    from siamang.core.quota import Quota
+    from siamang.local_simulator import simulate_questionnaire
+
+    pages = [
+        sg.Page(name="intro", items=[_choice("owns", "Own one?")]),
+        sg.Page(name="main", items=[_choice("sat", "Satisfied?")]),
+    ]
+    script = sg.Script.assign_condition(
+        "condition", [(1, "Control"), (2, "Treatment")], balance=balance
+    )
+    survey = sg.Questionnaire(title="A", pages=pages, scripts=[script])
+    quotas = [Quota("condition", 1, 5), Quota("condition", 2, 5)]
+    frame = simulate_questionnaire(survey, n=100, seed=3, quotas=quotas)
+    completes = frame[frame["sat"].notna()]
+    assert completes["condition"].value_counts().to_dict() == {1: 5, 2: 5}
+    # Everyone else answered the first page and was ended leaving it.
+    assert frame["owns"].notna().all()
+    assert len(frame) - len(completes) == 90
 
 
 def test_a_full_quota_cell_ends_the_interview_and_only_completes_count():
