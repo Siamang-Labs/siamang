@@ -218,7 +218,7 @@ an embedding page can size the frame to the survey — Studio's `embed.js` does.
 
 ## `UIConfig` — the design system
 
-`UIConfig` is a frozen dataclass (~66 fields) that controls the entire look of the
+`UIConfig` is a frozen dataclass (~115 fields) that controls the entire look and wording of the
 deployed survey. The defaults aim for a calm, research-grade aesthetic: a serif body
 font, a narrow line measure, a single accent colour, and comfortable spacing. Pass
 it to deployment via `survey.deploy(..., ui=UIConfig(...))` or to a
@@ -279,12 +279,46 @@ the header is shown for a logo or an institution.
 
 ### I18n UI strings
 
-Twenty optional override fields translate the built-in chrome, all defaulting to
-English: `next_button_text`, `prev_button_text`, `submit_button_text`,
-`submitting_text`, `required_text`, `saving_text`, `select_placeholder`, `of_text`,
-`selected_text`, `resume_title`, `resume_action`, `restart_action`, `page_text`,
-`of_total_text`, `retry_title`, `retry_body`, `retry_action`, `save_local_action`,
-`completion_title`, and `completion_body`.
+Every fixed phrase the runtime shows has a `UIConfig` field; `None` (the default) keeps
+the English text in the table. Replacing all of them is how a survey runs in another
+language. In a template, `{name}` is replaced by the value named (`{n}`, `{total}`,
+`{minutes}`, …) and `{link}` is where the link goes.
+
+| Field | English default | Where |
+| :--- | :--- | :--- |
+| `next_button_text` / `prev_button_text` / `submit_button_text` | `Next section →` / `← Previous` / `Submit responses` | the page's buttons |
+| `submitting_text` / `saving_text` | `Submitting your responses…` / `Saving…` | while submitting / autosaving |
+| `required_text` | `This question requires an answer.` | an unanswered required question |
+| `welcome_text` / `section_text` / `final_section_text` | `Welcome` / `Section {n} of {total}` / `Final thoughts` | the section label above a page's title and beside the progress bar |
+| `page_text` / `of_total_text` | `Page` / `of` | "Page *n* of *m*": beside the bar without section labels, and for screen readers |
+| `estimated_time_text` | `About {minutes} minutes` (`About 1 minute`) | under the first page's title, with `estimated_minutes` |
+| `of_text` / `selected_text` | `of` / `selected` | a multiple choice's counter "2 of 3 selected" (and screen-reader labels) |
+| `min_choices_text` / `max_reached_text` | `Select at least {n} more` / `Maximum reached` | a multiple choice's counter and its message on Next |
+| `min_value_text` / `max_value_text` | `Minimum value is {min}` / `Maximum value is {max}` | a number out of its valid range |
+| `invalid_format_text`, `invalid_email_text`, `invalid_phone_text`, `invalid_url_text`, `invalid_date_text`, `invalid_time_text` | `Please check the format of your answer.`, `Please enter a valid email address.`, `Please enter a valid phone number.`, `Please enter a valid web address (https://…).`, `Please enter a valid date.`, `Please enter a valid time.` | an open answer that does not match its format |
+| `select_placeholder` / `search_placeholder` / `no_options_text` | `— Select —` / `Type to search…` / `No options found` | a dropdown |
+| `other_text` / `other_placeholder` | `Other` / `Please specify...` | "Other (please specify)" — a question's `metadata["other_label"]` / `["other_placeholder"]` wins |
+| `none_of_above_text` | `None of the above` | `SingleChoice(none_of_above=True)` |
+| `not_applicable_text` | `Not applicable` | `na_option=True` on a Likert scale or a matrix (a string `na_option` wins) |
+| `chars_remaining_text` | `{n} characters remaining` | an open answer near `max_chars` |
+| `ranking_hint_text` / `ranking_remaining_text` | `Tap or drag to rank` / `Remaining options` | a ranking |
+| `resume_title` / `resume_action` / `restart_action` | `We saved your progress from earlier. Would you like to resume?` / `Resume` / `Start over` | the resume banner |
+| `retry_title` / `retry_body` / `retry_action` / `save_local_action` / `attempt_text` | `Submission failed` / `We could not save your responses.` / `Try again` / `Save locally and finish` / `Attempt {n} of {max}.` | a failed submission |
+| `completion_title` / `completion_body` | `Thank you for participating` / the `completion_text` option (`Thank you for your participation!`) | the completion screen; `completion_body` wins over `completion_text` |
+| `response_id_text` / `submitted_text` | `Response ID` / `Submitted` | the completion screen and a final page |
+| `screen_out_title` | `Thank you` | a screen-out page without a title |
+| `redirect_countdown_text` / `redirect_link_text` | `You will be redirected in {seconds} seconds. {link} if not redirected.` / `Click here` | the completion screen with `redirect_url` |
+| `redirecting_text` / `redirecting_link_text` | `Redirecting you now. {link} if you are not redirected.` / `Continue` | an end page or the full-sample screen that redirects |
+| `quota_full_title` / `quota_full_body` | `Thank you for your interest` / `We have already reached our target sample for participants like you.` | the full-sample screen |
+| `closed_title` / `closed_body` | `Survey closed` / `This survey is no longer accepting responses.` | a closed survey (also the static closed page) |
+| `error_title` / `error_body` | `Submission error` / `We could not save your responses. Please refresh and try again.` | after three failed submissions |
+| `privacy_text` / `contact_text` | `Privacy` / `Contact research team` | the footer's links |
+| `skip_link_text` | `Skip to questionnaire` | the keyboard skip link |
+| `access_title` / `access_body` / `access_placeholder` / `access_button` / `access_error` | `Access required` / `Please enter the access code to begin this survey.` / `Enter access code` / `Continue` / `Invalid access code. Please try again.` | the access-code gate |
+| `page_error_title` / `page_error_body` / `app_error_title` / `app_error_body` / `reload_action` | `Something went wrong` / `An unexpected error occurred. Your previous answers have been saved.` / `Survey temporarily unavailable` / `We encountered an unexpected error. Your previous answers have been saved.` / `Reload survey` | when the runtime itself fails |
+
+A few screen-reader-only labels (the page dots' names, "Loading survey", the theme
+button's name, a MaxDiff's "Task *n*" and a conjoint's "Choice *n*") are still English.
 
 ### Advanced (navigation, access, analytics)
 

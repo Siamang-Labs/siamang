@@ -95,7 +95,7 @@ function pipeLabelIndex() {
         if (q.otherSpecify && q.otherKey) {
           // {label:x} of Other is what the respondent typed, else its label.
           const code = String(otherCodeOf(q));
-          if (map[code] === undefined) map[code] = q.otherLabel || "Other";
+          if (map[code] === undefined) map[code] = q.otherLabel || runtimeTexts().other;
           if (!q.wide) _pipeOtherIndex[q.id] = { code, key: q.otherKey };
         }
         index[q.id] = map;
@@ -220,7 +220,7 @@ function OtherInput({ q, text, onText, inputRef }) {
         ref={inputRef}
         type="text"
         className="sd-input sd-other-input__field"
-        placeholder={q.otherPlaceholder || "Please specify..."}
+        placeholder={q.otherPlaceholder || runtimeTexts().otherPlaceholder}
         value={text}
         onChange={(e) => onText(e.target.value)}
       />
@@ -284,7 +284,7 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
               onChange={() => handleChange(OTHER)}
             />
             <span className="sd-radio__decorator" aria-hidden="true"></span>
-            <span className="sd-choice-label">{q.otherLabel || "Other"}</span>
+            <span className="sd-choice-label">{q.otherLabel || runtimeTexts().other}</span>
           </label>
         )}
         {isOtherSelected && (
@@ -392,7 +392,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
               onChange={toggleOther}
             />
             <span className="sd-checkbox__decorator" aria-hidden="true"></span>
-            <span className="sd-choice-label">{q.otherLabel || "Other"}</span>
+            <span className="sd-choice-label">{q.otherLabel || runtimeTexts().other}</span>
           </label>
         )}
         {isOtherSelected && (
@@ -403,11 +403,11 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
           enforces once the question is answered (answerLimitError). */}
       {(q.max || q.min > 1) ? (
         <div className="siamang-multi-counter" role="status" aria-live="polite">
-          {q.max ? <span className="siamang-multi-counter__count">{effectiveCount} of {q.max} selected</span> : null}
+          {q.max ? <span className="siamang-multi-counter__count">{`${effectiveCount} ${runtimeTexts().of} ${q.max} ${runtimeTexts().selected}`}</span> : null}
           {q.min && effectiveCount < q.min && (effectiveCount > 0 || q.required) ? (
             <span className="siamang-multi-counter__hint">{fillText(runtimeTexts().minChoices, { n: q.min - effectiveCount, min: q.min })}</span>
           ) : q.max && effectiveCount >= q.max ? (
-            <span className="siamang-multi-counter__hint is-max">Maximum reached</span>
+            <span className="siamang-multi-counter__hint is-max">{runtimeTexts().maxReached}</span>
           ) : null}
         </div>
       ) : null}
@@ -439,7 +439,7 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
                 onClick={() => onChange(n)}
                 onMouseEnter={stars ? () => setHover(n) : undefined}
                 aria-pressed={value === n}
-                aria-label={stars ? `${n - start + 1} of ${q.points}` : undefined}
+                aria-label={stars ? `${n - start + 1} ${runtimeTexts().of} ${q.points}` : undefined}
               >
                 {stars ? <span className="sd-rating__star" aria-hidden="true">{lit || hot ? "\u2605" : "\u2606"}</span> : <span className="sd-rating__num">{n}</span>}
               </button>
@@ -709,7 +709,7 @@ function OpenText({ q, value, onChange, num, error, onBlur, answers }) {
         <div className="sd-char-counter">{chars} / {q.maxChars}</div>
       ) : null}
       {q.maxChars && chars > q.maxChars * 0.8 && chars <= q.maxChars && (
-        <div className="siamang-char-warning" role="alert">{q.maxChars - chars} characters remaining</div>
+        <div className="siamang-char-warning" role="alert">{fillText(runtimeTexts().charsRemaining, { n: q.maxChars - chars })}</div>
       )}
     </QuestionShell>
   );
@@ -737,7 +737,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
 
   const visible = visibleOptions(q, answers);
   const offered = q.otherSpecify && !otherIsAnOption(q)
-    ? [...visible, { code: OTHER, label: q.otherLabel || "Other" }]
+    ? [...visible, { code: OTHER, label: q.otherLabel || runtimeTexts().other }]
     : visible;
   const filtered = search
     ? offered.filter((o) => String(o.label).toLowerCase().includes(search.toLowerCase()))
@@ -771,7 +771,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
           aria-haspopup="listbox"
           aria-expanded={open}
         >
-          <span>{selected ? selected.label : "— Select —"}</span>
+          <span>{selected ? selected.label : runtimeTexts().selectPlaceholder}</span>
           <span className="siamang-search-dropdown__arrow" aria-hidden="true"></span>
         </button>
         {open && (
@@ -779,7 +779,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
             <input
               type="text"
               className="sd-input siamang-search-dropdown__search"
-              placeholder="Type to search…"
+              placeholder={runtimeTexts().searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -797,7 +797,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
                 </div>
               ))}
               {filtered.length === 0 && (
-                <div className="siamang-search-dropdown__empty">No options found</div>
+                <div className="siamang-search-dropdown__empty">{runtimeTexts().noOptions}</div>
               )}
             </div>
           </div>
@@ -893,7 +893,7 @@ function Ranking({ q, value, onChange, num, error, onBlur, answers }) {
         {unranked.length > 0 && (!q.max || ranked.length < q.max) ? (
           <>
             <div className="sd-ranking__section-label">
-              {ranked.length > 0 ? "Remaining options" : "Tap or drag to rank"}
+              {ranked.length > 0 ? runtimeTexts().rankingRemaining : runtimeTexts().rankingHint}
             </div>
             {unranked.map((opt) => {
               const atMax = q.max && ranked.length >= q.max;
@@ -976,7 +976,7 @@ function MaxDiff({ q, value, onChange, num, error, onBlur, answers }) {
         {tasks.map((task, taskIdx) => {
           const [bestVar, worstVar] = q.taskVars[taskIdx];
           return (
-            <table className="sd-maxdiff__task" key={taskIdx} aria-label={`Task ${taskIdx + 1} of ${tasks.length}`}>
+            <table className="sd-maxdiff__task" key={taskIdx} aria-label={`Task ${taskIdx + 1} ${runtimeTexts().of} ${tasks.length}`}>
               <thead>
                 <tr>
                   <th className="sd-maxdiff__side">{q.bestLabel}</th>
@@ -1058,7 +1058,7 @@ function Conjoint({ q, value, onChange, num, error, onBlur, answers }) {
             <div className="sd-conjoint__task" key={taskIdx}>
               <div className="sd-conjoint__count">{`${taskIdx + 1} / ${tasks.length}`}</div>
               <div className="sd-conjoint__scroll">
-                <table className="sd-conjoint__grid" aria-label={`Choice ${taskIdx + 1} of ${tasks.length}`}>
+                <table className="sd-conjoint__grid" aria-label={`Choice ${taskIdx + 1} ${runtimeTexts().of} ${tasks.length}`}>
                   <tbody>
                     {attributes.map((attribute, row) => (
                       <tr key={attribute.name}>

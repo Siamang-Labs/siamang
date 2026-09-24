@@ -123,7 +123,7 @@ Documented in [[Frontend and Theming|Frontend-and-Theming]].
 
 | Symbol | Import | Description | Docs |
 | :--- | :--- | :--- | :--- |
-| `UIConfig` | `from siamang import UIConfig` | The visual design system (~66 fields). | [[Frontend and Theming\|Frontend-and-Theming]] |
+| `UIConfig` | `from siamang import UIConfig` | The visual design system and the runtime's wording (~115 fields). | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `get_preset` | `from siamang import get_preset` | Return a configured `UIConfig` for a named preset. | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `FrontendBuilder` | `from siamang.frontend import FrontendBuilder` | Assembles a `SurveyBundle` from schema + runtime + theme + client. | [[Frontend and Theming\|Frontend-and-Theming]] |
 | `SurveySchema` | `from siamang.frontend import SurveySchema` | Platform-agnostic compiled survey IR. | [[Frontend and Theming\|Frontend-and-Theming]] |

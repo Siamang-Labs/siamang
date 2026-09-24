@@ -172,6 +172,42 @@ function runtimeTexts() {
     welcome: ui.welcomeText || "Welcome",
     section: ui.sectionText || "Section {n} of {total}",
     finalSection: ui.finalSectionText || "Final thoughts",
+    estimatedTime: ui.estimatedTimeText || null,
+    of: ui.ofText || "of",
+    selected: ui.selectedText || "selected",
+    selectPlaceholder: ui.selectPlaceholder || "\u2014 Select \u2014",
+    searchPlaceholder: ui.searchPlaceholder || "Type to search\u2026",
+    noOptions: ui.noOptionsText || "No options found",
+    other: ui.otherText || "Other",
+    otherPlaceholder: ui.otherPlaceholder || "Please specify...",
+    maxReached: ui.maxReachedText || "Maximum reached",
+    charsRemaining: ui.charsRemainingText || "{n} characters remaining",
+    rankingHint: ui.rankingHintText || "Tap or drag to rank",
+    rankingRemaining: ui.rankingRemainingText || "Remaining options",
+    responseId: ui.responseIdText || "Response ID",
+    submittedAt: ui.submittedText || "Submitted",
+    screenOutTitle: ui.screenOutTitle || "Thank you",
+    redirectCountdown: ui.redirectCountdownText || "You will be redirected in {seconds} seconds. {link} if not redirected.",
+    redirectLink: ui.redirectLinkText || "Click here",
+    redirecting: ui.redirectingText || "Redirecting you now. {link} if you are not redirected.",
+    redirectingLink: ui.redirectingLinkText || "Continue",
+    quotaFullTitle: ui.quotaFullTitle || "Thank you for your interest",
+    quotaFullBody: ui.quotaFullBody || "We have already reached our target sample for participants like you.",
+    closedTitle: ui.closedTitle || "Survey closed",
+    closedBody: ui.closedBody || "This survey is no longer accepting responses.",
+    deadlineBody: ui.closedBody || "Thank you. This survey is no longer accepting responses.",
+    errorTitle: ui.errorTitle || "Submission error",
+    errorBody: ui.errorBody || "We could not save your responses. Please refresh and try again.",
+    attempt: ui.attemptText || "Attempt {n} of {max}.",
+    privacy: ui.privacyText || "Privacy",
+    contact: ui.contactText || "Contact research team",
+    skipLink: ui.skipLinkText || "Skip to questionnaire",
+    accessError: ui.accessError || "Invalid access code. Please try again.",
+    pageErrorTitle: ui.pageErrorTitle || "Something went wrong",
+    pageErrorBody: ui.pageErrorBody || "An unexpected error occurred. Your previous answers have been saved.",
+    appErrorTitle: ui.appErrorTitle || "Survey temporarily unavailable",
+    appErrorBody: ui.appErrorBody || "We encountered an unexpected error. Your previous answers have been saved.",
+    reload: ui.reloadAction || "Reload survey",
     retryTitle: ui.retryTitle || "Submission failed",
     retryBody: ui.retryBody || "We could not save your responses.",
     retryAction: ui.retryAction || "Try again",
@@ -181,6 +217,24 @@ function runtimeTexts() {
   };
   __runtimeTexts = { ui, texts };
   return texts;
+}
+
+/* A wording template with a link in it: "{link}" is where the link goes
+   (after the text when the template has none). */
+function TextWithLink({ template, values, href, label }) {
+  const text = fillText(template, values);
+  const at = text.indexOf("{link}");
+  const before = at < 0 ? text + " " : text.slice(0, at);
+  const after = at < 0 ? "" : text.slice(at + "{link}".length);
+  return <>{before}<a href={href}>{label}</a>{after}</>;
+}
+
+/* "About 12 minutes" on the first page, from UIConfig.estimated_minutes;
+   estimated_time_text words it ("{minutes}"). */
+function estimatedTimeLabel(texts, minutes) {
+  if (!(Number(minutes) > 0)) return null;
+  if (texts.estimatedTime) return fillText(texts.estimatedTime, { minutes });
+  return Number(minutes) === 1 ? "About 1 minute" : `About ${minutes} minutes`;
 }
 
 /* The limits a question puts on an answer it has: a Number's valid range
@@ -505,9 +559,9 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="siamang-error-boundary" role="alert">
-          <h3 className="siamang-error-boundary__title">Something went wrong</h3>
-          <p className="siamang-error-boundary__body">An unexpected error occurred. Your previous answers have been saved.</p>
-          <button className="sd-btn sd-navigation__next-btn" onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}>Reload survey</button>
+          <h3 className="siamang-error-boundary__title">{runtimeTexts().pageErrorTitle}</h3>
+          <p className="siamang-error-boundary__body">{runtimeTexts().pageErrorBody}</p>
+          <button className="sd-btn sd-navigation__next-btn" onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}>{runtimeTexts().reload}</button>
         </div>
       );
     }
@@ -524,9 +578,9 @@ class AppErrorBoundary extends React.Component {
       return (
         <div className="siamang-app-error" role="alert">
           <div className="siamang-app-error__container">
-            <h2 className="siamang-app-error__title">Survey temporarily unavailable</h2>
-            <p className="siamang-app-error__body">We encountered an unexpected error. Your previous answers have been saved.</p>
-            <button className="sd-btn sd-navigation__next-btn" onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}>Reload survey</button>
+            <h2 className="siamang-app-error__title">{runtimeTexts().appErrorTitle}</h2>
+            <p className="siamang-app-error__body">{runtimeTexts().appErrorBody}</p>
+            <button className="sd-btn sd-navigation__next-btn" onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}>{runtimeTexts().reload}</button>
           </div>
         </div>
       );
@@ -561,8 +615,9 @@ function Footer() {
   const ui = window.SURVEY || {};
   const links = [];
   if (ui.institution) links.push({ key: "i", node: <span>{ui.institution.split("—")[0].trim()}</span> });
-  if (ui.privacyUrl) links.push({ key: "p", node: <a href={ui.privacyUrl} rel="noopener" target="_blank">Privacy</a> });
-  if (ui.contactEmail) links.push({ key: "c", node: <a href={"mailto:" + ui.contactEmail}>Contact research team</a> });
+  const texts = runtimeTexts();
+  if (ui.privacyUrl) links.push({ key: "p", node: <a href={ui.privacyUrl} rel="noopener" target="_blank">{texts.privacy}</a> });
+  if (ui.contactEmail) links.push({ key: "c", node: <a href={"mailto:" + ui.contactEmail}>{texts.contact}</a> });
   if (!links.length && !ui.ethics) return null;
   return (
     <footer className="siamang-footer">
@@ -727,7 +782,7 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
   return { enabled, selectable, selectedId, onSelect };
 }
 
-function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design, section }) {
+function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design, section, estimate }) {
   // While a quota check runs the buttons wait; the page itself stays as it is.
   const busy = submitting || checking;
   const answers = useAnswersStore(store);
@@ -767,6 +822,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
       {section ? <div className="sd-page__eyebrow">{section}</div> : null}
       {page.title ? <h2 className="sd-page__title">{processPipedText(page.title, answers)}</h2> : null}
       {page.description ? <p className="sd-page__description">{processPipedText(page.description, answers)}</p> : null}
+      {estimate ? <p className="sd-page__estimate">{estimate}</p> : null}
 
       {/* A page's body is HTML shown above its questions — on a content page,
           which usually has none, it is the page. It used to be rendered for
@@ -833,13 +889,13 @@ function CompletedScreen({ surveyId, submittedAt, uiTexts, redirectUrl }) {
       <p className="sd-completedpage__body">{uiTexts.completedBody}</p>
       {(surveyId || submittedAt) ? (
         <dl className="sd-completedpage__meta">
-          {surveyId ? <div><dt>Response ID</dt><dd>{surveyId}</dd></div> : null}
-          {submittedAt ? <div><dt>Submitted</dt><dd>{submittedAt}</dd></div> : null}
+          {surveyId ? <div><dt>{uiTexts.responseId}</dt><dd>{surveyId}</dd></div> : null}
+          {submittedAt ? <div><dt>{uiTexts.submittedAt}</dt><dd>{submittedAt}</dd></div> : null}
         </dl>
       ) : null}
       {redirectUrl && (
         <p className="sd-completedpage__redirect">
-          You will be redirected in 5 seconds. <a href={redirectUrl}>Click here</a> if not redirected.
+          <TextWithLink template={uiTexts.redirectCountdown} values={{ seconds: 5 }} href={redirectUrl} label={uiTexts.redirectLink} />
         </p>
       )}
       <div className="siamang-celebration" aria-hidden="true">
@@ -859,6 +915,7 @@ function CompletedScreen({ surveyId, submittedAt, uiTexts, redirectUrl }) {
 }
 
 function ClosedScreen({ reason, redirectUrl }) {
+  const texts = runtimeTexts();
   // A panel's quota-full return: send the respondent back once the notice showed.
   useEffect(() => {
     if (!redirectUrl) return;
@@ -866,10 +923,10 @@ function ClosedScreen({ reason, redirectUrl }) {
     return () => clearTimeout(t);
   }, [redirectUrl]);
   const messages = {
-    quota_full: { title: "Thank you for your interest", body: "We have already reached our target sample for participants like you." },
-    deadline: { title: "Survey closed", body: "Thank you. This survey is no longer accepting responses." },
-    error: { title: "Submission error", body: "We could not save your responses. Please refresh and try again." },
-    closed: { title: "Survey closed", body: "This survey is no longer accepting responses." },
+    quota_full: { title: texts.quotaFullTitle, body: texts.quotaFullBody },
+    deadline: { title: texts.closedTitle, body: texts.deadlineBody },
+    error: { title: texts.errorTitle, body: texts.errorBody },
+    closed: { title: texts.closedTitle, body: texts.closedBody },
   };
   const m = messages[reason] || messages.closed;
   return (
@@ -885,7 +942,7 @@ function ClosedScreen({ reason, redirectUrl }) {
       <p className="siamang-closed__body">{m.body}</p>
       {redirectUrl ? (
         <p className="sd-completedpage__redirect">
-          Redirecting you now. <a href={redirectUrl}>Continue</a> if you are not redirected.
+          <TextWithLink template={texts.redirecting} href={redirectUrl} label={texts.redirectingLink} />
         </p>
       ) : null}
     </div>
@@ -931,19 +988,19 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
   const answers = store.snapshot();
   return (
     <div className={wrapCls}>
-      <h2 className={titleCls}>{processPipedText(page.title, answers) || (screenedOut ? "Thank you" : uiTexts.completedTitle)}</h2>
+      <h2 className={titleCls}>{processPipedText(page.title, answers) || (screenedOut ? uiTexts.screenOutTitle : uiTexts.completedTitle)}</h2>
       {page.body
         ? <div className={"sd-page__html " + bodyCls} dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body, answers) }} />
         : <p className={bodyCls}>{uiTexts.completedBody}</p>}
       {(submitId || submittedAt) && !screenedOut ? (
         <dl className="sd-completedpage__meta">
-          {submitId ? <div><dt>Response ID</dt><dd>{submitId}</dd></div> : null}
-          {submittedAt ? <div><dt>Submitted</dt><dd>{submittedAt}</dd></div> : null}
+          {submitId ? <div><dt>{uiTexts.responseId}</dt><dd>{submitId}</dd></div> : null}
+          {submittedAt ? <div><dt>{uiTexts.submittedAt}</dt><dd>{submittedAt}</dd></div> : null}
         </dl>
       ) : null}
       {redirectUrl ? (
         <p className="sd-completedpage__redirect">
-          Redirecting you now. <a href={redirectUrl}>Continue</a> if you are not redirected.
+          <TextWithLink template={uiTexts.redirecting} href={redirectUrl} label={uiTexts.redirectingLink} />
         </p>
       ) : null}
     </div>
@@ -1258,7 +1315,7 @@ function App() {
         setAccessGranted(true);
         setAccessError(false);
       } else {
-        setAccessError("Invalid access code. Please try again.");
+        setAccessError(uiTexts.accessError);
       }
     };
     return (
@@ -1283,7 +1340,7 @@ function App() {
   if (_cur && isTerminalPage(_cur)) {
     return (
       <>
-        <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
+        <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
         <div id="survey"><Header /><main id="surveyContainer" role="main">
           <TerminalScreen page={_cur} store={store} submit={submit} phase={phase} submitId={submitId} submittedAt={submittedAt} uiTexts={uiTexts} />
         </main><Footer /></div>
@@ -1295,7 +1352,7 @@ function App() {
   if (phase === "closed") {
     return (
       <>
-        <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
+        <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
         <div id="survey"><Header /><main id="surveyContainer" role="main"><ClosedScreen reason={closedReason || "closed"} redirectUrl={closedReason === "quota_full" ? redirectTemplate(ui.quotaFullRedirectUrl || null, store.snapshot()) : null} /></main><Footer /></div>
       </>
     );
@@ -1304,7 +1361,7 @@ function App() {
   if (phase === "completed") {
     return (
       <>
-        <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
+        <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
         <div id="survey"><Header /><main id="surveyContainer" role="main"><CompletedScreen surveyId={submitId} submittedAt={submittedAt} uiTexts={uiTexts} redirectUrl={redirectTemplate(ui.redirectUrl || null, store.snapshot())} /></main><Footer /></div>
       </>
     );
@@ -1313,7 +1370,7 @@ function App() {
   // ─── Main survey render ───
   return (
     <>
-      <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>
+      <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
       <div id="survey" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <Header />
         {savedData && (
@@ -1411,6 +1468,7 @@ function App() {
                   uiTexts={uiTexts}
                   design={design}
                   section={showSections ? sectionLabel : null}
+                  estimate={nav.position === 0 ? estimatedTimeLabel(uiTexts, ui.estimatedMinutes) : null}
                 />
               </ErrorBoundary>
             ) : null}
@@ -1423,7 +1481,7 @@ function App() {
           )}
         </main>
         {submitAttempts > 0 && submitAttempts < 3 && (
-          <div className="siamang-retry-overlay" role="dialog" aria-modal="true" aria-label="Submission failed">
+          <div className="siamang-retry-overlay" role="dialog" aria-modal="true" aria-label={uiTexts.retryTitle}>
             <div className="siamang-retry-dialog">
               <div className="siamang-retry-dialog__icon" aria-hidden="true">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -1433,7 +1491,7 @@ function App() {
                 </svg>
               </div>
               <h3 className="siamang-retry-dialog__title">{uiTexts.retryTitle}</h3>
-              <p className="siamang-retry-dialog__body">{uiTexts.retryBody} Attempt {submitAttempts} of 3.</p>
+              <p className="siamang-retry-dialog__body">{uiTexts.retryBody} {fillText(uiTexts.attempt, { n: submitAttempts, max: 3 })}</p>
               <div className="siamang-retry-dialog__actions">
                 <button className="sd-btn sd-navigation__next-btn" onClick={() => submit(true)}>{uiTexts.retryAction}</button>
                 <button className="sd-btn sd-navigation__prev-btn" onClick={() => { saveNow(); setPhase("completed"); }}>{uiTexts.saveLocalAction}</button>

@@ -161,6 +161,14 @@ class ReactRuntime(RuntimeAdapter):
 
     def render_closed_page(self, context: RuntimeRenderContext, reason: str) -> str:
         heading, message = _CLOSED_REASONS.get(reason, _CLOSED_REASONS["closed"])
+        # The survey's own wording, when it has some (UIConfig).
+        ui = context.ui
+        if reason == "quota_full":
+            heading = ui.quota_full_title or heading
+            message = ui.quota_full_body or message
+        else:
+            heading = ui.closed_title or heading
+            message = ui.closed_body or message
         return self._closed_template.substitute(
             language=html.escape(context.schema.language),
             title=html.escape(context.schema.title),

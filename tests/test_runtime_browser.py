@@ -2013,3 +2013,177 @@ def test_section_labels_follow_the_respondents_order_of_pages(tmp_path):
         "Section 2 of 3",
         "Final thoughts",
     ]
+
+
+# ── Wording ──────────────────────────────────────────────────────────────────
+
+_GERMAN = {
+    "estimated_minutes": 12,
+    "estimated_time_text": "Etwa {minutes} Minuten",
+    "welcome_text": "Willkommen",
+    "section_text": "Teil {n} von {total}",
+    "final_section_text": "Zum Schluss",
+    "select_placeholder": "— Bitte wählen —",
+    "of_text": "von",
+    "selected_text": "ausgewählt",
+    "other_text": "Sonstiges",
+    "other_placeholder": "Bitte angeben",
+    "none_of_above_text": "Nichts davon",
+    "min_choices_text": "Noch {n} auswählen",
+    "invalid_email_text": "Bitte eine gültige E-Mail-Adresse",
+    "privacy_url": "https://example.org/privacy",
+    "privacy_text": "Datenschutz",
+    "contact_email": "team@example.org",
+    "contact_text": "Kontakt",
+    "skip_link_text": "Zum Fragebogen",
+    "response_id_text": "Antwort-Nr.",
+    "submitted_text": "Gesendet",
+    "completion_title": "Danke!",
+    "completion_body": "Ihre Antworten sind gespeichert.",
+}
+
+
+def _worded_document(**ui: Any) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Wording",
+        "ui": ui,
+        "variables": {
+            "city": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Oslo"}, {"code": 2, "label": "Rom"}],
+            },
+            "m": {
+                "scale": "nominal",
+                "labels": [{"code": i, "label": f"M{i}"} for i in range(1, 5)],
+            },
+            "pet": {"scale": "nominal", "labels": [{"code": 1, "label": "Katze"}]},
+            "mail": {"scale": "nominal", "dtype": "str"},
+            "note": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "city",
+                        "var": "city",
+                        "text": "Stadt?",
+                        "display": "dropdown",
+                        "other_specify": True,
+                    }
+                ],
+            },
+            {
+                "name": "p2",
+                "items": [
+                    {
+                        "type": "MultiChoice",
+                        "id": "m",
+                        "var": "m",
+                        "text": "M?",
+                        "min_answers": 2,
+                        "max_answers": 3,
+                    },
+                    {
+                        "type": "SingleChoice",
+                        "id": "pet",
+                        "var": "pet",
+                        "text": "Tier?",
+                        "none_of_above": True,
+                    },
+                    {
+                        "type": "OpenText",
+                        "id": "mail",
+                        "var": "mail",
+                        "text": "E-Mail?",
+                        "format": "email",
+                    },
+                ],
+            },
+            {
+                "name": "p3",
+                "items": [{"type": "OpenText", "id": "note", "var": "note", "text": "Noch etwas?"}],
+            },
+        ],
+    }
+
+
+def test_the_runtime_speaks_the_surveys_wording(tmp_path):
+    scenario = """
+        const text = (sel) => page.$eval(sel, (el) => el.textContent);
+        const first = {
+            eyebrow: await text(".sd-page__eyebrow"),
+            estimate: await text(".sd-page__estimate"),
+            trigger: await text(".siamang-search-dropdown__trigger"),
+            skip: await text(".siamang-skip-link"),
+            footer: await text(".siamang-footer"),
+        };
+        await page.click(".siamang-search-dropdown__trigger");
+        await page.click(".siamang-search-dropdown__option >> text=Sonstiges");
+        await page.waitForTimeout(100);
+        first.otherPlaceholder = await page.getAttribute(".sd-other-input__field", "placeholder");
+        await page.fill(".sd-other-input__field", "Bergen");
+        await page.locator(".sd-other-input__field").blur();
+        await page.click(".sd-navigation__next-btn");
+        await page.waitForTimeout(250);
+        const second = { eyebrow: await text(".sd-page__eyebrow"), estimate: (await page.$$(".sd-page__estimate")).length };
+        await page.click("text=M1");
+        await page.fill("input.sd-input", "nope");
+        await page.locator("input.sd-input").blur();
+        await page.waitForTimeout(100);
+        second.counter = await text(".siamang-multi-counter");
+        second.none = await page.$$eval(".sd-choice-label", (ls) => ls.map((l) => l.textContent));
+        await page.click(".sd-navigation__next-btn");
+        await page.waitForTimeout(250);
+        second.errors = await page.$$eval(".sd-question__error", (es) => es.map((e) => e.textContent));
+        await page.click("text=M2");
+        await page.fill("input.sd-input", "a@b.org");
+        await page.locator("input.sd-input").blur();
+        await page.waitForTimeout(100);
+        await page.click(".sd-navigation__next-btn");
+        await page.waitForTimeout(250);
+        const third = { eyebrow: await text(".sd-page__eyebrow") };
+        await page.click(".sd-navigation__complete-btn");
+        await page.waitForSelector(".sd-completedpage");
+        const done = await text(".sd-completedpage");
+        return { first, second, third, done };
+    """
+    state = run_in_browser(_worded_document(**_GERMAN), scenario, tmp_path)
+    first, second = state["first"], state["second"]
+    assert first["eyebrow"] == "Willkommen"
+    assert first["estimate"] == "Etwa 12 Minuten"
+    assert first["trigger"] == "— Bitte wählen —"
+    assert first["skip"] == "Zum Fragebogen"
+    assert "Datenschutz" in first["footer"] and "Kontakt" in first["footer"]
+    assert first["otherPlaceholder"] == "Bitte angeben"
+    assert second["eyebrow"] == "Teil 1 von 2" and second["estimate"] == 0
+    assert second["counter"] == "1 von 3 ausgewähltNoch 1 auswählen"
+    assert "Nichts davon" in second["none"]
+    assert second["errors"] == ["Noch 1 auswählen", "Bitte eine gültige E-Mail-Adresse"]
+    assert state["third"]["eyebrow"] == "Zum Schluss"
+    for phrase in ("Danke!", "Ihre Antworten sind gespeichert.", "Antwort-Nr.", "Gesendet"):
+        assert phrase in state["done"]
+
+
+def test_the_estimated_time_has_an_english_default(tmp_path):
+    scenario = 'return await page.textContent(".sd-page__estimate");'
+    one = run_in_browser(_worded_document(estimated_minutes=1), scenario, tmp_path / "one")
+    many = run_in_browser(_worded_document(estimated_minutes=12), scenario, tmp_path / "many")
+    assert (one, many) == ("About 1 minute", "About 12 minutes")
+
+
+def test_the_quota_full_screen_speaks_the_surveys_wording(tmp_path):
+    init = 'window.__T = { full: [["gender", 1]] };'
+    ui = {"quota_full_title": "Vielen Dank", "quota_full_body": "Die Stichprobe ist voll."}
+    scenario = (
+        """
+        await page.click("text=Male");
+    """
+        + _NEXT
+        + _CLOSED
+        + "return text;"
+    )
+    text = run_in_browser(_quota_document(**ui), scenario, tmp_path, init=init)
+    assert "Vielen Dank" in text and "Die Stichprobe ist voll." in text

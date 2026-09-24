@@ -361,3 +361,63 @@ def test_pages_carry_no_section_label_and_the_survey_says_which_texts_to_show():
     assert all("section" not in page for page in payload["PAGES"])
     assert payload["SURVEY"]["showSectionNumbers"] is False
     assert payload["SURVEY"]["showProgressText"] is True
+
+
+# ── Wording ──────────────────────────────────────────────────────────────────
+
+
+def test_every_wording_field_reaches_the_runtime_under_its_camel_case_name():
+    from siamang.frontend.compiler.react import _WORDING_FIELDS, _camel
+
+    values = {name: f"<{name}>" for name in _WORDING_FIELDS}
+    survey_meta = compile_react_payload(_survey(_fruit()), ui=sg.UIConfig(**values))["SURVEY"]
+    for name in _WORDING_FIELDS:
+        assert survey_meta[_camel(name)] == f"<{name}>"
+    assert _camel("screen_out_title") == "screenOutTitle"
+    # Unset, the runtime keeps its English default.
+    assert compile_react_payload(_survey(_fruit()))["SURVEY"]["welcomeText"] is None
+
+
+def test_the_labels_the_compiler_adds_are_worded_by_the_survey():
+    ui = sg.UIConfig(none_of_above_text="Nichts davon", not_applicable_text="Entfällt")
+    item = _only_item_of(_survey(_fruit(none_of_above=True)), ui)
+    assert item["options"][-1]["label"] == "Nichts davon"
+    likert_var = sg.Variable("sat", scale="ordinal", labels={1: "1", 2: "2", 3: "3"})
+    likert = sg.LikertScale("Sat?", var=likert_var, points=3, na_option=True)
+    assert _only_item_of(_survey(likert), ui)["naOption"] == "Entfällt"
+    assert _only_item_of(_survey(_matrix(na_option=True)), ui)["naOption"] == "Entfällt"
+    # A label the question sets itself wins.
+    own = sg.LikertScale("Sat?", var=likert_var, points=3, na_option="Weiß nicht")
+    assert _only_item_of(_survey(own), ui)["naOption"] == "Weiß nicht"
+
+
+def _only_item_of(survey, ui):
+    (page,) = compile_react_payload(survey, ui=ui)["PAGES"]
+    (item,) = page["items"]
+    return item
+
+
+def test_the_completion_screen_takes_the_ui_wording_first():
+    survey = _survey(_fruit())
+    options = {"completion_text": "From options"}
+    meta = compile_react_payload(survey, options=options)["SURVEY"]
+    assert (meta["completedTitle"], meta["completedBody"]) == (None, "From options")
+    ui = sg.UIConfig(completion_title="Danke!", completion_body="Gespeichert.")
+    meta = compile_react_payload(survey, ui=ui, options=options)["SURVEY"]
+    assert (meta["completedTitle"], meta["completedBody"]) == ("Danke!", "Gespeichert.")
+
+
+def test_the_static_closed_page_uses_the_surveys_wording():
+    from siamang.frontend.runtime.base import RuntimeRenderContext
+    from siamang.frontend.runtime.react import ReactRuntime
+    from siamang.frontend.schema import SurveySchema
+
+    schema = SurveySchema(title="T", pages=[], variables={})
+    ui = sg.UIConfig(closed_title="Geschlossen", closed_body="Keine Antworten mehr.")
+    context = RuntimeRenderContext(schema=schema, ui=ui)
+    html = ReactRuntime().render_closed_page(context, "deadline")
+    assert "Geschlossen" in html and "Keine Antworten mehr." in html
+    default = ReactRuntime().render_closed_page(
+        RuntimeRenderContext(schema=schema, ui=sg.UIConfig()), "deadline"
+    )
+    assert "Survey closed" in default
