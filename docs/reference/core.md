@@ -201,7 +201,7 @@ The base `Question` class defines the properties shared by all question types. I
 | `other_specify` | `bool` | `False` | If `True`, adds an "Other (please specify)" choice with a text entry field. |
 | `tag` | `str \| list[str] \| None` | `None` | Optional tag or list of tags for categorization and filtering. |
 | `id` | `str \| None` | `None` | Explicit unique identifier for the question. If omitted, it is automatically derived from the bound variable name. |
-| `name` | `str \| None` | `None` | The key the answer is stored under. A question that writes one variable stores its answer under that variable's name, and a `name` that differs from it is a `validate()` error; for `Matrix`, wide-mode `MultiChoice`, `MaxDiff` and `Conjoint`, whose item holds several variables, `name` is the item's key and defaults to the question ID. |
+| `name` | `str \| None` | `None` | The key the answer is stored under. A question that writes one variable stores its answer under that variable's name, and a `name` that differs from it is a `validate()` error; for `Matrix`, wide-mode `MultiChoice`, `MaxDiff` and `Conjoint`, which write several variables, each variable is stored under its own name and `name` (default: the question ID) is only the item's handle — what a script targets and a validation message is keyed by. |
 | `media` | `Media \| list[Media] \| None` | `None` | A `Media` instance or list of media attachments (images, videos, or audio) to display with the question. |
 | `metadata` | `dict[str, Any]` | `{}` | Extensible dictionary for custom parameters (e.g., `{"other_placeholder": "Specify..."}`). |
 
