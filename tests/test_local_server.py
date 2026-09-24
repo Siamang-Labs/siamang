@@ -100,3 +100,33 @@ def test_a_list_answer_counts_in_every_cell_it_holds_and_is_full_when_any_is(ser
     assert server.check("brands", [3, 1]) is False
     # A value no cell names is never full.
     assert server.check("brands", 3) is True
+
+
+def test_a_list_for_a_single_answer_variable_fills_no_cell(server):
+    """Only a MultiChoice (or a Ranking) answers with a list. One posted for
+    `gender` would otherwise take a place in every gender cell at once; it
+    names no cell, as before lists were counted."""
+
+    server.submit({"gender": [1, 2], "__status": "completed"})
+    assert server.counts()[("gender", "1")] == 0
+    assert server.counts()[("gender", "2")] == 0
+    server.submit({"gender": 1})
+    assert server.check("gender", 1) is False
+    assert server.check("gender", [1, 2]) is True
+
+
+def test_a_long_list_is_checked_and_counted_in_linear_time(server):
+    """A quota check and a submission go through the cells the survey has,
+    not a query — nor a scan of the list so far — per value posted: 200,000
+    values took minutes."""
+
+    import time
+
+    values = list(range(200_000))
+    started = time.perf_counter()
+    assert server.check("brands", values) is True
+    server.submit({"brands": values, "__status": "completed"})
+    assert time.perf_counter() - started < 10
+    assert server.counts()[("brands", "1")] == 1
+    assert server.counts()[("brands", "2")] == 1
+    assert server.check("brands", values) is False

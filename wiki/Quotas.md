@@ -89,8 +89,10 @@ Who counts, and when, is the backend's business:
   and, for a list answer, counts every cell whose value is in the list.
 - The **`local`** backend counts the same way: its `/quota-check` endpoint only
   reads the counters, and a response counts in its cells when it is stored
-  completed (not screened out), a list answer in the cell of each value it holds.
-  It is not publicly reachable; use it for development.
+  completed (not screened out), a list answer in the cell of each value it holds —
+  for a variable answered with a list (an array `MultiChoice`, a `Ranking`); a list
+  posted for any other variable fills no cell. It is not publicly reachable; use it
+  for development.
 - **`supabase`** calls the edge function named by `quota_function` (default
   `quota-check`), which you deploy yourself; without one the check fails and no one
   is stopped.

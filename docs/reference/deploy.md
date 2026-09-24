@@ -122,9 +122,12 @@ Extra methods on top of the abstract base:
 - `store_response(survey_id, payload)` — insert a response, return its
   row id. A completed response (anything but `__status: "screened_out"`)
   also counts in every quota cell its answers fill — a list answer in the
-  cell of each value it holds — in the same transaction.
+  cell of each value it holds, for a variable the survey answers with a list
+  (an array `MultiChoice`, a `Ranking`; posted for another variable a list
+  fills no cell) — in the same transaction.
 - `check_quota(survey_id, variable, value)` — whether the cell still has
-  room; for a list, whether every value's cell has. It only reads.
+  room; for a list, whether every value's cell has (a list for a
+  single-answer variable names no cell). It only reads.
 - `increment_quota(survey_id, variable, value)` — atomic check-and-
   increment; returns `False` when the cell is full. The local server no
   longer uses it.
