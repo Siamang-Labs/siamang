@@ -194,8 +194,8 @@ An element is rendered iff `show_if` evaluates true (or is absent) and
 
 ## Lifecycle scripts
 
-`Script` injects a sandboxed JavaScript snippet that runs in the
-respondent's browser at a chosen trigger:
+`Script` injects a JavaScript snippet that runs in the respondent's
+browser, as part of the survey page, at a chosen trigger:
 
 | Trigger | When |
 |---------|------|
@@ -208,7 +208,9 @@ respondent's browser at a chosen trigger:
 | `onRandomize` | Randomisation is requested |
 
 Inside the snippet you have `answers`, `utils` (`shuffle`, `sample`,
-`clamp`, `now`, `formatDate`), `api` (`get`, `post`), and `context`.
+`shuffleOptions`, `clamp`, `now`, `formatDate`), `api` (`get`, `post`), and
+`context` (the script's static context plus `trigger`, `startedAt`,
+`respondentId`, `surveyId`, `page`, `pageEnteredAt`, `question`).
 Built-in `Script.randomize_options`, `Script.randomize_pages`,
 `Script.validate_fields_match`, `Script.timed_question` cover the
 common cases.

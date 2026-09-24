@@ -315,6 +315,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   marks those options `"fixed": true` and both shuffles keep them in their
   place, dealing the other options into the remaining positions.
   `utils.shuffleOptions(options, seed?)` does the same for custom scripts.
+- A script's **`context`** was only the static dict set on the `Script`: the
+  runtime passed an empty object for its own part, so the documented and
+  templated uses — `context.startedAt` to flag speeders, the page being left for
+  a dwell time — read `undefined`. It now also holds `trigger`, `startedAt`
+  (the page load, or for a resumed interview the sitting that saved it — kept
+  with the autosave), `respondentId`, `surveyId`, `page`, `pageEnteredAt` and,
+  for `onQuestionShow` / `onAnswer`, `question`; a key the `Script` sets itself
+  wins. `Script.sandbox` was documented as running the code "in a sandboxed
+  iframe" / "no DOM access", and nothing ever applied it: the docs now say it
+  is recorded but not applied, and that scripts run as part of the page.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

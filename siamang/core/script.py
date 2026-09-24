@@ -15,6 +15,12 @@ Each script runs at a specified trigger point and has access to:
 - answers: current respondent answers
 - utils: built-in helper functions (shuffle, sample, etc.)
 - api: { get, post } for external HTTP calls
+- context: the script's own static ``context`` plus what the runtime knows at
+  the trigger — ``trigger``, ``startedAt``, ``respondentId``, ``surveyId``,
+  ``page``, ``pageEnteredAt`` and, for a question trigger, ``question``
+
+Scripts run in the survey page itself, with the page's access: the React
+runtime does not isolate them, whatever ``sandbox`` says.
 """
 
 from __future__ import annotations
@@ -58,8 +64,12 @@ class Script:
         name: Optional identifier (shown in logs, useful for debugging)
         target: Optional scope — page name or question ID to limit scope.
                 If None, runs globally at the trigger point.
-        context: Optional dict of static data passed to the script at runtime
-        sandbox: If True, run in a restricted scope (no DOM access)
+        context: Optional dict of static data passed to the script at runtime;
+                the runtime adds what it knows at the trigger (see the module
+                docstring), and a key set here wins over the runtime's
+        sandbox: Recorded with the script and carried in the document, but
+                not applied: the React runtime runs every script in the page,
+                with the page's access (DOM, network, window.siamangNext)
 
     Example:
         Script(

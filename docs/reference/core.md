@@ -486,8 +486,8 @@ The `Script` class allows researchers to inject custom JavaScript snippets into 
 | `trigger` | `str` | `"onPageEnter"` | The lifecycle event that triggers execution. Allowed triggers: `"onInit"`, `"onPageEnter"`, `"onPageExit"`, `"onQuestionShow"`, `"onAnswer"`, `"onSubmit"`, or `"onRandomize"`. |
 | `name` | `str \| None` | `None` | Optional identifier used for debugging and logging. |
 | `target` | `str \| None` | `None` | Limits the scope of the script to a specific page name or question ID. |
-| `context` | `dict[str, Any]` | `{}` | Static data dictionary passed into the script's execution context. |
-| `sandbox` | `bool` | `True` | If `True`, executes the script in a sandboxed iframe to prevent direct DOM access and maintain security. |
+| `context` | `dict[str, Any]` | `{}` | Static data dictionary passed into the script's execution context. The runtime adds `trigger`, `startedAt`, `respondentId`, `surveyId`, `page`, `pageEnteredAt` and, for a question trigger, `question`; a key set here wins. |
+| `sandbox` | `bool` | `True` | Recorded and carried in the document but not applied: the React runtime runs every script in the survey page with the page's own access (DOM, network). |
 
 ---
 

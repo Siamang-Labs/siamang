@@ -1787,3 +1787,119 @@ def test_a_shuffle_keeps_none_of_the_above_exclusive_answers_and_other_in_place(
     assert fruit[:-1] != [f"F{i}" for i in range(1, 7)]
     # The seeded script deals the movable options only; "None of these" stays last.
     assert brands == seeded_shuffle([f"B{i}" for i in range(1, 7)], "7:r1") + ["None of these"]
+
+
+# ── What a script's context holds ────────────────────────────────────────────
+
+
+def _context_document() -> dict[str, Any]:
+    seen = ["init_seen", "left_page", "dwell_ok", "last_q", "speeder", "started_seen", "own_page"]
+    return {
+        "schema_version": "1.0",
+        "title": "Context",
+        "variables": {
+            "name": {"scale": "nominal", "dtype": "str"},
+            "x": {"scale": "nominal", "dtype": "str"},
+            **{key: {"scale": "nominal", "dtype": "str"} for key in seen},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [{"type": "OpenText", "id": "name", "var": "name", "text": "Name?"}],
+            },
+            {"name": "p2", "items": [{"type": "OpenText", "id": "x", "var": "x", "text": "X?"}]},
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [
+            {
+                "type": "custom",
+                "name": "init",
+                "trigger": "onInit",
+                "context": {"own": "yes"},
+                "code": "answers.init_seen = [context.trigger, typeof context.startedAt, "
+                "context.respondentId, context.surveyId, context.page, context.own].join('|');",
+            },
+            {
+                "type": "custom",
+                "name": "exit",
+                "trigger": "onPageExit",
+                "code": "answers.left_page = context.page; answers.dwell_ok = "
+                "typeof context.pageEnteredAt === 'number' && utils.now() >= context.pageEnteredAt "
+                "&& context.pageEnteredAt >= context.startedAt ? 'yes' : 'no';",
+            },
+            {
+                "type": "custom",
+                "name": "answer",
+                "trigger": "onAnswer",
+                "code": "if (context.question !== 'last_q') answers.last_q = context.question;",
+            },
+            {
+                "type": "custom",
+                "name": "speeder",
+                "trigger": "onSubmit",
+                "code": "answers.speeder = utils.now() - context.startedAt < 60000 ? 'fast' : 'slow';"
+                " answers.started_seen = String(context.startedAt);",
+            },
+            {
+                "type": "custom",
+                "name": "own",
+                "trigger": "onPageEnter",
+                "context": {"page": "mine"},
+                "code": "answers.own_page = context.page;",
+            },
+        ],
+    }
+
+
+def test_a_scripts_context_carries_what_the_runtime_knows(tmp_path):
+    init = 'window.__T = { rid: "resp-9" };'
+    scenario = (
+        """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        await page.fill("input.sd-input", "y");
+        await page.click("body");
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_context_document(), scenario, tmp_path, init=init)
+    (submitted,) = state["submitted"]
+    assert submitted["init_seen"] == "onInit|number|resp-9|t|p1|yes"
+    assert submitted["left_page"] == "p2" and submitted["dwell_ok"] == "yes"
+    assert submitted["last_q"] == "x"
+    assert submitted["speeder"] == "fast"
+    # A key the Script sets itself wins over the runtime's.
+    assert submitted["own_page"] == "mine"
+
+
+def test_a_resumed_interview_keeps_the_time_it_started(tmp_path):
+    scenario = (
+        """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+        await page.waitForTimeout(2600);   // the autosave runs 2 s after an answer
+        const saved = await page.evaluate(() => {
+            const key = Object.keys(localStorage).find((k) => k.startsWith("siamang_answers_"));
+            return JSON.parse(localStorage.getItem(key)).startedAt;
+        });
+        await page.reload();
+        await page.waitForSelector(".siamang-resume-banner");
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(200);
+    """
+        + _NEXT
+        + """
+        await page.fill("input.sd-input", "y");
+        await page.click("body");
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { saved,")
+    )
+    state = run_in_browser(_context_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert isinstance(state["saved"], int)
+    assert submitted["started_seen"] == str(state["saved"])

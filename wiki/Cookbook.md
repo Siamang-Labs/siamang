@@ -174,9 +174,11 @@ match   = sg.Script.validate_fields_match("email_1", "email_2",
 survey = sg.Questionnaire(title="…", pages=[...], scripts=[shuffle, timer, match])
 ```
 
-A custom snippet sees `answers`, `utils` (shuffle, sample, clamp, now, formatDate,
-debounce), `api` (get, post), and `context` — the static dict you set on the
-`Script` itself (the runtime injects nothing else into it):
+A custom snippet sees `answers`, `utils` (shuffle, sample, shuffleOptions, clamp, now,
+formatDate, debounce), `api` (get, post), and `context` — the static dict you set on
+the `Script` itself plus what the runtime knows at the trigger (`trigger`, `startedAt`,
+`respondentId`, `surveyId`, `page`, `pageEnteredAt`, `question`; see
+[[Scripts]]):
 
 ```python
 log_exit = sg.Script(
