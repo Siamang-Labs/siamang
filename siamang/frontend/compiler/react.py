@@ -87,8 +87,10 @@ def compile_react_payload(
         "ethics": ui.ethics_statement or "",
         "privacyUrl": ui.privacy_url or "",
         "contactEmail": ui.contact_email or "",
-        "completedTitle": options.get("completion_title"),
-        "completedBody": options.get("completion_text"),
+        # The completion screen: the UI's wording first, then the compiler
+        # options (`completion_text` is the document's "Message").
+        "completedTitle": ui.completion_title or options.get("completion_title"),
+        "completedBody": ui.completion_body or options.get("completion_text"),
         "nextButtonText": ui.next_button_text,
         "prevButtonText": ui.prev_button_text,
         "submitButtonText": ui.submit_button_text,
@@ -122,6 +124,8 @@ def compile_react_payload(
         "enableAnalytics": ui.enable_analytics,
         "allowBack": ui.allow_back,
     }
+    for name in _WORDING_FIELDS:
+        survey_meta[_camel(name)] = getattr(ui, name)
 
     # The runtime's item id is the answer key — the variable for a
     # single-variable question — while authors name questions by id. Wherever
@@ -143,7 +147,13 @@ def compile_react_payload(
     # runtime works it out from the pages the respondent actually goes through,
     # in their order and without the terminal pages, and words it from the UI
     # texts.
-    pages = [_compile_page(page, skip_targets=skip_targets) for page in pages_src]
+    # The labels the compiler writes into options ("None of the above", "Not
+    # applicable"), in the survey's wording.
+    texts = {
+        "none_of_above": ui.none_of_above_text or "None of the above",
+        "not_applicable": ui.not_applicable_text or "Not applicable",
+    }
+    pages = [_compile_page(page, skip_targets=skip_targets, texts=texts) for page in pages_src]
 
     # Serialize scripts. The runtime matches a question-scoped script's target
     # — and a library script reads answers and options — by the item's answer
@@ -169,6 +179,61 @@ def compile_react_payload(
         survey_meta["quotaVars"] = quota_vars
 
     return {"SURVEY": survey_meta, "PAGES": pages}
+
+
+# The rest of the runtime's wording (UIConfig), sent as `SURVEY.<camelCase>`;
+# a None leaves the runtime's English default in place.
+_WORDING_FIELDS = (
+    "welcome_text",
+    "section_text",
+    "final_section_text",
+    "estimated_time_text",
+    "other_text",
+    "other_placeholder",
+    "min_choices_text",
+    "max_reached_text",
+    "min_value_text",
+    "max_value_text",
+    "chars_remaining_text",
+    "search_placeholder",
+    "no_options_text",
+    "ranking_hint_text",
+    "ranking_remaining_text",
+    "invalid_format_text",
+    "invalid_email_text",
+    "invalid_phone_text",
+    "invalid_url_text",
+    "invalid_date_text",
+    "invalid_time_text",
+    "response_id_text",
+    "submitted_text",
+    "screen_out_title",
+    "redirect_countdown_text",
+    "redirect_link_text",
+    "redirecting_text",
+    "redirecting_link_text",
+    "quota_full_title",
+    "quota_full_body",
+    "closed_title",
+    "closed_body",
+    "error_title",
+    "error_body",
+    "attempt_text",
+    "privacy_text",
+    "contact_text",
+    "skip_link_text",
+    "access_error",
+    "page_error_title",
+    "page_error_body",
+    "app_error_title",
+    "app_error_body",
+    "reload_action",
+)
+
+
+def _camel(name: str) -> str:
+    head, *rest = name.split("_")
+    return head + "".join(part.capitalize() for part in rest)
 
 
 def _quota_variables(options: Mapping[str, Any]) -> list[str]:
@@ -208,7 +273,12 @@ def _pages_for_react(survey: Questionnaire):
     yield Page(name="page1", items=items)
 
 
-def _compile_page(page: Page, *, skip_targets: Mapping[str, str] | None = None) -> dict[str, Any]:
+def _compile_page(
+    page: Page,
+    *,
+    skip_targets: Mapping[str, str] | None = None,
+    texts: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "name": page.name,
         "title": page.title or "",
@@ -254,37 +324,45 @@ def _compile_page(page: Page, *, skip_targets: Mapping[str, str] | None = None) 
                         {
                             "title": "",
                             "items": [
-                                _compile_question(q, skip_targets=skip_targets) for q in loose
+                                _compile_question(q, skip_targets=skip_targets, texts=texts)
+                                for q in loose
                             ],
                         }
                     )
                     loose = []
-                blocks.append(_compile_block(item, skip_targets=skip_targets))
+                blocks.append(_compile_block(item, skip_targets=skip_targets, texts=texts))
             else:
                 loose.append(item)
         if loose:
             blocks.append(
                 {
                     "title": "",
-                    "items": [_compile_question(q, skip_targets=skip_targets) for q in loose],
+                    "items": [
+                        _compile_question(q, skip_targets=skip_targets, texts=texts) for q in loose
+                    ],
                 }
             )
         payload["blocks"] = blocks
     else:
         payload["items"] = [
-            _compile_question(q, skip_targets=skip_targets) for q in page.flatten_questions()
+            _compile_question(q, skip_targets=skip_targets, texts=texts)
+            for q in page.flatten_questions()
         ]
 
     return payload
 
 
 def _compile_block(
-    block: Block, *, skip_targets: Mapping[str, str] | None = None
+    block: Block,
+    *,
+    skip_targets: Mapping[str, str] | None = None,
+    texts: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "title": block.title or "",
         "items": [
-            _compile_question(q, skip_targets=skip_targets) for q in block.flatten_questions()
+            _compile_question(q, skip_targets=skip_targets, texts=texts)
+            for q in block.flatten_questions()
         ],
         # Marks a real authored Block (vs. a wrapper for loose questions), so
         # the runtime knows which entries page-level randomize_blocks may move.
@@ -302,12 +380,19 @@ def _compile_block(
 
 
 def _compile_question(
-    question: Question, *, skip_targets: Mapping[str, str] | None = None
+    question: Question,
+    *,
+    skip_targets: Mapping[str, str] | None = None,
+    texts: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """One runtime item. ``skip_targets`` maps a design-time question id to
     the name of the page that holds the question, for every id that is not
     also a page name; a ``skip_to`` that names a question is emitted as that
-    page name, and a ``skip_to`` that names a page is left alone."""
+    page name, and a ``skip_to`` that names a page is left alone. ``texts``
+    words the labels the compiler adds ("none_of_above", "not_applicable")."""
+
+    texts = texts or {}
+    not_applicable = texts.get("not_applicable", "Not applicable")
 
     base: dict[str, Any] = {
         "id": question_output_name(question),
@@ -349,7 +434,7 @@ def _compile_question(
                 *options,
                 {
                     "code": none_code(question),
-                    "label": "None of the above",
+                    "label": texts.get("none_of_above", "None of the above"),
                     "noneOfAbove": True,
                     "fixed": True,
                 },
@@ -393,7 +478,7 @@ def _compile_question(
             "rightLabel": question.right_label or "",
             "naOption": question.na_option
             if isinstance(question.na_option, str)
-            else ("Not applicable" if question.na_option else None),
+            else (not_applicable if question.na_option else None),
         }
         if question.na_option and na_code(question.var) is not None:
             # The codebook's not_applicable code; without one the runtime
@@ -446,7 +531,7 @@ def _compile_question(
         }
         if question.na_option:
             payload["naOption"] = (
-                question.na_option if isinstance(question.na_option, str) else "Not applicable"
+                question.na_option if isinstance(question.na_option, str) else not_applicable
             )
         return payload
     if isinstance(question, Ranking):

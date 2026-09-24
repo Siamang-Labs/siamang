@@ -159,7 +159,7 @@ Siamang features an integrated web-font loader. By default, it loads high-qualit
 | `study_subtitle` | `None` | Subtitle text displayed below the institution name. |
 | `show_section_numbers` | `True` | If `True`, each page carries a section label above its title — "Welcome" on the first page the respondent answers, "Final thoughts" on the last, "Section *n* of *m*" between — and the progress bar's text is that label. `False` drops the labels, and the bar's text becomes "Page *n* of *m*" (`page_text` / `of_total_text`). Both count the pages the respondent answers, in their order, without the end pages. |
 | `show_progress_text` | `True` | If `True`, the progress bar has its text beside it (the section label, or "Page *n* of *m*"); `False` leaves the bar alone. |
-| `estimated_minutes` | `None` | Optional estimate of the time required to complete the survey, displayed on the welcome page. |
+| `estimated_minutes` | `None` | Optional estimate of the time required to complete the survey, displayed under the title of the first page the respondent answers ("About 12 minutes"; `estimated_time_text` words it). |
 
 ### 5. Footer
 
@@ -171,16 +171,32 @@ Siamang features an integrated web-font loader. By default, it loads high-qualit
 
 ### 6. Localisation UI Overrides
 
-These properties allow researchers to translate or customize the text of default user interface buttons and dialogs. All properties default to English if unset.
+These properties translate or customize every fixed phrase of the survey runtime. All default to `None`, which keeps the English text; in a template `{name}` is replaced by the value named and `{link}` marks where a link goes. The wiki page *Frontend and Theming* lists each with its English default and where it appears.
 
 ```python
-# Available localization override fields:
-next_button_text, prev_button_text, submit_button_text, submitting_text,
-required_text, saving_text, select_placeholder, of_text, selected_text,
-resume_title, resume_action, restart_action, page_text, of_total_text,
-retry_title, retry_body, retry_action, save_local_action,
-completion_title, completion_body
+# Buttons, progress and the first page:
+next_button_text, prev_button_text, submit_button_text, submitting_text, saving_text,
+welcome_text, section_text, final_section_text, page_text, of_total_text,
+estimated_time_text,
+# Answering:
+required_text, of_text, selected_text, min_choices_text, max_reached_text,
+min_value_text, max_value_text, invalid_format_text, invalid_email_text,
+invalid_phone_text, invalid_url_text, invalid_date_text, invalid_time_text,
+select_placeholder, search_placeholder, no_options_text, other_text,
+other_placeholder, none_of_above_text, not_applicable_text, chars_remaining_text,
+ranking_hint_text, ranking_remaining_text,
+# Saving, failing and ending:
+resume_title, resume_action, restart_action, retry_title, retry_body,
+retry_action, save_local_action, attempt_text, completion_title, completion_body,
+response_id_text, submitted_text, screen_out_title, redirect_countdown_text,
+redirect_link_text, redirecting_text, redirecting_link_text, quota_full_title,
+quota_full_body, closed_title, closed_body, error_title, error_body,
+# Around the questions:
+privacy_text, contact_text, skip_link_text, access_error, page_error_title,
+page_error_body, app_error_title, app_error_body, reload_action
 ```
+
+`completion_title` / `completion_body` win over the compiler options `completion_title` / `completion_text`.
 
 ### 7. Navigation, Access Control, and Analytics
 

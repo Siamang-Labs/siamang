@@ -119,6 +119,64 @@ class UIConfig:
     save_local_action: str | None = None
     completion_title: str | None = None
     completion_body: str | None = None
+    # Every other fixed phrase of the runtime. None keeps the English default
+    # quoted in the comment beside (or above) the field; "{name}" in a
+    # template is replaced by the value named.
+    # Where the respondent is (see show_section_numbers):
+    welcome_text: str | None = None  # "Welcome"
+    section_text: str | None = None  # "Section {n} of {total}"
+    final_section_text: str | None = None  # "Final thoughts"
+    estimated_time_text: str | None = None  # "About {minutes} minutes"
+    # Answering:
+    other_text: str | None = None  # "Other" — metadata["other_label"] wins
+    other_placeholder: str | None = None  # "Please specify..."
+    none_of_above_text: str | None = None  # "None of the above"
+    not_applicable_text: str | None = None  # "Not applicable" (na_option=True)
+    min_choices_text: str | None = None  # "Select at least {n} more"
+    max_reached_text: str | None = None  # "Maximum reached"
+    min_value_text: str | None = None  # "Minimum value is {min}"
+    max_value_text: str | None = None  # "Maximum value is {max}"
+    chars_remaining_text: str | None = None  # "{n} characters remaining"
+    search_placeholder: str | None = None  # "Type to search…"
+    no_options_text: str | None = None  # "No options found"
+    ranking_hint_text: str | None = None  # "Tap or drag to rank"
+    ranking_remaining_text: str | None = None  # "Remaining options"
+    invalid_format_text: str | None = None  # "Please check the format of your answer."
+    invalid_email_text: str | None = None  # "Please enter a valid email address."
+    invalid_phone_text: str | None = None  # "Please enter a valid phone number."
+    invalid_url_text: str | None = None  # "Please enter a valid web address (https://…)."
+    invalid_date_text: str | None = None  # "Please enter a valid date."
+    invalid_time_text: str | None = None  # "Please enter a valid time."
+    # The end of the interview:
+    response_id_text: str | None = None  # "Response ID"
+    submitted_text: str | None = None  # "Submitted"
+    screen_out_title: str | None = None  # "Thank you" — a screen-out page without a title
+    # "You will be redirected in {seconds} seconds. {link} if not redirected."
+    redirect_countdown_text: str | None = None
+    redirect_link_text: str | None = None  # "Click here"
+    redirecting_text: str | None = None  # "Redirecting you now. {link} if you are not redirected."
+    redirecting_link_text: str | None = None  # "Continue"
+    quota_full_title: str | None = None  # "Thank you for your interest"
+    # "We have already reached our target sample for participants like you."
+    quota_full_body: str | None = None
+    closed_title: str | None = None  # "Survey closed"
+    closed_body: str | None = None  # "This survey is no longer accepting responses."
+    error_title: str | None = None  # "Submission error"
+    # "We could not save your responses. Please refresh and try again."
+    error_body: str | None = None
+    attempt_text: str | None = None  # "Attempt {n} of {max}."
+    # Around the questions:
+    privacy_text: str | None = None  # "Privacy"
+    contact_text: str | None = None  # "Contact research team"
+    skip_link_text: str | None = None  # "Skip to questionnaire"
+    access_error: str | None = None  # "Invalid access code. Please try again."
+    page_error_title: str | None = None  # "Something went wrong"
+    # "An unexpected error occurred. Your previous answers have been saved."
+    page_error_body: str | None = None
+    app_error_title: str | None = None  # "Survey temporarily unavailable"
+    # "We encountered an unexpected error. Your previous answers have been saved."
+    app_error_body: str | None = None
+    reload_action: str | None = None  # "Reload survey"
 
     # --- progress style -------------------------------------------------
     progress_style: str = "bar"  # "bar" | "dots" | "both"

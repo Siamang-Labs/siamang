@@ -343,6 +343,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the page has no label and the bar says "Page *n* of *m*" (`page_text`,
   `of_total_text`, until now heard only by screen readers); without progress
   text the bar has none.
+- **The runtime's wording is all replaceable.** `UIConfig.estimated_minutes`,
+  `of_text`, `select_placeholder`, `selected_text`, `completion_title` and
+  `completion_body` were accepted and never used, and about forty phrases were
+  English in the runtime or the compiler — "Welcome", "Section n of m", "Final
+  thoughts", "Other", "None of the above", "Not applicable", the format
+  messages, "Response ID", the closed, full-sample and error screens, the
+  redirect notices, the footer's "Privacy" and "Contact research team",
+  "Invalid access code…", "Attempt n of 3." and more. `estimated_minutes` now
+  shows under the first page's title ("About 12 minutes"); the existing fields
+  reach the dropdown, the multiple-choice counter and the completion screen
+  (`completion_body` before the `completion_text` option); and `UIConfig`
+  gains a field for every other phrase — `welcome_text`, `section_text`,
+  `final_section_text`, `estimated_time_text`, `other_text`,
+  `other_placeholder`, `none_of_above_text`, `not_applicable_text`,
+  `min_choices_text`, `max_reached_text`, `min_value_text`, `max_value_text`,
+  `chars_remaining_text`, `search_placeholder`, `no_options_text`,
+  `ranking_hint_text`, `ranking_remaining_text`, `invalid_format_text`,
+  `invalid_email_text`, `invalid_phone_text`, `invalid_url_text`,
+  `invalid_date_text`, `invalid_time_text`, `response_id_text`,
+  `submitted_text`, `screen_out_title`, `redirect_countdown_text`,
+  `redirect_link_text`, `redirecting_text`, `redirecting_link_text`,
+  `quota_full_title`, `quota_full_body`, `closed_title`, `closed_body`,
+  `error_title`, `error_body`, `attempt_text`, `privacy_text`, `contact_text`,
+  `skip_link_text`, `access_error`, `page_error_title`, `page_error_body`,
+  `app_error_title`, `app_error_body`, `reload_action` — all `None` by default,
+  which keeps today's English. The document schema admits them; the static
+  closed page uses `closed_*` / `quota_full_*` too.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

@@ -284,6 +284,13 @@ body { min-height: 100vh; }
 }
 
 .sd-page__title + .sd-page__description { margin-top: 4px; }
+/* "About 12 minutes" on the first page (UIConfig.estimated_minutes). */
+.sd-page__estimate {
+  font-family: var(--siamang-ui-font);
+  font-size: 0.88em;
+  color: var(--siamang-muted);
+  margin: 4px 0 var(--siamang-section-gap);
+}
 .sd-page__title:not(:has(+ .sd-page__description)),
 .sd-page__title + .sd-question { margin-bottom: 0; }
 
