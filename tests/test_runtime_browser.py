@@ -589,3 +589,267 @@ def test_a_wide_answer_saved_as_a_list_of_names_resumes_as_ones_and_zeros(tmp_pa
     (submitted,) = state["submitted"]
     assert (submitted["brands_1"], submitted["brands_2"], submitted["brands_99"]) == (0, 1, 0)
     assert "brands" not in submitted
+
+
+# ── Other (please specify), None of the above, Not applicable ────────────────
+
+
+def _choices_document(**fruit: Any) -> dict[str, Any]:
+    fruit_labels = [
+        {"code": 1, "label": "Apple"},
+        {"code": 2, "label": "Pear"},
+        {"code": -66, "label": "Other"},
+    ]
+    na = {"code": -1, "label": "Not applicable", "kind": "not_applicable"}
+    scale = [{"code": n, "label": str(n)} for n in (1, 2, 3)]
+    return {
+        "schema_version": "1.0",
+        "title": "Choices",
+        "variables": {
+            "fruit": {"scale": "nominal", "labels": fruit_labels},
+            "snacks": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Chips"}, {"code": 2, "label": "Nuts"}],
+            },
+            "drinks": {"scale": "nominal", "labels": [{"code": 1, "label": "Tea"}]},
+            "city": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Oslo"}, {"code": 2, "label": "Rome"}],
+            },
+            "pet": {"scale": "nominal", "labels": [{"code": 1, "label": "Cat"}]},
+            "sat": {
+                "scale": "ordinal",
+                "labels": scale + [{"code": -1, "label": "N/A"}],
+                "missing": [na],
+            },
+            "ease": {"scale": "ordinal", "labels": scale},
+            "why": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "fruit",
+                        "var": "fruit",
+                        "text": "Fruit?",
+                        "other_specify": True,
+                        "choices": fruit_labels[:2],
+                        **fruit,
+                    },
+                    {
+                        "type": "MultiChoice",
+                        "id": "snacks",
+                        "var": "snacks",
+                        "text": "Snacks?",
+                        "other_specify": True,
+                    },
+                    {
+                        "type": "MultiChoice",
+                        "id": "drinks",
+                        "var": "drinks",
+                        "text": "Drinks?",
+                        "other_specify": True,
+                    },
+                    {
+                        "type": "SingleChoice",
+                        "id": "city",
+                        "var": "city",
+                        "text": "City?",
+                        "display": "dropdown",
+                        "other_specify": True,
+                    },
+                    {
+                        "type": "SingleChoice",
+                        "id": "pet",
+                        "var": "pet",
+                        "text": "Pet?",
+                        "none_of_above": True,
+                    },
+                    {
+                        "type": "LikertScale",
+                        "id": "sat",
+                        "var": "sat",
+                        "text": "Sat?",
+                        "points": 3,
+                        "na_option": True,
+                    },
+                    {
+                        "type": "LikertScale",
+                        "id": "ease",
+                        "var": "ease",
+                        "text": "Ease?",
+                        "points": 3,
+                        "na_option": True,
+                    },
+                ],
+            },
+            {
+                "name": "p2",
+                "items": [
+                    {
+                        "type": "OpenText",
+                        "id": "why",
+                        "var": "why",
+                        "text": "Why {label:fruit}? You also like {label:snacks}.",
+                        "show_if": {
+                            "type": "expression",
+                            "op": "contains",
+                            "left": {"type": "var", "name": "snacks"},
+                            "right": 1,
+                        },
+                    },
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+_ANSWER_CHOICES = (
+    """
+    const q = (n) => page.locator(".sd-question-slot").nth(n);
+    await q(0).locator("text=Other").click();
+    await q(0).locator(".sd-other-input__field").fill("Kiwi");
+    await q(1).locator("text=Chips").click();
+    await q(1).locator("text=Other").click();
+    await q(1).locator(".sd-other-input__field").fill("Salsa");
+    await q(2).locator("text=Other").click();
+    await q(2).locator(".sd-other-input__field").fill("Kvass");
+    await q(3).locator(".siamang-search-dropdown__trigger").click();
+    const offered = await q(3).locator(".siamang-search-dropdown__option").allTextContents();
+    await q(3).locator(".siamang-search-dropdown__option", { hasText: "Other" }).click();
+    await q(3).locator(".sd-other-input__field").fill("Lima");
+    await q(4).locator("text=None of the above").click();
+    await q(5).locator(".sd-rating__na label").click();
+    await q(6).locator(".sd-rating__na label").click();
+    await page.click("body");
+"""
+    + _NEXT
+)
+
+
+def test_other_stores_its_code_and_its_text_under_variable_other(tmp_path):
+    scenario = (
+        _ANSWER_CHOICES
+        + """
+        const shown = await page.textContent(".sd-page");
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { offered, shown,")
+    )
+    state = run_in_browser(_choices_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    # One key per variable, values are codes; the text sits beside them.
+    assert submitted["fruit"] == -66 and submitted["fruit_other"] == "Kiwi"
+    assert submitted["snacks"] == [1, -66] and submitted["snacks_other"] == "Salsa"
+    # A second MultiChoice with Other keeps its own text.
+    assert submitted["drinks"] == [-66] and submitted["drinks_other"] == "Kvass"
+    # The dropdown offers Other at the end of its list.
+    assert state["offered"] == ["Oslo", "Rome", "Other"]
+    assert submitted["city"] == -66 and submitted["city_other"] == "Lima"
+    # None of the above and N/A are codes; N/A without a declared code stays "na".
+    assert submitted["pet"] == -77
+    assert submitted["sat"] == -1
+    assert submitted["ease"] == "na"
+    # `snacks contains 1` holds on a list (it could not on {selected, otherText}),
+    # and {label:…} of Other pipes the text typed.
+    assert "Why Kiwi? You also like Chips, Salsa." in state["shown"]
+    assert not any(
+        isinstance(value, dict) for key, value in submitted.items() if not key.startswith("__")
+    )
+
+
+def test_choosing_something_else_drops_the_other_text(tmp_path):
+    scenario = (
+        """
+        const q = (n) => page.locator(".sd-question-slot").nth(n);
+        await q(0).locator("text=Other").click();
+        await q(0).locator(".sd-other-input__field").fill("Kiwi");
+        await q(0).locator("text=Pear").click();
+        await q(1).locator("text=Other").click();
+        await q(1).locator(".sd-other-input__field").fill("Salsa");
+        await q(1).locator("text=Other").click();
+        await q(1).locator("text=Nuts").click();
+    """
+        + _NEXT
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_choices_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert submitted["fruit"] == 2 and "fruit_other" not in submitted
+    assert submitted["snacks"] == [2] and "snacks_other" not in submitted
+
+
+def test_a_choice_named_by_other_code_is_the_other_option(tmp_path):
+    """`metadata.other_code` naming a choice: that choice gets the text box and
+    no second "Other" is added."""
+
+    document = _choices_document(
+        choices=[{"code": 1, "label": "Apple"}, {"code": 3, "label": "Something else"}],
+        metadata={"other_code": 3},
+    )
+    document["variables"]["fruit"]["labels"].append({"code": 3, "label": "Something else"})
+    scenario = (
+        """
+        const q = page.locator(".sd-question-slot").nth(0);
+        const labels = await q.locator(".sd-choice-label").allTextContents();
+        await q.locator("text=Something else").click();
+        await q.locator(".sd-other-input__field").fill("Kiwi");
+    """
+        + _NEXT
+        + _NEXT
+        + _STATE.replace("return {", "return { labels,")
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["labels"] == ["Apple", "Something else"]
+    (submitted,) = state["submitted"]
+    assert submitted["fruit"] == 3 and submitted["fruit_other"] == "Kiwi"
+
+
+def test_answers_saved_with_the_old_sentinels_resume_as_codes(tmp_path):
+    init = """
+        localStorage.setItem("siamang_answers_siamang_survey", JSON.stringify({
+          answers: {
+            fruit: { code: "__other__", text: "Kiwi" },
+            snacks: { selected: [1, "__other__"], otherText: "Salsa" },
+            pet: "__none__", sat: "na", ease: "na",
+          }, pageIdx: 0, savedAt: new Date().toISOString() }));
+    """
+    scenario = (
+        """
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(100);
+        const typed = await page.locator(".sd-other-input__field").first().inputValue();
+    """
+        + _NEXT
+        + _NEXT
+        + _STATE.replace("return {", "return { typed,")
+    )
+    state = run_in_browser(_choices_document(), scenario, tmp_path, init=init)
+    assert state["typed"] == "Kiwi"
+    (submitted,) = state["submitted"]
+    assert submitted["fruit"] == -66 and submitted["fruit_other"] == "Kiwi"
+    assert submitted["snacks"] == [1, -66] and submitted["snacks_other"] == "Salsa"
+    assert submitted["pet"] == -77
+    assert submitted["sat"] == -1 and submitted["ease"] == "na"
+
+
+def test_a_wide_multichoice_other_writes_its_text_beside_the_zeros(tmp_path):
+    document = _wide_document()
+    document["pages"][0]["items"][0]["other_specify"] = True
+    scenario = (
+        """
+        await page.click("text=Globex");
+        await page.click("text=Other");
+        await page.fill(".sd-other-input__field", "Initech");
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert (submitted["brands_1"], submitted["brands_2"], submitted["brands_99"]) == (0, 1, 0)
+    assert submitted["brands_other"] == "Initech"

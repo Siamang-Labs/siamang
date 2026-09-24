@@ -199,6 +199,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with one choice per variable, option *i* is choice *i* on variable *i*, so
   `exclusive` works. A saved answer in the old layout is converted when the
   respondent resumes. Responses already collected keep the list.
+- **"Other (please specify)", "None of the above" and N/A stored sentinels**
+  instead of codes: a `SingleChoice` with Other wrote `{"code": "__other__",
+  "text": …}`, a `MultiChoice` with Other always wrote `{"selected": […],
+  "otherText": …}` (so `contains` conditions on it never matched, and two such
+  questions collided once the object was unwrapped), "None of the above" was
+  `"__none__"` and N/A `"na"`. Other now stores a code of the variable —
+  `metadata["other_code"]`, default `-66` (`DEFAULT_OTHER_CODE`); a choice with
+  that code *is* the Other option — and the typed text goes under
+  `<variable>_other` (a wide question: `<name or id>_other`) while Other is
+  chosen. "None of the above" stores `metadata["none_code"]`, default `-77`
+  (`DEFAULT_NONE_CODE`). N/A stores the variable's `not_applicable` missing code
+  (`na_code`) and keeps `"na"` only when the codebook declares none. The
+  dropdown display now offers Other at all. `validate()` refuses a code that is
+  neither a number nor a string, a None code that is already an answer's, the
+  default Other code on a question whose choices use it, and an Other text key
+  that is another answer's; the Other text is a variable a condition may read.
+  `lint()` reports `ADDED_CODE_WITHOUT_LABEL` and `NA_STORED_AS_TEXT`. Answers
+  a respondent saved in the browser with the old sentinels are converted when
+  they resume; responses already collected keep them. The Qualtrics importer
+  sets `other_code` to the recode of the text-entry choice, which was shown
+  twice before — as itself and as the runtime's own "Other".
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

@@ -381,13 +381,13 @@ class _Importer:
 
     def _choices(
         self, q: dict[str, Any], out: _Converted, where: str, key: str = "Choices"
-    ) -> tuple[list[dict[str, Any]], bool, list[Any]]:
-        """Options with recodes; also whether any is a text entry and the
-        exclusive codes."""
+    ) -> tuple[list[dict[str, Any]], Any | None, list[Any]]:
+        """Options with recodes; also the code of the first text-entry choice
+        (None without one) and the exclusive codes."""
         order_key = "ChoiceOrder" if key == "Choices" else "AnswerOrder"
         recodes = q.get("RecodeValues") if isinstance(q.get("RecodeValues"), dict) else {}
         options: list[dict[str, Any]] = []
-        other = False
+        other: Any | None = None
         exclusive: list[Any] = []
         codes = out.choice_codes if key == "Choices" else out.answer_codes
         for choice_key, choice in _ordered(q.get(key), q.get(order_key)):
@@ -396,8 +396,8 @@ class _Importer:
             codes[choice_key] = code
             options.append({"code": code, "label": label or str(choice_key)})
             if isinstance(choice, dict):
-                if _is_on(choice.get("TextEntry")):
-                    other = True
+                if _is_on(choice.get("TextEntry")) and other is None:
+                    other = code
                 if _is_on(choice.get("ExclusiveAnswer")):
                     exclusive.append(code)
                 if choice.get("DisplayLogic"):
@@ -438,8 +438,11 @@ class _Importer:
             "choices": options,
             **self._common(q, out, where),
         }
-        if other:
+        if other is not None:
+            # The text-entry choice is the Other option: it keeps its recode
+            # and gets the text box, rather than a second "Other" beside it.
             item["other_specify"] = True
+            item["metadata"] = {"other_code": other}
         if multi and exclusive:
             item["exclusive"] = exclusive
         if not multi:
@@ -456,7 +459,7 @@ class _Importer:
         where: str,
         text: str,
         options: list[dict[str, Any]],
-        other: bool,
+        other: Any | None,
         exclusive: list[Any],
     ) -> None:
         """A multi-select whose choices are tested by logic: one yes/no
@@ -481,7 +484,7 @@ class _Importer:
             "mode": "wide",
             **self._common(q, out, where),
         }
-        if other:
+        if other is not None:
             item["other_specify"] = True
         if exclusive:
             self.skipped.append(

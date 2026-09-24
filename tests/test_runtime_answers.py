@@ -8,7 +8,16 @@ runtime reads to get there. The runtime itself is driven in
 
 from __future__ import annotations
 
+import pytest
+
 import siamang as sg
+from siamang.core.question import (
+    DEFAULT_NONE_CODE,
+    DEFAULT_OTHER_CODE,
+    na_code,
+    other_text_key,
+)
+from siamang.core.variable import MissingValue
 from siamang.frontend.compiler.react import compile_react_payload
 
 
@@ -114,3 +123,141 @@ class TestWideMultiChoice:
         item = _only_item(_survey(sg.MultiChoice("M?", var=var)))
         assert "wide" not in item
         assert all("var" not in option for option in item["options"])
+
+
+# ── Other (please specify), None of the above, Not applicable ────────────────
+
+_FRUIT = {1: "Apple", 2: "Pear"}
+
+
+def _fruit(**kwargs):
+    var = sg.Variable("fruit", scale="nominal", labels=kwargs.pop("labels", _FRUIT))
+    return sg.SingleChoice("Fruit?", var=var, id="q_fruit", **kwargs)
+
+
+class TestOtherNoneAndNa:
+    def test_other_stores_a_code_and_names_the_key_of_its_text(self):
+        item = _only_item(_survey(_fruit(other_specify=True)))
+        assert item["otherSpecify"] is True
+        assert item["otherCode"] == DEFAULT_OTHER_CODE
+        assert item["otherKey"] == "fruit_other"
+
+    def test_metadata_sets_the_other_code(self):
+        item = _only_item(_survey(_fruit(other_specify=True, metadata={"other_code": 96})))
+        assert item["otherCode"] == 96
+
+    def test_a_multichoice_other_is_keyed_by_its_variable(self):
+        var = sg.Variable("snacks", scale="nominal", labels={1: "Chips"})
+        item = _only_item(_survey(sg.MultiChoice("S?", var=var, other_specify=True)))
+        assert (item["otherCode"], item["otherKey"]) == (DEFAULT_OTHER_CODE, "snacks_other")
+
+    def test_a_wide_multichoice_other_is_keyed_by_the_question(self):
+        item = _only_item(_survey(_wide(other_specify=True)))
+        assert item["otherKey"] == "b_other" == other_text_key(_wide(other_specify=True))
+
+    def test_none_of_the_above_is_a_code(self):
+        item = _only_item(_survey(_fruit(none_of_above=True)))
+        assert item["options"][-1] == {
+            "code": DEFAULT_NONE_CODE,
+            "label": "None of the above",
+            "noneOfAbove": True,
+        }
+        item = _only_item(_survey(_fruit(none_of_above=True, metadata={"none_code": 97})))
+        assert item["options"][-1]["code"] == 97
+
+    def test_not_applicable_is_the_codebooks_not_applicable_code(self):
+        declared = sg.Variable(
+            "sat",
+            scale="ordinal",
+            labels={1: "1", 2: "2", 3: "3", -1: "Not applicable"},
+            missing=(MissingValue(-1, "Not applicable", "not_applicable"),),
+        )
+        assert na_code(declared) == -1
+        item = _only_item(_survey(sg.LikertScale("Sat?", var=declared, points=3, na_option=True)))
+        assert item["naCode"] == -1
+        # Without a declared code nothing is emitted, and the runtime keeps "na".
+        plain = sg.Variable("sat", scale="ordinal")
+        item = _only_item(_survey(sg.LikertScale("Sat?", var=plain, points=3, na_option=True)))
+        assert "naCode" not in item
+
+    def test_a_matrix_row_takes_its_own_variables_not_applicable_code(self):
+        rows = [
+            sg.Variable(
+                "r1",
+                scale="ordinal",
+                labels={1: "A", 9: "N/A"},
+                missing=(MissingValue(9, "N/A", "not_applicable"),),
+            ),
+            sg.Variable("r2", scale="ordinal", labels={1: "A"}),
+        ]
+        item = _only_item(_survey(sg.Matrix("M?", var=rows, column_labels=["A"], na_option=True)))
+        assert item["rows"][0]["naCode"] == 9
+        assert "naCode" not in item["rows"][1]
+
+
+class TestAddedCodesValidation:
+    def test_the_default_other_code_may_not_be_a_choice_already(self):
+        clash = {1: "Apple", DEFAULT_OTHER_CODE: "Kiwi"}
+        survey = _survey(_fruit(other_specify=True, labels=clash))
+        with pytest.raises(ValueError, match="Set metadata other_code"):
+            survey.validate()
+
+    def test_an_explicit_other_code_may_name_the_choice_that_is_other(self):
+        labels = {1: "Apple", 2: "Pear", 3: "Something else"}
+        survey = _survey(_fruit(other_specify=True, labels=labels, metadata={"other_code": 3}))
+        survey.validate()
+        item = _only_item(survey)
+        assert item["otherCode"] == 3
+        assert [o["code"] for o in item["options"]] == [1, 2, 3]
+
+    def test_none_of_the_above_needs_a_code_of_its_own(self):
+        survey = _survey(_fruit(none_of_above=True, metadata={"none_code": 2}))
+        with pytest.raises(ValueError, match="None of the above"):
+            survey.validate()
+        survey = _survey(
+            _fruit(
+                none_of_above=True,
+                other_specify=True,
+                metadata={"none_code": 5, "other_code": 5},
+            )
+        )
+        with pytest.raises(ValueError, match="None of the above"):
+            survey.validate()
+
+    def test_a_code_must_be_a_number_or_a_string(self):
+        survey = _survey(_fruit(other_specify=True, metadata={"other_code": [1]}))
+        with pytest.raises(ValueError, match="number or a string"):
+            survey.validate()
+
+    def test_the_other_text_may_not_land_on_another_answer(self):
+        clash = sg.OpenText("Say", var=sg.Variable("fruit_other", scale="nominal"))
+        survey = _survey(_fruit(other_specify=True), clash)
+        with pytest.raises(ValueError, match="fruit_other"):
+            survey.validate()
+
+    def test_the_other_text_is_a_variable_a_condition_may_read(self):
+        follow_up = sg.OpenText(
+            "Why that?",
+            var=sg.Variable("why", scale="nominal"),
+            show_if=sg.Expression("!=", sg.VarRef("fruit_other"), ""),
+        )
+        _survey(_fruit(other_specify=True), follow_up).validate()
+
+
+class TestAddedCodesLint:
+    def _codes(self, survey):
+        return {w.code for w in survey.lint()}
+
+    def test_an_unlabelled_other_or_none_code_is_reported(self):
+        survey = _survey(_fruit(other_specify=True, none_of_above=True))
+        warnings = [w for w in survey.lint() if w.code == "ADDED_CODE_WITHOUT_LABEL"]
+        assert len(warnings) == 2
+        labelled = {**_FRUIT, DEFAULT_OTHER_CODE: "Other", DEFAULT_NONE_CODE: "None"}
+        survey = _survey(_fruit(other_specify=True, none_of_above=True, labels=labelled))
+        assert "ADDED_CODE_WITHOUT_LABEL" not in self._codes(survey)
+
+    def test_na_without_a_declared_code_is_reported_by_strict_lint(self):
+        plain = sg.Variable("sat", scale="ordinal")
+        survey = _survey(sg.LikertScale("Sat?", var=plain, points=3, na_option=True))
+        assert "NA_STORED_AS_TEXT" not in self._codes(survey)
+        assert "NA_STORED_AS_TEXT" in {w.code for w in survey.lint(level="strict")}

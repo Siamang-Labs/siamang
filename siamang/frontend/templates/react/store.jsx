@@ -106,7 +106,13 @@ function createAnswersStore(initial) {
 
    A wide MultiChoice is the same idea for a list: its component works on the
    chosen codes, and each option's variable holds 1 when it is chosen and 0
-   when the question is answered and it is not. */
+   when the question is answered and it is not.
+
+   "Other (please specify)" stores a code of the question's variable
+   (q.otherCode) like any other choice, and the typed text under a key of its
+   own, q.otherKey (`<variable>_other`): present — "" when nothing was typed —
+   exactly while Other is chosen. Its component still gets the old shapes,
+   { code, text } for one answer and { selected, otherText } for several. */
 
 function isSpreadItem(q) {
   return !!q && (q.kind === "matrix" || q.kind === "maxdiff" || q.kind === "conjoint");
@@ -122,6 +128,28 @@ function isOn(value) {
   return value === 1 || value === true || value === "1";
 }
 
+/* Codes compare as conditions compare them loosely: 1 and "1" are one code. */
+function sameCode(a, b) {
+  if (a === b) return true;
+  if (a === undefined || a === null || b === undefined || b === null) return false;
+  return String(a) === String(b);
+}
+
+function hasOtherText(q) {
+  return !!q && !!q.otherSpecify && !!q.otherKey &&
+    (q.kind === "single" || q.kind === "dropdown" || q.kind === "multi");
+}
+
+/* A multiple answer as its component hands it over: the chosen codes and,
+   with Other, the typed text. */
+function splitMulti(value) {
+  if (Array.isArray(value)) return { selected: value, text: "" };
+  if (value && typeof value === "object") {
+    return { selected: Array.isArray(value.selected) ? value.selected : [], text: value.otherText };
+  }
+  return { selected: [], text: "" };
+}
+
 /* The store keys an item writes. */
 function itemAnswerKeys(q) {
   if (!q) return [];
@@ -133,8 +161,9 @@ function itemAnswerKeys(q) {
     return keys;
   }
   if (q.kind === "conjoint") return [...(q.taskVars || []), ...(q.versionVar ? [q.versionVar] : [])];
-  if (isWideItem(q)) return (q.options || []).map((o) => o.var).filter(Boolean);
-  return [q.id];
+  const keys = isWideItem(q) ? (q.options || []).map((o) => o.var).filter(Boolean) : [q.id];
+  if (hasOtherText(q)) keys.push(q.otherKey);
+  return keys;
 }
 
 /* An assembled value keeps its identity while its parts are unchanged, so a
@@ -160,17 +189,28 @@ function itemValue(q, answers) {
     }
     return stableItemValue(q, any ? out : undefined);
   }
-  if (isWideItem(q)) {
-    const chosen = [];
-    let any = false;
-    for (const o of q.options || []) {
-      if (!o || !o.var || a[o.var] === undefined) continue;
-      any = true;
-      if (isOn(a[o.var])) chosen.push(o.code);
+  const other = hasOtherText(q);
+  if (q.kind === "multi") {
+    let chosen;
+    if (isWideItem(q)) {
+      chosen = [];
+      for (const o of q.options || []) if (o && o.var && isOn(a[o.var])) chosen.push(o.code);
+      if (other && a[q.otherKey] !== undefined && !chosen.some((c) => sameCode(c, q.otherCode))) {
+        chosen.push(q.otherCode);
+      }
+    } else {
+      chosen = Array.isArray(a[q.id]) ? a[q.id] : [];
     }
-    return stableItemValue(q, any ? chosen : undefined);
+    // Nothing chosen is an unanswered question.
+    if (!chosen.length) return isWideItem(q) || other ? stableItemValue(q, undefined) : a[q.id];
+    if (other) return stableItemValue(q, { selected: chosen, otherText: a[q.otherKey] ?? "" });
+    return isWideItem(q) ? stableItemValue(q, chosen) : a[q.id];
   }
-  return a[q.id];
+  const code = a[q.id];
+  if (other && sameCode(code, q.otherCode)) {
+    return stableItemValue(q, { code, text: a[q.otherKey] ?? "" });
+  }
+  return code;
 }
 
 /* What storing `value` — as the item's component hands it over — writes:
@@ -182,15 +222,31 @@ function answerUpdates(q, value) {
     for (const key of itemAnswerKeys(q)) updates[key] = v[key];
     return updates;
   }
-  if (isWideItem(q)) {
-    const chosen = Array.isArray(value) ? value : [];
+  const other = hasOtherText(q);
+  if (q.kind === "multi") {
+    const { selected, text } = splitMulti(value);
     const updates = {};
-    for (const o of q.options || []) {
-      if (!o || !o.var) continue;
-      // Nothing chosen is an unanswered question: every variable is cleared.
-      updates[o.var] = chosen.length ? (chosen.includes(o.code) ? 1 : 0) : undefined;
+    if (isWideItem(q)) {
+      for (const o of q.options || []) {
+        if (!o || !o.var) continue;
+        // Nothing chosen is an unanswered question: every variable is cleared.
+        updates[o.var] = selected.length ? (selected.some((c) => sameCode(c, o.code)) ? 1 : 0) : undefined;
+      }
+    } else {
+      updates[q.id] = selected.length ? selected : undefined;
+    }
+    if (other) {
+      updates[q.otherKey] = selected.some((c) => sameCode(c, q.otherCode)) ? String(text ?? "") : undefined;
     }
     return updates;
+  }
+  if (other) {
+    const isObject = value !== null && typeof value === "object" && !Array.isArray(value);
+    const code = isObject ? value.code : value;
+    return {
+      [q.id]: code,
+      [q.otherKey]: sameCode(code, q.otherCode) ? String((isObject && value.text) || "") : undefined,
+    };
   }
   return { [q.id]: value };
 }
@@ -206,17 +262,42 @@ function forEachItem(pages, fn) {
    a respondent who resumes after the survey was redeployed must not have
    half their answers under keys nothing reads any more. Such a runtime kept a
    matrix, a MaxDiff or a Conjoint as one object under the question's key,
-   a matrix cell as its column's position (1…n) rather than its code, and a
-   wide MultiChoice as the list of its chosen variables' names. */
+   a matrix cell as its column's position (1…n) rather than its code, a wide
+   MultiChoice as the list of its chosen variables' names, Other as the code
+   "__other__" with its text inside the answer ({ code, text } or
+   { selected, otherText }), "None of the above" as "__none__" and N/A as
+   "na" whatever the codebook declared. */
+const LEGACY_OTHER = "__other__";
 function upgradeSavedAnswers(pages, saved) {
   const out = { ...(saved || {}) };
+  const otherCode = (q, code) => (code === LEGACY_OTHER && q.otherCode !== undefined ? q.otherCode : code);
   forEachItem(pages, (q) => {
-    if (isWideItem(q)) {
-      const names = out[q.id];
-      if (!Array.isArray(names)) return;
-      delete out[q.id];
-      const chosen = (q.options || []).filter((o) => names.includes(o.var) || names.includes(o.code));
-      Object.assign(out, answerUpdates(q, chosen.map((o) => o.code)));
+    const legacy = out[q.id];
+    if (q.kind === "multi" && legacy !== undefined && (isWideItem(q) || (legacy && typeof legacy === "object" && !Array.isArray(legacy)))) {
+      const { selected, text } = splitMulti(legacy);
+      if (isWideItem(q)) {
+        if (!Array.isArray(legacy) && !(legacy && Array.isArray(legacy.selected))) return;
+        delete out[q.id];
+      }
+      const chosen = [];
+      for (const name of selected) {
+        const o = (q.options || []).find((opt) => opt.var === name || sameCode(opt.code, name));
+        chosen.push(o ? o.code : otherCode(q, name));
+      }
+      Object.assign(out, answerUpdates(q, hasOtherText(q) ? { selected: chosen, otherText: text } : chosen));
+      return;
+    }
+    if ((q.kind === "single" || q.kind === "dropdown") && legacy !== undefined) {
+      if (legacy && typeof legacy === "object" && legacy.code === LEGACY_OTHER) {
+        Object.assign(out, answerUpdates(q, { code: otherCode(q, LEGACY_OTHER), text: legacy.text }));
+      } else if (legacy === "__none__") {
+        const none = (q.options || []).find((o) => o.noneOfAbove);
+        if (none) out[q.id] = none.code;
+      }
+      return;
+    }
+    if (q.kind === "likert" && legacy === "na" && q.naCode !== undefined) {
+      out[q.id] = q.naCode;
       return;
     }
     if (!isSpreadItem(q)) return;
@@ -229,6 +310,10 @@ function upgradeSavedAnswers(pages, saved) {
       const columns = (q.columns || []).length;
       if (q.kind === "matrix" && Number.isInteger(value) && value >= 1 && value <= columns) {
         value = matrixColumnCode(q, value - 1);
+      }
+      if (q.kind === "matrix" && value === "na") {
+        const row = (q.rows || []).find((r) => r.id === key);
+        if (row && row.naCode !== undefined) value = row.naCode;
       }
       out[key] = value;
     }

@@ -82,6 +82,8 @@ def test_question_types_map_with_recodes_other_and_exclusive(result):
     (region,) = _items(doc, "screener_2")
     assert region["display"] == "dropdown" and region["other_specify"] is True
     assert [c["code"] for c in region["choices"]] == [1, 2, 3, 99]
+    # The text-entry choice (recode 99) is the Other option, not a second one.
+    assert region["metadata"] == {"other_code": 99}
 
     brand = _items(doc, "brand_usage")
     by_id = {i["id"]: i for i in brand}

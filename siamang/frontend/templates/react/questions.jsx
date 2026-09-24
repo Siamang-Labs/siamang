@@ -78,6 +78,7 @@ function MediaGallery({ media }) {
    value for questions without options). Unanswered → the placeholder
    stays, so an author sees at once what is missing. */
 let _pipeLabelIndex = null;
+const _pipeOtherIndex = {};
 function pipeLabelIndex() {
   if (_pipeLabelIndex) return _pipeLabelIndex;
   const index = {};
@@ -91,6 +92,12 @@ function pipeLabelIndex() {
       if (Array.isArray(q.options) && q.id) {
         const map = {};
         for (const o of q.options) if (o && o.code !== undefined) map[String(o.code)] = o.label;
+        if (q.otherSpecify && q.otherKey) {
+          // {label:x} of Other is what the respondent typed, else its label.
+          const code = String(otherCodeOf(q));
+          if (map[code] === undefined) map[code] = q.otherLabel || "Other";
+          if (!q.wide) _pipeOtherIndex[q.id] = { code, key: q.otherKey };
+        }
         index[q.id] = map;
         // A MaxDiff's best and worst variables hold item codes too.
         if (q.kind === "maxdiff") for (const pair of q.taskVars || []) for (const v of pair) index[v] = map;
@@ -98,7 +105,14 @@ function pipeLabelIndex() {
       if (Array.isArray(q.columns) && Array.isArray(q.rows)) {
         // Matrix: each row is its own variable; the columns are its labels,
         // keyed by the code each one stores.
-        for (const r of q.rows) if (r && r.id) index[r.id] = Object.fromEntries((q.columns || []).map((c, i) => [String(matrixColumnCode(q, i)), String(c)]));
+        for (const r of q.rows) {
+          if (!r || !r.id) continue;
+          index[r.id] = Object.fromEntries((q.columns || []).map((c, i) => [String(matrixColumnCode(q, i)), String(c)]));
+          if (q.naOption) index[r.id][String(rowNaCode(r))] = q.naOption;
+        }
+      }
+      if (q.kind === "likert" && q.naOption && q.id) {
+        index[q.id] = { [String(q.naCode !== undefined ? q.naCode : "na")]: q.naOption };
       }
     }
   };
@@ -115,7 +129,11 @@ function pipeValue(type, key, answers) {
   if (val === null || val === undefined || val === "") return null;
   if (type === "label") {
     const labels = pipeLabelIndex()[key];
-    const one = (v) => (labels && labels[String(v)] !== undefined ? String(labels[String(v)]) : String(v));
+    const other = _pipeOtherIndex[key];
+    const one = (v) => {
+      if (other && String(v) === other.code && answers[other.key]) return String(answers[other.key]);
+      return labels && labels[String(v)] !== undefined ? String(labels[String(v)]) : String(v);
+    };
     return Array.isArray(val) ? val.map(one).join(", ") : one(val);
   }
   return Array.isArray(val) ? val.join(", ") : String(val);
@@ -172,18 +190,58 @@ function QuestionShell({ num, title, required, description, error, children, onB
   );
 }
 
+/* "Other (please specify)": the code the choice stores (a code of the
+   question's variable — q.otherCode), and whether one of the question's own
+   options is it, in which case no extra option is added. A payload compiled
+   before the code existed falls back to the old "__other__". */
+function otherCodeOf(q) {
+  return q.otherCode !== undefined ? q.otherCode : "__other__";
+}
+function otherIsAnOption(q) {
+  return !!q.otherSpecify && (q.options || []).some((o) => sameCode(o.code, otherCodeOf(q)));
+}
+
+/* Focus the Other box once it has rendered — unless the respondent has moved
+   on to another question meanwhile, whose field must keep the focus. */
+function focusOtherSoon(ref) {
+  setTimeout(() => {
+    const el = ref.current;
+    if (!el) return;
+    const active = document.activeElement;
+    const question = el.closest(".sd-question");
+    if (!active || active === document.body || (question && question.contains(active))) el.focus();
+  }, 50);
+}
+
+function OtherInput({ q, text, onText, inputRef }) {
+  return (
+    <div className="sd-other-input">
+      <input
+        ref={inputRef}
+        type="text"
+        className="sd-input sd-other-input__field"
+        placeholder={q.otherPlaceholder || "Please specify..."}
+        value={text}
+        onChange={(e) => onText(e.target.value)}
+      />
+    </div>
+  );
+}
+
 function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoAdvance }) {
   const isButtons = q.display === "buttons";
-  // For other_specify: value is stored as { code, text } or just code
-  const currentCode = q.otherSpecify && value && typeof value === "object" ? value.code : value;
-  const otherText = q.otherSpecify && value && typeof value === "object" ? value.text : "";
-  const isOtherSelected = currentCode === "__other__";
+  // With Other the answer arrives as { code, text } while Other is chosen.
+  const OTHER = otherCodeOf(q);
+  const isObject = q.otherSpecify && value && typeof value === "object";
+  const currentCode = isObject ? value.code : value;
+  const otherText = isObject ? value.text || "" : "";
+  const isOtherSelected = !!q.otherSpecify && sameCode(currentCode, OTHER);
   const otherInputRef = useRef(null);
 
   const handleChange = (code) => {
-    if (code === "__other__") {
-      onChange({ code: "__other__", text: otherText || "" });
-      setTimeout(() => otherInputRef.current && otherInputRef.current.focus(), 50);
+    if (q.otherSpecify && sameCode(code, OTHER)) {
+      onChange({ code, text: otherText || "" });
+      focusOtherSoon(otherInputRef);
     } else {
       onChange(code);
       if (q.autoAdvance && onAutoAdvance) {
@@ -192,8 +250,8 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
     }
   };
 
-  const handleOtherText = (e) => {
-    onChange({ code: "__other__", text: e.target.value });
+  const handleOtherText = (text) => {
+    onChange({ code: currentCode, text });
   };
 
   return (
@@ -216,30 +274,21 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
             </label>
           );
         })}
-        {q.otherSpecify && (
+        {q.otherSpecify && !otherIsAnOption(q) && (
           <label className={"sd-radio" + (isOtherSelected ? " sd-item--checked" : "")}>
             <input
               type="radio"
               name={q.id}
-              value="__other__"
+              value={String(OTHER)}
               checked={isOtherSelected}
-              onChange={() => handleChange("__other__")}
+              onChange={() => handleChange(OTHER)}
             />
             <span className="sd-radio__decorator" aria-hidden="true"></span>
             <span className="sd-choice-label">{q.otherLabel || "Other"}</span>
           </label>
         )}
-        {q.otherSpecify && isOtherSelected && (
-          <div className="sd-other-input">
-            <input
-              ref={otherInputRef}
-              type="text"
-              className="sd-input sd-other-input__field"
-              placeholder={q.otherPlaceholder || "Please specify..."}
-              value={otherText}
-              onChange={handleOtherText}
-            />
-          </div>
+        {isOtherSelected && (
+          <OtherInput q={q} text={otherText} onText={handleOtherText} inputRef={otherInputRef} />
         )}
       </div>
     </QuestionShell>
@@ -247,14 +296,15 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
 }
 
 function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
-  // value can be: [code1, code2, ...] or { selected: [...], otherText: "..." } when other_specify
+  // value is [code1, code2, …], or { selected: [...], otherText } with Other.
   const hasOther = !!q.otherSpecify;
+  const OTHER = otherCodeOf(q);
   const v = hasOther && value && typeof value === "object" && !Array.isArray(value)
     ? (Array.isArray(value.selected) ? value.selected : [])
     : (Array.isArray(value) ? value : []);
   const otherText = hasOther && value && typeof value === "object" && !Array.isArray(value)
     ? (value.otherText || "") : "";
-  const isOtherSelected = v.includes("__other__");
+  const isOtherSelected = hasOther && v.some((c) => sameCode(c, OTHER));
   const otherInputRef = useRef(null);
 
   const emitValue = (selected, text) => {
@@ -277,23 +327,26 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
     } else if (!q.max || v.length < q.max) {
       // Picking a regular code clears any selected exclusive codes.
       emitValue([...v.filter((x) => !isExclusive(x)), code], otherText);
+      if (hasOther && sameCode(code, OTHER)) {
+        focusOtherSoon(otherInputRef);
+      }
     }
   };
 
   const toggleOther = () => {
     if (isOtherSelected) {
-      emitValue(v.filter((x) => x !== "__other__"), "");
+      emitValue(v.filter((x) => !sameCode(x, OTHER)), "");
     } else if (!q.max || v.length < q.max) {
-      emitValue([...v.filter((x) => !isExclusive(x)), "__other__"], otherText);
-      setTimeout(() => otherInputRef.current && otherInputRef.current.focus(), 50);
+      emitValue([...v.filter((x) => !isExclusive(x)), OTHER], otherText);
+      focusOtherSoon(otherInputRef);
     }
   };
 
-  const handleOtherText = (e) => {
-    emitValue(v, e.target.value);
+  const handleOtherText = (text) => {
+    emitValue(v, text);
   };
 
-  const effectiveCount = v.filter((x) => x !== "__other__").length + (isOtherSelected ? 1 : 0);
+  const effectiveCount = v.length;
 
   return (
     <QuestionShell
@@ -328,7 +381,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
             </label>
           );
         })}
-        {hasOther && (
+        {hasOther && !otherIsAnOption(q) && (
           <label className={"sd-checkbox" + (isOtherSelected ? " sd-item--checked" : "")}
             style={(!isOtherSelected && q.max && v.length >= q.max) ? { opacity: 0.45, cursor: "not-allowed" } : null}
           >
@@ -342,17 +395,8 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
             <span className="sd-choice-label">{q.otherLabel || "Other"}</span>
           </label>
         )}
-        {hasOther && isOtherSelected && (
-          <div className="sd-other-input">
-            <input
-              ref={otherInputRef}
-              type="text"
-              className="sd-input sd-other-input__field"
-              placeholder={q.otherPlaceholder || "Please specify..."}
-              value={otherText}
-              onChange={handleOtherText}
-            />
-          </div>
+        {isOtherSelected && (
+          <OtherInput q={q} text={otherText} onText={handleOtherText} inputRef={otherInputRef} />
         )}
       </div>
       {q.max && (
@@ -370,7 +414,9 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
 }
 
 function Likert({ q, value, onChange, num, error, onBlur, answers }) {
-  const isNA = value === "na";
+  // N/A stores the codebook's not_applicable code, or "na" without one.
+  const NA = q.naCode !== undefined ? q.naCode : "na";
+  const isNA = sameCode(value, NA);
   const start = q.start === 0 ? 0 : 1;
   const stars = q.display === "stars";
   const [hover, setHover] = useState(null);
@@ -409,7 +455,7 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
                 type="radio"
                 name={q.id + "_na"}
                 checked={isNA}
-                onChange={() => onChange("na")}
+                onChange={() => onChange(NA)}
               />
               <span className="sd-radio__decorator" aria-hidden="true"></span>
               <span className="sd-choice-label">{q.naOption}</span>
@@ -427,6 +473,11 @@ function matrixColumnCode(q, colIdx) {
   const codes = q.columnCodes;
   if (Array.isArray(codes) && codes.length === (q.columns || []).length) return codes[colIdx];
   return colIdx + 1;
+}
+
+/* A matrix row's N/A: its variable's not_applicable code, or "na". */
+function rowNaCode(row) {
+  return row && row.naCode !== undefined ? row.naCode : "na";
 }
 
 function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
@@ -491,11 +542,11 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
                   <td>
                     <button
                       type="button"
-                      className={"sd-matrix__cell" + (v[row.id] === "na" ? " is-selected" : "")}
+                      className={"sd-matrix__cell" + (sameCode(v[row.id], rowNaCode(row)) ? " is-selected" : "")}
                       aria-label={`${row.label}: ${q.naOption}`}
-                      aria-pressed={v[row.id] === "na"}
+                      aria-pressed={sameCode(v[row.id], rowNaCode(row))}
                       tabIndex={-1}
-                      onClick={() => onChange({ ...v, [row.id]: "na" })}
+                      onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}
                     />
                   </td>
                 ) : null}
@@ -685,13 +736,36 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef(null);
+  const otherInputRef = useRef(null);
+
+  // "Other (please specify)" is offered here as in the radio list: an extra
+  // entry at the end (unless one of the options is it), with its text box
+  // below the dropdown while it is chosen.
+  const OTHER = otherCodeOf(q);
+  const isObject = q.otherSpecify && value && typeof value === "object";
+  const currentCode = isObject ? value.code : value;
+  const otherText = isObject ? value.text || "" : "";
+  const isOtherSelected = !!q.otherSpecify && sameCode(currentCode, OTHER);
 
   const visible = visibleOptions(q, answers);
-  const filtered = search
-    ? visible.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+  const offered = q.otherSpecify && !otherIsAnOption(q)
+    ? [...visible, { code: OTHER, label: q.otherLabel || "Other" }]
     : visible;
+  const filtered = search
+    ? offered.filter((o) => String(o.label).toLowerCase().includes(search.toLowerCase()))
+    : offered;
 
-  const selected = visible.find((o) => o.code === value);
+  const selected = currentCode === undefined ? undefined : offered.find((o) => sameCode(o.code, currentCode));
+
+  const choose = (code) => {
+    if (q.otherSpecify && sameCode(code, OTHER)) {
+      onChange({ code, text: otherText || "" });
+      focusOtherSoon(otherInputRef);
+    } else {
+      onChange(code);
+    }
+    setOpen(false);
+  };
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -725,11 +799,11 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
             <div className="siamang-search-dropdown__options">
               {filtered.map((opt) => (
                 <div
-                  key={opt.code}
-                  className={"siamang-search-dropdown__option" + (value === opt.code ? " is-selected" : "")}
+                  key={String(opt.code)}
+                  className={"siamang-search-dropdown__option" + (sameCode(currentCode, opt.code) ? " is-selected" : "")}
                   role="option"
-                  aria-selected={value === opt.code}
-                  onClick={() => { onChange(opt.code); setOpen(false); }}
+                  aria-selected={sameCode(currentCode, opt.code)}
+                  onClick={() => choose(opt.code)}
                 >
                   {opt.label}
                 </div>
@@ -741,6 +815,9 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
           </div>
         )}
       </div>
+      {isOtherSelected && (
+        <OtherInput q={q} text={otherText} onText={(text) => onChange({ code: currentCode, text })} inputRef={otherInputRef} />
+      )}
     </QuestionShell>
   );
 }
