@@ -128,7 +128,9 @@ data = simulate_survey(survey, n=500, seed=42, quotas=options["quota"])
   respondents, as it would be in the field.
 - **`Block.randomize` / `Page.randomize_blocks`** change the order questions
   are shown in, which decides which `skip_to` is met first; nothing else in
-  the data depends on order, and option shuffles are not drawn at all.
+  the data depends on order, and option shuffles are not drawn at all. As in
+  the runtime, a shuffling block moves a nested block as one piece, in its
+  own order.
 - **Quotas** — leaving a page that answered a quota's variable, a respondent
   whose answer falls in a full cell ends there (the runtime's "quota full"
   screen, not a complete); a multiple-choice answer meets every cell it names.

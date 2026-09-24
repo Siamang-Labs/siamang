@@ -283,6 +283,18 @@ function extractOptions(pages) {
    Applied once per respondent at load time; the shuffled option order is
    captured into answers.__options__ via extractOptions() afterwards. */
 
+/* A block's items in the order one respondent gets them, from its `layout`
+   (sent for a block that holds nested blocks and shuffles): an entry is the
+   index of a question in the block's `items`, or a nested block
+   { randomize, items: [entries] }. A shuffle deals a block's entries — a
+   nested block as one piece — and a nested block's own randomize shuffles
+   inside it. */
+function dealLayout(entries, randomize, shuffle) {
+  const pieces = (entries || []).map((entry) =>
+    typeof entry === "number" ? [entry] : dealLayout(entry.items, entry.randomize === true, shuffle));
+  return (randomize && pieces.length > 1 ? shuffle(pieces) : pieces).flat();
+}
+
 function applyRandomization(pages) {
   let touched = false;
   const shuffle = (arr) => shuffleWith(arr, Math.random);
@@ -300,7 +312,13 @@ function applyRandomization(pages) {
     if (Array.isArray(p.blocks)) {
       let blocks = p.blocks.map((b) => {
         let items = (b.items || []).map(mapQ);
-        if (b.randomize && items.length > 1) {
+        if (Array.isArray(b.layout)) {
+          const order = dealLayout(b.layout, b.randomize === true, shuffle);
+          if (order.length === items.length) {
+            touched = true;
+            items = order.map((i) => items[i]);
+          }
+        } else if (b.randomize && items.length > 1) {
           touched = true;
           items = shuffle(items);
         }
@@ -661,18 +679,32 @@ function buildDesignTrace(page, index, answers, visibilityEngine) {
   if (page.items) {
     for (const q of page.items) items.push({ q, block: null });
   } else if (page.blocks) {
-    for (const b of page.blocks) {
+    page.blocks.forEach((b, at) => {
       const gated = b.showIf != null || b.hideIf != null;
       const visible = isConditionVisible(b.showIf, b.hideIf, answers);
       if (gated) blocks.push({ title: b.title || null, visible: visible, showIf: b.showIf != null, hideIf: b.hideIf != null });
-      for (const q of b.items || []) items.push({ q, block: visible ? null : (b.title || "block") });
-    }
+      for (const q of b.items || []) items.push({ q, block: visible ? null : (b.title || "block"), at });
+    });
   }
   const conditions = [];
   const skips = [];
   let answered = 0;
   let visibleCount = 0;
-  for (const { q, block } of items) {
+  const nestedSeen = new Set();
+  for (const item of items) {
+    const q = item.q;
+    // A nested block's condition, listed once with the page's blocks; a
+    // question it hides is hidden by that block.
+    let through = item.block == null;
+    for (const gate of q.gates || []) {
+      through = through && isConditionVisible(gate.showIf, gate.hideIf, answers);
+      const key = item.at + "/" + gate.key;
+      if (nestedSeen.has(key)) continue;
+      nestedSeen.add(key);
+      blocks.push({ title: gate.title || null, visible: through, showIf: gate.showIf != null, hideIf: gate.hideIf != null });
+    }
+    const gate = item.block == null ? hidingGate(q, answers) : null;
+    const block = gate ? (gate.title || "block") : item.block;
     const qid = q.qid || q.id;
     const gated = q.showIf != null || q.hideIf != null;
     const visible = block == null && isConditionVisible(q.showIf, q.hideIf, answers);

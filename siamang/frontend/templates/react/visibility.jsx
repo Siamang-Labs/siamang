@@ -286,6 +286,26 @@ function isConditionVisible(showIf, hideIf, answers) {
   return !evaluateCondition(hideIf, answers);
 }
 
+/* A question inside nested blocks carries their conditions as `gates`
+   (outermost first; the compiler's _compile_block): it is shown only while
+   every one of them lets it through, and then by its own condition. */
+function isItemShown(item, answers) {
+  if (Array.isArray(item.gates)) {
+    for (const gate of item.gates) {
+      if (!isConditionVisible(gate.showIf, gate.hideIf, answers)) return false;
+    }
+  }
+  return isConditionVisible(item.showIf, item.hideIf, answers);
+}
+
+/* The first nested block (a gate) that hides `item` now, or null. */
+function hidingGate(item, answers) {
+  for (const gate of item.gates || []) {
+    if (!isConditionVisible(gate.showIf, gate.hideIf, answers)) return gate;
+  }
+  return null;
+}
+
 /* Global alias used by questions.jsx for per-option gating (all runtime
    files share one scope in the built bundle). */
 function isVisibleGated(showIf, hideIf, answers) {
@@ -357,6 +377,10 @@ function createVisibilityEngine(allPages, store) {
           for (const item of block.items) {
             addCondDeps(item.showIf);
             addCondDeps(item.hideIf);
+            for (const gate of item.gates || []) {
+              addCondDeps(gate.showIf);
+              addCondDeps(gate.hideIf);
+            }
           }
         }
       }
@@ -384,7 +408,7 @@ function createVisibilityEngine(allPages, store) {
     },
 
     isItemVisible(item, answers) {
-      return isConditionVisible(item.showIf, item.hideIf, answers);
+      return isItemShown(item, answers);
     },
 
     visibleItems(page, answers) {
@@ -398,7 +422,7 @@ function createVisibilityEngine(allPages, store) {
       } else {
         items = [];
       }
-      return items.filter((q) => isConditionVisible(q.showIf, q.hideIf, answers));
+      return items.filter((q) => isItemShown(q, answers));
     },
 
     pageItemsForAnswers(page, answers) {

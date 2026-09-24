@@ -613,6 +613,166 @@ def test_a_condition_on_null_holds_for_a_question_nobody_answered(tmp_path, type
     assert state["pages"] == route
 
 
+# ── Nested blocks ────────────────────────────────────────────────────────────
+
+
+def _text(name: str, text: str, **extra: Any) -> dict[str, Any]:
+    return {"type": "OpenText", "id": name, "var": name, "text": text, **extra}
+
+
+def _choice(name: str, text: str) -> dict[str, Any]:
+    return {"type": "SingleChoice", "id": name, "var": name, "text": text}
+
+
+def _nested_conditions_document() -> dict[str, Any]:
+    texts = ["before", "inner1", "inner2", "deep1", "after"]
+    yes_no = [{"code": 1, "label": "Yes"}, {"code": 2, "label": "No"}]
+    return {
+        "schema_version": "1.0",
+        "title": "Nested",
+        "variables": {
+            "route": {"scale": "nominal", "labels": yes_no},
+            "depth": {"scale": "nominal", "labels": yes_no},
+            **{name: {"scale": "nominal", "dtype": "str"} for name in texts},
+        },
+        "pages": [
+            {"name": "p1", "items": [_choice("route", "Route?"), _choice("depth", "Depth?")]},
+            {
+                "name": "p2",
+                "items": [
+                    {
+                        "type": "Block",
+                        "title": "Outer",
+                        "items": [
+                            _text("before", "Before"),
+                            {
+                                "type": "Block",
+                                "title": "Inner",
+                                "show_if": _cmp("=", _var("route"), 1),
+                                "items": [
+                                    _text("inner1", "Inner 1", required=True),
+                                    _text("inner2", "Inner 2"),
+                                    {
+                                        "type": "Block",
+                                        "title": "Deep",
+                                        "hide_if": _cmp("=", _var("depth"), 2),
+                                        "items": [_text("deep1", "Deep 1")],
+                                    },
+                                ],
+                            },
+                            _text("after", "After"),
+                        ],
+                    }
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+# The questions shown, by their text.
+_SHOWN = """
+    const shown = async () => page.$$eval(".sd-question__title", (ts) => ts.map(
+        (t) => t.querySelector("span:not(.sd-question__num)").textContent));
+"""
+
+
+@pytest.mark.parametrize(
+    ("route", "depth", "shown"),
+    [
+        ("1", "1", ["Before", "Inner 1", "Inner 2", "Deep 1", "After"]),
+        ("1", "2", ["Before", "Inner 1", "Inner 2", "After"]),
+        # The inner block hides everything in it, the deep block's own
+        # condition notwithstanding.
+        ("2", "1", ["Before", "After"]),
+    ],
+)
+def test_a_nested_blocks_condition_hides_its_questions(tmp_path, route, depth, shown):
+    scenario = (
+        _SHOWN
+        + f"""
+        const q = (n) => page.locator(".sd-question").nth(n);
+        await q(0).locator(".sd-choice-label").nth({int(route) - 1}).click();
+        await q(1).locator(".sd-choice-label").nth({int(depth) - 1}).click();
+    """
+        + _NEXT
+        + """
+        const onTwo = await shown();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { onTwo,")
+    )
+    state = run_in_browser(_nested_conditions_document(), scenario, tmp_path)
+    assert state["onTwo"] == shown
+    if route == "1":
+        # "Inner 1" is required and shown: Next holds.
+        assert state["pages"] == ["p1", "p2"] and state["submitted"] == []
+    else:
+        # A required question in a hidden block does not hold anyone up.
+        assert state["pages"] == ["p1", "p2", "done"]
+        (submitted,) = state["submitted"]
+        assert "inner1" not in submitted
+
+
+def _nested_shuffle_document() -> dict[str, Any]:
+    inner = [f"I{i}" for i in range(1, 7)]
+    unit = ["U1", "U2", "U3"]
+    mixed = ["X1", "X2", "X3", "X4"]
+    names = ["B1", *inner, "A1", *mixed, *unit]
+    return {
+        "schema_version": "1.0",
+        "title": "Nested shuffle",
+        "variables": {name.lower(): {"scale": "nominal", "dtype": "str"} for name in names},
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "Block",
+                        "title": "Kept",
+                        "items": [
+                            _text("b1", "B1"),
+                            {
+                                "type": "Block",
+                                "randomize": True,
+                                "items": [_text(n.lower(), n) for n in inner],
+                            },
+                            _text("a1", "A1"),
+                        ],
+                    },
+                    {
+                        "type": "Block",
+                        "title": "Mixed",
+                        "randomize": True,
+                        "items": [
+                            *[_text(n.lower(), n) for n in mixed[:3]],
+                            {"type": "Block", "items": [_text(n.lower(), n) for n in unit]},
+                            _text("x4", "X4"),
+                        ],
+                    },
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_nested_blocks_shuffle_inside_themselves_and_move_as_one(tmp_path):
+    scenario = _SHOWN + "return await shown();"
+    order = run_in_browser(_nested_shuffle_document(), scenario, tmp_path, init=_FIXED_RANDOM)
+    inner, mixed = order[1:7], order[8:]
+    # A nested block's randomize shuffles its own questions; the block around
+    # it keeps its order.
+    assert order[0] == "B1" and order[7] == "A1"
+    assert sorted(inner) == [f"I{i}" for i in range(1, 7)] and inner != sorted(inner)
+    # A shuffling block deals its entries, and a nested block is one of them:
+    # its questions stay together and in their order.
+    assert sorted(mixed) == ["U1", "U2", "U3", "X1", "X2", "X3", "X4"]
+    at = mixed.index("U1")
+    assert mixed[at : at + 3] == ["U1", "U2", "U3"]
+    assert [x for x in mixed if x.startswith("X")] != ["X1", "X2", "X3", "X4"]
+
+
 # ── Wide MultiChoice ─────────────────────────────────────────────────────────
 
 

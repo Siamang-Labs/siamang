@@ -452,9 +452,11 @@ A `Block` is a logical container that groups questions or nested blocks together
 | :--- | :--- | :--- | :--- |
 | `title` | `str \| None` | `None` | Optional header displayed above the block items. |
 | `items` | `list[Question \| Block]` | `[]` | List of questions or nested blocks inside this block. |
-| `randomize` | `bool` | `False` | If `True`, shuffles the order of items inside this block. |
+| `randomize` | `bool` | `False` | If `True`, shuffles the order of items inside this block; a nested block is one item and keeps its questions together. |
 | `show_if` | `Expression \| str \| None` | `None` | Bulk condition determining when this entire block is visible. |
 | `hide_if` | `Expression \| str \| None` | `None` | Bulk condition determining when this entire block is hidden. |
+
+A nested block's `show_if` / `hide_if` applies to every question inside it, together with the conditions of the blocks around it; its `randomize` shuffles its own items. The runtime displays the `title` of a page's own blocks only, not of nested ones.
 
 ---
 

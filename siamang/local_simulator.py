@@ -423,6 +423,7 @@ def _walk_items(
     visible: bool,
     *,
     shuffle: bool = False,
+    deal: bool = False,
 ) -> list[Question]:
     """Answer the questions under ``items`` (or blank them when hidden).
 
@@ -430,18 +431,18 @@ def _walk_items(
     question of the same page reads its answer. The list returned is the
     questions answered, in the order the runtime displays them — which is
     the order ``skip_to`` is looked for in. A block's shuffle
-    (``Block.randomize``) and the page's (``Page.randomize_blocks``, which
-    moves blocks among the blocks' own places) change that order and nothing
-    else, so they are drawn only when they are there.
+    (``Block.randomize``, ``deal``) deals its entries — a question, or a
+    nested block as one piece, as the runtime does — and the page's
+    (``Page.randomize_blocks``, ``shuffle``) moves blocks among the blocks'
+    own places. They change that order and nothing else, so they are drawn
+    only when they are there.
     """
 
     slots: list[tuple[bool, list[Question]]] = []  # (is a block, its answered questions)
     for item in items:
         if isinstance(item, Block):
             block_visible = visible and _is_visible(item, row)
-            answered = _walk_items(item.items, row, block_visible)
-            if item.randomize and len(answered) > 1:
-                random.shuffle(answered)
+            answered = _walk_items(item.items, row, block_visible, deal=item.randomize)
             slots.append((True, answered))
             continue
         if visible and _is_visible(item, row):
@@ -449,7 +450,12 @@ def _walk_items(
             slots.append((False, [item]))
         else:
             _set_question_missing(item, row)
-    if shuffle:
+    if deal:
+        # A nested block with nothing answered has no place in the order.
+        slots = [slot for slot in slots if slot[1]]
+        if len(slots) > 1:
+            random.shuffle(slots)
+    elif shuffle:
         places = [i for i, (is_block, _) in enumerate(slots) if is_block]
         if len(places) > 1:
             moved = [slots[i] for i in places]

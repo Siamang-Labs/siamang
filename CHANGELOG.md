@@ -441,6 +441,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   notes: it counted any answer key in the store as the respondent's. It now
   asks only once the respondent has answered something in this sitting (and
   the interview is not over).
+- **A nested block's `show_if`, `hide_if` and `randomize` never reached the
+  survey runtime**: the compiler flattened a block's nested blocks into one
+  list of questions, so a hidden nested block's questions were shown — and a
+  required one among them held Next — while `validate()`, the model and the
+  simulator treated them as hidden. Each question inside nested blocks now
+  carries those blocks' conditions (`gates` in the payload) and is shown only
+  while all of them and its own condition allow it; Studio's walkthrough trace
+  lists the nested blocks and says which one hides a question. A nested
+  block's `randomize` shuffles its own items, and a shuffling block moves a
+  nested block as one item, its questions together and in order (sent as the
+  block's `layout`); the simulator deals block shuffles the same way. A block
+  without nested blocks compiles exactly as before. In a questionnaire made
+  only of blocks, where each block becomes a page, the block's conditions now
+  gate its page and its `randomize` shuffles the page's items.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

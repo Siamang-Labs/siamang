@@ -148,12 +148,21 @@ class Block:
 | :--- | :--- | :--- | :--- |
 | `title` | `str \| None` | `None` | Optional header above the block items. |
 | `items` | `list[Question \| Block]` | `[]` | Questions or nested blocks inside the block. |
-| `randomize` | `bool` | `False` | Shuffle the order of items within the block. |
+| `randomize` | `bool` | `False` | Shuffle the order of items within the block (a nested block moves as one item). |
 | `show_if` | `Expression \| str \| None` | `None` | Show the whole block only when this is true. |
 | `hide_if` | `Expression \| str \| None` | `None` | Hide the whole block when this is true. |
 
 `Block.flatten_questions()` returns the questions inside it, recursing into nested
 blocks.
+
+A block can hold blocks, and in the survey runtime a nested block behaves as
+it reads: its `show_if` / `hide_if` gates every question inside it, on top of
+the conditions of the blocks around it and the question's own, so a hidden
+nested block's questions are not shown, not required and not answered. Its
+`randomize` shuffles its own items; a block around it that shuffles moves it
+as one item, keeping its questions together and in their order. The
+simulator does the same. Only a page's own blocks show their `title` —
+a nested block's title is not displayed.
 
 ```python
 import siamang as sg
@@ -256,6 +265,9 @@ print(len(survey.all_questions()))      # 2 (content/terminal pages hold no ques
 
 > **Single-page surveys.** For a quick one-screen survey you can pass `blocks=[...]`
 > (questions and/or blocks) instead of `pages`; siamang renders them on a single page.
+> When *every* item is a `Block`, the survey runtime shows one page per block
+> instead, titled with the block's title and shown only while the block's
+> `show_if` / `hide_if` allow it; a shuffling block shuffles its page.
 
 ## See also
 
