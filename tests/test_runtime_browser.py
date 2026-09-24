@@ -1046,6 +1046,49 @@ def test_a_wide_option_offered_and_not_chosen_is_zero(tmp_path):
     assert (submitted["bought_acme"], submitted["bought_globex"]) == (1, 0)
 
 
+def _aware_bought_one_page() -> dict[str, Any]:
+    document = _aware_bought_document()
+    aware, bought, done = document["pages"]
+    document["pages"] = [{"name": "p1", "items": aware["items"] + bought["items"]}, done]
+    return document
+
+
+@pytest.mark.parametrize("globex", ["offered after", "hidden after"])
+def test_a_wide_option_follows_an_answer_given_after_it(tmp_path, globex):
+    """The answer that offers or hides a wide option can come after the wide
+    question was answered — on the same page here. Globex offered afterwards
+    and left unticked is 0, not missing; hidden afterwards it is missing, not
+    the 0 it had while it was offered."""
+
+    aware, bought = "page.locator('text=Acme').nth(0)", "page.locator('text=Acme').nth(1)"
+    globex_aware = "page.locator('text=Globex').nth(0)"
+    first = "" if globex == "offered after" else f"await {globex_aware}.click();"
+    scenario = (
+        f"""
+        await {aware}.click();
+        {first}
+        await page.waitForTimeout(100);
+        await {bought}.click();
+        await page.waitForTimeout(100);
+        await {globex_aware}.click();
+        await page.waitForTimeout(100);
+        const offered = await page.$$eval(".sd-choice-label", (els) => els.map((e) => e.textContent));
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { offered,")
+    )
+    state = run_in_browser(_aware_bought_one_page(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    if globex == "offered after":
+        assert state["offered"] == ["Acme", "Globex", "Acme", "Globex"]
+        assert (submitted["aware_globex"], submitted["bought_acme"]) == (1, 1)
+        assert submitted.get("bought_globex") == 0
+    else:
+        assert state["offered"] == ["Acme", "Globex", "Acme"]
+        assert (submitted["aware_globex"], submitted["bought_acme"]) == (0, 1)
+        assert "bought_globex" not in submitted
+
+
 # ── Other (please specify), None of the above, Not applicable ────────────────
 
 

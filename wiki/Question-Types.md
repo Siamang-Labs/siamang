@@ -151,8 +151,9 @@ q_sources = sg.MultiChoice("Where do you get news from?", vars=sources)
 In **wide** mode each variable is stored under its own name: `1` when its option is
 chosen, `0` when the question is answered and it is not, and nothing at all while the
 question is unanswered (unticking every option clears them) — nor for an option its
-own `show_if` / `hide_if` hid from the respondent, who was never offered it. Nothing is
-stored under the question's id. A condition or a quota therefore reads `src_tv = 1`. The options
+own `show_if` / `hide_if` hid from the respondent, who was never offered it (an answer
+given afterwards — on the same page, say — that offers the option makes it `0`, one that
+hides it clears it). Nothing is stored under the question's id. A condition or a quota therefore reads `src_tv = 1`. The options
 come from `choices` when there is one per variable — choice *i* is variable *i*, and
 `exclusive` names choice codes, as in array mode — and otherwise from the variables
 themselves (label = the variable's label; `exclusive` then names variable names):

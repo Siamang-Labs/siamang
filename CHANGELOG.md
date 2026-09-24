@@ -306,7 +306,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names choice codes — never applied, the options' codes being variable names.
   Each variable is now stored under its own name, `1` when chosen and `0` when
   the question is answered and the option is not (nothing while unanswered,
-  nor for an option its own `show_if` / `hide_if` hid: it was not offered);
+  nor for an option its own `show_if` / `hide_if` hid: it was not offered.
+  The condition is read again after every answer, so one given later — on the
+  same page, say — that offers or hides the option makes it 0 or nothing);
   with one choice per variable, option *i* is choice *i* on variable *i*, so
   `exclusive` works. A saved answer in the old layout is converted when the
   respondent resumes. Responses already collected keep the list.
