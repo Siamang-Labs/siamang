@@ -3,8 +3,9 @@
 In addition to ordinary question pages, a Page can carry a ``kind`` that changes
 how the runtime renders it:
 
-* ``"content"``          — a non-terminal page that shows arbitrary HTML
-                           (``body``) instead of questions (intro/consent/etc).
+* ``"content"``          — a non-terminal page whose point is its HTML
+                           ``body`` (intro/consent/etc); questions, if it has
+                           any, follow the body as on any page.
 * ``"disqualification"`` — a terminal screen shown when the respondent is
                            screened out; records the response as screened-out.
 * ``"final"``            — a terminal screen with a custom thank-you ``body``.
@@ -41,7 +42,10 @@ class Page:
     hide_if: Expression | str | None = None
     # Custom page kinds (None == ordinary question page).
     kind: str | None = None
-    body: str | None = None  # HTML content for content/terminal pages
+    # HTML shown above the page's questions (on a content page it is the
+    # page; on a terminal page, the message). Author-trusted, not sanitised;
+    # {answer:x} / {label:x} are piped in, escaped.
+    body: str | None = None
     redirect_url: str | None = None  # for redirect (or any terminal) pages
     redirect_delay: int | None = None  # seconds before redirect (default 5)
 

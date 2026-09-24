@@ -66,8 +66,8 @@ earlier answer:
 | `{label:x}` | the label of the chosen option(s) of `x` — a choice's label, a matrix column header, a MaxDiff item — or the value itself when `x` has no options |
 
 An unanswered variable leaves the placeholder as written, so an author sees what
-is missing. The same placeholders work in a page's `title` and in a content page's
-`body` (see [[Pages, Blocks and Structure|Pages-Blocks-and-Structure]]).
+is missing. The same placeholders work in the `title` and `body` of a question or
+content page (see [[Pages, Blocks and Structure|Pages-Blocks-and-Structure]]).
 
 ---
 
