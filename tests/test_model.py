@@ -274,6 +274,45 @@ def test_blocks_questionnaire_becomes_pages():
     assert _compiled(loaded.survey, {}) == _compiled(survey, {})
 
 
+def test_a_blocks_questionnaire_keeps_its_blocks_conditions_and_shuffle():
+    """Each block becomes a page as the runtime pages it: the block's show_if /
+    hide_if gate the page and its randomize shuffles the page's items. The
+    document used to drop them — an owners-only block shown to everyone once
+    the questionnaire was imported — and loose questions among blocks were
+    flattened out of their blocks."""
+
+    from siamang.frontend.compiler.react import compile_react_payload
+
+    def yes_no(name):
+        variable = Variable(name, "nominal", label=name, labels={1: "Yes", 0: "No"})
+        return sg.SingleChoice(f"{name}?", var=variable, id=name)
+
+    owners = sg.compare("owns", "=", 1)
+    survey = Questionnaire(
+        title="Blocks",
+        blocks=[
+            Block(title="Screen", items=[yes_no("owns")]),
+            Block(title="Owners", show_if=owners, items=[yes_no("likes"), yes_no("keeps")]),
+            Block(
+                title="Shuffled", randomize=True, hide_if=owners, items=[yes_no("a"), yes_no("b")]
+            ),
+        ],
+    )
+    document = to_document(survey)
+    validate_document(document)
+    pages = {page["name"]: page for page in document["pages"]}
+    assert pages["owners"]["show_if"] and pages["shuffled"]["hide_if"]
+    loaded = from_document(document)
+    assert compile_react_payload(loaded.survey) == compile_react_payload(survey)
+
+    mixed = Questionnaire(
+        title="Mixed",
+        blocks=[yes_no("owns"), Block(title="Owners", show_if=owners, items=[yes_no("likes")])],
+    )
+    loaded = from_document(to_document(mixed))
+    assert compile_react_payload(loaded.survey) == compile_react_payload(mixed)
+
+
 def test_unknown_option_keys_are_reported_not_stored():
     survey, _ = _kitchen_sink()
     warnings: list[str] = []

@@ -32,7 +32,7 @@ The two functions are inverse of each other:
 | `options` | Compiler settings from the module-level `options` dict: `language`, `description`, `completion_text`, `show_progress`, `allow_back`, `one_question_per_page`, `max_responses`, `metadata`. Only keys that were set. |
 | `deadline` | ISO 8601 datetime or `null`. |
 | `variables` | `{name: Variable}` in order of first use; variables that are only in the `VariableMap` registry come last. |
-| `pages` | `[Page]`. A questionnaire built with `blocks=` is paged the way the compiler pages it. |
+| `pages` | `[Page]`. A questionnaire built with `blocks=` is paged the way the survey runtime pages it: a page per block, gated by the block's `show_if` / `hide_if` and shuffled by its `randomize` (one page, blocks kept, when loose questions sit among them). |
 | `quotas` | `[{variable, target_value, limit}]` from `options["quota"]`. |
 | `scripts` | Library scripts by name and parameters, everything else verbatim (see below). |
 | `ui` | `UIConfig` fields that differ from the defaults (from `options["ui"]`). |

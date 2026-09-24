@@ -217,16 +217,16 @@ def _pages_of(survey: Questionnaire, warn: WarningSink) -> list[Page]:
         return list(survey.pages)
     if not survey.blocks:
         return []
+    # The pages the runtime makes of the blocks: a block's show_if / hide_if
+    # gate its page and its randomize shuffles the page's items; loose
+    # questions go onto one page beside the blocks, which keep theirs.
+    from siamang.frontend.compiler.react import _pages_for_react
+
     if all(isinstance(item, Block) for item in survey.blocks):
         warn("Questionnaire uses blocks=; each top-level block became a page.")
-        pages = []
-        for index, block in enumerate(survey.blocks, start=1):
-            assert isinstance(block, Block)
-            name = _slugify(block.title) if block.title else f"page{index}"
-            pages.append(Page(name=name, title=block.title, items=list(block.items)))
-        return pages
-    warn("Questionnaire uses blocks= with loose questions; everything went onto one page.")
-    return [Page(name="page1", items=list(survey.all_questions()))]
+    else:
+        warn("Questionnaire uses blocks= with loose questions; everything went onto one page.")
+    return list(_pages_for_react(survey))
 
 
 def _options_to_doc(options: dict[str, Any], warn: WarningSink) -> dict[str, Any]:
