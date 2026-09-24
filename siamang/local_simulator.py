@@ -196,7 +196,7 @@ def _simulate_wide_multichoice(
     hides is not offered — never ticked, and missing rather than 0. An
     exclusive choice drawn stands alone, as in array mode."""
 
-    variables = question.var
+    variables = question.var if isinstance(question.var, list) else [question.var]
     choices = question.choices or []
     if len(choices) == len(variables):
         offered = [
