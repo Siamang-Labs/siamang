@@ -2032,3 +2032,5 @@ body.viewport-print .sd-matrix__cell { border-color: #000; }
 .sd-page__html { line-height: 1.6; }
 .sd-page__html > :first-child { margin-top: 0; }
 .sd-page__html p { margin: 0 0 0.75em; }
+/* A page body above questions: set off from the first one. */
+.sd-page__body { margin-bottom: 1.25rem; }

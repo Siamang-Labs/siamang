@@ -1020,3 +1020,63 @@ def test_quota_full_follows_the_panels_redirect(tmp_path):
     )
     link = run_in_browser(document, scenario, tmp_path, init=init)
     assert link == "https://panel.example/full?rid="
+
+
+# ── Page bodies ──────────────────────────────────────────────────────────────
+
+
+def _body_document() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Bodies",
+        "variables": {
+            "name": {"scale": "nominal", "dtype": "str"},
+            "fruit": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Apple"}, {"code": 2, "label": "Pear"}],
+            },
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "title": "About you",
+                "body": "<p>Please read <b>carefully</b>.</p>",
+                "items": [{"type": "OpenText", "id": "name", "var": "name", "text": "Name?"}],
+            },
+            {
+                "name": "p2",
+                "body": "<p>Thanks, {answer:name}.</p>",
+                "items": [
+                    {"type": "SingleChoice", "id": "fruit", "var": "fruit", "text": "Fruit?"}
+                ],
+            },
+            {
+                "name": "done",
+                "kind": "final",
+                "title": "Thanks {answer:name}",
+                "body": "<p>You chose <b>{label:fruit}</b>, {answer:name}.</p>",
+            },
+        ],
+    }
+
+
+def test_the_body_of_a_page_with_questions_is_shown_above_them_as_html(tmp_path):
+    scenario = (
+        """
+        const body = await page.$eval(".sd-page__body", (el) => el.innerHTML);
+        const order = await page.$$eval(".sd-page__body, .sd-question",
+            (els) => els.map((el) => el.className.split(" ")[0]));
+        await page.fill("input.sd-input", "<i>Ann</i>");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        const piped = await page.$eval(".sd-page__body", (el) => el.innerHTML);
+        return { body, order, piped };
+    """
+    )
+    result = run_in_browser(_body_document(), scenario, tmp_path)
+    assert result["body"] == "<p>Please read <b>carefully</b>.</p>"
+    assert result["order"] == ["sd-page__html", "sd-question"]
+    # A piped answer is text, never markup.
+    assert result["piped"] == "<p>Thanks, &lt;i&gt;Ann&lt;/i&gt;.</p>"

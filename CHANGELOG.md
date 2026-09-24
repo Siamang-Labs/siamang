@@ -243,6 +243,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   choices. It now keeps the choices beside the variables — choice i on
   variable i — with their exclusive codes and, for a text-entry choice,
   `other_code`, all of which the runtime honours in the wide layout.
+- The `body` of an ordinary page with questions was never shown: the runtime
+  rendered a body only on engine-kind `"content"` pages (and terminal ones),
+  so an introduction above a page's questions silently disappeared. A body is
+  now shown above the questions on every page. It is HTML, inserted as the
+  author wrote it, with piped answers escaped — as documented; a question's
+  text and hint stay plain text.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

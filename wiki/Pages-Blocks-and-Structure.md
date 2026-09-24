@@ -45,7 +45,7 @@ class Page:
 | `show_if` | `Expression \| str \| None` | `None` | Render the page only when this is true. |
 | `hide_if` | `Expression \| str \| None` | `None` | Hide the page when this is true. |
 | `kind` | `str \| None` | `None` | Page kind (see below); `None` is an ordinary question page. |
-| `body` | `str \| None` | `None` | HTML body for content/terminal pages. |
+| `body` | `str \| None` | `None` | HTML shown above the page's questions; on a content page it is the page, on a terminal page the message. See [Page bodies](#page-bodies). |
 | `redirect_url` | `str \| None` | `None` | Target URL for terminal pages that redirect. |
 | `redirect_delay` | `int \| None` | `None` | Seconds before redirecting (runtime default 5). |
 
@@ -62,13 +62,23 @@ raises `ValueError`.
 | `kind` | Terminal? | Behavior |
 | :--- | :--- | :--- |
 | `None` | no | Ordinary question page (the default). |
-| `"content"` | no | Renders arbitrary HTML (`body`) instead of questions — intro/consent/etc. Stays in the normal Next/Prev flow. |
+| `"content"` | no | A page whose point is its HTML `body` — intro/consent/etc. Stays in the normal Next/Prev flow; questions, if it has any, follow the body. |
 | `"disqualification"` | yes | Terminal screen-out; records the response as screened-out. |
 | `"final"` | yes | Terminal custom thank-you screen (`body`). |
 | `"redirect"` | yes | Terminal screen that redirects to `redirect_url` (e.g. a panel completion URL). |
 
 Terminal pages end the survey when reached — typically gated by `show_if`. Content
 pages remain navigable.
+
+### Page bodies
+
+`body` is **HTML** — `<p>`, `<b>`, `<a href="…">`, `<ul>` — not Markdown, and it is
+inserted as written (it is the author's, not sanitised). It is shown on every kind of
+page: above the questions on an ordinary page, alone on a content page, as the message
+of a terminal page. On a question or content page, `{answer:x}` / `{var:x}` /
+`{label:x}` pipe earlier answers into it (see [[Question Types|Question-Types]]),
+escaped, so an answer can never add markup.
+A page's `title` and a question's `text` and `hint` are plain text.
 
 ## Page factory helpers
 

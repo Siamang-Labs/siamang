@@ -630,9 +630,14 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
       {page.title ? <h2 className="sd-page__title">{processPipedText(page.title, answers)}</h2> : null}
       {page.description ? <p className="sd-page__description">{processPipedText(page.description, answers)}</p> : null}
 
-      {page.kind === "content"
-        ? <div className="sd-page__html" dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body || "", answers) }} />
-        : page.blocks
+      {/* A page's body is HTML shown above its questions — on a content page,
+          which usually has none, it is the page. It used to be rendered for
+          engine-kind "content" pages only, so an ordinary page's introduction
+          never reached the respondent. */}
+      {page.body
+        ? <div className="sd-page__html sd-page__body" dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body, answers) }} />
+        : null}
+      {page.blocks
         ? page.blocks
             .filter((b) => visibilityEngine.isBlockVisible(b, answers))
             .map((b, i) => (
