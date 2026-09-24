@@ -125,7 +125,7 @@ class MultiChoice(Question):
 | `min_answers` | `1` | Minimum selections (enforced when `required`). |
 | `max_answers` | `None` | Maximum selections; in wide mode cannot exceed the number of variables. |
 | `exclusive` | `[]` | Codes that clear all other selections when chosen (e.g. "None"). |
-| `mode` | `"array"` | `"array"` stores a list in one column; `"wide"` spreads binary flags across columns. |
+| `mode` | `"array"` | `"array"` stores a list of the chosen codes in one variable; `"wide"` stores 1/0 in one variable per option (below). |
 | `choices` | `None` | Explicit `Option` list; if `None`, derived from `labels`. |
 
 Pass **`var=`** (a single `Variable`) for array mode, or the keyword-only **`vars=`**
@@ -146,6 +146,25 @@ q_hobbies = sg.MultiChoice(
 sources = [sg.Variable(f"src_{n}", scale="nominal", labels={0: "No", 1: "Yes"},
                        label=f"Source {n}") for n in ("tv", "radio", "web")]
 q_sources = sg.MultiChoice("Where do you get news from?", vars=sources)
+```
+
+In **wide** mode each variable is stored under its own name: `1` when its option is
+chosen, `0` when the question is answered and it is not, and nothing at all while the
+question is unanswered (unticking every option clears them). Nothing is stored under
+the question's id. A condition or a quota therefore reads `src_tv = 1`. The options
+come from `choices` when there is one per variable — choice *i* is variable *i*, and
+`exclusive` names choice codes, as in array mode — and otherwise from the variables
+themselves (label = the variable's label; `exclusive` then names variable names):
+
+```python
+none_var = sg.Variable("src_none", scale="nominal", labels={0: "No", 1: "Yes"},
+                       label="None of these")
+q_sources = sg.MultiChoice(
+    "Where do you get news from?", vars=sources + [none_var],
+    choices=[sg.Option(1, "TV"), sg.Option(2, "Radio"), sg.Option(3, "Web"),
+             sg.Option(99, "None of these")],
+    exclusive=[99],
+)
 ```
 
 ---

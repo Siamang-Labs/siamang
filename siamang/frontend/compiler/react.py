@@ -335,10 +335,14 @@ def _compile_question(
         return payload
     if isinstance(question, MultiChoice):
         if question.mode == "wide":
-            options = [{"code": v.name, "label": v.label or v.name} for v in question.var]
+            options = _wide_options(question)
         else:
             options = _options_payload(question.var, question.choices)
         payload = {**base, "kind": "multi", "options": options}
+        if question.mode == "wide":
+            # Each option names the variable it sets: 1 when chosen, 0 when the
+            # question is answered and it is not. Nothing is stored under the id.
+            payload["wide"] = True
         if question.min_answers > 0:
             payload["min"] = question.min_answers
         if question.max_answers is not None:
@@ -480,6 +484,29 @@ def _options_payload(var: Any, choices: list[Option] | None) -> list[dict[str, A
     primary = variables[0]
     labels = getattr(primary, "labels", {}) or {}
     return [{"code": code, "label": label} for code, label in labels.items()]
+
+
+def _wide_options(question: MultiChoice) -> list[dict[str, Any]]:
+    """A wide MultiChoice's options, each with the 0/1 variable it sets.
+
+    With one choice per variable — the layout Studio's Builder writes — option
+    ``i`` is choice ``i`` (its code, which ``exclusive`` names, its label,
+    conditions and media) on variable ``i``. Without choices, or with a
+    different number of them, an option is its variable: the variable's name
+    is its code and its label the option's.
+    """
+
+    variables = list(question.var)
+    choices = question.choices or []
+    if len(choices) == len(variables):
+        return [
+            {**_option_to_dict(choice), "var": variable.name}
+            for choice, variable in zip(choices, variables, strict=True)
+        ]
+    return [
+        {"code": variable.name, "label": variable.label or variable.name, "var": variable.name}
+        for variable in variables
+    ]
 
 
 def _option_to_dict(opt: Option) -> dict[str, Any]:
