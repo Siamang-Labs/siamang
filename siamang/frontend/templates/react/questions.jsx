@@ -399,16 +399,18 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
           <OtherInput q={q} text={otherText} onText={handleOtherText} inputRef={otherInputRef} />
         )}
       </div>
-      {q.max && (
+      {/* The count against Max, and how many more Min needs — which Next
+          enforces once the question is answered (answerLimitError). */}
+      {(q.max || q.min > 1) ? (
         <div className="siamang-multi-counter" role="status" aria-live="polite">
-          <span className="siamang-multi-counter__count">{effectiveCount} of {q.max} selected</span>
-          {q.min && effectiveCount < q.min ? (
-            <span className="siamang-multi-counter__hint">Select at least {q.min - effectiveCount} more</span>
-          ) : effectiveCount >= q.max ? (
+          {q.max ? <span className="siamang-multi-counter__count">{effectiveCount} of {q.max} selected</span> : null}
+          {q.min && effectiveCount < q.min && (effectiveCount > 0 || q.required) ? (
+            <span className="siamang-multi-counter__hint">{fillText(runtimeTexts().minChoices, { n: q.min - effectiveCount, min: q.min })}</span>
+          ) : q.max && effectiveCount >= q.max ? (
             <span className="siamang-multi-counter__hint is-max">Maximum reached</span>
           ) : null}
         </div>
-      )}
+      ) : null}
     </QuestionShell>
   );
 }
@@ -559,23 +561,11 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
   );
 }
 
+/* Its valid range is checked by the survey, not here: when the field is left
+   and on Next ("Minimum value is …" / "Maximum value is …", answerLimitError),
+   the same way as a required answer — a message of the component's own was
+   never shown, the survey's blur handler taking its place. */
 function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
-  const [blurError, setBlurError] = useState(null);
-
-  const handleBlur = () => {
-    if (value !== null && value !== undefined && value !== "") {
-      if (q.min !== undefined && value < q.min) {
-        setBlurError(`Minimum value is ${q.min}`);
-        return;
-      }
-      if (q.max !== undefined && value > q.max) {
-        setBlurError(`Maximum value is ${q.max}`);
-        return;
-      }
-    }
-    setBlurError(null);
-  };
-
   if (q.display === "slider") {
     const min = q.min ?? 0;
     const max = q.max ?? 10;
@@ -645,7 +635,7 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
     onChange(raw === "" ? null : Number(raw));
   };
   return (
-    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur || handleBlur} answers={answers} media={q.media}>
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
       <div className="sd-numeric">
         <input
           ref={inputRef}
@@ -656,7 +646,6 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
           max={q.max}
           step={q.step || 1}
           onInput={() => {
-            setBlurError(null);
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(commit, 600);
           }}
@@ -667,7 +656,6 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
         />
         {q.unit ? <span className="sd-numeric__unit">{q.unit}</span> : null}
       </div>
-      {blurError && <div className="sd-question__error" role="alert">{blurError}</div>}
     </QuestionShell>
   );
 }

@@ -122,7 +122,7 @@ class MultiChoice(Question):
 
 | Field | Default | Description |
 | :--- | :--- | :--- |
-| `min_answers` | `1` | Minimum selections (enforced when `required`). |
+| `min_answers` | `1` | Minimum selections. Once the question is answered, Next is refused below it with "Select at least N more" (the counter under the options says the same); an unanswered question is held only by `required`, so an optional one may be left empty. |
 | `max_answers` | `None` | Maximum selections; in wide mode cannot exceed the number of variables. |
 | `exclusive` | `[]` | Codes that clear all other selections when chosen (e.g. "None"). |
 | `mode` | `"array"` | `"array"` stores a list of the chosen codes in one variable; `"wide"` stores 1/0 in one variable per option (below). |
@@ -274,7 +274,10 @@ class NumericInput(Question):
 | `step` | `1` | Increment for sliders/number inputs. Must be `> 0`. |
 
 `var` must be a single `Variable`. If the variable has `valid_range=(min, max)`, the
-React runtime forwards it as the input's `min`/`max`.
+React runtime forwards it as the input's `min`/`max` (the slider's ends) and enforces it:
+a number below or above it shows "Minimum value is *min*" / "Maximum value is *max*"
+when the field is left, and Next is refused until it is corrected. An empty optional
+field is not checked.
 
 ```python
 age = sg.Variable("age", scale="ratio", label="Age", valid_range=(18, 99))

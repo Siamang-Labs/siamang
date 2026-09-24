@@ -281,6 +281,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled. Going back by a dot runs `onPageExit` like Previous and retraces
   the path, which the autosave now keeps, so a resumed interview can still go
   back the way it came.
+- A `MultiChoice`'s `min_answers` and a `NumericInput`'s valid range were not
+  enforced: Next checked only `required`, the text formats and script messages,
+  so one choice of a minimum of two, or 150 on a 1–10 scale, went through; the
+  number's "Minimum value is …" / "Maximum value is …" message was the
+  component's own and was never rendered. Next now refuses both with those
+  messages ("Select at least N more" for the choices), and a number out of
+  range is flagged as soon as its field is left. An optional question left
+  empty is still not held by its minimum. The "Select at least N more" hint
+  under the options now also shows without `max_answers`, once the question is
+  answered or when it is required.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
