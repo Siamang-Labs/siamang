@@ -57,6 +57,18 @@ class Question:
 [[Visibility and Branching|Visibility-and-Branching]]; `media` is covered under
 [Media](#media) below.
 
+`text` and `hint` are **plain text** — no Markdown, no HTML. They can pipe an
+earlier answer:
+
+| Placeholder | Inserts |
+| :--- | :--- |
+| `{answer:x}` / `{var:x}` | the stored value of variable `x` (a list is joined with ", ") |
+| `{label:x}` | the label of the chosen option(s) of `x` — a choice's label, a matrix column header, a MaxDiff item — or the value itself when `x` has no options |
+
+An unanswered variable leaves the placeholder as written, so an author sees what
+is missing. The same placeholders work in a page's `title` and in a content page's
+`body` (see [[Pages, Blocks and Structure|Pages-Blocks-and-Structure]]).
+
 ---
 
 ## `SingleChoice`

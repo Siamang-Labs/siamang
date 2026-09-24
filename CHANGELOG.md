@@ -186,6 +186,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the browser under the old layout are moved to the new one when they resume
   (a saved matrix position becomes its code). Responses already collected keep
   the nested object.
+- `{label:x}` piping inserted the raw code: the runtime looked the labels up in
+  `window.SURVEY.pages`, which does not exist, so its label index was always
+  empty. It reads the pages now — a choice's label, a matrix column's header, a
+  MaxDiff item.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
