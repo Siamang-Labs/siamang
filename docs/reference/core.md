@@ -229,7 +229,7 @@ The `MultiChoice` question allows respondents to select one or more options from
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `min_answers` | `int` | `1` | The minimum number of choices that must be selected (if `required` is `True`). |
+| `min_answers` | `int` | `1` | The minimum number of choices once the question is answered: the runtime refuses Next below it ("Select at least N more"). Whether the question may be left empty is `required`'s business. |
 | `max_answers` | `int \| None` | `None` | The maximum number of choices that can be selected. |
 | `exclusive` | `list[int]` | `[]` | A list of category codes that are mutually exclusive (e.g., "None of the above" code). Selecting an exclusive option deselects all other choices. |
 | `mode` | `str` | `"array"` | Determines how the data is structured. Allowed values: `"array"` (stores selected codes as a list in a single column) or `"wide"` (one variable per option, stored under its own name: `1` when chosen, `0` when the question is answered and the option is not; nothing while unanswered). In wide mode, `choices` of the same length as `var` pair choice *i* with variable *i*, so `exclusive` names choice codes; without them each variable is an option and `exclusive` names variable names. |

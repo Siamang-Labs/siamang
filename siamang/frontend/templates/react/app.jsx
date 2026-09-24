@@ -133,6 +133,76 @@ function textFormatError(q, v, texts) {
   return (texts && texts.formats && texts.formats[q.format]) || (texts && texts.invalidFormat) || "Please check the format of your answer.";
 }
 
+/* A wording template: "{n}" (or any "{name}") replaced from `values`. */
+function fillText(template, values) {
+  return String(template).replace(/\{(\w+)\}/g, (match, key) =>
+    values && values[key] !== undefined && values[key] !== null ? String(values[key]) : match);
+}
+
+/* Every fixed phrase the runtime shows, from the survey's wording
+   (UIConfig's *_text fields, sent in SURVEY) or the English default. Built
+   once per page load; the question components read it too. */
+let __runtimeTexts = null;
+function runtimeTexts() {
+  const ui = window.SURVEY || {};
+  if (__runtimeTexts && __runtimeTexts.ui === ui) return __runtimeTexts.texts;
+  const texts = {
+    nextSection: ui.nextButtonText || "Next section \u2192",
+    previous: ui.prevButtonText || "\u2190 Previous",
+    submit: ui.submitButtonText || "Submit responses",
+    submitting: ui.submittingText || "Submitting your responses\u2026",
+    required: ui.requiredText || "This question requires an answer.",
+    invalidFormat: ui.invalidFormatText || "Please check the format of your answer.",
+    formats: {
+      email: ui.invalidEmailText || "Please enter a valid email address.",
+      phone: ui.invalidPhoneText || "Please enter a valid phone number.",
+      url: ui.invalidUrlText || "Please enter a valid web address (https://…).",
+      date: ui.invalidDateText || "Please enter a valid date.",
+      time: ui.invalidTimeText || "Please enter a valid time.",
+    },
+    minChoices: ui.minChoicesText || "Select at least {n} more",
+    minValue: ui.minValueText || "Minimum value is {min}",
+    maxValue: ui.maxValueText || "Maximum value is {max}",
+    saving: ui.savingText || "Saving\u2026",
+    resumeTitle: ui.resumeTitle || "We saved your progress from earlier. Would you like to resume?",
+    resumeAction: ui.resumeAction || "Resume",
+    restartAction: ui.restartAction || "Start over",
+    page: ui.pageText || "Page",
+    of_total: ui.ofTotalText || "of",
+    retryTitle: ui.retryTitle || "Submission failed",
+    retryBody: ui.retryBody || "We could not save your responses.",
+    retryAction: ui.retryAction || "Try again",
+    saveLocalAction: ui.saveLocalAction || "Save locally and finish",
+    completedTitle: ui.completedTitle || "Thank you for participating",
+    completedBody: ui.completedBody || "Your responses help inform open research.",
+  };
+  __runtimeTexts = { ui, texts };
+  return texts;
+}
+
+/* The limits a question puts on an answer it has: a Number's valid range
+   (min / max, from the variable's valid_range) and a MultiChoice's minimum
+   number of choices. Checked on "Next" like a required answer or a format;
+   an unanswered question is the business of `required`, so a MultiChoice
+   with min_answers 2 may still be skipped when it is optional — answering it
+   means choosing at least two. The slider cannot leave its range. */
+function answerLimitError(q, value, texts) {
+  if (!q) return null;
+  if (q.kind === "numeric") {
+    if (value === undefined || value === null || value === "") return null;
+    const n = Number(value);
+    if (Number.isNaN(n)) return null;
+    if (q.min !== undefined && q.min !== null && n < q.min) return fillText(texts.minValue, { min: q.min });
+    if (q.max !== undefined && q.max !== null && n > q.max) return fillText(texts.maxValue, { max: q.max });
+    return null;
+  }
+  if (q.kind === "multi" && q.min > 1) {
+    const chosen = splitMulti(value).selected.length;
+    if (chosen > 0 && chosen < q.min) return fillText(texts.minChoices, { n: q.min - chosen, min: q.min });
+  }
+  return null;
+}
+
 function extractOptions(pages) {
   const opts = {};
   const collect = (items) => {
@@ -928,33 +998,7 @@ function App() {
   }, [initializing, currentPageName, visibilityEngine._sig]);
 
   // ─── UI Texts ───
-  const uiTexts = useMemo(() => ({
-    nextSection: ui.nextButtonText || "Next section \u2192",
-    previous: ui.prevButtonText || "\u2190 Previous",
-    submit: ui.submitButtonText || "Submit responses",
-    submitting: ui.submittingText || "Submitting your responses\u2026",
-    required: ui.requiredText || "This question requires an answer.",
-    invalidFormat: ui.invalidFormatText || "Please check the format of your answer.",
-    formats: {
-      email: ui.invalidEmailText || "Please enter a valid email address.",
-      phone: ui.invalidPhoneText || "Please enter a valid phone number.",
-      url: ui.invalidUrlText || "Please enter a valid web address (https://…).",
-      date: ui.invalidDateText || "Please enter a valid date.",
-      time: ui.invalidTimeText || "Please enter a valid time.",
-    },
-    saving: ui.savingText || "Saving\u2026",
-    resumeTitle: ui.resumeTitle || "We saved your progress from earlier. Would you like to resume?",
-    resumeAction: ui.resumeAction || "Resume",
-    restartAction: ui.restartAction || "Start over",
-    page: ui.pageText || "Page",
-    of_total: ui.ofTotalText || "of",
-    retryTitle: ui.retryTitle || "Submission failed",
-    retryBody: ui.retryBody || "We could not save your responses.",
-    retryAction: ui.retryAction || "Try again",
-    saveLocalAction: ui.saveLocalAction || "Save locally and finish",
-    completedTitle: ui.completedTitle || "Thank you for participating",
-    completedBody: ui.completedBody || "Your responses help inform open research.",
-  }), []);
+  const uiTexts = useMemo(() => runtimeTexts(), []);
 
   // ─── Script-written validation messages (answers.__errors__) ───
   const scriptErrors = useFieldValue(store, "__errors__") || {};
@@ -985,12 +1029,18 @@ function App() {
     const answers = store.snapshot();
     const items = visibilityEngine.visibleItems(page, answers);
     const q = items.find((item) => item.id === questionId);
-    if (q && q.required && !isAnswered(q, itemValue(q, answers))) {
+    if (!q) return;
+    const value = itemValue(q, answers);
+    if (q.required && !isAnswered(q, value)) {
       setErrors((prev) => ({ ...prev, [q.id]: uiTexts.required }));
       return;
     }
-    const formatError = textFormatError(q, answers[q.id], uiTexts);
-    if (formatError) setErrors((prev) => ({ ...prev, [q.id]: formatError }));
+    // A number out of its range is said as soon as the field is left. A
+    // MultiChoice's minimum waits for Next: focus moves between its own boxes
+    // while the respondent is still choosing.
+    const error = textFormatError(q, answers[q.id], uiTexts)
+      || (q.kind === "numeric" ? answerLimitError(q, value, uiTexts) : null);
+    if (error) setErrors((prev) => ({ ...prev, [q.id]: error }));
   }, [store, visibilityEngine, nav.pages, uiTexts]);
 
   // ─── Quotas (checked when a page is left) ───
@@ -1010,11 +1060,15 @@ function App() {
     const se = answers.__errors__ || {};
     let scriptBlocked = false;
     for (const q of items) {
+      const value = itemValue(q, answers);
       const formatError = textFormatError(q, answers[q.id], uiTexts);
-      if (q.required && !isAnswered(q, itemValue(q, answers))) {
+      const limitError = answerLimitError(q, value, uiTexts);
+      if (q.required && !isAnswered(q, value)) {
         errs[q.id] = uiTexts.required;
       } else if (formatError) {
         errs[q.id] = formatError;
+      } else if (limitError) {
+        errs[q.id] = limitError;
       } else if (se[q.id]) {
         // A script-written validation message blocks navigation too. It is
         // shown straight from the store (scriptErrors), not copied here: the

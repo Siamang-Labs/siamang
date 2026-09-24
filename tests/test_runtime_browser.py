@@ -1447,3 +1447,84 @@ def test_a_resumed_interview_keeps_the_path_the_dots_go_back_along(tmp_path):
     state = run_in_browser(_dots_document(), scenario, tmp_path)
     assert state["resumed"]["title"] == "Three"
     assert state["resumed"]["enabled"] == [True, True, False, False]
+
+
+# ── Limits on an answer ──────────────────────────────────────────────────────
+
+
+def _limits_document() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Limits",
+        "variables": {
+            "n": {"scale": "ratio", "valid_range": [1, 10]},
+            "m": {
+                "scale": "nominal",
+                "labels": [{"code": i, "label": f"L{i}"} for i in range(1, 5)],
+            },
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {"type": "NumericInput", "id": "n", "var": "n", "text": "How many?"},
+                    {
+                        "type": "MultiChoice",
+                        "id": "m",
+                        "var": "m",
+                        "text": "Which?",
+                        "min_answers": 2,
+                    },
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_a_number_out_of_range_and_too_few_choices_hold_next(tmp_path):
+    scenario = (
+        """
+        const text = async () => page.textContent(".sd-page");
+        await page.fill("input[type=number]", "15");
+        await page.click("body");
+        await page.waitForTimeout(150);
+        const onBlur = await text();
+    """
+        + _NEXT
+        + """
+        const afterHigh = await text();
+        await page.fill("input[type=number]", "0");
+    """
+        + _NEXT
+        + """
+        const afterLow = await text();
+        await page.fill("input[type=number]", "5");
+        await page.click("body");  // the message goes, and the options move up
+        await page.waitForTimeout(150);
+        await page.click("text=L1");
+    """
+        + _NEXT
+        + """
+        const afterOne = await text();
+        await page.click("text=L3");
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { onBlur, afterHigh, afterLow, afterOne,")
+    )
+    state = run_in_browser(_limits_document(), scenario, tmp_path)
+    assert "Maximum value is 10" in state["onBlur"]
+    assert "Maximum value is 10" in state["afterHigh"]
+    assert "Minimum value is 1" in state["afterLow"]
+    # One choice of a minimum of two: Next is held with the counter's message.
+    assert state["afterOne"].count("Select at least 1 more") == 2
+    (submitted,) = state["submitted"]
+    assert submitted["n"] == 5
+    assert submitted["m"] == [1, 3]
+
+
+def test_an_optional_question_left_empty_is_not_held_by_its_minimum(tmp_path):
+    scenario = _NEXT + _STATE
+    state = run_in_browser(_limits_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert "m" not in submitted and "n" not in submitted
