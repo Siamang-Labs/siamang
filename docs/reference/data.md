@@ -193,7 +193,7 @@ The three rank tests have no standard weighted form, so they run on the responde
 ### Confidence Intervals & Sample Size
 
 * **`proportion_ci(column: str, value: Any, confidence: float = 0.95, weighted: bool = False) -> dict[str, Any]`**:
-  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"` (Kish's effective base when `weighted=True`). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`.
+  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"`, of the respondents who answered `column` (with `weighted=True`, the weighted share and Kish's effective base of those respondents; a missing weight counts as 0). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`.
 * **`effective_sample_size() -> float`**:
   Calculates Kish's effective sample size (ESS) for weighted datasets: $ESS = \frac{(\sum w)^2}{\sum w^2}$. Raises a `ValueError` if no weight column is set.
 

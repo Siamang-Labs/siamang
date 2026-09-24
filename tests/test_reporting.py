@@ -475,6 +475,29 @@ def test_a_proportion_says_whether_the_weight_was_used():
     assert weighted["p"] == 0.25 and weighted["n"] == 3.2 and weighted["weight"] == "w"
 
 
+def test_a_weighted_proportion_is_of_those_who_answered():
+    """Like the unweighted share and the weighted frequencies: respondents
+    who did not answer are not in the base, so weights of 1 give the
+    unweighted p and n. They were counted, as a share of 0."""
+
+    data = _weighted_pair()
+    frame = data.frame.copy()
+    frame["ans"] = [1, 2, None, None]
+    frame["w"] = [1.0, 1.0, 1.0, 1.0]
+    ones = data.with_frame(frame).with_weight("w").analysis
+    plain = ones.proportion_ci("ans", 1)
+    weighted = ones.proportion_ci("ans", 1, weighted=True)
+    assert (weighted["p"], weighted["n"]) == (plain["p"], plain["n"]) == (0.5, 2.0)
+    assert (weighted["lower"], weighted["upper"]) == (plain["lower"], plain["upper"])
+    # Yes weighs 3 of the answered 4 (the unanswered 5 is out): n = 4² / (9 + 1).
+    frame["ans"] = [1, 2, None, 1]
+    frame["w"] = [3.0, 1.0, 5.0, None]
+    weighted = (
+        data.with_frame(frame).with_weight("w").analysis.proportion_ci("ans", 1, weighted=True)
+    )
+    assert weighted["p"] == 0.75 and weighted["n"] == 1.6
+
+
 def test_describe_counts_rows_and_adds_the_weighted_base():
     import pandas as pd
 
