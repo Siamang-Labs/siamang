@@ -165,6 +165,73 @@ def test_a_wide_multichoice_writes_one_or_zero_per_option_and_reads_codes():
     assert result["cleared"] == []
 
 
+def _chained_wide() -> list[dict[str, Any]]:
+    """aware offers Globex in the North (region = 1); bought offers Globex to
+    whom aware showed it and who left it unticked (aware_globex = 0)."""
+
+    from siamang.core.expression import Expression, VarRef
+    from siamang.frontend.compiler.react import _compile_condition
+
+    def wide(name: str, gate: Expression) -> dict[str, Any]:
+        return {
+            "id": name,
+            "kind": "multi",
+            "wide": True,
+            "options": [
+                {"code": 1, "label": "Acme", "var": f"{name}_acme"},
+                {
+                    "code": 2,
+                    "label": "Globex",
+                    "var": f"{name}_globex",
+                    "showIf": _compile_condition(gate),
+                },
+            ],
+        }
+
+    return [
+        wide("aware", Expression("=", VarRef("region"), 1)),
+        wide("bought", Expression("=", VarRef("aware_globex"), 0)),
+    ]
+
+
+# Acme ticked in both in the North (Globex offered in both, left unticked),
+# then the region changed to the South.
+_NORTH_THEN_SOUTH = {
+    "region": 2,
+    "aware_acme": 1,
+    "aware_globex": 0,
+    "bought_acme": 1,
+    "bought_globex": 0,
+}
+
+
+def test_wide_gates_settle_on_what_the_other_wide_questions_settled():
+    """South hides aware's Globex (missing), and that hides bought's Globex,
+    whose condition read aware_globex = 0: both change in one settling, not
+    bought on aware's value from before."""
+
+    changed = run_js(
+        f"Object.entries(wideGateUpdates({_js(_chained_wide())}, {_js(_NORTH_THEN_SOUTH)}))"
+        ".map(([key, value]) => [key, value === undefined ? 'missing' : value])"
+    )
+    assert sorted(changed) == [["aware_globex", "missing"], ["bought_globex", "missing"]]
+
+
+def test_whatever_writes_an_answer_settles_the_wide_gates():
+    """Not only a click (setAnswer): the Likert digit keys, a script, a resume
+    write to the store directly."""
+
+    north = {**_NORTH_THEN_SOUTH, "region": 1}
+    assert run_js(
+        f"""(() => {{
+          const store = createAnswersStore({_js(north)});
+          settleWideGates(store, {_js(_chained_wide())});
+          store.set("region", 2);
+          return store.snapshot();
+        }})()"""
+    ) == {"region": 2, "aware_acme": 1, "bought_acme": 1}
+
+
 def test_a_wide_answer_saved_as_variable_names_is_upgraded():
     pages = [{"name": "p", "items": [_WIDE]}]
     assert run_js(f"upgradeSavedAnswers({_js(pages)}, {_js({'b': ['b_1']})})") == {

@@ -1089,11 +1089,6 @@ function App() {
     forEachItem(allPages, (q) => { if (q.id) index[q.id] = q; });
     return index;
   }, [allPages]);
-  // Wide questions whose options carry a condition: an answer can offer or
-  // hide one of their options after they were answered (wideGateUpdates).
-  const gatedWide = useMemo(() => Object.values(itemsById).filter(
-    (q) => isWideItem(q) && (q.options || []).some((o) => o && (o.showIf || o.hideIf))), [itemsById]);
-
   // ─── Answers Store (replaces useState for form values) ───
   const store = useMemo(() => {
     const initial = {
@@ -1102,7 +1097,11 @@ function App() {
       __errors__: {},
       __respondent__: interviewRespondentId(surveyId),
     };
-    return createAnswersStore(initial);
+    const answers = createAnswersStore(initial);
+    // Wide questions whose options carry a condition: any answer can offer
+    // or hide one of their options after they were answered.
+    settleWideGates(answers, Object.values(itemsById));
+    return answers;
   }, []);
   const storeRef = useRef(store);
   storeRef.current = store;
@@ -1218,10 +1217,6 @@ function App() {
     answeredRef.current = true;
     const q = itemsById[id];
     store.setMany(q ? answerUpdates(q, val, store.snapshot()) : { [id]: val });
-    if (gatedWide.length) {
-      const settled = wideGateUpdates(gatedWide, store.snapshot());
-      if (Object.keys(settled).length) store.setMany(settled);
-    }
     // A change to the field invalidates any script-written message for it;
     // onAnswer scripts re-add it below if the problem persists.
     const se = store.get("__errors__");
@@ -1235,7 +1230,7 @@ function App() {
     if (errorsRef.current[id]) {
       setErrors((prev) => { const n = { ...prev }; delete n[id]; return n; });
     }
-  }, [store, scheduleSave, itemsById, gatedWide]);
+  }, [store, scheduleSave, itemsById]);
 
   // ─── Stable handleBlur ───
   const handleBlur = useCallback((questionId) => {
@@ -1351,8 +1346,8 @@ function App() {
   }, [handleNext]);
 
   // ─── Keyboard + Touch + BeforeUnload ───
-  const navRef = useRef({ onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage });
-  navRef.current = { onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage };
+  const navRef = useRef({ onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage, setAnswer });
+  navRef.current = { onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage, setAnswer };
   useKeyboardShortcuts(navRef, storeRef, visibilityEngine);
   useBeforeUnload(answeredRef, phaseRef);
   const { handleTouchStart, handleTouchEnd } = useTouchGestures(handleNext, handlePrev, ui.allowBack !== false);

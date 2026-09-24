@@ -257,23 +257,60 @@ function answerUpdates(q, value, answers) {
   return { [q.id]: value };
 }
 
+/* A wide question an option of which carries its own show_if / hide_if. */
+function hasGatedOptions(q) {
+  return isWideItem(q) && (q.options || []).some((o) => o && (o.showIf || o.hideIf));
+}
+
 /* The variables of every answered wide question whose options carry a
    condition, as those conditions read `answers` now. answerUpdates decides
    0 or missing when the question is answered, but an answer given after it —
    on the same page, or back on an earlier one — can offer an option the
    respondent left unticked (0, not missing) or take one away (missing, not
-   0). A chosen option stays 1. Only the keys that change are returned. */
+   0). A chosen option stays 1. Only the keys that change are returned.
+
+   A condition may read another wide question's 0 or missing ("bought"
+   offers Globex while aware_globex = 0), so each question is settled on
+   what the ones before it settled, and the round repeats until nothing
+   changes. Chosen options never change, so it ends; a round per question
+   bounds conditions that feed each other in a circle. */
 function wideGateUpdates(items, answers) {
-  const updates = {};
-  for (const q of items || []) {
-    if (!isWideItem(q) || !(q.options || []).some((o) => o && (o.showIf || o.hideIf))) continue;
-    const value = itemValue(q, answers);
-    if (value === undefined) continue;
-    for (const [key, v] of Object.entries(answerUpdates(q, value, answers))) {
-      if (answers[key] !== v) updates[key] = v;
+  const a = answers || {};
+  const gated = (items || []).filter(hasGatedOptions);
+  const now = { ...a };
+  for (let round = 0; round <= gated.length; round++) {
+    let changed = false;
+    for (const q of gated) {
+      const value = itemValue(q, now);
+      if (value === undefined) continue;
+      for (const [key, v] of Object.entries(answerUpdates(q, value, now))) {
+        if (now[key] !== v) { now[key] = v; changed = true; }
+      }
     }
+    if (!changed) break;
   }
+  const updates = {};
+  for (const key of Object.keys(now)) if (now[key] !== a[key]) updates[key] = now[key];
   return updates;
+}
+
+/* Keeps every answered wide question whose options carry a condition
+   settled (wideGateUpdates) whatever writes the answers: a click, the Likert
+   digit keys, a script, a resumed interview. */
+function settleWideGates(store, items) {
+  const gated = (items || []).filter(hasGatedOptions);
+  if (!gated.length) return;
+  let settling = false;
+  store.subscribe(() => {
+    if (settling) return;
+    settling = true;
+    try {
+      const updates = wideGateUpdates(gated, store.snapshot());
+      if (Object.keys(updates).length) store.setMany(updates);
+    } finally {
+      settling = false;
+    }
+  });
 }
 
 function forEachItem(pages, fn) {

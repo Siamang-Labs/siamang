@@ -1118,6 +1118,147 @@ def test_a_wide_option_follows_an_answer_given_after_it(tmp_path, globex):
         assert "bought_globex" not in submitted
 
 
+def _chained_gates_document() -> dict[str, Any]:
+    """One page: a region; "aware" offers Globex in the North only; "bought"
+    offers Globex to those shown it in "aware" who left it unticked
+    (aware_globex = 0) — a condition on another wide question's 0."""
+
+    document = _aware_bought_one_page()
+    document["variables"]["region"] = {
+        "scale": "nominal",
+        "labels": [{"code": 1, "label": "North"}, {"code": 2, "label": "South"}],
+    }
+    (page, done) = document["pages"]
+    aware, bought = page["items"]
+    aware["choices"][1]["show_if"] = _cmp("=", _var("region"), 1)
+    bought["choices"][1]["show_if"] = _cmp("=", _var("aware_globex"), 0)
+    region = {"type": "SingleChoice", "id": "region", "var": "region", "text": "Region?"}
+    document["pages"] = [{"name": "p1", "items": [region, aware, bought]}, done]
+    return document
+
+
+def test_a_wide_option_gated_on_another_wide_question_settles_with_it(tmp_path):
+    """North, Acme in both: aware_globex 0 offers Globex in "bought" (0).
+    Then South: aware's Globex goes, so aware_globex is missing — and with it
+    bought's Globex, whose condition read aware_globex = 0. Settled on the
+    answers from before the change, bought_globex stayed 0."""
+
+    scenario = (
+        """
+        await page.click("text=North");
+        await page.waitForTimeout(100);
+        await page.locator("text=Acme").nth(0).click();
+        await page.waitForTimeout(100);
+        await page.locator("text=Acme").nth(1).click();
+        await page.waitForTimeout(100);
+        const before = await page.$$eval(".sd-choice-label", (els) => els.map((e) => e.textContent));
+        await page.click("text=South");
+        await page.waitForTimeout(100);
+        const after = await page.$$eval(".sd-choice-label", (els) => els.map((e) => e.textContent));
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { before, after,")
+    )
+    state = run_in_browser(_chained_gates_document(), scenario, tmp_path)
+    assert state["before"] == ["North", "South", "Acme", "Globex", "Acme", "Globex"]
+    assert state["after"] == ["North", "South", "Acme", "Acme"]
+    (submitted,) = state["submitted"]
+    assert submitted == {"region": 2, "aware_acme": 1, "bought_acme": 1, "__status": "completed"}
+
+
+def _likert_gate_document(start: int = 1) -> dict[str, Any]:
+    """A 1–5 satisfaction Likert, then a wide "what to improve" whose Price
+    is offered to the dissatisfied only (sat <= 3)."""
+
+    points = range(start, start + 5)
+    return {
+        "schema_version": "1.0",
+        "title": "Satisfaction",
+        "variables": {
+            "sat": {"scale": "ordinal", "labels": _labels(list(points))},
+            "imp_service": {"scale": "nominal", "labels": _labels([0, 1])},
+            "imp_price": {"scale": "nominal", "labels": _labels([0, 1])},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "LikertScale",
+                        "id": "sat",
+                        "var": "sat",
+                        "text": "How satisfied are you?",
+                        "points": 5,
+                        "start": start,
+                    },
+                    {
+                        "type": "MultiChoice",
+                        "id": "imp",
+                        "text": "What should we improve?",
+                        "mode": "wide",
+                        "var": ["imp_service", "imp_price"],
+                        "choices": [
+                            {"code": 1, "label": "Service"},
+                            {"code": 2, "label": "Price", "show_if": _cmp("<=", _var("sat"), 3)},
+                        ],
+                    },
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_a_likert_answered_with_a_digit_key_settles_a_wide_option_too(tmp_path):
+    """sat 2 offers Price, left unticked (0); the key "5" then answers sat
+    and Price is no longer offered, so imp_price is missing — as when 5 is
+    clicked. The key wrote past the answer handling and left the 0."""
+
+    scenario = (
+        """
+        await (await page.$$(".sd-rating__item"))[1].click();
+        await page.waitForTimeout(100);
+        await page.click("text=Service");
+        await page.waitForTimeout(100);
+        const before = await page.$$eval(".sd-choice-label", (els) => els.map((e) => e.textContent));
+        await page.evaluate(() => document.activeElement && document.activeElement.blur());
+        await page.keyboard.press("5");
+        await page.waitForTimeout(100);
+        const after = await page.$$eval(".sd-choice-label", (els) => els.map((e) => e.textContent));
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { before, after,")
+    )
+    state = run_in_browser(_likert_gate_document(), scenario, tmp_path)
+    assert (state["before"], state["after"]) == (["Service", "Price"], ["Service"])
+    (submitted,) = state["submitted"]
+    assert submitted == {"sat": 5, "imp_service": 1, "__status": "completed"}
+
+
+def test_a_digit_key_answers_a_likert_that_starts_at_zero_with_its_own_points(tmp_path):
+    """0 … 4: "4" is the last point, and "5" — no point of this scale — leaves
+    the answer alone. It stored 5, a value the scale does not have."""
+
+    scenario = (
+        """
+        const selected = () => page.$$eval(".sd-rating__item.is-selected", (els) => els.map((e) => e.textContent.trim()));
+        await page.evaluate(() => document.activeElement && document.activeElement.blur());
+        await page.keyboard.press("4");
+        await page.waitForTimeout(100);
+        const afterFour = await selected();
+        await page.keyboard.press("5");
+        await page.waitForTimeout(100);
+        const afterFive = await selected();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { afterFour, afterFive,")
+    )
+    state = run_in_browser(_likert_gate_document(start=0), scenario, tmp_path)
+    assert (state["afterFour"], state["afterFive"]) == (["4"], ["4"])
+    (submitted,) = state["submitted"]
+    assert submitted == {"sat": 4, "__status": "completed"}
+
+
 # ── Other (please specify), None of the above, Not applicable ────────────────
 
 

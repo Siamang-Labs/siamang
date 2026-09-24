@@ -308,8 +308,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Each variable is now stored under its own name, `1` when chosen and `0` when
   the question is answered and the option is not (nothing while unanswered,
   nor for an option its own `show_if` / `hide_if` hid: it was not offered.
-  The condition is read again after every answer, so one given later — on the
-  same page, say — that offers or hides the option makes it 0 or nothing);
+  The condition is read again after every answer, whatever gives it — a click,
+  a Likert digit key, a script — so one given later, on the same page say,
+  that offers or hides the option makes it 0 or nothing, and so does another
+  wide question's 0 turning into nothing when the condition reads it);
   with one choice per variable, option *i* is choice *i* on variable *i*, so
   `exclusive` works. A saved answer in the old layout is converted when the
   respondent resumes. Responses already collected keep the list.
@@ -576,6 +578,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   response lacked required answers. The autosave now keeps the page order
   (`pageOrder`, the pages' names) and Resume restores it when it names the
   survey's pages; progress saved by an earlier runtime resumes as before.
+- A Likert answered with a digit key (1–9, when no field has the focus) was
+  written past the runtime's answer handling: it was not autosaved, ran no
+  `onAnswer` script and left the question's error on screen. It is now
+  answered as a click answers it. On a scale that starts at 0 the digit is
+  still the point's value, and a digit the scale does not have (5 on 0–4)
+  answers nothing; it stored that value.
 
 ## [0.6.0] — 2026-08-30
 
