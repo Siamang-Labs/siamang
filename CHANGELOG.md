@@ -325,6 +325,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wins. `Script.sandbox` was documented as running the code "in a sandboxed
   iframe" / "no DOM access", and nothing ever applied it: the docs now say it
   is recorded but not applied, and that scripts run as part of the page.
+- `progress_style="dots"` showed the bar as well as the dots — the same as
+  `"both"` — and `show_progress=False` hid the bar but left the dots of a
+  `"dots"` or `"both"` style. The bar (with its text) now shows for `"bar"` and
+  `"both"`, the dots for `"dots"` and `"both"`, and `show_progress=False` hides
+  both.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

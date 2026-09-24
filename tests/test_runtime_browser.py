@@ -1903,3 +1903,30 @@ def test_a_resumed_interview_keeps_the_time_it_started(tmp_path):
     (submitted,) = state["submitted"]
     assert isinstance(state["saved"], int)
     assert submitted["started_seen"] == str(state["saved"])
+
+
+# ── Progress indicator ───────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("style", "show", "bar", "dots"),
+    [
+        ("bar", True, True, False),
+        ("dots", True, False, True),
+        ("both", True, True, True),
+        ("dots", False, False, False),  # Studio's "hidden" after "dots"
+        ("both", False, False, False),
+        ("bar", False, False, False),
+    ],
+)
+def test_the_progress_indicator_is_what_its_style_says(tmp_path, style, show, bar, dots):
+    document = _dots_document()
+    document["ui"] = {"progress_style": style}
+    document["options"] = {"show_progress": show}
+    scenario = """
+        return {
+            bar: (await page.$$(".siamang-progress")).length > 0,
+            dots: (await page.$$(".siamang-step-dots")).length > 0,
+        };
+    """
+    assert run_in_browser(document, scenario, tmp_path) == {"bar": bar, "dots": dots}

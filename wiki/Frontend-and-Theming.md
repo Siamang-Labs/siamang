@@ -279,7 +279,9 @@ English: `next_button_text`, `prev_button_text`, `submit_button_text`,
 
 ### Advanced (navigation, access, analytics)
 
-`progress_style` (`"bar"` | `"dots"` | `"both"`; a page dot takes the respondent back
+`progress_style` (`"bar"` — the bar and its text, `"dots"` — the page dots only, or
+`"both"`; the compiler option `show_progress=False` hides the indicator whatever the
+style; a page dot takes the respondent back
 to a page they have already seen on the way to the current one, never forward past
 required questions or routing, and not at all with `allow_back=False`), `default_theme` (`"light"` |
 `"dark"` | `"system"`) with `allow_theme_switch` (default `True`) deciding
