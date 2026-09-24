@@ -860,7 +860,7 @@ function App() {
   useEmbedHeight();
 
   // ─── Autosave ───
-  const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);
+  const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef);
 
   // ─── Submission ───
   const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved, surveyId);
@@ -1062,6 +1062,13 @@ function App() {
     nav.goPrev();
   }, [nav]);
 
+  // A page dot: back to a page on the path that led here, never forward.
+  const handleDot = useCallback((idx) => {
+    if (leavingRef.current || !nav.canGoBackTo(idx)) return;
+    setErrors({});
+    nav.goBackTo(idx);
+  }, [nav]);
+
   // Timed-question scripts auto-advance through this global hook.
   useEffect(() => {
     window.siamangNext = handleNext;
@@ -1158,6 +1165,7 @@ function App() {
                 const internal = {};
                 for (const [k, v] of Object.entries(store.snapshot())) if (k.startsWith("__")) internal[k] = v;
                 store.replace({ ...internal, ...upgradeSavedAnswers(allPages, savedData.answers) });
+                nav.restoreHistory(savedData.history);
                 nav.setPageIdx(savedData.pageIdx);
                 setSavedData(null);
               }}>{uiTexts.resumeAction}</button>
@@ -1181,17 +1189,21 @@ function App() {
         ) : null}
         {(progressStyle === "dots" || progressStyle === "both") && (
           <nav className="siamang-step-dots" aria-label="Survey progress">
-            {nav.pages.map((p, i) => (
-              <button key={i} type="button"
-                className={"siamang-step-dot" + (i === nav.pageIdx ? " is-active" : "") + (i < nav.pageIdx ? " is-complete" : "")}
-                aria-label={`${p.title || "Page " + (i + 1)}${i === nav.pageIdx ? " (current)" : ""}`}
-                onClick={() => {
-                  if (ui.allowBack === false && i < nav.pageIdx) return;
-                  nav.goTo(i);
-                }}
-                disabled={submitting || (ui.allowBack === false && i < nav.pageIdx)}
-              />
-            ))}
+            {nav.pages.map((p, i) => {
+              // Only a page on the path that led here can be gone back to;
+              // a dot ahead would skip required questions and routing.
+              const reachable = nav.canGoBackTo(i);
+              const seen = i < nav.pageIdx && nav.historyRef.current.includes(p.name);
+              return (
+                <button key={i} type="button"
+                  className={"siamang-step-dot" + (i === nav.pageIdx ? " is-active" : "") + (seen ? " is-complete" : "")}
+                  aria-label={`${p.title || "Page " + (i + 1)}${i === nav.pageIdx ? " (current)" : ""}`}
+                  aria-current={i === nav.pageIdx ? "step" : undefined}
+                  onClick={() => handleDot(i)}
+                  disabled={submitting || checking || !reachable}
+                />
+              );
+            })}
           </nav>
         )}
         {saving && (

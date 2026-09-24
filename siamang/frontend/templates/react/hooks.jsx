@@ -49,7 +49,7 @@ function useTheme(defaultTheme, allowSwitch, surveyId) {
 
 /* ─── useAutosave ──────────────────────────────────────────────────────── */
 
-function useAutosave(store, surveyId, pageIdxRef) {
+function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   const AUTO_SAVE_KEY = "siamang_answers_" + surveyId;
   const saveTimerRef = useRef(null);
   const savingTimerRef = useRef(null);
@@ -78,10 +78,11 @@ function useAutosave(store, surveyId, pageIdxRef) {
           if (!k.startsWith("__")) cleanAnswers[k] = v;
         }
         const data = { answers: cleanAnswers, pageIdx: currentPage, savedAt: new Date().toISOString() };
+        if (historyRef && Array.isArray(historyRef.current)) data.history = historyRef.current.slice();
         localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(data));
       } catch (e) { /* quota exceeded */ }
     });
-  }, [AUTO_SAVE_KEY]);
+  }, [AUTO_SAVE_KEY, historyRef]);
 
   const scheduleSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -231,14 +232,46 @@ function useSurveyNav(allPages, store, visibilityEngine) {
     window.scrollTo(0, 0);
   }, [pages, pageIdx, store]);
 
+  // Design mode's jump (Studio's canvas): to any page, no questions asked.
   const goTo = useCallback((idx) => {
     setPageIdx(idx);
+  }, []);
+
+  /* The page dots. A respondent may go back to a page they have actually
+     seen — one on the path that led here — and never forward: a dot ahead
+     would skip the required questions and the routing between here and
+     there. Going back retraces the path, so Previous from there continues
+     from that page. Respects allow_back like Previous does. */
+  const canGoBackTo = useCallback((idx) => {
+    if ((window.SURVEY || {}).allowBack === false) return false;
+    const target = pages[idx];
+    return !!target && idx < pageIdx && historyRef.current.includes(target.name);
+  }, [pages, pageIdx]);
+
+  const goBackTo = useCallback((idx) => {
+    if (!canGoBackTo(idx)) return false;
+    setTransitionDir("prev");
+    setTimeout(() => setTransitionDir(null), 140);
+    const from = pages[pageIdx] || null;
+    if (from) ScriptRunner.run("onPageExit", store.snapshot(), {}, from.name);
+    const at = historyRef.current.lastIndexOf(pages[idx].name);
+    historyRef.current = historyRef.current.slice(0, at);
+    setPageIdx(idx);
+    window.scrollTo(0, 0);
+    return true;
+  }, [canGoBackTo, pages, pageIdx, store]);
+
+  // The path so far, as page names — kept with the autosave so a respondent
+  // who resumes can still go back the way they came.
+  const restoreHistory = useCallback((names) => {
+    historyRef.current = Array.isArray(names) ? names.filter((n) => typeof n === "string") : [];
   }, []);
 
   return {
     pageIdx, pages, currentPage, isFirst, isLast,
     totalPages, progressPct, transitionDir,
     goNext, goPrev, goTo, setPageIdx,
+    canGoBackTo, goBackTo, historyRef, restoreHistory,
   };
 }
 

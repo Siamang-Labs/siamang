@@ -186,11 +186,11 @@ completion_title, completion_body
 
 | Property | Default | Description |
 | :--- | :--- | :--- |
-| `progress_style` | `"bar"` | The style of the progress indicator. Allowed values: `"bar"` (linear progress bar), `"dots"` (step-by-step dots), or `"both"`. |
+| `progress_style` | `"bar"` | The style of the progress indicator. Allowed values: `"bar"` (linear progress bar), `"dots"` (step-by-step dots), or `"both"`. A dot is a button back to a page the respondent has already seen on the way to the current one (not while `allow_back` is `False`); dots ahead of the current page, and dots of pages the routing skipped, are disabled — a jump forward would pass required questions and routing. |
 | `default_theme` | `"light"` | The theme the respondent starts on. Allowed values: `"light"`, `"dark"`, or `"system"` (respects browser preference). A starting point, not a decision — see `allow_theme_switch`. |
 | `allow_theme_switch` | `True` | Whether the respondent may change it. On, the runtime shows a light/dark button and remembers the choice for this survey. Off, the button is not shown and the survey stays on `default_theme` for everyone — set it where the instrument has to look the same across the sample, and leave it on where the respondent's comfort matters more. |
 | `redirect_url` | `None` | Optional URL to automatically redirect the respondent to after successful submission (triggered after a 5-second countdown). |
-| `allow_back` | `True` | If `True`, displays the "Previous" button. Setting this to `False` disables backward navigation, which is useful for fixed-order surveys where allowing respondents to modify past answers would break branching logic or experimental designs [4]. |
+| `allow_back` | `True` | If `True`, displays the "Previous" button. Setting this to `False` disables backward navigation (the button, `Esc`, the swipe and the page dots), which is useful for fixed-order surveys where allowing respondents to modify past answers would break branching logic or experimental designs [4]. |
 | `enable_analytics` | `False` | If `True` and deployed to Vercel, automatically injects the Vercel Web Analytics script. |
 | `require_access_code` | `False` | If `True`, displays an access gate requiring respondents to enter a valid code before starting the survey. |
 | `access_codes` | `None` | A list of valid access codes (e.g., `["user-001", "user-002"]`). |
