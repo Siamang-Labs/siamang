@@ -1248,3 +1248,45 @@ def test_without_one_the_runtime_keeps_its_own_until_the_interview_ends(tmp_path
     assert submitted["rid_seen"] == state["first"]
     # A completed interview is forgotten: the next one is a new respondent.
     assert state["after"] is None
+
+
+# ── Embedded height ──────────────────────────────────────────────────────────
+
+
+_HOST = """<!doctype html><html><body style="margin:0">
+<iframe id="f" src="index.html" style="width:600px;height:300px;border:0"></iframe>
+<script>
+  window.heights = [];
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "siamang:height") {
+      window.heights.push(e.data);
+      document.getElementById("f").style.height = Math.ceil(e.data.height) + "px";
+    }
+  });
+</script></body></html>"""
+
+
+def test_an_embedded_survey_tells_its_host_its_height(tmp_path):
+    scenario = """
+        await page.goto(page.url().replace("index.html", "host.html"));
+        const frame = page.frameLocator("#f");
+        await frame.locator(".sd-page").waitFor();
+        await page.waitForTimeout(300);
+        const first = await page.evaluate(() => window.heights.slice());
+        await frame.locator("input.sd-input").fill("Ann");
+        await frame.locator(".sd-navigation__next-btn").click();
+        await frame.locator("text=Pear").waitFor();
+        await page.waitForTimeout(300);
+        const all = await page.evaluate(() => window.heights.slice());
+        const frameHeight = await page.$eval("#f", (f) => f.getBoundingClientRect().height);
+        const content = await frame.locator("#root").evaluate(
+            (el) => Math.ceil(el.getBoundingClientRect().height));
+        return { first, all, frameHeight, content };
+    """
+    result = run_in_browser(_body_document(), scenario, tmp_path, extra_files={"host.html": _HOST})
+    assert result["first"], "no height message on load"
+    assert all(set(m) == {"type", "height"} for m in result["all"])
+    assert all(isinstance(m["height"], int) and m["height"] > 0 for m in result["all"])
+    # The frame follows the survey: it ends up as tall as the content.
+    assert result["all"][-1]["height"] == result["content"]
+    assert abs(result["frameHeight"] - result["content"]) <= 1
