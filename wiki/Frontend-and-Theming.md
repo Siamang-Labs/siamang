@@ -207,6 +207,7 @@ The other calls, all optional on the transport:
 | `checkQuota(variable, value)` | leaving a page, for each quota variable with a value not yet found open (`value` is a list for a `MultiChoice`) | `{ok: true}`, or `{ok: false}` when a cell holding the value is full — the interview then ends as "quota full". A throw or a slow answer (4 s) never stops anyone. See [[Quotas]]. |
 | `pickQuota(variable, values)` | a balanced `Script.assign_condition` before the first page | `{ok: true, value}` — the arm to assign |
 | `onPage({name, index, total})` | every page change | nothing |
+| `respondentId()` | once, when the survey loads | the respondent's id (a string), which becomes `answers.__respondent__` for seeded draws; without it the runtime keeps its own random id for the interview |
 
 ---
 

@@ -835,6 +835,7 @@ function App() {
       __options__: extractOptions(allPages),
       __pages__: allPages,
       __errors__: {},
+      __respondent__: interviewRespondentId(surveyId),
     };
     return createAnswersStore(initial);
   }, []);
@@ -861,7 +862,7 @@ function App() {
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);
 
   // ─── Submission ───
-  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved);
+  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved, surveyId);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
@@ -1048,6 +1049,7 @@ function App() {
       setChecking(false);
       if (!full) { proceed(); return; }
       clearSaved();
+      forgetInterview(surveyId);
       setClosedReason("quota_full");
       setPhase("closed");
     });

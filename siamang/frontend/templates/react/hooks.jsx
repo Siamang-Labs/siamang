@@ -295,6 +295,54 @@ function useQuotaCheck(quotaVars) {
   }, [quotaVars]);
 }
 
+/* ─── The respondent id ────────────────────────────────────────────────── */
+
+/* One id per interview, the same for every script and every seeded draw:
+   answers.__respondent__, which Script.assign_condition's seed and the
+   MaxDiff / Conjoint design version are keyed by. A transport that knows the
+   respondent (respondentId(), the id its own rows use) supplies it; otherwise
+   the runtime makes one up and keeps it in this browser until the interview
+   ends, so a reload resumes with the same arm and the same design. It never
+   leaves the browser as an answer (submittedAnswers drops `__` keys). */
+function interviewIdKey(surveyId) {
+  return "siamang_interview_" + surveyId;
+}
+
+function randomInterviewId() {
+  try {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    if (window.crypto && window.crypto.getRandomValues) {
+      const b = new Uint8Array(16);
+      window.crypto.getRandomValues(b);
+      return Array.from(b, (x) => ("0" + x.toString(16)).slice(-2)).join("");
+    }
+  } catch (e) { /* fall through */ }
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function interviewRespondentId(surveyId) {
+  try {
+    const transport = currentTransport();
+    if (transport && typeof transport.respondentId === "function") {
+      const id = transport.respondentId();
+      if (id !== null && id !== undefined && String(id) !== "") return String(id);
+    }
+  } catch (e) { /* the runtime's own id below */ }
+  try {
+    const saved = localStorage.getItem(interviewIdKey(surveyId));
+    if (saved) return saved;
+  } catch (e) { /* private mode: an id for this page load */ }
+  const id = randomInterviewId();
+  try { localStorage.setItem(interviewIdKey(surveyId), id); } catch (e) { /* not kept */ }
+  return id;
+}
+
+/* The interview is over (submitted, or ended by a full quota): the next one
+   in this browser is a new respondent. */
+function forgetInterview(surveyId) {
+  try { localStorage.removeItem(interviewIdKey(surveyId)); } catch (e) { /* nothing kept */ }
+}
+
 /* ─── useSubmission ────────────────────────────────────────────────────── */
 
 /* What a submission sends: the answers — every key a codebook variable — and
@@ -315,7 +363,7 @@ function submittedAnswers(snapshot) {
   return out;
 }
 
-function useSubmission(store, clearSaved) {
+function useSubmission(store, clearSaved, surveyId) {
   const [phase, setPhase] = useState("running"); // "running" | "completed" | "closed"
   // Why the survey closed on this respondent: "quota_full" (the sample is
   // complete) or "error" (the response could not be saved); null otherwise.
@@ -349,6 +397,7 @@ function useSubmission(store, clearSaved) {
       }
       setSubmittedAt(stamp.toLocaleString());
       clearSaved();
+      forgetInterview(surveyId);
       setSubmitAttempts(0);
       setSubmitting(false);
       setPhase("completed");
@@ -362,7 +411,7 @@ function useSubmission(store, clearSaved) {
         setPhase("closed");
       }
     }
-  }, [store, clearSaved, submitAttempts]);
+  }, [store, clearSaved, submitAttempts, surveyId]);
 
   return { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
 }
