@@ -584,6 +584,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   answered as a click answers it. On a scale that starts at 0 the digit is
   still the point's value, and a digit the scale does not have (5 on 0–4)
   answers nothing; it stored that value.
+- **Generated code ran what an author's text put after a line break.** A flow
+  node's banner comment (`# ── Report section: <heading>`) carries its
+  parameters as written, and the questionnaire module marks each definition
+  `# studio: <question id>` (a variable's, a page's name). A heading or an id
+  holding a line break ended the comment there, and what followed was
+  module-level code: it ran on import — in a platform's flow run and on the
+  machine of whoever runs a research bundle (`environment/run.sh`). Every line
+  break and control character on a comment line is now a space; the text
+  itself still reaches the report and the questionnaire as written.
 
 ## [0.6.0] — 2026-08-30
 

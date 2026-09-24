@@ -932,6 +932,47 @@ def test_generate_flow_variants(questionnaire_doc):
         generate_flow(_flow([("x", "analyze.nope", {})], []))
 
 
+def test_a_parameter_with_a_line_break_stays_on_its_comment_line(questionnaire_doc, tmp_path):
+    """A node's banner (``# ── Report section: <heading>``) carries its
+    parameters as the author wrote them. A heading with a line break ended
+    the comment there: the rest was module-level code, run on import — on the
+    platform and on the machine of whoever runs a research bundle."""
+
+    import ast
+
+    marker = tmp_path / "PLANTED"
+    planted = f"import os; os.system('touch {marker}')"
+    breaks = ["\n", "\r", "\r\n", " ", "\x0b", "\x85"]
+    document = _flow(
+        [("sim", "source.simulated", {"n": 5})]
+        + [
+            (f"s{index}", "output.report_section", {"heading": f"Results{brk}{planted}{brk}#"})
+            for index, brk in enumerate(breaks)
+        ],
+        [],
+    )
+    code = generate_flow(document, questionnaire_doc)
+    tree = ast.parse(code)
+    imported = [
+        a.name for node in ast.walk(tree) if isinstance(node, ast.Import) for a in node.names
+    ]
+    assert "os" not in imported
+    calls = [ast.unparse(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call)]
+    assert "os.system" not in calls
+    # Each break is a space on the banner, which stays one line.
+    banners = [line.rstrip() for line in code.split("\n") if line.startswith("# ── Report")]
+    assert sorted(banners) == sorted(
+        f"# ── Report section: Results{' ' * len(brk)}{planted}{' ' * len(brk)}#" for brk in breaks
+    )
+    # The heading itself still reaches the report as written, in a string.
+    headings = [
+        node.args[0].value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and ast.unparse(node.func).endswith(".heading")
+    ]
+    assert sorted(headings) == sorted(f"Results{brk}{planted}{brk}#" for brk in breaks)
+
+
 def test_render_node_and_live_capture(flow_doc, questionnaire_doc):
     graph = resolve_flow(flow_doc, questionnaire=questionnaire_doc)
     assert render_node(graph, "apply") == "n_apply = n_rake.with_weight('weight')\n"

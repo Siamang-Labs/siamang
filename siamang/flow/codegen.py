@@ -17,6 +17,7 @@ from __future__ import annotations
 import contextlib
 from typing import Any
 
+from siamang.codegen.emit import comment_text
 from siamang.codegen.format import FormatterUnavailable, format_source
 from siamang.flow.document import FlowGraph, resolve_flow
 from siamang.flow.registry import Registry
@@ -145,7 +146,7 @@ class _Generator:
         sub = subtitle(spec, params)
         title = f"{spec.title}: {sub}" if sub else spec.title
         body = render_node(graph, node_id).rstrip("\n")
-        lines = [_banner(title), f"# studio: {node_id}"]
+        lines = [_banner(title), f"# studio: {comment_text(node_id)}"]
         if spec.snapshot:
             arg = "args.data" if len(snapshot_nodes) <= 1 else f"args.{node_id}_data"
             name = output_names(node_id, spec)["data"]
@@ -213,6 +214,9 @@ def _template_text(spec) -> str:
 
 
 def _banner(title: str) -> str:
+    # The title carries the node's subtitle — its parameters as the author
+    # wrote them (a report section's heading): one line, or the rest is code.
+    title = comment_text(title)
     return f"# ── {title} " + "─" * max(0, 76 - len(title))
 
 

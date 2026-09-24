@@ -10,6 +10,7 @@ even without it.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -90,6 +91,23 @@ def string(value: str) -> str:
         body = body.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
         return f'"{body}"'
     return repr(value)
+
+
+def comment_text(value: str) -> str:
+    """``value`` as it may stand on one comment line of the generated code.
+
+    A comment ends at the line break, and what an author's text puts after
+    one — a report heading ``"Results\\nimport os; os.system(…)"``, a
+    question id — is no longer a comment but code that runs when the script
+    or the questionnaire module is imported (on the platform, and on the
+    machine of whoever runs a research bundle). Every line break and other
+    control character, and the Unicode line and paragraph separators editors
+    show as breaks, becomes a space."""
+
+    return "".join(" " if unicodedata.category(ch) in _NOT_ON_ONE_LINE else ch for ch in value)
+
+
+_NOT_ON_ONE_LINE = frozenset({"Cc", "Zl", "Zp"})
 
 
 def triple_string(value: str) -> str:
