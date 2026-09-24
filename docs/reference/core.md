@@ -290,7 +290,12 @@ The `Matrix` question displays a grid of subquestions (rows) sharing a common se
 | :--- | :--- | :--- | :--- |
 | `var` | `list[Variable]` | *Required* | A list of `Variable` instances, where each variable represents a row in the matrix. Must be non-empty. |
 | `subquestions` | `list[str] \| None` | `None` | A list of row labels displayed to the respondent. If `None`, row labels default to each variable's `label` property. |
-| `column_labels` | `list[str] \| None` | `None` | A list of column labels. If `None`, column labels default to the rating category labels defined in the variables' `labels` dictionary. |
+| `column_labels` | `list[str] \| None` | `None` | A list of column labels. If `None`, column labels default to the first row variable's `labels`, in code order. |
+
+A cell stores a code of the row variables' codebook, never the column's position.
+`Matrix.columns()` returns the `(code, header)` pairs: a header takes the code of the
+value label with the same text, else of the label in the same position when the
+counts match, else 1, 2, 3 … in column order.
 | `na_option` | `bool \| str` | `False` | If `True`, appends a "Not applicable" column. If a string is provided, that string is used as the column header. |
 
 ---

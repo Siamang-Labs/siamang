@@ -252,7 +252,7 @@ class Matrix(Question):
 | :--- | :--- | :--- |
 | `var` | *required* | Non-empty list of `Variable` — one per row. |
 | `subquestions` | `None` | Row labels; default to each variable's `label`. |
-| `column_labels` | `None` | Column headers; default to the variables' value `labels`. |
+| `column_labels` | `None` | Column headers; default to the first row variable's value `labels`, in code order. |
 | `na_option` | `False` | `True` adds a "Not applicable" column; a string sets its header. An NA cell is stored as the value `"na"`. |
 
 ```python
@@ -269,6 +269,16 @@ q_trust_matrix = sg.Matrix(
     ],
 )
 ```
+
+A cell stores a **code of the row variables' codebook**, not the column's position —
+`Matrix.columns()` returns the `(code, header)` pairs the runtime uses. Without
+`column_labels` the columns are the first row variable's value labels in code order,
+so a codebook `{1: …, 5: …, 9: "Refused"}` stores 9 for "Refused". With
+`column_labels`, each header takes the code of the value label with the same text
+(when every header names exactly one); else the label in the same position (when
+there are as many labels as headers: headers `0` … `10` over labels coded 0 … 10
+store 0 … 10); else 1, 2, 3 … in column order, which is all there is to go on when
+the codebook says nothing.
 
 ---
 

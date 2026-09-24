@@ -169,6 +169,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   treated an unreadable string `hide_if` as met — hiding that question from
   every simulated respondent — and both produced columns of nulls, which look
   exactly like a question nobody reached.
+- A `Matrix` cell stored its column's **position + 1**, not a code: a 0–10
+  scale was recorded as 1–11, and any codebook not coded 1…n (a recode, a
+  "Refused" 9) came out wrong. A cell now stores the code of the row
+  variables' codebook that `Matrix.columns()` pairs with its header — by the
+  label's text, else by position when the counts match, else 1, 2, 3 … as
+  before. Responses already collected keep the positions they were stored
+  with.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

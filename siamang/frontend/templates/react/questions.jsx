@@ -91,8 +91,9 @@ function pipeLabelIndex() {
         index[q.id] = map;
       }
       if (Array.isArray(q.columns) && Array.isArray(q.rows)) {
-        // Matrix: each row is its own variable; columns carry the labels.
-        for (const r of q.rows) if (r && r.id) index[r.id] = Object.fromEntries((q.columns || []).map((c, i) => [String(c && c.code !== undefined ? c.code : i + 1), c && c.label !== undefined ? c.label : String(c)]));
+        // Matrix: each row is its own variable; the columns are its labels,
+        // keyed by the code each one stores.
+        for (const r of q.rows) if (r && r.id) index[r.id] = Object.fromEntries((q.columns || []).map((c, i) => [String(matrixColumnCode(q, i)), String(c)]));
       }
     }
   };
@@ -415,6 +416,14 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
   );
 }
 
+/* The code a matrix column stores: the codebook code the compiler read for it
+   (Matrix.columns), or — for a payload without codes — its position + 1. */
+function matrixColumnCode(q, colIdx) {
+  const codes = q.columnCodes;
+  if (Array.isArray(codes) && codes.length === (q.columns || []).length) return codes[colIdx];
+  return colIdx + 1;
+}
+
 function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
   const v = value || {};
   const [focusRow, setFocusRow] = useState(0);
@@ -425,12 +434,12 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
       e.preventDefault();
       const nextCol = Math.min(focusCol + 1, q.columns.length - 1);
       setFocusCol(nextCol);
-      onChange({ ...v, [q.rows[rowIdx].id]: nextCol + 1 });
+      onChange({ ...v, [q.rows[rowIdx].id]: matrixColumnCode(q, nextCol) });
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       const nextCol = Math.max(focusCol - 1, 0);
       setFocusCol(nextCol);
-      onChange({ ...v, [q.rows[rowIdx].id]: nextCol + 1 });
+      onChange({ ...v, [q.rows[rowIdx].id]: matrixColumnCode(q, nextCol) });
     } else if (e.key === "ArrowDown" && rowIdx < q.rows.length - 1) {
       e.preventDefault();
       setFocusRow(rowIdx + 1);
@@ -456,7 +465,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
               <tr key={row.id}>
                 <td>{row.label}</td>
                 {q.columns.map((_, colIdx) => {
-                  const code = colIdx + 1;
+                  const code = matrixColumnCode(q, colIdx);
                   const selected = v[row.id] === code;
                   return (
                     <td key={colIdx}>
