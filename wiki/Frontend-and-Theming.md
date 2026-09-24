@@ -193,7 +193,7 @@ value one of its codes, plus `__status` (`"completed"`, `"screened_out"` or
 | :--- | :--- |
 | one variable (`SingleChoice`, `LikertScale`, `NumericInput`, `OpenText`, `Ranking`, array `MultiChoice`) | `{"<var>": code}` — a list of codes for `MultiChoice` / `Ranking` |
 | `Matrix` | one key per row variable, value = the column's code |
-| wide `MultiChoice` | one key per option variable: `1` chosen, `0` answered and not chosen |
+| wide `MultiChoice` | one key per option variable: `1` chosen, `0` answered and not chosen (none for an option its condition hid) |
 | `MaxDiff`, `Conjoint` | one key per task variable and the version variable |
 | "Other (please specify)" | the Other code in the variable, the text under `"<var>_other"` |
 
