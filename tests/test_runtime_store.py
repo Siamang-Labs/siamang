@@ -137,3 +137,37 @@ def test_answers_saved_in_the_nested_layout_are_moved_to_the_flat_one():
         "md_version": 0,
         "age": 40,
     }
+
+
+_WIDE = {
+    "id": "b",
+    "kind": "multi",
+    "wide": True,
+    "options": [
+        {"code": 1, "label": "Acme", "var": "b_1"},
+        {"code": 2, "label": "Globex", "var": "b_2"},
+    ],
+}
+
+
+def test_a_wide_multichoice_writes_one_or_zero_per_option_and_reads_codes():
+    result = run_js(
+        f"""(() => {{
+          const q = {_js(_WIDE)};
+          const updates = answerUpdates(q, [2]);
+          return {{ updates, value: itemValue(q, updates),
+                   cleared: Object.keys(answerUpdates(q, [])).filter((k) =>
+                       answerUpdates(q, [])[k] !== undefined) }};
+        }})()"""
+    )
+    assert result["updates"] == {"b_1": 0, "b_2": 1}
+    assert result["value"] == [2]
+    assert result["cleared"] == []
+
+
+def test_a_wide_answer_saved_as_variable_names_is_upgraded():
+    pages = [{"name": "p", "items": [_WIDE]}]
+    assert run_js(f"upgradeSavedAnswers({_js(pages)}, {_js({'b': ['b_1']})})") == {
+        "b_1": 1,
+        "b_2": 0,
+    }

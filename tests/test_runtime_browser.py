@@ -471,3 +471,121 @@ def test_label_piping_inserts_the_chosen_options_label(tmp_path):
     shown = run_in_browser(document, scenario, tmp_path)
     assert "About Pear" in shown
     assert "Why Pear (code 2)?" in shown
+
+
+# ── Wide MultiChoice ─────────────────────────────────────────────────────────
+
+
+def _wide_document() -> dict[str, Any]:
+    yes_no = [{"code": 0, "label": "No"}, {"code": 1, "label": "Yes"}]
+    return {
+        "schema_version": "1.0",
+        "title": "Brands",
+        "variables": {
+            **{
+                name: {"scale": "nominal", "label": label, "labels": yes_no}
+                for name, label in (
+                    ("brands_1", "Acme"),
+                    ("brands_2", "Globex"),
+                    ("brands_99", "None of these"),
+                )
+            },
+            "acme_why": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "MultiChoice",
+                        "id": "brands",
+                        "text": "Which brands do you know?",
+                        "var": ["brands_1", "brands_2", "brands_99"],
+                        "mode": "wide",
+                        "choices": [
+                            {"code": 1, "label": "Acme"},
+                            {"code": 2, "label": "Globex"},
+                            {"code": 99, "label": "None of these"},
+                        ],
+                        "exclusive": [99],
+                    }
+                ],
+            },
+            {
+                "name": "about_acme",
+                "show_if": {
+                    "type": "expression",
+                    "op": "=",
+                    "left": {"type": "var", "name": "brands_1"},
+                    "right": 1,
+                },
+                "items": [
+                    {"type": "OpenText", "id": "acme_why", "var": "acme_why", "text": "Acme?"}
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_a_wide_multichoice_writes_one_and_zero_per_choice(tmp_path):
+    scenario = (
+        """
+        await page.click("text=Acme");
+        await page.click("text=Globex");
+        await page.click("text=None of these");   // exclusive: clears the others
+        const afterNone = await page.$$eval(".sd-checkbox input", (els) => els.map((e) => e.checked));
+        await page.click("text=Acme");            // and a regular choice clears it
+        const afterAcme = await page.$$eval(".sd-checkbox input", (els) => els.map((e) => e.checked));
+    """
+        + _NEXT
+        + """
+        const shown = await page.textContent(".sd-page");
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { afterNone, afterAcme, shown,")
+    )
+    state = run_in_browser(_wide_document(), scenario, tmp_path)
+    assert state["afterNone"] == [False, False, True]
+    assert state["afterAcme"] == [True, False, False]
+    # The page gated on `brands_1 = 1` is shown.
+    assert "Acme?" in state["shown"]
+    (submitted,) = state["submitted"]
+    assert submitted["brands_1"] == 1
+    assert submitted["brands_2"] == 0
+    assert submitted["brands_99"] == 0
+    assert "brands" not in submitted
+
+
+def test_a_wide_multichoice_left_empty_writes_nothing(tmp_path):
+    scenario = (
+        """
+        await page.click("text=Acme");
+        await page.click("text=Acme");   // unticked again: the question is unanswered
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_wide_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert not {"brands", "brands_1", "brands_2", "brands_99"} & set(submitted)
+    assert "about_acme" not in state["pages"]
+
+
+def test_a_wide_answer_saved_as_a_list_of_names_resumes_as_ones_and_zeros(tmp_path):
+    init = """
+        localStorage.setItem("siamang_answers_siamang_survey", JSON.stringify({
+          answers: { brands: ["brands_2"] }, pageIdx: 0, savedAt: new Date().toISOString() }));
+    """
+    scenario = (
+        """
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(100);
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_wide_document(), scenario, tmp_path, init=init)
+    (submitted,) = state["submitted"]
+    assert (submitted["brands_1"], submitted["brands_2"], submitted["brands_99"]) == (0, 1, 0)
+    assert "brands" not in submitted

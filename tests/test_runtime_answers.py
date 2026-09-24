@@ -74,3 +74,43 @@ class TestMatrixColumnCodes:
     def test_a_header_named_twice_in_the_codebook_is_placed_by_position(self):
         matrix = _matrix(["Same", "Other"], {7: "Same", 8: "Same"})
         assert matrix.columns() == [(7, "Same"), (8, "Other")]
+
+
+# ── Wide MultiChoice: one 0/1 variable per choice ────────────────────────────
+
+
+def _wide(choices=True, **kwargs):
+    variables = [
+        sg.Variable(name, scale="nominal", label=label, labels={0: "No", 1: "Yes"})
+        for name, label in (("b_1", "Acme"), ("b_2", "Globex"), ("b_99", "None"))
+    ]
+    options = (
+        [sg.Option(1, "Acme"), sg.Option(2, "Globex"), sg.Option(99, "None of these")]
+        if choices
+        else None
+    )
+    return sg.MultiChoice("Brands?", vars=variables, choices=options, id="b", **kwargs)
+
+
+class TestWideMultiChoice:
+    def test_each_option_is_its_choice_on_its_variable(self):
+        item = _only_item(_survey(_wide(exclusive=[99])))
+        assert item["id"] == "b"
+        assert item["wide"] is True
+        assert item["options"] == [
+            {"code": 1, "label": "Acme", "var": "b_1"},
+            {"code": 2, "label": "Globex", "var": "b_2"},
+            {"code": 99, "label": "None of these", "var": "b_99"},
+        ]
+        # `exclusive` names choice codes, which are now the options' codes.
+        assert item["exclusive"] == [99]
+
+    def test_without_choices_an_option_is_its_variable(self):
+        item = _only_item(_survey(_wide(choices=False)))
+        assert item["options"][0] == {"code": "b_1", "label": "Acme", "var": "b_1"}
+
+    def test_an_array_multichoice_is_not_wide(self):
+        var = sg.Variable("m", scale="nominal", labels={1: "A", 2: "B"})
+        item = _only_item(_survey(sg.MultiChoice("M?", var=var)))
+        assert "wide" not in item
+        assert all("var" not in option for option in item["options"])

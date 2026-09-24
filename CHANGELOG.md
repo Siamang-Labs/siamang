@@ -190,6 +190,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `window.SURVEY.pages`, which does not exist, so its label index was always
   empty. It reads the pages now — a choice's label, a matrix column's header, a
   MaxDiff item.
+- A **wide** `MultiChoice` (one 0/1 variable per choice) stored the list of the
+  chosen variables' *names* under the question's id, so its variables stayed
+  empty, a condition or quota on them never matched, and `exclusive` — which
+  names choice codes — never applied, the options' codes being variable names.
+  Each variable is now stored under its own name, `1` when chosen and `0` when
+  the question is answered and the option is not (nothing while unanswered);
+  with one choice per variable, option *i* is choice *i* on variable *i*, so
+  `exclusive` works. A saved answer in the old layout is converted when the
+  respondent resumes. Responses already collected keep the list.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

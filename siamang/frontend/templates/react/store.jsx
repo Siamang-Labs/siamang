@@ -102,10 +102,24 @@ function createAnswersStore(initial) {
 
    Their components still work on one object ({row: code, …}); itemValue
    assembles it from the keys and answerUpdates splits one back into them.
-   Nothing is stored under such a question's own key. */
+   Nothing is stored under such a question's own key.
+
+   A wide MultiChoice is the same idea for a list: its component works on the
+   chosen codes, and each option's variable holds 1 when it is chosen and 0
+   when the question is answered and it is not. */
 
 function isSpreadItem(q) {
   return !!q && (q.kind === "matrix" || q.kind === "maxdiff" || q.kind === "conjoint");
+}
+
+function isWideItem(q) {
+  return !!q && q.kind === "multi" && q.wide === true;
+}
+
+/* A wide option's variable is chosen when it holds 1 (true or "1" from an
+   older store or a script count as well). */
+function isOn(value) {
+  return value === 1 || value === true || value === "1";
 }
 
 /* The store keys an item writes. */
@@ -119,6 +133,7 @@ function itemAnswerKeys(q) {
     return keys;
   }
   if (q.kind === "conjoint") return [...(q.taskVars || []), ...(q.versionVar ? [q.versionVar] : [])];
+  if (isWideItem(q)) return (q.options || []).map((o) => o.var).filter(Boolean);
   return [q.id];
 }
 
@@ -145,6 +160,16 @@ function itemValue(q, answers) {
     }
     return stableItemValue(q, any ? out : undefined);
   }
+  if (isWideItem(q)) {
+    const chosen = [];
+    let any = false;
+    for (const o of q.options || []) {
+      if (!o || !o.var || a[o.var] === undefined) continue;
+      any = true;
+      if (isOn(a[o.var])) chosen.push(o.code);
+    }
+    return stableItemValue(q, any ? chosen : undefined);
+  }
   return a[q.id];
 }
 
@@ -155,6 +180,16 @@ function answerUpdates(q, value) {
     const v = value && typeof value === "object" ? value : {};
     const updates = {};
     for (const key of itemAnswerKeys(q)) updates[key] = v[key];
+    return updates;
+  }
+  if (isWideItem(q)) {
+    const chosen = Array.isArray(value) ? value : [];
+    const updates = {};
+    for (const o of q.options || []) {
+      if (!o || !o.var) continue;
+      // Nothing chosen is an unanswered question: every variable is cleared.
+      updates[o.var] = chosen.length ? (chosen.includes(o.code) ? 1 : 0) : undefined;
+    }
     return updates;
   }
   return { [q.id]: value };
@@ -171,10 +206,19 @@ function forEachItem(pages, fn) {
    a respondent who resumes after the survey was redeployed must not have
    half their answers under keys nothing reads any more. Such a runtime kept a
    matrix, a MaxDiff or a Conjoint as one object under the question's key,
-   and a matrix cell as its column's position (1…n) rather than its code. */
+   a matrix cell as its column's position (1…n) rather than its code, and a
+   wide MultiChoice as the list of its chosen variables' names. */
 function upgradeSavedAnswers(pages, saved) {
   const out = { ...(saved || {}) };
   forEachItem(pages, (q) => {
+    if (isWideItem(q)) {
+      const names = out[q.id];
+      if (!Array.isArray(names)) return;
+      delete out[q.id];
+      const chosen = (q.options || []).filter((o) => names.includes(o.var) || names.includes(o.code));
+      Object.assign(out, answerUpdates(q, chosen.map((o) => o.code)));
+      return;
+    }
     if (!isSpreadItem(q)) return;
     const nested = out[q.id];
     if (!nested || typeof nested !== "object" || Array.isArray(nested)) return;
