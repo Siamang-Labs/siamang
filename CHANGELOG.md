@@ -370,6 +370,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `app_error_title`, `app_error_body`, `reload_action` — all `None` by default,
   which keeps today's English. The document schema admits them; the static
   closed page uses `closed_*` / `quota_full_*` too.
+- What the runtime keeps in the browser — the autosave, the theme, the
+  interview's id — was keyed by `SURVEY.surveyId`, which the compiler never
+  sets, so every survey used `…_siamang_survey`. On a host that serves many
+  surveys from one origin (Studio: `study.siamang.org/<survey id>/`) a
+  respondent was offered one study's saved answers to resume in another, and
+  Studio's transport, which reads `siamang_answers_<survey_id>` to post partial
+  responses, never found any. The key is now the transport's `survey_id`
+  (`SIAMANG_ENV.survey_id`) unless the host sets `SURVEY.surveyId`; the old
+  constant is only the fallback of a page with neither. Progress saved under
+  the old key is not offered after the update — it may be another survey's.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

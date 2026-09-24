@@ -209,6 +209,14 @@ The other calls, all optional on the transport:
 | `onPage({name, index, total})` | every page change | nothing |
 | `respondentId()` | once, when the survey loads | the respondent's id (a string), which becomes `answers.__respondent__` for seeded draws; without it the runtime keeps its own random id for the interview |
 
+What the runtime keeps in the respondent's browser (`localStorage`) is keyed by the
+survey: the transport's `survey_id` (`SIAMANG_ENV.survey_id`), or `SURVEY.surveyId` when
+the host page sets one. The autosave is `siamang_answers_<survey id>` (the answers
+without `__` keys, the page, the path taken and when the interview started; a day at
+most), the theme choice `siamang_theme_<survey id>` and the runtime's own respondent id
+`siamang_interview_<survey id>`. A host's transport may read the autosave — Studio's
+posts it as a partial response.
+
 Inside an iframe the runtime also tells the parent page its height:
 `window.parent.postMessage({type: "siamang:height", height: <px>}, "*")` when it loads and
 whenever the survey's height changes (a new page, an error message, a window resize), so

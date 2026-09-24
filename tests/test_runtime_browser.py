@@ -274,7 +274,7 @@ def test_a_condition_on_a_matrix_row_reads_the_rows_variable(tmp_path):
         + """
         const shown = await page.textContent(".sd-page");
         return { shown, stored: await page.evaluate(() =>
-            JSON.parse(localStorage.getItem("siamang_answers_siamang_survey") || "{}")) };
+            JSON.parse(localStorage.getItem("siamang_answers_t") || "{}")) };
     """
     )
     result = run_in_browser(_gated_on_rows(_trust_matrix_document()), scenario, tmp_path)
@@ -303,7 +303,7 @@ def test_saved_answers_from_the_nested_layout_resume_in_the_flat_one(tmp_path):
     matrix nested under its key, and a cell as its position."""
 
     init = """
-        localStorage.setItem("siamang_answers_siamang_survey", JSON.stringify({
+        localStorage.setItem("siamang_answers_t", JSON.stringify({
           answers: { trust: { trust_parl: 3, trust_pol: 11 } },
           pageIdx: 0, savedAt: new Date().toISOString() }));
     """
@@ -585,7 +585,7 @@ def test_a_wide_multichoice_left_empty_writes_nothing(tmp_path):
 
 def test_a_wide_answer_saved_as_a_list_of_names_resumes_as_ones_and_zeros(tmp_path):
     init = """
-        localStorage.setItem("siamang_answers_siamang_survey", JSON.stringify({
+        localStorage.setItem("siamang_answers_t", JSON.stringify({
           answers: { brands: ["brands_2"] }, pageIdx: 0, savedAt: new Date().toISOString() }));
     """
     scenario = (
@@ -822,7 +822,7 @@ def test_a_choice_named_by_other_code_is_the_other_option(tmp_path):
 
 def test_answers_saved_with_the_old_sentinels_resume_as_codes(tmp_path):
     init = """
-        localStorage.setItem("siamang_answers_siamang_survey", JSON.stringify({
+        localStorage.setItem("siamang_answers_t", JSON.stringify({
           answers: {
             fruit: { code: "__other__", text: "Kiwi" },
             snacks: { selected: [1, "__other__"], otherText: "Salsa" },
@@ -1230,7 +1230,7 @@ def test_the_transports_respondent_id_is_the_interviews(tmp_path):
 
 
 def test_without_one_the_runtime_keeps_its_own_until_the_interview_ends(tmp_path):
-    key = "siamang_interview_siamang_survey"
+    key = "siamang_interview_t"  # the transport's survey_id
     scenario = (
         f"""
         const first = await page.evaluate(() => localStorage.getItem("{key}"));
@@ -2187,3 +2187,30 @@ def test_the_quota_full_screen_speaks_the_surveys_wording(tmp_path):
     )
     text = run_in_browser(_quota_document(**ui), scenario, tmp_path, init=init)
     assert "Vielen Dank" in text and "Die Stichprobe ist voll." in text
+
+
+# ── What the browser keeps, per survey ───────────────────────────────────────
+
+
+def test_what_the_browser_keeps_is_keyed_by_the_transports_survey_id(tmp_path):
+    scenario = """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+        await page.waitForTimeout(2600);   // the autosave runs 2 s after an answer
+        return await page.evaluate(() => Object.keys(localStorage).sort());
+    """
+    keys = run_in_browser(_body_document(), scenario, tmp_path)
+    # The test transport's survey_id is "t"; a host such as Studio reads
+    # siamang_answers_<survey_id> to post partial responses.
+    assert "siamang_answers_t" in keys and "siamang_interview_t" in keys
+    assert not any(key.endswith("siamang_survey") for key in keys)
+
+
+def test_another_surveys_saved_answers_are_not_offered_for_resuming(tmp_path):
+    # What another survey on the same host saved under the key every survey
+    # used to share.
+    saved = {"answers": {"name": "Other study"}, "pageIdx": 1, "savedAt": "2099-01-01T00:00:00Z"}
+    key = "siamang_answers_siamang_survey"
+    init = f"localStorage.setItem('{key}', " + json.dumps(json.dumps(saved)) + ");"
+    scenario = 'return (await page.$$(".siamang-resume-banner")).length;'
+    assert run_in_browser(_body_document(), scenario, tmp_path, init=init) == 0

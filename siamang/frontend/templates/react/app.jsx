@@ -1011,7 +1011,18 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
 
 function App() {
   const ui = window.SURVEY || {};
-  const surveyId = ui.surveyId || "siamang_survey";
+  // What this browser keeps for the survey — the autosave, the theme, the
+  // interview's id — is keyed by it, and a host serves many surveys from one
+  // origin (Studio: study.siamang.org/<survey id>/). The compiled survey
+  // carries no id of its own (a host may set SURVEY.surveyId, as Studio's
+  // preview does), so it is the transport's survey_id; the constant
+  // "siamang_survey" is only the last resort of a page without either. With
+  // the constant, every survey of a host shared one autosave — offering one
+  // study's saved answers to resume in another — and Studio's transport,
+  // which reads siamang_answers_<survey_id>, never found any to send as a
+  // partial response.
+  const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
+  const surveyId = ui.surveyId || env.survey_id || "siamang_survey";
 
   // ─── Author-declared randomization (applied once per respondent) ───
   const randomized = useMemo(() => applyRandomization(window.PAGES || []), []);
@@ -1037,7 +1048,6 @@ function App() {
   const storeRef = useRef(store);
   storeRef.current = store;
   ScriptRunner._store = store;
-  const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
   interviewSession.surveyId = env.survey_id || ui.surveyId || null;
 
   // ─── Visibility Engine ───
