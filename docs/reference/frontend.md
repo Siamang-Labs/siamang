@@ -157,8 +157,8 @@ Siamang features an integrated web-font loader. By default, it loads high-qualit
 | `show_title` | `True` | If `True`, displays the questionnaire's title in the header. `False` hides it even when the header is shown for a logo or an institution. |
 | `institution_name` | `None` | The name of the academic institution or research organization, displayed beneath the title. |
 | `study_subtitle` | `None` | Subtitle text displayed below the institution name. |
-| `show_section_numbers` | `True` | If `True`, displays page numbers within the progress indicator. |
-| `show_progress_text` | `True` | If `True`, displays text-based progress (e.g., `"Page 2 of 5"`) in the progress bar. |
+| `show_section_numbers` | `True` | If `True`, each page carries a section label above its title — "Welcome" on the first page the respondent answers, "Final thoughts" on the last, "Section *n* of *m*" between — and the progress bar's text is that label. `False` drops the labels, and the bar's text becomes "Page *n* of *m*" (`page_text` / `of_total_text`). Both count the pages the respondent answers, in their order, without the end pages. |
+| `show_progress_text` | `True` | If `True`, the progress bar has its text beside it (the section label, or "Page *n* of *m*"); `False` leaves the bar alone. |
 | `estimated_minutes` | `None` | Optional estimate of the time required to complete the survey, displayed on the welcome page. |
 
 ### 5. Footer

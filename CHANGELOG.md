@@ -330,6 +330,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `"dots"` or `"both"` style. The bar (with its text) now shows for `"bar"` and
   `"both"`, the dots for `"dots"` and `"both"`, and `show_progress=False` hides
   both.
+- The progress text and the page's section label ("Welcome", "Section *n* of
+  *m*", "Final thoughts") were baked into each page by the compiler from its
+  place in the document, counting the end pages: a survey ending on a thank-you
+  and a screen-out page showed "Section 2 of 4" on its last question page and
+  never reached "Final thoughts" or a full bar, and after `randomize_pages` the
+  labels travelled with the pages ("Section 3" shown second). The runtime now
+  works them out from the pages the respondent answers — visible, in their
+  order, without the end pages — and so does the bar's percentage; the page
+  dots are one per such page. `UIConfig.show_section_numbers` and
+  `show_progress_text`, which nothing read, now apply: without section numbers
+  the page has no label and the bar says "Page *n* of *m*" (`page_text`,
+  `of_total_text`, until now heard only by screen readers); without progress
+  text the bar has none.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

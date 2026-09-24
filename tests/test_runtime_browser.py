@@ -1377,13 +1377,13 @@ def test_a_page_dot_never_jumps_ahead_of_the_respondent(tmp_path):
     """
     )
     state = run_in_browser(_dots_document(), scenario, tmp_path)
-    assert state["start"]["enabled"] == [False, False, False, False]
+    assert state["start"]["enabled"] == [False, False, False]
     assert state["afterForward"]["title"] == "One"
     # On page three, the two pages seen before are reachable; nothing ahead is.
     assert state["onThree"]["title"] == "Three"
-    assert state["onThree"]["enabled"] == [True, True, False, False]
+    assert state["onThree"]["enabled"] == [True, True, False]
     assert state["back"]["title"] == "One"
-    assert state["back"]["enabled"] == [False, False, False, False]
+    assert state["back"]["enabled"] == [False, False, False]
 
 
 def test_a_page_dot_does_not_reach_a_page_routing_skipped(tmp_path):
@@ -1404,7 +1404,7 @@ def test_a_page_dot_does_not_reach_a_page_routing_skipped(tmp_path):
     state = run_in_browser(_dots_document(), scenario, tmp_path)
     # p2 lies before p3 but was never shown: its dot stays disabled.
     assert state["onThree"]["title"] == "Three"
-    assert state["onThree"]["enabled"] == [True, False, False, False]
+    assert state["onThree"]["enabled"] == [True, False, False]
     assert state["after"]["title"] == "Three"
 
 
@@ -1423,7 +1423,7 @@ def test_page_dots_do_not_go_back_when_going_back_is_off(tmp_path):
     """
     )
     state = run_in_browser(_dots_document(allow_back=False), scenario, tmp_path)
-    assert state["onTwo"]["enabled"] == [False, False, False, False]
+    assert state["onTwo"]["enabled"] == [False, False, False]
     assert state["after"]["title"] == "Two"
 
 
@@ -1448,7 +1448,7 @@ def test_a_resumed_interview_keeps_the_path_the_dots_go_back_along(tmp_path):
     )
     state = run_in_browser(_dots_document(), scenario, tmp_path)
     assert state["resumed"]["title"] == "Three"
-    assert state["resumed"]["enabled"] == [True, True, False, False]
+    assert state["resumed"]["enabled"] == [True, True, False]
 
 
 # ── Limits on an answer ──────────────────────────────────────────────────────
@@ -1930,3 +1930,86 @@ def test_the_progress_indicator_is_what_its_style_says(tmp_path, style, show, ba
         };
     """
     assert run_in_browser(document, scenario, tmp_path) == {"bar": bar, "dots": dots}
+
+
+def _sections_document(**ui: Any) -> dict[str, Any]:
+    pages = [
+        {
+            "name": f"p{i}",
+            "title": f"Page {i}",
+            "items": [{"type": "OpenText", "id": f"t{i}", "var": f"t{i}", "text": "?"}],
+        }
+        for i in range(1, 5)
+    ]
+    return {
+        "schema_version": "1.0",
+        "title": "Sections",
+        "ui": {"progress_style": "both", **ui},
+        "variables": {f"t{i}": {"scale": "nominal", "dtype": "str"} for i in range(1, 5)},
+        "pages": [
+            *pages,
+            {"name": "done", "kind": "final", "title": "Thanks"},
+            {"name": "out", "kind": "disqualification", "title": "Sorry"},
+        ],
+    }
+
+
+# On every page: the text beside the bar, the eyebrow, the bar's width, the
+# number of dots, and the page title — then Next.
+_WALK = """
+    const seen = [];
+    for (let k = 0; k < 4; k++) {
+        seen.push(await page.evaluate(() => {
+            const text = (sel) => { const el = document.querySelector(sel); return el ? el.textContent : null; };
+            const fill = document.querySelector(".siamang-progress__fill");
+            return [text(".siamang-progress__text"), text(".sd-page__eyebrow"),
+                    fill ? fill.style.width : null,
+                    document.querySelectorAll(".siamang-step-dot").length, text(".sd-page__title")];
+        }));
+        await page.click(".sd-navigation__next-btn");
+        await page.waitForTimeout(200);
+    }
+    return seen;
+"""
+
+
+def test_progress_counts_the_pages_a_respondent_answers(tmp_path):
+    seen = run_in_browser(_sections_document(), _WALK, tmp_path)
+    # The end pages are not steps: the last question page is "Final thoughts"
+    # and 100 %, and there is a dot per question page only.
+    assert [row[:4] for row in seen] == [
+        ["Welcome", "Welcome", "0%", 4],
+        ["Section 1 of 3", "Section 1 of 3", "33%", 4],
+        ["Section 2 of 3", "Section 2 of 3", "67%", 4],
+        ["Final thoughts", "Final thoughts", "100%", 4],
+    ]
+
+
+def test_without_section_labels_the_bar_says_page_n_of_m(tmp_path):
+    ui = {"show_section_numbers": False, "page_text": "Seite", "of_total_text": "von"}
+    seen = run_in_browser(_sections_document(**ui), _WALK, tmp_path)
+    assert [row[:2] for row in seen] == [
+        ["Seite 1 von 4", None],
+        ["Seite 2 von 4", None],
+        ["Seite 3 von 4", None],
+        ["Seite 4 von 4", None],
+    ]
+
+
+def test_the_progress_text_can_be_switched_off(tmp_path):
+    seen = run_in_browser(_sections_document(show_progress_text=False), _WALK, tmp_path)
+    assert [row[:3] for row in seen][1] == [None, "Section 1 of 3", "33%"]
+
+
+def test_section_labels_follow_the_respondents_order_of_pages(tmp_path):
+    document = _sections_document()
+    document["scripts"] = [{"type": "randomize_pages"}]
+    seen = run_in_browser(document, _WALK, tmp_path, init=_FIXED_RANDOM)
+    # The pages come in another order; the labels stay in the respondent's.
+    assert [row[4] for row in seen] == ["Page 1", "Page 3", "Page 4", "Page 2"]
+    assert [row[1] for row in seen] == [
+        "Welcome",
+        "Section 1 of 3",
+        "Section 2 of 3",
+        "Final thoughts",
+    ]

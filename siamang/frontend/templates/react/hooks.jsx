@@ -175,6 +175,11 @@ function cancelScriptTimers(store) {
   store.set("__timers__", {});
 }
 
+/* A page that ends the interview when it is reached. */
+function isTerminalPage(page) {
+  return !!page && (page.kind === "disqualification" || page.kind === "final" || page.kind === "redirect");
+}
+
 function useSurveyNav(allPages, store, visibilityEngine) {
   const [pageIdx, setPageIdx] = useState(0);
   const [transitionDir, setTransitionDir] = useState(null);
@@ -202,8 +207,15 @@ function useSurveyNav(allPages, store, visibilityEngine) {
   const isFirst = pageIdx === 0;
   const isLast = pageIdx === pages.length - 1;
   const totalPages = pages.length || 1;
-  const progressPct = totalPages > 1
-    ? Math.min(100, Math.round((pageIdx / (totalPages - 1)) * 100))
+  // Progress counts the pages a respondent answers, in their order: the
+  // visible pages without the terminal ones (a thank-you or screen-out page
+  // is where it ends, not a step), so the last question page is 100 % and
+  // "Final thoughts". `position` is -1 on a terminal page.
+  const contentIdx = pages.map((p, i) => (isTerminalPage(p) ? -1 : i)).filter((i) => i >= 0);
+  const position = contentIdx.indexOf(pageIdx);
+  const contentTotal = contentIdx.length;
+  const progressPct = contentTotal > 1 && position >= 0
+    ? Math.min(100, Math.round((position / (contentTotal - 1)) * 100))
     : 100;
 
   const goNext = useCallback(() => {
@@ -301,7 +313,7 @@ function useSurveyNav(allPages, store, visibilityEngine) {
 
   return {
     pageIdx, pages, currentPage, isFirst, isLast,
-    totalPages, progressPct, transitionDir,
+    totalPages, progressPct, transitionDir, position, contentTotal,
     goNext, goPrev, goTo, setPageIdx,
     canGoBackTo, goBackTo, historyRef, restoreHistory,
   };
