@@ -93,7 +93,7 @@ custom = sg.Script(
 
 ## Factory classmethods
 
-Four classmethods build ready-made scripts for the most common patterns. Each returns
+Five classmethods build ready-made scripts for the most common patterns. Each returns
 a fully-configured `Script` (trigger, target, and name preset).
 
 ### `Script.randomize_options(question_id, seed=None)`
@@ -122,6 +122,27 @@ globally.
 
 ```python
 shuffle_pages = sg.Script.randomize_pages()
+```
+
+### `Script.assign_condition(variable, arms, seed=None, balance=False)`
+
+Draw each respondent into one experimental arm before the first page (`onInit`) and
+store the arm's code in `variable`, so `show_if` / `next_if`, quotas and the analysis
+can use it like any answer. `arms` are `(code, label)` or `(code, label, weight)`
+tuples; weights are positive integers (default 1) and set the shares.
+
+- Without a `seed` the draw is random, once per interview.
+- With a `seed` it is deterministic per respondent: the arm is drawn from
+  `"<seed>:<respondent id>"` (`answers.__respondent__`, which the runtime sets for
+  every interview), so the same respondent always lands in the same arm, respondents
+  are spread over the arms by their weights, and the assignment can be recomputed
+  from the generated `.py` and the respondent ids.
+- `balance=True` sends each respondent to the arm furthest behind its quota (it
+  needs a quota cell per arm on `variable`; the weighted draw stays as the fallback)
+  and cannot be combined with a `seed`.
+
+```python
+split = sg.Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")], seed="2026")
 ```
 
 ### `Script.validate_fields_match(field_a, field_b, message="Fields do not match.")`

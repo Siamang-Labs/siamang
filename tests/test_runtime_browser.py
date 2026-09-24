@@ -32,7 +32,7 @@ from siamang.frontend.client.base import BackendClientTemplate
 from siamang.frontend.compiler import compile_questionnaire
 from siamang.model import from_document
 
-from .test_runtime_store import seeded_shuffle
+from .test_runtime_store import fnv1a, mulberry32, seeded_shuffle
 
 # A transport that keeps everything it is handed. `window.__T.full` lists the
 # quota cells ([variable, value]) that answer "full"; `quotaThrows` makes every
@@ -1659,3 +1659,58 @@ def test_a_seeded_option_shuffle_is_the_respondents_own_and_reproducible(tmp_pat
     assert state["first"] == seeded_shuffle(labels, "42:r1")
     assert state["reloaded"] == state["first"]
     assert state["other"] == seeded_shuffle(labels, "42:r2") != state["first"]
+
+
+def _assigned_document() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Assign",
+        "variables": {"name": {"scale": "nominal", "dtype": "str"}},
+        "pages": [
+            {
+                "name": "p1",
+                "title": "Arm {answer:condition}",
+                "items": [{"type": "OpenText", "id": "name", "var": "name", "text": "Name?"}],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [
+            {
+                "type": "assign_condition",
+                "variable": "condition",
+                "arms": [{"code": 1, "label": "Control"}, {"code": 2, "label": "Treatment"}],
+                "seed": "s1",
+            }
+        ],
+    }
+
+
+def _seeded_arm(seed: str, respondent: str, codes: list[int]) -> int:
+    """The arm Script.assign_condition draws (equal weights), computed apart."""
+
+    cut = mulberry32(fnv1a(f"{seed}:{respondent}"))() * len(codes)
+    for code in codes:
+        cut -= 1
+        if cut < 0:
+            return code
+    return codes[-1]
+
+
+def test_a_seeded_assignment_spreads_respondents_and_keeps_each_ones_arm(tmp_path):
+    respondents = [f"r{i}" for i in range(12)] + ["r0"]
+    scenario = f"""
+        const arms = [];
+        for (const rid of {json.dumps(respondents)}) {{
+            await page.evaluate((r) => sessionStorage.setItem("rid", r), rid);
+            await page.reload();
+            await page.waitForSelector(".sd-page__title");
+            arms.push(await page.textContent(".sd-page__title"));
+        }}
+        return arms;
+    """
+    arms = run_in_browser(_assigned_document(), scenario, tmp_path, init=_RID_FROM_SESSION)
+    expected = [f"Arm {_seeded_arm('s1', rid, [1, 2])}" for rid in respondents]
+    assert arms == expected
+    # Both arms are used, and the same respondent lands in the same one again.
+    assert set(arms) == {"Arm 1", "Arm 2"}
+    assert arms[0] == arms[-1]
