@@ -246,7 +246,8 @@ def test_library_scripts_reach_the_runtime_keyed_like_the_answers():
     timed = by_name["timed_news_source"]
     assert timed["target"] == "news_source" and "const timeout = 45000;" in timed["code"]
     match = by_name["validate_match_email_email_confirm"]
-    assert match["target"] == "email_confirm"
+    # No target: it re-checks the pair whichever of the two fields changes.
+    assert match["target"] is None
     assert 'const fa = "email";' in match["code"] and 'const fb = "email_confirm";' in match["code"]
     assert '"Emails differ."' in match["code"]
     # A custom script keeps its code; only the target it is scoped to is translated.

@@ -1117,3 +1117,64 @@ def test_show_title_false_hides_the_title_beside_an_institution(tmp_path):
     header = run_in_browser(document, scenario, tmp_path)
     assert "Acme University" in header
     assert "Secret study name" not in header
+
+
+# ── Scripts ──────────────────────────────────────────────────────────────────
+
+
+def _emails_document() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Emails",
+        "variables": {
+            "email": {"scale": "nominal", "dtype": "str"},
+            "email2": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {"type": "OpenText", "id": "email", "var": "email", "text": "Email?"},
+                    {"type": "OpenText", "id": "email2", "var": "email2", "text": "Again?"},
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [
+            {
+                "type": "validate_fields_match",
+                "field_a": "email",
+                "field_b": "email2",
+                "message": "The addresses differ.",
+            }
+        ],
+    }
+
+
+def test_fields_match_rechecks_when_the_first_field_is_corrected(tmp_path):
+    scenario = (
+        """
+        const fields = page.locator("input.sd-input");
+        await fields.nth(0).fill("a@x.org");
+        await fields.nth(1).fill("b@x.org");
+        await page.click("body");
+        await page.waitForTimeout(150);
+        const shown = await page.textContent(".sd-page");
+        await page.click(".sd-navigation__next-btn");
+        await page.waitForTimeout(150);
+        const blocked = (await page.$$("text=Again?")).length > 0;
+        await fields.nth(0).fill("b@x.org");
+        await page.click("body");
+        await page.waitForTimeout(150);
+        const after = await page.textContent(".sd-page");
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { shown, blocked, after,")
+    )
+    state = run_in_browser(_emails_document(), scenario, tmp_path)
+    assert "The addresses differ." in state["shown"]
+    assert state["blocked"] is True
+    # Correcting the *first* field clears the message and lets the respondent on.
+    assert "The addresses differ." not in state["after"]
+    (submitted,) = state["submitted"]
+    assert submitted["email"] == submitted["email2"] == "b@x.org"

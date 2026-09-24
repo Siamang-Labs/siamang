@@ -304,23 +304,31 @@ class Script:
     def validate_fields_match(
         cls, field_a: str, field_b: str, message: str = "Fields do not match."
     ) -> Script:
-        """Factory: validate that two answer fields have the same value."""
+        """Factory: validate that two answer fields have the same value.
+
+        The message is shown on ``field_b`` and blocks Next while the two
+        differ. The script has no target, so it runs whenever an answer
+        changes: correcting either field — not only the second — re-checks
+        the pair, and a match removes the message it set.
+        """
         fa = json.dumps(field_a)
         fb = json.dumps(field_b)
         msg = json.dumps(message)
         code = f"""
             const fa = {fa};
             const fb = {fb};
+            if (!answers.__errors__) answers.__errors__ = {{}};
             if (answers[fa] !== undefined &&
                 answers[fb] !== undefined &&
                 answers[fa] !== answers[fb]) {{
                 answers.__errors__[fb] = {msg};
+            }} else if (answers.__errors__[fb] === {msg}) {{
+                delete answers.__errors__[fb];
             }}
         """
         return cls(
             name=f"validate_match_{field_a}_{field_b}",
             trigger="onAnswer",
-            target=field_b,
             code=code,
         )
 
