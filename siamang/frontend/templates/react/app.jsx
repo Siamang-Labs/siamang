@@ -1156,7 +1156,11 @@ function App() {
   const scriptErrors = useFieldValue(store, "__errors__") || {};
 
   // ─── Stable setAnswer callback ───
+  // Whether the respondent has answered anything in this sitting: only then
+  // does leaving the page ask first (useBeforeUnload).
+  const answeredRef = useRef(false);
   const setAnswer = useCallback((id, val) => {
+    answeredRef.current = true;
     const q = itemsById[id];
     store.setMany(q ? answerUpdates(q, val) : { [id]: val });
     // A change to the field invalidates any script-written message for it;
@@ -1291,7 +1295,7 @@ function App() {
   const navRef = useRef({ onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage });
   navRef.current = { onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage };
   useKeyboardShortcuts(navRef, storeRef, visibilityEngine);
-  useBeforeUnload(storeRef, phaseRef);
+  useBeforeUnload(answeredRef, phaseRef);
   const { handleTouchStart, handleTouchEnd } = useTouchGestures(handleNext, handlePrev, ui.allowBack !== false);
 
   // ─── Question numbering ───
