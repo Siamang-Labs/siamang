@@ -1,12 +1,32 @@
-"""Local synthetic response simulator for questionnaires."""
+"""Local synthetic response simulator for questionnaires.
+
+Each simulated respondent moves through the questionnaire the way the runtime
+would move a real one, so the frame has the shape real data will have: the
+same columns, the same holes where a condition hid a question, a branch sent
+someone elsewhere or a screen-out ended the interview.
+
+What is replayed: page, block and question ``show_if`` / ``hide_if``, answer
+options' ``show_if`` / ``hide_if``, ``skip_to``, ``next_if`` and
+``default_next``, terminal pages, and — given the questionnaire's scripts and
+quotas — the arm ``Script.assign_condition`` draws (balanced against the
+quotas when it asks to be), the page order ``Script.randomize_pages`` deals,
+and quota cells that close once their completes reach the limit. Block
+shuffles only change which ``skip_to`` is met first; option shuffles change
+nothing in the data and are not drawn. Other scripts are JavaScript and are
+not run. Every draw comes from one generator seeded once, so a seed gives the
+same frame every time.
+"""
 
 from __future__ import annotations
 
 import random
-from typing import Any
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from siamang.core.block import Block
 from siamang.core.expression import Expression
 from siamang.core.page import Page
 from siamang.core.question import (
@@ -22,9 +42,21 @@ from siamang.core.question import (
     SingleChoice,
 )
 
+if TYPE_CHECKING:
+    from siamang.core.questionnaire import Questionnaire
+    from siamang.core.quota import Quota
+    from siamang.core.script import Script
+    from siamang.data.survey_data import SurveyData
 
-def _simulate_value(question: Question, var=None):
-    """Simulate a single value for a question (or a specific variable within a Matrix)."""
+
+def _simulate_value(question: Question, var=None, answers: dict[str, Any] | None = None):
+    """Simulate a single value for a question (or a specific variable within a Matrix).
+
+    ``answers`` — what this respondent has answered so far — decides which
+    answer options are on offer: an option whose ``show_if`` / ``hide_if``
+    hides it is never picked, and a question whose options are all hidden is
+    left unanswered (None), as nothing could be chosen.
+    """
     if isinstance(question, NumericInput):
         v = var or question.var
         # A half-open range is ordinary — "16 or older" is written (16, None) —
@@ -43,19 +75,19 @@ def _simulate_value(question: Question, var=None):
             return random.choice(list(v.labels.keys()))
         return random.randint(1, 5)
     if isinstance(question, SingleChoice):
-        codes = _choice_codes(question)
+        codes = _choice_codes(question, answers)
         if codes:
             return random.choice(codes)
-        return 1
+        return None if _has_options(question) else 1
     if isinstance(question, MultiChoice) and question.mode == "array":
-        return _simulate_array_multichoice(question)
+        return _simulate_array_multichoice(question, answers)
     if isinstance(question, Ranking):
-        codes = _choice_codes(question)
+        codes = _choice_codes(question, answers)
         if codes:
             max_ranked = question.max_ranked or len(codes)
             count = random.randint(1, min(max_ranked, len(codes)))
             return random.sample(codes, count)
-        return [1]
+        return None if _has_options(question) else [1]
     if isinstance(question, OpenText):
         return _simulate_text(question.format)
     if isinstance(question, Conjoint):
@@ -119,19 +151,32 @@ def _simulate_text(fmt: str) -> str:
     return "sample text"
 
 
-def _choice_codes(question: Question) -> list:
+def _choice_codes(question: Question, answers: dict[str, Any] | None = None) -> list:
     """Return the option codes a respondent could choose, preferring the
-    question's explicit ``choices`` list over the bound Variable.labels."""
+    question's explicit ``choices`` list over the bound Variable.labels.
+
+    With ``answers``, an explicit option hidden by its own ``show_if`` /
+    ``hide_if`` is not among them — the runtime does not render it.
+    """
 
     explicit = getattr(question, "choices", None)
     if explicit:
-        return [opt.code for opt in explicit]
+        return [opt.code for opt in explicit if answers is None or _is_visible(opt, answers)]
     labels = getattr(question.var, "labels", {})
     return list(labels.keys()) if labels else []
 
 
-def _simulate_array_multichoice(question: MultiChoice) -> list:
-    choices = _choice_codes(question) or [1]
+def _has_options(question: Question) -> bool:
+    return bool(getattr(question, "choices", None))
+
+
+def _simulate_array_multichoice(
+    question: MultiChoice, answers: dict[str, Any] | None = None
+) -> list | None:
+    choices = _choice_codes(question, answers)
+    if not choices and _has_options(question):
+        return None  # every option is hidden: nothing to choose
+    choices = choices or [1]
     max_answers = min(question.max_answers or len(choices), len(choices))
     min_answers = min(question.min_answers, max_answers)
     count = random.randint(min_answers, max_answers) if max_answers > 0 else 0
@@ -200,16 +245,20 @@ def _question_variable_names(question: Question) -> list[str]:
 
 
 def _simulate_question_into_row(question: Question, row: dict[str, Any]) -> None:
-    """Simulate a single question's value(s) and write into the row dict."""
+    """Simulate a single question's value(s) and write into the row dict.
+
+    ``row`` is also what the respondent has answered so far, which is what an
+    option's condition reads.
+    """
     if isinstance(question, MultiChoice) and question.mode == "wide":
         row.update(_simulate_wide_multichoice(question))
     elif isinstance(question, MaxDiff | Conjoint):
         row.update(_simulate_value(question))
     elif isinstance(question.var, list):
         for var in question.var:
-            row[var.name] = _simulate_value(question, var=var)
+            row[var.name] = _simulate_value(question, var=var, answers=row)
     else:
-        row[question.var.name] = _simulate_value(question)
+        row[question.var.name] = _simulate_value(question, answers=row)
 
 
 def _set_question_missing(question: Question, row: dict[str, Any]) -> None:
@@ -226,22 +275,37 @@ def _set_question_missing(question: Question, row: dict[str, Any]) -> None:
 
 
 def simulate_dataframe(
-    questions: list[Question], n: int = 100, seed: int | None = 42
+    questions: list[Question],
+    n: int = 100,
+    seed: int | None = 42,
+    *,
+    scripts: Sequence[Script] | None = None,
 ) -> pd.DataFrame:
     """Simulate responses without page-level visibility (legacy flat mode).
 
     This function is kept for backward compatibility. For page-aware simulation
     that respects show_if/hide_if on pages, use ``simulate_from_pages()``.
+    Answer options' conditions still apply, and ``scripts`` adds the arm of
+    every ``Script.assign_condition`` among them, drawn before the questions.
     """
     if seed is not None:
         random.seed(seed)
+    arms = _arms(scripts)
     rows = []
     for _ in range(n):
         row: dict[str, Any] = {}
+        for arm in arms:
+            row[arm.variable] = arm.draw(None)
         for q in questions:
             _simulate_question_into_row(q, row)
         rows.append(row)
-    return pd.DataFrame(rows)
+    frame = pd.DataFrame(rows)
+    if arms and not frame.empty:
+        # Drawn first, as the runtime draws them, but listed after the
+        # questions — where the page walk lists them too.
+        assigned = [arm.variable for arm in arms]
+        frame = frame[[c for c in frame.columns if c not in assigned] + assigned]
+    return frame
 
 
 def _answered(question: Question, row: dict[str, Any]) -> bool:
@@ -266,7 +330,13 @@ def _route_target(page: Page, row: dict[str, Any], visible: list[Question]) -> s
 
 
 def simulate_from_pages(
-    pages: list[Page], n: int = 100, seed: int | None = 42, *, routing: bool = True
+    pages: list[Page],
+    n: int = 100,
+    seed: int | None = 42,
+    *,
+    routing: bool = True,
+    scripts: Sequence[Script] | None = None,
+    quotas: Sequence[Quota] | None = None,
 ) -> pd.DataFrame:
     """Simulate responses respecting visibility and — with ``routing`` —
     the questionnaire's navigation.
@@ -275,12 +345,29 @@ def simulate_from_pages(
     the runtime would: a page's ``show_if`` / ``hide_if`` decides whether it
     is answered (a hidden page is passed over — that is how a screen-out
     placed mid-questionnaire stays out of the way of those who qualify),
-    a question's ``skip_to``, the page's ``next_if`` rules and
-    ``default_next`` decide where "Next" lands, and a visible terminal page
-    (screen-out, final, redirect) ends the interview. Pages never reached
-    stay missing, so a screen-out really leaves the later variables empty
-    and a branch really splits the sample. ``routing=False`` walks every
-    page in document order (the previous behavior).
+    a block's ``show_if`` / ``hide_if`` whether its questions are, an
+    option's whether it can be picked; a question's ``skip_to``, the page's
+    ``next_if`` rules and ``default_next`` decide where "Next" lands, and a
+    visible terminal page (screen-out, final, redirect) ends the interview.
+    Pages never reached stay missing, so a screen-out really leaves the later
+    variables empty and a branch really splits the sample. ``routing=False``
+    walks every page in document order (the previous behavior) and applies
+    no quota.
+
+    ``scripts`` are the questionnaire's (``Questionnaire.scripts``). Each
+    ``Script.assign_condition`` gets its column, one arm drawn per respondent
+    before the first page by the arms' weights — or, with ``balance=True``
+    and a quota cell on every arm, the arm furthest behind its target, as the
+    platform picks it. ``Script.randomize_pages`` deals each respondent their
+    own page order (first, last and terminal pages pinned). Other scripts are
+    JavaScript and are not run.
+
+    ``quotas`` are the compiler options' ``quota`` cells. Leaving a page that
+    answered a variable a cell counts, a respondent whose answer falls in a
+    full cell ends there — the runtime's "quota full" screen, not a complete
+    — and only completes count towards a cell, as ingest counts them. The
+    walk of respondent *k* therefore depends on the *k − 1* before it, which
+    is what makes the sample shape of a quota visible here.
     """
     if seed is not None:
         random.seed(seed)
@@ -290,34 +377,290 @@ def simulate_from_pages(
     for page in pages:
         for q in page.flatten_questions():
             all_var_names.extend(_question_variable_names(q))
-    by_name = {page.name: index for index, page in enumerate(pages)}
+    arms = _arms(scripts)
+    all_var_names += [arm.variable for arm in arms if arm.variable not in all_var_names]
+    shuffled = routing and any(_deals_pages(script) for script in scripts or ())
+    cells = _Cells(quotas if routing else None)
 
     rows = []
     for _ in range(n):
         row: dict[str, Any] = {name: None for name in all_var_names}
+        for arm in arms:
+            row[arm.variable] = arm.draw(cells)
+        order = _dealt(pages) if shuffled else pages
+        by_name = {page.name: index for index, page in enumerate(order)}
+        completed = True
         index = 0
         steps = 0
-        while 0 <= index < len(pages) and steps <= 2 * len(pages):
+        while 0 <= index < len(order) and steps <= 2 * len(order):
             steps += 1
-            page = pages[index]
+            page = order[index]
             page_visible = _is_visible(page, row)
-            visible: list[Question] = []
-            for q in page.flatten_questions():
-                q_visible = page_visible and _is_visible(q, row)
-                if q_visible:
-                    _simulate_question_into_row(q, row)
-                    visible.append(q)
-                else:
-                    _set_question_missing(q, row)
+            visible = _walk_items(page.items, row, page_visible, shuffle=page.randomize_blocks)
             if not routing:
                 index += 1
                 continue
             if page_visible and page.is_terminal:
+                completed = page.kind != "disqualification"
+                break
+            if page_visible and cells.closes(visible, row):
+                completed = False  # the runtime's quota_full screen
                 break
             target = _route_target(page, row, visible) if page_visible else None
             # Like the runtime: a routed target, else the next page in order
             # (a hidden page is passed over, a visible terminal page ends it).
             index = by_name[target] if target is not None and target in by_name else index + 1
+        if completed:
+            cells.count(row)
         rows.append(row)
 
     return pd.DataFrame(rows)
+
+
+def _walk_items(
+    items: Iterable[Question | Block],
+    row: dict[str, Any],
+    visible: bool,
+    *,
+    shuffle: bool = False,
+) -> list[Question]:
+    """Answer the questions under ``items`` (or blank them when hidden).
+
+    Questions are answered in document order, so a condition on an earlier
+    question of the same page reads its answer. The list returned is the
+    questions answered, in the order the runtime displays them — which is
+    the order ``skip_to`` is looked for in. A block's shuffle
+    (``Block.randomize``) and the page's (``Page.randomize_blocks``, which
+    moves blocks among the blocks' own places) change that order and nothing
+    else, so they are drawn only when they are there.
+    """
+
+    slots: list[tuple[bool, list[Question]]] = []  # (is a block, its answered questions)
+    for item in items:
+        if isinstance(item, Block):
+            block_visible = visible and _is_visible(item, row)
+            answered = _walk_items(item.items, row, block_visible)
+            if item.randomize and len(answered) > 1:
+                random.shuffle(answered)
+            slots.append((True, answered))
+            continue
+        if visible and _is_visible(item, row):
+            _simulate_question_into_row(item, row)
+            slots.append((False, [item]))
+        else:
+            _set_question_missing(item, row)
+    if shuffle:
+        places = [i for i, (is_block, _) in enumerate(slots) if is_block]
+        if len(places) > 1:
+            moved = [slots[i] for i in places]
+            random.shuffle(moved)
+            for place, slot in zip(places, moved, strict=True):
+                slots[place] = slot
+    return [question for _, answered in slots for question in answered]
+
+
+def simulate_questionnaire(
+    survey: Questionnaire,
+    n: int = 100,
+    seed: int | None = 42,
+    *,
+    quotas: Sequence[Quota] | None = None,
+    routing: bool = True,
+) -> pd.DataFrame:
+    """The frame :func:`simulate_from_pages` gives, with the questionnaire's
+    own scripts. ``quotas`` are the compiler options' ``quota`` (a document's
+    ``quotas``, ``LoadedSurvey.quotas``): the questionnaire does not carry
+    them. A questionnaire of blocks rather than pages is simulated flat."""
+
+    if survey.pages:
+        return simulate_from_pages(
+            survey.pages, n=n, seed=seed, routing=routing, scripts=survey.scripts, quotas=quotas
+        )
+    return simulate_dataframe(survey.all_questions(), n=n, seed=seed, scripts=survey.scripts)
+
+
+def simulate_survey(
+    survey: Questionnaire,
+    n: int = 100,
+    seed: int | None = 42,
+    *,
+    quotas: Sequence[Quota] | None = None,
+) -> SurveyData:
+    """:meth:`Questionnaire.simulate` with the scripts and the quotas: the
+    frame of :func:`simulate_questionnaire` and its codebook — the
+    questionnaire's variables, or the questions' when it declares none, and a
+    nominal variable for every assigned arm the codebook does not already
+    have, labeled with the arms."""
+
+    from siamang.core.variable import Variable, VariableMap
+    from siamang.data.survey_data import SurveyData
+
+    frame = simulate_questionnaire(survey, n=n, seed=seed, quotas=quotas)
+    variables = survey.variables or VariableMap()
+    if not variables:
+        variables = VariableMap()
+        for question in survey.all_questions():
+            for variable in question.var if isinstance(question.var, list) else [question.var]:
+                if variable.name not in variables:
+                    variables.add(variable)
+    missing = [arm for arm in _arms(survey.scripts) if arm.variable not in variables]
+    if missing:
+        known = VariableMap()
+        for variable in variables.values() if isinstance(variables, dict) else variables:
+            known.add(variable)
+        for arm in missing:
+            known.add(
+                Variable(
+                    arm.variable,
+                    "nominal",
+                    label=arm.variable,
+                    labels=dict(zip(arm.codes, arm.labels, strict=True)),
+                    description="Arm drawn by Script.assign_condition",
+                )
+            )
+        variables = known
+    return SurveyData(frame=frame, variables=variables, questionnaire=survey)
+
+
+# ─── scripts ──────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class _Arm:
+    """One ``Script.assign_condition``: where the arm goes and how it is drawn."""
+
+    variable: str
+    codes: tuple[Any, ...]
+    labels: tuple[str, ...]
+    weights: tuple[int, ...]
+    balance: bool
+
+    def draw(self, cells: _Cells | None) -> Any:
+        """The runtime's draw: a cut through the cumulative weights. A balanced
+        assignment then takes the arm the quotas say is furthest behind, when
+        they can say so, and keeps the draw when they cannot."""
+        cut = random.random() * sum(self.weights)
+        chosen = self.codes[-1]
+        for code, weight in zip(self.codes, self.weights, strict=True):
+            cut -= weight
+            if cut < 0:
+                chosen = code
+                break
+        if self.balance and cells is not None:
+            picked = cells.pick(self.variable, self.codes)
+            if picked is not None:
+                chosen = picked
+        return chosen
+
+
+def _arms(scripts: Sequence[Script] | None) -> list[_Arm]:
+    arms: list[_Arm] = []
+    for script in scripts or ():
+        variable = getattr(script, "assigns", None)
+        if not variable or any(arm.variable == variable for arm in arms):
+            continue
+        context = script.context or {}
+        spec = [arm for arm in context.get("arms", []) if isinstance(arm, list | tuple) and arm]
+        if not spec:
+            continue
+        arms.append(
+            _Arm(
+                variable=variable,
+                codes=tuple(arm[0] for arm in spec),
+                labels=tuple(str(arm[1]) if len(arm) > 1 else str(arm[0]) for arm in spec),
+                weights=tuple(int(arm[2]) if len(arm) > 2 else 1 for arm in spec),
+                balance=bool(context.get("balance")),
+            )
+        )
+    return arms
+
+
+def _deals_pages(script: Script) -> bool:
+    """``Script.randomize_pages()`` — known by the name and trigger it makes."""
+    return script.name == "randomize_pages" and script.trigger == "onInit"
+
+
+def _dealt(pages: list[Page]) -> list[Page]:
+    """One respondent's page order, as ``Script.randomize_pages`` deals it: the
+    first and last page and every terminal page keep their place, the others
+    are shuffled into the remaining places."""
+    pinned = [
+        index == 0 or index == len(pages) - 1 or page.is_terminal
+        for index, page in enumerate(pages)
+    ]
+    movable = [page for page, pin in zip(pages, pinned, strict=True) if not pin]
+    if len(movable) < 2:
+        return list(pages)
+    random.shuffle(movable)
+    dealt = iter(movable)
+    return [page if pin else next(dealt) for page, pin in zip(pages, pinned, strict=True)]
+
+
+# ─── quotas ───────────────────────────────────────────────────────────────────
+
+
+def _same_code(a: Any, b: Any) -> bool:
+    """A code from a document and one from a draw: ``1`` and ``"1"`` are one arm."""
+    return a == b or str(a) == str(b)
+
+
+def _values(value: Any) -> list[Any]:
+    """An answer as the codes it holds: a multiple choice counts every one."""
+    if value is None:
+        return []
+    if isinstance(value, list | tuple | set):
+        return list(value)
+    return [value]
+
+
+class _Cells:
+    """The quota counters, as ingest keeps them: completes only."""
+
+    def __init__(self, quotas: Sequence[Quota] | None) -> None:
+        self.quotas = list(quotas or [])
+        self.counts = [0] * len(self.quotas)
+
+    def closes(self, answered: list[Question], row: dict[str, Any]) -> bool:
+        """Does an answer given on this page fall in a full cell?"""
+        if not self.quotas:
+            return False
+        names = {name for question in answered for name in _question_variable_names(question)}
+        for quota, count in zip(self.quotas, self.counts, strict=True):
+            if quota.variable not in names or count < quota.limit:
+                continue
+            if any(
+                _same_code(value, quota.target_value) for value in _values(row.get(quota.variable))
+            ):
+                return True
+        return False
+
+    def count(self, row: dict[str, Any]) -> None:
+        for index, quota in enumerate(self.quotas):
+            if any(
+                _same_code(value, quota.target_value) for value in _values(row.get(quota.variable))
+            ):
+                self.counts[index] += 1
+
+    def pick(self, variable: str, codes: Sequence[Any]) -> Any | None:
+        """The arm furthest behind its own target — completes over limit, so a
+        2:1 design stays 2:1 — ties drawn at random. None when an arm has no
+        cell (a partial quota cannot balance) or every cell is full."""
+        ratios: list[tuple[float, Any]] = []
+        for code in codes:
+            cell = next(
+                (
+                    (count, quota.limit)
+                    for quota, count in zip(self.quotas, self.counts, strict=True)
+                    if quota.variable == variable and _same_code(quota.target_value, code)
+                ),
+                None,
+            )
+            if cell is None:
+                return None
+            count, limit = cell
+            if limit > 0 and count < limit:
+                ratios.append((count / limit, code))
+        if not ratios:
+            return None
+        best = min(ratio for ratio, _ in ratios)
+        return random.choice([code for ratio, code in ratios if ratio == best])

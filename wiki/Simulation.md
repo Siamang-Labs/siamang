@@ -51,21 +51,30 @@ Each question type produces plausible values:
 
 ---
 
-## Skip logic is respected
+## The questionnaire's logic is replayed
 
-When the questionnaire is defined with **pages**, `simulate` evaluates each
-respondent's answers row-by-row in page order and honors visibility logic:
+When the questionnaire is defined with **pages**, each simulated respondent
+starts on the first page and moves the way the runtime would move them. Every
+condition is evaluated against the answers collected *so far*:
 
-- A page's `show_if`/`hide_if` is evaluated against the answers collected *so
-  far*. If the page is hidden, **every variable on it is set to `NaN`** for that
-  respondent.
-- Each question's own `show_if`/`hide_if` is likewise evaluated; hidden
-  questions produce `NaN`.
+- A page's `show_if`/`hide_if` decides whether it is answered; a hidden page is
+  passed over and **every variable on it is `NaN`** for that respondent.
+- A **block's** `show_if`/`hide_if` does the same for the questions inside it,
+  nested blocks included.
+- A question's own `show_if`/`hide_if` hides it the same way.
+- An **answer option's** `show_if`/`hide_if` decides whether it can be picked:
+  a hidden option is never chosen, and a question whose options are all hidden
+  is left unanswered.
+- `skip_to` (on the first answered question, in the order shown), the page's
+  `next_if` rules and `default_next` decide where "Next" lands; a visible
+  terminal page — screen-out, final, redirect — ends the interview, and pages
+  never reached stay `NaN`.
 
 This means simulated data reproduces the *missingness pattern* your real data
 will have. A question gated behind `consent == 1` will only have values for the
 respondents whose simulated `consent` is `1`. See
 [[Visibility and Branching|Visibility-and-Branching]] for the expression DSL.
+A condition written as a string is not parsed here: it never hides anything.
 
 ```python
 from siamang.core import Variable, SingleChoice, LikertScale, Page, Questionnaire
@@ -91,14 +100,49 @@ print(data.frame["consent"].value_counts(dropna=False).to_dict())
 print(int(data.frame["autonomy"].isna().sum()))
 ```
 
-> Page-level skip logic is only applied in **pages mode**. In the legacy flat
-> (`blocks`) mode every question is answered for every respondent.
+> In the legacy flat (`blocks`) mode every question is answered for every
+> respondent; only answer-option conditions apply.
 
-> **Known limitation:** `simulate()` honors only `show_if`/`hide_if` at the page
-> and question level. Routing (`next_if`, `default_next`, `skip_to`) is *not*
-> replayed — every page is processed in document order regardless of routing
-> rules — and `show_if`/`hide_if` on a `Block` inside a page is not applied
-> either. To see routing in action, use the runtime (`siamang preview`).
+### Scripts and quotas: `simulate_survey`
+
+`Questionnaire.simulate()` sees the pages only. The questionnaire's scripts
+live on the questionnaire and its quotas in the compiler options, so
+`siamang.local_simulator.simulate_survey` takes both:
+
+```python
+from siamang.local_simulator import simulate_survey
+
+data = simulate_survey(survey, n=500, seed=42, quotas=options["quota"])
+```
+
+- **`Script.assign_condition`** — its variable gets a column, one arm per
+  respondent drawn before the first page by the arms' weights, so pages and
+  questions gated on the arm are shown to that arm only. With `balance=True`
+  and a quota cell on every arm, each respondent goes to the arm furthest
+  behind its own target (completes ÷ limit, ties drawn at random), as the
+  platform picks it. The codebook gains a nominal variable for the arm,
+  labeled with the arms, unless it already declares one.
+- **`Script.randomize_pages`** — every respondent gets their own page order,
+  with the first and last page and every terminal page kept in place, so a
+  page gated on an answer the shuffle puts after it is hidden for those
+  respondents, as it would be in the field.
+- **`Block.randomize` / `Page.randomize_blocks`** change the order questions
+  are shown in, which decides which `skip_to` is met first; nothing else in
+  the data depends on order, and option shuffles are not drawn at all.
+- **Quotas** — leaving a page that answered a quota's variable, a respondent
+  whose answer falls in a full cell ends there (the runtime's "quota full"
+  screen, not a complete); a multiple-choice answer meets every cell it names.
+  Only completes fill a cell — a screen-out never does — so the quota's effect
+  on the sample shows: once ten owners have completed, the eleventh stops at
+  the screener.
+
+Other scripts are JavaScript and are not run. A flow's **Simulated data** node
+(`source.simulated`) runs `simulate_survey` on the project's questionnaire, so
+its arms and page shuffles are there; quotas are deploy options rather than
+part of the questionnaire, so no cell closes in a flow. `simulate_questionnaire`
+returns the same frame without the codebook, and `simulate_from_pages(pages, n, seed,
+scripts=…, quotas=…)` is the walk itself. Every draw comes from one generator
+seeded once: the same seed gives the same frame, scripts and quotas included.
 
 ---
 
