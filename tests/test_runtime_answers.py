@@ -261,3 +261,53 @@ class TestAddedCodesLint:
         survey = _survey(sg.LikertScale("Sat?", var=plain, points=3, na_option=True))
         assert "NA_STORED_AS_TEXT" not in self._codes(survey)
         assert "NA_STORED_AS_TEXT" in {w.code for w in survey.lint(level="strict")}
+
+
+# ── Quotas: the variables the runtime checks when a page is left ─────────────
+
+
+class TestQuotaVariables:
+    def _survey(self):
+        gender = sg.Variable("gender", scale="nominal", labels={1: "M", 2: "F"})
+        return _survey(sg.SingleChoice("Gender?", var=gender))
+
+    def test_the_payload_names_the_quota_variables_not_their_cells(self):
+        quotas = [sg.Quota("gender", 1, 100), sg.Quota("gender", 2, 100)]
+        survey_meta = compile_react_payload(self._survey(), options={"quota": quotas})["SURVEY"]
+        assert survey_meta["quotaVars"] == ["gender"]
+        compiled = [{"variable": "gender", "target_value": 1, "limit": 100}]
+        survey_meta = compile_react_payload(self._survey(), options={"quotas": compiled})["SURVEY"]
+        assert survey_meta["quotaVars"] == ["gender"]
+        assert "quotaVars" not in compile_react_payload(self._survey())["SURVEY"]
+
+    def test_a_built_survey_carries_its_quota_variables(self):
+        import json
+
+        from siamang.frontend import ClientEnv, FrontendBuilder, LocalClientTemplate, ReactRuntime
+
+        survey = self._survey()
+        schema = survey.compile(quota=[sg.Quota("gender", 1, 10)])
+        bundle = FrontendBuilder(runtime=ReactRuntime()).build(
+            schema,
+            client=LocalClientTemplate(),
+            env=ClientEnv(survey_id="s", backend="local", settings={}),
+            survey=survey,
+        )
+        html = bundle.files["index.html"]
+        survey_json = html.split("window.SURVEY = ", 1)[1].split(";\n", 1)[0]
+        assert json.loads(survey_json)["quotaVars"] == ["gender"]
+
+    def test_a_bundled_transport_throws_rather_than_say_full_on_a_failed_request(self):
+        from siamang.frontend import ClientEnv, LocalClientTemplate, SupabaseClientTemplate
+        from siamang.frontend.client import GoogleSheetsClientTemplate
+
+        env = ClientEnv(survey_id="s", backend="x", settings={"url": "u", "anon_key": "k"})
+        for template in (LocalClientTemplate(), SupabaseClientTemplate()):
+            js = template.render_env_js(env)
+            check = js.split("async checkQuota", 1)[1].split("async pickQuota", 1)[0]
+            assert 'throw new Error("quota check failed: "' in check
+            assert "return { ok: false }" not in check
+        gsheets = GoogleSheetsClientTemplate().render_env_js(
+            ClientEnv(survey_id="s", backend="gsheets", settings={"spreadsheet_id": "x"})
+        )
+        assert 'throw new Error("quota check failed: "' in gsheets.split("async checkQuota", 1)[1]

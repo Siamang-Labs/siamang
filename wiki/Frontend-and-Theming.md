@@ -200,6 +200,14 @@ value one of its codes, plus `__status` (`"completed"`, `"screened_out"` or
 The runtime's own state (`__pages__`, `__options__`, `__errors__`, `__timers__`) is
 never sent. See [[Question Types|Question-Types]] for the codes.
 
+The other calls, all optional on the transport:
+
+| Call | When | Answer the runtime expects |
+| :--- | :--- | :--- |
+| `checkQuota(variable, value)` | leaving a page, for each quota variable with a value not yet found open (`value` is a list for a `MultiChoice`) | `{ok: true}`, or `{ok: false}` when a cell holding the value is full — the interview then ends as "quota full". A throw or a slow answer (4 s) never stops anyone. See [[Quotas]]. |
+| `pickQuota(variable, values)` | a balanced `Script.assign_condition` before the first page | `{ok: true, value}` — the arm to assign |
+| `onPage({name, index, total})` | every page change | nothing |
+
 ---
 
 ## `UIConfig` — the design system

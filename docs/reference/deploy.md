@@ -148,7 +148,10 @@ three are still empty.
 - A single shared `responses` table with a `survey_id` column.
 - A `survey_meta` table tracking each deployed survey's schema.
 - RLS policies: anon can `INSERT`, authenticated can `SELECT`/`DELETE`.
-- Quota counters live in `quota_counters`, updated by an Edge Function.
+- Quota counters live in `quota_counters`, updated by an Edge Function you
+  deploy (the one `quota_function` names, default `quota-check`); the runtime
+  posts `{survey_id, variable, value}` to it and ends the interview only on
+  `{"ok": false}` — without the function no respondent is stopped.
 
 **Provisioning modes:**
 
@@ -293,7 +296,10 @@ class LocalFrontend(FrontendAdapter):
 
 FastAPI + uvicorn come pre-installed. `publish(...)` starts a background
 FastAPI server that serves the bundle and forwards
-`POST /responses` and `POST /quota-check` to the backend. The thread
+`POST /responses` and `POST /quota-check` to the backend (the runtime calls
+the latter when a respondent leaves a page that answered a quota variable;
+it answers with `increment_quota`, so each check claims a place in the
+cell). The thread
 stays alive until you call `local_frontend.stop()` (the CLI's
 `siamang preview` blocks the main thread until Ctrl+C and then stops).
 

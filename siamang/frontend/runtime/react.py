@@ -122,6 +122,7 @@ class ReactRuntime(RuntimeAdapter):
                 "description": context.schema.description,
                 "show_progress": context.schema.show_progress,
                 "completion_text": context.schema.completion_text,
+                "quotas": context.schema.quotas,
             },
         )
 
