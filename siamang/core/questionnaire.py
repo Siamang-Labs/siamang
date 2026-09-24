@@ -286,8 +286,9 @@ class Questionnaire:
         ``Script.assign_condition`` and the page order ``Script.randomize_pages``
         deals. It is :func:`siamang.local_simulator.simulate_survey` without
         quotas, which live in the compiler options — pass them to
-        ``simulate_survey`` for their effect. A questionnaire without those
-        scripts gets the frame it always got."""
+        ``simulate_survey`` for their effect. A questionnaire of pages without
+        those scripts gets the frame it always got; one of blocks is walked on
+        the pages the runtime makes of it, a page per block."""
 
         from siamang.local_simulator import simulate_survey
 

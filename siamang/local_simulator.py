@@ -503,13 +503,16 @@ def simulate_questionnaire(
     """The frame :func:`simulate_from_pages` gives, with the questionnaire's
     own scripts. ``quotas`` are the compiler options' ``quota`` (a document's
     ``quotas``, ``LoadedSurvey.quotas``): the questionnaire does not carry
-    them. A questionnaire of blocks rather than pages is simulated flat."""
+    them. A questionnaire of blocks rather than pages is walked on the pages
+    the runtime makes of it — a page per block, gated by the block's
+    conditions (one page when loose questions sit among the blocks)."""
 
-    if survey.pages:
-        return simulate_from_pages(
-            survey.pages, n=n, seed=seed, routing=routing, scripts=survey.scripts, quotas=quotas
-        )
-    return simulate_dataframe(survey.all_questions(), n=n, seed=seed, scripts=survey.scripts)
+    from siamang.frontend.compiler.react import _pages_for_react
+
+    pages = survey.pages or list(_pages_for_react(survey))
+    return simulate_from_pages(
+        pages, n=n, seed=seed, routing=routing, scripts=survey.scripts, quotas=quotas
+    )
 
 
 def simulate_survey(

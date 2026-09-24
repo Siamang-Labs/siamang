@@ -102,8 +102,10 @@ print(data.frame["consent"].value_counts(dropna=False).to_dict())
 print(int(data.frame["autonomy"].isna().sum()))
 ```
 
-> In the legacy flat (`blocks`) mode every question is answered for every
-> respondent; only answer-option conditions apply.
+> A questionnaire made of `blocks` rather than pages is walked on the pages the
+> runtime makes of it: a page per block, which the block's `show_if` / `hide_if`
+> gate (one page when loose questions sit among the blocks), so block and
+> question conditions, arms and quotas apply as they do with pages.
 
 ### Scripts and quotas: `simulate_survey`
 
