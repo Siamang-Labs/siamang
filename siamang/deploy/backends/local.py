@@ -55,28 +55,50 @@ def cell_values(value: Any) -> list[str]:
     a list, each value it holds, once. Nothing else fills a cell: a quota
     target is a single code."""
 
-    out: list[str] = []
+    out: dict[str, None] = {}
     for item in value if isinstance(value, list) else [value]:
         if item is None or isinstance(item, dict | list):
             continue
         if isinstance(item, float) and item.is_integer():
             item = int(item)
-        encoded = json.dumps(item)
-        if encoded not in out:
-            out.append(encoded)
-    return out
+        out.setdefault(json.dumps(item))
+    return list(out)
 
 
-def quota_cells(payload: dict[str, Any]) -> list[tuple[str, str]]:
+def quota_cells(
+    payload: dict[str, Any], list_variables: set[str] | frozenset[str] = frozenset()
+) -> list[tuple[str, str]]:
     """Every ``(variable, value)`` cell a response's answers fill; the
-    runtime's own ``__`` keys (``__status``) fill none."""
+    runtime's own ``__`` keys (``__status``) fill none. A list fills the cell
+    of each value it holds only for a variable answered with one
+    (``list_variables``: an array ``MultiChoice``, a ``Ranking``); posted for
+    any other variable it fills none — one submission must not take a place
+    in every cell of a single-answer quota."""
 
     return [
         (variable, cell)
         for variable, value in payload.items()
         if isinstance(variable, str) and not variable.startswith("__")
+        if not isinstance(value, list) or variable in list_variables
         for cell in cell_values(value)
     ]
+
+
+def list_variables(schema: dict[str, Any]) -> set[str]:
+    """The variables a compiled survey (``SurveySchema.to_dict()``) stores a
+    list in: an array ``MultiChoice``'s and a ``Ranking``'s."""
+
+    out: set[str] = set()
+    for page in schema.get("pages") or []:
+        for element in (page.get("elements") if isinstance(page, dict) else None) or []:
+            if not isinstance(element, dict) or not isinstance(element.get("name"), str):
+                continue
+            kind = element.get("type")
+            if kind == "ranking" or (
+                kind == "checkbox" and element.get("multiChoiceMode", "array") != "wide"
+            ):
+                out.add(element["name"])
+    return out
 
 
 @dataclass(slots=True)
@@ -150,7 +172,19 @@ class LocalBackend(BackendAdapter):
                 (survey_id, json.dumps(payload, ensure_ascii=False)),
             )
             if payload.get("__status") != "screened_out":
-                for variable, value in quota_cells(payload):
+                # The survey's cells, looked up in a set: an answer posted with
+                # thousands of values costs one pass, not a query per value.
+                cells = {
+                    (variable, value)
+                    for variable, value in conn.execute(
+                        "SELECT variable, value FROM quota_counters WHERE survey_id=?",
+                        (survey_id,),
+                    )
+                }
+                lists = self._list_variables(conn, survey_id) if cells else set()
+                for variable, value in quota_cells(payload, lists):
+                    if (variable, value) not in cells:
+                        continue
                     conn.execute(
                         "UPDATE quota_counters SET current = current + 1 "
                         "WHERE survey_id=? AND variable=? AND value=?",
@@ -161,18 +195,31 @@ class LocalBackend(BackendAdapter):
 
     def check_quota(self, survey_id: str, variable: str, value: Any) -> bool:
         """Whether the cell of ``value`` still has room; for a list, whether
-        every value's cell has. It claims nothing — completed responses are
-        counted when they are stored."""
+        every value's cell has — a list for a variable not answered with one
+        names no cell (see :func:`quota_cells`). It claims nothing — completed
+        responses are counted when they are stored."""
 
         with closing(sqlite3.connect(self.path)) as conn:
-            for cell in cell_values(value):
-                row = conn.execute(
-                    "SELECT target, current FROM quota_counters WHERE survey_id=? AND variable=? AND value=?",
-                    (survey_id, variable, cell),
-                ).fetchone()
-                if row is not None and row[1] >= row[0]:
-                    return False
-            return True
+            rows = conn.execute(
+                "SELECT value, target, current FROM quota_counters WHERE survey_id=? AND variable=?",
+                (survey_id, variable),
+            ).fetchall()
+            if not rows:
+                return True
+            if isinstance(value, list) and variable not in self._list_variables(conn, survey_id):
+                return True
+            wanted = set(cell_values(value))
+            return not any(cell in wanted and current >= target for cell, target, current in rows)
+
+    @staticmethod
+    def _list_variables(conn: sqlite3.Connection, survey_id: str) -> set[str]:
+        row = conn.execute(
+            "SELECT schema_json FROM survey_meta WHERE survey_id=?", (survey_id,)
+        ).fetchone()
+        try:
+            return list_variables(json.loads(row[0])) if row else set()
+        except (TypeError, ValueError, AttributeError):
+            return set()
 
     def increment_quota(self, survey_id: str, variable: str, value: Any) -> bool:
         """Atomically check + increment a quota counter. Returns False when full.

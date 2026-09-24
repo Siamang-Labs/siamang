@@ -532,7 +532,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`check_quota`, which takes a list and is full when any value's cell is),
   and `store_response` counts a completed response — anything but
   `__status: "screened_out"` — in every cell its answers fill, a list answer
-  in the cell of each value it holds, as Studio counts them.
+  in the cell of each value it holds, as Studio counts them. Only a variable
+  answered with a list (an array `MultiChoice`, a `Ranking`) is counted that
+  way: a list posted for a single-answer variable fills no cell, so one
+  submission cannot take a place in every cell of it. Both go through the
+  survey's cells in one pass, whatever the length of the list posted.
 - The autosave of an interview that had ended was written back after it
   ended. It is written 2 s after the last answer, and ending the interview
   (Submit, a full quota on leaving a page or in the reply to a submission)
