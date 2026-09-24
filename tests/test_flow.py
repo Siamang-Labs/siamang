@@ -907,6 +907,20 @@ def test_generate_flow_variants(questionnaire_doc):
     assert '"--data-a"' in code and '"--data-b"' in code
     assert "if args.a_data:" in code and "if args.b_data:" in code
     assert "from siamang_cloud import db" in code
+    # A platform-only step in a flow with several sources is skipped when any
+    # snapshot is given; it used to test `args.data`, which that script lacks.
+    writes = _flow(
+        [
+            ("a", "source.responses", {}),
+            ("b", "source.table", {"table": "clean"}),
+            ("keep", "output.write_table", {"name": "out"}),
+        ],
+        [("a", "data", "keep", "data")],
+    )
+    code = generate_flow(writes, questionnaire_doc)
+    assert "args.data:" not in code
+    assert "if not (args.a_data or args.b_data):  # platform only" in code
+    compile(code, "two.py", "exec")
     local_only = _flow(
         [("sim", "source.simulated", {}), ("f", "analyze.freq", {"variable": "region"})],
         [("sim", "data", "f", "data")],
