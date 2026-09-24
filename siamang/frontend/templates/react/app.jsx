@@ -401,6 +401,28 @@ const ScriptRunner = {
     return true;
   },
 
+  /* What a script's `context` holds besides the Script's own static context:
+     what the runtime knows at the trigger. A key the Script sets itself wins,
+     so a script written against its own `page` or `trigger` keeps it. */
+  _context(trigger, target, answers) {
+    const session = interviewSession;
+    const out = {
+      trigger,
+      startedAt: session.startedAt,
+      respondentId: (answers && answers.__respondent__) || null,
+      surveyId: session.surveyId,
+      page: session.page,
+      pageEnteredAt: session.pageEnteredAt,
+    };
+    if (target && (trigger === "onPageEnter" || trigger === "onPageExit")) {
+      // The page entered or left; its entry time only when it is that page's.
+      if (target !== session.page) out.pageEnteredAt = null;
+      out.page = target;
+    }
+    if (target && (trigger === "onQuestionShow" || trigger === "onAnswer")) out.question = target;
+    return out;
+  },
+
   run(trigger, answers, context = {}, target = null) {
     const scripts = (window.SURVEY && window.SURVEY.scripts) || [];
     if (!scripts.length) return;
@@ -429,10 +451,11 @@ const ScriptRunner = {
     // Everything before the first `await` still runs synchronously inside
     // this call, so a script that never awaits behaves exactly as before.
     const pending = [];
+    const runtimeContext = { ...ScriptRunner._context(trigger, target, work), ...context };
     for (const script of matching) {
       try {
         const fn = new AsyncFunction("answers", "utils", "api", "context", script.code);
-        const result = fn(work, ScriptRunner._utils, ScriptRunner._api, { ...script.context, ...context });
+        const result = fn(work, ScriptRunner._utils, ScriptRunner._api, { ...runtimeContext, ...(script.context || {}) });
         if (result && typeof result.then === "function") {
           pending.push(result.catch((err) => {
             console.warn(`siamang Script error [${script.name || script.trigger}]:`, err);
@@ -959,6 +982,8 @@ function App() {
   const storeRef = useRef(store);
   storeRef.current = store;
   ScriptRunner._store = store;
+  const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
+  interviewSession.surveyId = env.survey_id || ui.surveyId || null;
 
   // ─── Visibility Engine ───
   const visibilityEngine = useVisibilityEngine(allPages, store);
@@ -995,6 +1020,15 @@ function App() {
   const [accessGranted, setAccessGranted] = useState(!(ui.requireAccessCode && ui.accessCodes));
   const [accessCode, setAccessCode] = useState("");
   const [accessError, setAccessError] = useState(false);
+
+  // ─── The page on screen, for scripts' context (page, pageEnteredAt) ───
+  // Before the lifecycle triggers below, so each of them sees it.
+  const sessionPageName = nav.currentPage ? nav.currentPage.name : null;
+  useEffect(() => {
+    if (!sessionPageName || interviewSession.page === sessionPageName) return;
+    interviewSession.page = sessionPageName;
+    interviewSession.pageEnteredAt = Date.now();
+  }, [sessionPageName]);
 
   // ─── Initializing ───
   const [initializing, setInitializing] = useState(true);
@@ -1275,6 +1309,8 @@ function App() {
                 for (const [k, v] of Object.entries(store.snapshot())) if (k.startsWith("__")) internal[k] = v;
                 store.replace({ ...internal, ...upgradeSavedAnswers(allPages, savedData.answers) });
                 nav.restoreHistory(savedData.history);
+                // The interview began in the sitting that saved it.
+                if (Number.isFinite(savedData.startedAt)) interviewSession.startedAt = savedData.startedAt;
                 nav.setPageIdx(savedData.pageIdx);
                 setSavedData(null);
               }}>{uiTexts.resumeAction}</button>

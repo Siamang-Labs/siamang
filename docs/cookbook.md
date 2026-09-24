@@ -203,11 +203,12 @@ log_dwell = sg.Script(
     name="log_dwell",
     trigger="onPageExit",
     code="""
-        const entered = context.entered ?? Date.now();
-        const dwell_ms = Date.now() - entered;
+        // context.page / pageEnteredAt: the page being left and when it was
+        // entered; context.surveyId: the survey's id (see the Scripts page).
+        const dwell_ms = utils.now() - context.pageEnteredAt;
         api.post('/diagnostics', {
-            survey_id: context.survey_id,
-            page: context.page_name,
+            survey_id: context.surveyId,
+            page: context.page,
             dwell_ms,
         });
     """,

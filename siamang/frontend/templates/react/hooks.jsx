@@ -47,6 +47,15 @@ function useTheme(defaultTheme, allowSwitch, surveyId) {
   return { theme, toggle };
 }
 
+/* ─── The interview's session ──────────────────────────────────────────── */
+
+/* What the runtime knows about this interview beyond its answers, for the
+   `context` a script receives (ScriptRunner._context): when it started — the
+   page load, or for a respondent who resumed, the sitting that saved the
+   progress (kept with the autosave) — the survey's id, and the page on
+   screen with the time it was entered. One interview per page load. */
+const interviewSession = { startedAt: Date.now(), surveyId: null, page: null, pageEnteredAt: null };
+
 /* ─── useAutosave ──────────────────────────────────────────────────────── */
 
 function useAutosave(store, surveyId, pageIdxRef, historyRef) {
@@ -79,6 +88,7 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
         }
         const data = { answers: cleanAnswers, pageIdx: currentPage, savedAt: new Date().toISOString() };
         if (historyRef && Array.isArray(historyRef.current)) data.history = historyRef.current.slice();
+        data.startedAt = interviewSession.startedAt;
         localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(data));
       } catch (e) { /* quota exceeded */ }
     });

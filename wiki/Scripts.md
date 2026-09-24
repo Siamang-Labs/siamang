@@ -30,8 +30,8 @@ class Script:
 | `trigger` | `str` | `"onPageEnter"` | Lifecycle event that runs the script (see below). |
 | `name` | `str \| None` | `None` | Optional identifier shown in logs; useful for debugging. |
 | `target` | `str \| None` | `None` | Scope to a page name or question id; `None` runs globally at the trigger. |
-| `context` | `dict[str, Any]` | `{}` | Static data passed into the script at runtime. |
-| `sandbox` | `bool` | `True` | Run in a restricted scope (no DOM access). |
+| `context` | `dict[str, Any]` | `{}` | Static data passed into the script at runtime, next to what the runtime adds (see below); a key set here wins. |
+| `sandbox` | `bool` | `True` | Recorded and kept in the document, but **not applied**: the React runtime runs every script in the survey page with the page's own access (DOM, network, `window`). Treat a script as part of the page. |
 
 Construction validates the trigger (unknown triggers raise `ValueError`), requires
 non-empty `code`, and rejects an empty `name`. `to_dict()` serializes the script for
@@ -78,8 +78,22 @@ Inside a snippet you have these globals:
   same way but leaves every option marked `fixed` (None of the above, exclusive
   answers, a choice that is Other) where it is.
 - **`api`** — `{ get, post }` for external HTTP calls.
-- **`context`** — exactly the static `context` dict you passed on the `Script`;
-  the runtime injects nothing else into it.
+- **`context`** — the static `context` dict you passed on the `Script`, plus what the
+  runtime knows at the trigger (a key of your own wins):
+
+  | Key | Value |
+  | :--- | :--- |
+  | `trigger` | the trigger that ran the script (`"onSubmit"`, …) |
+  | `startedAt` | when the interview started, in ms since the epoch: the page load, or for a respondent who resumed saved progress, the sitting that saved it |
+  | `respondentId` | the interview's respondent id (`answers.__respondent__`) |
+  | `surveyId` | the survey's id as the transport knows it (`SIAMANG_ENV.survey_id`), or `null` |
+  | `page` | the page on screen — for `onPageEnter` / `onPageExit` the page entered or left; `null` before the first page |
+  | `pageEnteredAt` | when that page was entered (ms), so `utils.now() - context.pageEnteredAt` on `onPageExit` is the time spent on it |
+  | `question` | for `onQuestionShow` / `onAnswer`, the answer key of the question shown or answered — also for a script without a target |
+
+  Keys starting with `__` in `answers` are the runtime's own and are never submitted:
+  to record something a script works out (a speeder flag), write it under a plain
+  variable name.
 
 ```python
 import siamang as sg
@@ -89,7 +103,18 @@ custom = sg.Script(
     trigger="onPageExit",
     context={"endpoint": "/diagnostics"},
     code="""
-        api.post(context.endpoint, { left_at: utils.now() });
+        api.post(context.endpoint, {
+            page: context.page,
+            dwell_ms: utils.now() - context.pageEnteredAt,
+        });
+    """,
+)
+
+speeders = sg.Script(
+    name="flag_speeders",
+    trigger="onSubmit",
+    code="""
+        answers.speeder = utils.now() - context.startedAt < 60000 ? 1 : 0;
     """,
 )
 ```

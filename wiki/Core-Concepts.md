@@ -155,8 +155,8 @@ in [[Visibility and Branching|Visibility-and-Branching]].
 
 ## Lifecycle scripts (overview)
 
-`Script` injects a sandboxed JavaScript snippet that runs in the respondent's
-browser at one of seven trigger points (`onInit`, `onPageEnter`, `onPageExit`,
+`Script` injects a JavaScript snippet that runs in the respondent's browser, as
+part of the survey page, at one of seven trigger points (`onInit`, `onPageEnter`, `onPageExit`,
 `onQuestionShow`, `onAnswer`, `onSubmit`, `onRandomize`). Inside the snippet you have
 `answers`, `utils`, `api`, and `context`. Built-in factories cover the common cases
 (randomizing options/pages, matched-field validation, timed questions). See
