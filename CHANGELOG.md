@@ -460,6 +460,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   document also declared it in `variables`, although real responses and
   Simulated data carry the column. The arm now counts as known, as it does for
   `validate()`, and is nominal unless the codebook says otherwise.
+- The local server (`siamang preview`, `backend="local"`) answered the
+  runtime's quota check with `LocalBackend.increment_quota`, which claimed a
+  place in the cell for every respondent whose answer was checked — those who
+  dropped out afterwards or were screened out included — so a cell filled
+  before its completes reached the limit. `/quota-check` now only reads
+  (`check_quota`, which takes a list and is full when any value's cell is),
+  and `store_response` counts a completed response — anything but
+  `__status: "screened_out"` — in every cell its answers fill, a list answer
+  in the cell of each value it holds, as Studio counts them.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

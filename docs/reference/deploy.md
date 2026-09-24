@@ -61,8 +61,8 @@ A backend is responsible for:
   returning a `BackendConfig` whose `settings` are safe to embed in the
   client bundle.
 - **Reading back** accumulated responses as a `pandas.DataFrame`.
-- **Quota checks** — the frontend calls this before each submission;
-  returns `True` if the cell still has capacity.
+- **Quota checks** — the runtime asks when a respondent leaves a page that
+  answered a quota variable; returns `True` if the cell still has capacity.
 
 Subclasses may add behaviour-specific methods (e.g. `LocalBackend.
 store_response`, `LocalBackend.increment_quota`).
@@ -120,9 +120,14 @@ and `survey.deploy(backend="local")`.
 Extra methods on top of the abstract base:
 
 - `store_response(survey_id, payload)` — insert a response, return its
-  row id.
+  row id. A completed response (anything but `__status: "screened_out"`)
+  also counts in every quota cell its answers fill — a list answer in the
+  cell of each value it holds — in the same transaction.
+- `check_quota(survey_id, variable, value)` — whether the cell still has
+  room; for a list, whether every value's cell has. It only reads.
 - `increment_quota(survey_id, variable, value)` — atomic check-and-
-  increment; returns `False` when the cell is full.
+  increment; returns `False` when the cell is full. The local server no
+  longer uses it.
 
 ### `SupabaseBackend`
 
@@ -298,8 +303,8 @@ FastAPI + uvicorn come pre-installed. `publish(...)` starts a background
 FastAPI server that serves the bundle and forwards
 `POST /responses` and `POST /quota-check` to the backend (the runtime calls
 the latter when a respondent leaves a page that answered a quota variable;
-it answers with `increment_quota`, so each check claims a place in the
-cell). The thread
+it answers with `check_quota`, which takes no place: a response counts in its
+cells when it is completed and stored). The thread
 stays alive until you call `local_frontend.stop()` (the CLI's
 `siamang preview` blocks the main thread until Ctrl+C and then stops).
 

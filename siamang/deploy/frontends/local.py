@@ -146,8 +146,11 @@ def build_app(bundle: "SurveyBundle", backend: "LocalBackend", survey_id: str):
 
     @app.post("/quota-check")
     async def quota_check(request: Request) -> Any:
+        # Only looks: the place is taken when the completed response is
+        # stored (LocalBackend.store_response). `value` is a list for a
+        # MultiChoice, full when any of its values' cells is.
         body = await request.json()
-        ok = backend.increment_quota(
+        ok = backend.check_quota(
             survey_id=survey_id,
             variable=body.get("variable", ""),
             value=body.get("value"),
