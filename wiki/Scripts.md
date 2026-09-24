@@ -74,6 +74,9 @@ Inside a snippet you have these globals:
   that drives a Fisher–Yates shuffle, the same draw a seeded `assign_condition` makes.
   For an order of the respondent's own, put their id in the seed:
   `utils.shuffle(list, "brands:" + answers.__respondent__)`.
+  `utils.shuffleOptions(answers.__options__[key], seed?)` shuffles an option list the
+  same way but leaves every option marked `fixed` (None of the above, exclusive
+  answers, a choice that is Other) where it is.
 - **`api`** — `{ get, post }` for external HTTP calls.
 - **`context`** — exactly the static `context` dict you passed on the `Script`;
   the runtime injects nothing else into it.
@@ -106,7 +109,10 @@ or a resume does not reshuffle it — different respondents get different orders
 the order a respondent saw can be recomputed from the seed and their id (see
 `utils.shuffle` below). Two questions shuffled with the same seed and the same number
 of options get the same order for a respondent, which keeps a list in one order
-across questions; give them different seeds for independent orders.
+across questions; give them different seeds for independent orders. "None of the
+above", `exclusive` answers and a choice that is the question's "Other" keep their
+place (the compiler marks such an option `"fixed": true`); the other options are
+dealt into the remaining positions.
 
 ```python
 shuffle_party = sg.Script.randomize_options("q_party")

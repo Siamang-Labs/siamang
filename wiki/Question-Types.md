@@ -45,7 +45,7 @@ class Question:
 | `show_if` | `Expression \| str \| None` | `None` | Render only when this evaluates true. |
 | `hide_if` | `Expression \| str \| None` | `None` | Hide when this evaluates true. |
 | `skip_to` | `str \| None` | `None` | Jump to a target page/question id after answering. |
-| `randomize` | `bool` | `False` | Shuffle the answer choices. |
+| `randomize` | `bool` | `False` | Shuffle the answer choices, once per respondent when the survey loads. "None of the above", a `MultiChoice`'s `exclusive` answers and a choice that is the question's "Other" (`metadata["other_code"]`) keep their place; the runtime's own "Other" always comes last. |
 | `other_specify` | `bool` | `False` | `SingleChoice` / `MultiChoice`: add an "Other (please specify)" choice with a text box — see [Other, None and N/A codes](#other-none-and-na-codes). |
 | `tag` | `str \| list[str] \| None` | `None` | Tag(s) for categorization/filtering. |
 | `id` | `str \| None` | `None` | Explicit question id; defaults to the variable name — except for `Matrix` and wide-mode `MultiChoice`, where the fallback is `matrix_<first var>` / `multi_<first var>`. |

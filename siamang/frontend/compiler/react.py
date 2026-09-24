@@ -351,13 +351,18 @@ def _compile_question(
             # A code of the variable (none_code), like every other answer.
             options = [
                 *options,
-                {"code": none_code(question), "label": "None of the above", "noneOfAbove": True},
+                {
+                    "code": none_code(question),
+                    "label": "None of the above",
+                    "noneOfAbove": True,
+                    "fixed": True,
+                },
             ]
         payload = {
             **base,
             "kind": kind,
             "display": question.display,
-            "options": options,
+            "options": _pin_options(question, options),
         }
         if question.other_specify:
             payload.update(_other_payload(question))
@@ -367,7 +372,7 @@ def _compile_question(
             options = _wide_options(question)
         else:
             options = _options_payload(question.var, question.choices)
-        payload = {**base, "kind": "multi", "options": options}
+        payload = {**base, "kind": "multi", "options": _pin_options(question, options)}
         if question.mode == "wide":
             # Each option names the variable it sets: 1 when chosen, 0 when the
             # question is answered and it is not. Nothing is stored under the id.
@@ -518,6 +523,28 @@ def _options_payload(var: Any, choices: list[Option] | None) -> list[dict[str, A
     primary = variables[0]
     labels = getattr(primary, "labels", {}) or {}
     return [{"code": code, "label": label} for code, label in labels.items()]
+
+
+def _pin_options(
+    question: SingleChoice | MultiChoice, options: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Mark the options a shuffle leaves in their place (``"fixed": true``):
+    "None of the above", a MultiChoice's exclusive answers and a choice that is
+    the question's "Other (please specify)". They close a list, and an order
+    that moved "None of these" or "Other" into the middle would be read as a
+    different question; the runtime's own Other, added after the options, is
+    never shuffled. The question's Randomize switch and
+    ``Script.randomize_options`` shuffle the rest among the remaining slots."""
+
+    exclusive = list(getattr(question, "exclusive", None) or [])
+    other = other_code(question) if question.other_specify else None
+    pinned = []
+    for option in options:
+        code = option.get("code")
+        if option.get("noneOfAbove") or code in exclusive or (other is not None and code == other):
+            option = {**option, "fixed": True}
+        pinned.append(option)
+    return pinned
 
 
 def _other_payload(question: SingleChoice | MultiChoice) -> dict[str, Any]:

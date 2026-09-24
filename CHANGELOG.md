@@ -307,6 +307,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   recomputed from the seed and their id. `utils.shuffle(list, seed)` and
   `utils.sample(list, n, seed)` take the optional seed for custom scripts;
   without one they are random as before.
+- Shuffling a question's options — `randomize=True` or
+  `Script.randomize_options` — moved "None of the above" and a `MultiChoice`'s
+  exclusive answers ("None of these") into the middle of the list, and a choice
+  that is the question's "Other" (`metadata["other_code"]`) with them; only the
+  runtime's own "Other", added after the options, stayed last. The compiler now
+  marks those options `"fixed": true` and both shuffles keep them in their
+  place, dealing the other options into the remaining positions.
+  `utils.shuffleOptions(options, seed?)` does the same for custom scripts.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

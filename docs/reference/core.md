@@ -197,7 +197,7 @@ The base `Question` class defines the properties shared by all question types. I
 | `show_if` | `Expression \| str \| None` | `None` | An expression determining when this question should be visible. |
 | `hide_if` | `Expression \| str \| None` | `None` | An expression determining when this question should be hidden. |
 | `skip_to` | `str \| None` | `None` | The ID of a target page or question to jump to if this question is answered. |
-| `randomize` | `bool` | `False` | If `True`, the display order of the answer choices will be randomized. |
+| `randomize` | `bool` | `False` | If `True`, the display order of the answer choices will be randomized. "None of the above", exclusive answers and a choice that is the question's "Other" keep their position. |
 | `other_specify` | `bool` | `False` | `SingleChoice` / `MultiChoice`: if `True`, adds an "Other (please specify)" choice with a text entry field. The choice stores `metadata["other_code"]` (default `-66`, `DEFAULT_OTHER_CODE`) like any other code; the typed text is stored under `<variable>_other` (a wide `MultiChoice`: `<name or id>_other`) while Other is chosen. An `other_code` equal to one of the question's choices makes that choice the Other option. |
 | `tag` | `str \| list[str] \| None` | `None` | Optional tag or list of tags for categorization and filtering. |
 | `id` | `str \| None` | `None` | Explicit unique identifier for the question. If omitted, it is automatically derived from the bound variable name. |
