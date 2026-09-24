@@ -36,7 +36,8 @@ from .test_runtime_store import fnv1a, mulberry32, seeded_shuffle
 
 # A transport that keeps everything it is handed. `window.__T.full` lists the
 # quota cells ([variable, value]) that answer "full"; `quotaThrows` makes every
-# check fail the way an unreachable server does.
+# check fail the way an unreachable server does; `submitReply` is what a
+# submission is answered with.
 _TRANSPORT = r"""
 window.SIAMANG_ENV = { transport: "test", survey_id: "t" };
 window.SIAMANG_TRANSPORTS = window.SIAMANG_TRANSPORTS || {};
@@ -46,7 +47,7 @@ window.SIAMANG_TRANSPORTS.test = {
   onPage(p) { window.__T.pages.push(p.name); },
   async submit(r) {
     window.__T.submitted.push(JSON.parse(JSON.stringify(r)));
-    return { response_id: 7 };
+    return window.__T.submitReply || { response_id: 7 };
   },
   respondentId() { return window.__T.rid; },
   async checkQuota(variable, value) {
@@ -1395,6 +1396,79 @@ def test_quota_full_follows_the_panels_redirect(tmp_path):
     )
     link = run_in_browser(document, scenario, tmp_path, init=init)
     assert link == "https://panel.example/full?rid="
+
+
+# The autosave is written 2 s after the last answer, once the browser is idle.
+# Wait well past that — and one idle callback more — then read what is kept
+# and whether a reload offers to resume.
+_AFTER_THE_AUTOSAVE = (
+    _RELOAD
+    + """
+    await page.waitForTimeout(3000);
+    await page.evaluate(() => new Promise((done) =>
+        (window.requestIdleCallback || ((cb) => setTimeout(cb, 1)))(() => done())));
+    const kept = await page.evaluate(() => localStorage.getItem("siamang_answers_t"));
+    await reload("#survey");
+    await page.waitForTimeout(250);
+    const banner = !!(await page.$(".siamang-resume-banner"));
+"""
+)
+
+
+def test_a_full_quota_leaves_no_autosave_behind(tmp_path):
+    """The answer is given just before Next, so its autosave is still pending
+    when the quota ends the interview: it must not be written afterwards."""
+
+    init = 'window.__T = { full: [["gender", 1]] };'
+    scenario = (
+        """
+        await page.click("text=Male");
+    """
+        + _NEXT
+        + _CLOSED
+        + _AFTER_THE_AUTOSAVE
+        + "return { text, kept, banner };"
+    )
+    state = run_in_browser(_quota_document(), scenario, tmp_path, init=init)
+    assert "Thank you for your interest" in state["text"]
+    assert state["kept"] is None
+    assert state["banner"] is False
+
+
+@pytest.mark.parametrize("reply", ["saved", "quota_full"])
+def test_a_submitted_interview_leaves_no_autosave_behind(tmp_path, reply):
+    """Submitted just after the last answer — saved, or refused by the server
+    as a full quota."""
+
+    init = (
+        'window.__T = { submitReply: { status: "quota_full" } };' if reply == "quota_full" else ""
+    )
+    scenario = (
+        """
+        await page.click("text=Female");
+    """
+        + _NEXT
+        + """
+        await page.click("text=Chips");
+    """
+        + _NEXT
+        + """
+        await page.fill("input[type=number]", "40");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        const submitted = (await page.evaluate(() => window.__T.submitted)).length;
+    """
+        + _CLOSED
+        + _AFTER_THE_AUTOSAVE
+        + "return { submitted, text, kept, banner };"
+    )
+    state = run_in_browser(_quota_document(), scenario, tmp_path, init=init)
+    assert state["submitted"] == 1
+    assert (state["text"] is not None) == (reply == "quota_full")
+    assert state["kept"] is None
+    assert state["banner"] is False
 
 
 # ── Page bodies ──────────────────────────────────────────────────────────────

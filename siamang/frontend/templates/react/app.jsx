@@ -1108,10 +1108,10 @@ function App() {
   useEmbedHeight();
 
   // ─── Autosave ───
-  const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef);
+  const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish: finishSaved } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef);
 
   // ─── Submission ───
-  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved, surveyId);
+  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, finishSaved, surveyId);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const submittingRef = useRef(submitting);
@@ -1302,12 +1302,12 @@ function App() {
       setChecking(false);
       if (!full) { proceed(); return; }
       cancelScriptTimers(store);
-      clearSaved();
+      finishSaved();
       forgetInterview(surveyId);
       setClosedReason("quota_full");
       setPhase("closed");
     });
-  }, [store, nav, visibilityEngine, uiTexts, submit, setSubmitting, quotaVars, quotaFull, clearSaved, setClosedReason, setPhase]);
+  }, [store, nav, visibilityEngine, uiTexts, submit, setSubmitting, quotaVars, quotaFull, finishSaved, setClosedReason, setPhase]);
 
   const handlePrev = useCallback(() => {
     if (leavingRef.current) return;
