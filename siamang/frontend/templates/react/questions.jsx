@@ -347,6 +347,8 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
   };
 
   const effectiveCount = v.length;
+  // An exclusive answer is whole by itself: the minimum asks for no more.
+  const exclusiveChosen = v.some(isExclusive);
 
   return (
     <QuestionShell
@@ -404,7 +406,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
       {(q.max || q.min > 1) ? (
         <div className="siamang-multi-counter" role="status" aria-live="polite">
           {q.max ? <span className="siamang-multi-counter__count">{`${effectiveCount} ${runtimeTexts().of} ${q.max} ${runtimeTexts().selected}`}</span> : null}
-          {q.min && effectiveCount < q.min && (effectiveCount > 0 || q.required) ? (
+          {q.min && effectiveCount < q.min && !exclusiveChosen && (effectiveCount > 0 || q.required) ? (
             <span className="siamang-multi-counter__hint">{fillText(runtimeTexts().minChoices, { n: q.min - effectiveCount, min: q.min })}</span>
           ) : q.max && effectiveCount >= q.max ? (
             <span className="siamang-multi-counter__hint is-max">{runtimeTexts().maxReached}</span>

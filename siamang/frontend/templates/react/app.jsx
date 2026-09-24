@@ -246,7 +246,9 @@ function estimatedTimeLabel(texts, minutes) {
    number of choices. Checked on "Next" like a required answer or a format;
    an unanswered question is the business of `required`, so a MultiChoice
    with min_answers 2 may still be skipped when it is optional — answering it
-   means choosing at least two. The slider cannot leave its range. */
+   means choosing at least two. An exclusive answer ("None of these") clears
+   every other choice, so it is a whole answer by itself and no minimum holds
+   it. The slider cannot leave its range. */
 function answerLimitError(q, value, texts) {
   if (!q) return null;
   if (q.kind === "numeric") {
@@ -258,7 +260,10 @@ function answerLimitError(q, value, texts) {
     return null;
   }
   if (q.kind === "multi" && q.min > 1) {
-    const chosen = splitMulti(value).selected.length;
+    const { selected } = splitMulti(value);
+    const exclusive = Array.isArray(q.exclusive) ? q.exclusive : [];
+    if (selected.some((c) => exclusive.some((x) => sameCode(x, c)))) return null;
+    const chosen = selected.length;
     if (chosen > 0 && chosen < q.min) return fillText(texts.minChoices, { n: q.min - chosen, min: q.min });
   }
   return null;

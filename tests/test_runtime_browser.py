@@ -1834,6 +1834,95 @@ def test_an_optional_question_left_empty_is_not_held_by_its_minimum(tmp_path):
     assert "m" not in submitted and "n" not in submitted
 
 
+def _exclusive_minimum_document(wide: bool) -> dict[str, Any]:
+    brands = [(1, "Acme"), (2, "Globex"), (3, "Initech"), (99, "None of these")]
+    question: dict[str, Any] = {
+        "type": "MultiChoice",
+        "id": "brands",
+        "text": "Which brands do you know?",
+        "required": True,
+        "min_answers": 2,
+        "exclusive": [99],
+    }
+    if wide:
+        yes_no = [{"code": 0, "label": "No"}, {"code": 1, "label": "Yes"}]
+        variables = {f"brands_{c}": {"scale": "nominal", "labels": yes_no} for c, _ in brands}
+        question.update(
+            var=list(variables),
+            mode="wide",
+            choices=[{"code": c, "label": label} for c, label in brands],
+        )
+    else:
+        labels = [{"code": c, "label": label} for c, label in brands]
+        variables = {"brands": {"scale": "nominal", "labels": labels}}
+        question["var"] = "brands"
+    return {
+        "schema_version": "1.0",
+        "title": "Exclusive",
+        "variables": variables,
+        "pages": [
+            {"name": "p", "items": [question]},
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+@pytest.mark.parametrize("wide", [False, True])
+def test_an_exclusive_answer_is_complete_without_the_minimum(tmp_path, wide):
+    """Picking "None of these" clears every other choice, so a minimum of two
+    can never be met by it: an exclusive answer is a whole answer. The
+    counter asks for no more once it is picked, and Next moves on."""
+
+    scenario = (
+        """
+        const hint = async () => {
+            const el = await page.$(".siamang-multi-counter__hint");
+            return el ? await el.textContent() : null;
+        };
+        const before = await hint();
+        await page.click("text=None of these");
+        await page.waitForTimeout(100);
+        const afterNone = await hint();
+    """
+        + _NEXT
+        + """
+        const errText = await page.$$eval(".sd-question__error", (els) => els.map((e) => e.textContent));
+    """
+        + _STATE.replace("return {", "return { before, afterNone, errText,")
+    )
+    state = run_in_browser(_exclusive_minimum_document(wide), scenario, tmp_path)
+    assert state["before"] == "Select at least 2 more"
+    assert state["afterNone"] is None
+    assert state["errText"] == []
+    (submitted,) = state["submitted"]
+    if wide:
+        assert submitted == {
+            "brands_1": 0,
+            "brands_2": 0,
+            "brands_3": 0,
+            "brands_99": 1,
+            "__status": "completed",
+        }
+    else:
+        assert submitted == {"brands": [99], "__status": "completed"}
+
+
+def test_a_regular_choice_beside_the_exclusive_ones_still_needs_the_minimum(tmp_path):
+    scenario = (
+        """
+        await page.click("text=Acme");
+    """
+        + _NEXT
+        + """
+        const held = await page.textContent(".sd-page");
+    """
+        + _STATE.replace("return {", "return { held,")
+    )
+    state = run_in_browser(_exclusive_minimum_document(False), scenario, tmp_path)
+    assert state["held"].count("Select at least 1 more") == 2
+    assert state["submitted"] == []
+
+
 # ── Timed questions ──────────────────────────────────────────────────────────
 
 

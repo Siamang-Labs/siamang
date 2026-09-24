@@ -195,7 +195,8 @@ If `age.valid_range=(min, max)` is set, the React runtime forwards it
 as the input's `min`/`max` and enforces it: an answer outside the range
 shows "Minimum value is …" / "Maximum value is …" and Next waits until it
 is corrected. A `MultiChoice`'s `min_answers` is enforced the same way
-once the question is answered ("Select at least N more").
+once the question is answered ("Select at least N more"), unless the
+answer is one of its `exclusive` codes, which stands alone.
 
 ### Open text
 
