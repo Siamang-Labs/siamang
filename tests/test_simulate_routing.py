@@ -189,6 +189,41 @@ def test_an_option_hidden_by_its_condition_is_never_chosen():
     assert minors["kids"].isna().all() and (adults["kids"] == 1).all()
 
 
+def test_a_questionnaire_of_blocks_is_walked_as_the_runtime_pages_it():
+    """Without pages each block is a page, gated by the block's conditions —
+    the runtime's layout. It used to be simulated flat: every question of a
+    hidden block answered by everyone."""
+
+    survey = sg.Questionnaire(
+        title="B",
+        blocks=[
+            sg.Block(title="Screen", items=[_choice("owns", "Own one?")]),
+            sg.Block(
+                title="Owners",
+                show_if=sg.compare("owns", "=", 1),
+                items=[_choice("likes", "Like it?")],
+            ),
+            sg.Block(
+                title="Everyone",
+                items=[_choice("more", "More?", show_if=sg.compare("likes", "=", 1))],
+            ),
+        ],
+    )
+    frame = survey.simulate(n=300, seed=1).frame
+    owners, others = frame[frame["owns"] == 1], frame[frame["owns"] == 0]
+    assert len(owners) > 100 and len(others) > 100
+    assert others["likes"].isna().all() and others["more"].isna().all()
+    assert owners["likes"].notna().all()
+    assert frame.loc[frame["likes"] == 1, "more"].notna().all()
+    assert frame.loc[frame["likes"] != 1, "more"].isna().all()
+    # A questionnaire without a condition gives the same draws as before.
+    plain = sg.Questionnaire(
+        title="B",
+        blocks=[sg.Block(title="One", items=[_choice("a", "A?"), _choice("b", "B?")])],
+    )
+    assert plain.simulate(n=40, seed=5).frame[["a", "b"]].sum().tolist() == [24, 19]
+
+
 def _wide_use(**kwargs) -> sg.MultiChoice:
     variables = [_yes_no(f"use_{i}") for i in (1, 2, 3, 9)]
     choices = [

@@ -527,7 +527,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   block's `layout`); the simulator deals block shuffles the same way. A block
   without nested blocks compiles exactly as before. In a questionnaire made
   only of blocks, where each block becomes a page, the block's conditions now
-  gate its page and its `randomize` shuffles the page's items.
+  gate its page and its `randomize` shuffles the page's items; the simulator
+  walks such a questionnaire on those pages too (it answered every question of
+  it, hidden blocks and question conditions notwithstanding).
 - `check_flow` reported a node naming the arm of `Script.assign_condition` —
   a crosstab by `condition` — as `UNKNOWN_VARIABLE` unless the questionnaire
   document also declared it in `variables`, although real responses and
