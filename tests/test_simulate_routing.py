@@ -189,6 +189,53 @@ def test_an_option_hidden_by_its_condition_is_never_chosen():
     assert minors["kids"].isna().all() and (adults["kids"] == 1).all()
 
 
+def _wide_use(**kwargs) -> sg.MultiChoice:
+    variables = [_yes_no(f"use_{i}") for i in (1, 2, 3, 9)]
+    choices = [
+        sg.Option(1, "Phone"),
+        sg.Option(2, "Laptop"),
+        sg.Option(3, "Watch", show_if=sg.compare("owns", "=", 1)),
+        sg.Option(9, "None of these"),
+    ]
+    return sg.MultiChoice("Use?", vars=variables, id="q_use", choices=choices, **kwargs)
+
+
+def test_a_wide_multichoice_offers_what_the_runtime_offers():
+    """A wide MultiChoice's choice i is variable i. An option its condition
+    hides is never ticked and, never offered, is missing rather than 0 —
+    what the runtime stores — and an exclusive choice stands alone. The
+    watch used to be ticked by most non-owners, beside "None of these"."""
+
+    from siamang.local_simulator import simulate_from_pages
+
+    pages = [
+        sg.Page(name="p1", items=[_choice("owns", "Own a watch?")]),
+        sg.Page(name="p2", items=[_wide_use(exclusive=[9], max_answers=4)]),
+    ]
+    frame = simulate_from_pages(pages, n=400, seed=2)
+    owners, others = frame[frame["owns"] == 1], frame[frame["owns"] == 0]
+    assert len(owners) > 100 and len(others) > 100
+    assert others["use_3"].isna().all()
+    assert set(owners["use_3"]) == {0, 1}
+    assert set(others["use_1"]) == {0, 1}
+    none = frame[frame["use_9"] == 1]
+    assert len(none) > 20
+    assert (none[["use_1", "use_2"]] == 0).all().all()
+    assert (none["use_3"].isna() | (none["use_3"] == 0)).all()
+    # Without conditions or exclusive answers the draw is what it was.
+    plain = [
+        sg.Page(name="p1", items=[_choice("owns", "Own a watch?")]),
+        sg.Page(
+            name="p2",
+            items=[
+                sg.MultiChoice("Use?", vars=[_yes_no(f"use_{i}") for i in (1, 2, 3, 9)], id="q_use")
+            ],
+        ),
+    ]
+    drawn = simulate_from_pages(plain, n=50, seed=4)
+    assert drawn[["use_1", "use_9"]].sum().tolist() == [34, 32]
+
+
 def _arm_survey(**assign) -> sg.Questionnaire:
     pages = [
         sg.Page(name="intro", items=[_choice("owns", "Own one?")]),

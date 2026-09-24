@@ -187,15 +187,40 @@ def _simulate_array_multichoice(
     return selected
 
 
-def _simulate_wide_multichoice(question: MultiChoice) -> dict[str, int]:
+def _simulate_wide_multichoice(
+    question: MultiChoice, answers: dict[str, Any] | None = None
+) -> dict[str, int | None]:
+    """One 0/1 per variable, as the runtime offers the options: with a choice
+    per variable, choice *i* is variable *i* (its code is what ``exclusive``
+    names) and, with ``answers``, an option its own ``show_if`` / ``hide_if``
+    hides is not offered — never ticked, and missing rather than 0. An
+    exclusive choice drawn stands alone, as in array mode."""
+
     variables = question.var
-    max_answers = min(question.max_answers or len(variables), len(variables))
+    choices = question.choices or []
+    if len(choices) == len(variables):
+        offered = [
+            (variable.name, choice.code)
+            for variable, choice in zip(variables, choices, strict=True)
+            if answers is None or _is_visible(choice, answers)
+        ]
+    else:
+        offered = [(variable.name, variable.name) for variable in variables]
+    if not offered:
+        return {variable.name: None for variable in variables}  # nothing to choose
+    max_answers = min(question.max_answers or len(offered), len(offered))
     min_answers = min(question.min_answers, max_answers)
     count = random.randint(min_answers, max_answers) if max_answers > 0 else 0
-    selected = (
-        set(random.sample([variable.name for variable in variables], count)) if count else set()
-    )
-    return {variable.name: int(variable.name in selected) for variable in variables}
+    selected = random.sample(offered, count) if count else []
+    exclusive = [option for option in selected if option[1] in question.exclusive]
+    if exclusive:
+        selected = exclusive[:1]
+    chosen = {name for name, _ in selected}
+    shown = {name for name, _ in offered}
+    return {
+        variable.name: int(variable.name in chosen) if variable.name in shown else None
+        for variable in variables
+    }
 
 
 def _evaluate_condition(condition: Any, answers: dict[str, Any], *, unknown: bool = True) -> bool:
@@ -251,7 +276,7 @@ def _simulate_question_into_row(question: Question, row: dict[str, Any]) -> None
     option's condition reads.
     """
     if isinstance(question, MultiChoice) and question.mode == "wide":
-        row.update(_simulate_wide_multichoice(question))
+        row.update(_simulate_wide_multichoice(question, row))
     elif isinstance(question, MaxDiff | Conjoint):
         row.update(_simulate_value(question))
     elif isinstance(question.var, list):
