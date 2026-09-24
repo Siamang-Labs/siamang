@@ -151,7 +151,33 @@ def compile_react_payload(
     if any(s.trigger == "onRandomize" for s in getattr(survey, "scripts", [])):
         survey_meta["hasRandomizeScripts"] = True
 
+    quota_vars = _quota_variables(options)
+    if quota_vars:
+        # The variables some quota cell counts. Leaving a page, the runtime asks
+        # the transport's checkQuota about each of them that has a new value,
+        # and ends the interview as "quota full" when a cell is. The cells'
+        # values and limits stay on the server.
+        survey_meta["quotaVars"] = quota_vars
+
     return {"SURVEY": survey_meta, "PAGES": pages}
+
+
+def _quota_variables(options: Mapping[str, Any]) -> list[str]:
+    """The variables of the quotas in the compiler options: ``quota`` as
+    :class:`~siamang.core.Quota` objects (``survey.compile(quota=…)``) or
+    ``quotas`` as the compiled ``{variable, target_value, limit}`` dicts the
+    schema carries (``ReactRuntime``)."""
+
+    names: list[str] = []
+    for quota in [*(options.get("quota") or []), *(options.get("quotas") or [])]:
+        name = (
+            quota.get("variable")
+            if isinstance(quota, Mapping)
+            else getattr(quota, "variable", None)
+        )
+        if isinstance(name, str) and name and name not in names:
+            names.append(name)
+    return names
 
 
 def _pages_for_react(survey: Questionnaire):

@@ -45,7 +45,9 @@ window.SIAMANG_TRANSPORTS.local = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ survey_id: env.survey_id, variable: variable, value: value }),
     });
-    if (!res.ok) return { ok: false };
+    // Only an answer saying "full" ends an interview: a failed request
+    // must not look like one, so it throws and the runtime lets the respondent on.
+    if (!res.ok) throw new Error("quota check failed: " + res.status);
     return await res.json();
   },
   async pickQuota(variable, values) {

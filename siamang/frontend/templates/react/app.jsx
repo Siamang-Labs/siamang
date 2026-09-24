@@ -589,7 +589,9 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
   return { enabled, selectable, selectedId, onSelect };
 }
 
-function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, handleBlur, uiTexts, design }) {
+function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design }) {
+  // While a quota check runs the buttons wait; the page itself stays as it is.
+  const busy = submitting || checking;
   const answers = useAnswersStore(store);
   let qNum = qStart;
 
@@ -647,8 +649,8 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
             type="button"
             className="sd-btn sd-navigation__prev-btn"
             onClick={onPrev}
-            disabled={isFirst || submitting}
-            style={isFirst || submitting ? { opacity: 0.4, cursor: "not-allowed" } : null}
+            disabled={isFirst || busy}
+            style={isFirst || busy ? { opacity: 0.4, cursor: "not-allowed" } : null}
           >
             {uiTexts.previous}
           </button>
@@ -657,7 +659,8 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
           type="button"
           className={"sd-btn " + (isLast ? "sd-navigation__complete-btn" : "sd-navigation__next-btn")}
           onClick={onNext}
-          disabled={submitting}
+          disabled={busy}
+          aria-busy={checking ? "true" : undefined}
         >
           {submitting ? uiTexts.submitting : (isLast ? uiTexts.submit : uiTexts.nextSection)}
         </button>
@@ -850,7 +853,7 @@ function App() {
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);
 
   // ─── Submission ───
-  const { phase, setPhase, closedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved);
+  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
@@ -980,8 +983,15 @@ function App() {
     if (formatError) setErrors((prev) => ({ ...prev, [q.id]: formatError }));
   }, [store, visibilityEngine, nav.pages, uiTexts]);
 
+  // ─── Quotas (checked when a page is left) ───
+  const quotaVars = useMemo(() => (Array.isArray(ui.quotaVars) ? ui.quotaVars : []), []);
+  const quotaFull = useQuotaCheck(quotaVars);
+  const [checking, setChecking] = useState(false);
+  const leavingRef = useRef(false);
+
   // ─── handleNext with validation ───
   const handleNext = useCallback(() => {
+    if (leavingRef.current) return;
     const answers = store.snapshot();
     const page = nav.pages[pageIdxRef.current];
     if (!page) return;
@@ -1008,15 +1018,31 @@ function App() {
       return;
     }
     setErrors({});
-    if (nav.isLast) {
-      setSubmitting(true);
-      submit();
-      return;
-    }
-    nav.goNext();
-  }, [store, nav, visibilityEngine, uiTexts, submit, setSubmitting]);
+    const proceed = () => {
+      if (nav.isLast) {
+        setSubmitting(true);
+        submit();
+        return;
+      }
+      nav.goNext();
+    };
+    if (!quotaVars.length) { proceed(); return; }
+    // A quota cell this respondent's answers fall into may be full: ask
+    // before routing anywhere, the last page's submission included.
+    leavingRef.current = true;
+    setChecking(true);
+    quotaFull(answers).then((full) => {
+      leavingRef.current = false;
+      setChecking(false);
+      if (!full) { proceed(); return; }
+      clearSaved();
+      setClosedReason("quota_full");
+      setPhase("closed");
+    });
+  }, [store, nav, visibilityEngine, uiTexts, submit, setSubmitting, quotaVars, quotaFull, clearSaved, setClosedReason, setPhase]);
 
   const handlePrev = useCallback(() => {
+    if (leavingRef.current) return;
     setErrors({});
     nav.goPrev();
   }, [nav]);
@@ -1191,6 +1217,7 @@ function App() {
                   isLast={nav.isLast}
                   qStart={qStart}
                   submitting={submitting}
+                  checking={checking}
                   handleBlur={handleBlur}
                   uiTexts={uiTexts}
                   design={design}

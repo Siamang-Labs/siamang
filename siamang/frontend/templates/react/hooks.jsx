@@ -242,6 +242,59 @@ function useSurveyNav(allPages, store, visibilityEngine) {
   };
 }
 
+/* ─── Quotas ───────────────────────────────────────────────────────────── */
+
+/* The transport env.js registered for this survey, or null. */
+function currentTransport() {
+  const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
+  return (window.SIAMANG_TRANSPORTS || window.SURVLIB_TRANSPORTS || {})[env.transport] || null;
+}
+
+// How long leaving a page waits on a quota check before letting the
+// respondent on: a slow or dead backend must never hold a survey hostage.
+const QUOTA_CHECK_TIMEOUT_MS = 4000;
+
+function hasAnswerValue(v) {
+  return !(v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0));
+}
+
+/* Quota enforcement. SURVEY.quotaVars names the variables some quota cell
+   counts. When the respondent leaves a page, each of them that holds a value
+   not yet found open — answered on this page, or set by a script — is put to
+   the transport's checkQuota(variable, value) (a list for a MultiChoice); an
+   answer of { ok: false } means a cell holding that value is full, and the
+   interview ends as "quota full" before any routing, without a submission.
+   No quotas, a transport without checkQuota, an error or a timeout: the
+   respondent goes on — only a backend that says "full" stops anyone. */
+function useQuotaCheck(quotaVars) {
+  const checkedRef = useRef({});
+  return useCallback(async (answers) => {
+    const transport = currentTransport();
+    if (!quotaVars.length || !transport || typeof transport.checkQuota !== "function") return false;
+    const pending = quotaVars
+      .filter((name) => hasAnswerValue(answers[name]))
+      .map((name) => [name, answers[name], JSON.stringify(answers[name])])
+      .filter(([name, , sig]) => checkedRef.current[name] !== sig);
+    if (!pending.length) return false;
+    const verdicts = await Promise.all(pending.map(async ([name, value, sig]) => {
+      let timer = null;
+      try {
+        const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(null), QUOTA_CHECK_TIMEOUT_MS); });
+        const res = await Promise.race([transport.checkQuota(name, value), timeout]);
+        const full = !!res && res.ok === false;
+        // Remember a value found open; a timeout or an error is asked again later.
+        if (res && !full) checkedRef.current[name] = sig;
+        return full;
+      } catch (e) {
+        return false;
+      } finally {
+        if (timer !== null) clearTimeout(timer);
+      }
+    }));
+    return verdicts.some(Boolean);
+  }, [quotaVars]);
+}
+
 /* ─── useSubmission ────────────────────────────────────────────────────── */
 
 /* What a submission sends: the answers — every key a codebook variable — and
@@ -311,7 +364,7 @@ function useSubmission(store, clearSaved) {
     }
   }, [store, clearSaved, submitAttempts]);
 
-  return { phase, setPhase, closedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
+  return { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
 }
 
 /* ─── useKeyboardShortcuts ─────────────────────────────────────────────── */

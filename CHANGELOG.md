@@ -226,6 +226,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reader that unwraps nested objects one level turned `__options__` into
   columns named after the questions, over the answers. A submission now holds
   the answers and `__status` only.
+- **Quotas were never enforced by the survey runtime.** Nothing called the
+  transport's `checkQuota`, so cells filled past their limits and nobody was
+  turned away. The compiled survey now names its quota variables
+  (`SURVEY.quotaVars`, not their values or limits), and when a respondent
+  leaves a page the runtime asks `checkQuota(variable, value)` about each of
+  them holding a value it has not already found open — a list for a
+  `MultiChoice`. On `{ok: false}` the interview ends before routing on the
+  "quota full" screen (and `ui.quota_full_redirect_url`, if set), with nothing
+  submitted; an error, a transport without `checkQuota` or a check slower
+  than 4 s lets the respondent go on. The bundled transports now throw on a
+  failed request instead of answering `{ok: false}`, which would have read as
+  "full".
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

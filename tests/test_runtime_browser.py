@@ -865,3 +865,158 @@ def test_a_submission_carries_the_answers_and_the_outcome_only(tmp_path):
     state = run_in_browser(_trust_matrix_document(), _CLICK_MATRIX + _NEXT + _STATE, tmp_path)
     (submitted,) = state["submitted"]
     assert submitted == {"trust_parl": 2, "trust_pol": 10, "__status": "completed"}
+
+
+# ── Quotas ───────────────────────────────────────────────────────────────────
+
+
+def _quota_document(**ui: Any) -> dict[str, Any]:
+    document: dict[str, Any] = {
+        "schema_version": "1.0",
+        "title": "Quotas",
+        "variables": {
+            "gender": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Male"}, {"code": 2, "label": "Female"}],
+            },
+            "snacks": {
+                "scale": "nominal",
+                "labels": [{"code": 1, "label": "Chips"}, {"code": 2, "label": "Nuts"}],
+            },
+            "age": {"scale": "ratio"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {"type": "SingleChoice", "id": "gender", "var": "gender", "text": "Gender?"}
+                ],
+            },
+            {
+                "name": "p2",
+                "items": [
+                    {"type": "MultiChoice", "id": "snacks", "var": "snacks", "text": "Snacks?"}
+                ],
+            },
+            {
+                "name": "p3",
+                "items": [{"type": "NumericInput", "id": "age", "var": "age", "text": "Age?"}],
+            },
+        ],
+        "quotas": [
+            {"variable": "gender", "target_value": 1, "limit": 100},
+            {"variable": "gender", "target_value": 2, "limit": 100},
+            {"variable": "snacks", "target_value": 2, "limit": 50},
+        ],
+    }
+    if ui:
+        document["ui"] = ui
+    return document
+
+
+_CLOSED = """
+    const closed = await page.$(".siamang-closed");
+    const text = closed ? await closed.textContent() : null;
+"""
+
+
+def test_a_full_quota_cell_ends_the_interview_before_routing(tmp_path):
+    init = 'window.__T = { full: [["gender", 1]] };'
+    scenario = (
+        """
+        await page.click("text=Male");
+    """
+        + _NEXT
+        + _CLOSED
+        + _STATE.replace("return {", "return { text,")
+    )
+    state = run_in_browser(_quota_document(), scenario, tmp_path, init=init)
+    assert state["quotaCalls"] == [["gender", 1]]
+    assert "Thank you for your interest" in state["text"]
+    assert "We have already reached our target sample for participants like you." in state["text"]
+    # No completion is submitted, and the next page was never shown.
+    assert state["submitted"] == []
+    assert state["pages"] == ["p1"]
+
+
+def test_an_open_cell_is_asked_once_per_value(tmp_path):
+    init = 'window.__T = { full: [["gender", 1]] };'
+    scenario = (
+        """
+        await page.click("text=Female");
+    """
+        + _NEXT
+        + """
+        await page.click(".sd-navigation__prev-btn");
+        await page.waitForTimeout(150);
+    """
+        + _NEXT
+        + """
+        await page.click("text=Chips");
+    """
+        + _NEXT
+        + """
+        await page.fill("input[type=number]", "40");
+        await page.click("body");
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_quota_document(), scenario, tmp_path, init=init)
+    # gender=2 is open: asked once, not again on the second pass; snacks is a list.
+    assert state["quotaCalls"] == [["gender", 2], ["snacks", [1]]]
+    (submitted,) = state["submitted"]
+    assert submitted["gender"] == 2 and submitted["snacks"] == [1]
+
+
+def test_a_multiple_answer_is_full_when_any_chosen_value_is(tmp_path):
+    init = 'window.__T = { full: [["snacks", 2]] };'
+    scenario = (
+        """
+        await page.click("text=Female");
+    """
+        + _NEXT
+        + """
+        await page.click("text=Chips");
+        await page.click("text=Nuts");
+    """
+        + _NEXT
+        + _CLOSED
+        + _STATE.replace("return {", "return { text,")
+    )
+    state = run_in_browser(_quota_document(), scenario, tmp_path, init=init)
+    assert ["snacks", [1, 2]] in state["quotaCalls"]
+    assert "Thank you for your interest" in state["text"]
+    assert state["submitted"] == []
+
+
+def test_a_failed_quota_check_never_stops_a_respondent(tmp_path):
+    init = 'window.__T = { full: [["gender", 1]], quotaThrows: true };'
+    scenario = (
+        """
+        await page.click("text=Male");
+    """
+        + _NEXT
+        + _CLOSED
+        + _STATE.replace("return {", "return { text,")
+    )
+    state = run_in_browser(_quota_document(), scenario, tmp_path, init=init)
+    assert state["text"] is None
+    assert state["pages"] == ["p1", "p2"]
+
+
+def test_quota_full_follows_the_panels_redirect(tmp_path):
+    document = _quota_document(quota_full_redirect_url="https://panel.example/full?rid={url:pid}")
+    init = 'window.__T = { full: [["gender", 1]] };'
+    scenario = (
+        """
+        await page.click("text=Male");
+    """
+        + _NEXT
+        + """
+        const link = await page.getAttribute(".siamang-closed a", "href");
+        return link;
+    """
+    )
+    link = run_in_browser(document, scenario, tmp_path, init=init)
+    assert link == "https://panel.example/full?rid="
