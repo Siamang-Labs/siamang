@@ -205,3 +205,54 @@ def test_a_multiple_answer_with_other_keeps_a_list_and_the_text():
         "snacks": [1, -66],
         "snacks_other": "Salsa",
     }
+
+
+# ── Seeded draws ─────────────────────────────────────────────────────────────
+
+
+def fnv1a(key: str) -> int:
+    """The runtime's 32-bit FNV-1a of a string (UTF-16 code units; ASCII here)."""
+
+    h = 2166136261
+    for char in key:
+        h ^= ord(char)
+        h = (h * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def mulberry32(state: int):
+    """The runtime's mulberry32 generator, in 32-bit unsigned arithmetic."""
+
+    def imul(a: int, b: int) -> int:
+        return (a * b) & 0xFFFFFFFF
+
+    def draw() -> float:
+        nonlocal state
+        state = (state + 0x6D2B79F5) & 0xFFFFFFFF
+        t = imul(state ^ (state >> 15), 1 | state)
+        t ^= (t + imul(t ^ (t >> 7), 61 | t)) & 0xFFFFFFFF
+        return ((t ^ (t >> 14)) & 0xFFFFFFFF) / 4294967296
+
+    return draw
+
+
+def seeded_shuffle(items: list[Any], seed: str) -> list[Any]:
+    """What `utils.shuffle(items, seed)` returns, computed independently."""
+
+    draw = mulberry32(fnv1a(seed))
+    out = list(items)
+    for i in range(len(out) - 1, 0, -1):
+        j = int(draw() * (i + 1))
+        out[i], out[j] = out[j], out[i]
+    return out
+
+
+def test_a_seeded_shuffle_is_the_same_everywhere():
+    items = list(range(1, 11))
+    for seed in ("s:r1", "s:r2", "42:abc"):
+        got = run_js(f"ScriptRunner._utils.shuffle({_js(items)}, {_js(seed)})")
+        assert got == seeded_shuffle(items, seed)
+        assert run_js(f"ScriptRunner._utils.sample({_js(items)}, 3, {_js(seed)})") == got[:3]
+    # Different keys, different orders; no seed, Math.random as before.
+    assert seeded_shuffle(items, "s:r1") != seeded_shuffle(items, "s:r2")
+    assert sorted(run_js(f"ScriptRunner._utils.shuffle({_js(items)})")) == items

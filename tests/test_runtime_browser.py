@@ -32,6 +32,8 @@ from siamang.frontend.client.base import BackendClientTemplate
 from siamang.frontend.compiler import compile_questionnaire
 from siamang.model import from_document
 
+from .test_runtime_store import seeded_shuffle
+
 # A transport that keeps everything it is handed. `window.__T.full` lists the
 # quota cells ([variable, value]) that answer "full"; `quotaThrows` makes every
 # check fail the way an unreachable server does.
@@ -1592,3 +1594,68 @@ def test_a_timed_questions_timer_ends_with_its_page(tmp_path):
     assert state["pages"] == ["p1", "p2", "done"]
     (submitted,) = state["submitted"]
     assert submitted["a"] == "x" and submitted["b"] == "y"
+
+
+# ── Seeded randomisation ─────────────────────────────────────────────────────
+
+# The transport's respondent id comes from sessionStorage, so a scenario can
+# change respondent between reloads of one page.
+_RID_FROM_SESSION = 'window.__T = { rid: sessionStorage.getItem("rid") || "r1" };'
+
+
+def _shuffled_document(**script: Any) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Shuffle",
+        "variables": {
+            "brand": {
+                "scale": "nominal",
+                "labels": [{"code": i, "label": f"B{i}"} for i in range(1, 9)],
+            },
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {"type": "SingleChoice", "id": "brand", "var": "brand", "text": "Brand?"}
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [{"type": "randomize_options", "question": "brand", **script}],
+    }
+
+
+_ORDER = """
+    const order = async () => (await page.$$eval(".sd-choice-label", (ls) => ls.map((l) => l.textContent)));
+"""
+
+_AS_R2 = """
+    await page.evaluate(() => sessionStorage.setItem("rid", "r2"));
+    await page.reload();
+    await page.waitForSelector(".sd-page");
+"""
+
+
+def test_a_seeded_option_shuffle_is_the_respondents_own_and_reproducible(tmp_path):
+    scenario = (
+        _ORDER
+        + """
+        const first = await order();
+        await page.reload();
+        await page.waitForSelector(".sd-page");
+        const reloaded = await order();
+    """
+        + _AS_R2
+        + """
+        return { first, reloaded, other: await order() };
+    """
+    )
+    state = run_in_browser(
+        _shuffled_document(seed="42"), scenario, tmp_path, init=_RID_FROM_SESSION
+    )
+    labels = [f"B{i}" for i in range(1, 9)]
+    # The order is drawn from "<seed>:<respondent id>" and nothing else.
+    assert state["first"] == seeded_shuffle(labels, "42:r1")
+    assert state["reloaded"] == state["first"]
+    assert state["other"] == seeded_shuffle(labels, "42:r2") != state["first"]

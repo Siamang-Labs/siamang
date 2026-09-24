@@ -122,13 +122,29 @@ class Script:
 
     @classmethod
     def randomize_options(cls, question_id: str, seed: str | None = None) -> Script:
-        """Factory: create a script that randomizes answer options for a question."""
+        """Factory: shuffle a question's answer options when it is first shown.
+
+        Without a seed every showing draws a new order. With a ``seed`` the
+        order is drawn from ``"<seed>:<respondent id>"``
+        (``answers.__respondent__``) with the same seeded generator
+        ``assign_condition`` uses: the same respondent always sees the same
+        order — a reload or a resume does not reshuffle it — respondents
+        differ from one another, and the order a respondent saw can be
+        recomputed from the seed and their id. Two questions shuffled with the
+        same seed and the same number of options get the same order for a
+        respondent, which keeps a list in one order across questions; give
+        them different seeds for independent orders.
+        """
         qid = json.dumps(question_id)
         code = f"""
             const qid = {qid};
             const opts = answers.__options__?.[qid];
             if (opts && Array.isArray(opts)) {{
-                answers.__options__[qid] = utils.shuffle(opts);
+                const seed = context.seed;
+                const key = seed === undefined || seed === null || seed === ""
+                    ? undefined
+                    : String(seed) + ":" + String(answers.__respondent__ || "");
+                answers.__options__[qid] = utils.shuffle(opts, key);
             }}
         """
         return cls(

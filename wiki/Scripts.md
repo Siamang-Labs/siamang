@@ -67,8 +67,13 @@ Inside a snippet you have these globals:
   runtime keeps in the browser until the interview is submitted, so a reload keeps it.
   It is what a seeded `assign_condition` and the MaxDiff/Conjoint design version are
   drawn from. `__` keys are never submitted as answers.
-- **`utils`** — helper functions: `shuffle`, `sample`, `clamp`, `debounce`, `now`,
-  `formatDate`.
+- **`utils`** — helper functions: `shuffle(list, seed?)` (a shuffled copy), `sample(list,
+  n, seed?)`, `clamp`, `debounce`, `now`, `formatDate`. With a `seed` (any string)
+  `shuffle` and `sample` are deterministic: the same seed and list give the same order
+  in every browser — a 32-bit FNV-1a hash of the seed starts a mulberry32 generator
+  that drives a Fisher–Yates shuffle, the same draw a seeded `assign_condition` makes.
+  For an order of the respondent's own, put their id in the seed:
+  `utils.shuffle(list, "brands:" + answers.__respondent__)`.
 - **`api`** — `{ get, post }` for external HTTP calls.
 - **`context`** — exactly the static `context` dict you passed on the `Script`;
   the runtime injects nothing else into it.
@@ -93,8 +98,15 @@ a fully-configured `Script` (trigger, target, and name preset).
 
 ### `Script.randomize_options(question_id, seed=None)`
 
-Shuffle a question's answer options when it is shown (`trigger="onQuestionShow"`,
-scoped to `question_id`). An optional `seed` is stored in `context`.
+Shuffle a question's answer options when it is first shown (`trigger="onQuestionShow"`,
+scoped to `question_id`). Without a seed each showing draws a new order. With a `seed`
+(stored in `context`) the order is drawn from `"<seed>:<respondent id>"`
+(`answers.__respondent__`): the same respondent always gets the same order — a reload
+or a resume does not reshuffle it — different respondents get different orders, and
+the order a respondent saw can be recomputed from the seed and their id (see
+`utils.shuffle` below). Two questions shuffled with the same seed and the same number
+of options get the same order for a respondent, which keeps a list in one order
+across questions; give them different seeds for independent orders.
 
 ```python
 shuffle_party = sg.Script.randomize_options("q_party")
