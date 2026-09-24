@@ -943,11 +943,11 @@ function Ranking({ q, value, onChange, num, error, onBlur, answers }) {
    somebody chose item 7 says nothing until you know what 7 was up against. */
 function maxDiffVersion(q, answers) {
   const total = (q.versions || []).length || 1;
-  /* The same respondent key Script.assign_condition draws arms from, and the
-     same FNV-1a hash, so one respondent lands in one version however many
-     things are assigned to them. Without a key — a build with no crypto API
-     sends no respondent id — the draw is random and does not survive a resume,
-     which the docs say out loud rather than hiding. */
+  /* The same respondent key Script.assign_condition draws arms from
+     (answers.__respondent__, which the runtime always sets — see
+     interviewRespondentId), and the same FNV-1a hash, so one respondent lands
+     in one version however many things are assigned to them, and a reload
+     lands in it again. A store without the key falls back to a random draw. */
   const id = String((answers && (answers.__respondent__ || answers.respondent_id)) || "");
   if (!id) return Math.floor(Math.random() * total);
   let h = 2166136261;

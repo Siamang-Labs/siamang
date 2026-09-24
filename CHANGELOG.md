@@ -263,6 +263,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every answer, sets the message on a mismatch and removes it on a match; and
   the runtime shows a script-written message from the store instead of a copy
   taken when Next was pressed, so a cleared message disappears at once.
+- A seeded `Script.assign_condition` sent every respondent to the **same arm**,
+  and every respondent saw the same MaxDiff/Conjoint design version: both are
+  keyed by `answers.__respondent__`, which nothing set. The runtime now sets it
+  when the survey loads — the transport's `respondentId()` when it has one,
+  else a random id kept in the browser until the interview is submitted (or
+  ended by a full quota), so a reload keeps the arm and the design.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

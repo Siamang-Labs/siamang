@@ -46,6 +46,7 @@ window.SIAMANG_TRANSPORTS.test = {
     window.__T.submitted.push(JSON.parse(JSON.stringify(r)));
     return { response_id: 7 };
   },
+  respondentId() { return window.__T.rid; },
   async checkQuota(variable, value) {
     window.__T.quotaCalls.push([variable, value]);
     if (window.__T.quotaThrows) throw new Error("unreachable");
@@ -120,13 +121,21 @@ def build_bundle(document: dict[str, Any], out: Path) -> Path:
 
 
 def run_in_browser(
-    document: dict[str, Any], scenario: str, tmp_path: Path, *, init: str = ""
+    document: dict[str, Any],
+    scenario: str,
+    tmp_path: Path,
+    *,
+    init: str = "",
+    extra_files: dict[str, str] | None = None,
 ) -> Any:
     """Open ``document`` as a respondent and run ``scenario`` — the body of an
-    async function of Playwright's ``page`` — returning what it returns."""
+    async function of Playwright's ``page`` — returning what it returns.
+    ``extra_files`` are written next to the bundle's index.html."""
 
     node = _node()
     out = build_bundle(document, tmp_path / "bundle")
+    for name, text in (extra_files or {}).items():
+        (out / name).write_text(text, encoding="utf-8")
     harness = tmp_path / "harness.cjs"
     harness.write_text(_HARNESS, encoding="utf-8")
     scenario_file = tmp_path / "scenario.js"
@@ -1178,3 +1187,64 @@ def test_fields_match_rechecks_when_the_first_field_is_corrected(tmp_path):
     assert "The addresses differ." not in state["after"]
     (submitted,) = state["submitted"]
     assert submitted["email"] == submitted["email2"] == "b@x.org"
+
+
+# ── The respondent id ────────────────────────────────────────────────────────
+
+
+def _rid_document() -> dict[str, Any]:
+    document = _body_document()
+    document["variables"]["rid_seen"] = {"scale": "nominal", "dtype": "str"}
+    document["scripts"] = [
+        {
+            "type": "custom",
+            "name": "note_rid",
+            "trigger": "onInit",
+            "code": "answers.rid_seen = answers.__respondent__;",
+        }
+    ]
+    return document
+
+
+_FINISH_BODY_DOCUMENT = (
+    """
+    await page.fill("input.sd-input", "Ann");
+    await page.click("body");
+"""
+    + _NEXT
+    + """
+    await page.click("text=Pear");
+"""
+    + _NEXT
+)
+
+
+def test_the_transports_respondent_id_is_the_interviews(tmp_path):
+    init = 'window.__T = { rid: "resp-123" };'
+    state = run_in_browser(_rid_document(), _FINISH_BODY_DOCUMENT + _STATE, tmp_path, init=init)
+    (submitted,) = state["submitted"]
+    assert submitted["rid_seen"] == "resp-123"
+    assert "__respondent__" not in submitted
+
+
+def test_without_one_the_runtime_keeps_its_own_until_the_interview_ends(tmp_path):
+    key = "siamang_interview_siamang_survey"
+    scenario = (
+        f"""
+        const first = await page.evaluate(() => localStorage.getItem("{key}"));
+        await page.reload();
+        await page.waitForSelector(".sd-page");
+        const again = await page.evaluate(() => localStorage.getItem("{key}"));
+    """
+        + _FINISH_BODY_DOCUMENT
+        + f"""
+        const after = await page.evaluate(() => localStorage.getItem("{key}"));
+    """
+        + _STATE.replace("return {", "return { first, again, after,")
+    )
+    state = run_in_browser(_rid_document(), scenario, tmp_path)
+    assert state["first"] and state["first"] == state["again"]
+    (submitted,) = state["submitted"]
+    assert submitted["rid_seen"] == state["first"]
+    # A completed interview is forgotten: the next one is a new respondent.
+    assert state["after"] is None

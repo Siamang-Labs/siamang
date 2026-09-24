@@ -60,7 +60,12 @@ Inside a snippet you have these globals:
 - **`answers`** — the current respondent answers (read/write). Special keys the
   runtime understands include `answers.__options__[qid]` (per-question option order),
   `answers.__pages__` (page order), `answers.__errors__[field]` (validation messages),
-  and `answers.__timers__` (timer handles).
+  `answers.__timers__` (timer handles) and `answers.__respondent__` — the
+  interview's respondent id: the transport's `respondentId()` when it has one (Studio's
+  platform transport returns the id of the response row), otherwise a random id the
+  runtime keeps in the browser until the interview is submitted, so a reload keeps it.
+  It is what a seeded `assign_condition` and the MaxDiff/Conjoint design version are
+  drawn from. `__` keys are never submitted as answers.
 - **`utils`** — helper functions: `shuffle`, `sample`, `clamp`, `debounce`, `now`,
   `formatDate`.
 - **`api`** — `{ get, post }` for external HTTP calls.
