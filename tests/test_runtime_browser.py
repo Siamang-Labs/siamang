@@ -297,6 +297,35 @@ def test_a_labelled_na_code_leaves_the_scale_columns_where_they_are(tmp_path):
     assert submitted == {"trust_parl": 2, "trust_pol": 10, "__status": "completed"}
 
 
+def test_a_dont_know_the_codebook_lists_first_is_stored_under_its_header(tmp_path):
+    """ALLBUS-style: -8 "Don't know" before 0 … 10 in the codebook, headers
+    "0" … "10" and "Don't know". Column "2" stores 2 and "Don't know" -8 —
+    not 1 and 10, as a match by position had it."""
+
+    document = _trust_matrix_document()
+    for name in ("trust_parl", "trust_pol"):
+        variable = document["variables"][name]
+        labels = variable["labels"]
+        labels[0]["label"], labels[10]["label"] = "No trust at all", "Complete trust"
+        variable["labels"] = [{"code": -8, "label": "Don't know"}, *labels]
+        variable["missing"] = [{"code": -8, "label": "Don't know", "kind": "dont_know"}]
+    document["pages"][0]["items"][0]["column_labels"].append("Don't know")
+    scenario = (
+        """
+        const headers = await page.$$eval("table.sd-matrix thead th", (els) => els.map((e) => e.textContent.trim()));
+        const rows = await page.$$("table.sd-matrix tbody tr");
+        await (await rows[0].$$("button.sd-matrix__cell"))[2].click();
+        await (await rows[1].$$("button.sd-matrix__cell"))[11].click();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { headers,")
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["headers"] == ["", *(str(n) for n in range(11)), "Don't know"]
+    (submitted,) = state["submitted"]
+    assert submitted == {"trust_parl": 2, "trust_pol": -8, "__status": "completed"}
+
+
 def test_without_headers_the_na_column_is_offered_once(tmp_path):
     labels = [
         {"code": 1, "label": "Never"},

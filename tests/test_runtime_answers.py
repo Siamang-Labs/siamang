@@ -149,6 +149,28 @@ class TestMatrixColumnsBesideMissingCodes:
         matrix = _missing_matrix(["1", "2", "3", "DK"], labels, [MissingValue(9, "d", "dont_know")])
         assert [code for code, _ in matrix.columns()] == [1, 2, 3, 9]
 
+    def test_a_missing_code_the_codebook_lists_first_is_still_its_headers(self):
+        """SPSS-origin codebooks (ALLBUS, SOEP) list the missing codes first. As
+        many labels as headers must not place them by position: header "0"
+        would store -8 and "Don't know" the top of the scale."""
+
+        labels = {-8: "Don't know", **_ESS}
+        headers = [*(str(n) for n in range(11)), "Don't know"]
+        matrix = _missing_matrix(headers, labels, [MissingValue(-8, "Don't know", "dont_know")])
+        assert matrix.columns() == [*((n, str(n)) for n in range(11)), (-8, "Don't know")]
+        item = _only_item(_survey(matrix))
+        assert item["columnCodes"] == [*range(11), -8]
+
+    def test_several_missing_codes_listed_first_each_go_to_their_header(self):
+        labels = {-9: "Refusal", -8: "Don't know", **_ESS}
+        missing = [
+            MissingValue(-9, "Refusal", "refusal"),
+            MissingValue(-8, "Don't know", "dont_know"),
+        ]
+        headers = [*(str(n) for n in range(11)), "Refusal", "Don't know"]
+        matrix = _missing_matrix(headers, labels, missing)
+        assert [code for code, _ in matrix.columns()] == [*range(11), -9, -8]
+
 
 # ── Wide MultiChoice: one 0/1 variable per choice ────────────────────────────
 
