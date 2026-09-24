@@ -256,3 +256,38 @@ def test_a_seeded_shuffle_is_the_same_everywhere():
     # Different keys, different orders; no seed, Math.random as before.
     assert seeded_shuffle(items, "s:r1") != seeded_shuffle(items, "s:r2")
     assert sorted(run_js(f"ScriptRunner._utils.shuffle({_js(items)})")) == items
+
+
+def _null_conditions():
+    from siamang.core.expression import Expression, VarRef
+
+    x = VarRef("x")
+    answered = Expression("!=", x, None)
+    return [
+        answered,
+        Expression("=", x, None),
+        Expression("and", answered, Expression("!=", x, 3)),
+        Expression("in", x, [None, 3]),
+        Expression("not in", x, [None]),
+    ]
+
+
+@pytest.mark.parametrize("answers", [{}, {"x": None}, {"x": 3}, {"x": 5}])
+def test_a_condition_on_null_means_in_the_browser_what_it_means_in_python(answers):
+    from siamang.frontend.compiler.react import _compile_condition
+
+    conditions = _null_conditions()
+    compiled = [_compile_condition(condition) for condition in conditions]
+    # The compiled {deps, fn} a payload carries, and the expression tree an
+    # older payload (or one the compiler could not turn into code) carries.
+    got = run_js(
+        f"const answers = {_js(answers)};"
+        f"[{_js(compiled)}.map((c) => evaluateCondition(c, answers)),"
+        f" {_js([c.to_dict() for c in conditions])}.map((c) => evaluateCondition(c, answers))]"
+    )
+    expected = [condition.evaluate(dict(answers)) for condition in conditions]
+    assert got == [expected, expected]
+    if not answers:
+        # Nobody answered x: "x != null" does not hold, so an attention check
+        # "x != null and x != 3" leaves an empty optional check alone.
+        assert expected == [False, True, False, True, False]

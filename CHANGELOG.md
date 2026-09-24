@@ -424,6 +424,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`SIAMANG_ENV.survey_id`) unless the host sets `SURVEY.surveyId`; the old
   constant is only the fallback of a page with neither. Progress saved under
   the old key is not offered after the update — it may be another survey's.
+- A condition comparing with `None` meant something else in the browser than
+  in Python. The compiler wrote `x != None` as `a["x"] !== null`, but the
+  runtime has no key for a question nobody answered — its value is
+  `undefined` — so "x was answered" held for every respondent who skipped `x`,
+  `x = None` held for nobody, and `x in [None, 1]` never matched an empty
+  answer. An attention check on a question without codes (screen out when
+  `check != None and check != 3`, as Studio writes it) screened out everyone
+  who left an optional check empty. Comparisons with `None` are now compiled
+  loosely (`== null` / `!= null`, and an unanswered value counts as `null` in
+  an `in` list), in the compiled conditions and in the runtime's evaluator of
+  expression trees alike, matching `Expression.evaluate`.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

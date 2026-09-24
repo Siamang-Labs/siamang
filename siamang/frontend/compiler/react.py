@@ -775,12 +775,23 @@ def _expr_to_js(node: Any) -> str | None:
 
         if node.op in op_map:
             js_op = op_map[node.op]
+            if js_op in ("===", "!==") and (node.left is None or node.right is None):
+                # Loose against null. The store has no key for a question
+                # nobody answered — its value is `undefined`, not `null` — and
+                # `x != null` ("x was answered") must be false for it, as
+                # Expression.evaluate has it, where a missing answer is None.
+                # `== null` holds for undefined and null and nothing else, so an
+                # attention check written `x != null and x != 3` no longer
+                # screens out a respondent who left an optional check empty.
+                js_op = js_op[:-1]
             return f"({left_js}{js_op}{right_js})"
 
-        if node.op == "in":
-            return f"(Array.isArray({right_js})&&{right_js}.includes({left_js}))"
-
-        if node.op in ("not in", "notin"):
+        if node.op in ("in", "not in", "notin"):
+            if _names_none(node.right):
+                # `x in [None, …]`: an unanswered question is None there too.
+                left_js = f"({left_js}===undefined?null:{left_js})"
+            if node.op == "in":
+                return f"(Array.isArray({right_js})&&{right_js}.includes({left_js}))"
             return f"(!Array.isArray({right_js})||!{right_js}.includes({left_js}))"
 
         if node.op in ("contains", "not contains", "notcontains"):
@@ -790,15 +801,20 @@ def _expr_to_js(node: Any) -> str | None:
             # changed from several answers to one. Deliberately *not* the
             # substring test the raw-string parser does for scalars: these codes
             # are codes, and "11" must not match 1.
-            test = (
-                f"(Array.isArray({left_js})?{left_js}.includes({right_js}):{left_js}==={right_js})"
-            )
+            same = "==" if node.right is None else "==="  # loose against null, as above
+            scalar = f"{left_js}{same}{right_js}"
+            test = f"(Array.isArray({left_js})?{left_js}.includes({right_js}):{scalar})"
             return test if node.op == "contains" else f"(!{test})"
 
         return None  # Unknown operator
 
     # Literal value (shouldn't appear as top-level condition, but handle gracefully)
     return _value_to_js(node)
+
+
+def _names_none(value: Any) -> bool:
+    """Whether a literal list on the right of ``in`` holds None."""
+    return isinstance(value, list | tuple | set) and any(item is None for item in value)
 
 
 def _value_to_js(value: Any) -> str | None:

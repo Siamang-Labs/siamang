@@ -484,6 +484,95 @@ def test_label_piping_inserts_the_chosen_options_label(tmp_path):
     assert "Why Pear (code 2)?" in shown
 
 
+# ── Conditions on an unanswered question ─────────────────────────────────────
+
+
+def _var(name: str) -> dict[str, Any]:
+    return {"type": "var", "name": name}
+
+
+def _cmp(op: str, left: Any, right: Any) -> dict[str, Any]:
+    return {"type": "expression", "op": op, "left": left, "right": right}
+
+
+def _attention_document() -> dict[str, Any]:
+    # Studio's attention check for a question without codes: screened out when
+    # the check was answered and is not the expected value.
+    failed = _cmp("and", _cmp("!=", _var("attn"), None), _cmp("!=", _var("attn"), 3))
+    return {
+        "schema_version": "1.0",
+        "title": "Attention",
+        "variables": {
+            "attn": {"scale": "ratio"},
+            "skipped": {"scale": "nominal", "dtype": "str"},
+            "maybe": {"scale": "nominal", "dtype": "str"},
+            "b": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "title": "One",
+                "items": [
+                    {"type": "NumericInput", "id": "attn", "var": "attn", "text": "Type 3"},
+                    {
+                        "type": "OpenText",
+                        "id": "skipped",
+                        "var": "skipped",
+                        "text": "Skipped",
+                        "show_if": _cmp("=", _var("attn"), None),
+                    },
+                    {
+                        "type": "OpenText",
+                        "id": "maybe",
+                        "var": "maybe",
+                        "text": "Maybe",
+                        "show_if": _cmp("in", _var("attn"), [None, 3]),
+                    },
+                ],
+                "next_if": [{"condition": failed, "target": "out"}],
+            },
+            {
+                "name": "p2",
+                "title": "Two",
+                "items": [{"type": "OpenText", "id": "b", "var": "b", "text": "B?"}],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+            {"name": "out", "kind": "disqualification", "title": "Sorry"},
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    ("typed", "shown", "route"),
+    [
+        ("", ["Type 3", "Skipped", "Maybe"], ["p1", "p2"]),
+        ("3", ["Type 3", "Maybe"], ["p1", "p2"]),
+        ("5", ["Type 3"], ["p1", "out"]),
+    ],
+)
+def test_a_condition_on_null_holds_for_a_question_nobody_answered(tmp_path, typed, shown, route):
+    scenario = (
+        f"""
+        const typed = {json.dumps(typed)};
+        if (typed) {{
+            await page.fill("input[type=number]", typed);
+            await page.click("body");
+            await page.waitForTimeout(100);
+        }}
+        const shown = await page.$$eval(".sd-question__title", (ts) => ts.map(
+            (t) => t.querySelector("span:not(.sd-question__num)").textContent));
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { shown,")
+    )
+    state = run_in_browser(_attention_document(), scenario, tmp_path)
+    # "attn = null" and "attn in [null, 3]" hold while the check is empty, and
+    # "attn != null and attn != 3" screens out only a wrong answer: a
+    # respondent who left the optional check empty goes on.
+    assert state["shown"] == shown
+    assert state["pages"] == route
+
+
 # ── Wide MultiChoice ─────────────────────────────────────────────────────────
 
 

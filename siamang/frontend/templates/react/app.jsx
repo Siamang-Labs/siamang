@@ -22,10 +22,14 @@ function evalNode(node, answers) {
     if (op === "and") return evalArgs(node, answers).every(Boolean);
     if (op === "or")  return evalArgs(node, answers).some(Boolean);
     if (op === "not") return !Boolean(evalNode(node.left, answers));
-    const l = evalNode(node.left, answers);
+    let l = evalNode(node.left, answers);
     const r = evalNode(node.right, answers);
-    if (op === "=" || op === "==" || op === "eq") return l === r;
-    if (op === "!=" || op === "ne") return l !== r;
+    // Against null the comparison is loose, as the compiler writes it: an
+    // unanswered question is undefined here, and "x != null" must not hold
+    // for it. In a list, an unanswered question is null for the same reason.
+    if (op === "=" || op === "==" || op === "eq") return l === null || r === null ? l == r : l === r;
+    if (op === "!=" || op === "ne") return l === null || r === null ? l != r : l !== r;
+    if (l === undefined && Array.isArray(r) && r.includes(null)) l = null;
     if (op === ">"  || op === "gt") return l > r;
     if (op === ">=" || op === "ge") return l >= r;
     if (op === "<"  || op === "lt") return l < r;

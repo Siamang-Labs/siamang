@@ -32,6 +32,13 @@ AND(age.ge(18), gender.eq(2), region.isin([1, 2]))
 | `var.isin(vs)` | `in` | `region.isin([1, 2])` | `{region} in [1, 2]` |
 | `var.notin(vs)` | `not in` | `region.notin([99])` | `{region} not in [99]` |
 
+`var.ne(None)` means "answered" and `var.eq(None)` "not answered", in Python and
+in the browser alike: the survey runtime compares with `None` loosely, so a
+question the respondent left empty is `None` there too, and `var.isin([None, 1])`
+holds for it. An attention check on a question without codes, "screen out when
+`check.ne(None) & check.ne(3)`", therefore leaves alone a respondent who skipped
+an optional check.
+
 `>`, `>=`, `<`, `<=` are overloaded on `Variable`, so `age >= 18` works directly.
 `==` and `!=` are **not** overloaded — the dataclass machinery uses them for
 field-wise comparison of `Variable` objects — so use `var.eq(value)` and
