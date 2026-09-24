@@ -151,8 +151,9 @@ sum, side-by-side, loop & merge, embedded data, quotas, logic on embedded
 fields …); `warnings` lists what was transferred approximately (a block
 randomizer, advanced randomization). A multi-select whose choices are
 tested by logic is stored wide — one yes/no variable per choice, as
-Qualtrics exports it — so the logic keeps working; other multi-selects
-keep one array variable.
+Qualtrics exports it, with the choices kept beside them (choice i on
+variable i, so its exclusive answers and a text-entry choice still work) —
+so the logic keeps working; other multi-selects keep one array variable.
 
 ### `import_lss(text) -> LssImportResult`, `import_lss_file(path)`
 

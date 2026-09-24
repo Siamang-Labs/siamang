@@ -238,6 +238,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   than 4 s lets the respondent go on. The bundled transports now throw on a
   failed request instead of answering `{ok: false}`, which would have read as
   "full".
+- The Qualtrics importer dropped a wide multi-select's exclusive answers
+  ("not available when choices are separate variables") and gave it no
+  choices. It now keeps the choices beside the variables — choice i on
+  variable i — with their exclusive codes and, for a text-entry choice,
+  `other_code`, all of which the runtime honours in the wide layout.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

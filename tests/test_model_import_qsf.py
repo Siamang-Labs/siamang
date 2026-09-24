@@ -95,8 +95,11 @@ def test_question_types_map_with_recodes_other_and_exclusive(result):
         "label": "None of these",
         "labels": [{"code": 0, "label": "No"}, {"code": 1, "label": "Yes"}],
     }
-    assert by_id["aware"]["randomize"] is True and "exclusive" not in by_id["aware"]
-    assert any(s.what == "Exclusive answer" for s in result.skipped)
+    # the choices stay beside the variables (choice i on variable i), so the
+    # exclusive "None of these" is kept
+    assert by_id["aware"]["randomize"] is True and by_id["aware"]["exclusive"] == [9]
+    assert [c["code"] for c in by_id["aware"]["choices"]] == [1, 2, 3, 9]
+    assert not any(s.what == "Exclusive answer" for s in result.skipped)
     assert by_id["trust"]["type"] == "Matrix"
     assert by_id["trust"]["var"] == ["trust_acme", "trust_globex"]
     assert by_id["trust"]["column_labels"] == ["Not at all", "A little", "Somewhat", "A lot"]
@@ -184,3 +187,24 @@ def test_terminal_pages_have_a_body_and_unasked_variables_are_pruned(result):
     assert "trashed" not in result.document["variables"]
     survey = from_document(result.document).survey
     assert [w.code for w in survey.lint(level="strict")] == []
+
+
+def test_an_imported_wide_question_runs_with_its_choice_codes(result):
+    """The runtime pairs choice i with variable i, so "None of these" is
+    exclusive by its code and the region's text-entry choice is its Other."""
+
+    from siamang.frontend.compiler.react import compile_react_payload
+    from siamang.model import from_document
+
+    loaded = from_document(result.document)
+    items = {
+        item.get("qid"): item
+        for page in compile_react_payload(loaded.survey)["PAGES"]
+        for block in [page, *page.get("blocks", [])]
+        for item in block.get("items", [])
+    }
+    aware = items["aware"]
+    assert aware["wide"] is True and aware["exclusive"] == [9]
+    assert [(o["code"], o["var"]) for o in aware["options"]][-1] == (9, "aware_9")
+    region = next(item for item in items.values() if item.get("otherSpecify"))
+    assert region["otherCode"] == 99 and region["options"][-1]["code"] == 99

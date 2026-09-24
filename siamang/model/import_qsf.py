@@ -464,7 +464,9 @@ class _Importer:
     ) -> None:
         """A multi-select whose choices are tested by logic: one yes/no
         variable per choice (as Qualtrics exports it), so "Acme is selected"
-        becomes ``aware_1 = 1``."""
+        becomes ``aware_1 = 1``. The choices are kept beside the variables,
+        choice i on variable i, which is what lets an exclusive answer and a
+        text-entry choice work in the wide layout too."""
         yes_no = [{"code": 0, "label": "No"}, {"code": 1, "label": "Yes"}]
         variables: list[str] = []
         for key, option in zip(out.choice_codes, options, strict=True):
@@ -482,16 +484,14 @@ class _Importer:
             "text": text,
             "var": variables,
             "mode": "wide",
+            "choices": options,
             **self._common(q, out, where),
         }
         if other is not None:
             item["other_specify"] = True
+            item["metadata"] = {"other_code": other}
         if exclusive:
-            self.skipped.append(
-                Skipped(
-                    where, "Exclusive answer", "not available when choices are separate variables"
-                )
-            )
+            item["exclusive"] = exclusive
         self.warnings.append(
             f"{where}: stored as one yes/no variable per choice ({', '.join(variables)}) "
             "because logic tests its choices."
