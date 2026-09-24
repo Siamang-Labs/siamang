@@ -549,7 +549,8 @@ def question_fallback_id(question: Question) -> str:
 
 
 def question_output_name(question: Question) -> str:
-    """The key an answer is stored under — the runtime's item ``id``.
+    """The runtime's item ``id`` — for most questions, the key the answer is
+    stored under.
 
     For a question that writes exactly one variable, that variable: the column
     the codebook describes, the name a condition, a quota or ``{answer:…}``
@@ -557,9 +558,10 @@ def question_output_name(question: Question) -> str:
     a single-variable question whose ``name`` is not its variable's name,
     because the answer would then sit under a key that nothing reading the
     variable looks at. A Matrix, a wide MultiChoice, a MaxDiff or a Conjoint
-    writes several variables under one item, so its key is its ``name`` or
-    else its id, as before, and the runtime spreads the object by variable
-    name.
+    writes several variables, so its item id is its ``name`` or else its id —
+    the handle a script targets and an error is keyed by — while the runtime
+    stores each of its variables under the variable's own name and nothing
+    under the item id.
 
     The author-facing ``id`` is a different thing (``question_fallback_id``):
     the runtime carries it as ``qid`` for design mode and script targets.

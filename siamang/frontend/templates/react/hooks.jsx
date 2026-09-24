@@ -135,7 +135,7 @@ function computeRouteTarget(page, answers, visibilityEngine) {
   if (!page) return null;
   const items = visibilityEngine.visibleItems(page, answers);
   for (const q of items) {
-    if (q.skipTo && isAnswered(q, answers[q.id])) return q.skipTo;
+    if (q.skipTo && isAnswered(q, itemValue(q, answers))) return q.skipTo;
   }
   if (Array.isArray(page.nextIf)) {
     for (const rule of page.nextIf) {

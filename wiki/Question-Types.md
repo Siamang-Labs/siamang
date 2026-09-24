@@ -49,7 +49,7 @@ class Question:
 | `other_specify` | `bool` | `False` | Add an "Other (please specify)" free-text choice. |
 | `tag` | `str \| list[str] \| None` | `None` | Tag(s) for categorization/filtering. |
 | `id` | `str \| None` | `None` | Explicit question id; defaults to the variable name — except for `Matrix` and wide-mode `MultiChoice`, where the fallback is `matrix_<first var>` / `multi_<first var>`. |
-| `name` | `str \| None` | `None` | The key the answer is stored under. A question that writes one variable stores its answer under that variable's name, with or without a `name` — a `name` that differs is a `validate()` error. For `Matrix`, wide-mode `MultiChoice`, `MaxDiff` and `Conjoint`, whose item holds several variables, `name` is the item's key and defaults to the id. |
+| `name` | `str \| None` | `None` | The key the answer is stored under. A question that writes one variable stores its answer under that variable's name, with or without a `name` — a `name` that differs is a `validate()` error. For `Matrix`, wide-mode `MultiChoice`, `MaxDiff` and `Conjoint`, which write several variables, each variable is stored under its own name and `name` (default: the id) is only the item's handle — what a script targets and a validation message is keyed by. |
 | `media` | `Media \| list[Media] \| None` | `None` | Image/video/audio attached to the prompt. |
 | `metadata` | `dict[str, Any]` | `{}` | Free-form extra parameters. |
 
@@ -270,7 +270,9 @@ q_trust_matrix = sg.Matrix(
 )
 ```
 
-A cell stores a **code of the row variables' codebook**, not the column's position —
+Each row is stored under **its own variable** (`trust_govt: 4`), so a `show_if`, a
+quota or `{answer:trust_govt}` names the row's variable. A cell stores a **code of the
+row variables' codebook**, not the column's position —
 `Matrix.columns()` returns the `(code, header)` pairs the runtime uses. Without
 `column_labels` the columns are the first row variable's value labels in code order,
 so a codebook `{1: …, 5: …, 9: "Refused"}` stores 9 for "Refused". With
@@ -342,6 +344,8 @@ class MaxDiff(Question):
 then the version of the design the respondent was shown. The version is a
 variable rather than bookkeeping because without it the answers cannot be read —
 knowing somebody chose item 7 says nothing until you know what 7 was up against.
+Each is stored under its own name (`md_t1_best: 3`, `md_version: 12`), like any
+other answer.
 
 Items come from the answer variables' labels, the way a matrix takes its columns
 from `var[0]`; `choices` overrides them.
@@ -401,6 +405,7 @@ class Conjoint(Question):
 `var` holds **one variable per task plus one**: which alternative was chosen,
 then the version of the design shown. One per task rather than one per attribute
 — the answer *is* the choice, and which levels it carried lives in the design.
+Each is stored under its own name (`cbc_t1: 2`, `cbc_version: 4`).
 
 ```python
 attributes = [

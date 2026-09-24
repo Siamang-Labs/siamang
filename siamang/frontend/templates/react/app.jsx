@@ -482,7 +482,7 @@ function buildDesignTrace(page, index, answers, visibilityEngine) {
     if (gated) conditions.push({ id: qid, visible: visible, showIf: q.showIf != null, hideIf: q.hideIf != null, hiddenByBlock: block });
     if (visible) {
       visibleCount += 1;
-      const done = isAnswered(q, answers[q.id]);
+      const done = isAnswered(q, itemValue(q, answers));
       if (done) answered += 1;
       if (q.skipTo) skips.push({ id: qid, target: q.skipTo, answered: done });
     }
@@ -609,7 +609,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
           <Question
             q={q}
             qId={q.id}
-            value={answers[q.id]}
+            value={itemValue(q, answers)}
             setAnswer={setAnswer}
             num={"Q" + String(qNum).padStart(2, "0")}
             error={errors[q.id]}
@@ -810,6 +810,13 @@ function App() {
   // ─── Author-declared randomization (applied once per respondent) ───
   const randomized = useMemo(() => applyRandomization(window.PAGES || []), []);
   const allPages = randomized.pages;
+  // Every item by its id: an answer is handed over by the item's id and
+  // stored under the variables the item writes (answerUpdates).
+  const itemsById = useMemo(() => {
+    const index = {};
+    forEachItem(allPages, (q) => { if (q.id) index[q.id] = q; });
+    return index;
+  }, [allPages]);
 
   // ─── Answers Store (replaces useState for form values) ───
   const store = useMemo(() => {
@@ -941,7 +948,8 @@ function App() {
 
   // ─── Stable setAnswer callback ───
   const setAnswer = useCallback((id, val) => {
-    store.set(id, val);
+    const q = itemsById[id];
+    store.setMany(q ? answerUpdates(q, val) : { [id]: val });
     // A change to the field invalidates any script-written message for it;
     // onAnswer scripts re-add it below if the problem persists.
     const se = store.get("__errors__");
@@ -955,7 +963,7 @@ function App() {
     if (errorsRef.current[id]) {
       setErrors((prev) => { const n = { ...prev }; delete n[id]; return n; });
     }
-  }, [store, scheduleSave]);
+  }, [store, scheduleSave, itemsById]);
 
   // ─── Stable handleBlur ───
   const handleBlur = useCallback((questionId) => {
@@ -964,7 +972,7 @@ function App() {
     const answers = store.snapshot();
     const items = visibilityEngine.visibleItems(page, answers);
     const q = items.find((item) => item.id === questionId);
-    if (q && q.required && !isAnswered(q, answers[q.id])) {
+    if (q && q.required && !isAnswered(q, itemValue(q, answers))) {
       setErrors((prev) => ({ ...prev, [q.id]: uiTexts.required }));
       return;
     }
@@ -982,7 +990,7 @@ function App() {
     const se = answers.__errors__ || {};
     for (const q of items) {
       const formatError = textFormatError(q, answers[q.id], uiTexts);
-      if (q.required && !isAnswered(q, answers[q.id])) {
+      if (q.required && !isAnswered(q, itemValue(q, answers))) {
         errs[q.id] = uiTexts.required;
       } else if (formatError) {
         errs[q.id] = formatError;
@@ -1104,7 +1112,11 @@ function App() {
             <span>{uiTexts.resumeTitle}</span>
             <div className="siamang-resume-banner__actions">
               <button className="sd-btn sd-navigation__next-btn" onClick={() => {
-                store.replace(savedData.answers);
+                // The runtime's own state (__pages__, __options__, …) stays;
+                // the answers come back in today's layout.
+                const internal = {};
+                for (const [k, v] of Object.entries(store.snapshot())) if (k.startsWith("__")) internal[k] = v;
+                store.replace({ ...internal, ...upgradeSavedAnswers(allPages, savedData.answers) });
                 nav.setPageIdx(savedData.pageIdx);
                 setSavedData(null);
               }}>{uiTexts.resumeAction}</button>

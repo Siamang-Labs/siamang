@@ -176,6 +176,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   label's text, else by position when the counts match, else 1, 2, 3 … as
   before. Responses already collected keep the positions they were stored
   with.
+- A `Matrix`, a `MaxDiff` and a `Conjoint` stored their answers as **one
+  object under the question's key** (`{"trust": {"trust_parl": 3, …}}`), while
+  every `show_if` / `next_if`, quota, `{answer:…}` and the codebook read the
+  variables by name — so a condition on a matrix row or a task never fired.
+  Each variable is now a top-level key of the answers (`trust_parl: 2`,
+  `md_t1_best: 3`, `md_version: 0`) and nothing is stored under the question's
+  key, which stays the handle a script targets. Answers a respondent saved in
+  the browser under the old layout are moved to the new one when they resume
+  (a saved matrix position becomes its code). Responses already collected keep
+  the nested object.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

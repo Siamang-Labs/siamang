@@ -89,6 +89,8 @@ function pipeLabelIndex() {
         const map = {};
         for (const o of q.options) if (o && o.code !== undefined) map[String(o.code)] = o.label;
         index[q.id] = map;
+        // A MaxDiff's best and worst variables hold item codes too.
+        if (q.kind === "maxdiff") for (const pair of q.taskVars || []) for (const v of pair) index[v] = map;
       }
       if (Array.isArray(q.columns) && Array.isArray(q.rows)) {
         // Matrix: each row is its own variable; the columns are its labels,
