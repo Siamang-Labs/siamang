@@ -122,7 +122,7 @@ class MultiChoice(Question):
 
 | Field | Default | Description |
 | :--- | :--- | :--- |
-| `min_answers` | `1` | Minimum selections. Once the question is answered, Next is refused below it with "Select at least N more" (the counter under the options says the same); an unanswered question is held only by `required`, so an optional one may be left empty. |
+| `min_answers` | `1` | Minimum selections. Once the question is answered, Next is refused below it with "Select at least N more" (the counter under the options says the same); an unanswered question is held only by `required`, so an optional one may be left empty. An `exclusive` answer is complete by itself and is not held by the minimum. |
 | `max_answers` | `None` | Maximum selections; in wide mode cannot exceed the number of variables. |
 | `exclusive` | `[]` | Codes that clear all other selections when chosen (e.g. "None"). |
 | `mode` | `"array"` | `"array"` stores a list of the chosen codes in one variable; `"wide"` stores 1/0 in one variable per option (below). |

@@ -385,9 +385,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   component's own and was never rendered. Next now refuses both with those
   messages ("Select at least N more" for the choices), and a number out of
   range is flagged as soon as its field is left. An optional question left
-  empty is still not held by its minimum. The "Select at least N more" hint
-  under the options now also shows without `max_answers`, once the question is
-  answered or when it is required.
+  empty is still not held by its minimum, and neither is an exclusive answer
+  ("None of these" clears every other choice, so it is a whole answer by
+  itself). The "Select at least N more" hint under the options now also shows
+  without `max_answers`, once the question is answered or when it is required,
+  until an exclusive answer is picked.
 - `Script.timed_question`'s timer was never cancelled: a respondent who left
   the page before it ran out had Next pressed for them later, on whatever page
   was showing — the last one included, which submitted the survey. The runtime
