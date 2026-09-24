@@ -455,6 +455,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without nested blocks compiles exactly as before. In a questionnaire made
   only of blocks, where each block becomes a page, the block's conditions now
   gate its page and its `randomize` shuffles the page's items.
+- `check_flow` reported a node naming the arm of `Script.assign_condition` —
+  a crosstab by `condition` — as `UNKNOWN_VARIABLE` unless the questionnaire
+  document also declared it in `variables`, although real responses and
+  Simulated data carry the column. The arm now counts as known, as it does for
+  `validate()`, and is nominal unless the codebook says otherwise.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

@@ -46,7 +46,7 @@ returns errors and warnings with a code and the node concerned:
 | Code | Meaning |
 |------|---------|
 | `UNKNOWN_NODE_TYPE`, `UNKNOWN_PARAM`, `PARAM_REQUIRED`, `PARAM_INVALID` | the node against its spec |
-| `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the questionnaire's codebook (when given); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) count as known |
+| `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the questionnaire's codebook (when given); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) and the arm of a `Script.assign_condition` (nominal unless the codebook declares it) count as known |
 | `UNKNOWN_EDGE_NODE`, `UNKNOWN_PORT`, `PORT_TYPE_MISMATCH`, `INPUT_CONNECTED_TWICE`, `INPUT_NOT_CONNECTED` | edges against the ports |
 | `CYCLE` | not a DAG |
 | `UNREACHABLE_NODE` (warning) | not fed by any source |

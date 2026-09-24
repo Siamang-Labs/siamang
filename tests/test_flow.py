@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import os
@@ -1294,3 +1295,35 @@ def test_simulated_data_draws_the_arm_an_assignment_script_writes():
     code = generate_flow(flow)
     assert "from siamang.local_simulator import simulate_survey" in code
     assert "n_sim = simulate_survey(survey, n=200, seed=3)" in code
+
+
+def test_a_node_may_name_the_arm_an_assignment_script_writes(questionnaire_doc):
+    """No question collects an assigned arm and the document need not declare
+    it, yet real responses and Simulated data carry it as a column: check_flow
+    flagged a crosstab by it as UNKNOWN_VARIABLE, which validate() stopped
+    doing for conditions long ago."""
+
+    document = copy.deepcopy(questionnaire_doc)
+    document["scripts"] = [
+        *document.get("scripts", []),
+        {
+            "type": "assign_condition",
+            "variable": "condition",
+            "arms": [{"code": 1, "label": "Control"}, {"code": 2, "label": "Treatment"}],
+        },
+        {"type": "custom", "trigger": "onInit", "code": "answers.noted = 1;"},
+    ]
+    assert "condition" not in document["variables"]
+
+    def issues(node_type, params):
+        flow = _flow(
+            [("sim", "source.simulated", {}), ("x", node_type, params)],
+            [("sim", "data", "x", "data")],
+        )
+        return [issue.code for issue in check_flow(flow, questionnaire=document)]
+
+    assert issues("analyze.crosstab", {"row": "condition", "col": "region"}) == []
+    # Only what a script says it assigns counts: a custom script's key does not.
+    assert issues("analyze.crosstab", {"row": "noted", "col": "region"}) == ["UNKNOWN_VARIABLE"]
+    # The arm is nominal, as Simulated data enters it in the codebook.
+    assert issues("visualize.scatter", {"x": "condition", "y": "age"}) == ["VARIABLE_SCALE"]

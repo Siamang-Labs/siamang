@@ -162,6 +162,9 @@ def check_flow(
         name: payload.get("scale")
         for name, payload in ((questionnaire or {}).get("variables") or {}).items()
     }
+    for name in _assigned_variables(questionnaire):
+        # An arm the codebook leaves out is nominal, as Simulated data enters it.
+        scales.setdefault(name, "nominal")
     for node_id, node in nodes.items():
         if node["type"] not in registry:
             continue
@@ -370,6 +373,7 @@ def _known_variables(
     if questionnaire is None:
         return None
     known = set((questionnaire.get("variables") or {}).keys())
+    known.update(_assigned_variables(questionnaire))
     for node in nodes.values():
         if node["type"] not in registry:
             continue
@@ -387,6 +391,27 @@ def _known_variables(
         if spec.type == "prepare.explode" and params.get("variable"):
             known.update(_exploded_names(questionnaire, params))
     return known
+
+
+def _assigned_variables(questionnaire: dict[str, Any] | None) -> list[str]:
+    """The variables the questionnaire's scripts write for every respondent —
+    the arm ``Script.assign_condition`` draws — as
+    ``Questionnaire.assigned_variables()`` names them. No question collects an
+    arm and the document need not declare it, yet real responses and Simulated
+    data carry it as a column, so a node may name it (a crosstab by
+    ``condition``), just as ``validate()`` lets a condition read it."""
+
+    from siamang.model.scripts import script_from_document
+
+    names: list[str] = []
+    for payload in (questionnaire or {}).get("scripts") or []:
+        try:
+            assigned = script_from_document(payload).assigns
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue  # a broken script is the questionnaire check's to report
+        if assigned and assigned not in names:
+            names.append(assigned)
+    return names
 
 
 def _exploded_names(questionnaire: dict[str, Any], params: dict[str, Any]) -> set[str]:
