@@ -73,7 +73,11 @@ def compile_react_payload(
         "logoUrl": ui.logo_url or "",
         "logoText": ui.effective_logo_text,
         "logoPosition": ui.logo_position,
+        # The header shows when there is something to show; the title is in it
+        # only when show_title says so — a logo or an institution alone must not
+        # bring the title back.
         "showHeader": ui.show_title or bool(ui.institution_name) or bool(ui.logo_url),
+        "showTitle": ui.show_title,
         "showProgress": options.get("show_progress", True),
         "estimatedMinutes": ui.estimated_minutes,
         "ethics": ui.ethics_statement or "",

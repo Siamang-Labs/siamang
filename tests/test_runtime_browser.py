@@ -1102,3 +1102,18 @@ def test_a_terminal_page_pipes_answers_into_its_title_and_body(tmp_path):
     result = run_in_browser(_body_document(), scenario, tmp_path)
     assert result["title"] == "Thanks Ann"
     assert result["body"] == "<p>You chose <b>Pear</b>, Ann.</p>"
+
+
+# ── Header ───────────────────────────────────────────────────────────────────
+
+
+def test_show_title_false_hides_the_title_beside_an_institution(tmp_path):
+    document = _trust_matrix_document()
+    document["title"] = "Secret study name"
+    document["ui"] = {"show_title": False, "institution_name": "Acme University"}
+    scenario = """
+        return await page.textContent("header.siamang-header");
+    """
+    header = run_in_browser(document, scenario, tmp_path)
+    assert "Acme University" in header
+    assert "Secret study name" not in header

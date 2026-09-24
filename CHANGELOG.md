@@ -253,6 +253,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `redirect`) were shown as written: `{answer:x}` / `{label:x}` stayed
   literal braces on exactly the page that thanks a respondent by name. They
   are piped now, the body's values escaped, as on every other page.
+- `UIConfig(show_title=False)` did not hide the title once a logo or an
+  institution was set: the header was shown for them and always included the
+  title. The payload now carries `showTitle` apart from `showHeader`, and the
+  header leaves the title out when it is false.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
