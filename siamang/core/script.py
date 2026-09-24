@@ -334,7 +334,13 @@ class Script:
 
     @classmethod
     def timed_question(cls, question_id: str, seconds: int = 30) -> Script:
-        """Factory: show a question for limited time, then auto-advance."""
+        """Factory: show a question for limited time, then auto-advance.
+
+        The timer's handle is kept in ``answers.__timers__``, and the runtime
+        cancels every timer kept there when the respondent leaves the page or
+        submits: it never presses Next on a page other than its own. It runs
+        once per question — going back to the page does not restart it.
+        """
         qid = json.dumps(question_id)
         timeout_ms = seconds * 1000
         code = f"""

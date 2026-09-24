@@ -88,6 +88,11 @@ function evalConditionMemoized(condition, answers) {
 
 /* ─── Helpers ───────────────────────────────────────────────────────── */
 
+/* A page that ends the interview when it is reached. */
+function isTerminalPage(page) {
+  return !!page && (page.kind === "disqualification" || page.kind === "final" || page.kind === "redirect");
+}
+
 function isAnswered(q, v) {
   if (v === undefined || v === null || v === "") return false;
   if (Array.isArray(v)) return v.length > 0;
@@ -936,6 +941,8 @@ function App() {
   const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, clearSaved, surveyId);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  const submittingRef = useRef(submitting);
+  submittingRef.current = submitting;
 
   // ─── Errors / Touched ───
   const [errors, setErrors] = useState({});
@@ -1051,10 +1058,13 @@ function App() {
 
   // ─── handleNext with validation ───
   const handleNext = useCallback(() => {
-    if (leavingRef.current) return;
+    // Also reached from outside the buttons (a script's window.siamangNext,
+    // the Enter key): nothing to do once the interview is over, while it is
+    // being submitted, or on a terminal page, which submits by itself.
+    if (leavingRef.current || submittingRef.current || phaseRef.current !== "running") return;
     const answers = store.snapshot();
     const page = nav.pages[pageIdxRef.current];
-    if (!page) return;
+    if (!page || isTerminalPage(page)) return;
     const items = visibilityEngine.visibleItems(page, answers);
     const errs = {};
     const se = answers.__errors__ || {};
@@ -1088,6 +1098,8 @@ function App() {
     setErrors({});
     const proceed = () => {
       if (nav.isLast) {
+        cancelScriptTimers(store);
+        submittingRef.current = true;
         setSubmitting(true);
         submit();
         return;
@@ -1103,6 +1115,7 @@ function App() {
       leavingRef.current = false;
       setChecking(false);
       if (!full) { proceed(); return; }
+      cancelScriptTimers(store);
       clearSaved();
       forgetInterview(surveyId);
       setClosedReason("quota_full");
@@ -1173,7 +1186,7 @@ function App() {
   // When the respondent reaches a terminal page it ends the survey: record the
   // response (screened-out for disqualification) and show the page's content.
   const _cur = nav.currentPage;
-  if (_cur && (_cur.kind === "disqualification" || _cur.kind === "final" || _cur.kind === "redirect")) {
+  if (_cur && isTerminalPage(_cur)) {
     return (
       <>
         <a className="siamang-skip-link" href="#surveyContainer">Skip to questionnaire</a>

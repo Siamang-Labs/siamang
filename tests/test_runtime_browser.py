@@ -1528,3 +1528,67 @@ def test_an_optional_question_left_empty_is_not_held_by_its_minimum(tmp_path):
     state = run_in_browser(_limits_document(), scenario, tmp_path)
     (submitted,) = state["submitted"]
     assert "m" not in submitted and "n" not in submitted
+
+
+# ── Timed questions ──────────────────────────────────────────────────────────
+
+
+def _timed_document() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Timed",
+        "variables": {
+            "a": {"scale": "nominal", "dtype": "str"},
+            "b": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "title": "One",
+                "items": [{"type": "OpenText", "id": "a", "var": "a", "text": "A?"}],
+            },
+            {
+                "name": "p2",
+                "title": "Two",
+                "items": [{"type": "OpenText", "id": "b", "var": "b", "text": "B?"}],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [{"type": "timed_question", "question": "a", "seconds": 1}],
+    }
+
+
+def test_a_timed_question_still_moves_a_respondent_who_waits(tmp_path):
+    scenario = """
+        await page.waitForTimeout(1600);
+        return { title: await page.textContent(".sd-page__title") };
+    """
+    assert run_in_browser(_timed_document(), scenario, tmp_path)["title"] == "Two"
+
+
+def test_a_timed_questions_timer_ends_with_its_page(tmp_path):
+    scenario = (
+        """
+        await page.fill("input.sd-input", "x");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        await page.waitForTimeout(1600);   // past the question's second
+        const title = await page.textContent(".sd-page__title");
+        await page.fill("input.sd-input", "y");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        // The interview is over: a late call of the hook submits nothing more.
+        await page.evaluate(() => window.siamangNext && window.siamangNext());
+        await page.waitForTimeout(250);
+    """
+        + _STATE.replace("return {", "return { title,")
+    )
+    state = run_in_browser(_timed_document(), scenario, tmp_path)
+    assert state["title"] == "Two"
+    assert state["pages"] == ["p1", "p2", "done"]
+    (submitted,) = state["submitted"]
+    assert submitted["a"] == "x" and submitted["b"] == "y"

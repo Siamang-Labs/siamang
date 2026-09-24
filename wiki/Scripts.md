@@ -60,7 +60,8 @@ Inside a snippet you have these globals:
 - **`answers`** — the current respondent answers (read/write). Special keys the
   runtime understands include `answers.__options__[qid]` (per-question option order),
   `answers.__pages__` (page order), `answers.__errors__[field]` (validation messages),
-  `answers.__timers__` (timer handles) and `answers.__respondent__` — the
+  `answers.__timers__` (timer handles — the runtime cancels every timer kept there when
+  the respondent leaves the page or submits) and `answers.__respondent__` — the
   interview's respondent id: the transport's `respondentId()` when it has one (Studio's
   platform transport returns the id of the response row), otherwise a random id the
   runtime keeps in the browser until the interview is submitted, so a reload keeps it.
@@ -128,7 +129,10 @@ match_emails = sg.Script.validate_fields_match(
 
 Show a question for a limited time, then auto-advance. Runs on `onQuestionShow`, scoped
 to `question_id`, and sets a timer that calls the runtime's next-page hook after
-`seconds`.
+`seconds`. The automatic Next is an ordinary one: an unanswered required question (or
+any other message) on the page holds it. The timer belongs to its page — leaving the
+page earlier (Next, Previous, a page dot) or submitting cancels it — and it runs once
+per question, so coming back to the page does not start it again.
 
 ```python
 timer = sg.Script.timed_question("q_party", seconds=30)

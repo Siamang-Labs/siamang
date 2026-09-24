@@ -291,6 +291,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   empty is still not held by its minimum. The "Select at least N more" hint
   under the options now also shows without `max_answers`, once the question is
   answered or when it is required.
+- `Script.timed_question`'s timer was never cancelled: a respondent who left
+  the page before it ran out had Next pressed for them later, on whatever page
+  was showing — the last one included, which submitted the survey. The runtime
+  now cancels every timer kept in `answers.__timers__` whenever a page is left
+  (Next, Previous, a page dot, Studio's design-mode jump) and when the survey
+  is submitted or ended by a full quota; and the next-page hook does nothing
+  once the interview is over, while it is being submitted, or on a terminal
+  page. A timer still runs once per question.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,
