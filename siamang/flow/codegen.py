@@ -162,8 +162,15 @@ class _Generator:
             lines.append("")
             lines += [f"    {line}" if line else "" for line in body.splitlines()]
         elif spec.platform:
+            # A local run is one given a snapshot: `--data`, or with several
+            # sources any of `--data-<node>` (there is no `args.data` then).
+            local = (
+                "args.data"
+                if len(snapshot_nodes) <= 1
+                else "(" + " or ".join(f"args.{source}_data" for source in snapshot_nodes) + ")"
+            )
             lines += [
-                "if not args.data:  # platform only: the project database",
+                f"if not {local}:  # platform only: the project database",
             ]
             lines += [
                 f"    {statement}" for statement in _platform_imports(spec, self.platform_module)
