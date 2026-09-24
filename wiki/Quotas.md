@@ -87,9 +87,10 @@ Who counts, and when, is the backend's business:
 
 - **Siamang Studio** counts a cell when a response is completed (not screened out)
   and, for a list answer, counts every cell whose value is in the list.
-- The **`local`** backend's `/quota-check` endpoint *claims* a place in the cell when
-  it is asked, so it counts respondents when their answer is checked — including
-  those who later drop out or are screened out. Use it for development.
+- The **`local`** backend counts the same way: its `/quota-check` endpoint only
+  reads the counters, and a response counts in its cells when it is stored
+  completed (not screened out), a list answer in the cell of each value it holds.
+  It is not publicly reachable; use it for development.
 - **`supabase`** calls the edge function named by `quota_function` (default
   `quota-check`), which you deploy yourself; without one the check fails and no one
   is stopped.
@@ -157,9 +158,9 @@ survey.deploy(backend="supabase", frontend="vercel", quota=quotas)
 ```
 
 > **Backend support.** The check needs a backend that answers `checkQuota`:
-> Studio does; `local` claims a place per check (see above) and is not publicly
-> reachable, so use it for development and preview; `supabase` needs your own
-> `quota-check` edge function. See [[Deployment]].
+> Studio does; `local` does too but is not publicly reachable, so use it for
+> development and preview; `supabase` needs your own `quota-check` edge
+> function. See [[Deployment]].
 
 ## See also
 

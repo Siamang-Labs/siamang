@@ -48,6 +48,37 @@ CREATE TABLE IF NOT EXISTS quota_counters (
 """
 
 
+def cell_values(value: Any) -> list[str]:
+    """The ``quota_counters.value`` texts one answer fills: its JSON encoding,
+    as :meth:`LocalBackend.provision` writes a cell's target (a whole float is
+    the integer it equals — a runtime that posts ``2.0`` answered code 2); for
+    a list, each value it holds, once. Nothing else fills a cell: a quota
+    target is a single code."""
+
+    out: list[str] = []
+    for item in value if isinstance(value, list) else [value]:
+        if item is None or isinstance(item, dict | list):
+            continue
+        if isinstance(item, float) and item.is_integer():
+            item = int(item)
+        encoded = json.dumps(item)
+        if encoded not in out:
+            out.append(encoded)
+    return out
+
+
+def quota_cells(payload: dict[str, Any]) -> list[tuple[str, str]]:
+    """Every ``(variable, value)`` cell a response's answers fill; the
+    runtime's own ``__`` keys (``__status``) fill none."""
+
+    return [
+        (variable, cell)
+        for variable, value in payload.items()
+        if isinstance(variable, str) and not variable.startswith("__")
+        for cell in cell_values(value)
+    ]
+
+
 @dataclass(slots=True)
 class LocalBackend(BackendAdapter):
     """SQLite-backed storage for the local deployment path.
@@ -106,27 +137,49 @@ class LocalBackend(BackendAdapter):
         )
 
     def store_response(self, survey_id: str, payload: dict[str, Any]) -> int:
+        """Store a submission. A completed one — anything but a screen-out
+        (``__status: "screened_out"``) — also counts in every quota cell its
+        answers fill, a list answer (a ``MultiChoice``) in the cell of each
+        value it holds; the response and its counts are one transaction.
+        Quota checks only look (:meth:`check_quota`), so a respondent who drops
+        out or is screened out never takes a place."""
+
         with closing(sqlite3.connect(self.path)) as conn:
             cur = conn.execute(
                 "INSERT INTO responses (survey_id, payload_json) VALUES (?, ?)",
                 (survey_id, json.dumps(payload, ensure_ascii=False)),
             )
+            if payload.get("__status") != "screened_out":
+                for variable, value in quota_cells(payload):
+                    conn.execute(
+                        "UPDATE quota_counters SET current = current + 1 "
+                        "WHERE survey_id=? AND variable=? AND value=?",
+                        (survey_id, variable, value),
+                    )
             conn.commit()
             return int(cur.lastrowid)
 
     def check_quota(self, survey_id: str, variable: str, value: Any) -> bool:
+        """Whether the cell of ``value`` still has room; for a list, whether
+        every value's cell has. It claims nothing — completed responses are
+        counted when they are stored."""
+
         with closing(sqlite3.connect(self.path)) as conn:
-            row = conn.execute(
-                "SELECT target, current FROM quota_counters WHERE survey_id=? AND variable=? AND value=?",
-                (survey_id, variable, json.dumps(value)),
-            ).fetchone()
-            if row is None:
-                return True
-            target, current = row
-            return current < target
+            for cell in cell_values(value):
+                row = conn.execute(
+                    "SELECT target, current FROM quota_counters WHERE survey_id=? AND variable=? AND value=?",
+                    (survey_id, variable, cell),
+                ).fetchone()
+                if row is not None and row[1] >= row[0]:
+                    return False
+            return True
 
     def increment_quota(self, survey_id: str, variable: str, value: Any) -> bool:
-        """Atomically check + increment a quota counter. Returns False when full."""
+        """Atomically check + increment a quota counter. Returns False when full.
+
+        The local server no longer calls it: a check claimed a place for every
+        respondent who reached it, screen-outs and drop-outs included.
+        """
 
         with closing(sqlite3.connect(self.path)) as conn:
             conn.execute("BEGIN IMMEDIATE")

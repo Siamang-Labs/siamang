@@ -82,7 +82,8 @@ class BackendAdapter:
 | Response dashboard | ❌ | ✅ | ✅ (the spreadsheet) |
 
 - **`LocalBackend`** creates three tables — `survey_meta`, `responses`,
-  `quota_counters` — and adds `store_response(...)` and `increment_quota(...)`.
+  `quota_counters` — and adds `store_response(...)`, which also counts a
+  completed response in its quota cells, and `increment_quota(...)`.
   It backs `siamang preview`.
 - **`SupabaseBackend`** uses a single shared `responses` table keyed by
   `survey_id`. Credentials fall back to `SIAMANG_SUPABASE_URL` /
