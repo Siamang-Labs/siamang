@@ -24,9 +24,7 @@ def _survey(frame: pd.DataFrame, **labels: dict) -> SurveyData:
         if name.startswith("w"):
             variables[name] = Variable(name, "ratio", label=name)
             continue
-        variables[name] = Variable(
-            name, "nominal", label=name.title(), labels=labels.get(name, {})
-        )
+        variables[name] = Variable(name, "nominal", label=name.title(), labels=labels.get(name, {}))
     return SurveyData(frame=frame, variables=variables)
 
 
@@ -85,9 +83,7 @@ def test_the_table_is_blocks_of_columns_with_a_base_row():
 def test_the_numbers_are_the_same_ones_the_tidy_accessor_gives():
     """Two accessors, one computation: a reader comparing them must not find a
     different percentage."""
-    frame = pd.DataFrame(
-        {"sat": [1, 1, 2, 2, 1, 2, 1, 1], "region": [1, 1, 1, 2, 2, 2, 2, 1]}
-    )
+    frame = pd.DataFrame({"sat": [1, 1, 2, 2, 1, 2, 1, 1], "region": [1, 1, 1, 2, 2, 2, 2, 1]})
     data = _survey(frame, sat={1: "Yes", 2: "No"}, region={1: "North", 2: "South"})
 
     tidy = data.tables.banner(rows=["sat"], columns=["region"]).frame
@@ -163,9 +159,7 @@ def test_bonferroni_is_available_and_named():
     data = _two_columns(0.6, 100, 0.4, 100)
     plain = BannerTable(data=data, rows=["ans"], columns=["grp"])
     assert "none" in plain.stats["Correction"]
-    corrected = BannerTable(
-        data=data, rows=["ans"], columns=["grp"], correction="bonferroni"
-    )
+    corrected = BannerTable(data=data, rows=["ans"], columns=["grp"], correction="bonferroni")
     assert "Bonferroni" in corrected.stats["Correction"]
     with pytest.raises(ValueError, match="correction"):
         BannerTable(data=data, rows=["ans"], columns=["grp"], correction="holm").to_frame()
@@ -185,7 +179,9 @@ def test_a_column_too_small_to_test_is_left_out_and_said_so():
 
 
 def test_switching_the_test_off_leaves_bare_percentages():
-    table = BannerTable(data=_two_columns(0.6, 100, 0.4, 100), rows=["ans"], columns=["grp"], test=False)
+    table = BannerTable(
+        data=_two_columns(0.6, 100, 0.4, 100), rows=["ans"], columns=["grp"], test=False
+    )
     assert _cell(table, "Yes", 0) == "60.0% (60)"
     assert table.stats["Test"] == "not run"
 

@@ -27,7 +27,9 @@ _REACT = Path(__file__).resolve().parent.parent / "siamang" / "frontend" / "temp
 
 def _survey() -> sg.Questionnaire:
     age = sg.Variable("age", scale="ratio", label="Age")
-    return sg.Questionnaire(title="T", pages=[sg.Page(name="p", items=[sg.NumericInput("Age?", var=age)])])
+    return sg.Questionnaire(
+        title="T", pages=[sg.Page(name="p", items=[sg.NumericInput("Age?", var=age)])]
+    )
 
 
 def test_the_switch_is_on_by_default() -> None:
@@ -43,13 +45,22 @@ def test_default_theme_is_validated_like_every_other_enum() -> None:
 
 @pytest.mark.parametrize("allow", [True, False])
 def test_the_payload_carries_the_choice(allow: bool) -> None:
-    payload = compile_react_payload(_survey(), ui=UIConfig(default_theme="dark", allow_theme_switch=allow))
+    payload = compile_react_payload(
+        _survey(), ui=UIConfig(default_theme="dark", allow_theme_switch=allow)
+    )
     assert payload["SURVEY"]["allowThemeSwitch"] is allow
     assert payload["SURVEY"]["defaultTheme"] == "dark"
 
 
 def test_the_document_schema_accepts_the_field() -> None:
-    schema = json.loads((Path(__file__).resolve().parent.parent / "siamang" / "schemas" / "questionnaire-1.0.json").read_text())
+    schema = json.loads(
+        (
+            Path(__file__).resolve().parent.parent
+            / "siamang"
+            / "schemas"
+            / "questionnaire-1.0.json"
+        ).read_text()
+    )
     ui = schema["$defs"]["ui"]
     # `ui` is a closed allowlist, so a field the schema has not been told about
     # would be rejected on a Save however well the runtime handled it.
