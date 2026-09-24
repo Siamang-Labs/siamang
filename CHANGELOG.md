@@ -279,10 +279,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scale was recorded as 1–11, and any codebook not coded 1…n (a recode, a
   "Refused" 9) came out wrong. A cell now stores the code of the row
   variables' codebook that `Matrix.columns()` pairs with its header — by the
-  label's text, else by position when the counts match (also when they match
-  once the codebook's labelled missing codes — an N/A, a refusal, a don't
-  know — are set apart, a header naming one of them taking its code), else 1,
-  2, 3 … as before. Without headers the columns are the labels in code order,
+  label's text, else by position once the codebook's declared missing codes —
+  an N/A, a refusal, a don't know — are set apart (a header naming one of them
+  takes its code, wherever the codebook lists it: SPSS-origin codebooks put
+  -8 "Don't know" before 0 … 10), else by position over every label when the
+  counts match, else 1, 2, 3 … as before. Without headers the columns are the labels in code order,
   less the not_applicable code `na_option` offers in its own column (it was
   offered twice, first in the middle of the scale). Responses already
   collected keep the positions they were stored with.

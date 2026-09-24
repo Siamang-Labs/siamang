@@ -245,13 +245,19 @@ class Matrix(Question):
         labels in code order, less the not_applicable code ``na_option`` offers
         in a column of its own. With them, each header's code comes from that
         codebook too: the value label whose text is the header, when every
-        header names exactly one label; else the label in the same position,
-        when there are as many labels as headers (a 0–10 scale headed ``0`` …
-        ``10`` over labels ``No trust`` … ``Complete trust``); else the same
-        with the codebook's declared missing codes (a not_applicable, refusal or
-        don't know) set apart — a header that names one of them takes its code,
-        and the others line up with the rest of the labels; else — the codebook
-        says nothing usable — 1, 2, 3 … in column order.
+        header names exactly one label; else, with the codebook's declared
+        missing codes (a not_applicable, refusal or don't know) set apart, a
+        header that names one of them takes its code and the others line up
+        with the rest of the labels in order, when there are as many of each;
+        else the label in the same position, when there are as many labels as
+        headers (a 0–10 scale headed ``0`` … ``10`` over labels ``No trust`` …
+        ``Complete trust``); else — the codebook says nothing usable — 1, 2,
+        3 … in column order.
+
+        The missing codes come before the plain position: SPSS-origin
+        codebooks list them first (``-8`` "Don't know", then ``0`` … ``10``),
+        and by position header ``0`` would store -8, every scale header the
+        code below its own and "Don't know" the top of the scale.
         """
 
         first = self.var[0]
@@ -274,11 +280,11 @@ class Matrix(Question):
             codes = [by_text[header][0] for header in headers]
             if len(set(map(repr, codes))) == len(codes):
                 return list(zip(codes, headers, strict=True))
-        if len(labels) == len(headers):
-            return list(zip(labels, headers, strict=True))
         placed = _columns_beside_missing(headers, labels, first)
         if placed is not None:
             return placed
+        if len(labels) == len(headers):
+            return list(zip(labels, headers, strict=True))
         return [(index + 1, header) for index, header in enumerate(headers)]
 
 
