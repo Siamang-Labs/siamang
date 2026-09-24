@@ -209,6 +209,11 @@ The other calls, all optional on the transport:
 | `onPage({name, index, total})` | every page change | nothing |
 | `respondentId()` | once, when the survey loads | the respondent's id (a string), which becomes `answers.__respondent__` for seeded draws; without it the runtime keeps its own random id for the interview |
 
+Inside an iframe the runtime also tells the parent page its height:
+`window.parent.postMessage({type: "siamang:height", height: <px>}, "*")` when it loads and
+whenever the survey's height changes (a new page, an error message, a window resize), so
+an embedding page can size the frame to the survey — Studio's `embed.js` does.
+
 ---
 
 ## `UIConfig` — the design system

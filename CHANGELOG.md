@@ -269,6 +269,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when the survey loads — the transport's `respondentId()` when it has one,
   else a random id kept in the browser until the interview is submitted (or
   ended by a full quota), so a reload keeps the arm and the design.
+- An embedded survey never told the page around it how tall it was, so an
+  "auto-height" embed kept its initial height and scrolled inside the page.
+  In an iframe the runtime now posts `{type: "siamang:height", height}` to
+  its parent on load and whenever its content's height changes.
 
 - **`siamang.model`** — the questionnaire as a JSON document.
   `to_document(survey, options)` serializes every core object (`Variable`,

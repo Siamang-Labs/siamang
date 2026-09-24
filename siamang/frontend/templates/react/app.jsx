@@ -857,6 +857,7 @@ function App() {
   // ─── Design mode (Studio preview only) ───
   const design = useDesignMode(nav, store, visibilityEngine, allPages);
   useTransportPage(nav);
+  useEmbedHeight();
 
   // ─── Autosave ───
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow } = useAutosave(store, surveyId, pageIdxRef);

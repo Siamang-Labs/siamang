@@ -343,6 +343,46 @@ function forgetInterview(surveyId) {
   try { localStorage.removeItem(interviewIdKey(surveyId)); } catch (e) { /* nothing kept */ }
 }
 
+/* ─── Embedded height ──────────────────────────────────────────────────── */
+
+/* In an iframe (the embed snippet), tell the host how tall the survey is —
+   { type: "siamang:height", height } on load and whenever it changes — so
+   the frame grows and shrinks with the page instead of scrolling inside a
+   scrolling page. The height is #root's, not the document's: the body is at
+   least one viewport tall, which would never let the frame shrink. */
+function useEmbedHeight() {
+  useEffect(() => {
+    let parent = null;
+    try { parent = window.parent && window.parent !== window ? window.parent : null; } catch (e) { parent = null; }
+    const root = document.getElementById("root");
+    if (!parent || !root) return undefined;
+    let last = -1;
+    let frame = null;
+    const post = () => {
+      frame = null;
+      const height = Math.ceil(root.getBoundingClientRect().height);
+      if (height === last) return;
+      last = height;
+      try { parent.postMessage({ type: "siamang:height", height: height }, "*"); } catch (e) { /* no host */ }
+    };
+    const schedule = () => { if (frame === null) frame = requestAnimationFrame(post); };
+    post();
+    let observer = null;
+    if (typeof ResizeObserver === "function") {
+      observer = new ResizeObserver(schedule);
+      observer.observe(root);
+    }
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("load", schedule);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, []);
+}
+
 /* ─── useSubmission ────────────────────────────────────────────────────── */
 
 /* What a submission sends: the answers — every key a codebook variable — and
