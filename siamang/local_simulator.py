@@ -362,10 +362,12 @@ def simulate_from_pages(
     own page order (first, last and terminal pages pinned). Other scripts are
     JavaScript and are not run.
 
-    ``quotas`` are the compiler options' ``quota`` cells. Leaving a page that
-    answered a variable a cell counts, a respondent whose answer falls in a
-    full cell ends there — the runtime's "quota full" screen, not a complete
-    — and only completes count towards a cell, as ingest counts them. The
+    ``quotas`` are the compiler options' ``quota`` cells. Leaving a page, a
+    respondent holding a value in a full cell — an answer, or the arm drawn
+    before the first page — ends there: the runtime's "quota full" screen,
+    not a complete. Only completes count towards a cell, as ingest counts
+    them, so a balanced assignment whose cells are all full keeps its draw
+    and the respondent ends on the first page. The
     walk of respondent *k* therefore depends on the *k − 1* before it, which
     is what makes the sample shape of a quota visible here.
     """
@@ -403,7 +405,7 @@ def simulate_from_pages(
             if page_visible and page.is_terminal:
                 completed = page.kind != "disqualification"
                 break
-            if page_visible and cells.closes(visible, row):
+            if page_visible and cells.closes(row):
                 completed = False  # the runtime's quota_full screen
                 break
             target = _route_target(page, row, visible) if page_visible else None
@@ -626,13 +628,17 @@ class _Cells:
         self.quotas = list(quotas or [])
         self.counts = [0] * len(self.quotas)
 
-    def closes(self, answered: list[Question], row: dict[str, Any]) -> bool:
-        """Does an answer given on this page fall in a full cell?"""
+    def closes(self, row: dict[str, Any]) -> bool:
+        """Leaving a page, does a value the respondent holds fall in a full
+        cell? The runtime asks about every quota variable holding a value it
+        has not found open yet — an answer from this page, and on the first
+        page left the arm an assignment drew before it. The counts do not move
+        during one respondent's walk, so asking about all of them at every
+        page is asking about each the first time it holds a value."""
         if not self.quotas:
             return False
-        names = {name for question in answered for name in _question_variable_names(question)}
         for quota, count in zip(self.quotas, self.counts, strict=True):
-            if quota.variable not in names or count < quota.limit:
+            if count < quota.limit:
                 continue
             if any(
                 _same_code(value, quota.target_value) for value in _values(row.get(quota.variable))
