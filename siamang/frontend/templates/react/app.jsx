@@ -411,7 +411,7 @@ function Header() {
         <div className="siamang-header__logo" aria-hidden="true">{ui.logoText}</div>
       ) : null}
       <div className="siamang-header__text">
-        {ui.title ? <h1 className="siamang-header__title">{ui.title}</h1> : null}
+        {ui.title && ui.showTitle !== false ? <h1 className="siamang-header__title">{ui.title}</h1> : null}
         {ui.institution ? <p className="siamang-header__institution">{ui.institution}</p> : null}
         {ui.subtitle ? <p className="siamang-header__subtitle">{ui.subtitle}</p> : null}
       </div>

@@ -254,6 +254,10 @@ two words of `institution_name` — e.g. "Riverside Health Collective" → "RH")
 `logo_position`, `show_title`, `institution_name`, `study_subtitle`,
 `show_section_numbers`, `show_progress_text`, and `estimated_minutes`.
 
+The header appears when there is something in it: the title (`show_title=True`), a
+logo or an institution. `show_title=False` hides the questionnaire's title even when
+the header is shown for a logo or an institution.
+
 ### Footer
 
 `privacy_url`, `contact_email`, and `ethics_statement` (e.g. an IRB reference).

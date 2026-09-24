@@ -311,3 +311,15 @@ class TestQuotaVariables:
             ClientEnv(survey_id="s", backend="gsheets", settings={"spreadsheet_id": "x"})
         )
         assert 'throw new Error("quota check failed: "' in gsheets.split("async checkQuota", 1)[1]
+
+
+def test_the_payload_says_whether_to_show_the_title_apart_from_the_header():
+    from siamang.frontend import UIConfig
+
+    survey = _survey(_fruit())
+    meta = compile_react_payload(survey, ui=UIConfig(show_title=False, institution_name="U"))[
+        "SURVEY"
+    ]
+    assert meta["showHeader"] is True and meta["showTitle"] is False
+    meta = compile_react_payload(survey, ui=UIConfig())["SURVEY"]
+    assert meta["showHeader"] is True and meta["showTitle"] is True

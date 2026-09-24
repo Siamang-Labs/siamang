@@ -154,7 +154,7 @@ Siamang features an integrated web-font loader. By default, it loads high-qualit
 | `logo_url` | `None` | Optional URL pointing to a logo image displayed in the header. |
 | `logo_text` | `None` | Short text logo displayed when `logo_url` is not set. If omitted, it is automatically derived from the initials of the first two words of `institution_name` (e.g., "Riverside Health Collective" → "RH"). |
 | `logo_position` | `"left"` | The alignment of the logo in the header. Allowed values: `"left"`, `"right"`, or `"center"`. |
-| `show_title` | `True` | If `True`, displays the questionnaire's title in the header. |
+| `show_title` | `True` | If `True`, displays the questionnaire's title in the header. `False` hides it even when the header is shown for a logo or an institution. |
 | `institution_name` | `None` | The name of the academic institution or research organization, displayed beneath the title. |
 | `study_subtitle` | `None` | Subtitle text displayed below the institution name. |
 | `show_section_numbers` | `True` | If `True`, displays page numbers within the progress indicator. |
