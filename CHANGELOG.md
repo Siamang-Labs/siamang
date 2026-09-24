@@ -529,7 +529,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only of blocks, where each block becomes a page, the block's conditions now
   gate its page and its `randomize` shuffles the page's items; the simulator
   walks such a questionnaire on those pages too (it answered every question of
-  it, hidden blocks and question conditions notwithstanding).
+  it, hidden blocks and question conditions notwithstanding), and so does the
+  questionnaire document (`to_document`, `siamang model`), which dropped the
+  blocks' conditions and shuffle — an owners-only block was shown to everyone
+  once the questionnaire was imported — and took loose questions out of their
+  blocks.
 - `check_flow` reported a node naming the arm of `Script.assign_condition` —
   a crosstab by `condition` — as `UNKNOWN_VARIABLE` unless the questionnaire
   document also declared it in `variables`, although real responses and
