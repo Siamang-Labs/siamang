@@ -1099,8 +1099,10 @@ def test_the_conjoint_nodes_run_on_a_conjoint_questionnaire(tmp_path):
     stats = result.output("cbc", "stat")
     assert "respondents" in stats["Base"]
 
-    shares = result.output("sim_shares", "table")
+    shares = result.output("sim_shares", "table").to_frame()
     assert list(shares["product"]) and abs(shares["share"].sum() - 100.0) < 0.2
+    shares_stats = result.output("sim_shares", "stat")
+    assert shares_stats["Base"] == "150 respondents" and "Weight" not in shares_stats
 
     assert (tmp_path / "outputs" / "cbc.csv").is_file()
     assert (tmp_path / "outputs" / "cbc.dictionary.json").is_file()

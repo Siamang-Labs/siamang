@@ -198,6 +198,53 @@ def test_the_table_carries_its_base_and_names_what_importance_means():
     assert "levels tested" in table.stats["Note"]
 
 
+def test_part_worths_importance_and_shares_use_the_datas_weight():
+    """The rows were weighted and the weights thrown away before the model, so
+    after Apply weight the conjoint answered for the raw sample. Integer
+    weights are frequency weights: weight 2 reads like the row twice over."""
+
+    question = _question(tasks=8, versions=8)
+    data = _fieldwork(question, n=120)
+    # Weight the respondents who picked the first alternative most often, so
+    # the weighted and the raw part-worths cannot coincide by accident.
+    first = (data.frame[[question.task_variable(t).name for t in range(8)]] == 1).sum(axis=1)
+    w = np.where(first >= 3, 2.0, 1.0)
+    weighted = data.with_frame(data.frame.assign(w=w)).with_weight("w")
+    expanded = data.with_frame(
+        data.frame.loc[data.frame.index.repeat(w.astype(int))].reset_index(drop=True)
+    )
+
+    fitted = cj.part_worths(weighted, "q_cbc")
+    assert np.allclose(
+        fitted.coefficients, cj.part_worths(expanded, "q_cbc").coefficients, atol=2e-3
+    )
+    assert not np.allclose(
+        fitted.coefficients, cj.part_worths(data, "q_cbc").coefficients, atol=2e-3
+    )
+    assert fitted.stats["weight"] == "w"
+
+    importance = cj.importance(weighted, "q_cbc").set_index("attribute")["importance"]
+    by_hand = cj.importance(expanded, "q_cbc").set_index("attribute")["importance"]
+    assert np.allclose(importance, by_hand[importance.index], atol=0.11)
+
+    products = {
+        "Cheap": {"brand": 1, "price": 10, "warranty": 1},
+        "Dear": {"brand": 2, "price": 20, "warranty": 2},
+    }
+    shares = cj.shares(weighted, "q_cbc", products).set_index("product")["share"]
+    again = cj.shares(expanded, "q_cbc", products).set_index("product")["share"]
+    assert np.allclose(shares, again[shares.index], atol=0.11)
+
+    heavy = int((w == 2).sum())
+    table = weighted.report.conjoint("q_cbc")
+    assert table.stats["Weight"] == "w"
+    assert table.stats["Base"] == f"120 respondents ({120 + heavy} weighted)"
+    market = weighted.report.conjoint_shares("q_cbc", products)
+    assert np.allclose(market.to_frame().set_index("product")["share"], shares[["Cheap", "Dear"]])
+    assert market.stats["Weight"] == "w" and "not market shares" in market.stats["Note"]
+    assert "Weight" not in data.report.conjoint_shares("q_cbc", products).stats
+
+
 def test_the_question_is_found_by_name_or_told_what_exists():
     question = _question(tasks=3, versions=3)
     data = _fieldwork(question, n=5)

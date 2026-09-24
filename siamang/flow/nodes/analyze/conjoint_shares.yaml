@@ -6,6 +6,7 @@ inputs:
   data: SurveyData
 outputs:
   table: Table
+  stat: Stat
 params:
   question:
     kind: string
@@ -22,13 +23,13 @@ params:
     label: Include "none of these"
     help: Only when the question offered it. Leaving it out rescales everyone who would have walked away into buyers.
 subtitle: '{question}'
-imports:
-- from siamang.data import conjoint
 template: |
   # A simulator rather than a reading of the part-worths aloud: "what if we
   # changed the price" is a question about the whole market at once, and the
   # only honest way to answer it is to put the products through the model.
-  {out.table} = conjoint.shares(
-      {in.data}, {question!r}, {products!r}, include_none={include_none!r}
+  _shares = {in.data}.report.conjoint_shares(
+      {question!r}, {products!r}, include_none={include_none!r}
   )
+  {out.table} = _shares
+  {out.stat} = _shares.stats
 preview: table

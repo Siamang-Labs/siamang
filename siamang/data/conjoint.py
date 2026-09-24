@@ -173,7 +173,11 @@ def _row(question: Conjoint, profile: Any, keys: list[tuple[int, Any]], none: bo
 def choice_sets(
     data: SurveyData, question: Conjoint | str, *, weight: str | None = None
 ) -> ChoiceSets:
-    """The answers as choice sets: one per task, the alternatives as rows."""
+    """The answers as choice sets: one per task, the alternatives as rows.
+
+    Each set carries its respondent's weight: ``weight`` when given, else the
+    data's own (:meth:`SurveyData.with_weight`).
+    """
 
     question = question_of(data, question)
     read = answers(data, question)
@@ -212,7 +216,7 @@ def choice_sets(
         chosen=np.array(chosen),
         group=np.array(group),
         names=names,
-        weight=np.array(set_weights) if weight is not None else None,
+        weight=np.array(set_weights) if weights_by_row is not None else None,
         reference=_reference_label(question),
     )
 
@@ -225,13 +229,20 @@ def _reference_label(question: Conjoint) -> str:
 def part_worths(
     data: SurveyData, question: Conjoint | str, *, weight: str | None = None
 ) -> MnlResult:
-    """How much each level is worth, in one currency across all attributes."""
+    """How much each level is worth, in one currency across all attributes.
+
+    Weighted by ``weight`` or, without it, by the data's own weight column —
+    and so are :func:`importance` and :func:`shares`, which are read off this.
+    """
 
     question = question_of(data, question)
     read = answers(data, question)
     # No share column: a level is not an alternative, and the number would be
     # read as one. Shares of preference are what `shares()` is for.
     result = mnl(choice_sets(data, question, weight=weight), shares=False)
+    column = weight or data.weight
+    if column:
+        result.stats["weight"] = column
     result.stats["respondents"] = read.respondents
     result.stats["tasks_used"] = int(len(read.frame))
     if read.dropped:

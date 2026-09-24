@@ -455,6 +455,13 @@ siamang.data.maxdiff.respondent_scores(data, "q_md")   # one score per person
 siamang.io.choice.write_maxdiff_choices(data, "q_md", "choices.csv")  # for HB in R
 ```
 
+On weighted data (`data.with_weight("w")`) every column of the table is
+weighted — Shown, Best and Worst are sums of weights, and the utilities come
+from a conditional logit on the weighted choices, its weights rescaled to
+Kish's effective base so the standard errors are not those of a bigger sample.
+The footer names the `Weight` and gives the base as `N respondents (W
+weighted)`. The HB export carries no weight column.
+
 ---
 
 ## `Conjoint`
@@ -507,9 +514,13 @@ Reading the answers:
 
 ```python
 data.report.conjoint("q_cbc")                                   # part-worths + importance
-siamang.data.conjoint.shares(data, "q_cbc", {"Ours": {...}})    # share of preference
+data.report.conjoint_shares("q_cbc", {"Ours": {...}})           # share of preference
+siamang.data.conjoint.shares(data, "q_cbc", {"Ours": {...}})    # the same rows, bare
 siamang.io.choice.write_conjoint_choices(data, "q_cbc", "cbc.csv")  # for HB in R
 ```
+
+On weighted data the part-worths — and so the importances and the shares — are
+fitted on the weighted choices, and the tables' footers name the `Weight`.
 
 `lint()` refuses a design that cannot be estimated — too few tasks for the
 number of levels — before anyone is interviewed, rather than after the model
