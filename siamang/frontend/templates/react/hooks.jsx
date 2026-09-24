@@ -92,6 +92,10 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
         }
         const data = { answers: cleanAnswers, pageIdx: currentPage, savedAt: new Date().toISOString() };
         if (historyRef && Array.isArray(historyRef.current)) data.history = historyRef.current.slice();
+        // The page order this respondent was dealt (randomize_pages deals a
+        // new one at every load): pageIdx and the path are positions in it.
+        const order = currentAnswers && currentAnswers.__pages__;
+        if (Array.isArray(order)) data.pageOrder = order.map((p) => p && p.name);
         data.startedAt = interviewSession.startedAt;
         localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(data));
       } catch (e) { /* quota exceeded */ }

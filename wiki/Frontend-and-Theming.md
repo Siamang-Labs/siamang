@@ -212,10 +212,10 @@ The other calls, all optional on the transport:
 What the runtime keeps in the respondent's browser (`localStorage`) is keyed by the
 survey: the transport's `survey_id` (`SIAMANG_ENV.survey_id`), or `SURVEY.surveyId` when
 the host page sets one. The autosave is `siamang_answers_<survey id>` (the answers
-without `__` keys, the page, the path taken and when the interview started; a day at
-most — removed, and never written again, once the interview is submitted or ended by a
-full quota), the theme choice `siamang_theme_<survey id>` and the runtime's own respondent id
-`siamang_interview_<survey id>`. A host's transport may read the autosave — Studio's
+without `__` keys, the page, the path taken, the page order it was dealt and when the
+interview started; a day at most — removed, and never written again, once the interview
+is submitted or ended by a full quota), the theme choice `siamang_theme_<survey id>` and
+the runtime's own respondent id `siamang_interview_<survey id>`. A host's transport may read the autosave — Studio's
 posts it as a partial response.
 
 Inside an iframe the runtime also tells the parent page its height:

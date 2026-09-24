@@ -149,7 +149,8 @@ Shuffle the page order on `onInit`. The first (welcome) page, the last page and
 every terminal page (`DisqualificationPage`, `FinalPage`, `RedirectPage`) keep
 their place wherever they sit — a screen-out is gated on the questions before
 it — and the remaining pages are shuffled among the remaining slots. Runs
-globally.
+globally. A new order is dealt at every page load; a respondent who resumes saved
+progress goes on in the order they were dealt, which the autosave keeps.
 
 ```python
 shuffle_pages = sg.Script.randomize_pages()
