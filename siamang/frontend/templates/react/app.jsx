@@ -269,6 +269,20 @@ function answerLimitError(q, value, texts) {
   return null;
 }
 
+/* The pages in the order an autosave names them (its `pageOrder`), when it
+   names each of `pages` once: a respondent who resumes a survey whose page
+   order is shuffled at every load goes on in the order they were dealt. Null
+   when there is none to restore, or the pages are no longer the ones it
+   names (the survey was redeployed with others). */
+function savedPageOrder(pages, names) {
+  if (!Array.isArray(pages) || !Array.isArray(names) || names.length !== pages.length) return null;
+  const byName = new Map(pages.map((p) => [p && p.name, p]));
+  if (byName.size !== pages.length) return null;
+  const order = names.map((name) => byName.get(name));
+  if (order.some((p) => !p) || new Set(names).size !== names.length) return null;
+  return order;
+}
+
 function extractOptions(pages) {
   const opts = {};
   const collect = (items) => {
@@ -1437,6 +1451,11 @@ function App() {
                 // the answers come back in today's layout.
                 const internal = {};
                 for (const [k, v] of Object.entries(store.snapshot())) if (k.startsWith("__")) internal[k] = v;
+                // Except the page order: the saved page index counts in the
+                // order the saving sitting had, which a page shuffle dealt
+                // anew for this one.
+                const order = savedPageOrder(internal.__pages__, savedData.pageOrder);
+                if (order) internal.__pages__ = order;
                 store.replace({ ...internal, ...upgradeSavedAnswers(allPages, savedData.answers) });
                 nav.restoreHistory(savedData.history);
                 // The interview began in the sitting that saved it.

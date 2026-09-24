@@ -2483,6 +2483,85 @@ def test_a_resumed_interview_keeps_the_time_it_started(tmp_path):
     assert submitted["started_seen"] == str(state["saved"])
 
 
+def _shuffled_pages_document() -> dict[str, Any]:
+    yes_no = [{"code": 1, "label": "Yes"}, {"code": 2, "label": "No"}]
+    return {
+        "schema_version": "1.0",
+        "title": "Shuffled pages",
+        "variables": {f"q{i}": {"scale": "nominal", "labels": yes_no} for i in range(1, 7)},
+        "pages": [
+            *(
+                {
+                    "name": f"p{i}",
+                    "items": [
+                        {
+                            "type": "SingleChoice",
+                            "id": f"q{i}",
+                            "var": f"q{i}",
+                            "text": f"Question {i}?",
+                            "required": True,
+                        }
+                    ],
+                }
+                for i in range(1, 7)
+            ),
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+        "scripts": [{"type": "randomize_pages"}],
+    }
+
+
+def test_a_resumed_interview_keeps_its_shuffled_page_order(tmp_path):
+    """randomize_pages deals a new order at every load. The first load here
+    deals p1 p3 p4 p5 p6 p2 (Math.random is 0), the reload the document's
+    order (Math.random is just below 1). Resuming after three pages lands on
+    the fourth of the order the respondent was dealt, p5, and goes on in it:
+    every page is asked once, not p4 again with p2 or p3 never asked."""
+
+    init = """
+        const load = Number(window.name || 0);
+        window.name = String(load + 1);
+        Math.random = load === 0 ? () => 0 : () => 0.9999;
+    """
+    answer = (
+        """
+        await page.click("text=Yes");
+    """
+        + _NEXT
+    )
+    scenario = (
+        _RELOAD
+        + answer * 3
+        + """
+        const before = await page.evaluate(() => window.__T.pages.slice());
+        await page.click("text=No");
+    """
+        + _autosaved("answers.q5 === 2 || answers.q4 === 2")
+        + """
+        await reload(".siamang-resume-banner");
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(200);
+        const landed = await page.textContent(".sd-page");
+    """
+        + answer * 3
+        + _STATE.replace("return {", "return { before, landed,")
+    )
+    state = run_in_browser(_shuffled_pages_document(), scenario, tmp_path, init=init)
+    assert state["before"] == ["p1", "p3", "p4", "p5"]
+    assert "Question 5?" in state["landed"]
+    # The second sitting shows its first page, then (resumed) p5, p6, p2.
+    assert state["pages"][1:] == ["p5", "p6", "p2", "done"]
+    (submitted,) = state["submitted"]
+    assert {key: submitted.get(key) for key in ("q1", "q2", "q3", "q4", "q5", "q6")} == {
+        "q1": 1,
+        "q2": 1,
+        "q3": 1,
+        "q4": 1,
+        "q5": 1,
+        "q6": 1,
+    }
+
+
 # ── Progress indicator ───────────────────────────────────────────────────────
 
 

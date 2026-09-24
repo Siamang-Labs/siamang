@@ -544,6 +544,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pending save and writes none afterwards; a submission refused as a full
   quota also forgets the saved answers and the interview id, as a full quota
   found on leaving a page does.
+- Resuming a survey with `Script.randomize_pages` landed on the wrong page.
+  The shuffle deals a new page order at every load, and the autosave kept the
+  page's position and the path but not the order they count in, so the
+  resumed interview applied the old position to the new order: the
+  respondent landed on a page already answered, pages before it they had
+  never reached were never shown, others were shown twice, and a "completed"
+  response lacked required answers. The autosave now keeps the page order
+  (`pageOrder`, the pages' names) and Resume restores it when it names the
+  survey's pages; progress saved by an earlier runtime resumes as before.
 
 ## [0.6.0] — 2026-08-30
 
