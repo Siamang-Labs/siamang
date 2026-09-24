@@ -65,7 +65,8 @@ condition is evaluated against the answers collected *so far*:
 - A question's own `show_if`/`hide_if` hides it the same way.
 - An **answer option's** `show_if`/`hide_if` decides whether it can be picked:
   a hidden option is never chosen, and a question whose options are all hidden
-  is left unanswered.
+  is left unanswered. In a wide `MultiChoice` a hidden option's variable is
+  `NaN`, not `0`: the respondent was never offered it.
 - `skip_to` (on the first answered question, in the order shown), the page's
   `next_if` rules and `default_next` decide where "Next" lands; a visible
   terminal page — screen-out, final, redirect — ends the interview, and pages

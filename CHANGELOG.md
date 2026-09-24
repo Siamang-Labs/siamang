@@ -222,8 +222,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their own conditions hide, never filled the arm of `Script.assign_condition`
   — so a page gated on the arm was empty in every row — and knew nothing of
   page shuffles or quotas. Block `show_if` / `hide_if` (nested blocks too) and
-  option `show_if` / `hide_if` now apply; a question whose options are all
-  hidden is left unanswered. `simulate_from_pages()` takes `scripts=` and
+  option `show_if` / `hide_if` now apply — in a wide `MultiChoice` too, where
+  a hidden option's variable is missing rather than 0, as the runtime stores
+  it, and an exclusive choice now stands alone; a question whose options are
+  all hidden is left unanswered. `simulate_from_pages()` takes `scripts=` and
   `quotas=`: each assignment draws its arm before the first page by the arms'
   weights (balanced against the quota cells, as the platform picks, when it
   asks to be), `Script.randomize_pages` deals each respondent a page order,
