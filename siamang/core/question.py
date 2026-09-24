@@ -236,6 +236,39 @@ class Matrix(Question):
                 "variables; they are matched by position and must be the same length."
             )
 
+    def columns(self) -> list[tuple[Any, str]]:
+        """The answer columns as ``(code, header)`` pairs, in display order.
+
+        A cell stores a code of the row variables' codebook, the value a
+        condition, a quota and the analysis read — not the column's position.
+        Without ``column_labels`` the columns are the first row variable's value
+        labels in code order. With them, each header's code comes from that
+        codebook too: the value label whose text is the header, when every
+        header names exactly one label; else the label in the same position,
+        when there are as many labels as headers (a 0–10 scale headed ``0`` …
+        ``10`` over labels ``No trust`` … ``Complete trust``); else — the
+        codebook says nothing usable — 1, 2, 3 … in column order.
+        """
+
+        labels = dict(getattr(self.var[0], "labels", None) or {})
+        if self.column_labels is None:
+            try:
+                ordered = sorted(labels.items())
+            except TypeError:  # codes of mixed types: keep the authored order
+                ordered = list(labels.items())
+            return [(code, str(label)) for code, label in ordered]
+        headers = [str(header) for header in self.column_labels]
+        by_text: dict[str, list[Any]] = {}
+        for code, label in labels.items():
+            by_text.setdefault(str(label), []).append(code)
+        if headers and all(len(by_text.get(header, ())) == 1 for header in headers):
+            codes = [by_text[header][0] for header in headers]
+            if len(set(map(repr, codes))) == len(codes):
+                return list(zip(codes, headers, strict=True))
+        if len(labels) == len(headers):
+            return list(zip(labels, headers, strict=True))
+        return [(index + 1, header) for index, header in enumerate(headers)]
+
 
 @dataclass(frozen=True, slots=True)
 class Ranking(Question):

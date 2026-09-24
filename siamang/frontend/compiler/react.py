@@ -386,7 +386,11 @@ def _compile_question(
             "placeholder": question.placeholder or "",
         }
     if isinstance(question, Matrix):
-        columns = question.column_labels or _columns_from_first_var(question.var)
+        # The headers, and the codebook code each column stores (Matrix.columns):
+        # a cell used to store its position + 1, so any scale not coded 1…n —
+        # 0–10, a recode, a "Refused" 9 — was recorded as the wrong value.
+        pairs = question.columns()
+        columns = [header for _code, header in pairs]
         if question.subquestions is not None:
             rows = [
                 {"id": v.name, "label": label}
@@ -394,7 +398,13 @@ def _compile_question(
             ]
         else:
             rows = [{"id": v.name, "label": v.label or v.name} for v in question.var]
-        payload = {**base, "kind": "matrix", "columns": columns, "rows": rows}
+        payload = {
+            **base,
+            "kind": "matrix",
+            "columns": columns,
+            "columnCodes": [code for code, _header in pairs],
+            "rows": rows,
+        }
         if question.na_option:
             payload["naOption"] = (
                 question.na_option if isinstance(question.na_option, str) else "Not applicable"
@@ -490,13 +500,6 @@ def _serialise_media(media: Media | list[Media] | None) -> list[dict[str, Any]] 
         return None
     items = media if isinstance(media, list) else [media]
     return [item.to_dict() for item in items]
-
-
-def _columns_from_first_var(variables: list[Any]) -> list[str]:
-    if not variables:
-        return []
-    labels = getattr(variables[0], "labels", {}) or {}
-    return [label for _, label in sorted(labels.items())]
 
 
 # ─── Expression → JS compilation ─────────────────────────────────────────────
