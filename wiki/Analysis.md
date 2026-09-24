@@ -97,7 +97,7 @@ These methods require **`scipy`**, which ships with the base install (they raise
 ### `kruskal`
 
 ```python
-def kruskal(self, column: str, group: str) -> dict[str, float]: ...
+def kruskal(self, column: str, group: str) -> dict[str, Any]: ...
 ```
 
 Kruskal–Wallis H-test for 3+ independent groups (the non-parametric analogue of
@@ -113,7 +113,7 @@ data.analysis.kruskal("autonomy", "remote_freq")
 ### `mannwhitney`
 
 ```python
-def mannwhitney(self, column: str, group: str) -> dict[str, float | object]: ...
+def mannwhitney(self, column: str, group: str) -> dict[str, Any]: ...
 ```
 
 Mann–Whitney U-test for **exactly two** independent groups (two-sided). Returns
@@ -137,7 +137,21 @@ two_levels.analysis.mannwhitney("autonomy", "remote_freq")
 
 Set a default weight column once with `with_weight(...)`, then pass
 `weighted=True` to any method that supports it (`mean`, `grouped_mean`,
-`frequencies`, `crosstab`, `proportion_ci`).
+`frequencies`, `crosstab`, `proportion_ci`). `proportion_ci` says which it did:
+`"weight": "w"` when weighted, and `"weight": "unweighted (the weight 'w' is not
+applied)"` when called without `weighted=True` on weighted data.
+
+The models read the weight on their own: `regression` fits WLS or a weighted
+logit, and `pca` and `reliability` work from the weighted covariance matrix
+(the unbiased estimate for reliability weights, as R's `cov.wt` computes it, so
+equal weights reproduce the unweighted result). Each names the column in
+`stats["weight"]`.
+
+`kruskal`, `mannwhitney`, `spearman` and `SurveyData.cluster` have no standard
+weighted form and run on the respondents as they are; on weighted data their
+result carries `"weight": "unweighted (the weight 'w' is not applied)"`, so it
+cannot be mistaken for a weighted one. The declarative tables and charts follow
+the same rule — see [[Working with Data|Working-with-Data#what-the-weight-reaches]].
 
 ```python
 import numpy as np

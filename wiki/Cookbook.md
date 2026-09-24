@@ -199,10 +199,13 @@ survey = sg.Questionnaire(title="…", pages=[...], scripts=[log_exit])
 
 ## Weighting and analysis
 
-See [[Analysis]]. `with_weight(col)` returns a view whose **`analysis` accessor**
-honours the weight (pass `weighted=True` per call); the declarative `data.report.*`
-tables are unweighted. `simulate()` does not generate a weight column, so attach
-one to the frame first:
+See [[Analysis]]. `with_weight(col)` returns a view whose declarative tables,
+charts and models read the weight directly; the low-level `analysis` methods
+(`mean`, `frequencies`, …) take it per call with `weighted=True`. Results with
+no weighted form — rank tests, k-means, box and scatter plots — say
+"unweighted" instead ([[what the weight reaches|Working-with-Data#what-the-weight-reaches]]).
+`simulate()` does not generate a weight column, so attach one to the frame
+first:
 
 ```python
 import numpy as np
@@ -220,7 +223,8 @@ data.analysis.grouped_mean("trust", by="gender", weighted=True)
 data.analysis.proportion_ci("trust", value=5, confidence=0.95, weighted=True)
 data.analysis.effective_sample_size()   # ESS ≤ N
 
-# Declarative tables remain unweighted
+# Declarative tables are weighted: N and % are sums of weights,
+# with an "Unweighted N" column beside them
 print(data.report.freq("trust").to_markdown())
 ```
 

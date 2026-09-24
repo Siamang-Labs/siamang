@@ -1,7 +1,7 @@
 type: prepare.apply_weight
 category: prepare
 title: Apply weight
-description: Use a weight column in every table and statistic downstream.
+description: Weight the results downstream by a column. Weighted results say so, and a result with no weighted form says it is unweighted.
 inputs:
   data: SurveyData
 outputs:
@@ -11,6 +11,7 @@ params:
     kind: string
     default: weight
     label: Weight column
+    help: 'Weighted: Frequencies, Crosstab, Group means (not N or the test), Banner table, Net Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference, Principal components, Scale reliability, Bar chart, Heatmap with By, and Proportion CI with Weighted ticked. Unweighted, and saying so: Compare groups, Correlation, Cluster (k-means), Box plot, Scatter plot, Heatmap without By, Response quality, Code open answers. Describe counts rows and adds the weighted base.'
 subtitle: '{column}'
 template: |
   {out.data} = {in.data}.with_weight({column!r})

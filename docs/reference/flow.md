@@ -83,6 +83,21 @@ The runner and the generator use the same order.
 Port types: `SurveyData`, `Table`, `Chart`, `Stat`, `Report`, `Any`. Weights
 and flags are columns inside a `SurveyData`.
 
+`prepare.apply_weight` names the weight column (`SurveyData.with_weight`), and
+from there each node either uses it and says so in its output, or has no
+standard weighted form and says it is unweighted. Weighted: Frequencies,
+Crosstab, Group means (not N or the test), Banner table, Net Promoter Score,
+Regression, TURF, MaxDiff, Conjoint, Share of preference, Principal components,
+Scale reliability, the Bar chart, a Heatmap with `by`, and Proportion CI with
+`weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
+is not applied)"` in the stat, or as the chart title's second line): Compare
+groups, Correlation, Cluster, Box plot, Scatter plot, a Heatmap without `by`,
+Response quality and Code open answers. Describe counts rows and adds a
+`weighted_n_valid` column. The HB exports carry no weight. The node's own
+`help` lists the same, so the palette says what the nodes do.
+`analyze.conjoint_shares` has a `stat` output (base, model, weight) beside its
+table.
+
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead
 of a palette, and ignores it when it draws a correlation matrix. These size the

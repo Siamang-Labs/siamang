@@ -14,7 +14,7 @@ params:
     kind: path
     required: true
     label: Path
-    help: Written as <name>.csv, with <name>.dictionary.json and <name>.hb.R beside it.
+    help: Written as <name>.csv, with <name>.dictionary.json and <name>.hb.R beside it. The file has no weight column (the HB packages take none), so an applied weight is not in it; weight the individual utilities when you aggregate them.
 subtitle: '{question} → {path}'
 imports:
 - from siamang.io.choice import write_maxdiff_choices

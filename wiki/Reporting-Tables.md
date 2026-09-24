@@ -148,6 +148,20 @@ Kruskal–Wallis H is chosen automatically.
 
 ---
 
+## Weighted data
+
+After `SurveyData.with_weight(...)` (the flow's **Apply weight**) every table
+reads the weight and says in its footer what it did with it: `FreqTable` sums
+weights for N and % and adds an `Unweighted N` column; `CrossTable` sums
+weights in the cells and runs χ² on Kish's effective base; `GroupMeanTable`
+weights means, SDs and medians while N and the test stay unweighted. The
+banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the
+`Weight`. The quality and theme tables count responses and say
+`Weight: unweighted (the weight 'w' is not applied)`. See
+[[what the weight reaches|Working-with-Data#what-the-weight-reaches]].
+
+---
+
 ## The `data.report` accessor
 
 Instead of importing the classes, use the fluent accessor — it returns the same

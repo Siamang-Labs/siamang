@@ -167,6 +167,12 @@ def test_the_theme_table_shows_shares_of_what_was_coded_and_what_was_not():
     assert table.stats["Answered"] == 4 and table.stats["Themes"] == 2
     assert "deepseek-flash" in table.stats["Codeframe"]
     assert "| Theme " in table.to_markdown()
+    assert "Weight" not in table.stats
+    # Themes count answers; on weighted data the table says the weight is not used.
+    weighted = _data().with_frame(_data().frame.assign(w=[1.0, 2.0, 3.0, 4.0, 5.0]))
+    table = text_coding.apply(weighted.with_weight("w"), cf).report.themes(cf)
+    assert table.to_frame()["N"].tolist()[:2] == [2, 1]
+    assert table.stats["Weight"] == "unweighted (the weight 'w' is not applied)"
 
 
 # ─── the node ────────────────────────────────────────────────────────────────

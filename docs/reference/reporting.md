@@ -32,6 +32,10 @@ Every table component supports the following common interface:
 * **`export_xlsx(path: str | Path) -> Path`**:
   Exports the table directly to an Excel sheet named `"Table"`. The destination directory must already exist.
 
+#### Weighted data
+
+Every table reads `SurveyData.weight` (set by `with_weight()`, the flow's Apply weight node) and says in `stats` what it did with it. `FreqTable` sums weights for N and the percentages and adds an `Unweighted N` column; `CrossTable` sums weights in its cells and runs χ² on the counts scaled to Kish's effective base (with `test=False` its stats still give `Weighted N` and `Weight`); `GroupMeanTable` weights means, SDs and medians while N and the test stay unweighted, and says so in `Note`. The banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the `Weight`. The quality and theme tables count responses and state `Weight: unweighted (the weight '<column>' is not applied)`. The full list, including the analysis methods, is in the data reference under *What the weight reaches*.
+
 ---
 
 ### Univariate Frequencies: `FreqTable`
@@ -201,6 +205,11 @@ Every chart component supports the following common interface:
 | `figsize` | `tuple[float, float]` | `(10, 6)` | Figure dimensions in inches `(width, height)`. |
 | `palette` | `str` | `"muted"` | Seaborn color palette name (e.g., `"muted"`, `"deep"`, `"pastel"`, `"colorblind"`). |
 | `title` | `str \| None` | `None` | Optional chart title. If `None`, automatically generated from variable labels. |
+| `weight_note` | `str \| None` | — | Read-only. `None` on unweighted data; otherwise `"weighted by '<column>'"` for a chart that draws weighted numbers, or `"unweighted (the weight '<column>' is not applied)"` for one that cannot. |
+
+#### Weighted data
+
+A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence with the weighted tables beside it. `BarChart` draws sums of weights (axis "Weighted count") or weighted means (axis "Weighted mean …"), and `HeatMap` with `by` draws weighted means (colour bar "Weighted mean"). `BoxPlot`, `ScatterPlot` and the correlation `HeatMap` have no standard weighted form: they draw the respondents as they are, and the title gets a second line, `unweighted (the weight '<column>' is not applied)` — kept under a title you set yourself too.
 
 #### Methods
 
@@ -215,7 +224,7 @@ Every chart component supports the following common interface:
 
 ### Categorical Distribution: `BarChart`
 
-Plots frequencies or percentages of categorical variables, or mean values of continuous variables across groups.
+Plots the counts of a categorical variable, or mean values of a continuous variable across groups. On weighted data the counts are sums of weights and the means weighted means.
 
 #### Properties
 
@@ -246,7 +255,7 @@ chart.save("autonomy_means.png")
 
 ### Distribution Comparison: `BoxPlot`
 
-Compares the distribution of an interval/ratio variable across groups [1].
+Compares the distribution of an interval/ratio variable across groups [1]. Unweighted; on weighted data the title says so.
 
 #### Properties
 
@@ -271,7 +280,7 @@ chart.show()
 
 ### Matrix / Correlation: `HeatMap`
 
-Plots a correlation matrix of continuous variables or a mean matrix of a set of Likert items grouped by a category [1] [3].
+Plots a correlation matrix of continuous variables or a mean matrix of a set of Likert items grouped by a category [1] [3]. On weighted data the means are weighted; the Spearman correlation matrix is not, and its title says so.
 
 #### Properties
 
@@ -316,7 +325,7 @@ corr_chart.show()
 
 ### Bivariate Relationship: `ScatterPlot`
 
-Plots the relationship between two continuous variables, with optional grouping (color) and a linear trendline.
+Plots the relationship between two continuous variables, with optional grouping (color) and a linear trendline. Unweighted — every respondent is one point and the trendline is an unweighted fit; on weighted data the title says so.
 
 #### Properties
 
@@ -355,6 +364,12 @@ To make this reporting API extremely convenient, two accessors are attached dire
   Creates a `CrossTable` instance.
 * **`means(column: str, *, by: str, test: bool = True) -> GroupMeanTable`**:
   Creates a `GroupMeanTable` instance.
+* **`maxdiff(question, *, method: str = "both") -> MaxDiffTable`**, **`conjoint(question) -> ConjointTable`**:
+  One row per item (counting score, utility, share) or per level (part-worth, importance). On weighted data every column is weighted — the utilities and part-worths come from a conditional logit on the weighted choices — and `stats` carries `Weight` and a base of `N respondents (W weighted)`.
+* **`conjoint_shares(question, products, *, include_none: bool = False) -> ShareTable`**:
+  What the part-worths predict a market of `products` would do: the rows of `siamang.data.conjoint.shares` (`product`, `utility`, `share`), with the base, the model, a note that these are shares of the listed products, and on weighted data the `Weight`, in `stats`.
+* **`quality(column: str = "quality_flags")`**, **`themes(codeframe)`**:
+  Count responses and coded answers; on weighted data `stats["Weight"]` reads `unweighted (the weight '<column>' is not applied)`.
 * **`banner(rows: list[str], columns: list[str], *, weight: str | None = None, test: bool = True, level: float = 0.05, correction: str = "none") -> BannerTable`**:
   The cross-break: the questions in `rows` down the page, a block of columns per
   variable in `columns`, and a base row. Each cell is a column percentage with

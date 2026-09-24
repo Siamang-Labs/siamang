@@ -146,6 +146,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of an explicit `weight=`). The MaxDiff, conjoint and new `ShareTable`
   (`data.report.conjoint_shares`) footers name the `Weight` and give the base as
   `N respondents (W weighted)`; `analyze.conjoint_shares` gains a `stat` output.
+- The rest of the analysis now either uses the weight or says it does not.
+  `BarChart` draws sums of weights / weighted means and `HeatMap` with `by`
+  weighted means (axis or colour bar "Weighted …"); `BoxPlot`, `ScatterPlot`
+  and the correlation `HeatMap` get a second title line `unweighted (the weight
+  'w' is not applied)`, exposed as `SurveyChart.weight_note`. `pca()` and
+  `reliability()` take a `weight` and use the weighted covariance matrix (R's
+  `cov.wt`; equal weights reproduce the unweighted result), and the `analysis`
+  accessor passes the data's weight. `kruskal`, `mannwhitney`, `spearman`,
+  `cluster()`, an unweighted `proportion_ci`, and the quality and theme tables
+  say `unweighted (the weight 'w' is not applied)`. `describe_variables()` adds
+  `weighted_n_valid`; regression, NPS, TURF and a crosstab without a test name
+  the weight. Apply weight's description no longer promises "every table and
+  statistic downstream": its help lists what is weighted and what is not.
 - A single-variable question whose `id` differed from its variable's name stored
   the answer under the **id**, while every `show_if` / `next_if`, quota,
   `{answer:…}` and the codebook read the **variable**. Nothing built on such a

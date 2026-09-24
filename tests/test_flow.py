@@ -90,6 +90,23 @@ def test_registry_loads_every_node_and_serializes():
         registry.get("analyze.nope")
 
 
+def test_apply_weight_lists_what_it_weights_and_what_it_does_not():
+    """The palette promised "every table and statistic downstream" while the
+    rank tests, k-means and three of the charts ignored the weight. What the
+    node says has to be what the nodes do — the flow test above checks the
+    other half."""
+
+    spec = default_registry().get("prepare.apply_weight")
+    assert "every table and statistic" not in spec.description
+    assert "unweighted" in spec.description
+    listed = spec.params["column"].help
+    weighted, unweighted = listed.split("Unweighted, and saying so:")
+    for title in ("MaxDiff", "Conjoint", "Share of preference", "Principal components"):
+        assert title in weighted
+    for title in ("Compare groups", "Correlation", "Cluster", "Box plot", "Scatter plot"):
+        assert title in unweighted and title not in weighted
+
+
 def test_every_template_placeholder_is_declared():
     """A template may only name its own ports and parameters."""
 
@@ -740,6 +757,18 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         result.output("sel").frame.dropna(subset=["age", "satisfaction"])
     )
     assert "alpha" in result.output("rel", "stat")
+    # After Apply weight every result either uses the weight or says it does not.
+    unweighted = "unweighted (the weight 'weight' is not applied)"
+    assert result.output("corr")["weight"] == unweighted
+    assert result.output("cmp")["weight"] == result.output("cmp3")["weight"] == unweighted
+    assert result.output("clu", "stat")["weight"] == unweighted
+    assert result.output("box").weight_note == result.output("scat").weight_note == unweighted
+    assert result.output("heat").weight_note == unweighted  # a correlation matrix
+    assert result.output("ci")["weight"] == "weight"
+    assert result.output("reg", "stat")["weight"] == "weight"
+    assert result.output("pca", "stat")["weight"] == result.output("rel", "stat")["weight"]
+    assert result.output("rel", "stat")["weight"] == "weight"
+    assert result.output("turf", "stat")["Weight"] == "weight"
     # Reach never exceeds the base and never shrinks as the portfolio grows.
     reach = result.output("turf", "table")
     assert list(reach["size"]) == [1, 2]

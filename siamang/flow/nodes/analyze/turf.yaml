@@ -51,4 +51,6 @@ template: |
       Search={out.table}.method,
       Note="each respondent counted once; reach is of the respondents who answered",
   )
+  if {in.data}.weight:  # the base and the reach are sums of weights
+      {out.stat}["Weight"] = {in.data}.weight
 preview: table

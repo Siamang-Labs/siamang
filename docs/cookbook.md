@@ -223,22 +223,22 @@ log_dwell = sg.Script(
 
 ```python
 data = survey.simulate(n=1000, seed=42).with_weight("weight")
-# High-level declarative reporting (unweighted — weights are honoured
-# only by the data.analysis methods)
+# Declarative reporting reads the weight: N and % are sums of weights, with
+# an "Unweighted N" column beside them
 print(data.report.freq("trust").to_markdown())
 
-# Low-level statistical methods (weight-aware)
+# Low-level statistical methods (weight only with weighted=True)
 data.analysis.frequencies("trust", labels=True, weighted=True, normalize=True)
 ```
 
 ### Weighted crosstab + Chi-square
 
 ```python
-# High-level declarative reporting (includes Chi-square / Cramers V by
-# default; always unweighted)
+# Declarative reporting (Chi-square / Cramer's V by default): cells are
+# sums of weights and the test runs on Kish's effective base
 print(data.report.crosstab("gender", "party").to_markdown())
 
-# Low-level statistical methods (weight-aware)
+# Low-level statistical methods (weight only with weighted=True)
 tab, stats = data.analysis.crosstab(
     "gender", "party",
     normalize="columns",
@@ -252,7 +252,8 @@ tab, stats = data.analysis.crosstab(
 ```python
 # Low-level statistical methods
 data.analysis.proportion_ci("trust", value=5, confidence=0.95, weighted=True)
-# → {"proportion": 0.18, "ci_low": 0.16, "ci_high": 0.21, "n": 1000}
+# → {"p": 0.18, "lower": 0.16, "upper": 0.21, "n": 874.2, "weight": "weight"}
+#   (n is Kish's effective base)
 ```
 
 ### Effective sample size
