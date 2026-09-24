@@ -967,6 +967,85 @@ def test_a_wide_answer_saved_as_a_list_of_names_resumes_as_ones_and_zeros(tmp_pa
     assert "brands" not in submitted
 
 
+def _aware_bought_document() -> dict[str, Any]:
+    yes_no = [{"code": 0, "label": "No"}, {"code": 1, "label": "Yes"}]
+    brands = [(1, "acme", "Acme"), (2, "globex", "Globex")]
+
+    def wide(name: str, text: str, gated: bool) -> dict[str, Any]:
+        choices: list[dict[str, Any]] = [{"code": c, "label": label} for c, _, label in brands]
+        if gated:
+            # Globex is offered only to those aware of it.
+            choices[1]["show_if"] = _cmp("=", _var("aware_globex"), 1)
+        return {
+            "type": "MultiChoice",
+            "id": name,
+            "text": text,
+            "var": [f"{name}_{key}" for _, key, _ in brands],
+            "mode": "wide",
+            "choices": choices,
+        }
+
+    return {
+        "schema_version": "1.0",
+        "title": "Aware and bought",
+        "variables": {
+            f"{name}_{key}": {"scale": "nominal", "labels": yes_no}
+            for name in ("aware", "bought")
+            for _, key, _ in brands
+        },
+        "pages": [
+            {"name": "p1", "items": [wide("aware", "Which do you know?", False)]},
+            {"name": "p2", "items": [wide("bought", "Which have you bought?", True)]},
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_a_wide_option_its_condition_hid_is_missing_not_zero(tmp_path):
+    """0 is "offered and not chosen": an option the respondent was never
+    shown stores nothing, so the base of its column is who saw it."""
+
+    scenario = (
+        """
+        await page.click("text=Acme");
+    """
+        + _NEXT
+        + """
+        const offered = await page.$$eval(".sd-choice-label", (els) => els.map((e) => e.textContent));
+        await page.click("text=Acme");
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { offered,")
+    )
+    state = run_in_browser(_aware_bought_document(), scenario, tmp_path)
+    assert state["offered"] == ["Acme"]
+    (submitted,) = state["submitted"]
+    assert submitted == {
+        "aware_acme": 1,
+        "aware_globex": 0,
+        "bought_acme": 1,
+        "__status": "completed",
+    }
+
+
+def test_a_wide_option_offered_and_not_chosen_is_zero(tmp_path):
+    scenario = (
+        """
+        await page.click("text=Acme");
+        await page.click("text=Globex");
+    """
+        + _NEXT
+        + """
+        await page.click("text=Acme");
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_aware_bought_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert (submitted["bought_acme"], submitted["bought_globex"]) == (1, 0)
+
+
 # ── Other (please specify), None of the above, Not applicable ────────────────
 
 

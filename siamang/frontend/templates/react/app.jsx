@@ -1213,7 +1213,7 @@ function App() {
   const setAnswer = useCallback((id, val) => {
     answeredRef.current = true;
     const q = itemsById[id];
-    store.setMany(q ? answerUpdates(q, val) : { [id]: val });
+    store.setMany(q ? answerUpdates(q, val, store.snapshot()) : { [id]: val });
     // A change to the field invalidates any script-written message for it;
     // onAnswer scripts re-add it below if the problem persists.
     const se = store.get("__errors__");

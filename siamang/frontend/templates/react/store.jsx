@@ -214,8 +214,10 @@ function itemValue(q, answers) {
 }
 
 /* What storing `value` — as the item's component hands it over — writes:
-   { key: value } for every key the item owns; undefined clears a key. */
-function answerUpdates(q, value) {
+   { key: value } for every key the item owns; undefined clears a key.
+   `answers` (the answers so far) is what an option's own show_if / hide_if
+   reads: a wide option it hides was never offered and stores nothing. */
+function answerUpdates(q, value, answers) {
   if (isSpreadItem(q)) {
     const v = value && typeof value === "object" ? value : {};
     const updates = {};
@@ -230,7 +232,11 @@ function answerUpdates(q, value) {
       for (const o of q.options || []) {
         if (!o || !o.var) continue;
         // Nothing chosen is an unanswered question: every variable is cleared.
-        updates[o.var] = selected.length ? (selected.some((c) => sameCode(c, o.code)) ? 1 : 0) : undefined;
+        // 0 is "offered and not chosen"; an option its condition hid from this
+        // respondent was not offered, and is missing like an unasked question.
+        const chosen = selected.some((c) => sameCode(c, o.code));
+        const offered = !answers || typeof gateOption !== "function" || gateOption(o, answers);
+        updates[o.var] = selected.length && (chosen || offered) ? (chosen ? 1 : 0) : undefined;
       }
     } else {
       updates[q.id] = selected.length ? selected : undefined;
@@ -284,7 +290,7 @@ function upgradeSavedAnswers(pages, saved) {
         const o = (q.options || []).find((opt) => opt.var === name || sameCode(opt.code, name));
         chosen.push(o ? o.code : otherCode(q, name));
       }
-      Object.assign(out, answerUpdates(q, hasOtherText(q) ? { selected: chosen, otherText: text } : chosen));
+      Object.assign(out, answerUpdates(q, hasOtherText(q) ? { selected: chosen, otherText: text } : chosen, out));
       return;
     }
     if ((q.kind === "single" || q.kind === "dropdown") && legacy !== undefined) {
