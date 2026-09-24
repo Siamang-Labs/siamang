@@ -353,3 +353,11 @@ class TestPinnedOptions:
     def test_an_ordinary_list_has_nothing_fixed(self):
         item = _only_item(_survey(_fruit(randomize=True)))
         assert all("fixed" not in option for option in item["options"])
+
+
+def test_pages_carry_no_section_label_and_the_survey_says_which_texts_to_show():
+    survey = _survey(_fruit())
+    payload = compile_react_payload(survey, ui=sg.UIConfig(show_section_numbers=False))
+    assert all("section" not in page for page in payload["PAGES"])
+    assert payload["SURVEY"]["showSectionNumbers"] is False
+    assert payload["SURVEY"]["showProgressText"] is True

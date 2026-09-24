@@ -88,11 +88,6 @@ function evalConditionMemoized(condition, answers) {
 
 /* ─── Helpers ───────────────────────────────────────────────────────── */
 
-/* A page that ends the interview when it is reached. */
-function isTerminalPage(page) {
-  return !!page && (page.kind === "disqualification" || page.kind === "final" || page.kind === "redirect");
-}
-
 function isAnswered(q, v) {
   if (v === undefined || v === null || v === "") return false;
   if (Array.isArray(v)) return v.length > 0;
@@ -174,6 +169,9 @@ function runtimeTexts() {
     restartAction: ui.restartAction || "Start over",
     page: ui.pageText || "Page",
     of_total: ui.ofTotalText || "of",
+    welcome: ui.welcomeText || "Welcome",
+    section: ui.sectionText || "Section {n} of {total}",
+    finalSection: ui.finalSectionText || "Final thoughts",
     retryTitle: ui.retryTitle || "Submission failed",
     retryBody: ui.retryBody || "We could not save your responses.",
     retryAction: ui.retryAction || "Try again",
@@ -729,7 +727,7 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
   return { enabled, selectable, selectedId, onSelect };
 }
 
-function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design }) {
+function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design, section }) {
   // While a quota check runs the buttons wait; the page itself stays as it is.
   const busy = submitting || checking;
   const answers = useAnswersStore(store);
@@ -766,7 +764,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
 
   return (
     <div className="sd-page">
-      {page.section ? <div className="sd-page__eyebrow">{page.section}</div> : null}
+      {section ? <div className="sd-page__eyebrow">{section}</div> : null}
       {page.title ? <h2 className="sd-page__title">{processPipedText(page.title, answers)}</h2> : null}
       {page.description ? <p className="sd-page__description">{processPipedText(page.description, answers)}</p> : null}
 
@@ -1238,6 +1236,20 @@ function App() {
   const showBar = showProgress && progressStyle !== "dots";
   const showDots = showProgress && (progressStyle === "dots" || progressStyle === "both");
 
+  // Where the respondent is, in words. The section label — "Welcome" on the
+  // first page they answer, "Final thoughts" on the last, "Section n of m"
+  // between — is the page's eyebrow and the text beside the bar; without
+  // section labels (show_section_numbers=False) the bar says "Page n of m".
+  // Both count the pages the respondent answers, in their order.
+  const sectionLabel = nav.position < 0 ? null
+    : nav.position === 0 ? uiTexts.welcome
+    : nav.position === nav.contentTotal - 1 ? uiTexts.finalSection
+    : fillText(uiTexts.section, { n: nav.position, total: nav.contentTotal - 1 });
+  const pageLabel = nav.position < 0 ? ""
+    : `${uiTexts.page} ${nav.position + 1} ${uiTexts.of_total} ${nav.contentTotal}`;
+  const showSections = ui.showSectionNumbers !== false;
+  const progressText = ui.showProgressText === false ? null : (showSections ? sectionLabel : pageLabel);
+
   // ─── Access gate ───
   if (ui.requireAccessCode && !accessGranted) {
     const verifyAccess = () => {
@@ -1331,16 +1343,15 @@ function App() {
             <span className="siamang-progress__bar" aria-hidden="true">
               <span className="siamang-progress__fill" style={{ width: nav.progressPct + "%" }}></span>
             </span>
-            <span className="siamang-progress__text">
-              {nav.currentPage && nav.currentPage.section
-                ? nav.currentPage.section
-                : `${uiTexts.page} ${nav.pageIdx + 1} ${uiTexts.of_total} ${nav.totalPages}`}
-            </span>
+            {progressText ? <span className="siamang-progress__text">{progressText}</span> : null}
           </div>
         ) : null}
         {showDots && (
           <nav className="siamang-step-dots" aria-label="Survey progress">
             {nav.pages.map((p, i) => {
+              // One dot per page the respondent answers; an end page is not
+              // a step.
+              if (isTerminalPage(p)) return null;
               // Only a page on the path that led here can be gone back to;
               // a dot ahead would skip required questions and routing.
               const reachable = nav.canGoBackTo(i);
@@ -1364,7 +1375,7 @@ function App() {
           </div>
         )}
         <div className="siamang-announce" role="status" aria-live="polite" aria-atomic="true" style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0,0,0,0)" }}>
-          {nav.currentPage ? `${uiTexts.page} ${nav.pageIdx + 1} ${uiTexts.of_total} ${nav.totalPages}` : ""}
+          {nav.currentPage ? pageLabel : ""}
         </div>
         <main id="surveyContainer" role="main" aria-label={ui.title || "Questionnaire"}>
           {initializing && (
@@ -1399,6 +1410,7 @@ function App() {
                   handleBlur={handleBlur}
                   uiTexts={uiTexts}
                   design={design}
+                  section={showSections ? sectionLabel : null}
                 />
               </ErrorBoundary>
             ) : null}

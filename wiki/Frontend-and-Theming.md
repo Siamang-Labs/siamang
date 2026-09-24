@@ -260,6 +260,15 @@ two words of `institution_name` — e.g. "Riverside Health Collective" → "RH")
 `logo_position`, `show_title`, `institution_name`, `study_subtitle`,
 `show_section_numbers`, `show_progress_text`, and `estimated_minutes`.
 
+Where the respondent is: every page they answer has a section label above its title —
+"Welcome" on the first, "Final thoughts" on the last, "Section *n* of *m*" between —
+and the progress bar shows the same label beside it. The count is the respondent's own:
+the pages they go through, in their order (after `randomize_pages`, say), without the
+end pages (final, screen-out, redirect), so the last question page is at 100 %.
+`show_section_numbers=False` drops the labels, and the bar says "Page *n* of *m*"
+instead (`page_text`, `of_total_text`); `show_progress_text=False` leaves the bar
+without text. The page dots, too, are one per page the respondent answers.
+
 The header appears when there is something in it: the title (`show_title=True`), a
 logo or an institution. `show_title=False` hides the questionnaire's title even when
 the header is shown for a logo or an institution.

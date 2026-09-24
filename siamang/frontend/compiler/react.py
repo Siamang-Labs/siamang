@@ -79,6 +79,10 @@ def compile_react_payload(
         "showHeader": ui.show_title or bool(ui.institution_name) or bool(ui.logo_url),
         "showTitle": ui.show_title,
         "showProgress": options.get("show_progress", True),
+        # The section label above a page's title ("Welcome", "Section 2 of 5",
+        # "Final thoughts") and the text beside the progress bar.
+        "showSectionNumbers": ui.show_section_numbers,
+        "showProgressText": ui.show_progress_text,
         "estimatedMinutes": ui.estimated_minutes,
         "ethics": ui.ethics_statement or "",
         "privacyUrl": ui.privacy_url or "",
@@ -135,10 +139,11 @@ def compile_react_payload(
         if question_fallback_id(question) not in page_names
     }
 
-    pages: list[dict[str, Any]] = []
-    total = len(pages_src)
-    for index, page in enumerate(pages_src):
-        pages.append(_compile_page(page, index=index, total=total, skip_targets=skip_targets))
+    # A page carries no section label ("Welcome", "Section 2 of 5"): the
+    # runtime works it out from the pages the respondent actually goes through,
+    # in their order and without the terminal pages, and words it from the UI
+    # texts.
+    pages = [_compile_page(page, skip_targets=skip_targets) for page in pages_src]
 
     # Serialize scripts. The runtime matches a question-scoped script's target
     # — and a library script reads answers and options — by the item's answer
@@ -203,19 +208,10 @@ def _pages_for_react(survey: Questionnaire):
     yield Page(name="page1", items=items)
 
 
-def _compile_page(
-    page: Page, *, index: int, total: int, skip_targets: Mapping[str, str] | None = None
-) -> dict[str, Any]:
-    section = f"Section {index} of {max(0, total - 1)}" if total > 1 and index > 0 else None
-    if index == 0:
-        section = "Welcome"
-    if index == total - 1 and total > 1:
-        section = "Final thoughts"
-
+def _compile_page(page: Page, *, skip_targets: Mapping[str, str] | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "name": page.name,
         "title": page.title or "",
-        "section": section,
     }
 
     show_if = _compile_condition(page.show_if)
