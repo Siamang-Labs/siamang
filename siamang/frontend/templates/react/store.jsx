@@ -257,6 +257,25 @@ function answerUpdates(q, value, answers) {
   return { [q.id]: value };
 }
 
+/* The variables of every answered wide question whose options carry a
+   condition, as those conditions read `answers` now. answerUpdates decides
+   0 or missing when the question is answered, but an answer given after it —
+   on the same page, or back on an earlier one — can offer an option the
+   respondent left unticked (0, not missing) or take one away (missing, not
+   0). A chosen option stays 1. Only the keys that change are returned. */
+function wideGateUpdates(items, answers) {
+  const updates = {};
+  for (const q of items || []) {
+    if (!isWideItem(q) || !(q.options || []).some((o) => o && (o.showIf || o.hideIf))) continue;
+    const value = itemValue(q, answers);
+    if (value === undefined) continue;
+    for (const [key, v] of Object.entries(answerUpdates(q, value, answers))) {
+      if (answers[key] !== v) updates[key] = v;
+    }
+  }
+  return updates;
+}
+
 function forEachItem(pages, fn) {
   for (const p of pages || []) {
     for (const q of p.items || []) if (q) fn(q);
