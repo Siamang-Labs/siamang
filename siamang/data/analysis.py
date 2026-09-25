@@ -43,7 +43,8 @@ class DataAnalysis:
     have no standard weighted form, so on weighted data they run on the
     respondents as they are and their result carries a ``weight`` entry
     saying so. :meth:`regression`, :meth:`pca` and :meth:`reliability` use
-    the weight; :meth:`proportion_ci` uses it when asked (``weighted=True``).
+    the weight, and :meth:`correlation` does with Pearson;
+    :meth:`proportion_ci` uses it when asked (``weighted=True``).
     """
 
     frame: pd.DataFrame
@@ -169,6 +170,141 @@ class DataAnalysis:
                 "n": float(frame.shape[0]),
             }
         )
+
+    # ── a method chosen by hand (siamang.data.inference) ──────────────
+    #
+    # Unlike the defaults above, these leave the codebook's missing codes out
+    # (a "Don't know" coded 99 is not an answer of 99) and say how many.
+
+    def correlation(
+        self, x: str, y: str, *, method: str = "pearson", confidence: float = 0.95
+    ) -> dict[str, Any]:
+        """Pearson, Spearman or Kendall (tau-b) correlation of ``x`` and ``y``.
+
+        Returns ``method``, the coefficient (``r``, ``rho`` or ``tau``),
+        ``p_value``, ``n`` and for Pearson a Fisher-z interval ``lower`` –
+        ``upper``. Pearson uses the data's weight when it has one (the weighted
+        coefficient, with p and interval on Kish's effective base,
+        ``n_effective``, and ``weight`` naming the column); the rank
+        correlations say they are unweighted. When the pairs cannot carry a
+        correlation the coefficient is None and ``note`` says why.
+        """
+        from siamang.data import inference
+
+        frame, left_out = inference.without_missing_codes(self.frame, [x, y], self.variables)
+        weighted = method == "pearson" and self.weight_column is not None
+        try:
+            result = inference.correlate(
+                frame[x],
+                frame[y],
+                method=method,
+                weights=frame[self.weight_column] if weighted else None,
+                confidence=confidence,
+            )
+        except inference.NotTestable as exc:
+            pairs = frame[[x, y]].apply(pd.to_numeric, errors="coerce").dropna()
+            result = {
+                "method": inference.CORRELATION_NAMES[method],
+                inference.CORRELATION_SYMBOLS[method]: None,
+                "p_value": None,
+                "n": int(len(pairs)),
+                "note": str(exc),
+            }
+        note = inference.missing_codes_note(left_out, self.variables)
+        if note:
+            result["missing_codes"] = note
+        if weighted:
+            result["weight"] = self.weight_column
+            return result
+        return self._unweighted(result)
+
+    def compare_groups(
+        self,
+        column: str,
+        group: str,
+        *,
+        test: str = "auto",
+        posthoc: str = "none",
+        adjust: str = "holm",
+    ) -> dict[str, Any]:
+        """Kruskal-Wallis (or Mann-Whitney) and Dunn's test on every pair of groups.
+
+        ``test`` is ``auto`` (Mann-Whitney for two groups, Kruskal-Wallis for
+        more), ``kruskal`` or ``mannwhitney``, as in :meth:`kruskal` and
+        :meth:`mannwhitney`, whose keys the result keeps (``statistic``,
+        ``p_value``, and ``groups`` or ``group_a`` / ``group_b``) beside
+        ``test`` and ``n``. With ``posthoc="dunn"`` after Kruskal-Wallis, one
+        entry per pair of groups, keyed by their labels, gives Dunn's z and the
+        p adjusted by ``adjust`` (``holm`` or ``bonferroni``); two groups need
+        no post-hoc test and the result says so.
+        """
+        from siamang.data import inference
+
+        if test not in ("auto", "kruskal", "mannwhitney"):
+            raise ValueError("test must be 'auto', 'kruskal' or 'mannwhitney'.")
+        if posthoc not in ("none", "dunn"):
+            raise ValueError("posthoc must be 'none' or 'dunn'.")
+        if posthoc == "dunn" and test == "mannwhitney":
+            raise ValueError("Dunn's test follows Kruskal-Wallis: test='kruskal' or 'auto'.")
+        frame, left_out = inference.without_missing_codes(
+            self.frame, [column, group], self.variables
+        )
+        values = pd.to_numeric(frame[column], errors="coerce")
+        clean = pd.DataFrame({"y": values, "g": frame[group]}).dropna()
+        labels = (
+            self.variables[group].labels
+            if self.variables is not None and group in self.variables
+            else {}
+        )
+        codes, samples = [], []
+        for code, part in clean.groupby("g"):
+            codes.append(code)
+            samples.append(part["y"].to_numpy(dtype=float))
+        if len(samples) < 2:
+            raise ValueError(f"compare_groups() needs at least two non-empty groups of {group!r}.")
+        two = test == "mannwhitney" or (test == "auto" and len(samples) == 2)
+        try:
+            if two:
+                if len(samples) != 2:
+                    raise ValueError("mannwhitney needs exactly two non-empty groups.")
+                found = inference.mannwhitney(samples[0], samples[1])
+                result: dict[str, Any] = {
+                    "test": found.method,
+                    "statistic": found.statistic,
+                    "p_value": found.p_value,
+                    "group_a": codes[0],
+                    "group_b": codes[1],
+                }
+            else:
+                found = inference.kruskal(samples)
+                result = {
+                    "test": found.method,
+                    "statistic": found.statistic,
+                    "p_value": found.p_value,
+                    "groups": float(len(samples)),
+                }
+        except inference.NotTestable as exc:
+            result = {"test": None, "statistic": None, "p_value": None, "note": str(exc)}
+        result["n"] = int(len(clean))
+        if posthoc == "dunn":
+            if two:
+                result["posthoc"] = "not needed: with two groups the test compares the pair"
+            else:
+                names = [str(labels.get(code, code)) for code in codes]
+                try:
+                    pairs = inference.posthoc(samples, names, "dunn", adjust=adjust)
+                except inference.NotTestable as exc:
+                    result["posthoc"] = f"not run: {exc}"
+                else:
+                    result["posthoc"] = pairs.name
+                    for row in pairs.table.itertuples():
+                        result[f"{row.group_1} vs {row.group_2}"] = (
+                            f"z = {row.statistic:.3f}, p = {row.p_adjusted:.4f}"
+                        )
+        note = inference.missing_codes_note(left_out, self.variables)
+        if note:
+            result["missing_codes"] = note
+        return self._unweighted(result)
 
     def frequencies(
         self,

@@ -34,7 +34,7 @@ Every table component supports the following common interface:
 
 #### Weighted data
 
-Every table reads `SurveyData.weight` (set by `with_weight()`, the flow's Apply weight node) and says in `stats` what it did with it. `FreqTable` sums weights for N and the percentages and adds an `Unweighted N` column; `CrossTable` sums weights in its cells and runs χ² on the counts scaled to Kish's effective base (with `test=False` its stats still give `Weighted N` and `Weight`); `GroupMeanTable` weights means, SDs and medians while N and the test stay unweighted, and says so in `Note`. The banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the `Weight`. The quality and theme tables count responses and state `Weight: unweighted (the weight '<column>' is not applied)`. The full list, including the analysis methods, is in the data reference under *What the weight reaches*.
+Every table reads `SurveyData.weight` (set by `with_weight()`, the flow's Apply weight node) and says in `stats` what it did with it. `FreqTable` sums weights for N and the percentages and adds an `Unweighted N` column; `CrossTable` sums weights in its cells and runs χ² on the counts scaled to Kish's effective base (with `test=False` its stats still give `Weighted N` and `Weight`); `GroupMeanTable` weights means, SDs and medians while N, the test and any post-hoc pairs stay unweighted, and says so in `Note`. Fisher's exact test in `CrossTable` counts respondents and says so in `Base`; `CorrelationMatrixTable` weights Pearson's coefficient (p on Kish's effective base) and `TTestTable` states `Weight: unweighted (the weight '<column>' is not applied)`. The banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the `Weight`. The quality and theme tables count responses and state `Weight: unweighted (the weight '<column>' is not applied)`. The full list, including the analysis methods, is in the data reference under *What the weight reaches*.
 
 ---
 
@@ -74,7 +74,8 @@ Generates two-way contingency tables with optional statistical tests (Chi-square
 | `row` | `str` | `""` | Row variable name (usually the independent variable). |
 | `col` | `str` | `""` | Column variable name (usually the dependent variable). |
 | `pct` | `str` | `"none"` | Percentage direction: `"row"`, `"col"`, `"total"`, or `"none"`. |
-| `test` | `bool` | `True` | If `True`, automatically runs a Chi-square test of independence and appends a footer with $\chi^2$, $df$, $p$-value, and Cramér's V [1] [3]. |
+| `test` | `bool` | `True` | If `True`, runs the test `method` names and appends it to the footer. |
+| `method` | `str` | `"chi2"` | `"chi2"`: a Chi-square test of independence with $\chi^2$, $df$, $p$-value, and Cramér's V [1] [3]. `"fisher"`: Fisher's exact test — for a 2 × 2 table p, the conditional odds ratio (`Odds ratio`, `OR 95% CI`, `Odds ratio of` naming the cells), for a larger one the Fisher-Freeman-Halton p (`p method`: exact, or Monte Carlo from 20,000 tables with a fixed seed). It counts respondents, leaves the codebook's missing codes out of the table and test, and names them in `Missing codes left out`. |
 
 #### Example
 
@@ -98,7 +99,10 @@ Compares means of an interval/ratio variable across categories of a nominal/ordi
 | `data` | `SurveyData` | *Required* | The `SurveyData` container. |
 | `column` | `str` | `""` | Continuous dependent variable (interval/ratio). |
 | `by` | `str` | `""` | Categorical independent variable (nominal/ordinal). |
-| `test` | `bool` | `True` | If `True`, automatically runs a significance test: ANOVA, t-test, Kruskal-Wallis, or Mann-Whitney U [1] [3]. |
+| `test` | `bool` | `True` | If `True`, runs a significance test: ANOVA, t-test, Kruskal-Wallis, or Mann-Whitney U [1] [3]. |
+| `method` | `str` | `"auto"` | `"auto"` chooses as below. Or by hand: `"student"`, `"welch"`, `"anova"`, `"welch_anova"`, `"mannwhitney"`, `"kruskal"`; the footer then gives `Test`, the statistic, `df`, `p` and an effect size (Cohen's d, η², rank-biserial r, ε²), and the codebook's missing codes are left out of the table and the test (`Missing codes left out`). A two-group test of more groups reports `Test = not run: …`. |
+| `posthoc` | `str` | `"none"` | `"tukey"` after `"anova"`, `"games_howell"` after `"welch_anova"`, `"dunn"` after `"kruskal"`; any other pairing is a `ValueError`. The pairs are a `PostHocTable` (`posthoc_table`), rendered under the means table by `to_markdown` / `to_html` and written to a second sheet by `export_xlsx`; the footer's `Post-hoc` counts the pairs that differ at p < 0.05. |
+| `adjust` | `str` | `"holm"` | Dunn's p adjustment: `"holm"` or `"bonferroni"`. Tukey and Games-Howell control the family-wise error themselves. |
 
 #### Test Selection Logic
 
@@ -117,7 +121,20 @@ from siamang.reporting import GroupMeanTable
 
 table = GroupMeanTable(data, column="autonomy", by="remote_freq", test=True)
 print(table.to_markdown())
+
+chosen = GroupMeanTable(data, column="age", by="it_role", method="anova", posthoc="tukey")
+chosen.posthoc_table.to_frame()   # Pair, Difference, 95% CI low / high, q, p
 ```
+
+---
+
+### Tests chosen by hand: `TTestTable`, `CorrelationMatrixTable`, `PostHocTable`
+
+In `siamang.reporting.stat_tables`, built on `siamang.data.inference`. Each leaves the codebook's missing codes out and says so.
+
+* **`TTestTable(data, column, kind="independent", by=None, groups=None, other=None, mu=0.0, variances="welch", confidence=0.95)`** — one row per group (independent: the two groups of `by`, or the two codes in `groups` when `by` has more — without them such a `by` is a `ValueError` listing its groups), per measurement (paired: `column` and `other` over the complete pairs, plus their difference) or for the variable (one-sample against `mu`): `N`, `Mean`, `SD`, `SE`. Stats: `Test` (Welch's or Student's t-test, Paired t-test, One-sample t-test), `t`, `df`, `p`, `Mean difference` and `Difference` (which minus which), `95% CI`, `Cohen's d` (`Cohen's d (d_z)` for paired data), `Hedges' g` (two groups), `N`, and `Test value`, `Incomplete pairs left out` where they apply.
+* **`CorrelationMatrixTable(data, columns, method="spearman", missing="pairwise", adjust="none", layout="matrix")`** — `layout="matrix"`: a `Variable` column and one column per variable, the lower triangle holding coefficients with `*` (p < .05), `**` (p < .01), `***` (p < .001) on the adjusted p when `adjust` is set, `—` on the diagonal. `layout="pairs"`: `Variable 1`, `Variable 2`, the coefficient (`r`, `rho`, `tau`), `p`, `p (Holm)` (or the adjustment chosen) and `N`. Stats: `Method`, `Missing`, `N` (a range when pairwise N differs), `p adjustment`, `Marks`, `Not computed`. `result` holds the square frames.
+* **`PostHocTable`** — what `GroupMeanTable.posthoc_table` returns: Tukey and Games-Howell give `Pair`, `Difference`, `95% CI low`, `95% CI high`, `q` (Games-Howell also `df`) and `p`; Dunn gives `Pair`, `Mean rank difference`, `z`, `p (unadjusted)` and `p (Holm)` / `p (Bonferroni)`.
 
 ---
 
@@ -360,10 +377,14 @@ To make this reporting API extremely convenient, two accessors are attached dire
 
 * **`freq(column: str, *, exclude_missing: bool = True, sort: str = "value") -> FreqTable`**:
   Creates a `FreqTable` instance.
-* **`crosstab(row: str, col: str, *, pct: str = "none", test: bool = True) -> CrossTable`**:
+* **`crosstab(row: str, col: str, *, pct: str = "none", test: bool = True, method: str = "chi2") -> CrossTable`**:
   Creates a `CrossTable` instance.
-* **`means(column: str, *, by: str, test: bool = True) -> GroupMeanTable`**:
+* **`means(column: str, *, by: str, test: bool = True, method: str = "auto", posthoc: str = "none", adjust: str = "holm") -> GroupMeanTable`**:
   Creates a `GroupMeanTable` instance.
+* **`ttest(column: str, *, kind: str = "independent", by: str | None = None, groups: list | None = None, other: str | None = None, mu: float = 0.0, variances: str = "welch", confidence: float = 0.95) -> TTestTable`**:
+  Creates a `TTestTable` instance.
+* **`correlation_matrix(columns: list[str], *, method: str = "spearman", missing: str = "pairwise", adjust: str = "none", layout: str = "matrix") -> CorrelationMatrixTable`**:
+  Creates a `CorrelationMatrixTable` instance.
 * **`maxdiff(question, *, method: str = "both") -> MaxDiffTable`**, **`conjoint(question) -> ConjointTable`**:
   One row per item (counting score, utility, share) or per level (part-worth, importance). On weighted data every column is weighted — the utilities and part-worths come from a conditional logit on the weighted choices — and `stats` carries `Weight` and a base of `N respondents (W weighted)`.
 * **`conjoint_shares(question, products, *, include_none: bool = False) -> ShareTable`**:

@@ -139,6 +139,7 @@ class ReportAccessor:
         *,
         pct: str = "none",
         test: bool = True,
+        method: str = "chi2",
     ) -> CrossTable:
         """Generate a cross-tabulation table.
 
@@ -151,11 +152,13 @@ class ReportAccessor:
         pct : str
             Percentage direction: "none", "row", "col", "total".
         test : bool
-            Run Chi-square test and report statistics.
+            Run the significance test and report statistics.
+        method : str
+            "chi2" (Chi-square, the default) or "fisher" (Fisher's exact test).
         """
         from siamang.reporting.tables import CrossTable
 
-        return CrossTable(data=self._data, row=row, col=col, pct=pct, test=test)
+        return CrossTable(data=self._data, row=row, col=col, pct=pct, test=test, method=method)
 
     def means(
         self,
@@ -163,6 +166,9 @@ class ReportAccessor:
         *,
         by: str,
         test: bool = True,
+        method: str = "auto",
+        posthoc: str = "none",
+        adjust: str = "holm",
     ) -> GroupMeanTable:
         """Generate a grouped means comparison table.
 
@@ -173,11 +179,82 @@ class ReportAccessor:
         by : str
             Categorical grouping variable.
         test : bool
-            Run appropriate significance test.
+            Run a significance test.
+        method : str
+            "auto" (chosen by scale and number of groups) or "student", "welch",
+            "anova", "welch_anova", "mannwhitney", "kruskal".
+        posthoc : str
+            "none", "tukey" (after anova), "games_howell" (after welch_anova) or
+            "dunn" (after kruskal, p adjusted by ``adjust``: "holm" or "bonferroni").
         """
         from siamang.reporting.tables import GroupMeanTable
 
-        return GroupMeanTable(data=self._data, column=column, by=by, test=test)
+        return GroupMeanTable(
+            data=self._data,
+            column=column,
+            by=by,
+            test=test,
+            method=method,
+            posthoc=posthoc,
+            adjust=adjust,
+        )
+
+    def ttest(
+        self,
+        column: str,
+        *,
+        kind: str = "independent",
+        by: str | None = None,
+        groups: list[Any] | None = None,
+        other: str | None = None,
+        mu: float = 0.0,
+        variances: str = "welch",
+        confidence: float = 0.95,
+    ) -> Any:
+        """A t-test with its descriptives: ``kind="independent"`` compares
+        ``column`` between two groups of ``by`` (the two codes in ``groups``
+        when ``by`` has more), Welch's by default or Student's with
+        ``variances="student"``; ``"paired"`` compares ``column`` with
+        ``other`` on the same respondents; ``"one_sample"`` tests the mean
+        against ``mu``. See :class:`~siamang.reporting.stat_tables.TTestTable`."""
+        from siamang.reporting.stat_tables import TTestTable
+
+        return TTestTable(
+            data=self._data,
+            column=column,
+            kind=kind,
+            by=by,
+            groups=list(groups) if groups is not None else None,
+            other=other,
+            mu=float(mu),
+            variances=variances,
+            confidence=confidence,
+        )
+
+    def correlation_matrix(
+        self,
+        columns: list[str],
+        *,
+        method: str = "spearman",
+        missing: str = "pairwise",
+        adjust: str = "none",
+        layout: str = "matrix",
+    ) -> Any:
+        """Correlations between every pair of ``columns`` — ``"pearson"``,
+        ``"spearman"`` or ``"kendall"``, ``pairwise`` or ``listwise``, p
+        adjusted by ``"holm"``, ``"bonferroni"`` or ``"fdr_bh"`` when asked —
+        as a lower-triangle matrix with significance marks or one row per pair.
+        See :class:`~siamang.reporting.stat_tables.CorrelationMatrixTable`."""
+        from siamang.reporting.stat_tables import CorrelationMatrixTable
+
+        return CorrelationMatrixTable(
+            data=self._data,
+            columns=list(columns),
+            method=method,
+            missing=missing,
+            adjust=adjust,
+            layout=layout,
+        )
 
 
 class PlotAccessor:

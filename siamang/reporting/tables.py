@@ -446,21 +446,38 @@ class CrossTable(SurveyTable):
     pct : str
         Percentage direction: "none", "row", "col", or "total".
     test : bool
-        If True, runs Chi-square test and reports chi2, df, p, Cramer's V.
+        If True, runs the test ``method`` names and reports it in ``stats``.
+    method : str
+        ``"chi2"`` (default): Chi-square with df, p and Cramer's V.
+        ``"fisher"``: Fisher's exact test — for a 2x2 table with the odds ratio
+        and its interval, larger tables by the Fisher-Freeman-Halton test. It
+        counts respondents, leaves the codebook's missing codes out of the table
+        and says so (see :func:`siamang.reporting.stat_tables.fisher_stats`).
     """
 
     row: str = ""
     col: str = ""
     pct: str = "none"
     test: bool = True
+    method: str = "chi2"
 
     def _build(self) -> None:
         from siamang.data import multi
 
+        if self.method not in ("chi2", "fisher"):
+            raise ValueError(f"method must be 'chi2' or 'fisher'; got {self.method!r}.")
         if multi.is_multi(self.data.frame[self.row]):
             self._build_multi()
             return
-        frame = self.data.frame[[self.row, self.col]].dropna()
+        fisher = self.test and self.method == "fisher"
+        source, left_out = self.data.frame, {}
+        if fisher:
+            from siamang.data.inference import without_missing_codes
+
+            source, left_out = without_missing_codes(
+                source, [self.row, self.col], self.data.variables
+            )
+        frame = source[[self.row, self.col]].dropna()
         row_labels = _get_value_labels(self.data, self.row)
         col_labels = _get_value_labels(self.data, self.col)
 
@@ -508,7 +525,18 @@ class CrossTable(SurveyTable):
         self._result = display
 
         # Statistical tests
-        if self.test:
+        if fisher:
+            from siamang.reporting.stat_tables import fisher_stats
+
+            self._stats = fisher_stats(
+                self.data,
+                pd.crosstab(frame[self.row], frame[self.col]),
+                row=self.row,
+                col=self.col,
+                weights=weights,
+                left_out=left_out,
+            )
+        elif self.test:
             try:
                 from scipy.stats import chi2_contingency
 
@@ -553,6 +581,7 @@ class CrossTable(SurveyTable):
         """
         from siamang.data import multi
 
+        test_name = "Fisher's exact test" if self.method == "fisher" else "chi-square"
         labels = _get_value_labels(self.data, self.row)
         weight = self.data.weight
         if weight is not None and weight not in self.data.frame.columns:
@@ -591,7 +620,7 @@ class CrossTable(SurveyTable):
             "Base": ", ".join(f"{group}: {size}" for group, size in bases.items()),
             "Note": (
                 "multiple answers allowed; percentages are of each group, and no "
-                "chi-square is reported because the categories overlap"
+                f"{test_name} is reported because the categories overlap"
             ),
         }
         if weight is not None:
@@ -619,22 +648,95 @@ class GroupMeanTable(SurveyTable):
     by : str
         Categorical grouping variable (nominal/ordinal).
     test : bool
-        If True, automatically runs the appropriate significance test:
+        If True, runs a significance test — the one ``method`` names.
+    method : str
+        ``"auto"`` (default) chooses by scale and number of groups:
         - 2 groups: Mann-Whitney U (ordinal) or Independent t-test (interval/ratio)
         - 3+ groups: Kruskal-Wallis H (ordinal) or One-way ANOVA (interval/ratio)
+        Or by hand: ``"student"``, ``"welch"``, ``"anova"``, ``"welch_anova"``,
+        ``"mannwhitney"``, ``"kruskal"`` — reported with df and an effect size.
+    posthoc : str
+        ``"none"`` (default), or every pair of groups compared after the test:
+        ``"tukey"`` after ``anova``, ``"games_howell"`` after ``welch_anova``,
+        ``"dunn"`` after ``kruskal`` (p adjusted by ``adjust``: ``"holm"`` or
+        ``"bonferroni"``). The pairs render under the table and are
+        :attr:`posthoc_table`.
+
+    A test chosen by hand leaves the codebook's missing codes out of the table
+    and the test, and says how many; ``"auto"`` reads the data as it always has.
     """
 
     column: str = ""
     by: str = ""
     test: bool = True
+    method: str = "auto"
+    posthoc: str = "none"
+    adjust: str = "holm"
+    _posthoc: Any = field(init=False, repr=False, default=None)
+
+    @property
+    def posthoc_table(self) -> Any:
+        """The post-hoc pairs (a :class:`~siamang.reporting.stat_tables.PostHocTable`),
+        or None when none was asked for or it could not run."""
+        self._ensure_built()
+        return self._posthoc
+
+    def to_markdown(self) -> str:
+        from siamang.reporting.stat_tables import render_with_posthoc
+
+        return render_with_posthoc(super().to_markdown(), self.posthoc_table, html=False)
+
+    def to_html(self) -> str:
+        from siamang.reporting.stat_tables import render_with_posthoc
+
+        return render_with_posthoc(super().to_html(), self.posthoc_table, html=True)
+
+    def export_xlsx(self, path: str | Path) -> Path:
+        if self.posthoc_table is None:
+            return super().export_xlsx(path)
+        from siamang.reporting.stat_tables import export_with_posthoc
+
+        return export_with_posthoc(self, self.posthoc_table, path)
+
+    def _chosen(self) -> bool:
+        """Whether the test was chosen by hand rather than automatically; checks
+        that the method, the post-hoc test and its adjustment go together."""
+        from siamang.data.inference import POSTHOC_FOLLOWS, POSTHOC_NAMES
+        from siamang.reporting.stat_tables import MEANS_TESTS
+
+        if self.method != "auto" and self.method not in MEANS_TESTS:
+            choices = ", ".join(["auto", *MEANS_TESTS])
+            raise ValueError(f"method must be one of {choices}; got {self.method!r}.")
+        if self.posthoc != "none":
+            follows = POSTHOC_FOLLOWS.get(self.posthoc)
+            if follows is None:
+                raise ValueError(
+                    f"posthoc must be none, tukey, games_howell or dunn; got {self.posthoc!r}."
+                )
+            if self.method != follows:
+                raise ValueError(
+                    f"{POSTHOC_NAMES[self.posthoc]} follows {MEANS_TESTS[follows]}: "
+                    f"method={follows!r}."
+                )
+        if self.adjust not in ("holm", "bonferroni"):
+            raise ValueError("adjust must be 'holm' or 'bonferroni'.")
+        return self.test and (self.method != "auto" or self.posthoc != "none")
 
     def _build(self) -> None:
         from siamang.data import multi
 
+        chosen = self._chosen()
         if multi.is_multi(self.data.frame[self.by]):
             self._build_multi()
             return
-        frame = self.data.frame[[self.column, self.by]].dropna()
+        source, left_out = self.data.frame, {}
+        if chosen:
+            from siamang.data.inference import without_missing_codes
+
+            source, left_out = without_missing_codes(
+                source, [self.column, self.by], self.data.variables
+            )
+        frame = source[[self.column, self.by]].dropna()
         by_labels = _get_value_labels(self.data, self.by)
         col_label = _get_label(self.data, self.column)
         col_scale = _get_scale(self.data, self.column)
@@ -672,8 +774,16 @@ class GroupMeanTable(SurveyTable):
 
             if n_groups < 2:
                 self._stats = {"note": "fewer than 2 groups, no test performed"}
+            elif chosen:
+                self._chosen_test(frame, by_labels, col_label)
             else:
                 self._test(groups, col_scale, col_label, int(frame.shape[0]))
+        if left_out:
+            from siamang.data.inference import missing_codes_note
+
+            self._stats["Missing codes left out"] = missing_codes_note(
+                left_out, self.data.variables
+            )
         if weights is not None:
             self._stats["Weight"] = self.data.weight
             self._stats["Note"] = "means, SD and medians are weighted; N and the test are not"
@@ -706,6 +816,24 @@ class GroupMeanTable(SurveyTable):
 
         except ImportError:
             self._stats = {"error": "scipy not installed"}
+
+    def _chosen_test(self, frame: pd.DataFrame, by_labels: dict[Any, str], col_label: str) -> None:
+        """The test named by ``method``, and the post-hoc pairs after it."""
+        from siamang.reporting.stat_tables import means_test, posthoc_for
+
+        samples, names = [], []
+        for value, group in frame.groupby(self.by):
+            samples.append(pd.to_numeric(group[self.column], errors="coerce").to_numpy(dtype=float))
+            names.append(str(by_labels.get(value, value)))
+        by_label = _get_label(self.data, self.by)
+        self._stats = means_test(samples, names, self.method, by_label=by_label)
+        if self.posthoc != "none":
+            summary, self._posthoc = posthoc_for(
+                self.data, samples, names, self.posthoc, adjust=self.adjust, by=self.by
+            )
+            self._stats.update(summary)
+        self._stats["N"] = int(frame.shape[0])
+        self._stats["Variable"] = col_label
 
     def _build_multi(self) -> None:
         """Grouped by a multiple-choice question: one row per option.
