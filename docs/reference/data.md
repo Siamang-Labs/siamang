@@ -46,12 +46,13 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 
 | Result | With the weight |
 | :--- | :--- |
-| `report.freq`, `report.crosstab`, `report.means` | Weighted counts and percentages (an `Unweighted N` beside them), crosstab χ² on Kish's effective base; group means, SDs and medians weighted while N and the test are not. Stats: `Weight`. |
+| `report.freq`, `report.crosstab`, `report.means` | Weighted counts and percentages (an `Unweighted N` beside them), crosstab χ² on Kish's effective base (Fisher's exact test counts respondents and says so in `Base`); group means, SDs and medians weighted while N, the test and the post-hoc pairs are not. Stats: `Weight`. |
+| `analysis.correlation`, `report.correlation_matrix` with Pearson | The weighted coefficient; p and the Fisher-z interval on Kish's effective base (`n_effective`). Stats: `weight` / `Weight` (the column). |
 | `report.banner`, `report.nps`, `analysis.regression`, TURF | Weighted; tests and the NPS standard error on Kish's effective base; stats `Weight` (`weight` for regression). |
 | `report.maxdiff`, `report.conjoint`, `report.conjoint_shares` and `siamang.data.maxdiff` / `conjoint` | Every column weighted: Shown/Best/Worst are sums of weights, Score, Utility, Share %, part-worths, importance and shares come from the weighted choices. Stats: `Weight` and a base of `N respondents (W weighted)`. |
 | `analysis.pca`, `analysis.reliability` | The weighted covariance (or correlation) matrix; stats `weight`. |
 | `analysis.proportion_ci` | Weighted only with `weighted=True` (then `weight`: the column); otherwise `weight`: `unweighted (the weight 'w' is not applied)`. |
-| `analysis.kruskal`, `analysis.mannwhitney`, `analysis.spearman`, `cluster()` | Unweighted — rank tests and k-means have no standard weighted form. Their result has `weight`: `unweighted (the weight 'w' is not applied)`. |
+| `analysis.kruskal`, `analysis.mannwhitney`, `analysis.spearman`, `analysis.compare_groups`, `analysis.correlation` / `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | Unweighted — rank tests, t-tests and k-means have no standard weighted form. Their result has `weight` (the tables: `Weight`): `unweighted (the weight 'w' is not applied)`. |
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
 | `plot.bar`, `plot.heatmap(by=…)` | Weighted counts and weighted means; the axis (or colour bar) says "Weighted". |
@@ -183,6 +184,15 @@ These methods require `scipy` to be installed.
 
 The three rank tests have no standard weighted form, so they run on the respondents as they are. On weighted data each result also carries `"weight": "unweighted (the weight '<column>' is not applied)"`.
 
+#### A method chosen by hand
+
+These two compute with [`siamang.data.inference`](#siamangdatainference) and, unlike the three above, leave the codebook's declared missing codes out of both variables, reporting what they left out as `"missing_codes"` (`"Satisfaction: 12 (99 = Don't know)"`).
+
+* **`correlation(x: str, y: str, *, method: str = "pearson", confidence: float = 0.95) -> dict[str, Any]`**:
+  Pearson, Spearman or Kendall tau-b. Returns `"method"`, the coefficient (`"r"`, `"rho"` or `"tau"`), `"p_value"` and `"n"`; Pearson adds a Fisher-z interval `"lower"` / `"upper"` and `"confidence"`. On weighted data Pearson is the weighted coefficient with p and interval on Kish's effective base (`"n_effective"`) and `"weight"` names the column; the rank methods carry the unweighted note. Pairs that cannot carry a correlation (fewer than three, or a variable that does not vary) give `None` and a `"note"` saying why.
+* **`compare_groups(column: str, group: str, *, test: str = "auto", posthoc: str = "none", adjust: str = "holm") -> dict[str, Any]`**:
+  Mann-Whitney (`test="mannwhitney"`, or `"auto"` with two groups) or Kruskal-Wallis, with the keys of `mannwhitney` / `kruskal` plus `"test"` and `"n"`. With `posthoc="dunn"` after Kruskal-Wallis it adds `"posthoc"` (`"Dunn's test (Holm)"`) and one entry per pair of groups keyed `"<label> vs <label>"`: `"z = 2.087, p = 0.1106"`, p adjusted by `adjust` (`"holm"` or `"bonferroni"`). With two groups `"posthoc"` says no post-hoc test is needed.
+
 ### Models
 
 * **`regression(y: str, predictors: list[str], *, kind: str = "auto")`**: OLS, or a logit for a two-valued outcome; weighted (WLS / weighted logit) when the data is, with `stats["weight"]` naming the column.
@@ -196,6 +206,22 @@ The three rank tests have no standard weighted form, so they run on the responde
   Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"`, of the respondents who answered `column` (with `weighted=True`, the weighted share and Kish's effective base of those respondents; a missing weight counts as 0). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`.
 * **`effective_sample_size() -> float`**:
   Calculates Kish's effective sample size (ESS) for weighted datasets: $ESS = \frac{(\sum w)^2}{\sum w^2}$. Raises a `ValueError` if no weight column is set.
+
+---
+
+## `siamang.data.inference`
+
+Significance tests, post-hoc comparisons and correlations on plain arrays, with numpy and SciPy only (SciPy 1.11 or later). The tables and the flow nodes that let a test be chosen by hand are built on it.
+
+* **`adjust_p(pvalues, method="holm") -> np.ndarray`**: `"none"`, `"bonferroni"`, `"holm"` or `"fdr_bh"` (Benjamini-Hochberg), as R's `p.adjust`; a missing p stays missing and does not count towards m.
+* **`correlate(x, y, *, method="pearson", weights=None, confidence=0.95) -> dict`** and **`correlation_matrix(frame, columns, *, method="spearman", missing="pairwise", adjust="none", weights=None) -> CorrelationMatrix`** (`coefficients`, `p_values`, `p_adjusted`, `n` as square frames, `notes`, `pairs()`).
+* **`ttest_independent(a, b, *, equal_var=False, confidence=0.95, names=…)`**, **`ttest_paired(x, y, …)`**, **`ttest_one_sample(x, mu, …)`** `-> TTest` (`method`, `t`, `df`, `p_value`, `difference`, `lower`, `upper`, `cohens_d`, `hedges_g`). Cohen's d is the difference over the pooled SD for two groups (Hedges' g = d · (1 − 3 / (4(n₁ + n₂) − 9))), d_z for paired data.
+* **`anova(samples)`**, **`welch_anova(samples, names)`**, **`kruskal(samples)`**, **`mannwhitney(a, b)`** `-> GroupTest` (`method`, `symbol`, `statistic`, `p_value`, `df`, `df2`, `effect_name`, `effect`: η², η², ε² = H / (N − 1), rank-biserial r = 2U / (n₁n₂) − 1).
+* **`posthoc(samples, names, method, *, adjust="holm", confidence=0.95) -> PostHoc`**: `"tukey"` (Tukey-Kramer: q on the ANOVA's pooled variance against the studentized range for k groups and N − k df), `"games_howell"` (each pair's variances and Welch df, q = √2·|t|), `"dunn"` (z on the mean ranks of all N values, corrected for ties, p adjusted by `"holm"` or `"bonferroni"`). `table` has one row per pair: `group_1`, `group_2`, `difference`, `statistic`, `df`, `p_value`, `p_adjusted`, `lower`, `upper`.
+* **`fisher_exact(table, *, confidence=0.95) -> dict`**: 2 × 2 — SciPy's two-sided p, and the conditional maximum-likelihood odds ratio with its exact interval (R's `fisher.test`). Larger — the Fisher-Freeman-Halton p, summed exactly over every table with the observed margins when there are at most `FISHER_EXACT_LIMIT` (200,000) and otherwise estimated from `FISHER_SAMPLES` (20,000) tables drawn by Patefield's algorithm from the fixed seed `FISHER_SEED`, so a rerun gives the same p (`"exact"`, `"samples"`, `"p_error"` say which). SciPy 1.11 has no exact test beyond 2 × 2, and a p that changed with the installed SciPy would not be reproducible, so the enumeration and the sampling are the engine's own.
+* **`without_missing_codes(frame, columns, variables) -> (frame, left_out)`** and **`missing_codes_note(left_out, variables) -> str | None`**: the declared missing codes of `columns` as missing values, and the sentence that says what was left out.
+
+Data that cannot carry a test — fewer than two values in a group, no variance, identical ranks — raises **`NotTestable`** (a `ValueError`) with a sentence for the reader; the tables print it as `Test = not run: …`.
 
 ---
 
