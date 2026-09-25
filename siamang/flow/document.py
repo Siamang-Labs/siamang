@@ -172,6 +172,7 @@ def check_flow(
         issues.extend(
             _check_params(node_id, spec, node.get("params") or {}, known_variables, scales)
         )
+        issues.extend(_check_rules(node_id, spec, node.get("params") or {}))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -531,6 +532,18 @@ def _check_params(
                         )
                     )
     return issues
+
+
+def _check_rules(node_id: str, spec: NodeSpec, given: dict[str, Any]) -> list[FlowIssue]:
+    """The spec's ``checks``: parameters that do not go together (a post-hoc
+    test that does not follow the test chosen), or one the node would ignore."""
+
+    params = {name: given.get(name, param.default) for name, param in spec.params.items()}
+    return [
+        FlowIssue(check.severity, "PARAM_CONFLICT", f"{node_id}: {check.message}", node_id)
+        for check in spec.checks
+        if check.violated(params)
+    ]
 
 
 def _param_problem(param: ParamSpec, value: Any) -> str | None:

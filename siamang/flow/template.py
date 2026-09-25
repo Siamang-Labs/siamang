@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from siamang.flow.document import FlowError, FlowGraph
-from siamang.flow.registry import NodeSpec
+from siamang.flow.registry import NodeSpec, condition_holds
 
 _PLACEHOLDER = re.compile(r"\{(in|out)\.([a-z_][a-z0-9_]*)\}|\{([a-z_][a-z0-9_]*)!r\}")
 _IDENT = re.compile(r"[^0-9a-zA-Z_]+")
@@ -81,11 +81,7 @@ def _short(value: Any) -> str:
 
 
 def _when(condition: str, params: dict[str, Any]) -> bool:
-    if "=" in condition:
-        name, expected = condition.split("=", 1)
-        return str(params.get(name)) == expected
-    value = params.get(condition)
-    return bool(value) and value != [] and value != {}
+    return condition_holds(condition, params)
 
 
 def _input_names(graph: FlowGraph, node_id: str) -> dict[str, str]:
