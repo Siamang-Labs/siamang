@@ -770,3 +770,22 @@ def test_undefined_cells_print_blank_in_every_stat_table():
     assert means.posthoc_table.to_frame()["q"].isna().tolist() == [False, True, True]
     assert pairs.to_frame()["rho"].isna().tolist() == [False, True, True]
     assert lonely.report.ttest("y", by="g", groups=[1, 2]).to_frame()["Mean"].isna()[0]
+
+
+def test_a_t_test_refuses_multiple_choice_groups_and_answers_with_the_way_out():
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("aware", "nominal", label="Aware of", labels={1: "Acme", 2: "Globex"}),
+            Variable("age", "ratio", label="Age"),
+        ]
+    )
+    frame = pd.DataFrame({"age": [20, 30, 40, 50], "aware": [[1], [1, 2], [2], [2]]})
+    data = SurveyData(frame=frame, variables=variables)
+    # It raised TypeError "unhashable type: 'list'" before.
+    with pytest.raises(ValueError, match=r"Aware of \('aware'\) holds several answers per "):
+        data.report.ttest("age", by="aware", groups=[1, 2]).to_frame()
+    with pytest.raises(ValueError, match="its groups overlap .* Run Explode multiple choice"):
+        data.report.ttest("age", by="aware").to_frame()
+    with pytest.raises(ValueError, match="which have no mean"):
+        data.report.ttest("aware", kind="one_sample").to_frame()

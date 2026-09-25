@@ -31,7 +31,7 @@ params:
     - nominal
     - ordinal
     label: Groups
-    help: 'Independent: the variable that splits the respondents into the groups compared.'
+    help: 'Independent: the variable that splits the respondents into the groups compared — one answer each; for a multiple-choice question, run Explode multiple choice and use one option''s 0/1 column.'
   group_a:
     kind: json
     label: Group A

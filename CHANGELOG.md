@@ -194,7 +194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **`analyze.ttest`** (new; `data.report.ttest`, `TTestTable`): **Design**
     independent (Welch's by default, Student's under **Variances**; **Group A** /
     **Group B** pick two groups of a grouping with more, and without them such a
-    grouping is refused with its groups listed, as is one group named twice),
+    grouping is refused with its groups listed, as are one group named twice
+    and a multiple-choice grouping, whose groups overlap),
     paired, or one-sample against a
     **Test value**; a row of N, mean, SD and SE per group, and t, df, p, the mean
     difference with its CI and Cohen's d in the footer.
@@ -271,7 +272,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     skewness and kurtosis (bias-corrected G1, excess G2) with `detail`. The
     codebook's missing codes and values that are not numbers count as missing
     and the stats name them (`Missing codes`, `Not numbers`); a blank or a
-    missing code of the group variable is no group (`Not in a group`). On
+    missing code of the group variable is no group (`Not in a group`); a
+    multiple-choice group variable gives one overlapping group per option
+    (`Groups: overlap: …`). On
     weighted data the mean, SD, median and quartiles are weighted with the Group
     means table's formulas beside a `Weighted N` column, N and Missing stay
     counts, and the stats give `Weighted N`, `Effective N` (Kish), `Design
