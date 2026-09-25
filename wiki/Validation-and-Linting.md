@@ -25,7 +25,14 @@ would produce a broken survey:
 - **Answer keys** — a question that writes one variable stores its answer under
   that variable, so a `name` that differs from it is rejected; two questions may
   not store their answers under one key, and no question's id may be the key of
-  another.
+  another. A question whose id is not its answer key (id `q1`, variable `nps_1`)
+  is renamed wherever a script names it — `answers["q1"]` in a custom script
+  becomes `answers["nps_1"]` — so its id may not also be a name the answers hold
+  something else under: a variable of any question (a matrix's rows, and its
+  own, included), an Other text key (`<variable>_other`), a variable a script
+  assigns (`Script.assign_condition`), a codebook variable no question collects
+  (embedded data), or a name beginning with `__` (the runtime's own state). An
+  id that is its question's own key is renamed nowhere and may be any free name.
 - **Unknown `skip_to` targets** — a question may only skip to a known question
   ID or page name.
 - **Other and None codes** — an `other_code` / `none_code` must be a number or

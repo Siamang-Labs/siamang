@@ -117,6 +117,7 @@ class Questionnaire:
         # a key too, and 'Duplicate variable' is the message that names why.
         self._validate_answer_keys()
         self._validate_added_codes()
+        self._validate_aliased_ids()
         if strict:
             errors = [issue for issue in self.lint(level="strict") if issue.severity == "error"]
             if errors:
@@ -239,6 +240,65 @@ class Questionnaire:
                         "which is already the code of one of its answers. Set metadata "
                         "none_code to a code of its own."
                     )
+
+    def _validate_aliased_ids(self) -> None:
+        """A question whose id is not its answer key (``answer_key_aliases``)
+        is still named by its id — a script's target, ``answers["<id>"]`` in
+        a custom script's code, which the compiler rewrites to the key — so the
+        id must not also be a name the answers hold something else under: a
+        variable any question stores (its own rows included), the key of an
+        "Other (please specify)" text, a variable a script assigns, one the
+        codebook declares and no question collects, or the runtime's own
+        ``__`` keys. ``answers["<id>"]`` could then mean either, and the
+        rewrite takes the question's; ingest keying an old runtime's answers by
+        id would move the other value into the question's column. An id that
+        is its own answer key is renamed nowhere and is not concerned; nor is
+        an id that is another question's answer key, which
+        ``_validate_answer_keys`` reports."""
+
+        questions = self.all_questions()
+        stored: dict[str, tuple[str, str]] = {}
+        for question in questions:
+            question_id = question_fallback_id(question)
+            for name in question_variable_names_of(question):
+                stored.setdefault(name, (question_id, "a variable {} stores an answer under"))
+            if question.other_specify and isinstance(question, SingleChoice | MultiChoice):
+                stored.setdefault(
+                    other_text_key(question),
+                    (question_id, "the key {} stores its “Other (please specify)” text under"),
+                )
+        assigned: dict[str, str] = {}
+        for script in self.scripts:
+            arm = getattr(script, "assigns", None)
+            if arm:
+                assigned.setdefault(arm, f"the variable script '{script.name}' assigns")
+        declared = set(self.variables.keys()) if self.variables is not None else set()
+        for question in questions:
+            question_id = question_fallback_id(question)
+            key = question_output_name(question)
+            if question_id == key:
+                continue
+            if question_id in stored:
+                owner, what = stored[question_id]
+                taken = what.format(
+                    "the question itself" if owner == question_id else f"question '{owner}'"
+                )
+            elif question_id in assigned:
+                taken = assigned[question_id]
+            elif question_id in declared:
+                taken = (
+                    "a variable the codebook declares and no question collects (embedded "
+                    "data, or one a script writes)"
+                )
+            elif question_id.startswith("__"):
+                taken = "a name the runtime keeps its own state under (it begins with '__')"
+            else:
+                continue
+            raise ValueError(
+                f"Question '{question_id}' stores its answer under '{key}', but "
+                f"'{question_id}' is also {taken}. A script that names '{question_id}' "
+                "could mean either; give the question another id."
+            )
 
     def preview(self) -> str:
         return f"Questionnaire<{self.title}> with {len(self.all_questions())} questions"
