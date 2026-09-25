@@ -295,6 +295,9 @@ def analyze(
             "after an oblique rotation the factors correlate, so their variances overlap "
             "and are not added up"
         )
+    # Each output may stand alone in a report, so each says it is unweighted.
+    unweighted(variance_footer, data)
+    unweighted(correlation_footer, data)
     return FactorAnalysis(
         data=result_data,
         loadings=result_table(data, loadings, stats),

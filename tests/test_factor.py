@@ -373,8 +373,16 @@ def test_sorted_and_blanked_loadings_render_without_nan():
 
 
 def test_analyze_on_weighted_data_says_the_weight_is_not_applied():
-    result = factor.analyze(_survey(weighted=True), ITEMS, n_factors=2)
-    assert result.stats["Weight"] == "unweighted (the weight 'w' is not applied)"
+    result = factor.analyze(_survey(weighted=True), ITEMS, n_factors=2, rotation="promax")
+    note = "unweighted (the weight 'w' is not applied)"
+    assert result.stats["Weight"] == note
+    # Every output says so, since a report section may show the variance alone.
+    for table in (result.loadings, result.variance, result.correlations):
+        assert table.stats["Weight"] == note
+        assert f"Weight = {note}" in table.to_markdown()
+    unweighted = factor.analyze(_survey(), ITEMS, n_factors=2, rotation="promax")
+    assert "Weight" not in unweighted.variance.stats
+    assert "Weight" not in unweighted.correlations.stats
 
 
 def test_analyze_refuses_lists_and_duplicates_and_defaults_the_prefix():

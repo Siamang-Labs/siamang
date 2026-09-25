@@ -433,7 +433,8 @@ then the extracted and — for varimax — rotated sums of squared loadings of t
 kept factors; after an oblique rotation the rotated variances overlap and get
 no percentage), `correlations` (between the factors; the identity after an
 orthogonal rotation), `stats` (extraction, rotation, factors and how they were
-chosen, N, variance explained, KMO, Bartlett's χ², df and p, RMSR, warnings),
+chosen, N, variance explained, KMO, Bartlett's χ², df and p, RMSR, warnings;
+on weighted data every one of the three tables says `Weight: unweighted (…)`),
 `data` and `solution` (the numbers: loadings, structure, phi, communalities,
 eigenvalues, KMO per item, …).
 
