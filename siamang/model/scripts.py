@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Container, Mapping
+from collections.abc import Container, Iterable, Mapping
 from dataclasses import replace
 from typing import Any
 
@@ -260,6 +260,38 @@ def stale_answer_key_references(script: Script, aliases: Mapping[str, str]) -> l
         if quoted or bare:
             stale.append(design_id)
     return stale
+
+
+# An assignment to what precedes it: `=`, a compound one (`+=`, `??=`, …) —
+# not a comparison (`==`, `<=`) — or an increment or decrement after it.
+_WRITE_AFTER = r"\s*(?:(?:\*\*|<<|>>>?|&&|\|\||\?\?|[-+*/%&|^])?=(?!=)|\+\+|--)"
+
+
+def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
+    """Which of ``names`` a custom script's code writes an answer under —
+    ``answers.panel = …``, ``answers["panel"] += …``, ``answers.panel++`` —
+    outside its comments and strings, in the order of ``names``, each once.
+
+    Read in the code as the author wrote it, before :func:`script_for_runtime`
+    rewrites the accesses that name an aliased id. A library script writes
+    what its factory makes it write (``Script.assigns``) and is not scanned.
+    """
+
+    wanted = list(dict.fromkeys(names))
+    if not wanted or not script.code or _detect_library_script(script) is not None:
+        return []
+    code = _scannable_code(script.code, set(wanted))
+    head = rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)answers\s*"
+    written: list[str] = []
+    for name in wanted:
+        escaped = re.escape(name)
+        dot = rf"\.\s*{escaped}(?!{_JS_IDENTIFIER_CHAR})|" if _JS_IDENTIFIER_RE.match(name) else ""
+        access = rf"{head}(?:{dot}\[\s*([\"'`]){escaped}\1\s*\])"
+        if re.search(rf"{access}{_WRITE_AFTER}", code) or re.search(
+            rf"(?:\+\+|--)\s*{access}", code
+        ):
+            written.append(name)
+    return written
 
 
 def _scannable_code(code: str, keep: Container[str]) -> str:

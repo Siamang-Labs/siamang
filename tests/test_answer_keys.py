@@ -29,6 +29,7 @@ from siamang.core.question import question_fallback_id, question_output_name
 from siamang.frontend.compiler.react import compile_react_payload
 from siamang.model import from_document, to_document
 from siamang.model.scripts import (
+    answer_keys_written,
     rewrite_answer_keys,
     script_for_runtime,
     stale_answer_key_references,
@@ -893,13 +894,77 @@ def test_an_id_may_not_be_the_key_of_another_questions_other_text():
     assert rewrite_answer_keys('answers["brand_other"]', aliases) == 'answers["note"]'
 
 
-def test_an_id_may_not_be_a_variable_the_codebook_holds_and_no_question_collects():
-    document = _brand_document("panel", variables={"panel": {"scale": "nominal"}})
+def test_an_id_may_not_be_a_codebook_variable_a_custom_script_writes():
+    """The script means its own variable — the author declared it — and the
+    compiler would rewrite its write to the question's key."""
+
+    script = {
+        "type": "custom",
+        "name": "tag",
+        "trigger": "onInit",
+        "code": 'answers.panel = "web";',
+    }
+    document = _brand_document("panel", variables={"panel": {"scale": "nominal"}}, scripts=[script])
     with pytest.raises(
         ValueError,
-        match="'panel' is also a variable the codebook declares and no question collects",
+        match="'panel' is also a variable the codebook declares, no question collects and "
+        "script 'tag' writes",
     ):
         from_document(document).survey.validate()
+    # What the rule prevents: the write would land in the note's column.
+    assert rewrite_answer_keys(script["code"], {"panel": "note"}) == 'answers.note = "web";'
+
+
+def test_a_codebook_variable_nothing_writes_leaves_the_id_free():
+    """The Builder before patch 0043 renamed a question's variable without
+    removing the codebook entry it had (id q2, variable comment, entry q2
+    kept). Nothing writes q2 — the runtime captures no embedded data — so the
+    id names only the question, a script reading answers.q2 included, and the
+    document stays valid, as it was. The rule refused it for the entry alone."""
+
+    document = {
+        "schema_version": "1.0",
+        "title": "Old Builder",
+        "variables": {
+            "q1": {"scale": "nominal", "labels": {"1": "Option 1", "2": "Option 2"}},
+            "q2": {"scale": "nominal", "dtype": "str", "label": "q2"},
+            "comment": {"scale": "nominal", "dtype": "str", "label": "q2"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {"type": "SingleChoice", "id": "q1", "var": "q1", "text": "Pick one"},
+                    {"type": "OpenText", "id": "q2", "var": "comment", "text": "Why?"},
+                ],
+            }
+        ],
+        "scripts": [
+            {
+                "type": "custom",
+                "trigger": "onAnswer",
+                "target": "q2",
+                "code": "if (answers.q2 == answers.q1) console.log(answers.q2);",
+            }
+        ],
+    }
+    from_document(document).survey.validate()
+
+
+def test_what_a_custom_script_writes_is_read_from_its_code():
+    names = ["panel", "q2"]
+    written = {
+        'answers.panel = "web";': ["panel"],
+        "answers['panel'] += 1; answers[ `q2` ] ??= 0;": ["panel", "q2"],
+        "answers.panel++; --answers.q2;": ["panel", "q2"],
+        "if (answers.panel == 1 || answers.q2 <= 2) ok = answers.panel;": [],
+        '// answers.panel = 1\n/* answers.q2 = 2 */ const s = "answers.panel = 3";': [],
+        "state.answers.panel = 1; answers.panelist = 2;": [],
+    }
+    for code, expected in written.items():
+        assert answer_keys_written(Script(code=code), names) == expected, code
+    arms = [(1, "A", 1), (2, "B", 1)]
+    assert answer_keys_written(Script.assign_condition("panel", arms), names) == []
 
 
 def test_an_id_may_not_be_a_variable_a_script_assigns():

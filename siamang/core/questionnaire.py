@@ -247,14 +247,21 @@ class Questionnaire:
         a custom script's code, which the compiler rewrites to the key — so the
         id must not also be a name the answers hold something else under: a
         variable any question stores (its own rows included), the key of an
-        "Other (please specify)" text, a variable a script assigns, one the
-        codebook declares and no question collects, or the runtime's own
-        ``__`` keys. ``answers["<id>"]`` could then mean either, and the
-        rewrite takes the question's; ingest keying an old runtime's answers by
-        id would move the other value into the question's column. An id that
-        is its own answer key is renamed nowhere and is not concerned; nor is
-        an id that is another question's answer key, which
-        ``_validate_answer_keys`` reports."""
+        "Other (please specify)" text, a variable a script assigns
+        (``Script.assign_condition``, or a custom script's
+        ``answers.<name> = …`` of a variable the codebook declares and no
+        question collects), or the runtime's own ``__`` keys.
+        ``answers["<id>"]`` could then mean either, and the rewrite takes the
+        question's; ingest keying an old runtime's answers by id would move the
+        other value into the question's column. An id that is its own answer
+        key is renamed nowhere and is not concerned; nor is an id that is
+        another question's answer key, which ``_validate_answer_keys`` reports.
+
+        A codebook variable that nothing writes is not a name the answers hold
+        anything under — the runtime captures no embedded data — and is free:
+        the old Builder left one behind whenever a question's variable was
+        renamed (id ``q2``, variable ``comment``, codebook entry ``q2`` kept),
+        and those documents stay valid."""
 
         questions = self.all_questions()
         stored: dict[str, tuple[str, str]] = {}
@@ -273,6 +280,24 @@ class Questionnaire:
             if arm:
                 assigned.setdefault(arm, f"the variable script '{script.name}' assigns")
         declared = set(self.variables.keys()) if self.variables is not None else set()
+        aliases = answer_key_aliases(questions)
+        codebook_only = [
+            name
+            for name in aliases
+            if name in declared and name not in stored and name not in assigned
+        ]
+        if codebook_only:
+            # ``siamang.model`` builds on ``siamang.core``: import here.
+            from siamang.model.scripts import answer_keys_written
+
+            for index, script in enumerate(self.scripts):
+                label = f"script '{script.name}'" if script.name else f"script #{index + 1}"
+                for name in answer_keys_written(script, codebook_only):
+                    assigned.setdefault(
+                        name,
+                        f"a variable the codebook declares, no question collects and {label} "
+                        "writes",
+                    )
         for question in questions:
             question_id = question_fallback_id(question)
             key = question_output_name(question)
@@ -285,11 +310,6 @@ class Questionnaire:
                 )
             elif question_id in assigned:
                 taken = assigned[question_id]
-            elif question_id in declared:
-                taken = (
-                    "a variable the codebook declares and no question collects (embedded "
-                    "data, or one a script writes)"
-                )
             elif question_id.startswith("__"):
                 taken = "a name the runtime keeps its own state under (it begins with '__')"
             else:
