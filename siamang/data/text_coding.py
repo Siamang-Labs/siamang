@@ -46,6 +46,7 @@ __all__ = [
     "normalise",
     "parse",
     "sentiment_scores",
+    "uncoded_answers",
 ]
 
 #: The format this module reads. Bumped only for a change that an older reader
@@ -311,3 +312,19 @@ def coverage(frame: pd.DataFrame, codeframe: Codeframe) -> dict[str, int]:
         "coded": int(coded.sum()),
         "uncoded": int(answered.sum() - coded.sum()),
     }
+
+
+def uncoded_answers(frame: pd.DataFrame, codeframe: Codeframe) -> pd.Series:
+    """The answers the codeframe has no theme for, as written, in frame order.
+
+    The ``uncoded`` of :func:`coverage` as the texts themselves: what a
+    researcher reads to decide whether the scheme needs a new theme or only a
+    rebuild, and — counted by :func:`fingerprint` — how many *different*
+    answers a re-coding would have to look at.
+    """
+
+    if codeframe.variable not in frame.columns:
+        return pd.Series(dtype="object")
+    series = frame[codeframe.variable]
+    answered = series.map(lambda v: normalise(v) != "").astype(bool)
+    return series[answered & codes(series, codeframe).isna()]

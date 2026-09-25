@@ -150,6 +150,7 @@ Several nodes expose what the library already computed:
 | `prepare.maxdiff_scores` (MaxDiff scores) | `maxdiff.with_scores(data, question, prefix=…)` | `data` with `<prefix><item code>` per item (default `<question>_score_`); `stat`: respondents scored, unreadable answers |
 | `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labelled ordinal band variable; `stat`: count per band, outside, missing codes |
 | `analyze.turf` with `method: fixed` | `turf.evaluate(frame, portfolio, items=…, weight=…, labels=…)` | `table`: reach, unique reach and frequency per option and for the portfolio |
+| `prepare.text_code` | `data.report.themes(codeframe, sentiment=…)` | a `stat` output: Coverage, Distinct uncoded answers, and with sentiment the Sentiment split and Net sentiment |
 
 `check_flow` knows the variables these create before a run: `into` of Bands,
 and one score variable per item of the named MaxDiff question (its `choices`,

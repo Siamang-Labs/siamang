@@ -389,8 +389,8 @@ To make this reporting API extremely convenient, two accessors are attached dire
   One row per item (counting score, utility, share) or per level (part-worth, importance). On weighted data every column is weighted — the utilities and part-worths come from a conditional logit on the weighted choices — and `stats` carries `Weight` and a base of `N respondents (W weighted)`.
 * **`conjoint_shares(question, products, *, include_none: bool = False) -> ShareTable`**:
   What the part-worths predict a market of `products` would do: the rows of `siamang.data.conjoint.shares` (`product`, `utility`, `share`), with the base, the model, a note that these are shares of the listed products, and on weighted data the `Weight`, in `stats`.
-* **`quality(column: str = "quality_flags")`**, **`themes(codeframe)`**:
-  Count responses and coded answers; on weighted data `stats["Weight"]` reads `unweighted (the weight '<column>' is not applied)`.
+* **`quality(column: str = "quality_flags")`**, **`themes(codeframe, *, sentiment: bool = False)`**:
+  Count responses and coded answers; on weighted data `stats["Weight"]` reads `unweighted (the weight '<column>' is not applied)`. The theme table's rows are shares of the coded answers, then `Coded` and `Uncoded` as shares of all answers; its stats add `Coverage` and `Distinct uncoded answers`, and with `sentiment` (and a codeframe that has it) `Negative %` / `Neutral %` / `Positive %` columns and the `Sentiment` and `Net sentiment` stats — `Sentiment: not in this codeframe` otherwise.
 * **`descriptives(columns: list[str], *, by: str | None = None, detail: bool = False) -> DescriptivesTable`**:
   N, Missing, Mean, SD, Min, Median, Max per variable (and group), with Q1, Q3, skewness and kurtosis under `detail`. Missing codes are not answers; on weighted data the mean, SD, median and quartiles are weighted beside a `Weighted N` column and `stats` gives `Effective N` and `Design effect`. Undefined cells print blank (`siamang.reporting.summaries`).
 * **`data_check(variables: list[str] | None = None) -> DataCheckTable`**:

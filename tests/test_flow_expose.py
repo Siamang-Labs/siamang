@@ -1,9 +1,9 @@
 """The flow nodes that expose what the engine could already do.
 
 Descriptive statistics, Data check, MaxDiff scores, Bands, a fixed TURF
-portfolio and Derive's value labels: each one is checked against the
-questionnaire, generated into a script that lints clean, and run — and the
-script, run on its own, writes what the runner writes.
+portfolio, the codeframe's coverage and Derive's value labels: each one is
+checked against the questionnaire, generated into a script that lints clean,
+and run — and the script, run on its own, writes what the runner writes.
 """
 
 from __future__ import annotations
@@ -104,6 +104,11 @@ def test_the_new_nodes_are_in_the_registry_with_their_ports():
     assert registry.get("analyze.data_check").outputs == {"table": "Table", "stat": "Stat"}
     assert registry.get("prepare.maxdiff_scores").outputs == {"data": "SurveyData", "stat": "Stat"}
     assert registry.get("prepare.bands").outputs == {"data": "SurveyData", "stat": "Stat"}
+    assert registry.get("prepare.text_code").outputs == {
+        "data": "SurveyData",
+        "table": "Table",
+        "stat": "Stat",
+    }
     assert registry.get("analyze.turf").params["method"].values == ("best", "greedy", "fixed")
 
 
