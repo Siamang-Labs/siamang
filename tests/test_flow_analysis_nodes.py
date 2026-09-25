@@ -86,7 +86,8 @@ def test_the_nodes_are_registered_and_listed_as_unweighted():
     assert list(factor.outputs) == ["data", "loadings", "variance", "correlations", "stat"]
     assert factor.params["method"].values == ("minres", "principal", "ml")
     assert factor.params["rotation"].default == "varimax"
-    assert factor.params["into"].creates == "variable"
+    # A prefix, not a variable: the flow check names the scores themselves.
+    assert factor.params["into"].creates is None
     help_text = registry.get("prepare.apply_weight").params["column"].help
     _, unweighted = help_text.split("Unweighted, and saying so:")
     assert "Paired tests" in unweighted and "Factor analysis" in unweighted
@@ -106,6 +107,18 @@ def test_check_flow_knows_the_factor_scores_a_later_node_names(questionnaire_doc
     flow["nodes"][4]["params"]["scores"] = False
     issues = check_flow(flow, questionnaire=questionnaire_doc)
     assert [issue.code for issue in issues] == ["UNKNOWN_VARIABLE"]
+    # The prefix is not a variable, with scores or without: naming it was
+    # accepted and failed at run time with a KeyError.
+    for scores, into in ((False, None), (True, None), (True, "f")):
+        flow = _stats_flow()
+        flow["nodes"][4]["params"].update(scores=scores)
+        if into:
+            flow["nodes"][4]["params"]["into"] = into
+        flow["nodes"][5]["params"]["y"] = into or "factor_"
+        issues = check_flow(flow, questionnaire=questionnaire_doc)
+        assert [issue.code for issue in issues] == ["UNKNOWN_VARIABLE"], (scores, into)
+    flow["nodes"][5]["params"]["y"] = "f2"
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
     # The items take ordered scales; a nominal one is named before the run.
     flow = _stats_flow()
     flow["nodes"][4]["params"]["items"] = [*ITEMS, "region"]
