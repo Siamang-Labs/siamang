@@ -908,3 +908,32 @@ def test_a_tiny_p_is_never_printed_as_zero():
     assert stat_text(5.8e-07) == "5.8e-07" and stat_text(0.0123) == "0.0123"
     report = Report().add({"p_value": 2.17e-30, "df": 124.98}).to_markdown()
     assert "p_value = 2.17e-30; df = 124.98" in report
+
+
+def test_a_matrix_adjustment_counts_only_the_pairs_it_adjusted():
+    """A pair with a constant variable has no p, so it is not one of the
+    comparisons the adjustment divides among: with a × c and b × c not computed,
+    Bonferroni over a × b alone leaves its p as it was (pearsonr: 0.04156)."""
+    variables = VariableMap()
+    variables.add_many([Variable(name, "interval", label=name.upper()) for name in "abc"])
+    frame = pd.DataFrame({"a": [1.0, 2, 3, 4, 5, 6], "b": [2.0, 1, 4, 3, 6, 5], "c": [1.0] * 6})
+    data = SurveyData(frame=frame, variables=variables)
+    table = data.report.correlation_matrix(
+        ["a", "b", "c"], method="pearson", adjust="bonferroni", layout="pairs"
+    )
+    row = table.to_frame().iloc[0]
+    raw = stats.pearsonr(frame["a"], frame["b"]).pvalue
+    assert row["p"] == row["p (Bonferroni)"] == round(raw, 4) == 0.0416
+    assert table.stats["p adjustment"] == "Bonferroni, over the 1 pair computed (of 3)"
+    assert table.stats["Not computed"].startswith("a × c: a variable has the same value")
+    # Every pair computed: the count is all of them, as before.
+    full = data.with_frame(frame.assign(c=[3.0, 1, 2, 6, 4, 5]))
+    assert (
+        full.report.correlation_matrix(
+            ["a", "b", "c"], method="pearson", adjust="bonferroni"
+        ).stats["p adjustment"]
+        == "Bonferroni, over 3 pairs"
+    )
+    # The matrix layout writes n/a where the pair could not be computed.
+    matrix = data.report.correlation_matrix(["a", "b", "c"], method="pearson").to_markdown()
+    assert "| C | n/a | n/a | — |" in matrix

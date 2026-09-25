@@ -653,11 +653,22 @@ class CorrelationMatrixTable(_BlankUndefined, SurveyTable):
         else:
             stats["Missing"] = "listwise: only respondents who answered every variable"
             stats["N"] = int(counts.min()) if len(counts) else 0
+        # The adjustment counts the pairs it adjusted: a pair that could not be
+        # computed has no p and is not one of the comparisons (adjust_p leaves
+        # it out of m), so "over 3 pairs" beside a Bonferroni p equal to the raw
+        # one would misstate what was done.
         pairs_count = len(counts)
+        tested = int(np.isfinite(result.p_values.to_numpy(dtype=float)[upper]).sum())
+        over = (
+            f"over {tested} {'pair' if tested == 1 else 'pairs'}"
+            if tested == pairs_count
+            else f"over the {tested} {'pair' if tested == 1 else 'pairs'} computed "
+            f"(of {pairs_count})"
+        )
         stats["p adjustment"] = (
             f"{inference.ADJUSTMENT_NAMES[self.adjust]}"
             + (" (false discovery rate)" if self.adjust == "fdr_bh" else "")
-            + f", over {pairs_count} pairs"
+            + f", {over}"
             if adjusted
             else "none"
         )
