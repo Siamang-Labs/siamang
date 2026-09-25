@@ -293,6 +293,13 @@ def test_friedman_on_survey_data_with_holm_adjusted_pairs():
     assert list(pairs["p adjusted"]) == pytest.approx(paired.adjust(raw, "holm"), rel=1e-3)
     assert result.pairs.stats["Adjustment"] == "Holm (3 comparisons)"
     assert result.pairs.stats["Difference"] == "A − B"
+    # N is the nine respondents compared, as in the footer; those who gave the
+    # same answer twice are counted beside it — two for before − after, one for
+    # before − later, three for after − later. N used to count only the ranked
+    # pairs, 7 / 8 / 6 under a footer of N = 9.
+    assert list(pairs.columns[:4]) == ["Variable A", "Variable B", "N", "Zero differences"]
+    assert list(pairs["N"]) == [9, 9, 9] and result.pairs.stats["N"] == 9
+    assert list(pairs["Zero differences"]) == [2, 1, 3]
     first = paired.signed_rank(frame["before"].to_numpy() - frame["after"].to_numpy())
     assert (pairs["W+"][0], pairs["W-"][0]) == (first.w_plus, first.w_minus) == (1.5, 26.5)
     bonferroni = paired.friedman(_survey(), ["before", "after", "later"], posthoc="bonferroni")
