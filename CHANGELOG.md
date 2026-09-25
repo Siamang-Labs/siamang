@@ -189,8 +189,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     **Missing answers** pairwise or listwise, **p adjustment** none / holm /
     bonferroni / fdr_bh, and a **Layout**: the lower triangle with `*`, `**`,
     `***` marks, or one row per pair with the coefficient, p, adjusted p and N.
-    A pair that cannot be computed is blank when printed, as are a t-test's SD
-    of one answer and a post-hoc pair that cannot be compared.
+    A pair that cannot be computed reads `n/a` in the matrix and is blank in
+    the pairs layout, as a t-test's SD of one answer and a post-hoc pair that
+    cannot be compared are blank.
   - **`analyze.ttest`** (new; `data.report.ttest`, `TTestTable`): **Design**
     independent (Welch's by default, Student's under **Variances**; **Group A** /
     **Group B** pick two groups of a grouping with more, and without them such a
@@ -384,6 +385,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   weighted statistics" when there are any. Group means prints an undefined
   cell blank rather than `nan`, and a table's Markdown prints each column in its
   own type (a count of 4 read `4.0` when every column was a number).
+
+- **The correlation matrix's p adjustment names the pairs it adjusted.** The
+  footer said `Bonferroni, over 3 pairs` while a pair with a constant variable
+  had no p and was not one of the comparisons, so the printed Bonferroni p
+  equalled the raw one. It now counts the pairs with a p: `over the 1 pair
+  computed (of 3)`, or `over 3 pairs` when all were.
 
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
