@@ -79,10 +79,17 @@ template:
 - when: method=auto & posthoc=none
   code: |
     {out.table} = {in.data}.report.means({y!r}, by={by!r}, test={test!r})
-- when: method!=auto
+# Dunn's p adjustment is written only where it is read: Tukey and Games-Howell
+# allow for the number of pairs themselves, so the field is shown with Dunn only.
+- when: method!=auto & posthoc!=dunn
   code: |
     {out.table} = {in.data}.report.means(
-        {y!r}, by={by!r}, test={test!r}, method={method!r}, posthoc={posthoc!r}, adjust={adjust!r}
+        {y!r}, by={by!r}, test={test!r}, method={method!r}, posthoc={posthoc!r}
+    )
+- when: method!=auto & posthoc=dunn
+  code: |
+    {out.table} = {in.data}.report.means(
+        {y!r}, by={by!r}, test={test!r}, method={method!r}, posthoc="dunn", adjust={adjust!r}
     )
 - |
   {out.stat} = {out.table}.stats

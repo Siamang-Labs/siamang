@@ -203,6 +203,51 @@ class NodeSpec:
     def name(self) -> str:
         return self.type.split(".", 1)[1]
 
+    def reads(self, name: str, params: dict[str, Any]) -> bool:
+        """Whether the node's code reads parameter ``name`` with these values.
+
+        A template written in fragments for some choices reads a parameter only
+        under those choices: the t-test writes Groups into its code for the
+        independent design, Second measurement for the paired one. A value the
+        code never reads changes nothing, so :func:`~siamang.flow.check_flow`
+        does not check it (a stale Group A of a paired t-test is not an error)
+        and a builder need not ask for it.
+
+        ``name`` is read when a fragment that names it — as ``{name!r}`` or in
+        its ``when`` — holds for the node's *choices*: the terms of its ``when``
+        of the form ``<param>=<value>`` or ``<param>!=<value>`` on an ``enum``
+        or ``bool`` parameter other than ``name``. Whether another field is
+        filled in (``group_a``) is not a choice: counting it would hide Group B
+        until Group A was typed. A required parameter, and one that no fragment
+        names, is always read. ``params`` are the resolved values
+        (:func:`~siamang.flow.document.resolved_params`).
+        """
+
+        if name not in self.params or self.params[name].required:
+            return True
+        named = False
+        for fragment in self.template:
+            conditions = condition_params(fragment.when) if fragment.when else []
+            if f"{{{name}!r}}" not in fragment.code and name not in conditions:
+                continue
+            named = True
+            choices = [
+                term
+                for term in (fragment.when or "").split("&")
+                if term.strip() and self._is_choice(term) and _term_param(term) != name
+            ]
+            if all(_term_holds(term.strip(), params) for term in choices):
+                return True
+        return not named
+
+    def _is_choice(self, term: str) -> bool:
+        """``<enum or bool>=<value>`` or ``!=``: a choice, not a field filled in."""
+        if "=" not in term:
+            return False
+        param = self.params.get(_term_param(term))
+        value = term.split("=", 1)[1].strip()
+        return value != "None" and param is not None and param.kind in ("enum", "bool")
+
     def to_json(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "type": self.type,
@@ -482,11 +527,11 @@ def _term_holds(term: str, params: dict[str, Any]) -> bool:
 def condition_params(condition: str) -> list[str]:
     """The parameters a condition reads."""
 
-    names = []
-    for term in condition.split("&"):
-        name = term.split("!=", 1)[0] if "!=" in term else term.split("=", 1)[0]
-        names.append(name.strip())
-    return names
+    return [_term_param(term) for term in condition.split("&")]
+
+
+def _term_param(term: str) -> str:
+    return (term.split("!=", 1)[0] if "!=" in term else term.split("=", 1)[0]).strip()
 
 
 def _subtitles_from(

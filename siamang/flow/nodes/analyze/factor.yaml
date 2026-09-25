@@ -80,7 +80,8 @@ params:
 subtitle: '{method}, {rotation}: {items}'
 imports:
 - from siamang.data import factor
-template: |
+template:
+- |
   # Unweighted: on weighted data the statistics say the weight is not applied.
   _factors = factor.analyze(
       {in.data},
@@ -91,9 +92,17 @@ template: |
       rotation={rotation!r},
       sort={sort!r},
       hide_below={hide_below!r},
-      scores={scores!r},
-      into={into!r},
-      seed={seed!r},
+# The score prefix is read only with Add factor scores on, the seed only by
+# parallel analysis; the fragments continue the call above, so the inspector
+# asks for neither when the run would ignore it.
+- when: scores=True
+  code: |2
+        scores=True,
+        into={into!r},
+- when: criterion=parallel
+  code: |2
+        seed={seed!r},
+- |
   )
   {out.data} = _factors.data
   {out.loadings} = _factors.loadings
