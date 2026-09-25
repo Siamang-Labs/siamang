@@ -234,7 +234,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or the Post-hoc chosen says why.
 - **Paired tests** — `siamang.data.paired` and the flow node
   **`analyze.paired`** compare answers that come in sets from one respondent:
-  **Wilcoxon signed-rank** for two ordered variables (zero differences dropped,
+  **Wilcoxon signed-rank** for two ordered variables (the difference is first
+  minus second, as R's `wilcox.test(x, y, paired = TRUE)`, SciPy and the paired
+  t-test take it — McNemar's difference in points and Friedman's pairs too;
+  zero differences dropped,
   or ranked with `zeros="pratt"`; exact p-value for small samples and the
   tie-corrected normal approximation otherwise, as SciPy 1.13+; `Z`, `r = Z/√n`
   and the matched-pairs rank-biserial correlation), **McNemar** for two yes/no
