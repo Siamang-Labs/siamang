@@ -7,6 +7,7 @@ inputs:
 outputs:
   data: SurveyData
   table: Table
+  stat: Stat
 params:
   codeframe:
     kind: path
@@ -22,7 +23,7 @@ params:
     kind: bool
     default: false
     label: Also add sentiment
-    help: Only when the codeframe was built with it.
+    help: A sentiment variable beside the theme, and each theme's negative / neutral / positive split in the table. Only when the codeframe was built with it — the stat says when it was not.
 subtitle: '{codeframe}'
 imports:
 - from siamang.data import text_coding
@@ -31,5 +32,8 @@ template: |
   {out.data} = text_coding.apply(
       {in.data}, _codeframe, into={into!r}, sentiment={sentiment!r}
   )
-  {out.table} = {out.data}.report.themes(_codeframe)
+  # Coverage travels with the themes: a theme share is of the coded answers,
+  # and how many answers the codeframe had never seen is the other half of it.
+  {out.table} = {out.data}.report.themes(_codeframe, sentiment={sentiment!r})
+  {out.stat} = {out.table}.stats
 preview: table

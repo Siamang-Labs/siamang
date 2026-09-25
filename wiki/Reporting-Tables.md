@@ -218,10 +218,16 @@ def correlation_matrix(columns, *, method="spearman", missing="pairwise", adjust
                        layout="matrix") -> CorrelationMatrixTable
 def descriptives(columns, *, by=None, detail=False) -> DescriptivesTable
 def data_check(variables=None) -> DataCheckTable
+def themes(codeframe, *, sentiment=False) -> ThemeTable
 ```
 
 `descriptives` and `data_check` are described in [[Analysis|Analysis#descriptive-statistics-datareportdescriptives]];
 both print an undefined cell (the SD of one answer) as a blank, never `nan`.
+`themes` gives one row per theme as a share of the coded answers, then `Coded`
+and `Uncoded` as shares of everyone who answered, with `Coverage` and
+`Distinct uncoded answers` in its stats; with `sentiment=True` and a codeframe
+built with sentiment, each row adds `Negative %`, `Neutral %` and `Positive %`
+and the stats the overall `Sentiment` and the `Net sentiment`.
 
 ```python
 data.report.freq("it_role", sort="freq").to_frame()

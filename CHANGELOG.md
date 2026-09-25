@@ -286,6 +286,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (what dropping it would lose) and frequency, and the portfolio's reach and
     frequency, on the question's base; stat `Search: none: a fixed portfolio`,
     `Reach`, `Frequency`.
+  - **Code open answers** has a `stat` output: the theme table's stats now
+    carry `Coverage` (`75.0 % of the answers have a theme`), `Distinct uncoded
+    answers` and `Percentages`, and with `sentiment` a codeframe built with it
+    adds `Negative %`, `Neutral %`, `Positive %` to every row and `Sentiment` /
+    `Net sentiment` to the stats (`Sentiment: not in this codeframe` when it has
+    none). `data.report.themes(codeframe, sentiment=False)`;
+    `text_coding.uncoded_answers()` returns the uncoded texts.
   - **Bands** (`prepare.bands`, `siamang.data.bands.bands`): a number cut into
     a labelled ordinal variable (`18 to under 30`, …) after the codebook's
     missing codes are taken out, with a `stat` of the count per band and what
@@ -849,6 +856,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matrix's positions and a MaxDiff's implied design (one with no stored
   `design`) with it; writing the codebook as a list in the object's order
   keeps the earlier reading.
+- **The theme table's uncoded share was a share of the coded answers.** One
+  uncoded answer in four read as 33.3 %. `Coded` and `Uncoded` are now shares of
+  everyone who answered (75.0 % and 25.0 %); the theme rows stay shares of the
+  coded answers, and the stats say which is which (`Percentages`).
 - **TURF's frequency was unweighted beside a weighted reach.** On weighted data
   the mean number of the portfolio's options a reached respondent chose is now
   weighted like the reach; unweighted results are unchanged.

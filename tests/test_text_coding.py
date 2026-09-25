@@ -208,3 +208,98 @@ def test_the_flow_node_codes_a_column_from_a_file(tmp_path):
     assert out.variables["reason"].labels == {1: "Charging", 2: "Price"}
     table = result.output("code", "table")
     assert dict(zip(table.to_frame()["Theme"], table.to_frame()["N"], strict=True))["Uncoded"] == 1
+
+
+# ─── coverage and sentiment ──────────────────────────────────────────────────
+
+
+def test_the_table_says_how_much_the_codeframe_covers():
+    """Four answers, three coded: coverage 75 %, and the one uncoded answer is
+    a quarter of the answers — not a third of the coded ones, as it read."""
+
+    cf = text_coding.parse(_codeframe())
+    table = text_coding.apply(_data(), cf).report.themes(cf)
+    rows = table.to_frame().set_index("Theme")
+    assert rows.loc["Charging", "%"] == round(2 / 3 * 100, 1)  # of the coded answers
+    assert rows.loc["Coded", "%"] == 75.0 and rows.loc["Uncoded", "%"] == 25.0
+    assert table.stats["Coverage"] == "75.0 % of the answers have a theme"
+    assert table.stats["Distinct uncoded answers"] == 1
+    assert "Sentiment" not in table.stats and "Positive %" not in rows.columns
+
+
+def test_uncoded_answers_are_the_texts_and_count_once_each_when_repeated():
+    cf = text_coding.parse(_codeframe())
+    frame = pd.DataFrame({"why": ["Nothing at all", "  nothing AT all", "New one", "", None]})
+    uncoded = text_coding.uncoded_answers(frame, cf)
+    assert list(uncoded) == ["Nothing at all", "  nothing AT all", "New one"]
+    data = SurveyData(frame=frame)
+    stats = data.report.themes(cf).stats
+    assert stats["Distinct uncoded answers"] == 2 and stats["Answered"] == 3
+    assert text_coding.uncoded_answers(pd.DataFrame({"other": ["x"]}), cf).empty
+
+
+def test_sentiment_splits_each_theme_when_the_codeframe_has_it():
+    cf = text_coding.parse(
+        _codeframe(
+            sentiment={
+                text_coding.fingerprint("Charging is too slow"): -1,
+                text_coding.fingerprint("The price"): 1,
+            }
+        )
+    )
+    table = _data().report.themes(cf, sentiment=True)
+    rows = table.to_frame().set_index("Theme")
+    assert list(rows.columns) == ["N", "%", "Negative %", "Neutral %", "Positive %"]
+    # Both charging answers are negative, the price answer positive.
+    assert list(rows.loc["Charging", ["Negative %", "Neutral %", "Positive %"]]) == [
+        100.0,
+        0.0,
+        0.0,
+    ]
+    assert rows.loc["Price", "Positive %"] == 100.0
+    assert rows.loc["Coded", "Negative %"] == round(2 / 3 * 100, 1)
+    # Nobody scored the uncoded answer: a blank, not a zero.
+    assert pd.isna(rows.loc["Uncoded", "Negative %"])
+    assert "nan" not in table.to_markdown().lower()
+    assert table.stats["Sentiment"] == (
+        "negative 66.7 %, neutral 0.0 %, positive 33.3 % of 3 answers"
+    )
+    assert table.stats["Net sentiment"] == -33.3
+
+
+def test_asking_for_sentiment_a_codeframe_lacks_is_said_not_ignored():
+    cf = text_coding.parse(_codeframe())
+    table = _data().report.themes(cf, sentiment=True)
+    assert table.stats["Sentiment"] == "not in this codeframe"
+    assert list(table.to_frame().columns) == ["Theme", "N", "%"]
+
+
+def test_the_node_hands_on_the_coverage_as_a_stat(tmp_path):
+    from siamang.flow import FlowRunner, check_flow
+
+    path = tmp_path / "why.codeframe.json"
+    payload = _codeframe(sentiment={text_coding.fingerprint("The price"): 0})
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    flow = {
+        "schema_version": "1.0",
+        "name": "t",
+        "nodes": [
+            {"id": "src", "type": "source.responses", "params": {}},
+            {
+                "id": "code",
+                "type": "prepare.text_code",
+                "params": {"codeframe": str(path), "sentiment": True},
+            },
+        ],
+        "edges": [
+            {"from": {"node": "src", "port": "data"}, "to": {"node": "code", "port": "data"}}
+        ],
+    }
+    assert check_flow(flow) == []
+    result = FlowRunner(flow).run(sources={"src": _data()}, cwd=tmp_path)
+    assert result.ok, [r.error for r in result.runs if r.error]
+    stat = result.output("code", "stat")
+    assert stat["Coverage"] == "75.0 % of the answers have a theme"
+    assert stat["Sentiment"] == "negative 0.0 %, neutral 100.0 %, positive 0.0 % of 1 answer"
+    assert "why_theme_sentiment" in result.output("code", "data").frame
+    assert "Neutral %" in result.output("code", "table").to_frame().columns

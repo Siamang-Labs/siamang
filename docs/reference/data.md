@@ -344,6 +344,7 @@ Tidy-frame descriptives for scripts that do not go through `SurveyData`:
 | `maxdiff.with_scores(data, question, *, prefix=None)` | `ScoredData(data, stats, names)` | One interval variable per item, `<prefix><code>` (default `<question>_score_`, `score_names()`), labelled `MaxDiff score: <item>`, valid range −1…1: best − worst over times shown to that respondent, NaN where never shown. Refuses to overwrite a column it did not write. |
 | `turf.evaluate(frame, portfolio, *, items=None, weight=None, labels=None)` | `TurfTable` (`method == "fixed"`) | Per option `reach`, `reach_percent`, `unique`, `unique_percent`, `frequency`; a `(portfolio)` row with the portfolio's reach and frequency. `items` sets the base; an empty portfolio reads all items. |
 | `bands.bands(data, column, *, bins, into, labels=None, right=False, label=None)` | `Banded(data, stats)` | `SurveyData.recode` after taking the column's missing codes out; default labels `18 to under 30` (`band_labels`); stats count each band and what fell outside. |
+| `text_coding.uncoded_answers(frame, codeframe)` | Series | The answered texts the codeframe has no theme for. |
 
 ---
 

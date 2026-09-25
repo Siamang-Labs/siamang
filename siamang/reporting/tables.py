@@ -981,51 +981,113 @@ class _BlankUndefined:
 
 
 @dataclass
-class ThemeTable(SurveyTable):
+class ThemeTable(_BlankUndefined, SurveyTable):
     """What the open answers were coded as, and how much was left uncoded.
 
     One row per theme with its share of the answers that were coded, then two
-    rows that keep the table honest: how many people answered at all, and how
-    many of those the codeframe had no theme for — answers collected after it
-    was built, or simply never seen. A theme share quoted without them is a
-    share of an unstated denominator.
+    rows that keep the table honest: how many answers the codeframe coded and
+    how many it had no theme for — answers collected after it was built, or
+    simply never seen — each as a share of everyone who answered. A theme share
+    quoted without them is a share of an unstated denominator. The stats carry
+    the coverage and how many *different* answers are uncoded, which is the
+    work a re-coding would be.
 
-    The percentages are of coded answers, because that is what a theme can be a
-    share of; "answered" and "uncoded" are counts for the same reason.
+    With ``sentiment`` and a codeframe built with it, each row also splits its
+    answers into negative, neutral and positive (of those with a sentiment),
+    and the stats give the overall split and the net (positive minus negative).
+    A codeframe without sentiment says so in the stats rather than being
+    silently ignored.
     """
 
     codeframe: Any = None
+    sentiment: bool = False
 
     def _build(self) -> None:
         from siamang.data import text_coding
 
         frame = self.data.frame
         cf = self.codeframe
-        counts = text_coding.codes(frame[cf.variable], cf).value_counts()
+        series = frame[cf.variable]
+        themes = text_coding.codes(series, cf)
+        counts = themes.value_counts()
         cover = text_coding.coverage(frame, cf)
-        coded = cover["coded"]
+        answered, coded, uncoded = cover["answered"], cover["coded"], cover["uncoded"]
         share = lambda n: round(n / coded * 100, 1) if coded else 0.0  # noqa: E731
+        of_answered = lambda n: round(n / answered * 100, 1) if answered else 0.0  # noqa: E731
         rows = [
             {
                 "Theme": theme.label,
                 "N": int(counts.get(theme.code, 0)),
                 "%": share(int(counts.get(theme.code, 0))),
+                "_code": theme.code,
             }
             for theme in cf.themes
         ]
         rows.sort(key=lambda row: (-row["N"], row["Theme"]))
-        rows.append({"Theme": "Coded", "N": coded, "%": 100.0 if coded else 0.0})
-        rows.append({"Theme": "Uncoded", "N": cover["uncoded"], "%": share(cover["uncoded"])})
-        self._result = pd.DataFrame(rows, columns=["Theme", "N", "%"])
+        # The last two rows split the answers, so they are shares of everyone
+        # who answered; above them a theme is a share of what was coded. (The
+        # uncoded share used to be taken of the coded answers: one uncoded
+        # answer in four read as 33.3 %.)
+        rows.append({"Theme": "Coded", "N": coded, "%": of_answered(coded), "_code": "coded"})
+        rows.append(
+            {"Theme": "Uncoded", "N": uncoded, "%": of_answered(uncoded), "_code": "uncoded"}
+        )
+        columns = ["Theme", "N", "%"]
         self._stats = {
             "Variable": cf.variable,
-            "Answered": cover["answered"],
+            "Answered": answered,
             "Themes": len(cf.themes),
+            "Coverage": f"{of_answered(coded)} % of the answers have a theme",
+            "Distinct uncoded answers": int(
+                text_coding.uncoded_answers(frame, cf).map(text_coding.fingerprint).nunique()
+            ),
+            "Percentages": "a theme: of the coded answers; Coded and Uncoded: of all answers",
         }
+        if self.sentiment and cf.sentiment:
+            columns += self._add_sentiment(rows, series, themes)
+        elif self.sentiment:
+            self._stats["Sentiment"] = "not in this codeframe"
+        self._result = pd.DataFrame(rows, columns=columns)
         if cf.model:
             self._stats["Codeframe"] = f"{cf.model}{f', {cf.built_at}' if cf.built_at else ''}"
         if (note := _unweighted_note(self.data)) is not None:
             self._stats["Weight"] = note
+
+    def _add_sentiment(
+        self, rows: list[dict[str, Any]], series: pd.Series, themes: pd.Series
+    ) -> list[str]:
+        """Negative / neutral / positive per row, of the answers with a sentiment."""
+        from siamang.data import text_coding
+
+        scores = text_coding.sentiment_scores(series, self.codeframe)
+        answered = series.map(lambda v: text_coding.normalise(v) != "")
+        masks = {
+            "coded": themes.notna() & answered,
+            "uncoded": themes.isna() & answered,
+        }
+        names = {-1: "Negative %", 0: "Neutral %", 1: "Positive %"}
+        for row in rows:
+            code = row.pop("_code")
+            mask = masks.get(code) if isinstance(code, str) else (themes == code).fillna(False)
+            scored = scores[mask.astype(bool)].dropna()
+            for value, name in names.items():
+                row[name] = (
+                    round(float((scored == value).sum()) / len(scored) * 100, 1)
+                    if len(scored)
+                    else float("nan")
+                )
+        overall = scores[answered.astype(bool)].dropna()
+        if len(overall):
+            split = {value: float((overall == value).sum()) / len(overall) * 100 for value in names}
+            self._stats["Sentiment"] = (
+                f"negative {split[-1]:.1f} %, neutral {split[0]:.1f} %, "
+                f"positive {split[1]:.1f} % of {len(overall)} answer"
+                + ("" if len(overall) == 1 else "s")
+            )
+            self._stats["Net sentiment"] = round(split[1] - split[-1], 1)
+        else:
+            self._stats["Sentiment"] = "no answer here has a sentiment in the codeframe"
+        return list(names.values())
 
 
 # ─── MaxDiffTable ─────────────────────────────────────────────────────────────
