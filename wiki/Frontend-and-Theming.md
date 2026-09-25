@@ -159,6 +159,9 @@ wherever the focus is not in a text field, on a button or on a link; on a button
 link the key is its own — a matrix cell or a rating point is chosen, Previous goes
 back, the dropdown opens — and so it is on a video or audio player (Space plays or
 pauses), on a `<summary>` (it opens its details) and on the like in a page's own HTML.
+On a radio button or a checkbox — where a click on a choice or a picture leaves the
+focus — and on a slider, Enter goes on and Space is the control's own: it checks the
+radio, ticks or unticks the box.
 Right after a click, while the focus the mouse left on a button or a link is still
 there, Enter and Space go on: the key would otherwise click again, and a MaxDiff or
 conjoint pick, which a second click takes back, would be lost. Esc goes back when
