@@ -155,8 +155,10 @@ statement, when you set them.
 
 | Input | Does |
 |---|---|
-| `Enter` or `Space` (outside a text field) | next page (or submit on the last). On a focused button or link the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen |
-| `←` `→` / `↑` `↓` in a Matrix | move along the row, answering it with the cell reached (the N/A column included) / move to the same column in the row above or below; `Tab` leaves the grid |
+| `Enter` or `Space` (outside a text field) | next page (or submit on the last). Right after a mouse click on a button or link — a MaxDiff or Conjoint pick, a rating point, a matrix cell — the key still goes on, and every pick stays as it was clicked. Once the keyboard has brought the focus to a button or link (`Tab`, `Shift+Tab`, the arrow keys in a Matrix), the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen, a chosen MaxDiff or Conjoint pick is released |
+| `Enter` or `Space` on a video or audio player | the player's own keys (`Space` plays or pauses); they never go to the next page. The same holds for an expandable section or a widget in a page's own HTML, and typing in an editable area of it is like typing in a text field |
+| `←` `→` / `↑` `↓` in a Matrix | move along the row, answering it with the cell reached (the N/A column included) / move to the same column in the row above or below; `Tab` leaves the grid. The cell in focus shows the focus ring, a chosen one included |
+| `Enter`, `Space` or `↓` on a dropdown | opens its list, with the cursor in the search box. There `↓` / `↑` move through the options (starting from the chosen one), typing narrows the list to the matches and puts the cursor on the first, and `Enter` chooses the option and closes the list. `Esc` or `Tab` closes the list without choosing; `Esc` on the dropdown itself closes an open list rather than going back a page |
 | `Esc` | previous page (when going back is allowed) |
 | `1`–`9` (outside a text field) | picks that point on the page's first rating scale that has it, as a click does: the answer is autosaved and the question's error message goes. On a scale that starts at 0 the key is the point's number; a digit the scale does not have does nothing |
 | swipe left / right | next / previous page on touch screens |
@@ -371,8 +373,11 @@ See also [[Security and Privacy|Studio-Security-and-Privacy]].
   screen readers ("Page 2 of 5"), and so is saving.
 - The submission-failed dialog is a proper modal dialog; the light/dark button
   is labeled "Switch to dark mode" / "Switch to light mode".
-- Every step works with the keyboard (see the table above), a Matrix
-  included.
+- Every step works with the keyboard (see the table above), a Matrix and a
+  searchable dropdown included. The control in keyboard focus always shows
+  the focus ring, a chosen matrix cell or MaxDiff pick included. A dropdown's
+  search box is announced as a combobox over its list of options, named
+  after the question.
 - When **Next** holds a required Matrix, the cells of its rows still without
   an answer are flagged as invalid to screen readers, as well as marked on
   screen.

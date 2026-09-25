@@ -286,8 +286,9 @@ for example), write the **variable name** in your code.
 
 Scripts written with the Id keep working in the common forms: when Studio
 builds the survey (previews and published surveys alike), it rewrites
-`answers["q5"]`, `answers.q5` and the same forms on `__errors__`,
-`__options__` and `__timers__` to the variable name. It does not rewrite an Id
+`answers["q5"]`, `answers.q5` (with `?.` too, and in a spread such as
+`[...answers.q5]`) and the same forms on `__errors__`, `__options__` and
+`__timers__` to the variable name. It does not rewrite an Id
 used any other way, for example stored in a constant (`const id = "q5"`) or
 used as an object key. The engine's check then warns `SCRIPT_STALE_QUESTION_ID`
 ("Script '<name>' still names question 'q5' as a string or a bare identifier;
@@ -298,14 +299,19 @@ not reported.
 Because of that translation, a question whose Id differs from its variable
 cannot have an Id that your scripts use for something else: a codebook
 variable no question collects that a script writes (`answers.panel = 1`
-next to a question with Id `panel`), the variable an **Assign to a
+next to a question with Id `panel`, or any other write — a destructuring,
+`delete`, `answers.panel.push(…)`; see
+[What counts as a script writing a name](Studio-Builder-Overview#what-counts-as-a-script-writing-a-name)), the variable an **Assign to a
 condition** writes, another question's Other text or Matrix row, or a name
 starting with `__`. The script would reach the question's answer instead, so
 the Builder flags such an Id and the Save is marked **errors** (see
 [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)).
 A script that writes the question's own Id (`answers.q5 = 7`, to prefill
 it) is fine as long as the codebook has no entry named `q5`: it writes the
-question's answer.
+question's answer. If the codebook still has one, left behind when an
+earlier Builder renamed the question's variable, delete that entry in
+**Builder → Codebook** rather than renaming the Id; a new Id would leave the
+script writing the entry instead of the question.
 
 ### Examples
 

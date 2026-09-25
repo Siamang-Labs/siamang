@@ -130,7 +130,13 @@ codebook variable a custom script writes, or a name starting with `__`.
 Studio translates a script's `answers["<id>"]` to the question's variable, so
 a script meaning the other thing would reach the question instead. Change
 the question's **Advanced → Id**, then Save. The **Id** field and
-**Validation → Structure** say which name it is before you save.
+**Validation → Structure** say which name it is before you save. One
+exception: when the name is a codebook entry an earlier Builder left behind
+on renaming the question's variable, and an older script prefills the
+question by its Id (`answers.q2 = …`), delete that entry in **Builder →
+Codebook** instead — the message then says so too ("…or, if the codebook
+entry 'q2' is left over from renaming this question's variable, delete that
+entry…"). A new Id would leave the script writing the entry.
 → [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)
 
 **"…the codebook still declares a variable "q2" that no question collects and nothing writes…" in Validation → Structure.**

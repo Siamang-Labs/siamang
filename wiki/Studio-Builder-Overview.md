@@ -149,10 +149,15 @@ matters:
 > and its data column carried the Id. Studio has moved the answers already
 > collected that way to the variable's name and recounted the quota cells
 > involved; where a move could have mixed two questions' answers, the old
-> column was left as it was. A survey published before the change keeps its
-> old build: its answers are filed under the variable name as they arrive, but
-> its show-if conditions, branching and piping on such questions only work
-> once you publish it again.
+> column was left as it was. The move also covers a question whose variable
+> was renamed after a Save (an earlier Builder gave every new question its Id
+> as its variable) and one whose Id is a Matrix row or a per-choice variable
+> of another question; only a response that shows nothing of the older build
+> (some partial or resumed interviews) keeps such an answer under the Id. A
+> survey published before the change keeps its old build: its answers are
+> filed under the variable name as they arrive, but its show-if conditions,
+> branching and piping on such questions only work once you publish it
+> again.
 >
 > Filing an older build's answers never moves a value that is not a
 > question's answer into a question's column: the text typed into an Other,
@@ -170,11 +175,20 @@ matters:
 ### Names an Id may not take
 
 A question's Id may never be another question's Id or another question's
-variable name (see above), and it should not start with `__`: those are the
-survey runtime's own names. For such an Id the **Id** field says "Ids
-starting with “__” are the survey runtime’s own names." and **Validation →
-Structure** lists "__score: ids starting with "__" are the survey runtime's
-own names — rename the id (Advanced → Id)".
+variable name (see above). An Id that differs from the question's variable
+also may not start with `__`: those are the survey runtime's own names. For
+such an Id the **Id** field says "Ids starting with “__” are the survey
+runtime’s own names." and **Validation → Structure** lists "__score: ids
+starting with "__" are the survey runtime's own names — rename the id
+(Advanced → Id)". An Id that is the question's own variable (Id and
+variable both `__x`) is not flagged for this; a **variable** that starts
+with `__` is, because the survey never submits it and its answers never
+reach the data: **Validation → Structure** lists "__x: the variable "__x"
+starts with "__" — the survey runtime never submits it; rename the
+variable", and the question's **Variable** section says "Variables starting
+with “__” are the survey runtime’s own: it never submits __x, so these
+answers never reach the data. Rename the variable." A new Id alone does not
+help; rename the variable.
 
 When the Id **differs from the question's own variable** — a preset's `q5` /
 `nps_5`, or a question whose variable you renamed — it may not be any other
@@ -189,7 +203,7 @@ instead. The engine refuses such an Id; the Builder says so before you Save:
 | one of the question's own variables (a matrix given a separate name, from an import or the **Source** tab, whose Id is one of its rows) | | "This is one of the variables this question stores its answers under — the engine refuses it as the id." | `<id>: the id is one of the variables this question stores its answers under, and the engine refuses that — rename the id (Advanced → Id)` |
 | where a question stores the text typed into its **Other (please specify)**: `<variable>_other` (for a wide Multiple choice, `<Id>_other`) | Id `brand_other` on a question with variable `note`, while `brand` offers Other | "This is where brand stores the text typed into Other — scripts naming it would reach this question’s variable instead." ("…where this question stores…" for its own Other) | "brand_other: the id is where brand stores the text typed into Other — scripts naming it would reach note instead; rename the id (Advanced → Id)" |
 | the variable an **Assign to a condition** script stores the arm in | Id `condition` on a question with variable `cond_q` | "This is the variable an Assign to a condition script stores the arm in — scripts naming it would reach this question’s variable instead." | "condition: the id is the variable an Assign to a condition script stores the arm in — scripts naming it would reach cond_q instead; rename the id (Advanced → Id)" |
-| a codebook variable that no question collects and a custom script writes (`answers.panel = 1`) | Id `panel` on a question with variable `panel_q` | "This is a codebook variable a custom script writes — scripts naming it would reach this question’s variable instead." | "panel: the id is a codebook variable a custom script writes — scripts naming it would reach panel_q instead; rename the id (Advanced → Id)" |
+| a codebook variable that no question collects and a custom script writes (see [What counts as a script writing a name](#what-counts-as-a-script-writing-a-name)) | Id `panel` on a question with variable `panel_q` | "This is a codebook variable a custom script writes — scripts naming it would reach this question’s variable instead. If the codebook entry is left over from renaming this question’s variable, delete it in the Codebook tab instead of renaming the id." | "panel: the id is a codebook variable a custom script writes — scripts naming it would reach panel_q instead; rename the id (Advanced → Id), or, if the codebook entry "panel" is left over from renaming this question's variable, delete that entry in the Codebook tab so the script's "panel" means this question" |
 
 Saved anyway, such a Save is marked `errors` and cannot be published — as
 is one with an Id that starts with `__` and differs from its variable. The
@@ -197,7 +211,11 @@ engine's reason names the clash, for example: "Question 'brand_other' stores
 its answer under 'note', but 'brand_other' is also the key question 'brand'
 stores its “Other (please specify)” text under. A script that names
 'brand_other' could mean either; give the question another id." Rename the
-Id.
+Id. For a codebook variable a custom script writes, the engine names a
+second way out: "…A script that names 'q2' could mean either; give the
+question another id, or, if the codebook entry 'q2' is left over from
+renaming this question's variable, delete that entry so that 'q2' in the
+script means the question." (see below).
 
 Two names that look similar are allowed:
 
@@ -213,6 +231,32 @@ Two names that look similar are allowed:
   script that writes the question's own Id (`answers.q5 = 7`, to prefill it)
   writes the question's answer: Studio translates it to `answers.nps_5`.
   Renaming the Id would leave the script writing a name nothing reads.
+
+The two can meet in a questionnaire from that earlier Builder: the leftover
+entry `q2` next to a script of its time that prefills the question by its Id
+(`if (!answers.q2) answers.q2 = "(no comment)";`). The Id is then flagged
+as a codebook variable a custom script writes. Do not rename the Id — the
+script would go on writing `q2`, and the prefill would no longer reach the
+question. Delete the leftover entry in the Codebook tab instead: the script's
+`q2` then means the question again, and Studio translates it to `comment`.
+
+### What counts as a script writing a name
+
+For these checks a custom script writes a name when, outside its comments
+and strings, it assigns it (`answers.panel = 1`, `+=`, `??=` and the like),
+increments or decrements it (`answers.panel++`), deletes it
+(`delete answers.panel`), uses it as the target of a `for (… of …)` or
+`for (… in …)` loop or as a place in a destructuring assignment
+(`[answers.panel, x] = …`, `({ v: answers.panel } = o)`), or changes the
+value under it in place: a property or element assigned
+(`answers.panel.source = "web"`, `answers.panel[0] = 1`), an array method
+that changes it (`answers.panel.push(…)`, `.splice`, `.sort` …) or
+`Object.assign(answers.panel, …)`. `answers?.panel` counts like
+`answers.panel`. Everything else is a read: a comparison, a condition, a
+value passed to a function (`f(answers.panel)`), put in an array or object,
+or used as a subscript (`obj[answers.panel] = 1`), and a string that happens
+to spell a write (`"answers.panel = 1"`). The Builder, the Save and the
+engine read scripts the same way.
 
 ---
 

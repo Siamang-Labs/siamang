@@ -40,8 +40,11 @@ and clicking it opens the item in Structure. The messages:
 | `<id>: stores its answer under "<key>", as <owner> does — rename one of them` | rename one question's Id or variable |
 | `<id>: the id is the variable <owner> stores its answer under, and the engine refuses that — rename the id (Advanced → Id)` | give the question another Id |
 | `<id>: the id is a variable <question> stores an answer under, and the engine refuses that — rename the id (Advanced → Id)` / `<id>: the id is one of the variables this question stores its answers under, and the engine refuses that — rename the id (Advanced → Id)` | the Id is a Matrix row or another variable a question stores (its own, for a matrix with a separate name) while the question's own variable is different: give the question another Id |
-| `<id>: the id is where <question> stores the text typed into Other — scripts naming it would reach <variable> instead; rename the id (Advanced → Id)` (or "…where this question stores…"), `<id>: the id is the variable an Assign to a condition script stores the arm in — …`, `<id>: the id is a codebook variable a custom script writes — …` | the Id differs from the question's variable and is a name the survey stores something else under: give the question another Id (see [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)) |
-| `<id>: ids starting with "__" are the survey runtime's own names — rename the id (Advanced → Id)` | give the question another Id |
+| `<id>: the id is where <question> stores the text typed into Other — scripts naming it would reach <variable> instead; rename the id (Advanced → Id)` (or "…where this question stores…"), `<id>: the id is the variable an Assign to a condition script stores the arm in — …` | the Id differs from the question's variable and is a name the survey stores something else under: give the question another Id (see [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)) |
+| `<id>: the id is a codebook variable a custom script writes — scripts naming it would reach <variable> instead; rename the id (Advanced → Id), or, if the codebook entry "<id>" is left over from renaming this question's variable, delete that entry in the Codebook tab so the script's "<id>" means this question` | give the question another Id if the script means the codebook variable; if the entry is a leftover and the script means the question (an older prefill by Id), delete the entry in **Builder → Codebook** instead |
+| `<id>: ids starting with "__" are the survey runtime's own names — rename the id (Advanced → Id)` | the Id differs from the question's variable and starts with `__`: give the question another Id |
+| `<id>: the variable "<v>" starts with "__" — the survey runtime never submits it; rename the variable` | the survey never submits a `__` key, so these answers would never reach the data: rename the variable |
+| `<id>: stores its “Other (please specify)” text under "<key>", which <question> already stores an answer under, and the engine refuses that — rename this question's variable or <question>'s` (or "…which this question already stores…", "…rename that option's variable", "…rename <question>'s variable") | the Other text column is a name a question already stores an answer under: rename one of the two variables (see [Single choice](Studio-Question-Types#single-choice)) |
 | `<id>: the codebook still declares a variable "<id>" that no question collects and nothing writes — delete it in the Codebook tab` | an unused codebook entry, usually left behind when an earlier Builder renamed the question's variable; the Id is fine. Delete the entry in **Builder → Codebook** |
 | `duplicate page name "<name>"` | rename one page |
 | `<page>: next_if target "<t>" does not exist` / `<page>: default_next "<t>" does not exist` | pick an existing page |
@@ -135,7 +138,10 @@ and nothing is stored.
   an **Assign to a condition**, a codebook variable no question collects that
   a custom script writes, or a name starting with `__` ("Question '<id>'
   stores its answer under '<variable>', but '<id>' is also <what>. A script
-  that names '<id>' could mean either; give the question another id."; see
+  that names '<id>' could mean either; give the question another id." — for
+  a codebook variable a script writes, it goes on: "…or, if the codebook
+  entry '<id>' is left over from renaming this question's variable, delete
+  that entry so that '<id>' in the script means the question."; see
   [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take));
 - a Matrix, MaxDiff, Conjoint or wide Multiple choice whose Id is another
   question's variable name. The survey knows these questions by their Id

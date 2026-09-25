@@ -119,7 +119,9 @@ version of the Builder left behind when it renamed that question's variable
 "q2: the codebook still declares a variable "q2" that no question collects
 and nothing writes — delete it in the Codebook tab" — and **Delete** removes
 it. The question's Id can stay as it is. If a custom script writes that name
-(`answers.q2 = …`), nobody can tell whether the script means the question or
+(`answers.q2 = …`, or any other write — see
+[What counts as a script writing a name](Studio-Builder-Overview#what-counts-as-a-script-writing-a-name)),
+nobody can tell whether the script means the question or
 the codebook variable, and the Id is flagged instead ("q2: the id is a
 codebook variable a custom script writes — …"): rename the Id if the script
 means the codebook variable, or delete the entry if it means the question
@@ -391,8 +393,13 @@ Renaming renames the variable **everywhere the questionnaire uses it**:
 - **piping**: `{answer:…}` and `{label:…}` in question texts, hints, page
   titles and bodies;
 - **scripts**: a script whose target was the variable, and the answer
-  accesses in custom JavaScript (`answers.old_name`, `answers["old_name"]`);
-- the Other text column: `old_name_other` becomes `new_name_other`.
+  accesses in custom JavaScript (`answers.old_name`, `answers["old_name"]`,
+  `answers?.old_name`, a spread `...answers.old_name`);
+- the Other text column: `old_name_other` becomes `new_name_other` — unless
+  another question stores its answer under `old_name_other` (a clash the
+  Builder flags under **Add “Other (please specify)”**). That name then stays
+  with that question, and the Other text gets a column of its own under the
+  new name.
 
 What renaming does **not** do:
 

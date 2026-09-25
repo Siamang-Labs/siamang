@@ -41,9 +41,9 @@ Presets: **Yes / No**, **Rating (stars)**, **NPS (0–10)**, **CES (1–7)**,
 | **Required** | Question | The respondent cannot continue without answering: **Next** shows "This question requires an answer." A Matrix asks for an answer in **every row** (the checkbox's hint says "an answer in every row", or "an answer in every row — N/A counts" when the matrix offers N/A) — see [Matrix](#matrix); MaxDiff and Conjoint ask for every task. Required questions show an asterisk to respondents. New questions start **optional**. |
 | **Randomize option order** | Question | Shuffles the options per respondent. Single choice, Multiple choice and Ranking only. "None of the above", exclusive choices (such as "None of these") and a choice that is the question's Other keep their place; the other options are shuffled around them. The "Other" option Studio adds always comes last. |
 | **Attention check** | Question | Single choice, Likert scale, Number and Open text — see [Attention checks](#attention-checks). |
-| **Variable** | Variable | The codebook entry the question writes — [[Codebook and Variables\|Studio-Codebook-and-Variables]]. |
+| **Variable** | Variable | The codebook entry the question writes — [[Codebook and Variables\|Studio-Codebook-and-Variables]]. A variable name starting with `__` is flagged here ("Variables starting with “__” are the survey runtime’s own: it never submits __x, so these answers never reach the data. Rename the variable."): the survey never submits such a key. |
 | **Show if** / **Hide if** / **Skip to** | Logic | [[Logic and Branching\|Studio-Logic-and-Branching]]. |
-| **Id** | Advanced | The question's own handle ("names the question in scripts and comments; logic and data use the variable"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question — the field says "Another question already has this id." or "This is the variable … stores its answer under — the engine refuses an id that is another question’s variable." An Id should not start with `__`, and one that differs from the question's variable may not be a name the survey stores something else under (a Matrix row, another question's Other text, an assigned arm): the field says why, for example "This is where brand stores the text typed into Other — scripts naming it would reach this question’s variable instead." See [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take). |
+| **Id** | Advanced | The question's own handle ("names the question in scripts and comments; logic and data use the variable"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question — the field says "Another question already has this id." or "This is the variable … stores its answer under — the engine refuses an id that is another question’s variable." An Id that differs from the question's variable may not start with `__`, nor be a name the survey stores something else under (a Matrix row, another question's Other text, an assigned arm, a codebook variable a custom script writes): the field says why, for example "This is where brand stores the text typed into Other — scripts naming it would reach this question’s variable instead." An Id that is the question's own variable is never flagged for this. See [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take). |
 | **Tags** | Advanced | Free labels, comma-separated, for your own organization of the instrument. |
 | **Media URL** | Advanced | An image, or a video if the link ends in `.mp4`/`.webm`, shown with the question ("a public https:// address; a file under Files has no public link"). Use a stable public URL (a download link from **Files** expires after 5 minutes). |
 
@@ -82,7 +82,10 @@ One answer from a list.
 
 **The respondent sees** radio buttons, a dropdown or a row of buttons. The
 dropdown is searchable: it shows "— Select —", a search box ("Type to search…")
-and "No options found" when nothing matches.
+and "No options found" when nothing matches. It works from the keyboard too:
+`Enter`, `Space` or `↓` opens it, `↓` / `↑` move through the options, typing
+narrows them, `Enter` chooses and `Esc` closes (see
+[Keyboard and touch](Studio-Respondent-Experience#answering)).
 
 **Inspector → Options**
 
@@ -111,10 +114,17 @@ How these codes are chosen, and what happens when a choice already uses one,
 is in [Codes for Other, None of the above and N/A](#codes-for-other-none-of-the-above-and-na).
 
 **Rules.** At least one choice; unique codes; non-empty labels. With Other on,
-the text column `<variable>_other` must not be the variable of another
-question (the Save is marked `errors`: "Question 'q1' stores its “Other
-(please specify)” text under 'q1_other', which question 'q9' already stores an
-answer under.").
+the text column `<variable>_other` must not be a name a question already
+stores an answer under. The Builder says so before you save, under **Add
+“Other (please specify)”** ("q9 already stores an answer under q1_other, and
+the engine refuses that — rename this question's variable or q9's.") and in
+**Validation → Structure** ("q1: stores its “Other (please specify)” text
+under "q1_other", which q9 already stores an answer under, and the engine
+refuses that — rename this question's variable or q9's"). Saved anyway, the
+Save is marked `errors`: "Question 'q1' stores its “Other (please specify)”
+text under 'q1_other', which question 'q9' already stores an answer under."
+Renaming this question's variable gives its Other text a column of its own
+under the new name and leaves `q1_other` with the question that stores it.
 
 ---
 
@@ -193,9 +203,14 @@ Conditions, piping and quotas on a per-choice variable (`q7_1 = 1`) see the
 answer, and **Exclusive choices** work. With **Other (please specify)**, Other
 has no 0/1 variable of its own: the typed text goes to `<Id>_other`, named
 after the question's **Id** (`q7_other`), which holds the text while Other is
-chosen. When an analysis of an **array** question needs one 0/1 column per
-option (weighting, regression, TURF), you can also add an **Explode multiple
-choice** node in the flow — see [[Node Reference|Studio-Node-Reference]].
+chosen. When a question already stores an answer under that name, or one of
+this question's own options does, the Builder flags it under **Add “Other
+(please specify)”** and in **Validation → Structure** — ending "…rename q9's
+variable" (or "…rename that option's variable") — and a Save that keeps it
+is marked `errors`. When an analysis of an **array** question needs one 0/1
+column per option (weighting, regression, TURF), you can also add an
+**Explode multiple choice** node in the flow — see
+[[Node Reference|Studio-Node-Reference]].
 
 **Rules.** Min answers 0 or more; Max answers at least Min answers
 ("max_answers must be >= min_answers"); in the wide layout, Max answers no
@@ -331,7 +346,8 @@ scale point (plus an N/A column if offered).
 the row and answer it with the cell they reach, the N/A column included;
 `↑` / `↓` move to the same column in the row above or below without
 answering; `Space` or `Enter` chooses the focused cell; `Tab` leaves the
-grid. A required matrix can therefore be finished without a mouse.
+grid. A required matrix can therefore be finished without a mouse. The cell
+in focus shows the focus ring, a chosen one included.
 
 **Inspector → Options**
 
@@ -477,7 +493,11 @@ Shows a few items at a time and asks which is best and which is worst.
 **The respondent sees** all tasks on one page. Each task is a small table:
 the **Best** column, the item, the **Worst** column. One item cannot be both
 best and worst in the same task. The question counts as answered only when
-every task has both picks.
+every task has both picks. A pick is a button: clicked again, or pressed with
+`Space` or `Enter` once the keyboard has moved to it, it is released. Pressing
+`Enter` right after clicking a pick goes to the next page and keeps it (see
+[Keyboard and touch](Studio-Respondent-Experience#answering)). A chosen
+pick in keyboard focus shows the focus ring.
 
 **Inspector → Options:** **Items** (default Item 1–6), **Items per task**
 (default 4), **Tasks** (default 8), **Versions** (default 20), **Best is
