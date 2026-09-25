@@ -78,9 +78,9 @@ def listwise(data: SurveyData, columns: list[str], *, numeric: bool = True) -> L
     listed = [column for column in columns if multi.is_multi(frame[column])]
     if listed:
         raise TypeError(
-            f"{', '.join(listed)} hold multiple-choice answers (lists of codes), which "
-            "have no single value to compare. Run prepare.explode first: it turns each "
-            "option into its own 0/1 column."
+            f"{', '.join(listed)} {'holds' if len(listed) == 1 else 'hold'} multiple-choice "
+            "answers (lists of codes), which have no single value to compare. Run "
+            "prepare.explode first: it turns each option into its own 0/1 column."
         )
     values = frame[columns].copy()
     coded = 0

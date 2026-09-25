@@ -249,6 +249,11 @@ preview: table
   one of `require` must hold too; without `require`, `when` alone is the
   problem. `Registry.to_json()` does not carry them: a builder gets them from
   `check_flow`.
+- `subtitle`: the one-line summary, `"{row} × {col}"`, or a list of variants —
+  `{when: <condition>, text}` or a plain string — of which the first that
+  holds is used (TURF: `fixed portfolio {portfolio}` for `method=fixed`, `up to
+  {max_size}, {method}` otherwise). `to_json()` gives the plain one as
+  `subtitle` and the list as `subtitles`.
 - `imports`: the import statements the template needs; `platform: true` for
   nodes that need `db`; `snapshot: true` for sources a file can replace.
 

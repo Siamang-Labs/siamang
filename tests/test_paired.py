@@ -317,8 +317,12 @@ def test_compare_picks_the_test_and_explains_what_it_cannot_do():
     assert paired.compare(data, ["aware_a", "aware_b"], test="mcnemar").stats["Test"] == "McNemar"
     with pytest.raises(ValueError, match="exactly two variables; 3 were given"):
         paired.compare(data, ["before", "after", "later"], test="wilcoxon")
-    with pytest.raises(ValueError, match="three or more variables; 1 was given"):
+    # Auto chose no test for one variable: the message is about paired tests,
+    # not about Friedman's, which nobody asked for.
+    with pytest.raises(ValueError, match=r"^Paired tests compare two or more variables .*1 was"):
         paired.compare(data, ["before"])
+    with pytest.raises(ValueError, match="Friedman's test compares three or more variables; 1 was"):
+        paired.compare(data, ["before"], test="friedman")
     with pytest.raises(ValueError, match="needs ordered values; region is nominal"):
         paired.compare(data, ["before", "region"])
     with pytest.raises(ValueError, match="before is listed twice"):
@@ -385,3 +389,13 @@ def test_wilcoxon_mcnemar_and_the_paired_t_test_take_the_difference_one_way():
     assert sp.wilcoxon(x, y, alternative="less").pvalue < 0.05
     assert sp.wilcoxon(x, y, alternative="greater").pvalue > 0.5
     assert paired.wilcoxon(data, "before", "after").test.w_plus == 1.5
+
+
+def test_mcnemar_names_the_field_and_one_list_column_reads_as_one():
+    data = _survey()
+    with pytest.raises(ValueError, match="in Counts as yes — `yes` outside a flow"):
+        paired.mcnemar(data, "before", "later")
+    listed = data.with_frame(data.frame.assign(aware_a=[[1, 2]] * 12))
+    # "aware_a hold multiple-choice answers" before.
+    with pytest.raises(TypeError, match="^aware_a holds multiple-choice answers"):
+        paired.mcnemar(listed, "aware_a", "aware_b")

@@ -374,3 +374,49 @@ def test_a_maxdiff_question_the_questionnaire_lacks_is_named_before_the_run():
     assert issues[0].message.endswith("no MaxDiff question named 'q_mdx'; it has none.")
     # Without a questionnaire there is nothing to check against.
     assert check_flow(flow) == []
+
+
+def test_turf_and_paired_tests_warn_of_what_they_would_ignore(questionnaire_doc):
+    """TURF with Search = fixed ignored Always include in silence, best and greedy
+    ignored a Portfolio, and a Wilcoxon ignored Counts as yes; the fixed search
+    was titled "up to 3, fixed". Each is now a warning, and the title says what
+    ran."""
+
+    items = ["aware_1", "aware_2", "aware_3"]
+
+    def issues(node_type, params):
+        flow = _flow(
+            [
+                ("sim", "source.simulated", {"n": 40}),
+                ("expl", "prepare.explode", {"variable": "aware"}),
+                ("n", node_type, params),
+            ],
+            [("sim", "data", "expl", "data"), ("expl", "data", "n", "data")],
+        )
+        found = check_flow(flow, questionnaire=questionnaire_doc)
+        assert all(issue.severity == "warning" for issue in found)
+        return flow, [issue.message.split(": ", 1)[1] for issue in found]
+
+    fixed = {"items": items, "method": "fixed", "portfolio": ["aware_1"], "include": ["aware_2"]}
+    flow, messages = issues("analyze.turf", fixed)
+    assert messages == [
+        "Always include is not read with Search = fixed, which evaluates exactly the "
+        "Portfolio — add those options to Portfolio."
+    ]
+    code = generate_flow(flow, questionnaire_doc)
+    assert "# ── TURF: fixed portfolio aware_1 ─" in code and "up to 3" not in code
+    _, messages = issues("analyze.turf", {"items": items, "portfolio": ["aware_1"]})
+    assert messages == [
+        "Portfolio is read only with Search = fixed; best and greedy search for a portfolio "
+        "themselves."
+    ]
+    assert issues("analyze.turf", {"items": items, "include": ["aware_2"]})[1] == []
+    trust = ["trust_acme", "trust_globex"]
+    _, messages = issues("analyze.paired", {"variables": trust, "yes_codes": [4, 5]})
+    assert messages == ["Counts as yes is read only by McNemar — set Test to mcnemar, or clear it."]
+    mcnemar = {"variables": trust, "test": "mcnemar", "yes_codes": [4, 5]}
+    assert issues("analyze.paired", mcnemar)[1] == []
+    # A builder reads the variants beside the plain subtitle it always had.
+    spec = default_registry().get("analyze.turf").to_json()
+    assert spec["subtitle"] == "up to {max_size}, {method}"
+    assert spec["subtitles"][0] == {"when": "method=fixed", "text": "fixed portfolio {portfolio}"}

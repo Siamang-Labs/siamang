@@ -315,7 +315,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (`siamang.data.turf.evaluate`) gives each option's reach, `unique` reach
     (what dropping it would lose) and frequency, and the portfolio's reach and
     frequency, on the question's base; stat `Search: none: a fixed portfolio`,
-    `Reach`, `Frequency`.
+    `Reach`, `Frequency`. Its subtitle is `fixed portfolio <options>` (a node
+    spec's `subtitle` may now be a list of `{when, text}` variants, given to a
+    builder as `subtitles`), a single option's total row reads `The one
+    option`, and the check warns that Always include is not read with Search =
+    fixed and Portfolio only with it. Paired tests warn that Counts as yes is
+    read only by McNemar, and with one variable and Test auto say that paired
+    tests compare two or more variables.
   - **Code open answers** has a `stat` output: the theme table's stats now
     carry `Coverage` (`75.0 % of the answers have a theme`), `Distinct uncoded
     answers` and `Percentages`, and with `sentiment` a codeframe built with it

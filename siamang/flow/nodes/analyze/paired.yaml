@@ -55,6 +55,10 @@ params:
     label: Pairwise comparisons (Friedman)
     help: A Wilcoxon signed-rank test for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them.
 subtitle: '{test}: {variables}'
+checks:
+- when: test!=mcnemar & yes_codes
+  severity: warning
+  message: Counts as yes is read only by McNemar — set Test to mcnemar, or clear it.
 imports:
 - from siamang.data import paired
 template: |

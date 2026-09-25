@@ -336,7 +336,9 @@ def evaluate(
     rows.append(
         {
             "option": "(portfolio)",
-            "label": f"All {len(chosen_items)} together",
+            "label": (
+                f"All {len(chosen_items)} together" if len(chosen_items) > 1 else "The one option"
+            ),
             "reach": round(reach, 4),
             "reach_percent": percent(reach),
             "unique": round(reach, 4),

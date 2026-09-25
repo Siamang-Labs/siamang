@@ -102,9 +102,9 @@ def describe(
     listed = [name for name in names if multi.is_multi(frame[name])]
     if listed:
         raise TypeError(
-            f"{', '.join(listed)} hold multiple-choice answers (lists of codes), which have "
-            "no mean. Describe them with Frequencies, or run prepare.explode first and "
-            "describe the 0/1 columns it makes."
+            f"{', '.join(listed)} {'holds' if len(listed) == 1 else 'hold'} multiple-choice "
+            "answers (lists of codes), which have no mean. Describe them with Frequencies, "
+            "or run prepare.explode first and describe the 0/1 columns it makes."
         )
 
     weights = _weights(frame, weight)
