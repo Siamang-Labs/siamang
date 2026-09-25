@@ -352,7 +352,7 @@ def test_analyze_adds_labeled_scores_missing_for_those_left_out():
     variable = result.data.variables["f1"]
     assert variable.label == "Factor 1 score (minres, varimax rotation)"
     assert variable.scale == "interval"
-    assert result.stats["Scores"] == "f1, f2 (regression method)"
+    assert result.stats["Scores"].startswith("f1, f2 (regression method); f3, f4")
     assert result.stats["Factors chosen by"] == "Kaiser criterion (eigenvalues above 1)"
     rows = data.frame.drop(index=[0, 1])[ITEMS].to_numpy(dtype=float)
     assert frame.loc[2:, "f1"].to_numpy() == pytest.approx(result.solution.scores(rows)[:, 0])
@@ -433,3 +433,26 @@ def test_scores_land_on_their_rows_when_the_index_repeats():
     assert ours.index.tolist() == repeated.frame.index.tolist()
     assert ours["factor_1"].to_numpy() == pytest.approx(theirs["factor_1"].to_numpy(), nan_ok=True)
     assert ours["factor_1"].isna().tolist()[:3] == [True, True, False]
+
+
+def test_scores_a_rule_did_not_keep_are_empty_and_say_why():
+    """With the number chosen by a rule, check_flow lets a later node name every
+    score the analysis could make (one fewer than the items), since the number
+    is known only after the run. The ones not kept are made empty and labelled,
+    so a node reading one gets an empty variable that says why — not a KeyError
+    "['factor_3'] not in index"."""
+    result = factor.analyze(_survey(), ITEMS, scores=True, into="f")  # Kaiser keeps 2 of 8
+    frame = result.data.frame
+    assert result.scores == ["f1", "f2"]
+    empty = [f"f{j}" for j in range(3, 8)]
+    assert all(frame[name].isna().all() for name in empty) and "f8" not in frame
+    assert result.data.variables["f3"].label == (
+        "Factor 3 score (not made: the Kaiser criterion kept 2 factors)"
+    )
+    assert result.data.variables["f3"].scale == "interval"
+    assert result.stats["Scores"] == (
+        "f1, f2 (regression method); f3, f4, f5, f6, f7 empty: the Kaiser criterion kept 2 factors"
+    )
+    # A fixed number is known before the run: only its scores are made.
+    fixed = factor.analyze(_survey(), ITEMS, n_factors=2, scores=True, into="f")
+    assert "f3" not in fixed.data.frame and "empty" not in fixed.stats["Scores"]

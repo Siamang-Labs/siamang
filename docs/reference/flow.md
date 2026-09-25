@@ -151,7 +151,10 @@ and `scores` with the prefix `into` (default `factor_`). Outputs: `data` (with
 `<into>1` … when `scores` is on), `loadings`, `variance`, `correlations` and
 `stat`. `check_flow` knows the score variables, so a later node may name
 `factor_1`: exactly `n_factors` of them when it is fixed, and up to one fewer
-than the items when a rule chooses. The prefix itself is not a variable (`into`
+than the items when a rule chooses — and then the run makes every one of those
+names: the scores of the factors kept, and the rest empty, labelled `Factor 3
+score (not made: the Kaiser criterion kept 2 factors)` and named in the stat's
+`Scores`, so a later node reading one finds an empty variable that says why. The prefix itself is not a variable (`into`
 has no `creates`), so a node that names `factor_` is `UNKNOWN_VARIABLE`.
 Several nodes expose what the library already computed:
 

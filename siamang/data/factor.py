@@ -280,6 +280,26 @@ def analyze(
             )
             created.append(name)
         stats["Scores"] = f"{', '.join(created)} (regression method)"
+        if n_factors is None:
+            # Chosen by a rule, the number of factors is known only after the
+            # run, so check_flow lets a later node name every score the analysis
+            # could make (one fewer than the items). Those it did not keep are
+            # made too, empty, and say why — a node reading factor_2 after the
+            # rule kept one finds an empty variable labelled so, not a KeyError.
+            rule = "the Kaiser criterion" if solution.criterion == "kaiser" else "parallel analysis"
+            kept = f"{rule} kept {m} {'factor' if m == 1 else 'factors'}"
+            empty = []
+            for j in range(m + 1, len(items)):
+                name = f"{into}{j}"
+                result_data = result_data.with_derived(
+                    name,
+                    pd.Series(np.nan, index=data.frame.index, dtype=float),
+                    label=f"Factor {j} score (not made: {kept})",
+                    scale="interval",
+                )
+                empty.append(name)
+            if empty:
+                stats["Scores"] += f"; {', '.join(empty)} empty: {kept}"
     rows.report(stats, "any of the items")
     unweighted(stats, data)
 
