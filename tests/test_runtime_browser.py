@@ -909,6 +909,68 @@ def test_a_required_matrix_is_answered_row_by_row_from_the_keyboard(tmp_path):
     assert state["pages"] == ["p1", "middle"]
 
 
+# The focus-ring look of the button at `selector`'s `index`: its box shadow,
+# outline and whether it has the focus, once transitions are over.
+_LOOK = """
+    const look = async (selector, index) => {
+        await page.waitForTimeout(200);
+        return page.$$eval(selector, (els, i) => {
+            const cs = getComputedStyle(els[i]);
+            return { shadow: cs.boxShadow, outline: cs.outlineStyle,
+                     selected: els[i].getAttribute("aria-pressed") === "true",
+                     focused: els[i].matches(":focus-visible") };
+        }, index);
+    };
+"""
+
+
+def test_the_focus_shows_on_a_chosen_matrix_cell_and_maxdiff_pick(tmp_path):
+    """A chosen cell's inner ring replaced the focus ring, so the focus on a
+    chosen cell did not show at all — and ← → leave it on one, ↑ ↓ onto a row
+    answered the same way changed nothing on screen. A chosen MaxDiff pick was
+    the same. Both now carry the focus ring over their own."""
+
+    scenario = (
+        _MATRIX_STEPS
+        + _MATRIX_KEYS
+        + _LOOK
+        + """
+        await pick(0, 1);
+        await pick(1, 1);
+        const cells = "table.sd-matrix tbody tr td:nth-child(3) button.sd-matrix__cell";
+        await page.$$eval(cells, (bs) => bs[0].focus());
+        await press("ArrowDown");
+        return { focused: await focused(), on: await look(cells, 1), off: await look(cells, 0),
+                 plain: await look(cells, 2) };
+    """
+    )
+    state = run_in_browser(_required_matrix_document(), scenario, tmp_path / "matrix")
+    assert state["focused"] == "Radio: Sometimes"
+    on, off = state["on"], state["off"]
+    assert on["selected"] and on["focused"] and off["selected"] and not off["focused"]
+    assert on["shadow"] != off["shadow"]
+    assert on["shadow"].startswith(off["shadow"] + ", ")
+    scenario = (
+        _MATRIX_KEYS
+        + _LOOK
+        + """
+        const picks = "table.sd-maxdiff__task button.sd-maxdiff__pick";
+        const tasks = await page.$$("table.sd-maxdiff__task");
+        const first = (await tasks[1].$$("button.sd-maxdiff__pick"))[0];
+        await page.$$eval(picks, (bs) => bs[0].focus());
+        await press(" ");
+        await first.focus();
+        await press(" ");
+        const index = await page.$$eval(picks, (bs) => bs.indexOf(document.activeElement));
+        return { on: await look(picks, index), off: await look(picks, 0) };
+    """
+    )
+    state = run_in_browser(_trade_off_document(), scenario, tmp_path / "maxdiff")
+    on, off = state["on"], state["off"]
+    assert on["selected"] and on["focused"] and off["selected"] and not off["focused"]
+    assert on["shadow"].startswith(off["shadow"] + ", ")
+
+
 def test_enter_and_space_on_a_button_are_the_buttons_own(tmp_path):
     """Enter or Space outside a text field goes on, as before — but on a
     button they are the button's: Previous goes back, a rating point is

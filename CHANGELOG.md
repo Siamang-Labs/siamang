@@ -198,6 +198,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   always had: in Chromium the key would click again, and a MaxDiff or
   conjoint pick — a toggle — would be taken back. Elsewhere outside a text
   field they still go to the next page.
+- The keyboard focus did not show on a chosen matrix cell or MaxDiff pick: the
+  inner ring that marks one as chosen replaced the theme's focus ring. The
+  arrow keys leave the focus on a chosen cell, and ↑ ↓ onto a row answered the
+  same way changed nothing on screen. A chosen cell or pick in focus now shows
+  both rings.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's

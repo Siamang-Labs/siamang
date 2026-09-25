@@ -748,6 +748,12 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   background: var(--siamang-accent);
   box-shadow: inset 0 0 0 3px var(--siamang-surface);
 }
+/* A chosen cell's inner ring would hide the focus ring, and the arrow keys
+   leave the focus on a chosen cell: it carries both (so does a MaxDiff pick). */
+.sd-matrix__cell.is-selected:focus-visible,
+.sd-maxdiff__pick.is-selected:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--siamang-surface), var(--siamang-focus-ring);
+}
 
 /* ─── MaxDiff ──────────────────────────────────────────────────────────── */
 

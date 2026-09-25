@@ -389,7 +389,8 @@ has; on a required matrix Next first asks for the rest.
 From the keyboard, one cell of the grid is in the tab order. The arrow keys move the
 focus between cells: ← and → along the row, answering it with the cell they reach (the
 "Not applicable" column included), ↑ and ↓ to the same column of the row below or above.
-Space or Enter chooses the cell in focus, and Tab leaves the grid.
+Space or Enter chooses the cell in focus, and Tab leaves the grid. The cell in focus
+shows the focus ring, a chosen one included.
 
 ---
 
