@@ -157,9 +157,14 @@ default; `SurveyJSRuntime` is only the default when you construct a
 From the keyboard, Enter or Space goes to the next page (or submits on the last)
 wherever the focus is not in a text field, on a button or on a link; on a button or a
 link the key is its own — a matrix cell or a rating point is chosen, Previous goes
-back, the dropdown opens. Esc goes back when going back is allowed, and the digits
-1–9 pick that point on the page's first rating scale that has it. A matrix is a grid
-the arrow keys move through (see [[Question Types|Question-Types]]).
+back, the dropdown opens — and so it is on a video or audio player (Space plays or
+pauses), on a `<summary>` (it opens its details) and on the like in a page's own HTML.
+Right after a click, while the focus the mouse left on a button or a link is still
+there, Enter and Space go on: the key would otherwise click again, and a MaxDiff or
+conjoint pick, which a second click takes back, would be lost. Esc goes back when
+going back is allowed, and the digits 1–9 pick that point on the page's first rating
+scale that has it. A matrix is a grid the arrow keys move through (see
+[[Question Types|Question-Types]]).
 
 Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`,
 `stylesheet`, `static_assets`) — see

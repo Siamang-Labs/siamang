@@ -190,8 +190,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cell — ← → along the row, answering it with the cell they reach, the N/A
   column included; ↑ ↓ to the same column of the row below or above — and
   Enter and Space on a button or a link are its own: they choose the cell or
-  the point, go back, open the dropdown. Elsewhere outside a text field they
-  still go to the next page.
+  the point, go back, open the dropdown. So are they on a video or audio player
+  (Space plays or pauses — it used to go on, and on the last page to submit
+  the survey), on a `<summary>` and on the like in a page's own HTML, and a
+  contenteditable region is a text field. Right after the mouse pressed a
+  button or a link, while the focus it left there stays, they go on, as they
+  always had: in Chromium the key would click again, and a MaxDiff or
+  conjoint pick — a toggle — would be taken back. Elsewhere outside a text
+  field they still go to the next page.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's

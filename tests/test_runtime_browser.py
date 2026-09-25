@@ -948,6 +948,62 @@ def test_enter_and_space_on_a_button_are_the_buttons_own(tmp_path):
     assert state["submitted"] == [] and state["pages"] == ["p1"]
 
 
+def _media_document() -> dict[str, Any]:
+    """The last page before the end: a video on its question, and details in
+    its body."""
+
+    return {
+        "schema_version": "1.0",
+        "title": "Clip",
+        "variables": {"why": {"scale": "nominal", "dtype": "str"}},
+        "pages": [
+            {
+                "name": "p1",
+                "body": "<details><summary>Why we ask</summary><p>Because.</p></details>",
+                "items": [
+                    {
+                        "type": "OpenText",
+                        "id": "why",
+                        "var": "why",
+                        "text": "Why?",
+                        "media": {"kind": "video", "url": "clip.mp4"},
+                    }
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_a_players_and_a_summarys_keys_are_their_own(tmp_path):
+    """Space on a video plays or pauses it, Enter on a summary opens its
+    details: neither goes on. On the last page Space on the player submitted
+    the survey. Elsewhere Space still goes on."""
+
+    scenario = (
+        _MATRIX_KEYS
+        + """
+        const pages = () => page.evaluate(() => window.__T.pages.slice());
+        await page.focus("video", { timeout: 3000 });
+        await press(" ", "Enter");
+        await page.waitForTimeout(250);
+        const video = { tag: await page.evaluate(() => document.activeElement.tagName), pages: await pages() };
+        await page.focus("summary", { timeout: 3000 });
+        await press("Enter");
+        await page.waitForTimeout(250);
+        const summary = { open: await page.$eval("details", (d) => d.open), pages: await pages() };
+        await page.evaluate(() => document.activeElement.blur());
+        await press(" ");
+        await page.waitForTimeout(250);
+    """
+        + _STATE.replace("return {", "return { video, summary,")
+    )
+    state = run_in_browser(_media_document(), scenario, tmp_path)
+    assert state["video"] == {"tag": "VIDEO", "pages": ["p1"]}
+    assert state["summary"] == {"open": True, "pages": ["p1"]}
+    assert state["submitted"] == [{"__status": "completed"}]
+
+
 # ── MaxDiff and Conjoint ─────────────────────────────────────────────────────
 
 
@@ -1099,6 +1155,94 @@ def test_a_required_maxdiff_and_conjoint_still_need_every_task(tmp_path):
     assert state["errors"] == ["This question requires an answer."] * 2
     assert state["pages"] == ["p1"]
     assert state["after"] == ["p1", "p2"]
+
+
+# Every pick of `_trade_off_document`'s page clicked with the mouse, the last
+# one the conjoint's second option of its second task.
+_CLICK_TRADE_OFFS = """
+    const tasks = await page.$$("table.sd-maxdiff__task");
+    for (const task of tasks) {
+      const picks = await task.$$("button.sd-maxdiff__pick");
+      await picks[0].click();
+      await picks[3].click();
+    }
+    const choices = await page.$$(".sd-conjoint__task");
+    for (const task of choices) {
+      const picks = await task.$$("button.sd-conjoint__pick");
+      await picks[1].click();
+    }
+"""
+
+
+def test_after_a_click_enter_and_space_go_on_with_every_pick_kept(tmp_path):
+    """The mouse leaves the focus on the pick it pressed (Chromium does), and
+    Enter or Space there were the pick's own keys: a MaxDiff or conjoint pick
+    is a toggle, so the key took back the pick just made and the page stayed,
+    and the next Next went on without that task. After a press of the mouse
+    they go on, every pick kept — as they did before a button's keys were its
+    own, and as a rating point clicked and Enter do. Once the focus moves
+    (Tab, then Shift+Tab back) Enter is the pick's own again."""
+
+    pages = "const pages = () => page.evaluate(() => window.__T.pages.slice());\n"
+    scenario = (
+        _MATRIX_KEYS
+        + pages
+        + _CLICK_TRADE_OFFS
+        + """
+        const focus = await page.evaluate(() => document.activeElement.getAttribute("aria-label"));
+        await press("Enter");
+        await page.waitForTimeout(250);
+        const entered = await pages();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { focus, entered,")
+    )
+    state = run_in_browser(_trade_off_document(), scenario, tmp_path / "enter")
+    assert state["focus"] == "Choice 2, option 2"
+    assert state["entered"] == ["p1", "p2"]
+    (submitted,) = state["submitted"]
+    for key in ("md_t1_best", "md_t1_worst", "md_t2_best", "md_t2_worst", "md_version"):
+        assert key in submitted, key
+    assert submitted["cj_t1"] == submitted["cj_t2"] == 2
+
+    scenario = (
+        _MATRIX_KEYS
+        + pages
+        + """
+        const pressed = () => page.$$eval("table.sd-maxdiff__task button[aria-pressed='true']",
+            (bs) => bs.map((b) => b.getAttribute("aria-label")));
+        const picks = await (await page.$$("table.sd-maxdiff__task"))[0].$$("button.sd-maxdiff__pick");
+        await picks[0].click();
+        await press("Tab", "Shift+Tab", "Enter");
+        const moved = { pressed: await pressed(), pages: await pages() };
+        await picks[0].click();
+        await picks[3].click();
+        const clicked = await pressed();
+        await press(" ");
+        await page.waitForTimeout(250);
+        const spaced = await pages();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { moved, clicked, spaced,")
+    )
+    state = run_in_browser(_trade_off_document(), scenario, tmp_path / "space")
+    assert state["moved"] == {"pressed": [], "pages": ["p1"]}
+    assert len(state["clicked"]) == 2
+    assert state["spaced"] == ["p1", "p2"]
+    (submitted,) = state["submitted"]
+    assert "md_t1_best" in submitted and "md_t1_worst" in submitted
+
+    scenario = (
+        _MATRIX_KEYS
+        + """
+        await (await page.$$(".sd-rating__item"))[1].click();
+        await press("Enter");
+        await page.waitForTimeout(250);
+    """
+        + _STATE
+    )
+    state = run_in_browser(_likert_gate_document(), scenario, tmp_path / "rating")
+    assert state["submitted"] == [{"sat": 2, "__status": "completed"}]
 
 
 # ── Piping ───────────────────────────────────────────────────────────────────
