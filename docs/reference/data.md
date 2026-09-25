@@ -53,7 +53,7 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `analysis.pca`, `analysis.reliability` | The weighted covariance (or correlation) matrix; stats `weight`. |
 | `analysis.proportion_ci` | Weighted only with `weighted=True` (then `weight`: the column); otherwise `weight`: `unweighted (the weight 'w' is not applied)`. |
 | `analysis.kruskal`, `analysis.mannwhitney`, `analysis.spearman`, `analysis.compare_groups`, `analysis.correlation` / `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | Unweighted — rank tests, t-tests and k-means have no standard weighted form. Their result has `weight` (the tables: `Weight`): `unweighted (the weight 'w' is not applied)`. |
-| `siamang.data.paired` (Wilcoxon, McNemar, Friedman) | Unweighted — no standard weighted form. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
+| `siamang.data.paired` (Wilcoxon, McNemar, Friedman), `siamang.data.factor` | Unweighted — no standard weighted form. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
 | `plot.bar`, `plot.heatmap(by=…)` | Weighted counts and weighted means; the axis (or colour bar) says "Weighted". |
@@ -333,27 +333,31 @@ Tidy-frame descriptives for scripts that do not go through `SurveyData`:
 
 ---
 
-## Related samples: `paired`
+## Related samples and factor analysis: `paired`, `factor`
 
-A module for a question the `analysis` accessor does not answer: whether the
-same respondents answer two or more questions differently. It takes a
-`SurveyData`, leaves out a respondent missing any of the variables (listwise;
-the codebook's missing codes count as missing), and returns tables whose footer
-is their statistics (`siamang.reporting.result_table.ResultTable`: a report and
-a Studio preview show it like any table, a cell that does not apply blank). The
-tests have no standard weighted form; on weighted data the statistics carry `Weight`:
+Two modules for questions the `analysis` accessor does not answer: whether the
+same respondents answer two or more questions differently, and which items of a
+scale move together. Both take a `SurveyData`, leave out a respondent missing
+any of the variables (listwise; the codebook's missing codes count as
+missing), and return tables whose footer is their statistics
+(`siamang.reporting.result_table.ResultTable`: a report and a Studio preview
+show it like any table, a cell that does not apply blank). Neither has a
+standard weighted form; on weighted data the statistics carry `Weight`:
 `unweighted (the weight 'w' is not applied)`. The statistics name the rows left
 out (`Excluded`, `Excluded because`) and the missing codes met (`Missing
 codes`: `2 answers with a missing code (9 = Refused) left out`).
 
 ```python
-from siamang.data import paired
+from siamang.data import factor, paired
 
 paired.wilcoxon(data, "trust_before", "trust_after").stats
 paired.mcnemar(data, "aware_a", "aware_b").stats          # 0/1 items: yes is 1
 paired.mcnemar(data, "rating_a", "rating_b", yes=[4, 5])  # top-two box
 result = paired.friedman(data, ["concept_1", "concept_2", "concept_3"])
 result.table, result.pairs                                # pairs: Holm-adjusted
+
+fa = factor.analyze(data, items, rotation="promax", scores=True)
+fa.loadings, fa.variance, fa.correlations, fa.stats, fa.data  # data has factor_1, …
 ```
 
 ### `siamang.data.paired`
@@ -391,6 +395,42 @@ numbers).
   variables on ranks that depend on the others in the set.
 - Nothing to test is a result, not an error: everyone giving the same answer
   twice, or no discordant pair, leaves out `p` and says why in `Note`.
+
+### `siamang.data.factor`
+
+`analyze(data, items, *, n_factors=None, criterion="kaiser", method="minres",
+rotation="varimax", sort=False, hide_below=0.0, scores=False, into="factor_",
+seed=42) -> FactorAnalysis`; `fit(matrix, …) -> FactorSolution` on a plain
+respondents × items matrix.
+
+| Argument | Values |
+|----------|--------|
+| `n_factors` | a number; `None` chooses by `criterion`: `kaiser` (eigenvalues above 1) or `parallel` (above the 95th percentile of 100 random data sets of the same size, from `seed` with NumPy's stable `RandomState`) |
+| `method` | `minres` (factor_analyzer, `psych::fa`), `principal` (iterated principal axis as `psych::fa(fm="pa")`: SMC start, stops when the communalities' sum moves by < 0.001, 50 steps at most), `ml` (`factanal`; adds `Fit chi-square`, `Fit df`, `Fit p`) |
+| `rotation` | `varimax` (Kaiser-normalized, R's algorithm), `promax` (power 4, Kaiser-normalized as factor_analyzer and SPSS), `oblimin` (direct quartimin, γ = 0, as GPArotation), `none` |
+| `sort`, `hide_below` | order the items by the factor they load on most; blank loadings below the value in the table |
+| `scores`, `into` | add regression-method scores `<into>1`, `<into>2`, … (interval, labelled), missing for respondents left out |
+
+`FactorAnalysis` holds `loadings` (Variable, Label, Factor 1…, Communality,
+Uniqueness, MSA), `variance` (every eigenvalue with its % and cumulative %,
+then the extracted and — for varimax — rotated sums of squared loadings of the
+kept factors; after an oblique rotation the rotated variances overlap and get
+no percentage), `correlations` (between the factors; the identity after an
+orthogonal rotation), `stats` (extraction, rotation, factors and how they were
+chosen, N, variance explained, KMO, Bartlett's χ², df and p, RMSR, warnings),
+`data` and `solution` (the numbers: loadings, structure, phi, communalities,
+eigenvalues, KMO per item, …).
+
+Every factor is signed so its loadings sum positive and the factors are ordered
+by their sum of squared loadings; the communalities come from the unrotated
+solution, which a rotation does not change. Scores standardise the items with
+the sample SD (R's `scale()`; `factor_analyzer.transform` uses the population
+SD). Refused with the reason: fewer than three items, no more complete
+respondents than items, an item without variance, a singular correlation matrix
+(an item that copies or totals others — named), as many factors as items, and
+more factors than maximum likelihood can identify. Warned in `stats["Warning"]`:
+KMO below 0.5, a Heywood case, a fit or rotation that did not converge, more
+factors than the correlations identify.
 
 ---
 

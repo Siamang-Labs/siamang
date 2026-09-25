@@ -391,6 +391,8 @@ def _known_variables(
             known.update({"duration_s", "partial"})
         if spec.type == "prepare.explode" and params.get("variable"):
             known.update(_exploded_names(questionnaire, params))
+        if spec.type == "analyze.factor" and params.get("scores"):
+            known.update(_factor_score_names(spec, params))
     return known
 
 
@@ -427,6 +429,20 @@ def _exploded_names(questionnaire: dict[str, Any], params: dict[str, Any]) -> se
     payload = (questionnaire.get("variables") or {}).get(variable) or {}
     prefix = params.get("prefix") or f"{variable}_"
     return {f"{prefix}{item.get('code')}" for item in payload.get("labels") or []}
+
+
+def _factor_score_names(spec: NodeSpec, params: dict[str, Any]) -> set[str]:
+    """The score variables ``analyze.factor`` adds: ``<into>1`` … one per factor.
+
+    With a fixed number of factors those are the names; chosen by a rule, the
+    number is known only after the run, so every name the analysis could make is
+    allowed — a factor analysis has fewer factors than items.
+    """
+
+    prefix = params.get("into") or spec.params["into"].default
+    fixed = params.get("n_factors")
+    count = fixed if isinstance(fixed, int) and fixed > 0 else len(params.get("items") or []) - 1
+    return {f"{prefix}{index}" for index in range(1, count + 1)}
 
 
 def _check_params(

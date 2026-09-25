@@ -402,6 +402,48 @@ print(result.table.to_markdown())                          # N, mean, SD, median
 
 ---
 
+## Factor analysis
+
+`siamang.data.factor.analyze` is an exploratory factor analysis: which items of
+a scale move together, how strongly each belongs to each factor, and whether
+the items share enough to be factored at all. It is what a scale is checked
+with before its items are averaged into an index. The flow node is **Factor
+analysis** (`analyze.factor`).
+
+```python
+from siamang.data import factor
+
+items = ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"]   # eight statements rated 1–5
+fa = factor.analyze(data, items, rotation="promax", sort=True, hide_below=0.3)
+print(fa.loadings.to_markdown())    # items × factors, communality, uniqueness, MSA
+fa.stats["KMO"], fa.stats["Bartlett p"], fa.stats["Variance explained %"]
+fa.variance.to_frame()              # eigenvalues and variance explained
+fa.correlations.to_frame()          # between the factors (promax, oblimin)
+
+scored = factor.analyze(data, items, n_factors=2, scores=True).data
+scored.report.means("factor_1", by="it_role")
+```
+
+| Argument | Values |
+|----------|--------|
+| `n_factors` | a number, or `None` to choose by `criterion`: `"kaiser"` (eigenvalues above 1) or `"parallel"` (parallel analysis from `seed`) |
+| `method` | `"minres"` (default), `"principal"` (iterated principal axis), `"ml"` (maximum likelihood, with a test of fit) |
+| `rotation` | `"varimax"` (default, uncorrelated factors), `"promax"`, `"oblimin"` (correlated factors), `"none"` |
+| `sort`, `hide_below` | group the items by their main factor; blank the small loadings in the table |
+| `scores`, `into` | add regression-method scores `factor_1`, `factor_2`, … to the data |
+
+The items are analysed through their correlations (standardised). A respondent
+missing any item is left out, the codebook's missing codes counted as missing.
+The numbers reproduce the `factor_analyzer` package and R's `psych::fa` (and
+`factanal` for maximum likelihood): each factor is signed so its loadings sum
+positive, and the factors are ordered by the variance they carry. The analysis
+refuses, with the reason, fewer than three items, no more respondents than
+items, an item everyone answered the same, and an item that copies or totals
+others; it warns in `stats["Warning"]` about a KMO below 0.5 or an item with
+(almost) no uniqueness left. It is unweighted, and says so on weighted data.
+
+---
+
 ## Weighted statistics
 
 Set a default weight column once with `with_weight(...)`, then pass
