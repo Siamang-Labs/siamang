@@ -446,6 +446,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   'row' of xt: 'factor_1' is interval (as the node that makes it gives it),
   expected nominal | ordinal.") — not an error, so a flow saved before runs on.
 
+- **Fisher's estimate, the R bundle's labels and Mann-Whitney's df are
+  described as they are.** Crosstab's Fisher footer said the estimate was
+  "as R's fisher.test": the p-values agree, but the engine solves the exact
+  interval to full precision while R's root finder stops sooner, so R prints
+  limits that differ on sparse tables ([[8, 1], [2, 20]]: 3712.06 against
+  3592.50); the footer's `Estimate` now says so. The R bundle's script and its
+  documentation said each column's `label` attribute is the question's text; it
+  is the variable's codebook label. A test chosen by hand in Group means
+  reports df — except Mann–Whitney's U, which has none, as the docs now say.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a

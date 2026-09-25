@@ -278,7 +278,11 @@ def fisher_stats(
             )
             stats[f"OR {_ci_key(found['confidence'])}"] = _interval(found["lower"], found["upper"])
             stats["Odds ratio of"] = f"{c[0]} (vs {c[1]}) for {r[0]} over {r[1]}"
-            stats["Estimate"] = "conditional maximum likelihood, as R's fisher.test"
+            stats["Estimate"] = (
+                "conditional maximum likelihood with its exact interval, as R's fisher.test "
+                "defines them (R stops its root search sooner, so its printed values can "
+                "differ slightly on sparse tables)"
+            )
         elif found["exact"]:
             stats["p method"] = "exact, over every table with these margins"
         else:
