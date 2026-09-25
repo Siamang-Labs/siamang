@@ -21,7 +21,9 @@ result says how many respondents that left out.
 
 The statistics, and the conventions behind them:
 
-**Wilcoxon signed-rank.** The differences are *second minus first*. Pairs that
+**Wilcoxon signed-rank.** The differences are *first minus second* — as R's
+``wilcox.test(x, y, paired = TRUE)`` and SciPy's ``wilcoxon(x, y)`` take them,
+and as the paired t-test reports its mean difference. Pairs that
 gave the same answer twice (zero differences) are dropped before ranking —
 Wilcoxon's own method, and what R's ``wilcox.test`` and SPSS do — or, with
 ``zeros="pratt"``, ranked with the others and left out of the sums (Pratt
@@ -36,7 +38,7 @@ computes the exact permutation distribution of the (average) ranks for any
 sample up to :data:`EXACT_LIMIT` pairs; ``"approximate"`` always uses the
 normal approximation. ``Z = (W+ − E[W+]) / SD[W+]`` from the same
 approximation is reported either way, signed so that a positive Z means the
-second variable tends to be higher. Effect sizes: ``r = Z / √n`` with ``n`` the
+first variable tends to be higher. Effect sizes: ``r = Z / √n`` with ``n`` the
 pairs in the ranking (Rosenthal 1991), and the matched-pairs rank-biserial
 correlation ``(W+ − W-) / (W+ + W-)`` (Kerby 2014), which runs from −1 (every
 difference negative) to 1.
@@ -443,20 +445,20 @@ def wilcoxon(
     zeros: str = "wilcox",
     p_value: str = "auto",
 ) -> PairedResult:
-    """Wilcoxon signed-rank test of ``y − x`` for the respondents who answered both."""
+    """Wilcoxon signed-rank test of ``x − y`` for the respondents who answered both."""
 
     distinct([x, y])
     _ordered(data, [x, y], "Wilcoxon signed-rank")
     rows = listwise(data, [x, y])
     first, second = rows.frame[x].to_numpy(), rows.frame[y].to_numpy()
-    result = signed_rank(second - first, zeros=zeros, p_value=p_value)
+    result = signed_rank(first - second, zeros=zeros, p_value=p_value)
     label_x, label_y = label_of(data, x), label_of(data, y)
     table = _describe(
-        data, rows, [x, y], extra=[(f"Difference ({label_y} − {label_x})", second - first)]
+        data, rows, [x, y], extra=[(f"Difference ({label_x} − {label_y})", first - second)]
     )
     stats: dict[str, Any] = {
         "Test": "Wilcoxon signed-rank",
-        "Difference": f"{label_y} − {label_x}",
+        "Difference": f"{label_x} − {label_y}",
         "N": rows.n,
         "Positive differences": result.positive,
         "Negative differences": result.negative,
@@ -522,7 +524,8 @@ def mcnemar(
         share_x, share_y = (a + b) / n * 100, (a + c) / n * 100
         stats[f"% yes: {x}"] = rounded(share_x, 1)
         stats[f"% yes: {y}"] = rounded(share_y, 1)
-        stats["Difference (points)"] = rounded(share_y - share_x, 1)
+        stats["Difference"] = f"{label_x} − {label_y}"
+        stats["Difference (points)"] = rounded(share_x - share_y, 1)
     stats[f"Yes only: {x}"] = b
     stats[f"Yes only: {y}"] = c
     if warning:
@@ -627,7 +630,7 @@ def _pairwise(
 ) -> ResultTable:
     results = []
     for first, second in combinations(variables, 2):
-        difference = rows.frame[second].to_numpy() - rows.frame[first].to_numpy()
+        difference = rows.frame[first].to_numpy() - rows.frame[second].to_numpy()
         results.append((first, second, signed_rank(difference, zeros=zeros, p_value=p_value)))
     raw = [np.nan if result.p is None else result.p for _, _, result in results]
     adjusted = adjust(raw, posthoc)
@@ -651,7 +654,7 @@ def _pairwise(
     tested = int((~np.isnan(np.asarray(raw))).sum())
     footer: dict[str, Any] = {
         "Test": "Wilcoxon signed-rank for each pair",
-        "Difference": "B − A",
+        "Difference": "A − B",
         "Adjustment": f"{'Holm' if posthoc == 'holm' else 'Bonferroni'} ({tested} comparisons)",
         "N": rows.n,
     }

@@ -381,7 +381,7 @@ fa.loadings, fa.variance, fa.correlations, fa.stats, fa.data  # data has factor_
 | Function | What it runs |
 |----------|--------------|
 | `compare(data, variables, *, test="auto", yes=None, zeros="wilcox", p_value="auto", posthoc="holm")` | The `analyze.paired` node: `auto` is Wilcoxon for two variables, Friedman for more. |
-| `wilcoxon(data, x, y, *, zeros="wilcox", p_value="auto")` | Wilcoxon signed-rank of `y − x`. |
+| `wilcoxon(data, x, y, *, zeros="wilcox", p_value="auto")` | Wilcoxon signed-rank of `x − y`. |
 | `mcnemar(data, x, y, *, yes=None, p_value="auto")` | McNemar; `yes` is a code or a list of codes, the rest is no. Left empty it is 1 when both variables hold only 0 and 1, and an error that lists the codes otherwise. |
 | `friedman(data, variables, *, posthoc="holm", zeros="wilcox", p_value="auto")` | Friedman on three or more; `posthoc` `holm` \| `bonferroni` \| `none` adjusts pairwise Wilcoxon tests. |
 | `signed_rank(differences, *, zeros, p_value)`, `mcnemar_test(b, c, *, p_value)`, `friedman_test(matrix)`, `adjust(pvalues, method)` | The same tests on plain numbers. |
@@ -392,19 +392,19 @@ table of yes and no), `pairs` (Friedman's pairwise comparisons: A, B, N, W+,
 W−, Z, p, p adjusted, r, rank-biserial r), `stats` and `test` (the unrounded
 numbers).
 
-- **Wilcoxon.** Differences are second minus first. `zeros="wilcox"` drops a
+- **Wilcoxon.** Differences are first minus second (`x − y`, as R's `wilcox.test(x, y, paired = TRUE)`, SciPy's `wilcoxon(x, y)` and the paired t-test; Friedman's pairs are A − B). `zeros="wilcox"` drops a
   pair that answered the same (R's `wilcox.test`, SPSS); `"pratt"` ranks it and
   leaves it out of the sums. The two-sided p-value follows SciPy's rule: exact
   up to 50 pairs with no ties or zeros, exact over the sign permutations up to
   13 pairs with them, the tie-corrected normal approximation without continuity
   correction otherwise. `p_value="exact"` computes the exact permutation
   distribution up to 1000 pairs; `"approximate"` always uses the normal one.
-  Stats: `W+`, `W-`, `Z` (positive: the second is higher), `p`, `p-value` (how),
+  Stats: `W+`, `W-`, `Z` (positive: the first is higher), `p`, `p-value` (how),
   `r = Z/√n` over the ranked pairs, `Rank-biserial r = (W+ − W−)/(W+ + W−)`,
   and the counts of positive, negative and zero differences.
 - **McNemar.** Exact binomial p below 25 discordant pairs, otherwise
   `(|b − c| − 1)² / (b + c)` on 1 df (R, statsmodels). Stats: the share saying
-  yes to each and the difference in points, both discordant counts,
+  yes to each and the difference in points (`Difference`: first − second), both discordant counts,
   `Chi-square`/`df` when used, `Cohen's g`, `Odds ratio` (b / c).
 - **Friedman.** Tie-corrected χ² on k − 1 df, `Kendall's W = χ² / (n (k − 1))`.
   Mean-rank post-hocs (Nemenyi, Dunn) are not offered: they compare two

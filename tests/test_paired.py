@@ -199,9 +199,11 @@ def _survey(weighted: bool = False) -> SurveyData:
 
 def test_wilcoxon_on_survey_data_drops_missing_codes_and_says_so():
     """Rows 9 (before = Refused), 11 (before blank) and 12 (after = Refused)
-    are left out; the nine complete pairs give d = 2, −1, 2, 2, 1, 4, 0, 2, 0.
+    are left out; the nine complete pairs give d = before − after = −2, 1, −2,
+    −2, −1, −4, 0, −2, 0 — first minus second, as R's wilcox.test(x, y,
+    paired = TRUE), SciPy's wilcoxon(x, y) and the paired t-test take it.
     Without the zeros the ranks are 1.5 (the two 1s), 4.5 (the four 2s) and 7,
-    so W+ = 4 · 4.5 + 1.5 + 7 = 26.5 and W− = 1.5; nine pairs with ties and
+    so W+ = 1.5 and W− = 4 · 4.5 + 1.5 + 7 = 26.5; nine pairs with ties and
     zeros get the exact permutation p, 0.046875 (SciPy 1.17)."""
 
     result = paired.wilcoxon(_survey(), "before", "after")
@@ -209,21 +211,23 @@ def test_wilcoxon_on_survey_data_drops_missing_codes_and_says_so():
     assert stats["N"] == 9 and stats["Excluded"] == 3
     assert "a missing value in either variable" in stats["Excluded because"]
     assert stats["Missing codes"] == "2 answers with a missing code (9 = Refused) left out"
-    assert (stats["Positive differences"], stats["Negative differences"]) == (6, 1)
+    assert (stats["Positive differences"], stats["Negative differences"]) == (1, 6)
     assert stats["Zero differences"] == 2
-    assert (stats["W+"], stats["W-"]) == (26.5, 1.5)
+    assert (stats["W+"], stats["W-"]) == (1.5, 26.5)
+    # Z and the rank-biserial r are negative: the first rating is the lower.
+    assert stats["Z"] < 0 and stats["Rank-biserial r"] == pytest.approx((1.5 - 26.5) / 28, abs=1e-3)
     assert stats["p"] == pytest.approx(0.046875, rel=1e-3)  # four significant digits
     assert stats["p-value"] == "exact"  # 9 pairs, ties and zeros: the permutation p
-    assert stats["Difference"] == "Rating after − Rating before"
+    assert stats["Difference"] == "Rating before − Rating after"
     assert "Weight" not in stats
     table = result.table.to_frame()
     assert list(table["Variable"]) == [
         "Rating before",
         "Rating after",
-        "Difference (Rating after − Rating before)",
+        "Difference (Rating before − Rating after)",
     ]
     assert list(table["N"]) == [9, 9, 9]
-    assert table.loc[2, "Median"] == 2.0
+    assert table.loc[2, "Median"] == -2.0
     assert table.loc[0, "Mean"] == pytest.approx(23 / 9, abs=1e-3)
     assert "nan" not in result.table.to_markdown()
     assert result.pairs.to_frame().empty and "no pairwise" in result.pairs.stats["Note"]
@@ -242,6 +246,9 @@ def test_mcnemar_on_survey_data_with_yes_inferred_from_0_1():
     assert stats["p-value"] == "exact binomial (6 discordant pairs)"
     assert stats["% yes: aware_a"] == pytest.approx(63.6)
     assert stats["% yes: aware_b"] == pytest.approx(81.8)
+    # First minus second, as the Wilcoxon and t-test differences: 7/11 − 9/11.
+    assert stats["Difference"] == "Knows A − Knows B"
+    assert stats["Difference (points)"] == pytest.approx(-18.2)
     table = result.table.to_frame()
     assert list(table.columns) == ["Knows A", "Knows B: yes", "Knows B: no", "Total"]
     assert table.iloc[0, 1:].tolist() == [5, 2, 7]
@@ -279,12 +286,15 @@ def test_friedman_on_survey_data_with_holm_adjusted_pairs():
         ("Rating after", "Rating later"),
     ]
     raw = [
-        paired.signed_rank(frame[b].to_numpy() - frame[a].to_numpy()).p
+        paired.signed_rank(frame[a].to_numpy() - frame[b].to_numpy()).p
         for a, b in (("before", "after"), ("before", "later"), ("after", "later"))
     ]
     assert list(pairs["p"]) == pytest.approx(raw, rel=1e-3)
     assert list(pairs["p adjusted"]) == pytest.approx(paired.adjust(raw, "holm"), rel=1e-3)
     assert result.pairs.stats["Adjustment"] == "Holm (3 comparisons)"
+    assert result.pairs.stats["Difference"] == "A − B"
+    first = paired.signed_rank(frame["before"].to_numpy() - frame["after"].to_numpy())
+    assert (pairs["W+"][0], pairs["W-"][0]) == (first.w_plus, first.w_minus) == (1.5, 26.5)
     bonferroni = paired.friedman(_survey(), ["before", "after", "later"], posthoc="bonferroni")
     assert list(bonferroni.pairs.to_frame()["p adjusted"]) == pytest.approx(
         paired.adjust(raw, "bonferroni"), rel=1e-3
@@ -348,3 +358,23 @@ def test_result_tables_render_blank_cells_and_their_statistics():
     html = table.to_html()
     assert "NaN" not in html and "siamang-stats" in html
     assert np.isnan(table.to_frame().loc[1, "B"])  # the number stays missing
+
+
+def test_wilcoxon_mcnemar_and_the_paired_t_test_take_the_difference_one_way():
+    """The paired t-test reported before − after and Wilcoxon after − before,
+    so a robustness check of one by the other showed opposite signs and W+ and
+    W− swapped. All take first − second now, as R and SciPy do."""
+
+    from scipy import stats as sp
+
+    data = _survey()
+    wilcoxon = paired.wilcoxon(data, "before", "after").stats
+    t_test = data.report.ttest("before", kind="paired", other="after").stats
+    assert wilcoxon["Difference"] == t_test["Difference"] == "Rating before − Rating after"
+    assert t_test["Mean difference"] < 0 and wilcoxon["Z"] < 0
+    frame = data.frame.drop(index=[8, 10, 11])
+    x, y = frame["before"].to_numpy(), frame["after"].to_numpy()
+    # SciPy's wilcoxon(x, y) tests x − y: "less" is the side the data lean to.
+    assert sp.wilcoxon(x, y, alternative="less").pvalue < 0.05
+    assert sp.wilcoxon(x, y, alternative="greater").pvalue > 0.5
+    assert paired.wilcoxon(data, "before", "after").test.w_plus == 1.5

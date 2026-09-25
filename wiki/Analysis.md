@@ -376,7 +376,7 @@ statistics as their footer), `stats` (the same statistics as a `dict`) and
 ```python
 from siamang.data import paired
 
-result = paired.wilcoxon(data, "remote_freq", "autonomy")   # second minus first
+result = paired.wilcoxon(data, "remote_freq", "autonomy")   # first minus second
 result.stats["p"], result.stats["r"], result.stats["Rank-biserial r"]
 print(result.table.to_markdown())                          # N, mean, SD, median
 ```
@@ -392,6 +392,11 @@ print(result.table.to_markdown())                          # N, mean, SD, median
   of all of them, and the codebook's missing codes (a "Refused" coded 9) count
   as missing, not as answers. `stats` says how many were left out (`Excluded`)
   and which codes were met (`Missing codes`).
+- **Direction.** Every difference is the first variable minus the second —
+  Wilcoxon's, McNemar's difference in points, Friedman's pairs (A − B) and the
+  paired t-test's — as R's `wilcox.test(x, y, paired = TRUE)` and SciPy's
+  `wilcoxon(x, y)` take it, so a t-test and a Wilcoxon of the same two
+  variables agree in sign, and W+ sums the pairs where the first is higher.
 - **Wilcoxon.** A respondent who gave both the same answer is dropped before
   ranking (`zeros="wilcox"`, as R and SPSS) or ranked and left out of the sums
   (`zeros="pratt"`). The p-value is exact for small samples — up to 50 pairs
