@@ -121,6 +121,7 @@ non-numeric weight counts 0.
 | `analysis.pca` / `reliability` | weighted covariance matrix; `stats["weight"]` |
 | `analysis.proportion_ci` | weighted with `weighted=True`, otherwise says it is not |
 | `analysis.kruskal` / `mannwhitney` / `spearman` / `compare_groups`, `correlation` and `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | unweighted: `"weight": "unweighted (the weight 'w' is not applied)"` (the tables: `Weight`) |
+| `data.paired` (Wilcoxon, McNemar, Friedman) | unweighted: `stats["Weight"]` says the weight is not applied |
 | `report.quality` / `themes` | count responses; `stats["Weight"]` says the weight is not applied |
 | `describe_variables()` | counts rows, adds `weighted_n_valid` |
 | `plot.bar`, `plot.heatmap(by=…)` | weighted counts / means, axis labelled "Weighted …" |

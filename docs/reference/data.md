@@ -53,6 +53,7 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `analysis.pca`, `analysis.reliability` | The weighted covariance (or correlation) matrix; stats `weight`. |
 | `analysis.proportion_ci` | Weighted only with `weighted=True` (then `weight`: the column); otherwise `weight`: `unweighted (the weight 'w' is not applied)`. |
 | `analysis.kruskal`, `analysis.mannwhitney`, `analysis.spearman`, `analysis.compare_groups`, `analysis.correlation` / `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | Unweighted — rank tests, t-tests and k-means have no standard weighted form. Their result has `weight` (the tables: `Weight`): `unweighted (the weight 'w' is not applied)`. |
+| `siamang.data.paired` (Wilcoxon, McNemar, Friedman) | Unweighted — no standard weighted form. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
 | `plot.bar`, `plot.heatmap(by=…)` | Weighted counts and weighted means; the axis (or colour bar) says "Weighted". |
@@ -329,6 +330,67 @@ Tidy-frame descriptives for scripts that do not go through `SurveyData`:
 | `frequencies(df, column, *, weight=None, dropna=True)` | `value` / `count` / `percent` rows |
 | `crosstab(df, row, col, *, weight=None, normalize=None)` | two-way table; percentages when `normalize` is set |
 | `chi2(df, a, b)` | `{"chi2", "dof", "p", "cramers_v", "n"}` |
+
+---
+
+## Related samples: `paired`
+
+A module for a question the `analysis` accessor does not answer: whether the
+same respondents answer two or more questions differently. It takes a
+`SurveyData`, leaves out a respondent missing any of the variables (listwise;
+the codebook's missing codes count as missing), and returns tables whose footer
+is their statistics (`siamang.reporting.result_table.ResultTable`: a report and
+a Studio preview show it like any table, a cell that does not apply blank). The
+tests have no standard weighted form; on weighted data the statistics carry `Weight`:
+`unweighted (the weight 'w' is not applied)`. The statistics name the rows left
+out (`Excluded`, `Excluded because`) and the missing codes met (`Missing
+codes`: `2 answers with a missing code (9 = Refused) left out`).
+
+```python
+from siamang.data import paired
+
+paired.wilcoxon(data, "trust_before", "trust_after").stats
+paired.mcnemar(data, "aware_a", "aware_b").stats          # 0/1 items: yes is 1
+paired.mcnemar(data, "rating_a", "rating_b", yes=[4, 5])  # top-two box
+result = paired.friedman(data, ["concept_1", "concept_2", "concept_3"])
+result.table, result.pairs                                # pairs: Holm-adjusted
+```
+
+### `siamang.data.paired`
+
+| Function | What it runs |
+|----------|--------------|
+| `compare(data, variables, *, test="auto", yes=None, zeros="wilcox", p_value="auto", posthoc="holm")` | The `analyze.paired` node: `auto` is Wilcoxon for two variables, Friedman for more. |
+| `wilcoxon(data, x, y, *, zeros="wilcox", p_value="auto")` | Wilcoxon signed-rank of `y − x`. |
+| `mcnemar(data, x, y, *, yes=None, p_value="auto")` | McNemar; `yes` is a code or a list of codes, the rest is no. Left empty it is 1 when both variables hold only 0 and 1, and an error that lists the codes otherwise. |
+| `friedman(data, variables, *, posthoc="holm", zeros="wilcox", p_value="auto")` | Friedman on three or more; `posthoc` `holm` \| `bonferroni` \| `none` adjusts pairwise Wilcoxon tests. |
+| `signed_rank(differences, *, zeros, p_value)`, `mcnemar_test(b, c, *, p_value)`, `friedman_test(matrix)`, `adjust(pvalues, method)` | The same tests on plain numbers. |
+
+Each returns a `PairedResult`: `table` (per variable N, mean, SD, median — and
+for Wilcoxon the difference, for Friedman the mean rank; McNemar's is the 2 × 2
+table of yes and no), `pairs` (Friedman's pairwise comparisons: A, B, N, W+,
+W−, Z, p, p adjusted, r, rank-biserial r), `stats` and `test` (the unrounded
+numbers).
+
+- **Wilcoxon.** Differences are second minus first. `zeros="wilcox"` drops a
+  pair that answered the same (R's `wilcox.test`, SPSS); `"pratt"` ranks it and
+  leaves it out of the sums. The two-sided p-value follows SciPy's rule: exact
+  up to 50 pairs with no ties or zeros, exact over the sign permutations up to
+  13 pairs with them, the tie-corrected normal approximation without continuity
+  correction otherwise. `p_value="exact"` computes the exact permutation
+  distribution up to 1000 pairs; `"approximate"` always uses the normal one.
+  Stats: `W+`, `W-`, `Z` (positive: the second is higher), `p`, `p-value` (how),
+  `r = Z/√n` over the ranked pairs, `Rank-biserial r = (W+ − W−)/(W+ + W−)`,
+  and the counts of positive, negative and zero differences.
+- **McNemar.** Exact binomial p below 25 discordant pairs, otherwise
+  `(|b − c| − 1)² / (b + c)` on 1 df (R, statsmodels). Stats: the share saying
+  yes to each and the difference in points, both discordant counts,
+  `Chi-square`/`df` when used, `Cohen's g`, `Odds ratio` (b / c).
+- **Friedman.** Tie-corrected χ² on k − 1 df, `Kendall's W = χ² / (n (k − 1))`.
+  Mean-rank post-hocs (Nemenyi, Dunn) are not offered: they compare two
+  variables on ranks that depend on the others in the set.
+- Nothing to test is a result, not an error: everyone giving the same answer
+  twice, or no discordant pair, leaves out `p` and says why in `Note`.
 
 ---
 

@@ -351,6 +351,57 @@ existed runs exactly as before.
 
 ---
 
+## Paired tests
+
+`kruskal` and `mannwhitney` compare *different* people. When the *same*
+respondents answer two or more questions — one scale asked about two brands, a
+rating before and after a message, three concepts each rated by everyone —
+`siamang.data.paired` asks whether their answers shift. Each function takes the
+`SurveyData` and returns a `PairedResult`: `table` and `pairs` (tables with the
+statistics as their footer), `stats` (the same statistics as a `dict`) and
+`test` (the unrounded numbers). The flow node is **Paired tests**
+(`analyze.paired`).
+
+```python
+from siamang.data import paired
+
+result = paired.wilcoxon(data, "remote_freq", "autonomy")   # second minus first
+result.stats["p"], result.stats["r"], result.stats["Rank-biserial r"]
+print(result.table.to_markdown())                          # N, mean, SD, median
+```
+
+| Function | Test | Main statistics |
+|----------|------|-----------------|
+| `wilcoxon(data, x, y, *, zeros="wilcox", p_value="auto")` | Wilcoxon signed-rank, two ordered variables | `W+`, `W-`, `Z`, `p`, `r = Z/√n`, `Rank-biserial r`; positive, negative and zero differences |
+| `mcnemar(data, x, y, *, yes=None, p_value="auto")` | McNemar, two yes/no variables | `% yes` of each, the difference in points, both discordant counts, `Chi-square` or the exact binomial `p`, `Cohen's g`, `Odds ratio` |
+| `friedman(data, variables, *, posthoc="holm")` | Friedman, three or more ordered variables | `Chi-square`, `df`, `p`, `Kendall's W`; `pairs`: a Wilcoxon test per pair with Holm- (or Bonferroni-) adjusted p |
+| `compare(data, variables, *, test="auto", …)` | what the flow node runs | `auto`: Wilcoxon for two variables, Friedman for more |
+
+- **Who is compared.** A respondent missing any of the variables is left out
+  of all of them, and the codebook's missing codes (a "Refused" coded 9) count
+  as missing, not as answers. `stats` says how many were left out (`Excluded`)
+  and which codes were met (`Missing codes`).
+- **Wilcoxon.** A respondent who gave both the same answer is dropped before
+  ranking (`zeros="wilcox"`, as R and SPSS) or ranked and left out of the sums
+  (`zeros="pratt"`). The p-value is exact for small samples — up to 50 pairs
+  with no ties or zeros, up to 13 with them — and otherwise the tie-corrected
+  normal approximation, as SciPy computes it; `p_value="exact"` or
+  `"approximate"` forces either.
+- **McNemar.** `yes` is the code, or list of codes, that counts as yes
+  (`yes=[4, 5]` is a top-two box); every other answer is no. For 0/1 variables
+  it can be left out. Below 25 respondents who answered the two differently the
+  p-value is the exact binomial test, above it the chi-square with continuity
+  correction.
+- **Friedman.** The pairwise comparisons are Wilcoxon tests on the same
+  respondents; `posthoc="none"` skips them.
+- Wilcoxon and Friedman rank answers, so a nominal variable is refused (use
+  McNemar for yes/no questions). Everyone giving the same answer twice is a
+  result, not an error: `p` is left out and `Note` says why.
+- None of these tests has a weighted form: on weighted data `stats["Weight"]`
+  reads `unweighted (the weight 'w' is not applied)`.
+
+---
+
 ## Weighted statistics
 
 Set a default weight column once with `with_weight(...)`, then pass
