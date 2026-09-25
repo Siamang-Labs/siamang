@@ -194,7 +194,8 @@ default 150) which `save()` uses unless a caller passes `dpi=` explicitly.
 
 `output.save_report` takes a **`theme`** — the `ReportTheme` fields, as an
 object — and `output.report_section` takes a **`layout`**, one entry per
-connected item: `{"xtab": {"width": "75%", "align": "left"}}`. Both are checked
+connected item: `{"xtab": {"width": "75%", "align": "left"}}`, keyed like
+`captions` (`"fa.loadings"` for one output of a node with several). Both are checked
 by `check_flow`, so a misspelled field or a width like `"wide"` is named before
 the run rather than raised inside it, and both reach only the **HTML**: the
 Markdown is the report's content and carries no layout. A flow that names no
@@ -240,7 +241,9 @@ preview: table
   `int` / `float` (`minimum`, `maximum`), `bool`, `string`, `condition`
   (an `Expression` AST), `mapping` (code → value), `targets`
   (variable → {code: share}), `path`, `markdown`, `captions`
-  (upstream node id → caption), `json`. `creates: variable | column` marks a
+  (upstream node id → caption, or `<node>.<port>` → caption for one output of
+  a node with several in the section; the output's own key wins, the node's
+  answers for its other outputs), `json`. `creates: variable | column` marks a
   parameter whose value is the name of something new for downstream nodes — a
   name, not a prefix: names a node derives from a prefix (Explode's columns,
   factor scores, MaxDiff scores) are counted by `check_flow` itself.

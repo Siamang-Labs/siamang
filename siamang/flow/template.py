@@ -137,7 +137,7 @@ def _render_param(spec: NodeSpec, name: str, value: Any, graph: FlowGraph, node_
             return "[]"
         sources = graph.inputs.get(node_id, {}).get(many.name, [])
         captions = value or {}
-        return repr([captions.get(source) for source, _port in sources])
+        return repr([_keyed(captions, source, port) for source, port in sources])
     if kind == "layout":
         # The same shape `captions` takes: keyed by source node in the document
         # (so it survives a rename), positional in the code (so it lines up with
@@ -147,7 +147,7 @@ def _render_param(spec: NodeSpec, name: str, value: Any, graph: FlowGraph, node_
             return "[]"
         sources = graph.inputs.get(node_id, {}).get(many.name, [])
         layout = value or {}
-        return repr([dict(layout.get(source) or {}) for source, _port in sources])
+        return repr([dict(_keyed(layout, source, port) or {}) for source, port in sources])
     if kind == "theme":
         if not value:
             # Not "the default theme": no theme at all, so a house style handed
@@ -163,6 +163,18 @@ def _render_param(spec: NodeSpec, name: str, value: Any, graph: FlowGraph, node_
     if kind == "float" and isinstance(value, int) and not isinstance(value, bool):
         return repr(float(value))
     return repr(value)
+
+
+def _keyed(values: dict[str, Any], source: str, port: str) -> Any:
+    """An item's caption or layout: keyed by ``<node>.<port>``, else by the node.
+
+    A node with several outputs in one section (a factor analysis's loadings,
+    its variance table and its statistics) needs one caption for each; the
+    node's own key is the older form, and still what an output without a key of
+    its own reads.
+    """
+
+    return values.get(f"{source}.{port}", values.get(source))
 
 
 def _code(key: Any) -> Any:

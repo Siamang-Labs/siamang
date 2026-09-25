@@ -529,3 +529,34 @@ def test_the_rules_between_parameters_read_an_empty_value_as_the_default(questio
         questionnaire_doc,
     )
     assert [issue.code for issue in issues] == ["PARAM_CONFLICT"]
+
+
+def test_a_section_captions_each_output_of_a_node_on_its_own(questionnaire_doc):
+    """A factor analysis's loadings, variance and statistics in one section each
+    take their own caption and size (`fa.loadings`), and the node's own key still
+    answers for an output without one — so a stored section renders as before."""
+    items = ["age", "trust_acme", "trust_globex", "satisfaction"]
+    flow = _flow(
+        [
+            ("src", "source.responses", {}),
+            ("fa", "analyze.factor", {"items": items, "n_factors": 1}),
+            (
+                "sec",
+                "output.report_section",
+                {
+                    "captions": {"fa.loadings": "Table 5. Loadings", "fa": "Factor analysis"},
+                    "layout": {"fa.variance": {"width": "60%"}},
+                },
+            ),
+        ],
+        [
+            ("src", "data", "fa", "data"),
+            ("fa", "loadings", "sec", "items"),
+            ("fa", "variance", "sec", "items"),
+            ("fa", "stat", "sec", "items"),
+        ],
+    )
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    code = render_node(resolve_flow(flow, questionnaire=questionnaire_doc), "sec")
+    assert "['Table 5. Loadings', 'Factor analysis', 'Factor analysis']" in code
+    assert "[{}, {'width': '60%'}, {}]" in code
