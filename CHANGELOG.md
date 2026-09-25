@@ -217,8 +217,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   else under: another question's Other text key (`brand_other`), a matrix's
   row variable, a variable `Script.assign_condition` assigns, a codebook
   variable no question collects that a custom script writes
-  (`answers.panel = …`), or one of the runtime's `__` keys. The compiler
-  rewrites a custom script's `answers["<id>"]` to the key,
+  (`answers.panel = …`, `[answers.panel, x] = …`, `for (answers.panel of …)`,
+  `answers.panel.push(…)` — any assignment, update, `delete`, destructuring
+  or loop target, or change in place), or one of the runtime's `__` keys. The
+  compiler rewrites a custom script's `answers["<id>"]` to the key,
   so `answers["brand_other"]` read the note instead of the Other text, and a
   platform keying an old runtime's answers by id moved the Other text into the
   note's column. Such a document is now refused — "Question 'brand_other'

@@ -10,6 +10,9 @@ runtime keyed answers by id nothing built on the variable ever fired.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from siamang.core import (
@@ -36,6 +39,7 @@ from siamang.model.scripts import (
 )
 
 AGREE = {1: "Agree", 2: "Disagree"}
+_FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _nps_document(**extra) -> dict:
@@ -956,19 +960,42 @@ def test_a_codebook_variable_nothing_writes_leaves_the_id_free():
 
 
 def test_what_a_custom_script_writes_is_read_from_its_code():
-    names = ["panel", "q2"]
-    written = {
-        'answers.panel = "web";': ["panel"],
-        "answers['panel'] += 1; answers[ `q2` ] ??= 0;": ["panel", "q2"],
-        "answers.panel++; --answers.q2;": ["panel", "q2"],
-        "if (answers.panel == 1 || answers.q2 <= 2) ok = answers.panel;": [],
-        '// answers.panel = 1\n/* answers.q2 = 2 */ const s = "answers.panel = 3";': [],
-        "state.answers.panel = 1; answers.panelist = 2;": [],
-    }
-    for code, expected in written.items():
-        assert answer_keys_written(Script(code=code), names) == expected, code
+    """Every access the compiler would rewrite is a write when it is one:
+    assigned or updated, deleted, a loop's or a destructuring pattern's
+    target, or the value under it changed in place (a property assigned, an
+    array method that changes it). The table is shared: a port of the rule
+    (Studio's Builder) can read it too."""
+
+    table = json.loads((_FIXTURES / "script_writes.json").read_text(encoding="utf-8"))
+    for case in table["cases"]:
+        written = answer_keys_written(Script(code=case["code"]), table["names"])
+        assert written == case["written"], case["code"]
     arms = [(1, "A", 1), (2, "B", 1)]
-    assert answer_keys_written(Script.assign_condition("panel", arms), names) == []
+    assert answer_keys_written(Script.assign_condition("panel", arms), table["names"]) == []
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        '[answers.panel, answers.src] = ["web", "mail"];',
+        '({ v: answers.panel } = { v: "web" });',
+        '(answers.panel) = "web";',
+        "for (answers.panel of ['web']) {}",
+        "answers.panel.push('web');",
+        "answers.panel.source = 'web';",
+    ],
+)
+def test_any_write_to_a_codebook_variable_takes_the_id(code):
+    """validate() let these through: only `=`, a compound assignment and
+    ++/-- were read as writes, and the compiler rewrote them all into the
+    question's answer — `[answers.panel, answers.src] = …` overwrote what
+    the respondent typed."""
+
+    script = {"type": "custom", "name": "tag", "trigger": "onInit", "code": code}
+    document = _brand_document("panel", variables={"panel": {"scale": "nominal"}}, scripts=[script])
+    with pytest.raises(ValueError, match="'panel' is also a variable the codebook declares"):
+        from_document(document).survey.validate()
+    assert "answers.note" in rewrite_answer_keys(code, {"panel": "note"})
 
 
 def test_an_id_may_not_be_a_variable_a_script_assigns():

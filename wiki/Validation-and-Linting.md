@@ -31,11 +31,14 @@ would produce a broken survey:
   something else under: a variable of any question (a matrix's rows, and its
   own, included), an Other text key (`<variable>_other`), a variable a script
   assigns (`Script.assign_condition`, or a codebook variable no question
-  collects that a custom script writes: `answers.panel = …`), or a name
-  beginning with `__` (the runtime's own state). A codebook variable nothing
-  writes does not count — the runtime captures no embedded data — so an entry
-  left over from a renamed variable leaves the id free. An id that is its
-  question's own key is renamed nowhere and may be any free name.
+  collects that a custom script writes: `answers.panel = …`, `+=` and the like,
+  `++`, `delete`, a destructuring or loop target — `[answers.panel, x] = …`,
+  `for (answers.panel of …)` — or the value changed in place,
+  `answers.panel.push(…)`, `answers.panel.k = …`), or a name beginning with `__`
+  (the runtime's own state). A codebook variable nothing writes does not count —
+  the runtime captures no embedded data — so an entry left over from a renamed
+  variable leaves the id free. An id that is its question's own key is renamed
+  nowhere and may be any free name.
 - **Unknown `skip_to` targets** — a question may only skip to a known question
   ID or page name.
 - **Other and None codes** — an `other_code` / `none_code` must be a number or

@@ -1,0 +1,188 @@
+{
+  "about": "Which of `names` a custom script's code writes an answer under (siamang.model.scripts.answer_keys_written), in the order of `names`. Read by tests/test_answer_keys.py; a port of the rule can read it too.",
+  "names": [
+    "panel",
+    "q2"
+  ],
+  "cases": [
+    {
+      "code": "answers.panel = \"web\";",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "answers['panel'] += 1; answers[ `q2` ] ??= 0;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "answers.panel ||= \"web\"; answers.q2 **= 2;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "answers.panel++; --answers.q2;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "let x; x = 1, answers.panel = \"web\";",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "const s = `${answers.panel} and ${answers.q2 = 1}`;",
+      "written": [
+        "q2"
+      ]
+    },
+    {
+      "code": "answers . panel = \"web\"; answers?.[\"q2\"].push(1);",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "[answers.panel, answers.src] = [\"web\", \"mail\"];",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "({ v: answers.panel, w: [answers.q2] } = o);",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "[...answers.panel] = rows; ({ ...answers.q2 } = o);",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "[answers.panel = \"web\"] = [];",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "(answers.panel) = \"web\"; ((answers.q2)) += 1;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "for (answers.panel of ['web']) {} for (answers.q2 in obj) {}",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "for ([answers.panel, x] of rows) {}",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "delete answers.panel;",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "answers.panel.push('web');",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "answers.panel?.splice(0, 1); answers.q2.sort();",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "answers.panel.source = 'web'; answers.q2[0] = 1;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "answers.panel.k.j++; delete answers.q2.k;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "Object.assign(answers.panel, { a: 1 });",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "if (answers.panel == 1 || answers.q2 <= 2) ok = answers.panel;",
+      "written": []
+    },
+    {
+      "code": "if (!answers.panel) answers.flag = 1; x = (answers.q2) || 1;",
+      "written": []
+    },
+    {
+      "code": "f(answers.panel, 1); g([answers.q2]); const y = { a: answers.panel };",
+      "written": []
+    },
+    {
+      "code": "const [a, b] = [answers.panel, answers.q2]; [a, b] = [answers.q2, 1];",
+      "written": []
+    },
+    {
+      "code": "obj[answers.panel] = 1; list[answers.q2]++;",
+      "written": []
+    },
+    {
+      "code": "const n = answers.panel.length + answers.q2.indexOf('a');",
+      "written": []
+    },
+    {
+      "code": "const s = answers.panel.slice().sort(); const all = [...answers.q2];",
+      "written": []
+    },
+    {
+      "code": "for (const k in answers.panel) {} for (const v of answers.q2) {}",
+      "written": []
+    },
+    {
+      "code": "const f = (a = answers.panel) => a; if ((answers.q2)) {}",
+      "written": []
+    },
+    {
+      "code": "answers.panel === 1 && answers.q2 >= 2 && answers.panel !== answers.q2;",
+      "written": []
+    },
+    {
+      "code": "// answers.panel = 1\n/* answers.q2 = 2 */ const s = \"answers.panel = 3\";",
+      "written": []
+    },
+    {
+      "code": "state.answers.panel = 1; answers.panelist = 2; x.answers.q2.push(1);",
+      "written": []
+    }
+  ]
+}
