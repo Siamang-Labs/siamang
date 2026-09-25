@@ -88,6 +88,7 @@ The dataset object and its derived tables. Documented in
 | `SurveyData` | `from siamang.data import SurveyData` | A frame plus variable metadata; entry point to `.report`, `.plot`, `.analysis`, `.tables`, and `.export`. | [[Working with Data\|Working-with-Data]] |
 | `SurveyTables` | `from siamang.data import SurveyTables` | The `data.tables` accessor (banner and summary tables). | [[Banner Tables\|Banner-Tables]] |
 | `BannerTable` | `from siamang.data import BannerTable` | A cross-break banner table with Excel/CSV export. | [[Banner Tables\|Banner-Tables]] |
+| `inference` | `from siamang.data import inference` | Correlations, t-tests, ANOVA, post-hoc tests, Fisher's exact test and p adjustment on plain arrays. | [[Analysis]] |
 
 > `SurveyData` is also re-exported at the top level, so `from siamang import SurveyData`
 > and `from siamang.data import SurveyData` both work.
@@ -104,7 +105,10 @@ Declarative, label-aware tables and charts. Documented in
 | :--- | :--- | :--- | :--- |
 | `FreqTable` | `from siamang import FreqTable` | A frequency distribution with labels and percentages. | [[Reporting Tables\|Reporting-Tables]] |
 | `CrossTable` | `from siamang import CrossTable` | A contingency table with Chi-square / Cramér's V. | [[Reporting Tables\|Reporting-Tables]] |
-| `GroupMeanTable` | `from siamang import GroupMeanTable` | Group means with automatic test selection. | [[Reporting Tables\|Reporting-Tables]] |
+| `GroupMeanTable` | `from siamang import GroupMeanTable` | Group means with automatic test selection, or a test and post-hoc comparisons chosen by hand. | [[Reporting Tables\|Reporting-Tables]] |
+| `TTestTable` | `from siamang.reporting.stat_tables import TTestTable` | An independent, paired or one-sample t-test with its descriptives. | [[Analysis]] |
+| `CorrelationMatrixTable` | `from siamang.reporting.stat_tables import CorrelationMatrixTable` | Pearson, Spearman or Kendall correlations of several variables, with marks or per pair. | [[Analysis]] |
+| `PostHocTable` | `from siamang.reporting.stat_tables import PostHocTable` | Tukey, Games-Howell or Dunn pairs after a test of several groups. | [[Analysis]] |
 | `BarChart` | `from siamang import BarChart` | A bar chart of counts or grouped means. | [[Reporting Charts\|Reporting-Charts]] |
 | `BoxPlot` | `from siamang import BoxPlot` | Distribution comparison by group. | [[Reporting Charts\|Reporting-Charts]] |
 | `HeatMap` | `from siamang import HeatMap` | Group means or a correlation matrix as a heatmap. | [[Reporting Charts\|Reporting-Charts]] |

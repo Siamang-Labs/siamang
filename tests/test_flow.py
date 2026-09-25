@@ -104,8 +104,11 @@ def test_apply_weight_lists_what_it_weights_and_what_it_does_not():
     weighted, unweighted = listed.split("Unweighted, and saying so:")
     for title in ("MaxDiff", "Conjoint", "Share of preference", "Principal components"):
         assert title in weighted
-    for title in ("Compare groups", "Correlation", "Cluster", "Box plot", "Scatter plot"):
+    for title in ("Compare groups", "Cluster", "Box plot", "Scatter plot", "t-test"):
         assert title in unweighted and title not in weighted
+    # Correlation is weighted with Pearson and not with the rank methods.
+    assert "Correlation and Correlation matrix with Pearson" in weighted
+    assert "Correlation and Correlation matrix with Spearman or Kendall" in unweighted
 
 
 def test_every_template_placeholder_is_declared():

@@ -114,12 +114,13 @@ non-numeric weight counts 0.
 
 | Result | With a weight set |
 | :--- | :--- |
-| `report.freq` / `crosstab` / `means` | weighted counts and %; χ² on Kish's effective base; means, SD, median weighted (N and the test are not) |
+| `report.freq` / `crosstab` / `means` | weighted counts and %; χ² on Kish's effective base (Fisher's exact test counts respondents); means, SD, median weighted (N, the test and the post-hoc pairs are not) |
+| `analysis.correlation` / `report.correlation_matrix` with Pearson | weighted coefficient, p and CI on Kish's effective base; names the weight |
 | `report.banner` / `nps`, `analysis.regression`, TURF | weighted; tests and the NPS error on Kish's effective base |
 | `report.maxdiff` / `conjoint` / `conjoint_shares` | every column weighted, the utilities and part-worths too; base `N respondents (W weighted)` |
 | `analysis.pca` / `reliability` | weighted covariance matrix; `stats["weight"]` |
 | `analysis.proportion_ci` | weighted with `weighted=True`, otherwise says it is not |
-| `analysis.kruskal` / `mannwhitney` / `spearman`, `cluster()` | unweighted: `"weight": "unweighted (the weight 'w' is not applied)"` |
+| `analysis.kruskal` / `mannwhitney` / `spearman` / `compare_groups`, `correlation` and `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | unweighted: `"weight": "unweighted (the weight 'w' is not applied)"` (the tables: `Weight`) |
 | `report.quality` / `themes` | count responses; `stats["Weight"]` says the weight is not applied |
 | `describe_variables()` | counts rows, adds `weighted_n_valid` |
 | `plot.bar`, `plot.heatmap(by=…)` | weighted counts / means, axis labelled "Weighted …" |

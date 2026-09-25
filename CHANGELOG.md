@@ -157,6 +157,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read back into a `SurveyData` with the codebook, embedded metadata or the
   questionnaire's variables. Parquet via the new `siamang[parquet]` extra;
   `SurveyDataReader` accepts `.parquet`.
+- **Tests chosen by hand, in the engine and in flows.** Until now a flow could
+  only take the test Group means chose for it, the chi-square of a crosstab and
+  a Spearman correlation, and nothing compared the groups pairwise afterwards.
+  - **`siamang.data.inference`** (numpy and SciPy only; SciPy 1.11 is enough):
+    Pearson (with a Fisher-z interval, and a weighted form whose p and interval
+    are on Kish's effective base), Spearman and Kendall tau-b correlations and
+    matrices of them, pairwise or listwise; Welch's and Student's, paired and
+    one-sample t-tests with the mean difference, its interval, Cohen's d and
+    Hedges' g; one-way and Welch's ANOVA with η², Kruskal-Wallis with ε²,
+    Mann-Whitney with the rank-biserial r; Tukey's HSD (Tukey-Kramer),
+    Games-Howell and Dunn's test; Fisher's exact test — 2 × 2 with the
+    conditional odds ratio and its exact interval as R's `fisher.test` reports
+    them, larger tables by the Fisher-Freeman-Halton test, summed exactly over
+    up to 200,000 tables with the observed margins and otherwise estimated from
+    20,000 tables drawn from a fixed seed, so a rerun gives the same p; and
+    `adjust_p` (Holm, Bonferroni, Benjamini-Hochberg, as R's `p.adjust`). Data
+    that cannot carry a test (one respondent in a group, no variance) raises
+    `NotTestable` with a sentence, which the tables print instead of a number.
+    `without_missing_codes` leaves the codebook's declared missing codes out and
+    counts them: every result built on these tests reports `Missing codes left
+    out` rather than averaging a "Don't know" coded 99.
+  - **`analyze.correlation`** takes a **Method**: `pearson`, `spearman` (the
+    default, computed as before) or `kendall` — `data.analysis.correlation(x, y,
+    method=…)`. Pearson is weighted when a weight is applied.
+  - **`analyze.correlation_matrix`** (new; `data.report.correlation_matrix`,
+    `CorrelationMatrixTable`): several variables, Pearson / Spearman / Kendall,
+    **Missing answers** pairwise or listwise, **p adjustment** none / holm /
+    bonferroni / fdr_bh, and a **Layout**: the lower triangle with `*`, `**`,
+    `***` marks, or one row per pair with the coefficient, p, adjusted p and N.
+  - **`analyze.ttest`** (new; `data.report.ttest`, `TTestTable`): **Design**
+    independent (Welch's by default, Student's under **Variances**; **Group A** /
+    **Group B** pick two groups of a grouping with more, and without them such a
+    grouping is refused with its groups listed), paired, or one-sample against a
+    **Test value**; a row of N, mean, SD and SE per group, and t, df, p, the mean
+    difference with its CI and Cohen's d in the footer.
+  - **Group means** takes a **Test** — `auto` (the default: the automatic
+    choice, unchanged), `student`, `welch`, `anova`, `welch_anova`,
+    `mannwhitney`, `kruskal` — and a **Post-hoc**: `tukey` after ANOVA,
+    `games_howell` after Welch's ANOVA, `dunn` after Kruskal-Wallis with a
+    **Dunn p adjustment** (holm or bonferroni). The pairs — difference,
+    interval, q or z, adjusted p — render under the means table
+    (`GroupMeanTable(method=…, posthoc=…, adjust=…)`, `.posthoc_table`,
+    `PostHocTable`) and on a second sheet of `export_xlsx`.
+  - **Compare groups** takes a **Post-hoc** `dunn` after Kruskal-Wallis
+    (`data.analysis.compare_groups`): one entry per pair of groups, by label.
+  - **Crosstab** takes a **Test**, `chi2` (default) or `fisher`. It counts
+    respondents, as an exact test must, and says so on weighted data.
+  - A node specification may declare **`checks`** between its parameters, which
+    `check_flow` reports as `PARAM_CONFLICT` on the node — an error for a
+    post-hoc test that does not follow the test chosen ("Tukey's HSD follows a
+    one-way ANOVA — set Test to anova, or Post-hoc to none."), a warning for a
+    parameter the node would ignore. A template's `when` also reads `!=` and
+    joins conditions with `&`.
+
+  Stored flows keep their meaning and their code: Group means and Crosstab keep
+  the **Significance test** checkbox (`test`) and the new **Test** sits beside
+  it, so `test: true` / `false` mean what they did, a document that never set
+  the new parameters renders exactly the code it rendered before, and the
+  defaults read the data as they always have. A test chosen by hand leaves the
+  codebook's missing codes out of its table and test; put **Missing values**
+  before the defaults to have them do the same.
 
 ### Fixed
 

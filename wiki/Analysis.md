@@ -129,7 +129,225 @@ two_levels.analysis.mannwhitney("autonomy", "remote_freq")
 
 > The [[Reporting Tables|Reporting-Tables]] `GroupMeanTable` picks between
 > t-test, ANOVA, Mann–Whitney, and Kruskal–Wallis automatically based on scale
-> and group count — use it when you want the test chosen for you.
+> and group count — use it when you want the test chosen for you, and name the
+> test yourself (below) when you want a particular one.
+
+---
+
+## Choosing the test yourself
+
+The methods and tables in this section compute with `siamang.data.inference`
+(numpy and SciPy only; SciPy 1.11 is enough). They share three rules:
+
+- **Missing codes are not answers.** The codebook's declared missing codes (a
+  "Don't know" coded 99) are left out, and the result says how many:
+  `Missing codes left out = Satisfaction: 12 (99 = Don't know)`. The defaults
+  above — `spearman`, `kruskal`, `mannwhitney`, the automatic test of
+  `report.means` and the chi-square of `report.crosstab` — read the data as they
+  always have; put `apply_missing_values()` (the flow's **Missing values** node)
+  before them to have them do the same.
+- **What the data cannot carry is said in words.** One respondent in a group or
+  no variance at all gives `Test = not run: …` with the reason, not a number or
+  a crash. A request that cannot work — a t-test of a grouping with three
+  groups and none named — is a `ValueError` that lists the groups.
+- **The weight is used where there is a standard weighted form** (Pearson's
+  correlation) and otherwise the result says `unweighted (the weight 'w' is not
+  applied)`.
+
+### Correlation: `correlation` and `report.correlation_matrix`
+
+```python
+def correlation(self, x: str, y: str, *, method: str = "pearson",
+                confidence: float = 0.95) -> dict[str, Any]: ...
+```
+
+`method` is `"pearson"`, `"spearman"` or `"kendall"` (tau-b, which corrects
+for ties). The result has `method`, the coefficient under its symbol (`r`,
+`rho` or `tau`), `p_value` (two-sided) and `n`; Pearson adds a Fisher-z
+confidence interval `lower` – `upper`. On weighted data Pearson is the weighted
+coefficient, with p and interval on Kish's effective base (`n_effective`), so a
+weight never makes a correlation look more certain than the respondents behind
+it; equal weights give the unweighted result.
+
+```python
+data.analysis.correlation("age", "autonomy")
+# {'method': 'Pearson', 'r': -0.00277..., 'p_value': 0.9689..., 'n': 200,
+#  'lower': -0.1414..., 'upper': 0.1360..., 'confidence': 0.95}
+data.analysis.correlation("age", "autonomy", method="kendall")
+# {'method': 'Kendall tau-b', 'tau': -0.00238..., 'p_value': 0.9637..., 'n': 200}
+```
+
+A matrix of several variables is a table:
+
+```python
+data.report.correlation_matrix(["age", "autonomy", "remote_freq"],
+                               method="spearman", missing="pairwise",
+                               adjust="holm", layout="matrix")
+```
+
+```text
+| Variable | Age | Autonomy | Remote Frequency |
+|---|---|---|---|
+| Age | — |  |  |
+| Autonomy | -0.003 | — |  |
+| Remote Frequency | 0.125 | 0.009 | — |
+
+Method = Spearman rank correlation; Missing = pairwise: each pair uses everyone
+who answered both; N = 200; p adjustment = Holm, over 3 pairs; Marks = * p < .05,
+** p < .01, *** p < .001 (adjusted p)
+```
+
+`missing="listwise"` keeps only the respondents who answered every variable;
+`adjust` is `"none"`, `"holm"`, `"bonferroni"` or `"fdr_bh"`; `layout="pairs"`
+gives one row per pair with the coefficient, p, the adjusted p and N — the one
+to read when N differs from pair to pair. The numbers are on `table.result`
+(`coefficients`, `p_values`, `p_adjusted`, `n` as square frames).
+
+### t-tests: `report.ttest`
+
+```python
+data.report.ttest(column, *, kind="independent", by=None, groups=None,
+                  other=None, mu=0.0, variances="welch", confidence=0.95)
+```
+
+- `kind="independent"` compares `column` between two groups of `by`. When `by`
+  has more than two values, `groups=[a, b]` names the two (as codes); without it
+  the call is refused with the groups listed. `variances="welch"` (the default)
+  does not assume the groups vary equally; `"student"` pools the variances.
+- `kind="paired"` compares `column` with `other` on the same respondents, over
+  the complete pairs; the footer counts the incomplete ones left out.
+- `kind="one_sample"` tests the mean of `column` against `mu`.
+
+The table has one row per group (or measurement) with N, mean, SD and SE; the
+footer gives the test, t, df, p, the mean difference (first minus second, or
+mean minus `mu`) with its CI, and Cohen's d — pooled-SD d and Hedges' g for two
+groups, d_z for paired data.
+
+```python
+print(data.report.ttest("age", by="it_role", groups=[1, 4]).to_markdown())
+```
+
+```text
+| IT Role | N | Mean | SD | SE |
+|---|---|---|---|---|
+| Engineer | 58 | 46.845 | 16.559 | 2.174 |
+| PM | 52 | 47.5 | 18.873 | 2.617 |
+
+Test = Welch's t-test (unequal variances); t = -0.1930; df = 102.1500; p = 0.8477;
+Mean difference = -0.6550; Difference = Engineer − PM; 95% CI = -7.404 – 6.094;
+Cohen's d = -0.0370; Hedges' g = -0.0370; N = 110; Variable = Age
+```
+
+### Several groups and post-hoc tests: `report.means`
+
+```python
+data.report.means(column, *, by, test=True, method="auto",
+                  posthoc="none", adjust="holm")
+```
+
+`method` names the test instead of letting the table choose: `"student"`,
+`"welch"` (two groups), `"anova"`, `"welch_anova"` (two or more; Welch's does
+not assume equal variances), `"mannwhitney"`, `"kruskal"` (ranks). Each reports
+its statistic, df, p and an effect size — Cohen's d, η², the rank-biserial r or
+ε². A two-group test asked of three groups says `not run: … choose anova or
+welch_anova`.
+
+`posthoc` compares every pair of groups after the test it belongs to —
+`"tukey"` after `"anova"` (Tukey-Kramer for unequal groups), `"games_howell"`
+after `"welch_anova"`, `"dunn"` after `"kruskal"` with p adjusted by `adjust`
+(`"holm"` or `"bonferroni"`). Any other pairing is a `ValueError`. The pairs
+render under the means table and are `table.posthoc_table`; `export_xlsx` puts
+them on a second sheet.
+
+```python
+print(data.report.means("age", by="it_role", method="welch_anova",
+                        posthoc="games_howell").to_markdown())
+```
+
+```text
+| IT Role | Mean | SD | Median | N |
+|---|---|---|---|---|
+| Engineer | 46.845 | 16.559 | 47.0 | 58 |
+| Data Scientist | 41.851 | 15.043 | 40.0 | 47 |
+| DevOps | 46.209 | 16.29 | 44.0 | 43 |
+| PM | 47.5 | 18.873 | 41.0 | 52 |
+
+Test = Welch's ANOVA; F = 1.2530; df = 3, 106.78; p = 0.2942; η² = 0.0170;
+Post-hoc = Games-Howell: 0 of 6 pairs differ at p < 0.05; N = 200; Variable = Age
+
+**Post-hoc: Games-Howell**
+
+| Pair | Difference | 95% CI low | 95% CI high | q | df | p |
+|---|---|---|---|---|---|---|
+| Engineer vs Data Scientist | 4.994 | -3.075 | 13.063 | 2.286 | 101.62 | 0.374 |
+| Engineer vs DevOps | 0.636 | -8.004 | 9.275 | 0.272 | 91.45 | 0.9975 |
+| …
+```
+
+Tukey and Games-Howell give the difference of the means with its simultaneous
+interval, the studentized range statistic q and a p that already allows for the
+number of pairs; Dunn gives the difference of the mean ranks, z, and p before
+and after the adjustment.
+
+`compare_groups` is the same for the rank tests alone, as a dict:
+
+```python
+data.analysis.compare_groups("autonomy", "remote_freq", posthoc="dunn")
+# {'test': 'Kruskal-Wallis H', 'statistic': 2.133..., 'p_value': 0.7112...,
+#  'groups': 5.0, 'n': 200, 'posthoc': "Dunn's test (Holm)",
+#  'Never vs Occasionally': 'z = 0.939, p = 1.0000', …}
+```
+
+### Fisher's exact test: `report.crosstab(..., method="fisher")`
+
+For small counts, where the chi-square's approximation is poor. A 2 × 2 table
+gets the two-sided p, the odds ratio (conditional maximum likelihood) and its
+exact 95 % CI, as R's `fisher.test` reports them. A larger table gets the
+Fisher–Freeman–Halton test: the p is summed exactly over every table with the
+observed margins when there are at most 200,000 of them, and otherwise estimated
+from 20,000 random tables drawn from a fixed seed — so a rerun gives the same
+p, and the footer says which it was and the Monte Carlo error. The test counts
+respondents (an exact test needs whole counts), so on weighted data the cells
+are weighted and the footer says the test is not.
+
+```text
+| IT Role | Never | Fully remote | Total |
+|---|---|---|---|
+| Engineer | 10 | 9 | 19 |
+| Data Scientist | 9 | 15 | 24 |
+| Total | 19 | 24 | 43 |
+
+Test = Fisher's exact test; p = 0.3678; Odds ratio = 1.8250; OR 95% CI = 0.463 – 7.466;
+Odds ratio of = Never (vs Fully remote) for Engineer over Data Scientist;
+Estimate = conditional maximum likelihood, as R's fisher.test; N = 43
+```
+
+### Multiple comparisons: `adjust_p`
+
+```python
+from siamang.data.inference import adjust_p
+
+adjust_p([0.01, 0.04, 0.03, 0.2], "holm")      # [0.04, 0.09, 0.09, 0.2]
+```
+
+`"bonferroni"`, `"holm"` and `"fdr_bh"` (Benjamini–Hochberg) give what R's
+`p.adjust` gives; a missing p stays missing and does not count.
+
+### In a flow
+
+| Node | Parameters |
+| :--- | :--- |
+| **Correlation** | **Method**: `pearson`, `spearman` (default), `kendall` |
+| **Correlation matrix** | **Variables**, **Method**, **Missing answers** (`pairwise` / `listwise`), **p adjustment**, **Layout** (`matrix` / `pairs`) |
+| **t-test** | **Design** (`independent` / `paired` / `one_sample`), **Variable**, **Groups**, **Group A**, **Group B**, **Variances**, **Second measurement**, **Test value**, **Confidence** |
+| **Group means** | **Significance test**, **Test** (`auto` default), **Post-hoc**, **Dunn p adjustment** |
+| **Compare groups** | **Test**, **Post-hoc** (`none` / `dunn`), **Dunn p adjustment** |
+| **Crosstab** | **Significance test**, **Test** (`chi2` default / `fisher`) |
+
+The flow check refuses a post-hoc test that does not follow its test ("Tukey's
+HSD follows a one-way ANOVA — set Test to anova, or Post-hoc to none.") and
+warns when a choice would be ignored. A flow saved before these parameters
+existed runs exactly as before.
 
 ---
 
@@ -149,10 +367,13 @@ logit, and `pca` and `reliability` work from the weighted covariance matrix
 equal weights reproduce the unweighted result). Each names the column in
 `stats["weight"]`.
 
-`kruskal`, `mannwhitney`, `spearman` and `SurveyData.cluster` have no standard
-weighted form and run on the respondents as they are; on weighted data their
-result carries `"weight": "unweighted (the weight 'w' is not applied)"`, so it
-cannot be mistaken for a weighted one. The declarative tables and charts follow
+`correlation` with Pearson (and a Pearson correlation matrix) is weighted too,
+with its p on Kish's effective base, and names the column. `kruskal`,
+`mannwhitney`, `spearman`, `compare_groups`, `correlation` with Spearman or
+Kendall, the t-tests and `SurveyData.cluster` have no standard weighted form and
+run on the respondents as they are; on weighted data their result carries
+`"weight": "unweighted (the weight 'w' is not applied)"` (the tables: `Weight`),
+so it cannot be mistaken for a weighted one. The declarative tables and charts follow
 the same rule — see [[Working with Data|Working-with-Data#what-the-weight-reaches]].
 
 ```python
