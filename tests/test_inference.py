@@ -208,6 +208,74 @@ def test_t_tests_explain_what_they_cannot_test():
         inference.ttest_one_sample([3, np.nan], 1)
 
 
+def test_decimal_values_that_do_not_vary_are_refused_as_whole_numbers_are():
+    """Three answers of 1.4 have a variance of 7e-32, not 0 — their mean is
+    1.4000000000000001 — and 1.1 − 1.0 and 4.1 − 4.0 differ by 4e-16. Read as
+    spread, that rounding gave t = −2.25e15 and p = 2e-61 for [1.4]*3 against
+    [1.9]*3. It is no spread: each test refuses as it does for [2, 2, 2]."""
+
+    assert np.var([1.4] * 3, ddof=1) > 0  # the rounding the tests must see through
+    with pytest.raises(NotTestable, match="neither group varies"):
+        inference.ttest_independent([1.4] * 3, [1.9] * 3)
+    with pytest.raises(NotTestable, match="neither group varies"):
+        inference.ttest_independent([1.4] * 3, [1.9] * 3, equal_var=True)
+    with pytest.raises(NotTestable, match="differ by the same amount"):
+        inference.ttest_paired([1.0, 2.0, 3.0, 4.0, 5.0], [1.1, 2.1, 3.1, 4.1, 5.1])
+    with pytest.raises(NotTestable, match="every value is the same"):
+        inference.ttest_one_sample([0.7] * 3, 0)
+    with pytest.raises(NotTestable, match="no group varies"):
+        inference.anova([[1.4] * 3, [1.9] * 3])
+    with pytest.raises(NotTestable, match="every value in group 1 is the same"):
+        inference.welch_anova([[1.4] * 3, [2.0, 3.1, 2.6, 3.3], [2.2, 3.0, 2.8]])
+    with pytest.raises(NotTestable, match="no group varies"):
+        inference.posthoc([[1.4] * 3, [1.9] * 3], ["a", "b"], "tukey")
+    howell = inference.posthoc([[1.4] * 3, [1.9] * 3, [2.0, 2.5, 3.0]], list("abc"), "games_howell")
+    assert howell.notes == ["a vs b: neither group varies"]
+    assert howell.table["p_value"].isna().tolist() == [True, False, False]
+    # 0.1 + 0.2 + 0.3 is 0.6000000000000001: the same index summed in another order.
+    with pytest.raises(NotTestable, match="same value for everyone"):
+        inference.correlate([0.6, 0.1 + 0.2 + 0.3, 0.6, 0.6], [1, 2, 3, 4])
+    with pytest.raises(NotTestable, match="same value for all the weight"):
+        inference.correlate([0.6, 0.1 + 0.2 + 0.3, 0.6, 5.0], [1, 2, 3, 4], weights=[1, 1, 1, 0])
+    # A real spread, however small beside the values, is still a spread.
+    found = inference.ttest_one_sample([1e6, 1e6 + 1e-3, 1e6 + 2e-3], 1e6)
+    assert found.t == pytest.approx(math.sqrt(3), rel=1e-6)  # mean 1e-3 over SE 1e-3/√3
+    assert inference.no_spread([1e-12, 2e-12, 3e-12]) is False
+    assert inference.no_spread([]) and inference.no_spread([0.0, 0.0])
+
+
+def test_a_flat_decimal_group_in_the_tables_is_explained_not_tested():
+    rng = np.random.default_rng(4)
+    frame = pd.DataFrame(
+        {
+            "score": np.round(rng.normal(3, 1, 37), 1).tolist() + [1.4] * 3,
+            "region": [1] * 19 + [2] * 18 + [3] * 3,
+        }
+    )
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("score", "interval", label="Score"),
+            Variable("region", "nominal", label="Region", labels={1: "N", 2: "S", 3: "E"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    table = data.report.means("score", by="region", method="welch_anova", posthoc="games_howell")
+    assert table.stats["Test"] == (
+        "not run: Welch's ANOVA weighs each group by its variance, and every value in E is the same"
+    )
+    # A pair with one flat group is Welch's test against a group of SD 0: on
+    # the other group's n − 1 df, exactly as for a group of whole numbers.
+    pairs = table.posthoc_table.to_frame()
+    assert pairs["df"].tolist()[1:] == [18.0, 17.0]
+    flat = data.with_frame(
+        pd.DataFrame({"score": [1.4] * 3 + [1.9] * 3, "region": [1] * 3 + [2] * 3})
+    )
+    assert flat.report.ttest("score", by="region").stats["Test"] == (
+        "not run: neither group varies, so there is no spread to test the difference against"
+    )
+
+
 # ─── several groups ──────────────────────────────────────────────────────────
 
 

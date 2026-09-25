@@ -175,6 +175,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `adjust_p` (Holm, Bonferroni, Benjamini-Hochberg, as R's `p.adjust`). Data
     that cannot carry a test (one respondent in a group, no variance) raises
     `NotTestable` with a sentence, which the tables print instead of a number.
+    "No variance" allows for floating-point rounding (`no_spread`: a range of
+    at most 10⁻¹² of the values' size), so three answers of 1.4 — variance
+    7e-32 — are refused as three answers of 2 are, rather than giving t = 10¹⁵.
     `without_missing_codes` leaves the codebook's declared missing codes out and
     counts them: every result built on these tests reports `Missing codes left
     out` rather than averaging a "Don't know" coded 99.

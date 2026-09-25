@@ -148,7 +148,10 @@ The methods and tables in this section compute with `siamang.data.inference`
   before them to have them do the same.
 - **What the data cannot carry is said in words.** One respondent in a group or
   no variance at all gives `Test = not run: …` with the reason, not a number or
-  a crash. A request that cannot work — a t-test of a grouping with three
+  a crash. A group of identical decimal values (1.4, 1.4, 1.4) or paired
+  answers that all differ by the same decimal amount has no variance, although
+  floating-point rounding leaves one of about 1e-32: values whose range is at
+  most 10⁻¹² of their size count as the same (`inference.no_spread`). A request that cannot work — a t-test of a grouping with three
   groups and none named — is a `ValueError` that lists the groups.
 - **The weight is used where there is a standard weighted form** (Pearson's
   correlation) and otherwise the result says `unweighted (the weight 'w' is not

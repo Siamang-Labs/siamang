@@ -251,6 +251,12 @@ def test_what_cannot_be_factored_is_refused_with_the_reason():
     flat[:, 3] = 3
     with pytest.raises(ValueError, match="item 4 has the same answer from every respondent"):
         factor.fit(flat)
+    # 0.7 for everyone has an SD of 1e-16, not 0 (the mean is not exactly 0.7):
+    # rounding, not spread — it was accepted with a communality of 2e-34.
+    flat[:, 3] = 0.7
+    assert flat[:, 3].std(ddof=1) > 0
+    with pytest.raises(ValueError, match="item 4 has the same answer from every respondent"):
+        factor.fit(flat)
     copy = np.column_stack([x, x[:, 0]])
     with pytest.raises(ValueError, match="item 1 and item 9 are perfectly correlated"):
         factor.fit(copy)
