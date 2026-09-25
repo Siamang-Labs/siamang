@@ -31,7 +31,7 @@ params:
     - kendall
     default: spearman
     label: Method
-    help: Spearman and Kendall (tau-b) correlate ranks and suit rating scales; Pearson measures a straight-line relationship and gives a 95 % CI. Pearson is weighted when a weight is applied, the rank methods are not and say so. Pearson and Kendall leave the codebook's missing codes out and say how many; Spearman keeps its earlier result (put Missing values first to leave them out).
+    help: Spearman and Kendall (tau-b) correlate ranks and suit rating scales; Pearson measures a straight-line relationship and gives a 95 % CI. Pearson is weighted when a weight is applied, the rank methods are not and say so. Pearson and Kendall leave the codebook's missing codes (a 9 = Refused) out and say how many. Spearman, the default, counts them as answers — as this node always has, so flows made before keep their numbers — and says so in missing_codes_counted; run Missing values first to leave them out.
 subtitle: '{x} ~ {y}'
 template:
 - when: method=spearman

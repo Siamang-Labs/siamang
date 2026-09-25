@@ -39,7 +39,7 @@ params:
     - kruskal
     default: auto
     label: Test
-    help: Auto chooses by scale and groups (t-test or ANOVA for interval data, Mann-Whitney or Kruskal-Wallis for ordinal). Student and Welch compare two groups (Welch does not assume equal variances), ANOVA and Welch's ANOVA two or more, Mann-Whitney and Kruskal-Wallis compare ranks. A test chosen here reports df and an effect size and leaves the codebook's missing codes out.
+    help: Auto chooses by scale and groups (t-test or ANOVA for interval data, Mann-Whitney or Kruskal-Wallis for ordinal). Student and Welch compare two groups (Welch does not assume equal variances), ANOVA and Welch's ANOVA two or more, Mann-Whitney and Kruskal-Wallis compare ranks. A test chosen here reports df and an effect size and leaves the codebook's missing codes out. Auto counts them as answers, as it always has, and says so (Missing codes counted as answers); run Missing values first to leave them out.
   posthoc:
     kind: enum
     values:

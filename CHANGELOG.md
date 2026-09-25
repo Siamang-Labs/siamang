@@ -224,7 +224,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the new parameters renders exactly the code it rendered before, and the
   defaults read the data as they always have. A test chosen by hand leaves the
   codebook's missing codes out of its table and test; put **Missing values**
-  before the defaults to have them do the same.
+  before the defaults to have them do the same. The defaults now say when they
+  counted a missing code as an answer — `Missing codes counted as answers` in
+  the stats of Group means' automatic test and Crosstab's chi-square,
+  `missing_codes_counted` in `kruskal`, `mannwhitney` and `spearman`
+  (`inference.missing_codes_counted`) — so a result that changes with the Test
+  or the Post-hoc chosen says why.
 - **Paired tests** — `siamang.data.paired` and the flow node
   **`analyze.paired`** compare answers that come in sets from one respondent:
   **Wilcoxon signed-rank** for two ordered variables (zero differences dropped,
