@@ -107,6 +107,11 @@ def describe(
             "or run prepare.explode first and describe the 0/1 columns it makes."
         )
 
+    # Rows are selected by label below (a group's rows, the weights of the
+    # answers kept); on a repeated index label that pulls in every row sharing
+    # it — doubled N, negative Missing, every group the pooled mean — so the
+    # rows are numbered by position first. The result carries no index.
+    frame = frame.reset_index(drop=True)
     weights = _weights(frame, weight)
     groups = _groups(frame, by, variables) if by else [(None, None, frame.index)]
 

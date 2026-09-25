@@ -182,6 +182,12 @@ class SurveyTable:
 
     def _ensure_built(self) -> None:
         if self._result is None:
+            if not self.data.frame.index.is_unique:
+                # The tables select rows by label (a group's rows, the weights of
+                # the rows kept); a label the index repeats would pull in every
+                # row that shares it. A table carries no index, so it is built
+                # on the rows numbered by position.
+                self.data = self.data.with_frame(self.data.frame.reset_index(drop=True))
             self._build()
 
     def to_frame(self) -> pd.DataFrame:

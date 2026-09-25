@@ -40,6 +40,11 @@ class Listwise:
     coded: int
     #: ``code = label`` of each missing code that was met, in first-met order.
     codes: tuple[str, ...] = ()
+    #: Which rows of the data are complete, by position: what puts a result back
+    #: on its rows when the index repeats a label (waves concatenated without
+    #: ``ignore_index``), where selecting by label would pull in every row that
+    #: shares it.
+    mask: np.ndarray | None = None
 
     @property
     def n(self) -> int:
@@ -104,12 +109,14 @@ def listwise(data: SurveyData, columns: list[str], *, numeric: bool = True) -> L
         values[column] = values[column].mask(hit)
     if numeric:
         values = _numbers(values)
-    complete = values.dropna()
+    mask = values.notna().all(axis=1).to_numpy()
+    complete = values[mask]
     return Listwise(
         frame=complete,
         excluded=int(len(values) - len(complete)),
         coded=coded,
         codes=tuple(met),
+        mask=mask,
     )
 
 

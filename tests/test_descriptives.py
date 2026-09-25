@@ -323,3 +323,34 @@ def test_a_multiple_choice_group_gives_one_overlapping_group_per_option():
     assert result.stats["Groups"].startswith("overlap: Aware of allows several answers")
     data = SurveyData(frame=frame, variables=variables)
     assert data.report.descriptives(["x"], by="aware").to_frame().equals(table)
+
+
+def test_a_repeated_index_label_is_read_by_position():
+    """Two waves concatenated without ignore_index repeat every label. Selecting
+    by label pulled in each row that shares one: N 12 and Missing −6 for six
+    rows, both groups the pooled mean, and on weighted data a raw pandas error.
+    By position the numbers are the rows' own: N 6, SD 1.871, means 3.0 and 4.0."""
+
+    frame = pd.DataFrame(
+        {"x": [1.0, 2, 3, 4, 5, 6], "g": [1, 2, 1, 2, 1, 2], "w": [1.0, 2, 1, 2, 1, 2]},
+        index=[0, 0, 1, 1, 2, 2],
+    )
+    row = _row(describe(frame, ["x"]).table, "x")
+    assert (row["N"], row["Missing"], row["Mean"], row["SD"]) == (6, 0, 3.5, 1.871)
+    grouped = describe(frame, ["x"], by="g").table
+    assert grouped["N"].tolist() == [3, 3] and grouped["Mean"].tolist() == [3.0, 4.0]
+    assert grouped["Missing"].tolist() == [0, 0]
+    weighted = describe(frame, ["x"], weight="w").table
+    assert weighted["Weighted N"].tolist() == [9.0]
+
+    variables = VariableMap()
+    variables.add_many([Variable(name, "interval", label=name) for name in ("x", "y", "z")])
+    variables.add(Variable("g", "nominal", label="g"))
+    frame = frame.assign(y=[2.0, 1, 4, 3, 6, 6], z=[1.0, 3, 2, 5, 4, 6])
+    data = SurveyData(frame=frame, variables=variables).with_weight("w")
+    means = data.report.means("x", by="g", test=False).to_frame()
+    assert means["N"].tolist() == [3, 3] and means["Mean"].tolist() == [3.0, 4.0]
+    matrix = data.report.correlation_matrix(["x", "y", "z"], method="pearson", layout="pairs")
+    assert matrix.to_frame()["N"].tolist() == [6, 6, 6]
+    assert data.report.descriptives(["x"]).to_frame()["N"].tolist() == [6]
+    assert data.frame.index.tolist() == [0, 0, 1, 1, 2, 2]  # the data keeps its index

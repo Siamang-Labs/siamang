@@ -392,6 +392,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   equalled the raw one. It now counts the pairs with a p: `over the 1 pair
   computed (of 3)`, or `over 3 pairs` when all were.
 
+- **A repeated index label no longer mixes up rows.** Descriptive statistics
+  selected rows by label, so on a frame whose index repeats labels (waves
+  concatenated without `ignore_index`) each label pulled in every row sharing
+  it: N 12 and Missing −6 for six rows, and every group the pooled mean, with
+  no error. The weighted correlation matrix and weighted Group means raised
+  "Length of values … does not match length of index", and Factor analysis'
+  scores "cannot set using a list-like indexer". `describe` and every
+  `SurveyTable` now work on the rows numbered by position (a table carries no
+  index; the data keeps its own), and the scores are placed by position
+  (`Listwise.mask`).
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a
