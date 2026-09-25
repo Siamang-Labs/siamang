@@ -217,6 +217,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the focus on it, where no key worked and Esc went back a page; it is no
   Tab stop now, the keys work wherever in the open list the focus is, and
   Esc there only closes it.
+- Opening a required dropdown said "This question requires an answer." at
+  once — shown, and announced by a screen reader (`role="alert"`) — before
+  anything could be chosen: the list's search box takes the focus, and the
+  button's blur was read as leaving the question. A question is now checked
+  when the focus leaves it, not when it moves between its own controls (the
+  dropdown's button and search box, one checkbox and the next, a choice and
+  its Other box).
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's

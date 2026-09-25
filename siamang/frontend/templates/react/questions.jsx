@@ -173,8 +173,18 @@ function processPipedHtml(html, answers) {
 function QuestionShell({ num, title, required, description, error, children, onBlur, answers, media }) {
   const processedTitle = processPipedText(title, answers);
   const processedDescription = processPipedText(description, answers);
+  // A question is checked when the focus leaves it, not when it moves
+  // between its own controls: the dropdown's button to its search box as
+  // the list opens (which said "requires an answer" before anything could be
+  // chosen), one checkbox to the next, a choice to its Other box.
+  const handleBlur = onBlur
+    ? (e) => {
+      if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;
+      onBlur(e);
+    }
+    : undefined;
   return (
-    <div className={"sd-question" + (error ? " has-error" : "")} onBlur={onBlur}>
+    <div className={"sd-question" + (error ? " has-error" : "")} onBlur={handleBlur}>
       <div className="sd-question__header">
         <h3 className="sd-question__title">
           {num ? <span className="sd-question__num">{num}</span> : null}
