@@ -292,3 +292,57 @@ def test_the_new_nodes_are_in_the_palette_and_say_what_the_weight_does():
     assert (
         "t-test" in unweighted and "Correlation and Correlation matrix with Spearman" in unweighted
     )
+
+
+UNSET = [
+    # A field cleared in Studio is stored as [] or ""; another client may store null.
+    ("analyze.ttest", {"y": "age", "group": "gender", "group_a": [], "group_b": []}, "table"),
+    ("analyze.ttest", {"y": "age", "group": "gender", "group_a": "", "group_b": None}, "table"),
+    ("analyze.means", {"y": "age", "by": "region", "posthoc": None}, "table"),
+    ("analyze.means", {"y": "age", "by": "region", "method": "", "posthoc": ""}, "table"),
+    ("analyze.crosstab", {"row": "region", "col": "gender", "method": None}, "table"),
+    ("analyze.compare_groups", {"y": "age", "group": "region", "posthoc": None}, "stat"),
+    ("analyze.correlation", {"x": "age", "y": "satisfaction", "method": ""}, "stat"),
+]
+
+
+@pytest.mark.parametrize(("node_type", "params", "port"), UNSET)
+def test_a_parameter_stored_empty_is_its_default_in_the_check_and_the_run(
+    node_type, params, port, questionnaire_doc, survey
+):
+    """check_flow read null, "" and [] as "not set", the template conditions did
+    not: the check passed and the run failed with a NameError from a fragment
+    no condition chose, or produced no output at all."""
+
+    flow, issues = _one(node_type, params, questionnaire_doc)
+    assert issues == []
+    graph = resolve_flow(flow, questionnaire=questionnaire_doc)
+    stored = {name: value for name, value in params.items() if value not in (None, "", [])}
+    clean, _ = _one(node_type, stored, questionnaire_doc)
+    assert render_node(graph, "n") == render_node(
+        resolve_flow(clean, questionnaire=questionnaire_doc), "n"
+    )
+    runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc)
+    data = _responses(survey)
+    if node_type == "analyze.ttest":  # three genders and no groups named: said, not a NameError
+        with pytest.raises(FlowError, match="Gender has 3 groups"):
+            runner.run(sources={"src": data})
+        return
+    assert runner.run(sources={"src": data}).output("n", port) is not None
+
+
+def test_the_rules_between_parameters_read_an_empty_value_as_the_default(questionnaire_doc):
+    # posthoc "" is none and method null is auto: with the test off, nothing is
+    # ignored (null read as a method gave "Test is not run while …" before).
+    _, issues = _one(
+        "analyze.means",
+        {"y": "age", "by": "region", "test": False, "method": None, "posthoc": ""},
+        questionnaire_doc,
+    )
+    assert issues == []
+    _, issues = _one(
+        "analyze.means",
+        {"y": "age", "by": "region", "method": "", "posthoc": "tukey"},
+        questionnaire_doc,
+    )
+    assert [issue.code for issue in issues] == ["PARAM_CONFLICT"]
