@@ -503,6 +503,8 @@ def test_an_id_in_a_comment_or_in_prose_is_not_a_stale_reference():
         'const note = "see q1"; answers.x = 1;',
         "const note = `about q1`; answers.x = 1;",
         "const url = 'https://x/q1'; answers.x = 1;",
+        # A regular expression is not a reference either.
+        "if (/^q1\\b/.test(s)) answers.x = 1;",
     ):
         assert stale(clean) == [], clean
     for still in (
@@ -511,6 +513,11 @@ def test_an_id_in_a_comment_or_in_prose_is_not_a_stale_reference():
         # swallow the code after it.
         "// don't\nconst q = 'q1';",
         'const s = "it\'s q1"; if (q1) {}',
+        # Nor a quote in a regular expression, or its `\/\/`.
+        "const r = /[\"']/g; if (q1) {}",
+        "if (/^https?:\\/\\//.test(u)) x = q1;",
+        # A division is no regular expression.
+        "const h = (a + b) / 2; x = q1 / 3;",
         "x(`q1`)",
         "x(`${q1}`)",
         'x(`${"q1"}`)',
@@ -1042,6 +1049,32 @@ def test_any_write_to_a_codebook_variable_takes_the_id(code):
 
     script = {"type": "custom", "name": "tag", "trigger": "onInit", "code": code}
     document = _brand_document("panel", variables={"panel": {"scale": "nominal"}}, scripts=[script])
+    with pytest.raises(ValueError, match="'panel' is also a variable the codebook declares"):
+        from_document(document).survey.validate()
+    assert "answers.note" in rewrite_answer_keys(code, {"panel": "note"})
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        'var s = String(answers.more || "").replace(/["\']/g, ""); answers.panel = s || "web";',
+        'if (!/^https?:\\/\\//.test(answers.more || "")) answers.panel = "web";',
+        'if (!answers.src) [answers.panel, answers.src] = ["web", "mail"];',
+        'if (answers.src) {} else (answers.panel) = "web";',
+        "(answers.panel || []).push('web');",
+    ],
+)
+def test_a_write_after_a_regex_or_a_statements_head_takes_the_id(code):
+    """validate() let these through and the compiler wrote "web" into the
+    note the respondent typed: the scan read the quote in a regular
+    expression as a string and its `\\/\\/` as a comment, which hid what
+    followed; it took the `(` and `[` after `if (…)` or `else` for a call and
+    a subscript; and it did not follow a value through `||`."""
+
+    script = {"type": "custom", "name": "tag", "trigger": "onPageEnter", "target": "p1"}
+    document = _brand_document(
+        "panel", variables={"panel": {"scale": "nominal"}}, scripts=[{**script, "code": code}]
+    )
     with pytest.raises(ValueError, match="'panel' is also a variable the codebook declares"):
         from_document(document).survey.validate()
     assert "answers.note" in rewrite_answer_keys(code, {"panel": "note"})

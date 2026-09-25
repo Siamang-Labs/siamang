@@ -14,9 +14,10 @@ factory-generated script by hand — it then simply becomes ``custom``.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
-from collections.abc import Container, Iterable, Mapping
+from collections.abc import Container, Iterable, Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
@@ -267,14 +268,13 @@ def stale_answer_key_references(script: Script, aliases: Mapping[str, str]) -> l
 # not a comparison (`==`, `<=`) nor an arrow (`=>`) — or an increment or
 # decrement after it.
 _WRITE_AFTER = re.compile(r"\s*(?:(?:\*\*|<<|>>>?|&&|\|\||\?\?|[-+*/%&|^])?=(?![=>])|\+\+|--)")
-# What makes the operand after it written: `++` / `--`, `delete`, or being the
-# object `Object.assign` copies into.
-_WRITE_BEFORE = re.compile(
-    rf"(?:\+\+|--|(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)delete|"
-    rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)Object\s*\.\s*assign\s*\()\s*$"
-)
-# The head of a for-in / for-of loop, up to its target.
-_FOR_HEAD = re.compile(rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)for\s*(?:await\s*)?\(\s*$")
+# What changes the value it is given first: `Object.assign` copies into it,
+# `Reflect.set` and the like set or remove a property of it.
+_CHANGES_ARGUMENT = {
+    "Object": frozenset(("assign", "defineProperty", "defineProperties")),
+    "Reflect": frozenset(("set", "defineProperty", "deleteProperty")),
+}
+# What follows the target of a for-in / for-of loop.
 _FOR_TAIL = re.compile(rf"\s*(?:of|in)(?!{_JS_IDENTIFIER_CHAR})")
 # A step along a member chain — `.k`, `?.k`, `[…]`, `?.[…]` — and the array
 # methods that change the array they are called on.
@@ -286,6 +286,32 @@ _MUTATORS = frozenset(
 )
 # A destructuring pattern is assigned by a plain `=` only.
 _PATTERN_ASSIGNED = re.compile(r"\s*=(?![=>])")
+# The words an expression follows (`return (…)`, `else […]`, `typeof /re/`):
+# after one a `(` groups, a `[` is an array or a pattern and a `/` begins a
+# regular expression, where after any other name they call, subscript or
+# divide.
+_EXPRESSION_KEYWORDS = frozenset(
+    (
+        "await",
+        "case",
+        "delete",
+        "do",
+        "else",
+        "in",
+        "instanceof",
+        "new",
+        "of",
+        "return",
+        "throw",
+        "typeof",
+        "void",
+        "yield",
+    )
+)
+# The heads a statement follows: `if (c) (x) = 1`, `while (c) [a, b] = …`
+# (`for await (…)` too).
+_STATEMENT_HEADS = frozenset(("if", "while", "with", "for"))
+_IDENTIFIER_CHAR_RE = re.compile(_JS_IDENTIFIER_CHAR)
 
 
 def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
@@ -301,8 +327,13 @@ def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
     (``(answers.panel) = …``) — or when the value under it is changed in place:
     a property or an element of it assigned (``answers.panel.k = …``,
     ``answers.panel[0] = …``), an array method that changes it
-    (``answers.panel.push(…)``, ``.splice``, ``.sort`` …), or
-    ``Object.assign(answers.panel, …)``. Everything else is a read.
+    (``answers.panel.push(…)``, ``.splice``, ``.sort`` …),
+    ``Object.assign(answers.panel, …)``, ``Reflect.set(answers.panel, …)`` and
+    the like — also where it is one of the values of an expression in
+    brackets, ``(answers.panel || []).push(…)``. Everything else is a read.
+    A statement's own ``(`` and ``[`` are the author's brackets, not a call
+    or a subscript: ``if (c) [answers.panel, x] = …``, ``else (answers.panel)
+    = …``, ``delete (answers.panel)``.
 
     Read in the code as the author wrote it, before :func:`script_for_runtime`
     rewrites the accesses that name an aliased id. A library script writes
@@ -326,12 +357,20 @@ def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
     return written
 
 
-def _is_written(code: str, start: int, end: int, *, pattern: bool = False) -> bool:
+def _is_written(
+    code: str, start: int, end: int, *, pattern: bool = False, in_place: bool = False
+) -> bool:
     """Whether the expression ``code[start:end]`` is written (see
     :func:`answer_keys_written`). ``pattern``: it is a destructuring pattern,
-    which only a plain ``=`` or a for-in/of head assigns."""
+    which only a plain ``=`` or a for-in/of head assigns. ``in_place``: it is
+    one of the values of an expression around it (``c || answers.panel``), so
+    only a change to that value writes it — what an assignment there would
+    assign is the expression around it."""
 
     after = end
+    # Whether the member chain goes on from it: then a write to the chain
+    # changes its value in place.
+    member = False
     if pattern:
         if _PATTERN_ASSIGNED.match(code, after):
             return True
@@ -343,6 +382,7 @@ def _is_written(code: str, start: int, end: int, *, pattern: bool = False) -> bo
             dot = _MEMBER_DOT.match(code, after)
             if dot:
                 after = dot.end()
+                member = True
                 if dot.group(1) in _MUTATORS and _CALL.match(code, after):
                     return True
                 continue
@@ -351,64 +391,213 @@ def _is_written(code: str, start: int, end: int, *, pattern: bool = False) -> bo
             if close < 0:
                 break
             after = close + 1
-        if _WRITE_AFTER.match(code, after) or _WRITE_BEFORE.search(code, 0, start):
+            member = True
+        if _CALL.match(code, after):
+            # A call of it or of a method that is no mutator: what `delete`,
+            # `=` or a bracket around it would reach is the call's value.
+            return False
+        if _changes_argument(code, start):
             return True
-    if _FOR_HEAD.search(code, 0, start) and _FOR_TAIL.match(code, after):
+        if (member or not in_place) and (
+            _WRITE_AFTER.match(code, after) or _written_before(code, start)
+        ):
+            return True
+    assigned = member or not in_place
+    if assigned and _for_head_before(code, start) and _FOR_TAIL.match(code, after):
         return True
-    # All of a parenthesised expression, or an element of a destructuring
-    # pattern: written when that is.
+    # All of a parenthesised expression, one of its values, or an element of a
+    # destructuring pattern: written when that is.
     opener = _enclosing_opener(code, start)
     close = _closing(code, opener) if opener >= 0 else -1
     if close < 0:
         return False
-    before = code[:start].rstrip()
-    rest = code[after:].lstrip()
-    closes = len(code) - len(rest) == close
-    # A `(` after a name, `)` or `]` is a call's (or an `if (`'s) and a `[`
-    # there a subscript; a `{` is a pattern only where an expression starts.
-    outside = code[:opener].rstrip()[-1:]
-    free = not re.match(rf"{_JS_IDENTIFIER_CHAR}|[)\]]", outside)
+    # Where the code before it ends and the code after it begins.
+    before = _skip_space_back(code, start)
+    rest = after
+    while rest < len(code) and code[rest].isspace():
+        rest += 1
+    closes = rest == close
+    # A `(` where an expression cannot begin — after a name, `)` or `]` — is a
+    # call's (or an `if (`'s) and a `[` there a subscript; a `{` is a pattern
+    # only where an expression starts.
+    free = _begins_expression(code, opener)
     kind = code[opener]
     if kind == "(":
-        whole = len(before) - 1 == opener and closes
-        return free and whole and _is_written(code, opener, close + 1)
-    element = closes or rest[:1] in (",", "=")
+        if not free:
+            return False
+        if before - 1 == opener and closes:
+            return _is_written(code, opener, close + 1, in_place=in_place and not member)
+        # An operand of `||`, `??` or `&&`, a branch of `?:`, the last of a
+        # comma list: the value the brackets hold may be this one, and a
+        # change to it in place changes this one.
+        if code.endswith(("(", ",", "?", ":", "||", "&&"), 0, before) and code.startswith(
+            (")", ":", "||", "??", "&&"), rest
+        ):
+            return _is_written(code, opener, close + 1, in_place=True)
+        return False
+    if not assigned:
+        return False
+    element = closes or code.startswith((",", "="), rest)
+    outside_end = _skip_space_back(code, opener)
+    outside = code[outside_end - 1 : outside_end]
     if kind == "[":
-        leads = free and before.endswith(("[", ",", "..."))
+        leads = free and code.endswith(("[", ",", "..."), 0, before)
     else:
-        leads = outside in ("", "(", ",", "[", ":", "=", "?", ".") and before.endswith((":", "..."))
+        leads = outside in ("", "(", ",", "[", ":", "=", "?", ".") and code.endswith(
+            (":", "..."), 0, before
+        )
     return element and leads and _is_written(code, opener, close + 1, pattern=True)
+
+
+def _written_before(code: str, start: int) -> bool:
+    """Whether what ends at ``start`` makes the operand after it written: a
+    prefix ``++`` / ``--`` or ``delete``."""
+
+    end = _skip_space_back(code, start)
+    return code[end - 2 : end] in ("++", "--") or _word_before(code, end)[0] == "delete"
+
+
+def _changes_argument(code: str, start: int) -> bool:
+    """Whether the operand at ``start`` is the first argument of a call that
+    changes it (see ``_CHANGES_ARGUMENT``): ``Object.assign(`` before it."""
+
+    end = _skip_space_back(code, start)
+    if not end or code[end - 1] != "(":
+        return False
+    method, begin = _name_before(code, end - 1)
+    dot = _skip_space_back(code, begin)
+    if not method or not dot or code[dot - 1] != ".":
+        return False
+    owner, _ = _word_before(code, dot - 1)
+    return method in _CHANGES_ARGUMENT.get(owner, ())
+
+
+def _for_head_before(code: str, start: int) -> bool:
+    """Whether a ``for (`` / ``for await (`` ends at ``start``."""
+
+    end = _skip_space_back(code, start)
+    if not end or code[end - 1] != "(":
+        return False
+    word, begin = _word_before(code, end - 1)
+    if word == "await":
+        word, _ = _word_before(code, begin)
+    return word == "for"
+
+
+def _begins_expression(code: Sequence[str], index: int) -> bool:
+    """Whether an expression may begin at ``index`` of scanned code (see
+    :func:`_scannable_code`; a string or its list of characters): whether
+    what comes before cannot end one. It can after an operator or a
+    punctuator, after a keyword an expression follows (``return``, ``else``,
+    ``typeof`` …), after the ``)`` of an ``if``, ``while``, ``for`` or
+    ``with`` head and at the start; after a name, a number, a literal, a
+    property, a postfix ``++`` / ``--``, ``)`` or ``]`` the expression before
+    goes on (a call, a subscript, a division)."""
+
+    end = _skip_space_back(code, index)
+    if not end:
+        return True
+    char = code[end - 1]
+    if char in "+-" and end >= 2 and code[end - 2] == char:
+        # `++` / `--`: a prefix one is followed by its operand; after a
+        # postfix one the expression has ended.
+        return _begins_expression(code, end - 2)
+    if char == ".":
+        # A spread's operand; a `.` alone is followed by a property.
+        return end >= 3 and code[end - 2] == code[end - 3] == "."
+    if char == ")":
+        opener = _opening(code, end - 1)
+        if opener < 0:
+            return False
+        word, begin = _word_before(code, opener)
+        if word == "await":
+            word, begin = _word_before(code, begin)
+            return word == "for"
+        return word in _STATEMENT_HEADS
+    if _IDENTIFIER_CHAR_RE.match(char):
+        word, _ = _word_before(code, end)
+        return word in _EXPRESSION_KEYWORDS
+    return char in "([{},;:?=!~&|^+-*/%<>"
+
+
+def _skip_space_back(code: Sequence[str], index: int) -> int:
+    """``index`` moved back over the whitespace before it."""
+
+    while index and code[index - 1].isspace():
+        index -= 1
+    return index
+
+
+def _name_before(code: Sequence[str], index: int) -> tuple[str, int]:
+    """The name or keyword that ends right before ``index`` (after any
+    whitespace) and where it begins; ``""`` if none does."""
+
+    end = _skip_space_back(code, index)
+    begin = end
+    while begin and _IDENTIFIER_CHAR_RE.match(code[begin - 1]):
+        begin -= 1
+    return "".join(code[begin:end]), begin
+
+
+def _word_before(code: Sequence[str], index: int) -> tuple[str, int]:
+    """:func:`_name_before`, but ``""`` for a property (``x.return``)."""
+
+    word, begin = _name_before(code, index)
+    if begin and code[begin - 1] == ".":
+        return "", begin
+    return word, begin
 
 
 def _enclosing_opener(code: str, index: int) -> int:
     """The index of the innermost bracket (``(``, ``[``, ``{``) open at
     ``index``, or -1."""
 
-    depth = 0
-    for i in range(index - 1, -1, -1):
-        char = code[i]
-        if char in ")]}":
-            depth += 1
-        elif char in "([{":
-            if depth == 0:
-                return i
-            depth -= 1
-    return -1
+    return _brackets(code)[1][index]
 
 
 def _closing(code: str, opener: int) -> int:
     """The index of the bracket that closes the one at ``opener``, or -1."""
 
+    return _brackets(code)[0].get(opener, -1)
+
+
+def _opening(code: Sequence[str], closer: int) -> int:
+    """The index of the bracket that opens the one at ``closer``, or -1."""
+
+    if isinstance(code, str):
+        return _brackets(code)[0].get(closer, -1)
+    # What :func:`_scannable_code` has scanned so far, still growing.
     depth = 0
-    for i in range(opener, len(code)):
+    for i in range(closer, -1, -1):
         char = code[i]
-        if char in "([{":
+        if char in ")]}":
             depth += 1
-        elif char in ")]}":
+        elif char in "([{":
             depth -= 1
             if depth == 0:
                 return i
     return -1
+
+
+@functools.lru_cache(maxsize=4)
+def _brackets(code: str) -> tuple[dict[int, int], list[int]]:
+    """The brackets of scanned code, read once: each one's partner (an
+    opener's closer, a closer's opener) and, at each index, the innermost
+    bracket open there (-1: none). Any closer closes the innermost opener,
+    whatever its kind; one with none open closes nothing."""
+
+    partners: dict[int, int] = {}
+    enclosing = [-1] * (len(code) + 1)
+    stack: list[int] = []
+    for i, char in enumerate(code):
+        enclosing[i] = stack[-1] if stack else -1
+        if char in "([{":
+            stack.append(i)
+        elif char in ")]}" and stack:
+            opener = stack.pop()
+            partners[opener], partners[i] = i, opener
+    enclosing[len(code)] = stack[-1] if stack else -1
+    return partners, enclosing
 
 
 def _scannable_code(code: str, keep: Container[str]) -> str:
@@ -416,9 +605,14 @@ def _scannable_code(code: str, keep: Container[str]) -> str:
     literal emptied — except a literal whose whole content is one of ``keep``,
     which is exactly the quoted reference the stale scan is after. The
     expressions of a template literal (``${…}``) are code and are kept,
-    scanned the same way. Near enough to JavaScript: a regular-expression
-    literal is read as code."""
+    scanned the same way. A regular-expression literal is emptied as a string
+    is: its ``"`` or ``'`` opens no string and its ``\\/\\/`` is no comment. A
+    ``/`` begins one where an expression may begin (see
+    :func:`_begins_expression`) and it ends on the line it begins on; any
+    other ``/`` divides."""
 
+    # One character to an entry: what is scanned so far is read back, as code,
+    # where a `/` may begin a regular expression.
     out: list[str] = []
     i, n = 0, len(code)
     while i < n:
@@ -432,6 +626,12 @@ def _scannable_code(code: str, keep: Container[str]) -> str:
             out.append(" ")
             i = n if end < 0 else end + 2
             continue
+        if char == "/" and _begins_expression(out, len(out)):
+            end = _regex_end(code, i)
+            if end > 0:
+                out.extend('""')
+                i = end
+                continue
         if char in "\"'`":
             quote = char
             body: list[str] = []
@@ -452,13 +652,43 @@ def _scannable_code(code: str, keep: Container[str]) -> str:
                     body.append(code[j])
                     j += 1
             text = "".join(body)
-            out.append(f"{quote}{text}{quote}" if not expressions and text in keep else quote * 2)
-            out.extend(f" ({_scannable_code(expression, keep)}) " for expression in expressions)
+            out.extend(f"{quote}{text}{quote}" if not expressions and text in keep else quote * 2)
+            for expression in expressions:
+                out.extend(f" ({_scannable_code(expression, keep)}) ")
             i = j + 1
             continue
         out.append(char)
         i += 1
     return "".join(out)
+
+
+def _regex_end(code: str, start: int) -> int:
+    """The index past the regular-expression literal that would begin at the
+    ``/`` at ``start`` — its body (a ``[…]`` class may hold a ``/``, an escape
+    any character) and its flags — or -1 when the line ends first."""
+
+    in_class = False
+    i, n = start + 1, len(code)
+    while i < n:
+        char = code[i]
+        if char in "\n\r\u2028\u2029":
+            return -1
+        if char == "\\":
+            if code[i + 1 : i + 2] in ("", "\n", "\r", "\u2028", "\u2029"):
+                return -1
+            i += 2
+            continue
+        if char == "[":
+            in_class = True
+        elif char == "]":
+            in_class = False
+        elif char == "/" and not in_class:
+            i += 1
+            while i < n and _IDENTIFIER_CHAR_RE.match(code[i]):
+                i += 1
+            return i
+        i += 1
+    return -1
 
 
 def _detect_library_script(script: Script) -> dict[str, Any] | None:
