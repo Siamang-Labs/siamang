@@ -24,6 +24,7 @@ from siamang.core import (
     validate_options,
 )
 from siamang.frontend.compiler import compile_questionnaire
+from siamang.frontend.compiler.react import compile_react_payload
 from siamang.model import (
     SCHEMA_VERSION,
     DocumentError,
@@ -454,6 +455,92 @@ def test_shorthand_codebook_forms_are_accepted():
     # Minimal question objects get the engine defaults.
     question = loaded.survey.all_questions()[0]
     assert question.display == "radio" and question.required is False
+
+
+def _shorthand_trust_document(keys: list[str]) -> dict:
+    """A 0–10 trust matrix and a choice over one object-form codebook whose
+    keys are listed in ``keys`` order (as json.loads gives a text's order)."""
+
+    texts = {"0": "No trust at all", "10": "Complete trust", "-1": "Not applicable"}
+    labels = {key: texts.get(key, key) for key in keys}
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "title": "Trust",
+        "variables": {
+            name: {"scale": "interval", "labels": dict(labels)} for name in ("t1", "t2", "c")
+        },
+        "pages": [
+            {
+                "name": "p",
+                "items": [
+                    {
+                        "type": "Matrix",
+                        "id": "trust",
+                        "text": "Trust?",
+                        "var": ["t1", "t2"],
+                        "column_labels": [*(str(n) for n in range(11)), "Not applicable"],
+                    },
+                    {"type": "SingleChoice", "id": "c", "text": "Trust?", "var": "c"},
+                ],
+            }
+        ],
+    }
+
+
+def test_an_object_codebook_means_the_same_whatever_order_its_keys_are_in():
+    """JSON objects carry no order that survives the tools that store and read
+    them: Postgres jsonb lists keys by length ("-1" between "9" and "10"), a
+    browser lists the whole-number keys first, ascending. A Studio
+    questionnaire is read from jsonb when published and from the browser's
+    JSON.stringify when previewed; read in its text's order, header "10" stored
+    -1 in one and 10 in the other. The shorthand is read in one order: codes 0
+    and up ascending, then the negative codes from -1 down, then text codes as
+    listed."""
+
+    scale = [str(n) for n in range(11)]
+    orders = {
+        "authored": [*scale, "-1"],
+        "jsonb": [*scale[:10], "-1", "10"],
+        "negative first": ["-1", *scale],
+    }
+    expected = [*range(11), -1]
+    for name, keys in orders.items():
+        loaded = from_document(_shorthand_trust_document(keys))
+        assert list(loaded.survey.variables["t1"].labels) == expected, name
+        matrix = loaded.survey.all_questions()[0]
+        assert [code for code, _ in matrix.columns()] == expected, name
+        items = [
+            item
+            for page in compile_react_payload(loaded.survey)["PAGES"]
+            for item in page.get("items", [])
+        ]
+        assert items[0]["columnCodes"] == expected, name
+        assert [option["code"] for option in items[1]["options"]] == expected, name
+        canonical = to_document(loaded.survey, loaded.options)
+        assert [label["code"] for label in canonical["variables"]["t1"]["labels"]] == expected
+
+
+def test_the_shorthand_order_puts_negative_codes_after_the_rest_and_keeps_text_codes_listed():
+    def order(labels) -> list:
+        document = {
+            "schema_version": SCHEMA_VERSION,
+            "title": "T",
+            "variables": {"v": {"scale": "nominal", "labels": labels}},
+            "pages": [
+                {
+                    "name": "p",
+                    "items": [{"type": "SingleChoice", "id": "q", "text": "Q?", "var": "v"}],
+                }
+            ],
+        }
+        return list(from_document(document).survey.variables["v"].labels)
+
+    assert order({"-9": "Refused", "-8": "Don't know", "2": "No", "1": "Yes"}) == [1, 2, -8, -9]
+    assert order({"1.5": "Half", "-0.5": "Less", "2": "Two", "1": "One"}) == [1, 1.5, 2, -0.5]
+    assert order({"b": "B", "2": "Two", "a": "A"}) == [2, "b", "a"]
+    # The list form is the author's order and is kept as written.
+    listed = [{"code": -1, "label": "N/A"}, {"code": 1, "label": "Yes"}, {"code": 0, "label": "No"}]
+    assert order(listed) == [-1, 1, 0]
 
 
 # ─── errors ──────────────────────────────────────────────────────────────────

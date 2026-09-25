@@ -53,8 +53,14 @@ The two functions are inverse of each other:
 
 `labels` is a list so that codes keep their type (`1` vs `"1"`) and their
 order; the object form `{"1": "No trust"}` is accepted as shorthand, as are
-`missing_values` / `missing_labels`. `to_document` always writes the list and
-the structured `missing`.
+`missing_values` / `missing_labels`. An object's keys keep no order through
+the tools a document passes through — Postgres `jsonb` lists them by length,
+a browser lists the whole-number keys first — so the shorthand is read in one
+order whatever its text lists: codes 0 and up ascending, then the negative
+codes from −1 down, then text codes as listed. That is the order a choice
+shows the options in and a matrix lines its headers up with; write the list to
+choose another. `to_document` always writes the list and the structured
+`missing`.
 
 ### Page, Block, Question
 

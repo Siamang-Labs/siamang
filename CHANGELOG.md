@@ -593,6 +593,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   machine of whoever runs a research bundle (`environment/run.sh`). Every line
   break and control character on a comment line is now a space; the text
   itself still reaches the report and the questionnaire as written.
+- **An object-form codebook meant what its text happened to list first.** The
+  shorthand `{"0": "No trust at all", …, "10": "Complete trust", "-1": "Not
+  applicable"}` was read in the order of its JSON text, and nothing keeps that
+  order: Postgres `jsonb` lists keys by length ("-1" between "9" and "10"), a
+  browser lists the whole-number keys first. The order is the one a choice
+  shows its options in and a matrix lines its headers up with, so the same
+  document stored in `jsonb` offered "Not applicable" between 9 and 10, and a
+  matrix headed `0` … `10`, "Not applicable" over it stored -1 for "10" and 10
+  for "Not applicable" — where a browser's copy of that document, a preview,
+  stored 10 and -1. The shorthand is now read in one order whatever its text
+  lists: codes 0 and up ascending, then the negative codes from -1 down, then
+  text codes as listed — for whole-number codes the order a browser gives the
+  codebook read back from `jsonb`. The list form keeps the author's order as
+  before. A hand-written document whose object lists its codes in another
+  order (5 … 1, or -8 before 0) is now read in this one — its options, a
+  matrix's positions and a MaxDiff's implied design (one with no stored
+  `design`) with it; writing the codebook as a list in the object's order
+  keeps the earlier reading.
 
 ## [0.6.0] — 2026-08-30
 

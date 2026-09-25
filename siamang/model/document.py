@@ -599,10 +599,20 @@ def _variable_from_doc(name: str, payload: Any) -> Variable:
 
 
 def _codebook_from_doc(value: Any, where: str) -> dict[Any, str]:
-    """``[{code, label}]`` (canonical) or ``{"code": label}`` (shorthand) -> dict."""
+    """``[{code, label}]`` (canonical) or ``{"code": label}`` (shorthand) -> dict.
+
+    The list is in the author's order. An object's keys have no order that
+    survives the tools a document passes through — Postgres jsonb lists them
+    by length ("-1" between "9" and "10"), a browser lists the whole-number
+    keys first, ascending — and the order is what a matrix lines its headers
+    up with and the order a choice's options are shown in. So the shorthand is
+    read in one order whatever its text lists: codes 0 and up ascending, then
+    the negative codes from -1 down, then text codes as listed. For whole-number
+    codes that is also the order a browser gives the codebook jsonb stored."""
 
     if isinstance(value, dict):
-        return {_parse_code_key(code): str(label) for code, label in value.items()}
+        entries = [(_parse_code_key(code), str(label)) for code, label in value.items()]
+        return dict(sorted(entries, key=lambda entry: _shorthand_rank(entry[0])))
     if isinstance(value, list):
         labels: dict[Any, str] = {}
         for item in value:
@@ -611,6 +621,15 @@ def _codebook_from_doc(value: Any, where: str) -> dict[Any, str]:
             labels[item["code"]] = str(item["label"])
         return labels
     raise DocumentError(f"{where}: labels must be a list of {{code, label}} objects.")
+
+
+def _shorthand_rank(code: Any) -> tuple[int, float]:
+    """Where an object-form codebook puts ``code``: 0 and up ascending, then
+    -1, -2 …, then text codes (the sort is stable, so they stay as listed)."""
+
+    if isinstance(code, int | float) and code == code:  # a number, not NaN
+        return (0, code) if code >= 0 else (1, -code)
+    return (2, 0)
 
 
 def _parse_code_key(key: str) -> Any:
