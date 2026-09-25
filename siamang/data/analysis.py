@@ -56,6 +56,17 @@ class DataAnalysis:
             result["weight"] = unweighted_note(self.weight_column)
         return result
 
+    def _counted(
+        self, result: dict[str, Any], frame: pd.DataFrame, columns: list[str]
+    ) -> dict[str, Any]:
+        """``missing_codes_counted`` when ``frame`` reads missing codes as answers."""
+        from siamang.data.inference import missing_codes_counted
+
+        note = missing_codes_counted(frame, columns, self.variables)
+        if note:
+            result["missing_codes_counted"] = note
+        return result
+
     def mean(self, column: str, weighted: bool = False) -> float:
         values = self.frame[column].dropna().astype(float)
         if values.empty:
@@ -116,27 +127,27 @@ class DataAnalysis:
             from scipy.stats import kruskal
         except ImportError as exc:
             raise ImportError("kruskal() requires scipy to be installed.") from exc
+        used = self.frame[[column, group]].dropna()
         groups = [
-            values[column].dropna().astype(float).to_numpy()
-            for _, values in self.frame[[column, group]].dropna().groupby(group)
+            values[column].dropna().astype(float).to_numpy() for _, values in used.groupby(group)
         ]
         if len(groups) < 2:
             raise ValueError("kruskal() requires at least two non-empty groups.")
         statistic, p_value = kruskal(*groups)
-        return self._unweighted(
-            {
-                "statistic": float(statistic),
-                "p_value": float(p_value),
-                "groups": float(len(groups)),
-            }
-        )
+        result = {
+            "statistic": float(statistic),
+            "p_value": float(p_value),
+            "groups": float(len(groups)),
+        }
+        return self._unweighted(self._counted(result, used, [column, group]))
 
     def mannwhitney(self, column: str, group: str) -> dict[str, Any]:
         try:
             from scipy.stats import mannwhitneyu
         except ImportError as exc:
             raise ImportError("mannwhitney() requires scipy to be installed.") from exc
-        grouped = list(self.frame[[column, group]].dropna().groupby(group))
+        used = self.frame[[column, group]].dropna()
+        grouped = list(used.groupby(group))
         if len(grouped) != 2:
             raise ValueError("mannwhitney() requires exactly two non-empty groups.")
         (group_a, values_a), (group_b, values_b) = grouped
@@ -145,14 +156,13 @@ class DataAnalysis:
             values_b[column].astype(float),
             alternative="two-sided",
         )
-        return self._unweighted(
-            {
-                "statistic": float(statistic),
-                "p_value": float(p_value),
-                "group_a": group_a,
-                "group_b": group_b,
-            }
-        )
+        result = {
+            "statistic": float(statistic),
+            "p_value": float(p_value),
+            "group_a": group_a,
+            "group_b": group_b,
+        }
+        return self._unweighted(self._counted(result, used, [column, group]))
 
     def spearman(self, x: str, y: str) -> dict[str, Any]:
         try:
@@ -163,13 +173,12 @@ class DataAnalysis:
         if frame.empty:
             return self._unweighted({"rho": 0.0, "p_value": 1.0, "n": 0.0})
         result = spearmanr(frame[x], frame[y])
-        return self._unweighted(
-            {
-                "rho": float(result.statistic),
-                "p_value": float(result.pvalue),
-                "n": float(frame.shape[0]),
-            }
-        )
+        found = {
+            "rho": float(result.statistic),
+            "p_value": float(result.pvalue),
+            "n": float(frame.shape[0]),
+        }
+        return self._unweighted(self._counted(found, frame, [x, y]))
 
     # ── a method chosen by hand (siamang.data.inference) ──────────────
     #

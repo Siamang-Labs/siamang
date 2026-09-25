@@ -489,8 +489,14 @@ def test_group_means_by_default_are_exactly_what_they_were():
     assert table.to_frame()["N"].tolist() == [3, 3, 3, 1]
     groups = [data.frame.loc[data.frame["grp"] == g, "sat"].to_numpy() for g in (1, 2, 3, 9)]
     f = stats.f_oneway(*groups)
+    # The numbers are what they were; the 99 and the 9 counted in them are now named.
+    counted = (
+        "Satisfaction: 1 (99 = Don't know); Group: 1 (9 = Refused); "
+        "run Missing values first to leave them out"
+    )
     assert table.stats == {"F": round(f.statistic, 3), "p": round(f.pvalue, 4), "N": 10} | {
-        "Variable": "Satisfaction"
+        "Variable": "Satisfaction",
+        "Missing codes counted as answers": counted,
     }
     assert table.posthoc_table is None
     assert data.report.means("sat", by="grp", method="auto").stats == table.stats
@@ -789,3 +795,41 @@ def test_a_t_test_refuses_multiple_choice_groups_and_answers_with_the_way_out():
         data.report.ttest("age", by="aware").to_frame()
     with pytest.raises(ValueError, match="which have no mean"):
         data.report.ttest("aware", kind="one_sample").to_frame()
+
+
+def test_the_defaults_say_when_they_count_missing_codes_as_answers():
+    """The defaults read a 99 "Don't know" as an answer so that a stored flow
+    keeps its numbers, and a test chosen by hand leaves it out — so the same
+    Kruskal-Wallis gave two results with nothing saying why. The defaults now
+    name the codes they counted; after Missing values there are none to name."""
+
+    data = _coded()
+    remedy = "; run Missing values first to leave them out"
+    both = "Satisfaction: 1 (99 = Don't know); Group: 1 (9 = Refused)" + remedy
+    kruskal = data.analysis.kruskal("sat", "grp")
+    groups = [data.frame.loc[data.frame["grp"] == g, "sat"] for g in (1, 2, 3, 9)]
+    assert kruskal["statistic"] == pytest.approx(stats.kruskal(*groups).statistic)
+    assert kruskal["missing_codes_counted"] == both
+    two = data.with_frame(data.frame[data.frame["grp"].isin([1, 2])])
+    assert two.analysis.mannwhitney("sat", "grp")["missing_codes_counted"] == (
+        "Satisfaction: 1 (99 = Don't know)" + remedy
+    )
+    # sat is 99 beside a sat2 of 5 once, and sat2 is 99 beside a sat of 3 once.
+    assert data.analysis.spearman("sat", "sat2")["missing_codes_counted"] == (
+        "Satisfaction: 1 (99 = Don't know); Satisfaction later: 1 (99)" + remedy
+    )
+    crosstab = data.report.crosstab("grp", "ans")
+    assert "9" in crosstab.to_frame().iloc[:, 0].tolist()  # a row of its own, unlabelled
+    assert crosstab.stats["Missing codes counted as answers"] == "Group: 1 (9 = Refused)" + remedy
+    assert (
+        "Missing codes counted as answers" in data.report.crosstab("grp", "ans", test=False).stats
+    )
+    fisher = data.report.crosstab("grp", "ans", method="fisher").stats
+    assert "Missing codes counted as answers" not in fisher and "Missing codes left out" in fisher
+    chosen = data.report.means("sat", by="grp", method="kruskal").stats
+    assert "Missing codes counted as answers" not in chosen
+    # Missing values first: nothing is counted, and nothing is said.
+    clean = data.apply_missing_values()
+    assert "missing_codes_counted" not in clean.analysis.kruskal("sat", "grp")
+    assert "Missing codes counted as answers" not in clean.report.means("sat", by="grp").stats
+    assert "Missing codes counted as answers" not in clean.report.crosstab("grp", "ans").stats

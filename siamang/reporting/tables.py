@@ -81,6 +81,18 @@ def _weighted_summary(values: np.ndarray, weights: np.ndarray) -> tuple[float, f
     return mean, sd, float(values[order][at]), n
 
 
+def _counted(
+    stats: dict[str, Any], data: SurveyData, frame: pd.DataFrame, columns: list[str]
+) -> None:
+    """Say so in ``stats`` when ``frame`` reads the codebook's missing codes as
+    answers — as a table's default path does, for stored flows' sake."""
+    from siamang.data.inference import missing_codes_counted
+
+    note = missing_codes_counted(frame, columns, data.variables)
+    if note:
+        stats["Missing codes counted as answers"] = note
+
+
 def _get_scale(data: SurveyData, var_name: str) -> str | None:
     """Get measurement scale for a variable."""
     if data.variables and var_name in data.variables:
@@ -570,6 +582,8 @@ class CrossTable(SurveyTable):
                 self._stats = {"error": "scipy not installed"}
         elif weights is not None:
             self._stats = {"Weighted N": round(float(weights.sum()), 1), "Weight": self.data.weight}
+        if not fisher:
+            _counted(self._stats, self.data, frame, [self.row, self.col])
 
     def _build_multi(self) -> None:
         """A multiple-choice question against a group: reach within each column.
@@ -784,6 +798,8 @@ class GroupMeanTable(SurveyTable):
             self._stats["Missing codes left out"] = missing_codes_note(
                 left_out, self.data.variables
             )
+        elif not chosen:
+            _counted(self._stats, self.data, frame, [self.column, self.by])
         if weights is not None:
             self._stats["Weight"] = self.data.weight
             self._stats["Note"] = "means, SD and medians are weighted; N and the test are not"

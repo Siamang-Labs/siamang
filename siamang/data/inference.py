@@ -163,6 +163,24 @@ def missing_codes_note(
     return "; ".join(parts) or None
 
 
+def missing_codes_counted(
+    frame: pd.DataFrame, columns: Sequence[str], variables: VariableMap | None
+) -> str | None:
+    """What a result that reads the declared missing codes as answers says.
+
+    The defaults that predate this module — the automatic test of Group means,
+    Crosstab's chi-square, ``kruskal``, ``mannwhitney`` and ``spearman`` —
+    keep reading a 9 "Refused" as an answer, so that a stored flow keeps its
+    numbers. Where ``frame`` holds such codes in ``columns`` they say so with
+    this sentence (``"Trust: Acme: 38 (9 = Refused); run Missing values first
+    to leave them out"``), which explains why a test chosen by hand on the same
+    data gives another result. None when there are none.
+    """
+
+    note = missing_codes_note(without_missing_codes(frame, columns, variables)[1], variables)
+    return f"{note}; run Missing values first to leave them out" if note else None
+
+
 # ─── correlation ─────────────────────────────────────────────────────────────
 
 CORRELATIONS = ("pearson", "spearman", "kendall")
@@ -1044,6 +1062,7 @@ __all__ = [
     "fisher_exact",
     "kruskal",
     "mannwhitney",
+    "missing_codes_counted",
     "missing_codes_note",
     "no_spread",
     "posthoc",

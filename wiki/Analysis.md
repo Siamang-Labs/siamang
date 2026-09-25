@@ -144,8 +144,14 @@ The methods and tables in this section compute with `siamang.data.inference`
   `Missing codes left out = Satisfaction: 12 (99 = Don't know)`. The defaults
   above — `spearman`, `kruskal`, `mannwhitney`, the automatic test of
   `report.means` and the chi-square of `report.crosstab` — read the data as they
-  always have; put `apply_missing_values()` (the flow's **Missing values** node)
-  before them to have them do the same.
+  always have, so a stored flow keeps its numbers, but they now say when they
+  counted a missing code as an answer: `missing_codes_counted` in their dict,
+  `Missing codes counted as answers` in a table's stats (`Trust: Acme: 38 (9 =
+  Refused); run Missing values first to leave them out`). That is why the same
+  Kruskal-Wallis can differ between Group means' `auto` and `kruskal`, or
+  between Compare groups with and without Dunn's test. Put
+  `apply_missing_values()` (the flow's **Missing values** node) before them to
+  have them leave the codes out too.
 - **What the data cannot carry is said in words.** One respondent in a group or
   no variance at all gives `Test = not run: …` with the reason, not a number or
   a crash. A group of identical decimal values (1.4, 1.4, 1.4) or paired
