@@ -266,7 +266,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   singular correlation matrix and as many factors as items are refused with
   the reason.
 - Both are unweighted and, on weighted data, say
-  `Weight: unweighted (the weight 'w' is not applied)`; Apply weight's help
+  `Weight: unweighted (the weight 'w' is not applied)` in every table they
+  output (factor analysis: the loadings, the variance and the factor
+  correlations, each of which a report may show alone); Apply weight's help
   lists them. Their tables are `siamang.reporting.result_table.ResultTable`s: a
   report or a Studio preview shows each with its statistics as a footer, and a
   cell that does not apply is blank rather than `nan`.
