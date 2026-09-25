@@ -28,7 +28,11 @@ Conventions — chosen to reproduce the ``factor_analyzer`` package and R's
   changes by less than 0.001, at most 50 times. ``ml`` is maximum likelihood,
   ``factanal``'s objective, gradient and start; it adds the likelihood-ratio
   test of fit, ``(n − 1 − (2p + 5)/6 − 2m/3) · F`` on ``((p − m)² − p − m)/2``
-  df.
+  df. With more factors than the data carry the likelihood has local optima
+  that one start can stop at, so ML also starts from the minres solution,
+  1 − SMC, 0.5 and ten points drawn from a fixed seed, keeps the lowest
+  objective (the same data, the same solution) and warns when the starts
+  reached different optima.
 - **Number of factors.** Fixed, or by the Kaiser criterion (eigenvalues of the
   correlation matrix above 1), or by Horn's parallel analysis: the leading
   eigenvalues that exceed the 95th percentile of those of 100 random normal
@@ -105,6 +109,10 @@ PARALLEL_ITERATIONS = 100
 PARALLEL_PERCENTILE = 95
 #: The bounds of a uniqueness in minres and ml, as factor_analyzer and factanal.
 PSI_BOUNDS = (0.005, 1.0)
+#: Maximum likelihood is started from four fixed points and this many random
+#: ones, drawn from ML_SEED, and keeps the best (see ``_ml``).
+ML_RANDOM_STARTS = 10
+ML_SEED = 20_260_925
 
 EXTRACTION_NAMES = {
     "minres": "minimum residual (minres)",
@@ -478,7 +486,13 @@ def fit(
     if method == "minres":
         unrotated, converged, iterations = _minres(correlation, m)
     elif method == "ml":
-        unrotated, converged, iterations, objective = _ml(correlation, m)
+        unrotated, converged, iterations, objective, several = _ml(correlation, m)
+        if several:
+            warnings.append(
+                "maximum likelihood reached different solutions from different starting "
+                f"points; the best of {ML_RANDOM_STARTS + 4} is shown. That usually means more "
+                "factors than the data carry: compare a solution with fewer"
+            )
         dof = _dof(p, m)
         statistic = float((n - 1 - (2 * p + 5) / 6 - 2 * m / 3) * objective)
         fit_test = (statistic, dof, float(chi2.sf(statistic, dof)) if dof > 0 else None)
@@ -621,7 +635,19 @@ def _minres(correlation: np.ndarray, m: int) -> tuple[np.ndarray, bool, int]:
     return loadings, _converged(result, objective), int(result.nit)
 
 
-def _ml(correlation: np.ndarray, m: int) -> tuple[np.ndarray, bool, int, float]:
+def _ml(correlation: np.ndarray, m: int) -> tuple[np.ndarray, bool, int, float, bool]:
+    """Maximum likelihood, ``factanal``'s objective, from several starts.
+
+    A single start — ``factanal``'s — can stop at a local optimum when the
+    model has more factors than the data carry (1 in 6 simulated data sets for
+    three factors on two), and its test of fit is then computed on the wrong
+    solution. So the fit also starts from the minres solution, from 1 − SMC,
+    from 0.5 and from :data:`ML_RANDOM_STARTS` uniform points drawn from
+    :data:`ML_SEED`, and keeps the lowest objective: the same data always
+    gives the same solution. The last value returned says whether converged
+    starts ended at different optima.
+    """
+
     from scipy.optimize import minimize
 
     p = len(correlation)
@@ -640,20 +666,44 @@ def _ml(correlation: np.ndarray, m: int) -> tuple[np.ndarray, bool, int, float]:
         gradient = np.diag(loadings @ loadings.T + np.diag(psi) - correlation) / psi**2
         return value, gradient
 
-    start = np.clip((1.0 - 0.5 * m / p) / np.diag(np.linalg.inv(correlation)), *PSI_BOUNDS)
-    result = minimize(
-        objective,
-        start,
-        jac=True,
-        method="L-BFGS-B",
-        bounds=[PSI_BOUNDS] * p,
-        options={"maxiter": 1000, "ftol": 1e-14, "gtol": 1e-10},
-    )
+    minres = _minres(correlation, m)[0]
+    # RandomState, as in _parallel: its stream is the same on every NumPy.
+    random = np.random.RandomState(ML_SEED).uniform(0.05, 0.95, (ML_RANDOM_STARTS, p))
+    starts = [
+        (1.0 - 0.5 * m / p) / np.diag(np.linalg.inv(correlation)),  # factanal's
+        1.0 - (minres**2).sum(axis=1),
+        1.0 - _smc(correlation),
+        np.full(p, 0.5),
+        *random,
+    ]
+    best, optima = None, []
+    for start in starts:
+        result = minimize(
+            objective,
+            np.clip(start, *PSI_BOUNDS),
+            jac=True,
+            method="L-BFGS-B",
+            bounds=[PSI_BOUNDS] * p,
+            options={"maxiter": 1000, "ftol": 1e-14, "gtol": 1e-10},
+        )
+        converged = _converged(result, objective)
+        if converged:
+            optima.append(float(result.fun))
+        # A start must do clearly better to replace an earlier one, so where
+        # they reach the same optimum the solution is factanal's own.
+        if (
+            best is None
+            or (converged and not best[1])
+            or (converged == best[1] and result.fun < best[0].fun - 1e-10)
+        ):
+            best = (result, converged)
+    result, converged = best
     values, vectors = parts(result.x)
     loadings = np.sqrt(result.x)[:, None] * (
         vectors[:, :m] * np.sqrt(np.maximum(values[:m] - 1.0, 0.0))
     )
-    return loadings, _converged(result, objective), int(result.nit), float(result.fun)
+    several = bool(optima) and max(optima) - min(optima) > 1e-6 * max(1.0, min(optima))
+    return loadings, converged, int(result.nit), float(result.fun), several
 
 
 def _converged(result: Any, objective: Any) -> bool:

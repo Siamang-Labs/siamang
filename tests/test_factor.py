@@ -385,3 +385,30 @@ def test_analyze_refuses_lists_and_duplicates_and_defaults_the_prefix():
     listed = data.with_frame(data.frame.assign(q2=[[1, 2]] * len(data.frame)))
     with pytest.raises(TypeError, match="prepare.explode"):
         factor.analyze(listed, ITEMS)
+
+
+def test_ml_is_started_several_times_and_keeps_the_best_optimum():
+    """Three factors on two-factor data: factanal's start alone stopped at a
+    local optimum, F = 0.10197, and reported its test of fit (chi-square 5.455,
+    p .605) as converged, without a warning. The best of 15 random starts
+    reaches F = 0.0927915 at an interior solution; so must the engine, the same
+    on every run, and it says that the starts disagreed."""
+
+    rng = np.random.default_rng(7)
+    common = rng.normal(size=(60, 2))
+    x = np.column_stack(
+        [common[:, j % 2] + rng.normal(size=60) for j in range(7)]
+        + [common[:, 0] + common[:, 1] + rng.normal(size=60)]
+    )
+    solution = factor.fit(x, n_factors=3, method="ml")
+    objective = 0.0927915362537
+    statistic, df, p = solution.fit
+    # Bartlett's multiplier: 60 − 1 − (2·8 + 5)/6 − 2·3/3 = 53.5.
+    assert statistic == pytest.approx(53.5 * objective, abs=1e-6) and df == 7
+    assert solution.converged and solution.uniquenesses.min() > 0.01  # interior
+    assert any("different solutions from different starting" in w for w in solution.warnings)
+    again = factor.fit(x, n_factors=3, method="ml")
+    assert np.array_equal(again.loadings, solution.loadings)
+    # A model the data carry has one optimum: no warning, factanal's solution.
+    two = factor.fit(x, n_factors=2, method="ml")
+    assert not any("starting points" in warning for warning in two.warnings)
