@@ -743,8 +743,13 @@ const TEXT_INPUT_MODES = { email: "email", phone: "tel", url: "url" };
 function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  // The option the arrow keys are on (an index into `filtered`; -1: none).
+  const [active, setActive] = useState(-1);
   const ref = useRef(null);
+  const triggerRef = useRef(null);
+  const optionRefs = useRef([]);
   const otherInputRef = useRef(null);
+  const listId = React.useId();
 
   // "Other (please specify)" is offered here as in the radio list: an extra
   // entry at the end (unless one of the options is it), with its text box
@@ -775,19 +780,81 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
     setOpen(false);
   };
 
+  // Opened, the arrow keys start from the chosen option.
+  const toggle = () => {
+    if (!open) setActive(offered.findIndex((o) => sameCode(o.code, currentCode)));
+    setOpen(!open);
+    setSearch("");
+  };
+  // Closed from the keyboard, the focus goes back to the button.
+  const close = () => {
+    setOpen(false);
+    if (triggerRef.current) triggerRef.current.focus();
+  };
+
+  // The search box is a combobox over the options: ↓ ↑ move along them,
+  // Enter chooses the one they are on, Esc closes. Typing narrows the list
+  // and puts the keys on its first entry.
+  const handleSearchKey = (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!filtered.length) return;
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      setActive((i) => (i < 0 ? (step > 0 ? 0 : filtered.length - 1)
+        : Math.min(Math.max(i + step, 0), filtered.length - 1)));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const option = filtered[active];
+      if (!option) return;
+      // Chosen before the focus leaves the box, so the question it leaves
+      // is already answered.
+      choose(option.code);
+      if (triggerRef.current) triggerRef.current.focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    }
+  };
+
+  // On the button, ↓ opens the menu and Esc closes it (rather than going
+  // back a page).
+  const handleTriggerKey = (e) => {
+    if (e.key === "ArrowDown" && !open) {
+      e.preventDefault();
+      toggle();
+    } else if (e.key === "Escape" && open) {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    const el = optionRefs.current[active];
+    if (open && el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+  }, [open, active]);
+
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Tab away from the menu closes it, as a press of the mouse outside it does.
+  const handleFocusOut = (e) => {
+    if (e.relatedTarget && ref.current && !ref.current.contains(e.relatedTarget)) setOpen(false);
+  };
+
+  const optionId = (i) => `${listId}-${i}`;
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-      <div className="siamang-search-dropdown" ref={ref}>
+      <div className="siamang-search-dropdown" ref={ref} onBlur={handleFocusOut}>
         <button
           type="button"
+          ref={triggerRef}
           className="sd-input siamang-search-dropdown__trigger"
-          onClick={() => { setOpen(!open); setSearch(""); }}
+          onClick={toggle}
+          onKeyDown={handleTriggerKey}
           aria-haspopup="listbox"
           aria-expanded={open}
         >
@@ -795,20 +862,31 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
           <span className="siamang-search-dropdown__arrow" aria-hidden="true"></span>
         </button>
         {open && (
-          <div className="siamang-search-dropdown__menu" role="listbox">
+          <div className="siamang-search-dropdown__menu">
             <input
               type="text"
               className="sd-input siamang-search-dropdown__search"
               placeholder={runtimeTexts().searchPlaceholder}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setActive(e.target.value ? 0 : -1); }}
+              onKeyDown={handleSearchKey}
+              role="combobox"
+              aria-expanded={true}
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={filtered[active] ? optionId(active) : undefined}
+              aria-label={q.title}
               autoFocus
             />
-            <div className="siamang-search-dropdown__options">
-              {filtered.map((opt) => (
+            <div className="siamang-search-dropdown__options" role="listbox" id={listId} aria-label={q.title}>
+              {filtered.map((opt, i) => (
                 <div
                   key={String(opt.code)}
-                  className={"siamang-search-dropdown__option" + (sameCode(currentCode, opt.code) ? " is-selected" : "")}
+                  id={optionId(i)}
+                  ref={(el) => { optionRefs.current[i] = el; }}
+                  className={"siamang-search-dropdown__option"
+                    + (sameCode(currentCode, opt.code) ? " is-selected" : "")
+                    + (i === active ? " is-active" : "")}
                   role="option"
                   aria-selected={sameCode(currentCode, opt.code)}
                   onClick={() => choose(opt.code)}

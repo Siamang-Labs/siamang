@@ -1066,6 +1066,110 @@ def test_a_players_and_a_summarys_keys_are_their_own(tmp_path):
     assert state["submitted"] == [{"__status": "completed"}]
 
 
+def _dropdown_document() -> dict[str, Any]:
+    """A page before, then a required searchable dropdown of three fruits."""
+
+    fruits = [
+        {"code": 1, "label": "Apple"},
+        {"code": 2, "label": "Pear"},
+        {"code": 3, "label": "Plum"},
+    ]
+    return {
+        "schema_version": "1.0",
+        "title": "Fruit",
+        "variables": {
+            "name": {"scale": "nominal", "dtype": "str"},
+            "fruit": {"scale": "nominal", "labels": fruits},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [{"type": "OpenText", "id": "name", "var": "name", "text": "Name?"}],
+            },
+            {
+                "name": "p2",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "fruit",
+                        "var": "fruit",
+                        "text": "Fruit?",
+                        "display": "dropdown",
+                        "required": True,
+                    }
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
+    """Enter on the button opened the menu with the focus in its search box,
+    and there nothing worked: the options took no keys, Esc did nothing and
+    Tab left the menu open. In the search box ↓ ↑ now move along the options,
+    Enter chooses the one they are on and gives the focus back to the button,
+    Esc closes the menu and Tab away closes it; typing narrows the list to
+    what matches and Enter takes the first. On the button ↓ opens the menu and
+    Esc closes it rather than going back a page."""
+
+    scenario = (
+        _MATRIX_KEYS
+        + _NEXT
+        + """
+        const pages = () => page.evaluate(() => window.__T.pages.slice());
+        const menu = () => page.$$eval(".siamang-search-dropdown__menu", (m) => m.length);
+        const label = () => page.$eval(".siamang-search-dropdown__trigger", (b) => b.textContent);
+        const activeOption = () => page.evaluate(() => {
+            const id = document.activeElement.getAttribute("aria-activedescendant");
+            return id ? document.getElementById(id).textContent : null;
+        });
+        await page.focus(".siamang-search-dropdown__trigger");
+        await press("Enter");
+        const opened = { menu: await menu(), role: await page.evaluate(() => document.activeElement.getAttribute("role")) };
+        await press("ArrowDown", "ArrowDown");
+        const down = await activeOption();
+        await press("ArrowUp");
+        const up = await activeOption();
+        await press("Escape");
+        const escaped = { menu: await menu(), focused: await focused(), label: await label(), pages: await pages() };
+        await press("ArrowDown");
+        await page.keyboard.type("plu");
+        const typed = await activeOption();
+        await press("Enter");
+        const picked = { menu: await menu(), focused: await focused(), label: await label() };
+        await press("Enter", "Shift+Tab");
+        await press("Escape");
+        const closedOnButton = { menu: await menu(), pages: await pages() };
+        await press("Enter", "Tab");
+        const tabbed = { menu: await menu(), inside: await page.evaluate(() =>
+            !!document.activeElement.closest(".siamang-search-dropdown")) };
+    """
+        + _NEXT
+        + _STATE.replace(
+            "return {", "return { opened, down, up, escaped, typed, picked, closedOnButton, tabbed,"
+        )
+    )
+    state = run_in_browser(_dropdown_document(), scenario, tmp_path)
+    assert state["opened"] == {"menu": 1, "role": "combobox"}
+    assert (state["down"], state["up"]) == ("Pear", "Apple")
+    assert state["escaped"] == {
+        "menu": 0,
+        "focused": "sd-input siamang-search-dropdown__trigger",
+        "label": "— Select —",
+        "pages": ["p1", "p2"],
+    }
+    assert state["typed"] == "Plum"
+    assert state["picked"] == {
+        "menu": 0,
+        "focused": "sd-input siamang-search-dropdown__trigger",
+        "label": "Plum",
+    }
+    assert state["closedOnButton"] == {"menu": 0, "pages": ["p1", "p2"]}
+    assert state["tabbed"] == {"menu": 0, "inside": False}
+    assert state["submitted"] == [{"fruit": 3, "__status": "completed"}]
+
+
 # ── MaxDiff and Conjoint ─────────────────────────────────────────────────────
 
 
