@@ -18,6 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from siamang.core.question import MultiChoice, Ranking
@@ -64,7 +65,7 @@ def read_snapshot(
 
     embedded: VariableMap | None = None
     if suffix == ".parquet":
-        frame = pd.read_parquet(source, **read_kwargs)
+        frame = _lists_back(pd.read_parquet(source, **read_kwargs))
     elif suffix == ".csv":
         frame = pd.read_csv(source, **read_kwargs)
     elif suffix in {".xlsx", ".xls"}:
@@ -99,6 +100,28 @@ def read_snapshot(
     if weight is not None:
         data = data.with_weight(weight)
     return data
+
+
+def _lists_back(frame: pd.DataFrame) -> pd.DataFrame:
+    """Parquet keeps a multiple-choice answer as a list, but pandas reads it
+    back as a numpy array — which no multiple-choice helper takes for a list
+    (``multi.is_multi`` is false, Explode fails on "the truth value of an array
+    is ambiguous"). Every array cell becomes the list it was written as."""
+
+    out = frame
+    for column in frame.columns:
+        series = frame[column]
+        if series.dtype != object:
+            continue
+        arrays = series.map(lambda value: isinstance(value, np.ndarray))
+        if not arrays.any():
+            continue
+        if out is frame:
+            out = frame.copy()
+        out[column] = series.map(
+            lambda value: value.tolist() if isinstance(value, np.ndarray) else value
+        )
+    return out
 
 
 def write_snapshot(
