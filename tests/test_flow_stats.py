@@ -621,3 +621,65 @@ def test_what_the_parameters_settle_is_checked_before_the_run(questionnaire_doc)
         )
         == []
     )
+
+
+def test_a_made_variable_of_the_wrong_scale_is_warned(questionnaire_doc):
+    """A Crosstab of a factor score (interval) ran with one row per distinct
+    float and nothing said so: made variables' scales were not checked, only the
+    codebook's. They are now — as a warning, so a flow saved before runs on."""
+
+    def issues(nodes):
+        flow = _flow(
+            [("src", "source.responses", {}), *nodes],
+            [("src", "data", nodes[0][0], "data")]
+            + [(a[0], "data", b[0], "data") for a, b in zip(nodes, nodes[1:], strict=False)],
+        )
+        return [
+            (i.severity, i.code, i.message)
+            for i in check_flow(flow, questionnaire=questionnaire_doc)
+        ]
+
+    items = ["trust_acme", "trust_globex", "satisfaction", "age"]
+    factor_then = [("fa", "analyze.factor", {"items": items, "n_factors": 1, "scores": True})]
+    assert issues(
+        [*factor_then, ("xt", "analyze.crosstab", {"row": "factor_1", "col": "gender"})]
+    ) == [
+        (
+            "warning",
+            "VARIABLE_SCALE",
+            "Parameter 'row' of xt: 'factor_1' is interval (as the node that makes it gives it),"
+            " expected nominal | ordinal.",
+        )
+    ]
+    assert issues([*factor_then, ("m", "analyze.means", {"y": "factor_1", "by": "gender"})]) == []
+    derive = {"name": "young", "formula": "if age < 30 then 1 else 2"}
+    assert issues(
+        [
+            ("d", "prepare.derive", derive),
+            ("xt", "analyze.crosstab", {"row": "young", "col": "gender"}),
+        ]
+    )[0][:2] == ("warning", "VARIABLE_SCALE")  # a Derive is ratio unless told otherwise
+    assert (
+        issues(
+            [
+                ("d", "prepare.derive", {**derive, "scale": "nominal"}),
+                ("xt", "analyze.crosstab", {"row": "young", "col": "gender"}),
+            ]
+        )
+        == []
+    )
+    bands = {"variable": "age", "bins": [18, 30, 65], "into": "age_band"}
+    assert (
+        issues(
+            [
+                ("b", "prepare.bands", bands),
+                ("t", "analyze.ttest", {"y": "age", "group": "age_band"}),
+            ]
+        )
+        == []
+    )
+    # A codebook variable of the wrong scale is still an error.
+    assert issues([("xt", "analyze.crosstab", {"row": "age", "col": "gender"})])[0][:2] == (
+        "error",
+        "VARIABLE_SCALE",
+    )
