@@ -463,8 +463,8 @@ equal weights reproduce the unweighted result). Each names the column in
 `correlation` with Pearson (and a Pearson correlation matrix) is weighted too,
 with its p on Kish's effective base, and names the column. `kruskal`,
 `mannwhitney`, `spearman`, `compare_groups`, `correlation` with Spearman or
-Kendall, the t-tests and `SurveyData.cluster` have no standard weighted form and
-run on the respondents as they are; on weighted data their result carries
+Kendall, the t-tests, the paired tests, factor analysis and `SurveyData.cluster`
+have no standard weighted form and run on the respondents as they are; on weighted data their result carries
 `"weight": "unweighted (the weight 'w' is not applied)"` (the tables: `Weight`),
 so it cannot be mistaken for a weighted one. The declarative tables and charts follow
 the same rule — see [[Working with Data|Working-with-Data#what-the-weight-reaches]].

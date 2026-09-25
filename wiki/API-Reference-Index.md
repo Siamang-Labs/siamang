@@ -89,6 +89,10 @@ The dataset object and its derived tables. Documented in
 | `SurveyTables` | `from siamang.data import SurveyTables` | The `data.tables` accessor (banner and summary tables). | [[Banner Tables\|Banner-Tables]] |
 | `BannerTable` | `from siamang.data import BannerTable` | A cross-break banner table with Excel/CSV export. | [[Banner Tables\|Banner-Tables]] |
 | `inference` | `from siamang.data import inference` | Correlations, t-tests, ANOVA, post-hoc tests, Fisher's exact test and p adjustment on plain arrays. | [[Analysis]] |
+| `paired` | `from siamang.data import paired` | Wilcoxon signed-rank, McNemar and Friedman tests for answers from the same respondents. | [[Analysis]] |
+| `factor` | `from siamang.data import factor` | Exploratory factor analysis, with factor scores added to the data. | [[Analysis]] |
+| `descriptives` | `from siamang.data import descriptives` | N, missing, mean, SD, quartiles, skewness and kurtosis of numeric variables. | [[Analysis]] |
+| `bands` | `from siamang.data import bands` | A number cut into a labelled ordinal variable of bands. | [[Analysis]] |
 
 > `SurveyData` is also re-exported at the top level, so `from siamang import SurveyData`
 > and `from siamang.data import SurveyData` both work.
@@ -109,6 +113,9 @@ Declarative, label-aware tables and charts. Documented in
 | `TTestTable` | `from siamang.reporting.stat_tables import TTestTable` | An independent, paired or one-sample t-test with its descriptives. | [[Analysis]] |
 | `CorrelationMatrixTable` | `from siamang.reporting.stat_tables import CorrelationMatrixTable` | Pearson, Spearman or Kendall correlations of several variables, with marks or per pair. | [[Analysis]] |
 | `PostHocTable` | `from siamang.reporting.stat_tables import PostHocTable` | Tukey, Games-Howell or Dunn pairs after a test of several groups. | [[Analysis]] |
+| `ResultTable` | `from siamang.reporting.result_table import ResultTable` | A computed frame with its statistics as the footer (the paired tests and factor analysis). | [[Analysis]] |
+| `DescriptivesTable` | `from siamang.reporting.summaries import DescriptivesTable` | Descriptive statistics of several variables, per group if asked. | [[Analysis]] |
+| `DataCheckTable` | `from siamang.reporting.summaries import DataCheckTable` | The data checked against its codebook, one row per problem. | [[Analysis]] |
 | `BarChart` | `from siamang import BarChart` | A bar chart of counts or grouped means. | [[Reporting Charts\|Reporting-Charts]] |
 | `BoxPlot` | `from siamang import BoxPlot` | Distribution comparison by group. | [[Reporting Charts\|Reporting-Charts]] |
 | `HeatMap` | `from siamang import HeatMap` | Group means or a correlation matrix as a heatmap. | [[Reporting Charts\|Reporting-Charts]] |
