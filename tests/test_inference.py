@@ -718,3 +718,49 @@ def test_analysis_correlation_and_compare_groups():
     )
     with pytest.raises(ValueError, match="Dunn's test follows Kruskal-Wallis"):
         data.analysis.compare_groups("sat", "grp", test="mannwhitney", posthoc="dunn")
+
+
+def test_undefined_cells_print_blank_in_every_stat_table():
+    """A pair that could not be compared, a correlation with a constant and the
+    SD of one answer are NaN in to_frame() and blank when printed — never
+    "nan", "NaN" or "None" in a report or a Studio preview."""
+
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("y", "interval", label="Y"),
+            Variable("y2", "interval", label="Y2"),
+            Variable("y3", "interval", label="Y3"),
+            Variable("g", "nominal", label="G", labels={1: "One", 2: "Two", 3: "Three"}),
+        ]
+    )
+    frame = pd.DataFrame(
+        {
+            "y": [1, 2, 3, 4, 5, 6, 7],
+            "y2": [2, 1, 4, 3, 6, 5, 7],
+            "y3": [1.0] * 7,
+            "g": [1, 1, 1, 2, 2, 2, 3],
+        }
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    means = data.report.means("y", by="g", method="welch_anova", posthoc="games_howell")
+    pairs = data.report.correlation_matrix(["y", "y2", "y3"], layout="pairs")
+    lonely = data.with_frame(frame[frame["g"] != 1])
+    tables = [
+        means.posthoc_table,
+        pairs,
+        data.report.ttest("y", by="g", groups=[1, 3]),
+        lonely.report.ttest("y", by="g", groups=[1, 2]),
+        data.with_frame(frame.iloc[:1]).report.ttest("y", kind="one_sample"),
+    ]
+    for table in tables:
+        for text in (table.to_markdown(), table.to_html()):
+            assert "nan" not in text.lower() and "None" not in text
+    assert "nan" not in means.to_markdown().split("**Post-hoc")[1].lower()
+    assert "| One vs Three | -5.0 |  |  |  |  |  |" in means.posthoc_table.to_markdown()
+    assert "| Y | Y3 |  |  | 7 |" in pairs.to_markdown()
+    assert "<caption>Post-hoc: Games-Howell</caption>" in means.posthoc_table.to_html()
+    # The frame keeps the numbers a program reads: missing, not an empty string.
+    assert means.posthoc_table.to_frame()["q"].isna().tolist() == [False, True, True]
+    assert pairs.to_frame()["rho"].isna().tolist() == [False, True, True]
+    assert lonely.report.ttest("y", by="g", groups=[1, 2]).to_frame()["Mean"].isna()[0]
