@@ -155,10 +155,10 @@ statement, when you set them.
 
 | Input | Does |
 |---|---|
-| `Enter` or `Space` (outside a text field) | next page (or submit on the last). Right after a mouse click on a button or link — a MaxDiff or Conjoint pick, a rating point, a matrix cell — the key still goes on, and every pick stays as it was clicked. Once the keyboard has brought the focus to a button or link (`Tab`, `Shift+Tab`, the arrow keys in a Matrix), the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen, a chosen MaxDiff or Conjoint pick is released |
+| `Enter` or `Space` (outside a text field) | next page (or submit on the last). Right after a mouse click on a button or link — a MaxDiff or Conjoint pick, a rating point, a matrix cell — the key still goes on, and every pick stays as it was clicked. Once the keyboard has brought the focus to a button or link (`Tab`, `Shift+Tab`, the arrow keys in a Matrix), the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen, a chosen MaxDiff or Conjoint pick is released. On a radio button or a checkbox — where a click on a choice or a picture choice leaves the focus — and on a slider, `Enter` goes on with the choice kept, and `Space` is the control's own: it checks the radio, ticks or unticks the box, and does not go on |
 | `Enter` or `Space` on a video or audio player | the player's own keys (`Space` plays or pauses); they never go to the next page. The same holds for an expandable section or a widget in a page's own HTML, and typing in an editable area of it is like typing in a text field |
 | `←` `→` / `↑` `↓` in a Matrix | move along the row, answering it with the cell reached (the N/A column included) / move to the same column in the row above or below; `Tab` leaves the grid. The cell in focus shows the focus ring, a chosen one included |
-| `Enter`, `Space` or `↓` on a dropdown | opens its list, with the cursor in the search box. There `↓` / `↑` move through the options (starting from the chosen one), typing narrows the list to the matches and puts the cursor on the first, and `Enter` chooses the option and closes the list. `Esc` or `Tab` closes the list without choosing; `Esc` on the dropdown itself closes an open list rather than going back a page |
+| `Enter`, `Space` or `↓` on a dropdown | opens its list, with the cursor in the search box. There `↓` / `↑` move through the options (starting from the chosen one), typing narrows the list to the matches and puts the cursor on the first, and `Enter` chooses the option and closes the list. `Esc` or `Tab` closes the list without choosing, however long it is. The keys work wherever the focus is in the open list (a click on its scroll bar puts it there); `Esc` there, or on the dropdown itself, only closes the list, with the focus back on the dropdown — it never goes back a page |
 | `Esc` | previous page (when going back is allowed) |
 | `1`–`9` (outside a text field) | picks that point on the page's first rating scale that has it, as a click does: the answer is autosaved and the question's error message goes. On a scale that starts at 0 the key is the point's number; a digit the scale does not have does nothing |
 | swipe left / right | next / previous page on touch screens |
@@ -381,6 +381,10 @@ See also [[Security and Privacy|Studio-Security-and-Privacy]].
 - When **Next** holds a required Matrix, the cells of its rows still without
   an answer are flagged as invalid to screen readers, as well as marked on
   screen.
+- A required question left without an answer shows and announces "This
+  question requires an answer." when the focus leaves the question, not while
+  it moves between the question's own controls: opening a dropdown, or going
+  from one checkbox to the next, says nothing yet.
 
 ---
 
