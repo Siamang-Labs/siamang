@@ -73,7 +73,7 @@ The runner and the generator use the same order.
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `cell_weights`, `rake_weights`, `apply_weight`, `index` |
-| analyze | `freq`, `crosstab`, `means`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `describe` |
+| analyze | `freq`, `crosstab`, `means`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `describe`, `paired` |
 | visualize | `bar`, `boxplot`, `heatmap`, `scatter` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `live_tile` |
 
@@ -94,7 +94,8 @@ Correlation matrix with Pearson, the Bar chart, a Heatmap with `by`, and
 Proportion CI with `weighted` set. Unweighted and saying so (`"unweighted (the
 weight '<column>' is not applied)"` in the stat, or as the chart title's second
 line): Compare groups, Correlation and Correlation matrix with Spearman or
-Kendall, t-test, Cluster, Box plot, Scatter plot, a Heatmap without `by`,
+Kendall, t-test, Paired tests, Cluster, Box plot, Scatter plot, a Heatmap
+without `by`,
 Response quality and Code open answers. Describe counts rows and adds a
 `weighted_n_valid` column. The HB exports carry no weight. The node's own
 `help` lists the same, so the palette says what the nodes do.
@@ -118,6 +119,17 @@ beside it, so `test: true` / `false` keep their meaning. The methods are
 described in `siamang.data.inference` (data reference).
 `analyze.conjoint_shares` has a `stat` output (base, model, weight) beside its
 table.
+
+`analyze.paired` compares answers from the same respondents
+(`siamang.data.paired.compare`): `test` is `auto` (Wilcoxon signed-rank for two
+`variables`, Friedman for three or more), `wilcoxon`, `mcnemar` or `friedman`;
+`yes_codes` (a code or a list) says what counts as yes for McNemar, `zeros`
+(`wilcox` | `pratt`) how Wilcoxon treats a respondent who answered both the
+same, `p_value` (`auto` | `exact` | `approximate`) how the p-value is found, and
+`posthoc` (`holm` | `bonferroni` | `none`) how Friedman's pairwise Wilcoxon
+tests are adjusted. Outputs: `table` (descriptives, or McNemar's 2 × 2 table,
+with the test as its footer), `pairs` (Friedman's pairwise comparisons; empty,
+with a note, for the two-variable tests) and `stat`.
 
 `source.simulated` generates its rows with
 `siamang.local_simulator.simulate_survey(survey, n=…, seed=…)`: conditions at

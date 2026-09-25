@@ -218,6 +218,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defaults read the data as they always have. A test chosen by hand leaves the
   codebook's missing codes out of its table and test; put **Missing values**
   before the defaults to have them do the same.
+- **Paired tests** — `siamang.data.paired` and the flow node
+  **`analyze.paired`** compare answers that come in sets from one respondent:
+  **Wilcoxon signed-rank** for two ordered variables (zero differences dropped,
+  or ranked with `zeros="pratt"`; exact p-value for small samples and the
+  tie-corrected normal approximation otherwise, as SciPy 1.13+; `Z`, `r = Z/√n`
+  and the matched-pairs rank-biserial correlation), **McNemar** for two yes/no
+  variables (`yes` names the codes; exact binomial below 25 discordant pairs,
+  chi-square with continuity correction above; both discordant counts, the two
+  shares, Cohen's g and the odds ratio), and **Friedman** for three or more
+  (tie-corrected chi-square, Kendall's W, and pairwise Wilcoxon tests adjusted
+  by Holm or Bonferroni in a `pairs` output). `auto` runs Wilcoxon for two
+  variables and Friedman for more. A respondent missing any of the variables
+  is left out of all of them, the codebook's missing codes count as missing,
+  and the statistics say how many were excluded and which codes were met.
+  Nominal variables are refused by Wilcoxon and Friedman, which rank answers.
+- The paired tests are unweighted and, on weighted data, say
+  `Weight: unweighted (the weight 'w' is not applied)`; Apply weight's help
+  lists them. Their tables are `siamang.reporting.result_table.ResultTable`s: a
+  report or a Studio preview shows each with its statistics as a footer, and a
+  cell that does not apply is blank rather than `nan`.
 
 ### Fixed
 

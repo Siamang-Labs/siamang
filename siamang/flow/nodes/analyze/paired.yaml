@@ -1,0 +1,77 @@
+type: analyze.paired
+category: analyze
+title: Paired tests
+description: The same respondents answering two or more questions — Wilcoxon signed-rank or McNemar for two, Friedman for three or more, with pairwise comparisons.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  pairs: Table
+  stat: Stat
+params:
+  variables:
+    kind: variables
+    required: true
+    label: Variables
+    help: Two for Wilcoxon or McNemar, three or more for Friedman — asked of the same respondents, on the same answer scale. A respondent missing any of them is left out of all of them; the codebook's missing codes count as missing.
+  test:
+    kind: enum
+    values:
+    - auto
+    - wilcoxon
+    - mcnemar
+    - friedman
+    default: auto
+    label: Test
+    help: Auto runs Wilcoxon signed-rank for two variables and Friedman for more. McNemar is for two yes/no questions. Wilcoxon and Friedman rank the answers, so they refuse a nominal variable.
+  yes_codes:
+    kind: json
+    label: Counts as yes (McNemar)
+    help: The answer code, or a list of codes, that counts as yes; every other answer counts as no. Empty works for 0/1 variables such as the ones Explode multiple choice makes.
+  zeros:
+    kind: enum
+    values:
+    - wilcox
+    - pratt
+    default: wilcox
+    label: Same answer twice (Wilcoxon)
+    help: wilcox drops the respondents who gave both the same answer before ranking, as R and SPSS do; pratt ranks them with the others and leaves them out of the sums.
+  p_value:
+    kind: enum
+    values:
+    - auto
+    - exact
+    - approximate
+    default: auto
+    label: p-value
+    help: 'Auto is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar: fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise.'
+  posthoc:
+    kind: enum
+    values:
+    - holm
+    - bonferroni
+    - none
+    default: holm
+    label: Pairwise comparisons (Friedman)
+    help: A Wilcoxon signed-rank test for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them.
+subtitle: '{test}: {variables}'
+imports:
+- from siamang.data import paired
+template: |
+  # Each respondent is compared with themselves, so the respondents who did not
+  # answer every variable are left out of all of them (listwise), and the result
+  # says how many. None of these tests has a weighted form: on weighted data
+  # the statistics say the weight is not applied.
+  _paired = paired.compare(
+      {in.data},
+      {variables!r},
+      test={test!r},
+      yes={yes_codes!r},
+      zeros={zeros!r},
+      p_value={p_value!r},
+      posthoc={posthoc!r},
+  )
+  {out.table} = _paired.table
+  {out.pairs} = _paired.pairs
+  {out.stat} = _paired.stats
+preview: table
