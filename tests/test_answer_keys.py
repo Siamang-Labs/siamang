@@ -831,3 +831,134 @@ def test_a_document_whose_ids_are_its_variables_still_validates():
     assert [question_output_name(q) for q in survey.all_questions()] == [
         question_fallback_id(q) for q in survey.all_questions()
     ]
+
+
+# ── validate(): an id the compiler renames is not also a name of the answers ──
+#
+# A question whose id is not its answer key is still named by the id — a
+# script's target, answers["<id>"] in a custom script, which the compiler
+# rewrites to the key. When the id is also a key something else is stored
+# under, answers["<id>"] could mean either, and ingest keying an old runtime's
+# answers by id moved that value into the question's column (Studio audit Q25:
+# `brand_other` → `note`).
+
+
+def _brand_document(note_id: str, **extra) -> dict:
+    """A brand question with "Other (please specify)" — its text stored under
+    `brand_other` — and a note whose id is ``note_id``."""
+
+    document = {
+        "schema_version": "1.0",
+        "title": "Brands",
+        "variables": {
+            "brand": {"scale": "nominal", "labels": {"1": "Acme", "2": "Globex"}},
+            "brand_other": {"scale": "nominal", "dtype": "str", "label": "Brand: other"},
+            "note": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "q1",
+                        "var": "brand",
+                        "text": "Which brand?",
+                        "other_specify": True,
+                    },
+                    {"type": "OpenText", "id": note_id, "var": "note", "text": "Anything else?"},
+                ],
+            }
+        ],
+    }
+    for key, value in extra.items():
+        if isinstance(value, dict) and isinstance(document.get(key), dict):
+            document[key] = {**document[key], **value}
+        else:
+            document[key] = value
+    return document
+
+
+def test_an_id_may_not_be_the_key_of_another_questions_other_text():
+    survey = from_document(_brand_document("brand_other")).survey
+    with pytest.raises(
+        ValueError,
+        match=r"Question 'brand_other' stores its answer under 'note', but 'brand_other' is "
+        r"also the key question 'q1' stores its “Other \(please specify\)” text under",
+    ):
+        survey.validate()
+    # What the rule prevents: a script reading the Other text by its key is
+    # rewritten to read the note.
+    aliases = {"q1": "brand", "brand_other": "note"}
+    assert rewrite_answer_keys('answers["brand_other"]', aliases) == 'answers["note"]'
+
+
+def test_an_id_may_not_be_a_variable_the_codebook_holds_and_no_question_collects():
+    document = _brand_document("panel", variables={"panel": {"scale": "nominal"}})
+    with pytest.raises(
+        ValueError,
+        match="'panel' is also a variable the codebook declares and no question collects",
+    ):
+        from_document(document).survey.validate()
+
+
+def test_an_id_may_not_be_a_variable_a_script_assigns():
+    arms = [{"code": 1, "label": "A"}, {"code": 2, "label": "B"}]
+    script = {"type": "assign_condition", "variable": "condition", "arms": arms}
+    document = _brand_document(
+        "condition",
+        variables={"condition": {"scale": "nominal", "labels": {"1": "A", "2": "B"}}},
+        scripts=[script],
+    )
+    with pytest.raises(
+        ValueError, match="'condition' is also the variable script 'assign_condition' assigns"
+    ):
+        from_document(document).survey.validate()
+
+
+def test_an_id_may_not_be_a_row_of_a_matrix():
+    """The rule before this one compared an id with the other questions' keys,
+    which for a matrix is its handle, not its rows."""
+
+    m1 = Variable("m1", "ordinal", labels=AGREE)
+    m2 = Variable("m2", "ordinal", labels=AGREE)
+    col = Variable("col", "nominal", labels=AGREE)
+    grid = Matrix("Rate", var=[m1, m2], id="grid")
+    other = Questionnaire(
+        title="T", pages=[Page("p1", items=[grid, SingleChoice("B?", var=col, id="m2")])]
+    )
+    with pytest.raises(ValueError, match="'m2' is also a variable question 'grid' stores"):
+        other.validate()
+    own = Questionnaire(
+        title="T", pages=[Page("p1", items=[Matrix("Rate", var=[m1, m2], id="m1", name="grid")])]
+    )
+    with pytest.raises(ValueError, match="'m1' is also a variable the question itself stores"):
+        own.validate()
+
+
+def test_an_id_may_not_be_a_name_the_runtime_keeps_its_state_under():
+    with pytest.raises(ValueError, match="'__pages__' is also a name the runtime keeps"):
+        from_document(_brand_document("__pages__")).survey.validate()
+
+
+def test_ids_beside_other_texts_embedded_data_and_arms_are_otherwise_free():
+    """The Builder's ids (q1, q2, …) beside an Other text, embedded data and an
+    assigned arm, and an id that is its own key whatever it is named: valid."""
+
+    arms = [{"code": 1, "label": "A"}, {"code": 2, "label": "B"}]
+    document = _brand_document(
+        "q2",
+        variables={
+            "panel": {"scale": "nominal"},
+            "condition": {"scale": "nominal", "labels": {"1": "A", "2": "B"}},
+            "m1": {"scale": "ordinal", "labels": {"1": "Agree", "2": "Disagree"}},
+            "m2": {"scale": "ordinal", "labels": {"1": "Agree", "2": "Disagree"}},
+        },
+        scripts=[{"type": "assign_condition", "variable": "condition", "arms": arms}],
+    )
+    # A matrix's id is its key: nothing renames it, and it stores nothing
+    # under it, so it may even be the name of the embedded data.
+    document["pages"][0]["items"].append(
+        {"type": "Matrix", "id": "panel", "var": ["m1", "m2"], "text": "Rate"}
+    )
+    from_document(document).survey.validate()

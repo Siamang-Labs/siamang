@@ -174,6 +174,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fires on any row, as before, and Studio's walkthrough trace keeps saying so
   for the skip, while its "answered" count now counts a matrix once every row
   is answered — what Required asks for, as it already did for a MaxDiff.
+- `validate()` let a question whose id is not its answer key (id `q1`,
+  variable `nps_1`) carry as its id a name the answers already hold something
+  else under: another question's Other text key (`brand_other`), a matrix's
+  row variable, a variable `Script.assign_condition` assigns, a codebook
+  variable no question collects (embedded data), or one of the runtime's `__`
+  keys. The compiler rewrites a custom script's `answers["<id>"]` to the key,
+  so `answers["brand_other"]` read the note instead of the Other text, and a
+  platform keying an old runtime's answers by id moved the Other text into the
+  note's column. Such a document is now refused — "Question 'brand_other'
+  stores its answer under 'note', but 'brand_other' is also the key question
+  'q1' stores its “Other (please specify)” text under. A script that names
+  'brand_other' could mean either; give the question another id." — while an
+  id that is its question's own key, which nothing renames, stays free.
 - `validate()` rejected a `show_if` / `next_if` on a variable no question
   collects — the arm `Script.assign_condition` writes, or embedded data declared
   in the codebook — as "unknown variables", which made the one thing an
