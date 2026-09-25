@@ -230,6 +230,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   data, and the Builder before patch 0043 left such an entry behind whenever a
   question's variable was renamed (id `q2`, variable `comment`, entry `q2`), so
   those documents stay valid.
+- A spread of a question's answer in a custom script — `[...answers.q1]`,
+  `Math.max(...answers["q1"])` — was not rewritten to the answer key when the
+  id is not the key: the rewrite took the `.` of `...` for some other object's
+  `answers`, and the strict lint's stale-id check did not report it either, so
+  the script spread `undefined` and failed. It is rewritten like any other
+  access now.
 - `validate()` rejected a `show_if` / `next_if` on a variable no question
   collects — the arm `Script.assign_condition` writes, or embedded data declared
   in the codebook — as "unknown variables", which made the one thing an
