@@ -1,0 +1,104 @@
+type: analyze.factor
+category: analyze
+title: Factor analysis
+description: Exploratory factor analysis of a set of items — loadings, communalities, variance explained, KMO and Bartlett's test, factor correlations, and factor scores if wanted.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+  loadings: Table
+  variance: Table
+  correlations: Table
+  stat: Stat
+params:
+  items:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Items
+    help: Three or more, analysed as standardised scores (their correlations). A respondent missing any item is left out; the codebook's missing codes count as missing.
+  n_factors:
+    kind: int
+    minimum: 1
+    label: Factors
+    help: Empty chooses the number by the rule below.
+  criterion:
+    kind: enum
+    values:
+    - kaiser
+    - parallel
+    default: kaiser
+    label: Number of factors by
+    help: When Factors is empty. kaiser keeps the eigenvalues above 1; parallel keeps the factors whose eigenvalue beats the 95th percentile of 100 random data sets of the same size, drawn from Seed.
+  method:
+    kind: enum
+    values:
+    - minres
+    - principal
+    - ml
+    default: minres
+    label: Extraction
+    help: minres (minimum residual) as psych and factor_analyzer; principal is iterated principal axis factoring; ml is maximum likelihood, as R's factanal, and adds a test of fit.
+  rotation:
+    kind: enum
+    values:
+    - varimax
+    - promax
+    - oblimin
+    - none
+    default: varimax
+    label: Rotation
+    help: varimax keeps the factors uncorrelated. promax and oblimin let them correlate and report how much (the correlations output); their loadings are the pattern matrix.
+  sort:
+    kind: bool
+    default: false
+    label: Sort items by factor
+  hide_below:
+    kind: float
+    default: 0
+    minimum: 0
+    maximum: 1
+    label: Hide loadings below
+    help: Blank out the loadings smaller than this in the table (0 shows every loading), so the structure reads at a glance.
+  scores:
+    kind: bool
+    default: false
+    label: Add factor scores
+    help: Regression-method scores, one variable per factor, missing for the respondents left out.
+  into:
+    kind: string
+    default: factor_
+    creates: variable
+    label: Score variable prefix
+    help: The scores are named <prefix>1, <prefix>2, …
+  seed:
+    kind: int
+    default: 42
+    label: Seed (parallel analysis)
+subtitle: '{method}, {rotation}: {items}'
+imports:
+- from siamang.data import factor
+template: |
+  # Unweighted: on weighted data the statistics say the weight is not applied.
+  _factors = factor.analyze(
+      {in.data},
+      {items!r},
+      n_factors={n_factors!r},
+      criterion={criterion!r},
+      method={method!r},
+      rotation={rotation!r},
+      sort={sort!r},
+      hide_below={hide_below!r},
+      scores={scores!r},
+      into={into!r},
+      seed={seed!r},
+  )
+  {out.data} = _factors.data
+  {out.loadings} = _factors.loadings
+  {out.variance} = _factors.variance
+  {out.correlations} = _factors.correlations
+  {out.stat} = _factors.stats
+preview: table

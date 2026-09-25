@@ -1,4 +1,4 @@
-"""The Paired tests node in a flow: checked, run, generated."""
+"""The Paired tests and Factor analysis nodes in a flow: checked, run, generated."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from siamang.reporting.result_table import ResultTable
 DOCUMENTS = Path(__file__).resolve().parent / "documents"
 ROOT = Path(__file__).resolve().parents[1]  # this checkout, which the script must import
 TRUST = ["trust_acme", "trust_globex"]
+ITEMS = ["trust_acme", "trust_globex", "satisfaction", "age"]
 
 
 @pytest.fixture(scope="module")
@@ -49,15 +50,27 @@ def _stats_flow(source=("src", "source.responses", {})):
         ("wil", "analyze.paired", {"variables": TRUST}),
         ("mcn", "analyze.paired", {"variables": TRUST, "test": "mcnemar", "yes_codes": [4, 5]}),
         ("fri", "analyze.paired", {"variables": [*TRUST, "satisfaction"], "posthoc": "bonferroni"}),
-        ("sec", "output.report_section", {"heading": "Related samples"}),
+        (
+            "fac",
+            "analyze.factor",
+            {"items": ITEMS, "n_factors": 2, "rotation": "oblimin", "scores": True},
+        ),
+        ("means", "analyze.means", {"y": "factor_1", "by": "region"}),
+        ("sec", "output.report_section", {"heading": "Related samples and factors"}),
         ("save", "output.save_report", {"title": "Stats", "path": "outputs/stats.md"}),
     ]
-    edges = [(source[0], "data", n, "data") for n in ("wil", "mcn", "fri")]
+    edges = [(source[0], "data", n, "data") for n in ("wil", "mcn", "fri", "fac")]
     edges += [
+        ("fac", "data", "means", "data"),
         ("wil", "table", "sec", "items"),
         ("mcn", "table", "sec", "items"),
         ("fri", "table", "sec", "items"),
         ("fri", "pairs", "sec", "items"),
+        ("fac", "loadings", "sec", "items"),
+        ("fac", "variance", "sec", "items"),
+        ("fac", "correlations", "sec", "items"),
+        ("fac", "stat", "sec", "items"),
+        ("means", "table", "sec", "items"),
         ("sec", "report", "save", "sections"),
     ]
     return _flow(nodes, edges)
@@ -69,26 +82,45 @@ def test_the_nodes_are_registered_and_listed_as_unweighted():
     assert paired.outputs == {"table": "Table", "pairs": "Table", "stat": "Stat"}
     assert paired.params["test"].values == ("auto", "wilcoxon", "mcnemar", "friedman")
     assert paired.params["yes_codes"].kind == "json"
+    factor = registry.get("analyze.factor")
+    assert list(factor.outputs) == ["data", "loadings", "variance", "correlations", "stat"]
+    assert factor.params["method"].values == ("minres", "principal", "ml")
+    assert factor.params["rotation"].default == "varimax"
+    assert factor.params["into"].creates == "variable"
     help_text = registry.get("prepare.apply_weight").params["column"].help
     _, unweighted = help_text.split("Unweighted, and saying so:")
-    assert "Paired tests" in unweighted
+    assert "Paired tests" in unweighted and "Factor analysis" in unweighted
 
 
-def test_check_flow_accepts_the_paired_tests(questionnaire_doc):
+def test_check_flow_knows_the_factor_scores_a_later_node_names(questionnaire_doc):
     assert check_flow(_stats_flow(), questionnaire=questionnaire_doc) == []
+    # Two fixed factors make factor_1 and factor_2, not factor_3.
     flow = _stats_flow()
-    flow["nodes"][1]["params"]["variables"] = ["trust_acme", "trust_nope"]
+    flow["nodes"][5]["params"]["y"] = "factor_3"
     issues = check_flow(flow, questionnaire=questionnaire_doc)
     assert [issue.code for issue in issues] == ["UNKNOWN_VARIABLE"]
+    # Chosen by a rule, any number up to one fewer than the items may appear.
+    flow["nodes"][4]["params"].pop("n_factors")
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    # Without scores there are none to name.
+    flow["nodes"][4]["params"]["scores"] = False
+    issues = check_flow(flow, questionnaire=questionnaire_doc)
+    assert [issue.code for issue in issues] == ["UNKNOWN_VARIABLE"]
+    # The items take ordered scales; a nominal one is named before the run.
+    flow = _stats_flow()
+    flow["nodes"][4]["params"]["items"] = [*ITEMS, "region"]
+    issues = check_flow(flow, questionnaire=questionnaire_doc)
+    assert [issue.code for issue in issues] == ["VARIABLE_SCALE"]
 
 
 def test_the_nodes_run_on_weighted_survey_data(questionnaire_doc, survey, tmp_path):
     nodes = [
         ("sim", "source.simulated", {"n": 250, "seed": 11}),
         ("cell", "prepare.cell_weights", {"variable": "gender", "targets": {"1": 0.5, "2": 0.5}}),
+        ("apply", "prepare.apply_weight", {}),
     ]
     flow = _stats_flow(source=("apply", "prepare.apply_weight", {}))
-    flow["nodes"] = [{"id": i, "type": t, "params": p} for i, t, p in nodes] + flow["nodes"]
+    flow["nodes"] = [{"id": i, "type": t, "params": p} for i, t, p in nodes[:2]] + flow["nodes"]
     flow["edges"] = [
         {"from": {"node": "sim", "port": "data"}, "to": {"node": "cell", "port": "data"}},
         {"from": {"node": "cell", "port": "data"}, "to": {"node": "apply", "port": "data"}},
@@ -111,8 +143,15 @@ def test_the_nodes_run_on_weighted_survey_data(questionnaire_doc, survey, tmp_pa
     assert result.output("fri", "stat")["Test"] == "Friedman"
     assert len(result.output("fri", "pairs").to_frame()) == 3
     assert "Bonferroni" in result.output("fri", "pairs").stats["Adjustment"]
+    stat = result.output("fac", "stat")
+    assert stat["Weight"] == unweighted and stat["Factors"] == 2
+    assert stat["Rotation"] == "oblimin (direct quartimin, gamma 0)"
+    scored = result.output("fac", "data")
+    assert {"factor_1", "factor_2"} <= set(scored.frame.columns)
+    assert scored.weight == "weight"  # the weight travels on with the data
+    assert "Factor 1 score" in result.output("means", "stat")["Variable"]
     report = (tmp_path / "outputs" / "stats.md").read_text("utf-8")
-    assert "Kendall's W" in report and "Rank-biserial r" in report and "nan" not in report
+    assert "Kendall's W" in report and "Communality" in report and "nan" not in report
 
 
 def test_the_generated_script_reproduces_the_runner(questionnaire_doc, survey, tmp_path):
@@ -126,7 +165,8 @@ def test_the_generated_script_reproduces_the_runner(questionnaire_doc, survey, t
 
     code = generate_flow(flow, questionnaire_doc)
     assert code == generate_flow(flow, questionnaire_doc)
-    assert "from siamang.data import paired" in code and "paired.compare(" in code
+    assert "from siamang.data import factor, paired" in code
+    assert "paired.compare(" in code and "factor.analyze(" in code
     (script_dir / "survey").mkdir(parents=True)
     (script_dir / "survey" / "__init__.py").write_text("", encoding="utf-8")
     (script_dir / "survey" / "questionnaire.py").write_text(
@@ -150,4 +190,4 @@ def test_the_generated_script_reproduces_the_runner(questionnaire_doc, survey, t
     theirs = (script_dir / "outputs" / "stats.md").read_text("utf-8")
     assert ours == theirs
     assert "Wilcoxon signed-rank" in ours and "McNemar" in ours
-    assert json.dumps(result.output("fri", "stat"))  # a stat is plain JSON for a tile
+    assert json.dumps(result.output("fac", "stat"))  # a stat is plain JSON for a tile

@@ -233,7 +233,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is left out of all of them, the codebook's missing codes count as missing,
   and the statistics say how many were excluded and which codes were met.
   Nominal variables are refused by Wilcoxon and Friedman, which rank answers.
-- The paired tests are unweighted and, on weighted data, say
+- **Factor analysis** — `siamang.data.factor` and the flow node
+  **`analyze.factor`**: exploratory factor analysis of three or more items,
+  extracted by minres (default), iterated principal axis or maximum
+  likelihood (with its test of fit); the number of factors fixed, by the
+  Kaiser criterion or by parallel analysis from a seed; rotated by varimax,
+  promax (power 4) or oblimin (direct quartimin), or not at all. Outputs the
+  loadings with communality, uniqueness and per-item MSA (sortable, small
+  loadings hideable), the eigenvalues and variance explained, the factor
+  correlations, and KMO, Bartlett's test and RMSR; with `scores` it adds
+  regression-method factor scores to the data as `factor_1`, `factor_2`, …
+  (labelled variables a later node can name). The numbers reproduce the
+  `factor_analyzer` package and `psych::fa` / `factanal`; the conventions
+  (sign, order, Kaiser normalization) are in the module's docstring. Fewer
+  than three items, no more respondents than items, a constant item, a
+  singular correlation matrix and as many factors as items are refused with
+  the reason.
+- Both are unweighted and, on weighted data, say
   `Weight: unweighted (the weight 'w' is not applied)`; Apply weight's help
   lists them. Their tables are `siamang.reporting.result_table.ResultTable`s: a
   report or a Studio preview shows each with its statistics as a footer, and a

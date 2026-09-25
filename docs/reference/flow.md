@@ -73,7 +73,7 @@ The runner and the generator use the same order.
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `cell_weights`, `rake_weights`, `apply_weight`, `index` |
-| analyze | `freq`, `crosstab`, `means`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `describe`, `paired` |
+| analyze | `freq`, `crosstab`, `means`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `describe`, `paired`, `factor` |
 | visualize | `bar`, `boxplot`, `heatmap`, `scatter` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `live_tile` |
 
@@ -94,8 +94,8 @@ Correlation matrix with Pearson, the Bar chart, a Heatmap with `by`, and
 Proportion CI with `weighted` set. Unweighted and saying so (`"unweighted (the
 weight '<column>' is not applied)"` in the stat, or as the chart title's second
 line): Compare groups, Correlation and Correlation matrix with Spearman or
-Kendall, t-test, Paired tests, Cluster, Box plot, Scatter plot, a Heatmap
-without `by`,
+Kendall, t-test, Paired tests, Factor analysis, Cluster, Box plot, Scatter
+plot, a Heatmap without `by`,
 Response quality and Code open answers. Describe counts rows and adds a
 `weighted_n_valid` column. The HB exports carry no weight. The node's own
 `help` lists the same, so the palette says what the nodes do.
@@ -130,6 +130,16 @@ same, `p_value` (`auto` | `exact` | `approximate`) how the p-value is found, and
 tests are adjusted. Outputs: `table` (descriptives, or McNemar's 2 × 2 table,
 with the test as its footer), `pairs` (Friedman's pairwise comparisons; empty,
 with a note, for the two-variable tests) and `stat`.
+
+`analyze.factor` runs an exploratory factor analysis
+(`siamang.data.factor.analyze`): `items`, `n_factors` (empty: by `criterion`,
+`kaiser` or `parallel` from `seed`), `method` (`minres` | `principal` | `ml`),
+`rotation` (`varimax` | `promax` | `oblimin` | `none`), `sort`, `hide_below`,
+and `scores` with the prefix `into` (default `factor_`). Outputs: `data` (with
+`<into>1` … when `scores` is on), `loadings`, `variance`, `correlations` and
+`stat`. `check_flow` knows the score variables, so a later node may name
+`factor_1`: exactly `n_factors` of them when it is fixed, and up to one fewer
+than the items when a rule chooses.
 
 `source.simulated` generates its rows with
 `siamang.local_simulator.simulate_survey(survey, n=…, seed=…)`: conditions at
