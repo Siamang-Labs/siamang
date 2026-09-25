@@ -498,7 +498,10 @@ def test_a_parameter_stored_empty_is_its_default_in_the_check_and_the_run(
     no condition chose, or produced no output at all."""
 
     flow, issues = _one(node_type, params, questionnaire_doc)
-    assert issues == []
+    # Three genders and no groups named: the check warns before the run refuses.
+    warned = ["PARAM_CONFLICT"] if node_type == "analyze.ttest" else []
+    assert [i.code for i in issues if i.severity == "warning"] == warned
+    assert [i for i in issues if i.severity == "error"] == []
     graph = resolve_flow(flow, questionnaire=questionnaire_doc)
     stored = {name: value for name, value in params.items() if value not in (None, "", [])}
     clean, _ = _one(node_type, stored, questionnaire_doc)
@@ -560,3 +563,61 @@ def test_a_section_captions_each_output_of_a_node_on_its_own(questionnaire_doc):
     code = render_node(resolve_flow(flow, questionnaire=questionnaire_doc), "sec")
     assert "['Table 5. Loadings', 'Factor analysis', 'Factor analysis']" in code
     assert "[{}, {'width': '60%'}, {}]" in code
+
+
+def test_what_the_parameters_settle_is_checked_before_the_run(questionnaire_doc):
+    """How many variables a paired test compares is in the flow, so a McNemar of
+    three or a Friedman of two is an error of the check — in the words the run
+    would refuse it with — not a surprise in the sandbox. A t-test of two groups
+    whose Groups has three answers and none named is a warning: a filter
+    upstream may leave only two in the data."""
+
+    def issues(node_type, params):
+        return [(i.severity, i.message) for i in _one(node_type, params, questionnaire_doc)[1]]
+
+    three = ["trust_acme", "trust_globex", "satisfaction"]
+    assert issues("analyze.paired", {"variables": three, "test": "mcnemar"}) == [
+        ("error", "n: McNemar compares exactly two variables; 3 were given.")
+    ]
+    assert issues("analyze.paired", {"variables": three, "test": "wilcoxon"}) == [
+        (
+            "error",
+            "n: Wilcoxon signed-rank compares exactly two variables; 3 were given. For three"
+            " or more, use Friedman.",
+        )
+    ]
+    assert issues("analyze.paired", {"variables": three[:2], "test": "friedman"}) == [
+        (
+            "error",
+            "n: Friedman's test compares three or more variables; 2 were given. For two, use"
+            " Wilcoxon signed-rank (or McNemar for yes/no).",
+        )
+    ]
+    assert issues("analyze.paired", {"variables": three[:1]})[0][1].startswith(
+        "n: Paired tests compare two or more variables"
+    )
+    assert issues("analyze.paired", {"variables": three}) == []  # auto: Friedman
+    assert issues("analyze.paired", {"variables": three[:2], "test": "mcnemar"}) == []
+
+    assert issues("analyze.ttest", {"y": "age", "group": "gender"}) == [
+        (
+            "warning",
+            "n: Gender has 3 answers (1 = Male, 2 = Female, 3 = Other); a t-test compares two"
+            " — name them in Group A and Group B, unless the data this node reads holds only"
+            " two of them.",
+        )
+    ]
+    assert (
+        issues("analyze.ttest", {"y": "age", "group": "gender", "group_a": 1, "group_b": 2}) == []
+    )
+    # The codebook's missing codes are not answers: No trust … Full, not Refused.
+    assert (
+        "has 5 answers (1 = No trust"
+        in issues("analyze.ttest", {"y": "age", "group": "trust_acme"})[0][1]
+    )
+    assert (
+        issues(
+            "analyze.ttest", {"kind": "paired", "y": "age", "y2": "trust_acme", "group": "gender"}
+        )
+        == []
+    )
