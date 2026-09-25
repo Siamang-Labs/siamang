@@ -11,7 +11,10 @@ Problems about the shape of the file rather than its values — columns the
 codebook does not know, variables the data does not have — are gathered into
 one row each, because a prepared frame (after Select, say) legitimately lacks
 many codebook variables and fifty rows of that would bury the one row that
-matters.
+matters. Two kinds of undeclared column are expected rather than problems and
+are named in the stats instead: the weight column the data is weighted by, and
+the response metadata the runtime and the platform keep beside the answers
+(:data:`METADATA_COLUMNS`, and the survey link's ``url_*`` parameters).
 
 It counts rows, not people in the population, so on weighted data the result
 says the weight is not applied.
@@ -30,7 +33,7 @@ if TYPE_CHECKING:
     from siamang.core.variable import ValidationIssue, Variable
     from siamang.data.survey_data import SurveyData
 
-__all__ = ["COLUMNS", "DataCheck", "check"]
+__all__ = ["COLUMNS", "METADATA_COLUMNS", "DataCheck", "check"]
 
 COLUMNS = ["Severity", "Variable", "Problem", "Rows", "Examples", "Code"]
 
@@ -50,6 +53,30 @@ _PROBLEMS = {
 }
 #: Problems of the file's shape, gathered into one row per code.
 _GATHERED = ("MISSING_COLUMN", "EXTRA_COLUMN")
+
+#: Columns a response table carries beside the answers, which no codebook
+#: declares: the store's own (``id``, ``survey_id``, ``created_at``, …), the
+#: runtime's (``respondent_id``, ``__status``, the timing) and the platform's
+#: behavioural signals, and the ``duration_s`` and ``partial`` that Speeders adds.
+#: With the ``url_*`` link parameters they are not reported as extra columns.
+METADATA_COLUMNS = frozenset(
+    {
+        "id",
+        "survey_id",
+        "respondent_id",
+        "created_at",
+        "updated_at",
+        "started_at",
+        "submitted_at",
+        "duration_s",
+        "partial",
+        "__status",
+        "captcha",
+        "tab_switches",
+        "hidden_seconds",
+        "pastes",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +104,20 @@ def check(data: SurveyData, variables: Sequence[str] | None = None) -> DataCheck
         issue
         for issue in issues
         if not (issue.code == "QUESTIONNAIRE_COLUMN_MISSING" and issue.variable in absent)
+    ]
+    # The weight and the response metadata are expected beside the codebook.
+    weight = [i.column for i in issues if i.code == "EXTRA_COLUMN" and i.column == data.weight]
+    metadata = [
+        str(issue.column)
+        for issue in issues
+        if issue.code == "EXTRA_COLUMN" and issue.column != data.weight and _metadata(issue.column)
+    ]
+    issues = [
+        issue
+        for issue in issues
+        if not (
+            issue.code == "EXTRA_COLUMN" and (issue.column in weight or issue.column in metadata)
+        )
     ]
 
     rows: list[dict[str, Any]] = []
@@ -117,9 +158,18 @@ def check(data: SurveyData, variables: Sequence[str] | None = None) -> DataCheck
     }
     if not rows:
         stats["Result"] = "no problems found"
+    expected = [f"{name} (the weight)" for name in weight]
+    if metadata:
+        expected.append(f"{_join(sorted(metadata), limit=8)} (response metadata)")
+    if expected:
+        stats["Not in the codebook, as expected"] = "; ".join(expected)
     if data.weight is not None:
         stats["Weight"] = unweighted_note(data.weight)
     return DataCheck(table=table, stats=stats)
+
+
+def _metadata(column: Any) -> bool:
+    return isinstance(column, str) and (column in METADATA_COLUMNS or column.startswith("url_"))
 
 
 def _subject(issue: ValidationIssue) -> str | None:
