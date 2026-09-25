@@ -133,6 +133,8 @@ class UIConfig:
     none_of_above_text: str | None = None  # "None of the above"
     not_applicable_text: str | None = None  # "Not applicable" (na_option=True)
     min_choices_text: str | None = None  # "Select at least {n} more"
+    # "Please answer every row." — a required matrix with rows left ({n} of them)
+    required_rows_text: str | None = None
     max_reached_text: str | None = None  # "Maximum reached"
     min_value_text: str | None = None  # "Minimum value is {min}"
     max_value_text: str | None = None  # "Maximum value is {max}"

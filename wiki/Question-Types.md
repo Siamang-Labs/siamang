@@ -40,7 +40,7 @@ class Question:
 | :--- | :--- | :--- | :--- |
 | `text` | `str` | *required* | The prompt shown to the respondent. Must be non-empty. |
 | `var` | `Variable \| list[Variable]` | *required* | The bound variable(s); answers are stored under their names. |
-| `required` | `bool` | `False` | Respondent must answer before advancing. |
+| `required` | `bool` | `False` | Respondent must answer before advancing — a `Matrix` in every row, a `MaxDiff` or `Conjoint` in every task. |
 | `hint` | `str \| None` | `None` | Helper text shown beneath the prompt. |
 | `show_if` | `Expression \| str \| None` | `None` | Render only when this evaluates true. |
 | `hide_if` | `Expression \| str \| None` | `None` | Hide when this evaluates true. |
@@ -374,6 +374,14 @@ don't know −8 the codebook lists first, as SPSS-origin codebooks do; else the 
 in the same position (when there are as many labels as headers: headers `0` … `10`
 over labels coded 0 … 10 store 0 … 10); else 1, 2, 3 … in column order, which is
 all there is to go on when the codebook says nothing.
+
+A **required** matrix needs an answer in every row — a row answered "Not applicable"
+has one. A matrix has no conditions on its rows, so every row is asked whenever the
+matrix is. Answered in some rows but not all, Next is refused with "Please answer every
+row." (`UIConfig.required_rows_text`) and the rows left are marked until each has an
+answer; with no row answered the message is the usual `required_text`. A `skip_to` on a
+matrix fires once any row is answered, as it always has; on a required matrix Next first
+asks for the rest.
 
 ---
 

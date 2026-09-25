@@ -191,6 +191,7 @@ _WORDING_FIELDS = (
     "other_text",
     "other_placeholder",
     "min_choices_text",
+    "required_rows_text",
     "max_reached_text",
     "min_value_text",
     "max_value_text",

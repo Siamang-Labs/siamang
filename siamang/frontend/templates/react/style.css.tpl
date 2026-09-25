@@ -737,6 +737,12 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   transition: transform 80ms ease, box-shadow 80ms ease, background-color 80ms ease, color 80ms ease;
 }
 .sd-matrix__cell:hover { border-color: var(--siamang-accent); }
+/* A required matrix's rows still without an answer, once Next asked for them. */
+.sd-matrix tbody tr.is-missing td:first-child {
+  color: var(--siamang-error);
+  box-shadow: inset 2px 0 0 var(--siamang-error);
+}
+.sd-matrix tbody tr.is-missing .sd-matrix__cell { border-color: var(--siamang-error); }
 .sd-matrix__cell.is-selected {
   border-color: var(--siamang-accent);
   background: var(--siamang-accent);

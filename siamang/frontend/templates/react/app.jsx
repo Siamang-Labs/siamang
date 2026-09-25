@@ -108,6 +108,40 @@ function isAnswered(q, v) {
   return true;
 }
 
+/* The rows of a matrix that have no answer yet. Each row is a variable of its
+   own, and a row answered "Not applicable" holds its N/A code, which is an
+   answer. A matrix has no conditions on its rows — every row is shown
+   whenever the matrix is — so every row counts. */
+function unansweredRows(q, v) {
+  const answers = v || {};
+  return (q.rows || [])
+    .filter((row) => answers[row.id] === undefined || answers[row.id] === null || answers[row.id] === "")
+    .map((row) => row.id);
+}
+
+/* Whether a question has everything Required asks of it. isAnswered says the
+   respondent has answered it — what a skip_to fires on — and for a matrix that
+   is one row; Required asks for every row, or the rows left empty are missing
+   data in a battery the respondent was made to answer. */
+function isComplete(q, v) {
+  if (!isAnswered(q, v)) return false;
+  return !(q && q.kind === "matrix") || unansweredRows(q, v).length === 0;
+}
+
+/* What Next says of a required question without everything Required asks for,
+   or null when it has it: nothing answered is "This question requires an
+   answer."; a matrix answered in part is "Please answer every row." (`{n}`:
+   the rows left), and the component marks those rows. */
+function requiredError(q, v, texts) {
+  if (!q || !q.required) return null;
+  if (!isAnswered(q, v)) return texts.required;
+  if (q.kind === "matrix") {
+    const left = unansweredRows(q, v).length;
+    if (left > 0) return fillText(texts.requiredRows, { n: left });
+  }
+  return null;
+}
+
 /* How many of a MaxDiff's tasks are still missing a best or a worst. */
 function maxDiffRemaining(q, v) {
   const answers = v || {};
@@ -156,6 +190,7 @@ function runtimeTexts() {
     submit: ui.submitButtonText || "Submit responses",
     submitting: ui.submittingText || "Submitting your responses\u2026",
     required: ui.requiredText || "This question requires an answer.",
+    requiredRows: ui.requiredRowsText || "Please answer every row.",
     invalidFormat: ui.invalidFormatText || "Please check the format of your answer.",
     formats: {
       email: ui.invalidEmailText || "Please enter a valid email address.",
@@ -691,7 +726,10 @@ function Footer() {
    current page for the current answers — which gated questions/blocks are
    visible, which next_if rules match, which skip_to would fire, and where
    "Next" lands. Posted to the parent as `siamang:trace` on every page
-   change and (debounced) on every answer change. */
+   change and (debounced) on every answer change. `answered` counts the
+   visible questions answered in full — what Required asks for, so a matrix
+   counts once every row is answered, as a MaxDiff does once every task is;
+   a skip's `answered` is whether it fires, which for a matrix is any row. */
 function buildDesignTrace(page, index, answers, visibilityEngine) {
   const items = [];
   const blocks = [];
@@ -730,9 +768,9 @@ function buildDesignTrace(page, index, answers, visibilityEngine) {
     if (gated) conditions.push({ id: qid, visible: visible, showIf: q.showIf != null, hideIf: q.hideIf != null, hiddenByBlock: block });
     if (visible) {
       visibleCount += 1;
-      const done = isAnswered(q, itemValue(q, answers));
-      if (done) answered += 1;
-      if (q.skipTo) skips.push({ id: qid, target: q.skipTo, answered: done });
+      const value = itemValue(q, answers);
+      if (isComplete(q, value)) answered += 1;
+      if (q.skipTo) skips.push({ id: qid, target: q.skipTo, answered: isAnswered(q, value) });
     }
   }
   const rules = (page.nextIf || []).map((r, i) => ({ index: i, target: r.target, matched: evaluateRouteCondition(r.if, answers) }));
@@ -1241,6 +1279,9 @@ function App() {
     const q = items.find((item) => item.id === questionId);
     if (!q) return;
     const value = itemValue(q, answers);
+    // A matrix's rows left empty wait for Next, as a MultiChoice's minimum
+    // does: focus moves between its own cells while the respondent is still
+    // answering it, row by row.
     if (q.required && !isAnswered(q, value)) {
       setErrors((prev) => ({ ...prev, [q.id]: uiTexts.required }));
       return;
@@ -1276,8 +1317,9 @@ function App() {
       const value = itemValue(q, answers);
       const formatError = textFormatError(q, answers[q.id], uiTexts);
       const limitError = answerLimitError(q, value, uiTexts);
-      if (q.required && !isAnswered(q, value)) {
-        errs[q.id] = uiTexts.required;
+      const missing = requiredError(q, value, uiTexts);
+      if (missing) {
+        errs[q.id] = missing;
       } else if (formatError) {
         errs[q.id] = formatError;
       } else if (limitError) {

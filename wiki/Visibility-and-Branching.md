@@ -178,8 +178,8 @@ sg.Option(4, "Green", show_if=age.ge(18))
 ### `skip_to`
 
 `Question.skip_to` jumps to a target page or question id after the question is
-answered. The target must exist; `Questionnaire.validate()` raises if `skip_to`
-references an unknown id.
+answered — a `Matrix` in any row. The target must exist; `Questionnaire.validate()`
+raises if `skip_to` references an unknown id.
 
 ```python
 q_screen = sg.SingleChoice(

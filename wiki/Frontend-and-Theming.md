@@ -298,6 +298,7 @@ language. In a template, `{name}` is replaced by the value named (`{n}`, `{total
 | `next_button_text` / `prev_button_text` / `submit_button_text` | `Next section →` / `← Previous` / `Submit responses` | the page's buttons |
 | `submitting_text` / `saving_text` | `Submitting your responses…` / `Saving…` | while submitting / autosaving |
 | `required_text` | `This question requires an answer.` | an unanswered required question |
+| `required_rows_text` | `Please answer every row.` | a required matrix answered in some rows but not all (`{n}`: the rows left); the rows are marked |
 | `welcome_text` / `section_text` / `final_section_text` | `Welcome` / `Section {n} of {total}` / `Final thoughts` | the section label above a page's title and beside the progress bar |
 | `page_text` / `of_total_text` | `Page` / `of` | "Page *n* of *m*": beside the bar without section labels, and for screen readers |
 | `estimated_time_text` | `About {minutes} minutes` (`About 1 minute`) | under the first page's title, with `estimated_minutes` |
