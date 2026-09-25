@@ -419,6 +419,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   factor_3 empty: the Kaiser criterion kept 1 factor`) — so a t-test of one
   reads "not run" beside that label.
 
+- **A report section captions each output of a node on its own.** Captions and
+  layout were keyed by the source node, so a factor analysis's loadings, its
+  variance table and its statistics in one section all carried the loadings'
+  caption ("Table 5. Factor loadings" three times), and Paired tests' summary
+  table carried the pairs' one. A key may now be `<node>.<port>`
+  (`"fa.variance"`); the node's own key still answers for an output without
+  one, so stored sections render as before.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a
