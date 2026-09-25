@@ -96,7 +96,7 @@ class SingleChoice(Question):
 or ↓ on the button opens it with the focus in the search box; typing narrows the list
 and puts the keys on its first match, ↓ and ↑ move along the options, Enter chooses the
 one they are on and gives the focus back to the button, and Esc or Tab away closes the
-list.
+list, however long it is. Esc in the open list only closes it: it does not go back a page.
 
 ```python
 import siamang as sg

@@ -794,8 +794,11 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
 
   // The search box is a combobox over the options: ↓ ↑ move along them,
   // Enter chooses the one they are on, Esc closes. Typing narrows the list
-  // and puts the keys on its first entry.
-  const handleSearchKey = (e) => {
+  // and puts the keys on its first entry. The keys are read on the whole
+  // menu, so they work wherever in it the focus is (a click on the list's
+  // scroll bar puts it on the list), and Esc there never reaches the page,
+  // where it would go back a page.
+  const handleMenuKey = (e) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       if (!filtered.length) return;
@@ -812,6 +815,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
       if (triggerRef.current) triggerRef.current.focus();
     } else if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
       close();
     }
   };
@@ -862,14 +866,13 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
           <span className="siamang-search-dropdown__arrow" aria-hidden="true"></span>
         </button>
         {open && (
-          <div className="siamang-search-dropdown__menu">
+          <div className="siamang-search-dropdown__menu" onKeyDown={handleMenuKey}>
             <input
               type="text"
               className="sd-input siamang-search-dropdown__search"
               placeholder={runtimeTexts().searchPlaceholder}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setActive(e.target.value ? 0 : -1); }}
-              onKeyDown={handleSearchKey}
               role="combobox"
               aria-expanded={true}
               aria-controls={listId}
@@ -878,7 +881,12 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
               aria-label={q.title}
               autoFocus
             />
-            <div className="siamang-search-dropdown__options" role="listbox" id={listId} aria-label={q.title}>
+            {/* The options are reached from the search box
+                (aria-activedescendant), not by Tab: without tabIndex -1 a
+                list long enough to scroll is a stop of its own (Chromium
+                130+), inside the menu, so Tab left the menu open with the
+                focus on it. */}
+            <div className="siamang-search-dropdown__options" role="listbox" id={listId} aria-label={q.title} tabIndex={-1}>
               {filtered.map((opt, i) => (
                 <div
                   key={String(opt.code)}

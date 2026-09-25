@@ -1067,13 +1067,11 @@ def test_a_players_and_a_summarys_keys_are_their_own(tmp_path):
 
 
 def _dropdown_document() -> dict[str, Any]:
-    """A page before, then a required searchable dropdown of three fruits."""
+    """A page before, then a required searchable dropdown of twelve fruits —
+    a list long enough to scroll, as a dropdown's usually is."""
 
-    fruits = [
-        {"code": 1, "label": "Apple"},
-        {"code": 2, "label": "Pear"},
-        {"code": 3, "label": "Plum"},
-    ]
+    names = "Apple Pear Plum Cherry Grape Lemon Mango Kiwi Lime Peach Fig Date".split()
+    fruits = [{"code": code, "label": name} for code, name in enumerate(names, start=1)]
     return {
         "schema_version": "1.0",
         "title": "Fruit",
@@ -1111,7 +1109,13 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
     Enter chooses the one they are on and gives the focus back to the button,
     Esc closes the menu and Tab away closes it; typing narrows the list to
     what matches and Enter takes the first. On the button ↓ opens the menu and
-    Esc closes it rather than going back a page."""
+    Esc closes it rather than going back a page.
+
+    A list long enough to scroll was a Tab stop of its own (Chromium 130+):
+    Tab from the search box put the focus on it and left the menu open, and
+    there ↓ ↑ Enter did nothing and Esc went back a page. Tab now leaves the
+    menu, and the keys work wherever in the menu the focus is (a click on the
+    list's scroll bar puts it on the list)."""
 
     scenario = (
         _MATRIX_KEYS
@@ -1121,9 +1125,11 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
         const menu = () => page.$$eval(".siamang-search-dropdown__menu", (m) => m.length);
         const label = () => page.$eval(".siamang-search-dropdown__trigger", (b) => b.textContent);
         const activeOption = () => page.evaluate(() => {
-            const id = document.activeElement.getAttribute("aria-activedescendant");
+            const box = document.querySelector(".siamang-search-dropdown__search");
+            const id = box && box.getAttribute("aria-activedescendant");
             return id ? document.getElementById(id).textContent : null;
         });
+        const role = () => page.evaluate(() => document.activeElement.getAttribute("role"));
         await page.focus(".siamang-search-dropdown__trigger");
         await press("Enter");
         const opened = { menu: await menu(), role: await page.evaluate(() => document.activeElement.getAttribute("role")) };
@@ -1141,13 +1147,22 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
         await press("Enter", "Shift+Tab");
         await press("Escape");
         const closedOnButton = { menu: await menu(), pages: await pages() };
+        await press("Enter");
+        await page.focus(".siamang-search-dropdown__options");
+        await press("ArrowUp");
+        const onList = { role: await role(), active: await activeOption() };
+        await press("Escape");
+        const listEscaped = { menu: await menu(), focused: await focused(), label: await label(),
+            pages: await pages() };
         await press("Enter", "Tab");
         const tabbed = { menu: await menu(), inside: await page.evaluate(() =>
-            !!document.activeElement.closest(".siamang-search-dropdown")) };
+            !!document.activeElement.closest(".siamang-search-dropdown")), pages: await pages() };
     """
         + _NEXT
         + _STATE.replace(
-            "return {", "return { opened, down, up, escaped, typed, picked, closedOnButton, tabbed,"
+            "return {",
+            "return { opened, down, up, escaped, typed, picked, closedOnButton, onList, "
+            "listEscaped, tabbed,",
         )
     )
     state = run_in_browser(_dropdown_document(), scenario, tmp_path)
@@ -1166,7 +1181,15 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
         "label": "Plum",
     }
     assert state["closedOnButton"] == {"menu": 0, "pages": ["p1", "p2"]}
-    assert state["tabbed"] == {"menu": 0, "inside": False}
+    # Opened on Plum, ↑ from the list itself moves to Pear; Esc there closes.
+    assert state["onList"] == {"role": "listbox", "active": "Pear"}
+    assert state["listEscaped"] == {
+        "menu": 0,
+        "focused": "sd-input siamang-search-dropdown__trigger",
+        "label": "Plum",
+        "pages": ["p1", "p2"],
+    }
+    assert state["tabbed"] == {"menu": 0, "inside": False, "pages": ["p1", "p2"]}
     assert state["submitted"] == [{"fruit": 3, "__status": "completed"}]
 
 

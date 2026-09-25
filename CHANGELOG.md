@@ -211,7 +211,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the options: ↓ ↑ move along them (`aria-activedescendant`), Enter chooses
   the one they are on and gives the focus back to the button, typing narrows
   the list and puts the keys on its first match, and Esc or Tab away closes
-  it. On the button ↓ opens the list and Esc closes it.
+  it. On the button ↓ opens the list and Esc closes it. A list long enough to
+  scroll (seven options or more in the default theme) was a Tab stop of its
+  own in Chromium 130+, so Tab from the search box left the list open with
+  the focus on it, where no key worked and Esc went back a page; it is no
+  Tab stop now, the keys work wherever in the open list the focus is, and
+  Esc there only closes it.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's
