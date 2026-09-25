@@ -179,6 +179,25 @@ you write for either in the Codebook stays through every other edit.
 Codes are what the data stores; the label is only its meaning. The engine warns
 with `OPTION_CODE_WITHOUT_LABEL` when a choice's code has no value label.
 
+### Value labels in the Source tab
+
+In **More ▾ → Source** a variable's `"labels"` can be written two ways:
+
+- as a list, `[{"code": 1, "label": "Low"}, {"code": 2, "label": "High"}]`,
+  which keeps the order you write;
+- as an object, `{"1": "Low", "2": "High"}`, a shorthand whose order does not
+  survive storage (the database and the browser each reorder its keys). Studio
+  reads it in one fixed order whatever you typed: codes `0` and up, ascending,
+  then the negative codes from `-1` down, then text codes in the order
+  written — `{"-9": …, "-8": …, "2": …, "1": …}` reads `1`, `2`, `-8`, `-9`.
+
+The order the labels are read in — the list's, or this fixed one — is the
+order in which a question that takes its options from the codebook shows
+them, the order a matrix lines its headers up with (see
+[Matrix](Studio-Question-Types#matrix)), and the order of a MaxDiff's items
+(and so its design, when none is stored). To choose another order, write the
+list.
+
 ---
 
 ## Valid range
@@ -296,8 +315,13 @@ question text or that statement changes.
 The answer stored for a row is the code of the chosen column, as the value
 labels give it: `1` … *n* in a matrix you build, `0` … `10` in *Trust in
 institutions*. Renaming a column keeps its code, and moving or removing a
-column leaves the other columns' codes as they are; see
-[Matrix](Studio-Question-Types#matrix).
+column leaves the other columns' codes as they are. A new column takes the
+code of the codebook label with exactly its text, and a column renamed to the
+label of a declared missing code that no column stores (a "Refusal" beside a
+declared `77` Refusal) takes that code. A declared missing code whose column
+you remove keeps its value label here. In a codebook that came with an
+import, a header naming a declared missing code stores that code wherever the
+codebook lists it. See [Matrix](Studio-Question-Types#matrix).
 
 ---
 

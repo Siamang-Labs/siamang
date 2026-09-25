@@ -241,7 +241,9 @@ shows a short error in the tile instead ("chart could not be rendered: …").
 
 Previewing a flow in the editor (**Run to here**, **Preview all**) never
 changes its tiles, and a renamed flow keeps showing its latest tiles, on the
-Live tab and on the public link.
+Live tab and on the public link. A new flow created under the name of one
+that was renamed and then deleted is a flow of its own: it shows no tiles
+until it runs, never the deleted flow's.
 
 ---
 

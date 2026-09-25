@@ -96,7 +96,8 @@ published) until you fix it:
 - A cell you remove from the questionnaire (or move to another value) keeps
   counting, and can still stop respondents, until you publish the Save
   without it: publishing drops from that environment every cell the Save no
-  longer declares. If a later Save adds the cell back, it starts again at the
+  longer declares, and it no longer shows under **Distribute** and **Live**.
+  If a later Save adds the cell back, it starts again at the
   number of completed responses that have its value. To reopen a full cell,
   give it a higher limit and publish again.
 - The counters live in the project's `quota_counters` table, which you can

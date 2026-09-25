@@ -254,6 +254,14 @@ Restoring a Save from before the rename brings the flow back under its old
 name, and moves its schedules (keeping their state) and comments back with
 it.
 
+Live and Restore follow a rename only into the flow that got the new name
+from it. Say you rename *tables* to *summary*, delete *summary*, and later
+create a new flow called *summary*: the new flow is a flow of its own. Live
+shows no tiles for it until it runs (never the deleted flow's), and
+restoring a Save from before the rename brings *tables* back without taking
+anything from the new *summary* — its schedules and comments stay with it,
+the schedules paused, as for any flow a Restore removes.
+
 Rename always takes the flow **as it is saved now** — including a
 colleague's newer Save — not the copy your tab loaded. It is refused while
 you have unsaved changes to that flow: "*flow* has unsaved changes. Open it
@@ -472,7 +480,13 @@ Studio checks a flow twice:
 - **With the engine**, when you press **Check**, when you preview and when you
   Save. The banner says "**Engine check: valid.** The engine can generate and
   run this flow." — or lists each problem by node. The engine's verdict is the
-  one that counts.
+  one that counts. Studio adds three checks of its own to it: a step's text
+  that is not one line (the error `PARAM_LINE_BREAK`, see
+  [One-line texts](Studio-Node-Reference#reading-this-page)), a data source
+  naming a table or environment no project can have (the errors
+  `SOURCE_TABLE_NAME` and `SOURCE_ENVIRONMENT_NAME`), and a **Report path**
+  that no **Save report** step writes (the warning `REPORT_PATH_UNWRITTEN`,
+  see [The combined report](#the-combined-report)).
 
 **Press Check before you Save**, and fix what it reports: a flow the engine
 rejects is saved, but it cannot run.

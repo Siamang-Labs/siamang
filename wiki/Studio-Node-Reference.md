@@ -65,8 +65,11 @@ section**'s **Heading**, a **Derive** formula, a **Live tile**'s **Label**, a
 path, a table or variable name — are written into a comment line of the
 generated script, so they must be one line. A line break (or another control
 character; a tab is fine) fails the engine check at **Check** and at Save,
-on that node: "“heading” holds a line break or another control character: it
-must be one line of text." The flow then has no script until you fix it.
+on that node, with the error `PARAM_LINE_BREAK`: "“heading” holds a line
+break or another control character: it must be one line of text." The flow
+then has no script until you fix it. A flow saved before this check with
+such a text is left out of a research bundle (see
+[What is inside](Studio-Reproducibility#what-is-inside)).
 
 **Where files go.** On the platform, only files a node writes **under
 `outputs/`** are kept after a run and appear in **Files** (as
@@ -168,8 +171,9 @@ Notes:
   it again, and from then on a flow that does not tick this box sees its
   partial interviews too.
 - A **Table** or **Environment** that no project can have (see the rules
-  above) fails the engine check at Save: "“x y” is not a table name: …" or
-  "“Main” is not an environment name: …".
+  above), including a name that ends in a line break, fails the engine check
+  at Save: "“x y” is not a table name: …" or "“Main” is not an environment
+  name: …".
 - In a research bundle this node reads a data file instead of the database.
   A bundle made with data carries one already filtered the way this node
   filters (`data/responses.main.csv`, `data/responses.main.completed.csv`, or

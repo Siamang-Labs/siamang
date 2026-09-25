@@ -180,6 +180,14 @@ In the data, each per-choice variable holds:
 | `0` | offered and not chosen (the respondent answered the question) |
 | empty | the question was not answered, or this option was hidden from the respondent by its own **Show if** / **Hide if** |
 
+Whether an option left unchosen is `0` or empty is decided again after
+every answer, whatever gives it — a click, a rating-scale digit key, a
+script, a resumed interview. An answer given later, on the same page say,
+that offers the option makes it `0`, and one that hides it clears it. An
+option whose condition reads another wide question's variable (**Show if**
+`aware_globex = 0`) follows that variable as it is now: when the other
+question's option is hidden in turn and cleared, this one is cleared too.
+
 Conditions, piping and quotas on a per-choice variable (`q7_1 = 1`) see the
 answer, and **Exclusive choices** work. With **Other (please specify)**, Other
 has no 0/1 variable of its own: the typed text goes to `<Id>_other`, named
@@ -202,7 +210,11 @@ A numbered scale with anchored ends — agreement, satisfaction, likelihood.
 
 **The respondent sees** a row of numbered buttons (or stars that light up to
 the one chosen), the end labels under the scale and, if offered, a **Not
-applicable** choice.
+applicable** choice. Outside a text field, a digit key `1`–`9` picks that
+point on the page's first scale that has it, exactly as a click does (the
+answer is saved and the question's error message goes). On a scale that
+starts at 0 the key is the point's number, and a digit the scale does not
+have (`5` on a `0`–`4` scale) does nothing.
 
 **Inspector → Answer**
 
@@ -332,23 +344,39 @@ them: the question bank's *Trust in institutions*, headed `0` … `10`, stores
 `0`–`10`; a Qualtrics matrix stores its recodes.
 
 - **Rows.** Each row keeps its own variable. **+ Row** adds a row with a new
-  variable (`q4_3`), which takes the first row's value labels, missing codes
-  and valid range, so it stores and labels the same codes; removing a row
-  removes its variable and its codebook entry, and the other rows keep theirs
-  (and their data columns). A row
-  variable's label follows its statement, as "<question text> — <statement>".
+  variable (`q4_3`), which takes the first row's value labels, declared
+  missing codes (a Refused, a Don't know) and valid range — on a matrix
+  without column headers too — so it stores, labels and leaves out as missing
+  the same codes as the other rows; removing a row removes its variable and
+  its codebook entry, and the other rows keep theirs (and their data
+  columns). A row variable's label follows its statement, as "<question
+  text> — <statement>".
   Rename a row's variable in the **Variable** section, which has a name field
   for each row ("Matrix rows write one variable each, in the order of Options
   → Rows; rename a row's variable here."). A matrix whose rows came from its
   variables' labels (an import, the example study) lists those labels under
   **Rows**; editing, adding or removing a row turns them into statements.
 - **Columns.** A column's code follows its header. Renaming a column changes
-  only its label: the code it stores stays. Moving or removing a column leaves
-  the codes of the others as they are — remove `5` from a `0` … `10` scale and
-  `6` … `10` still store `6` … `10`. A new column takes the code the codebook
-  already gives its exact text (a "Refused" column beside a declared missing
-  `9` Refused stores `9`, and stays a missing code); otherwise it gets the next
-  code up that nothing uses.
+  only its label: the code it stores stays, also while you type the new text
+  letter by letter (on the way from "Strongly agree" to "Agree strongly" the
+  header passes through "Agree" without taking that column's code). Moving or
+  removing a column leaves the codes of the others as they are — remove `5`
+  from a `0` … `10` scale and `6` … `10` still store `6` … `10`. One rename
+  changes the code: a header renamed to the label of a declared missing code
+  that no column stores (a "Don't know" beside a declared `-8` Don't know)
+  takes that code.
+- **New columns.** A column added with **+ Column** takes its code from the
+  text you type into it: the code of the codebook label with exactly that
+  text, if no column stores it yet (a "Refused" column beside a declared
+  missing `9` Refused stores `9`, and stays a missing code; "Refusal" and
+  "Don't know" beside ESS-style `77` / `88` store those); otherwise the next
+  scale code of the codebook after the ones the columns store, so headers
+  typed one by one onto a matrix that had none keep the codes its columns
+  showed; otherwise the next code up that nothing uses.
+- **A missing code without a column.** When you remove or retype the column
+  of a declared missing code (`77 = Refusal`), the code keeps its value label
+  and its missing declaration in the codebook, so answers already stored with
+  it stay labeled and missing.
 - **Not applicable** is an extra column at the end. It stores the row's
   declared not-applicable code: turning on **Offer “N/A”** labels `-1 = Not
   applicable` and declares it missing on every row variable. A matrix without
@@ -358,6 +386,33 @@ them: the question bank's *Trust in institutions*, headed `0` … `10`, stores
 - **Required** on a matrix is satisfied as soon as one row is answered.
 - Conditions and piping later in the survey can use a row's variable
   (**Show if** `q4_1 ≥ 4`, `{label:q4_1}`).
+
+**Which code a column stores.** The survey reads each column's code off the
+first row variable's value labels and declared missing codes. The Builder
+follows the same rules, and so does Studio when it reads an older response
+that stored a column's position (for a matrix with headers). They matter most
+for a matrix from an import or the **Source** tab, whose codebook was not
+built with it. The rules are tried in turn:
+
+1. Every header is the text of exactly one value label: each column stores
+   that label's code.
+2. The codebook declares missing codes (N/A, a refusal, a don't know): a
+   header whose text is one of their labels stores that code, wherever the
+   codebook lists it, and the other headers take the codes of the remaining
+   labels in order, when there are as many of each. Codebooks that come from
+   SPSS often list `-8` "Don't know" before `0` … `10`; a matrix headed "0"
+   … "10", "Don't know" over such a codebook stores `0` … `10` and `-8`.
+3. There are as many value labels as headers: the columns take the labels'
+   codes in order (a 0–10 scale headed "0" … "10" over labels "No trust at
+   all" … "Complete trust").
+4. Otherwise the codebook gives nothing to go by, and the columns store `1`,
+   `2`, `3` … from left to right.
+
+A matrix without column headers shows the first row's value labels as its
+columns, in code order; with **Offer “N/A”** on, the N/A code is left out of
+them and has its column at the end. "In order" is the codebook's order; for
+labels written as an object in the **Source** tab, see
+[Value labels in the Source tab](Studio-Codebook-and-Variables#value-labels-in-the-source-tab).
 
 **Rules.** The number of rows must equal the number of variables.
 

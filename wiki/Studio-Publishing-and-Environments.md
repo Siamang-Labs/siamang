@@ -253,7 +253,9 @@ The Publish panel does the same for the selected target. When you republish:
 - until the new build is ready, the previous version keeps serving the link;
 - quota counters keep their counts (targets are updated from the new Save); a
   cell the new Save adds starts at the number of completed responses that
-  already have its value;
+  already have its value, and a cell it no longer declares (a quota you
+  removed, or moved to another value) is dropped: it stops no one and leaves
+  the quota bars on Distribute and Live;
 - a **paused** environment becomes **live** again;
 - respondents who already have the old page open can still submit;
 - the environment's closing date and post-close redirect are read again from

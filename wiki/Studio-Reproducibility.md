@@ -173,7 +173,8 @@ Details:
   table no flow has written yet is not included. The same rule for link
   parameters applies to these tables: a `url_*` column a table carries (a
   cleaning flow writes the columns it read) travels only when a flow names
-  it, and `url_inv` never does.
+  it, and `url_inv` never does — in the table's CSV and in its dictionary
+  alike.
 - **Uploads.** The files uploaded under **Files** that a flow names
   (`assets/<name>`, the **File** of a **Data file** node) are included at that
   path.

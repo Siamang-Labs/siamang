@@ -230,8 +230,10 @@ Messages you may see (for a file read on the server — `.py`, `.qsf`, `.lss`,
    See [Multiple choice](Studio-Question-Types#multiple-choice).
 5. **Check matrix codes.** A matrix stores the code of the chosen column, as
    its value labels give it, so an imported matrix keeps its Qualtrics
-   recodes or its 0–10 scale. Check that each row's value labels are the
-   codes you expect in the Codebook tab — see
+   recodes or its 0–10 scale. A column headed with the label of a declared
+   missing code ("Don't know") stores that code, even when the codebook lists
+   it before the scale, as codebooks from SPSS often do. Check that each
+   row's value labels are the codes you expect in the Codebook tab — see
    [Matrix](Studio-Question-Types#matrix).
 6. **Review "Other" and "None" options.** An imported Other stores a code
    (`-66` unless the source gave one: a Qualtrics text-entry choice keeps its

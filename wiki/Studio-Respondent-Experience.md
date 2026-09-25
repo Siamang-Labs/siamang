@@ -153,7 +153,7 @@ statement, when you set them.
 |---|---|
 | `Enter` or `Space` (outside a text field) | next page (or submit on the last) |
 | `Esc` | previous page (when going back is allowed) |
-| `1`–`9` | picks that point on the page's first rating scale |
+| `1`–`9` (outside a text field) | picks that point on the page's first rating scale that has it, as a click does: the answer is autosaved and the question's error message goes. On a scale that starts at 0 the key is the point's number; a digit the scale does not have does nothing |
 | swipe left / right | next / previous page on touch screens |
 
 ---
@@ -187,7 +187,9 @@ hours**.
   again as a partial, even if the thank-you page is reloaded. This is what
   feeds the drop-off funnel and lets an invitation show as `started`. It needs
   a reasonably modern browser; very old browsers send only the final
-  submission.
+  submission. Progress saves and quota checks are rate-limited apart from
+  submissions, so a class or an office answering from one network address
+  does not use up what the final submissions need.
 
 > **Note.** A survey published before the current runtime sends no partial
 > responses and keeps one saved-progress slot shared by every survey on the

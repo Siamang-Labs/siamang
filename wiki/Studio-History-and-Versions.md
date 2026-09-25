@@ -342,7 +342,11 @@ What happens:
   flow was renamed after #12, restoring #12 brings it back under its old name
   together with its schedules (enabled or paused, as they were) and its
   comment threads. Its runs and reports made under the newer name keep that
-  name.
+  name. A different flow that has since taken the newer name (the renamed
+  flow was deleted and a new one created under its name) is not part of
+  this: the restore removes it like any flow #12 did not have. Its schedules
+  are paused and, like its comments, stay with it rather than moving to the
+  restored flow.
 - A flow that was **deleted** after #12 comes back with the restore, but its
   schedules stay paused: resume them on the **Flows** screen.
 - The restored documents are validated again with the **current** engine, so
