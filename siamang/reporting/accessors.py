@@ -95,6 +95,24 @@ class ReportAccessor:
 
         return ThemeTable(data=self._data, codeframe=codeframe)
 
+    def descriptives(
+        self, columns: list[str], *, by: str | None = None, detail: bool = False
+    ) -> Any:
+        """N, missing, mean, SD, median, minimum and maximum of each variable
+        (per group with ``by``; ``detail`` adds quartiles, skewness and
+        kurtosis). Missing codes are not answers; on weighted data the mean,
+        SD, median and quartiles are weighted and stats give Kish's effective N."""
+        from siamang.reporting.summaries import DescriptivesTable
+
+        return DescriptivesTable(data=self._data, columns=list(columns), by=by, detail=detail)
+
+    def data_check(self, variables: list[str] | None = None) -> Any:
+        """The data against its codebook: one row per problem ``validate()``
+        finds, with how many rows have it and examples of the values."""
+        from siamang.reporting.summaries import DataCheckTable
+
+        return DataCheckTable(data=self._data, variables=list(variables) if variables else None)
+
     def nps(self, column: str) -> NpsTable:
         """Net Promoter Score of a 0–10 item: detractors / passives / promoters
         with N and %, the score with its standard error and 95 % CI in stats."""

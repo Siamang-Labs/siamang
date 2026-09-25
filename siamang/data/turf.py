@@ -35,7 +35,7 @@ from itertools import combinations
 
 import pandas as pd
 
-__all__ = ["TurfTable", "item_reach", "portfolio_reach", "turf"]
+__all__ = ["TurfTable", "evaluate", "item_reach", "portfolio_reach", "turf"]
 
 #: Refuse an exhaustive search bigger than this rather than appearing to hang.
 _MAX_COMBINATIONS = 200_000
@@ -144,7 +144,9 @@ def turf(
     Columns: the portfolio's ``items``, its ``reach`` and ``reach_percent``,
     the ``incremental`` gain over the row above, and ``frequency`` — the mean
     number of the portfolio's items a reached respondent chose, the F in TURF
-    that most tables quietly drop.
+    that most tables quietly drop. With ``weight`` the reach is a sum of
+    weights and the frequency a weighted mean. :func:`evaluate` reads one
+    portfolio instead of searching for the best.
     """
 
     if method not in {"best", "greedy"}:
@@ -204,9 +206,7 @@ def turf(
                 "reach_percent": round(reached / base * 100, 1) if base else 0.0,
                 "incremental": round(reached - previous, 4),
                 "incremental_percent": round((reached - previous) / base * 100, 1) if base else 0.0,
-                "frequency": round(float(chosen_count[hit_mask].mean()), 2)
-                if hit_mask.any()
-                else 0.0,
+                "frequency": _frequency(chosen_count, hit_mask, weights),
             }
         )
         previous = reached
@@ -248,6 +248,117 @@ def _best(
         if reached > best:
             winner, best = list(candidate), reached
     return winner, max(best, 0.0)
+
+
+def _frequency(count: pd.Series, reached: pd.Series, weights: pd.Series | None) -> float:
+    """The F in TURF: how many of the portfolio's options a reached respondent
+    chose, on average — weighted like the reach beside it."""
+
+    if not reached.any():
+        return 0.0
+    if weights is None:
+        return round(float(count[reached].mean()), 2)
+    total = float(weights[reached].sum())
+    if total <= 0:
+        return 0.0
+    return round(float((count[reached] * weights[reached]).sum()) / total, 2)
+
+
+def evaluate(
+    frame: pd.DataFrame,
+    portfolio: Sequence[str],
+    *,
+    items: Sequence[str] | None = None,
+    weight: str | None = None,
+    labels: dict[str, str] | None = None,
+) -> TurfTable:
+    """Reach and frequency of exactly ``portfolio`` — no search.
+
+    The question a TURF search does not answer: "we already stock these four;
+    what do they reach, and which one could go?" One row per option, then one
+    for the portfolio as a whole:
+
+    ``reach`` / ``reach_percent``
+        the respondents the row reaches (sums of weights when weighted);
+    ``unique`` / ``unique_percent``
+        of those, the ones no *other* option of the portfolio reaches — what
+        dropping this option would lose. For the whole portfolio it is its
+        reach, since nothing else is left to reach them;
+    ``frequency``
+        how many of the portfolio's options the respondents this row reaches
+        chose, on average. On the portfolio row it is TURF's frequency; on an
+        option's row, 1 means its people choose nothing else in the portfolio
+        and a high number that it duplicates the others.
+
+    ``items`` is the whole list of options the question offered, when the
+    portfolio is a part of it: it defines the base — the respondents who
+    answered the question — exactly as :func:`turf` does, so the two tables
+    have the same denominator; an empty ``portfolio`` reads all of them.
+    ``labels`` maps a column to what the table shows for it (``label``); it
+    defaults to the column name.
+    """
+
+    chosen_items = list(dict.fromkeys(portfolio or items or []))
+    if not chosen_items:
+        raise ValueError("A portfolio to evaluate needs at least one option.")
+    offered = list(dict.fromkeys(items)) if items else list(chosen_items)
+    outside = [name for name in chosen_items if name not in offered]
+    if outside:
+        raise ValueError(
+            f"The portfolio names options that are not in the list: {', '.join(outside)}"
+        )
+
+    chosen = _chosen(frame, offered)
+    base_mask = _base_mask(chosen)
+    weights = _weights(frame, weight)
+    base = _total(base_mask, weights)
+    hits = {name: (chosen[name] > 0) & base_mask for name in chosen_items}
+    count = pd.concat(list(hits.values()), axis=1).sum(axis=1)
+    percent = lambda value: round(value / base * 100, 1) if base else 0.0  # noqa: E731
+
+    rows: list[dict[str, object]] = []
+    for name in chosen_items:
+        only = hits[name] & count.eq(1)
+        reach, unique = _total(hits[name], weights), _total(only, weights)
+        rows.append(
+            {
+                "option": name,
+                "label": (labels or {}).get(name) or name,
+                "reach": round(reach, 4),
+                "reach_percent": percent(reach),
+                "unique": round(unique, 4),
+                "unique_percent": percent(unique),
+                "frequency": _frequency(count, hits[name], weights),
+            }
+        )
+    together = count.gt(0) & base_mask
+    reach = _total(together, weights)
+    rows.append(
+        {
+            "option": "(portfolio)",
+            "label": f"All {len(chosen_items)} together",
+            "reach": round(reach, 4),
+            "reach_percent": percent(reach),
+            "unique": round(reach, 4),
+            "unique_percent": percent(reach),
+            "frequency": _frequency(count, together, weights),
+        }
+    )
+    out = TurfTable(
+        rows,
+        columns=[
+            "option",
+            "label",
+            "reach",
+            "reach_percent",
+            "unique",
+            "unique_percent",
+            "frequency",
+        ],
+    )
+    out.base = int(round(base))
+    out.method = "fixed"
+    return out
 
 
 def _n_choose_k(n: int, k: int) -> int:

@@ -393,6 +393,8 @@ def _known_variables(
             known.update(_exploded_names(questionnaire, params))
         if spec.type == "analyze.factor" and params.get("scores"):
             known.update(_factor_score_names(spec, params))
+        if spec.type == "prepare.maxdiff_scores" and isinstance(params.get("question"), str):
+            known.update(_maxdiff_score_names(questionnaire, params))
     return known
 
 
@@ -443,6 +445,54 @@ def _factor_score_names(spec: NodeSpec, params: dict[str, Any]) -> set[str]:
     fixed = params.get("n_factors")
     count = fixed if isinstance(fixed, int) and fixed > 0 else len(params.get("items") or []) - 1
     return {f"{prefix}{index}" for index in range(1, count + 1)}
+
+
+def _maxdiff_score_names(questionnaire: dict[str, Any], params: dict[str, Any]) -> set[str]:
+    """The score variables ``prepare.maxdiff_scores`` will create, one per item.
+
+    Named here for the reason :func:`_exploded_names` names its columns: the
+    node invents one variable per item of the question, and a later node that
+    cannot name them cannot use them. The items are the question's ``choices``,
+    else its first variable's labels — the pool ``MaxDiff.item_codes`` reads.
+    """
+
+    from siamang.data.maxdiff import score_names
+    from siamang.model.document import DocumentError, _codebook_from_doc
+
+    wanted = params["question"]
+    for item in _document_questions(questionnaire):
+        names = [name for name in item.get("var") or [] if isinstance(name, str)]
+        if item.get("type") != "MaxDiff" or not names:
+            continue
+        if wanted not in {item.get("id"), item.get("name"), f"maxdiff_{names[0]}"}:
+            continue
+        try:
+            if item.get("choices"):
+                codes = list(_codebook_from_doc(item["choices"], wanted))
+            else:
+                payload = (questionnaire.get("variables") or {}).get(names[0]) or {}
+                codes = list(_codebook_from_doc(payload.get("labels") or [], wanted))
+        except DocumentError:
+            return set()  # a broken codebook is the questionnaire check's to report
+        return set(score_names(wanted, codes, params.get("prefix")).values())
+    return set()
+
+
+def _document_questions(questionnaire: dict[str, Any]):
+    """Every question of a questionnaire document, blocks opened."""
+
+    def walk(items: Any):
+        for item in items if isinstance(items, list) else []:
+            if not isinstance(item, dict):
+                continue
+            if item.get("type") == "Block":
+                yield from walk(item.get("items"))
+            else:
+                yield item
+
+    for page in questionnaire.get("pages") or []:
+        if isinstance(page, dict):
+            yield from walk(page.get("items"))
 
 
 def _check_params(

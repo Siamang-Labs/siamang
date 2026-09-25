@@ -947,6 +947,36 @@ class QualityTable(SurveyTable):
             self._stats["Weight"] = note
 
 
+# ─── Undefined cells ──────────────────────────────────────────────────────────
+
+
+class _BlankUndefined:
+    """Print NaN and None as empty cells; :meth:`SurveyTable.to_frame` keeps them.
+
+    For tables whose cells can be undefined (an SD of one answer, the sentiment
+    of a theme nobody was scored on): a report should show a blank there, not
+    ``nan``.
+    """
+
+    def _printable(self) -> pd.DataFrame:
+        self._ensure_built()  # type: ignore[attr-defined]
+        frame = self._result.astype(object)  # type: ignore[attr-defined]
+        return frame.where(frame.notna(), "")
+
+    def to_markdown(self) -> str:
+        md = _frame_to_markdown(self._printable())
+        if self._stats:  # type: ignore[attr-defined]
+            md += "\n\n" + self._format_stats()  # type: ignore[attr-defined]
+        return md
+
+    def to_html(self) -> str:
+        html = frame_to_html(self._printable())
+        if self._stats:  # type: ignore[attr-defined]
+            stats = self._format_stats()  # type: ignore[attr-defined]
+            html += f"\n<p class='siamang-stats'>{stats}</p>"
+        return html
+
+
 # ─── ThemeTable ───────────────────────────────────────────────────────────────
 
 

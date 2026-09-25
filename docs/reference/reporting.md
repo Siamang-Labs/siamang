@@ -391,6 +391,10 @@ To make this reporting API extremely convenient, two accessors are attached dire
   What the part-worths predict a market of `products` would do: the rows of `siamang.data.conjoint.shares` (`product`, `utility`, `share`), with the base, the model, a note that these are shares of the listed products, and on weighted data the `Weight`, in `stats`.
 * **`quality(column: str = "quality_flags")`**, **`themes(codeframe)`**:
   Count responses and coded answers; on weighted data `stats["Weight"]` reads `unweighted (the weight '<column>' is not applied)`.
+* **`descriptives(columns: list[str], *, by: str | None = None, detail: bool = False) -> DescriptivesTable`**:
+  N, Missing, Mean, SD, Min, Median, Max per variable (and group), with Q1, Q3, skewness and kurtosis under `detail`. Missing codes are not answers; on weighted data the mean, SD, median and quartiles are weighted beside a `Weighted N` column and `stats` gives `Effective N` and `Design effect`. Undefined cells print blank (`siamang.reporting.summaries`).
+* **`data_check(variables: list[str] | None = None) -> DataCheckTable`**:
+  `validate()` as a table with the rows and example values of each problem (`siamang.data.checks.check`).
 * **`banner(rows: list[str], columns: list[str], *, weight: str | None = None, test: bool = True, level: float = 0.05, correction: str = "none") -> BannerTable`**:
   The cross-break: the questions in `rows` down the page, a block of columns per
   variable in `columns`, and a base row. Each cell is a column percentage with

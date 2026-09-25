@@ -254,6 +254,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lists them. Their tables are `siamang.reporting.result_table.ResultTable`s: a
   report or a Studio preview shows each with its statistics as a footer, and a
   cell that does not apply is blank rather than `nan`.
+- **Flow nodes for what the engine already computed.**
+  - **Descriptive statistics** (`analyze.descriptives`, `data.report.descriptives`,
+    `siamang.data.descriptives.describe`): N, Missing, Mean, SD, Min, Median and
+    Max of several numeric variables, per group with `by`, and Q1, Q3 (type 7),
+    skewness and kurtosis (bias-corrected G1, excess G2) with `detail`. The
+    codebook's missing codes and values that are not numbers count as missing
+    and the stats name them (`Missing codes`, `Not numbers`); a blank or a
+    missing code of the group variable is no group (`Not in a group`). On
+    weighted data the mean, SD, median and quartiles are weighted with the Group
+    means table's formulas beside a `Weighted N` column, N and Missing stay
+    counts, and the stats give `Weighted N`, `Effective N` (Kish), `Design
+    effect` and a `Note` that skewness and kurtosis are unweighted. An undefined
+    cell (the SD of one answer) is NaN in `to_frame()` and blank when printed.
+  - **Data check** (`analyze.data_check`, `data.report.data_check`,
+    `siamang.data.checks.check`): `SurveyData.validate()` as a table — Severity,
+    Variable, Problem, Rows, Examples (`7 (12), 8 (1)`) and Code, errors first —
+    with the columns the codebook lacks, and the variables the data lacks,
+    gathered into one row each; stats `Checked`, `Errors`, `Warnings`, `Result:
+    no problems found`, and on weighted data that the weight is not applied.
+  - **MaxDiff scores** (`prepare.maxdiff_scores`,
+    `siamang.data.maxdiff.with_scores`): one interval variable per item,
+    `<question>_score_<code>` unless a `prefix` is given, labelled `MaxDiff
+    score: <item>` with a valid range of −1…1 — each respondent's best minus
+    worst over the times the item was shown to them, blank where it never was —
+    so preferences feed Crosstab, Cluster and Regression. A `stat` output gives
+    `Respondents scored`, `Not scored` and `Unreadable answers`. `check_flow`
+    knows the variables before a run.
+  - **TURF** reads a fixed portfolio: `method: fixed` with a `portfolio`
+    (`siamang.data.turf.evaluate`) gives each option's reach, `unique` reach
+    (what dropping it would lose) and frequency, and the portfolio's reach and
+    frequency, on the question's base; stat `Search: none: a fixed portfolio`,
+    `Reach`, `Frequency`.
+  - **Bands** (`prepare.bands`, `siamang.data.bands.bands`): a number cut into
+    a labelled ordinal variable (`18 to under 30`, …) after the codebook's
+    missing codes are taken out, with a `stat` of the count per band and what
+    fell outside. **Derive** takes `labels` for a formula that yields codes.
 
 ### Fixed
 
@@ -813,6 +849,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matrix's positions and a MaxDiff's implied design (one with no stored
   `design`) with it; writing the codebook as a list in the object's order
   keeps the earlier reading.
+- **TURF's frequency was unweighted beside a weighted reach.** On weighted data
+  the mean number of the portfolio's options a reached respondent chose is now
+  weighted like the reach; unweighted results are unchanged.
 
 ## [0.6.0] — 2026-08-30
 

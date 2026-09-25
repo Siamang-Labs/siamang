@@ -195,7 +195,9 @@ medians while N, the test and the post-hoc pairs stay unweighted.
 `CorrelationMatrixTable` weights Pearson's coefficient (p on Kish's effective
 base); `TTestTable` and the rank correlations say the weight is not applied. The
 banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the
-`Weight`. The quality and theme tables count responses and say
+`Weight`. The descriptives table weights means, SDs, medians and quartiles
+beside a `Weighted N` column and gives Kish's effective N. The quality, theme
+and data-check tables count responses and say
 `Weight: unweighted (the weight 'w' is not applied)`. See
 [[what the weight reaches|Working-with-Data#what-the-weight-reaches]].
 
@@ -214,7 +216,12 @@ def ttest(column, *, kind="independent", by=None, groups=None, other=None, mu=0.
           variances="welch", confidence=0.95) -> TTestTable
 def correlation_matrix(columns, *, method="spearman", missing="pairwise", adjust="none",
                        layout="matrix") -> CorrelationMatrixTable
+def descriptives(columns, *, by=None, detail=False) -> DescriptivesTable
+def data_check(variables=None) -> DataCheckTable
 ```
+
+`descriptives` and `data_check` are described in [[Analysis|Analysis#descriptive-statistics-datareportdescriptives]];
+both print an undefined cell (the SD of one answer) as a blank, never `nan`.
 
 ```python
 data.report.freq("it_role", sort="freq").to_frame()

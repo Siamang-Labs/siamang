@@ -126,6 +126,8 @@ non-numeric weight counts 0.
 | `describe_variables()` | counts rows, adds `weighted_n_valid` |
 | `plot.bar`, `plot.heatmap(by=…)` | weighted counts / means, axis labelled "Weighted …" |
 | `plot.boxplot`, `plot.scatter`, `plot.heatmap()` | unweighted; the title's second line says so |
+| `report.descriptives` | mean, SD, median and quartiles weighted beside a `Weighted N` column; `stats` gives Kish's effective N and the design effect; N, Missing, skewness and kurtosis are not weighted |
+| `report.data_check`, `maxdiff.with_scores`, `bands.bands` | count rows (or score each respondent); `stats["Weight"]` says the weight is not applied |
 
 ---
 
@@ -206,6 +208,17 @@ for issue in bad.validate():
 
 If no `VariableMap` is attached, `validate` returns a single `MISSING_METADATA`
 warning rather than erroring.
+
+`data.report.data_check()` (the flow's **Data check** node) runs the same
+validation and adds how many rows have each problem and which values, as a
+table — see [[Analysis|Analysis#checking-the-data-datareportdata_check]]:
+
+```python
+bad.report.data_check().to_frame()[["Variable", "Problem", "Rows", "Examples"]]
+#   Variable                              Problem  Rows Examples
+# 0   gender  codes the codebook has no label for     1    5 (1)
+# 1      age        outside the valid range 18–99     1  200 (1)
+```
 
 ---
 

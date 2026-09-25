@@ -1,0 +1,20 @@
+type: analyze.data_check
+category: analyze
+title: Data check
+description: The data against its codebook before any analysis — values outside the valid range, codes without a label, duplicate IDs, columns nobody declared — with how many rows each and examples.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  variables:
+    kind: variables
+    default: []
+    label: Variables
+    help: Check only these. Empty checks every column and every codebook variable.
+subtitle: '{variables}'
+template: |
+  {out.table} = {in.data}.report.data_check({variables!r})
+  {out.stat} = {out.table}.stats
+preview: table

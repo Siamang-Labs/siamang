@@ -59,6 +59,9 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `plot.bar`, `plot.heatmap(by=…)` | Weighted counts and weighted means; the axis (or colour bar) says "Weighted". |
 | `plot.boxplot`, `plot.scatter`, `plot.heatmap()` without `by` | Unweighted; the title's second line reads `unweighted (the weight 'w' is not applied)`. |
 | The HB exports (`siamang.io.choice`) | The files carry no weight column (the R packages take none); weight the individual utilities when you aggregate them. |
+| `report.descriptives` / `siamang.data.descriptives` | Mean, SD, median and quartiles weighted (the `GroupMeanTable`'s formulas) beside a `Weighted N` column; N, Missing, skewness and kurtosis are not. Stats: `Weight`, `Weighted N`, `Effective N`, `Design effect`, `Note`. |
+| `report.data_check`, `maxdiff.with_scores`, `bands.bands` | Count rows (the scores are per respondent). Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
+| `turf.turf` / `turf.evaluate` | Reach is a sum of weights and the frequency a weighted mean. |
 
 Weighted conditional-logit fits (MaxDiff, conjoint) rescale the weights to sum to Kish's effective number of choice sets before fitting: the estimates are those of the weighted likelihood, and the standard errors are those of the effective base rather than of the raw sample or of a population-sized total.
 
@@ -70,6 +73,7 @@ Weighted conditional-logit fits (MaxDiff, conjoint) rescale the weights to sum t
   Generates a summary table containing the number of rows (`n`), missing responses (`n_missing`), and unique values (`n_unique`) for each variable. On weighted data a `weighted_n_valid` column adds the sum of the weights of the rows that have a value — the weighted base a table of that variable reports.
 * **`validate(raise_on_error: bool = False) -> list[ValidationIssue]`**:
   Validates the underlying DataFrame against the `VariableMap` schema. It checks column presence, data types, value ranges, category labels, and weight constraints. Raises a `ValueError` if `raise_on_error=True` and issues are found.
+  `siamang.data.checks.check(data, variables=None)` (and `data.report.data_check`) returns the same issues as a table — `Severity`, `Variable`, `Problem`, `Rows`, `Examples` (`"7 (12), 8 (1)"`), `Code`, errors first — with the file-level problems (`EXTRA_COLUMN`, `MISSING_COLUMN`) gathered into one row each and `stats` `Checked`, `Errors`, `Warnings` (and `Result: no problems found`).
 
 ### Missing-Value Handling
 
@@ -330,6 +334,16 @@ Tidy-frame descriptives for scripts that do not go through `SurveyData`:
 | `frequencies(df, column, *, weight=None, dropna=True)` | `value` / `count` / `percent` rows |
 | `crosstab(df, row, col, *, weight=None, normalize=None)` | two-way table; percentages when `normalize` is set |
 | `chi2(df, a, b)` | `{"chi2", "dof", "p", "cramers_v", "n"}` |
+
+### Survey-method helpers exposed as flow nodes
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `descriptives.describe(frame, columns, *, variables=None, weight=None, by=None, detail=False)` | `Descriptives(table, stats)` | N, Missing, Mean, SD, Min, Median, Max (+ Q1, Q3 type 7, bias-corrected skewness G1 and excess kurtosis G2 with `detail`), per group with `by`. Declared missing codes and non-numbers count as missing; weighted mean/SD/median/quartiles; undefined cells NaN. `weighted_quantile(values, weights, q)` is the smallest value whose cumulative weight reaches `q`. |
+| `checks.check(data, variables=None)` | `DataCheck(table, stats)` | See `validate` above. |
+| `maxdiff.with_scores(data, question, *, prefix=None)` | `ScoredData(data, stats, names)` | One interval variable per item, `<prefix><code>` (default `<question>_score_`, `score_names()`), labelled `MaxDiff score: <item>`, valid range −1…1: best − worst over times shown to that respondent, NaN where never shown. Refuses to overwrite a column it did not write. |
+| `turf.evaluate(frame, portfolio, *, items=None, weight=None, labels=None)` | `TurfTable` (`method == "fixed"`) | Per option `reach`, `reach_percent`, `unique`, `unique_percent`, `frequency`; a `(portfolio)` row with the portfolio's reach and frequency. `items` sets the base; an empty portfolio reads all items. |
+| `bands.bands(data, column, *, bins, into, labels=None, right=False, label=None)` | `Banded(data, stats)` | `SurveyData.recode` after taking the column's missing codes out; default labels `18 to under 30` (`band_labels`); stats count each band and what fell outside. |
 
 ---
 

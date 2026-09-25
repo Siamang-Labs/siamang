@@ -520,4 +520,111 @@ banded.variables["age_band"].labels   # {1: '18-29', 2: '30-44', 3: '45+'}
 
 ---
 
+## Descriptive statistics: `data.report.descriptives`
+
+```python
+data.report.descriptives(columns: list[str], *, by: str | None = None,
+                         detail: bool = False) -> DescriptivesTable
+```
+
+One row per variable — or per variable and group with `by` — with `N`,
+`Missing`, `Mean`, `SD`, `Min`, `Median` and `Max`; `detail=True` adds `Q1`,
+`Q3` (linear interpolation, R's type 7), `Skewness` and `Kurtosis` (the
+bias-corrected G1 and excess G2 that SPSS and Excel report). The flow node is
+**Descriptive statistics** (`analyze.descriptives`).
+
+```python
+table = data.report.descriptives(["age", "autonomy"])
+print(table.to_markdown())
+# | Variable | Label | N | Missing | Mean | SD | Min | Median | Max |
+# |---|---|---|---|---|---|---|---|---|
+# | age | Age | 200 | 0 | 45.705 | 16.82 | 18.0 | 42.0 | 75.0 |
+# | autonomy | Autonomy | 200 | 0 | 3.06 | 1.452 | 1.0 | 3.0 | 5.0 |
+
+data.report.descriptives(["autonomy"], by="it_role", detail=True).to_frame()
+#    Variable     Label         IT Role   N  Missing   Mean     SD  Min   Q1  Median    Q3  Max  Skewness  Kurtosis
+# 0  autonomy  Autonomy        Engineer  58        0  3.121  1.557  1.0  2.0     3.5  4.75  5.0    -0.179    -1.529
+# …
+```
+
+- **A missing code is not an answer.** A code the codebook declares missing (a
+  99 "Don't know") counts in `Missing`, as does a value that is not a number;
+  `stats` names them (`Missing codes`, `Not numbers`). With `by`, a blank or a
+  missing code of the group variable is no group (`Not in a group`).
+- **Weighted data:** `Mean`, `SD`, `Median` and the quartiles are weighted —
+  the same formulas as the `GroupMeanTable` (the SD scaled by n / (n − 1), the
+  median the first value whose cumulative weight reaches half), so the two never
+  disagree — while `N` and `Missing` stay counts of respondents beside a
+  `Weighted N` column. `stats` gives `Weighted N`, `Effective N` (Kish) and the
+  `Design effect`; skewness and kurtosis stay unweighted and the `Note` says so.
+- **Undefined is blank.** The SD of one answer, skewness below three answers and
+  kurtosis below four (or without spread) are NaN in `to_frame()` and empty
+  cells in Markdown and HTML.
+
+`siamang.data.descriptives.describe(frame, columns, variables=…, weight=…,
+by=…, detail=…)` is the same computation on a bare frame.
+
+## Checking the data: `data.report.data_check`
+
+`SurveyData.validate()` says *that* a variable has values outside its valid
+range; the data check says **how many rows and which values**, one row per
+problem, errors first. The flow node is **Data check** (`analyze.data_check`).
+
+```python
+checked = data.report.data_check()          # or data_check(["age"])
+checked.to_frame()
+#   Severity  Variable                              Problem  Rows Examples                 Code
+# 0    error       age        outside the valid range 18–75     3  999 (3)         OUT_OF_RANGE
+# 1    error  autonomy  codes the codebook has no label for     1    7 (1)  INVALID_LABEL_VALUE
+checked.stats   # {'Checked': '4 variables, 200 rows', 'Errors': 2, 'Warnings': 0}
+```
+
+Declared missing codes are not flagged as out of range. Columns the codebook
+does not know, and codebook variables the data lacks (common after a Select),
+are gathered into one row each. With nothing wrong the table is empty and
+`stats["Result"]` reads `no problems found`. The check counts rows, so on
+weighted data `stats["Weight"]` says the weight is not applied.
+
+## MaxDiff scores per respondent
+
+`siamang.data.maxdiff.with_scores(data, question, prefix=None)` adds one
+variable per item, `<question>_score_<code>` by default, holding each
+respondent's counting score — best minus worst over the times the item was
+shown to *them*, from −1 to 1, blank where it was never shown. The variables are
+labelled `MaxDiff score: <item>`, interval, with a valid range of −1…1, so they
+feed a crosstab, a cluster or a regression. The flow node is **MaxDiff scores**
+(`prepare.maxdiff_scores`); its `stat` names the respondents scored and the
+answers that could not be read against the design.
+
+```python
+from siamang.data import maxdiff
+
+# on the responses to a questionnaire with a MaxDiff whose id is "q_md"
+scored = maxdiff.with_scores(responses, "q_md")
+scored.data.report.means("q_md_score_1", by="region")
+scored.stats["Respondents scored"]
+```
+
+## TURF: a fixed portfolio
+
+`siamang.data.turf.evaluate(frame, portfolio, items=…, weight=…, labels=…)`
+reads one portfolio instead of searching for the best: each option's `reach`,
+its `unique` reach (the respondents no other option of the portfolio reaches —
+what dropping it would lose) and `frequency`, then a `(portfolio)` row with the
+reach and frequency of all of them together. `items` is the question's whole
+list of options, so the base is the one `turf()` uses. In a flow: **TURF** with
+Search = `fixed` and a **Portfolio**. On weighted data the reach is a sum of
+weights and the frequency a weighted mean — in the search too.
+
+## Bands
+
+`siamang.data.bands.bands(data, "age", bins=[18, 30, 45, 76], into="age_band")`
+cuts a number into a labelled ordinal variable (`18 to under 30`, …) after
+taking the codebook's missing codes out, so a 999 "Refused" never lands in the
+top band; `stats` counts every band and whatever fell outside. The flow node is
+**Bands** (`prepare.bands`). **Derive** takes `labels` for a formula that
+yields codes (`if age < 50 then 1 else 2` → `{1: "Under 50", 2: "50 or over"}`).
+
+---
+
 See also: [[Working with Data|Working-with-Data]] · [[Reporting Tables|Reporting-Tables]] · [[Banner Tables|Banner-Tables]] · [[Simulation]] · [[Variables and Measurement|Variables-and-Measurement]]

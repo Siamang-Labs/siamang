@@ -30,11 +30,15 @@ params:
     - nominal
     default: ratio
     label: Scale
+  labels:
+    kind: mapping
+    label: Value labels
+    help: 'For a formula that yields codes: code → label, e.g. 1 → Under 30, 2 → 30 or over. Set the scale to ordinal or nominal with them.'
 subtitle: '{name} = {formula}'
 template: |
   # The formula travels as text, not as a lambda: what the researcher wrote is
   # what a reviewer reads, and it is parsed rather than executed.
   {out.data} = {in.data}.derive_formula(
-      {name!r}, {formula!r}, label={label!r}, scale={scale!r}
+      {name!r}, {formula!r}, label={label!r}, scale={scale!r}, labels={labels!r}
   )
 preview: rows
