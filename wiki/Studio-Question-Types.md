@@ -38,7 +38,7 @@ Presets: **Yes / No**, **Rating (stars)**, **NPS (0–10)**, **CES (1–7)**,
 |---|---|---|
 | **Question text** | Question | Shown as plain text: Markdown and HTML are not rendered. Piping works: `{answer:variable}` inserts an earlier answer, `{label:variable}` the chosen option's label (for an Other answer, the text the respondent typed). |
 | **Hint** | Question | Smaller text under the question ("optional guidance shown below the question"); piping works here too. |
-| **Required** | Question | The respondent cannot continue without answering: **Next** shows "This question requires an answer." A Matrix asks for an answer in **every row** (the checkbox's hint says "an answer in every row", or "an answer in every row — N/A counts" when the matrix offers N/A) — see [Matrix](#matrix); MaxDiff and Conjoint ask for every task. Required questions show an asterisk to respondents. New questions start **optional**. |
+| **Required** | Question | The respondent cannot continue without answering: **Next** shows "This question requires an answer." A Matrix asks for an answer in **every row** (the checkbox's hint says "an answer in every row", or "an answer in every row — N/A counts" when the matrix offers N/A) — see [Matrix](#matrix); MaxDiff and Conjoint ask for every task. Required questions show an asterisk to respondents. The message also appears when the focus leaves a required question that has no answer yet, but not while it moves between the question's own controls (a dropdown's button and its search box, one checkbox and the next, a choice and its Other box). New questions start **optional**. |
 | **Randomize option order** | Question | Shuffles the options per respondent. Single choice, Multiple choice and Ranking only. "None of the above", exclusive choices (such as "None of these") and a choice that is the question's Other keep their place; the other options are shuffled around them. The "Other" option Studio adds always comes last. |
 | **Attention check** | Question | Single choice, Likert scale, Number and Open text — see [Attention checks](#attention-checks). |
 | **Variable** | Variable | The codebook entry the question writes — [[Codebook and Variables\|Studio-Codebook-and-Variables]]. A variable name starting with `__` is flagged here ("Variables starting with “__” are the survey runtime’s own: it never submits __x, so these answers never reach the data. Rename the variable."): the survey never submits such a key. |
@@ -84,8 +84,11 @@ One answer from a list.
 dropdown is searchable: it shows "— Select —", a search box ("Type to search…")
 and "No options found" when nothing matches. It works from the keyboard too:
 `Enter`, `Space` or `↓` opens it, `↓` / `↑` move through the options, typing
-narrows them, `Enter` chooses and `Esc` closes (see
-[Keyboard and touch](Studio-Respondent-Experience#answering)).
+narrows them, `Enter` chooses, and `Esc` or `Tab` closes the list, however
+long it is. `Esc` in the open list only closes it; it does not go back a page
+(see [Keyboard and touch](Studio-Respondent-Experience#answering)). After a
+click on a radio button or a picture, `Enter` goes to the next page with the
+choice kept, while `Space` only checks the radio.
 
 **Inspector → Options**
 

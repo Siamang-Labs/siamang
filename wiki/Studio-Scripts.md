@@ -293,8 +293,8 @@ used any other way, for example stored in a constant (`const id = "q5"`) or
 used as an object key. The engine's check then warns `SCRIPT_STALE_QUESTION_ID`
 ("Script '<name>' still names question 'q5' as a string or a bare identifier;
 its answer is stored under 'nps_5' … Where the script means the question,
-write 'nps_5'."). Comments and longer strings that merely mention the Id are
-not reported.
+write 'nps_5'."). Comments, regular expressions and longer strings that
+merely mention the Id are not reported.
 
 Because of that translation, a question whose Id differs from its variable
 cannot have an Id that your scripts use for something else: a codebook

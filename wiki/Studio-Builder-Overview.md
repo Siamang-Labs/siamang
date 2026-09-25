@@ -242,21 +242,31 @@ question. Delete the leftover entry in the Codebook tab instead: the script's
 
 ### What counts as a script writing a name
 
-For these checks a custom script writes a name when, outside its comments
-and strings, it assigns it (`answers.panel = 1`, `+=`, `??=` and the like),
-increments or decrements it (`answers.panel++`), deletes it
-(`delete answers.panel`), uses it as the target of a `for (… of …)` or
-`for (… in …)` loop or as a place in a destructuring assignment
-(`[answers.panel, x] = …`, `({ v: answers.panel } = o)`), or changes the
-value under it in place: a property or element assigned
+For these checks a custom script writes a name when, outside its comments,
+strings and regular expressions, it assigns it (`answers.panel = 1`, `+=`,
+`??=` and the like), increments or decrements it (`answers.panel++`),
+deletes it (`delete answers.panel`), uses it as the target of a
+`for (… of …)` or `for (… in …)` loop or as a place in a destructuring
+assignment (`[answers.panel, x] = …`, `({ v: answers.panel } = o)`), or
+changes the value under it in place: a property or element assigned
 (`answers.panel.source = "web"`, `answers.panel[0] = 1`), an array method
-that changes it (`answers.panel.push(…)`, `.splice`, `.sort` …) or
-`Object.assign(answers.panel, …)`. `answers?.panel` counts like
-`answers.panel`. Everything else is a read: a comparison, a condition, a
-value passed to a function (`f(answers.panel)`), put in an array or object,
-or used as a subscript (`obj[answers.panel] = 1`), and a string that happens
-to spell a write (`"answers.panel = 1"`). The Builder, the Save and the
-engine read scripts the same way.
+that changes it (`answers.panel.push(…)`, `.splice`, `.sort` …),
+`Object.assign(answers.panel, …)`, `Object.defineProperty(answers.panel, …)`
+or `Reflect.set(answers.panel, …)`. A value in brackets counts when the
+brackets' value is changed: `(answers.panel || []).push(x)`,
+`(0, answers.panel).push(x)`, `(c ? y : answers.panel).k = 1`. A write
+counts wherever it stands — after `if (…)`, `else`, `do` or `return`
+(`if (c) [answers.panel, x] = …`), and after a regular expression that holds
+a quote or ends in `\/\/` (`s.replace(/["']/g, "")`, `/^https?:\/\//`).
+`answers?.panel` counts like `answers.panel`. Everything else is a read: a
+comparison, a condition, a value passed to a function (`f(answers.panel)`),
+put in an array or object, or used as a subscript
+(`obj[answers.panel] = 1`), a change to a copy
+(`answers.panel.slice().push(x)`,
+`Object.assign(answers.panel.slice(), o)`), and a string or a regular
+expression that happens to spell a write (`"answers.panel = 1"`,
+`/answers.panel = 1/`). The Builder, the Save and the engine read scripts
+the same way.
 
 ---
 
