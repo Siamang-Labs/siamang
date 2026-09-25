@@ -136,6 +136,11 @@ leaves the tab; the final submission turns the same row into a complete one
 - appear in the table, and in every export — filter them out on `partial`;
 - do not count toward response caps or quotas;
 - feed the drop-off funnel on Distribute and an invitation's `started` status;
+- have a rate limit of their own, apart from final submissions (60 a minute
+  per survey and network address each, and the same again for quota checks),
+  so a class or an office answering from one network address does not use up
+  what its submissions need (see
+  [[Limits and Quotas at a Glance|Studio-Limits-Reference]]);
 - include respondents whom a full quota cell stopped, with the answers the
   survey had sent before they were stopped (someone stopped on leaving the
   first page has usually sent nothing yet, and leaves no row).

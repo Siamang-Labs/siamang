@@ -141,7 +141,9 @@ Schedules follow their flow:
   click **Resume** when you want them again.
 - **Restoring** a Save from before a rename moves the schedules back to the
   old name, enabled or paused as they were. A restore that removes a flow
-  pauses its schedules, as deleting it does.
+  pauses its schedules, as deleting it does — including a new flow created
+  under the name of a renamed flow that was later deleted: its schedules
+  stay with it, paused, rather than moving to the restored flow.
 - **Duplicating** a flow does not copy its schedules.
 
 See [Rename, duplicate or delete a flow](Studio-Flows#rename-duplicate-or-delete-a-flow).
