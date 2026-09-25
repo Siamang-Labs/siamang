@@ -1,0 +1,111 @@
+type: analyze.ttest
+category: analyze
+title: t-test
+description: Compares means — of two groups (Welch's or Student's t-test), of two measurements of the same respondents (paired), or of one variable against a value — with t, df, p, the mean difference and its CI, and Cohen's d.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  kind:
+    kind: enum
+    values:
+    - independent
+    - paired
+    - one_sample
+    default: independent
+    label: Design
+    help: Independent compares two groups of respondents; paired compares two variables answered by the same respondents; one_sample compares a mean with a fixed value.
+  y:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variable
+  group:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: Groups
+    help: 'Independent: the variable that splits the respondents into the groups compared.'
+  group_a:
+    kind: json
+    label: Group A
+    help: 'Independent: the code of the first group — needed only when Groups has more than two values.'
+  group_b:
+    kind: json
+    label: Group B
+    help: The code of the second group.
+  variances:
+    kind: enum
+    values:
+    - welch
+    - student
+    default: welch
+    label: Variances
+    help: Welch's test does not assume the two groups vary equally and is the safer default; Student's pools the variances.
+  y2:
+    kind: variable
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Second measurement
+    help: 'Paired: the variable compared with Variable, respondent by respondent.'
+  test_value:
+    kind: float
+    default: 0
+    label: Test value
+    help: 'One sample: the value the mean is tested against.'
+  confidence:
+    kind: float
+    default: 0.95
+    minimum: 0.5
+    maximum: 0.999
+    label: Confidence
+subtitle: '{y} · {kind}'
+checks:
+- when: kind=independent
+  require: group
+  message: An independent-samples t-test compares two groups — choose the variable that splits them in Groups.
+- when: kind=paired
+  require: y2
+  message: A paired t-test compares two measurements of the same respondents — choose the second in Second measurement.
+- when: group_a
+  require: group_b
+  message: Name both groups to compare in Group A and Group B, or neither when Groups has only two values.
+- when: group_b
+  require: group_a
+  message: Name both groups to compare in Group A and Group B, or neither when Groups has only two values.
+template:
+- when: kind=independent & group_a
+  code: |
+    {out.table} = {in.data}.report.ttest(
+        {y!r},
+        by={group!r},
+        groups=[{group_a!r}, {group_b!r}],
+        variances={variances!r},
+        confidence={confidence!r},
+    )
+- when: kind=independent & group_a=None
+  code: |
+    {out.table} = {in.data}.report.ttest(
+        {y!r}, by={group!r}, variances={variances!r}, confidence={confidence!r}
+    )
+- when: kind=paired
+  code: |
+    {out.table} = {in.data}.report.ttest(
+        {y!r}, kind="paired", other={y2!r}, confidence={confidence!r}
+    )
+- when: kind=one_sample
+  code: |
+    {out.table} = {in.data}.report.ttest(
+        {y!r}, kind="one_sample", mu={test_value!r}, confidence={confidence!r}
+    )
+- |
+  {out.stat} = {out.table}.stats
+preview: table

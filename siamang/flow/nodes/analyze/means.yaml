@@ -1,7 +1,7 @@
 type: analyze.means
 category: analyze
 title: Group means
-description: Mean, SD, median and N of a variable by group, with the matching significance test.
+description: Mean, SD, median and N of a variable by group, with a significance test — chosen for you, or by hand with post-hoc comparisons of every pair of groups.
 inputs:
   data: SurveyData
 outputs:
@@ -27,8 +27,63 @@ params:
     kind: bool
     default: true
     label: Significance test
+  method:
+    kind: enum
+    values:
+    - auto
+    - student
+    - welch
+    - anova
+    - welch_anova
+    - mannwhitney
+    - kruskal
+    default: auto
+    label: Test
+    help: Auto chooses by scale and groups (t-test or ANOVA for interval data, Mann-Whitney or Kruskal-Wallis for ordinal). Student and Welch compare two groups (Welch does not assume equal variances), ANOVA and Welch's ANOVA two or more, Mann-Whitney and Kruskal-Wallis compare ranks. A test chosen here reports df and an effect size and leaves the codebook's missing codes out.
+  posthoc:
+    kind: enum
+    values:
+    - none
+    - tukey
+    - games_howell
+    - dunn
+    default: none
+    label: Post-hoc
+    help: Every pair of groups compared after the test — Tukey's HSD after ANOVA, Games-Howell after Welch's ANOVA, Dunn after Kruskal-Wallis. The pairs appear under the table.
+  adjust:
+    kind: enum
+    values:
+    - holm
+    - bonferroni
+    default: holm
+    label: Dunn p adjustment
+    help: How Dunn's p-values allow for the number of pairs. Tukey and Games-Howell allow for it themselves.
 subtitle: '{y} by {by}'
-template: |
-  {out.table} = {in.data}.report.means({y!r}, by={by!r}, test={test!r})
+checks:
+- when: posthoc=tukey
+  require: method=anova
+  message: Tukey's HSD follows a one-way ANOVA — set Test to anova, or Post-hoc to none.
+- when: posthoc=games_howell
+  require: method=welch_anova
+  message: Games-Howell follows Welch's ANOVA — set Test to welch_anova, or Post-hoc to none.
+- when: posthoc=dunn
+  require: method=kruskal
+  message: Dunn's test follows Kruskal-Wallis — set Test to kruskal, or Post-hoc to none.
+- when: test=False & method!=auto
+  severity: warning
+  message: Test is not run while Significance test is off.
+- when: test=False & posthoc!=none
+  severity: warning
+  message: Post-hoc is not run while Significance test is off.
+template:
+- when: method=auto & posthoc=none
+  code: |
+    {out.table} = {in.data}.report.means({y!r}, by={by!r}, test={test!r})
+- when: method!=auto
+  code: |
+    {out.table} = {in.data}.report.means(
+        {y!r}, by={by!r}, test={test!r}, method={method!r}, posthoc={posthoc!r}, adjust={adjust!r}
+    )
+- |
   {out.stat} = {out.table}.stats
 preview: table

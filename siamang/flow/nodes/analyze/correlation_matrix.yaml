@@ -1,0 +1,60 @@
+type: analyze.correlation_matrix
+category: analyze
+title: Correlation matrix
+description: Pearson, Spearman or Kendall correlations between every pair of several variables — coefficients with significance marks, or one row per pair with p and N.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  items:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variables
+  method:
+    kind: enum
+    values:
+    - pearson
+    - spearman
+    - kendall
+    default: spearman
+    label: Method
+    help: Spearman and Kendall (tau-b) correlate ranks and suit rating scales; Pearson measures straight-line relationships and is weighted when a weight is applied.
+  missing:
+    kind: enum
+    values:
+    - pairwise
+    - listwise
+    default: pairwise
+    label: Missing answers
+    help: Pairwise uses, for each pair, everyone who answered both, so N can differ between pairs; listwise keeps only the respondents who answered every variable.
+  adjust:
+    kind: enum
+    values:
+    - none
+    - holm
+    - bonferroni
+    - fdr_bh
+    default: none
+    label: p adjustment
+    help: Allows for the number of pairs tested — Holm and Bonferroni hold the chance of any false finding at 5 %, fdr_bh (Benjamini-Hochberg) the share of false findings among the significant ones. The marks then follow the adjusted p.
+  layout:
+    kind: enum
+    values:
+    - matrix
+    - pairs
+    default: matrix
+    label: Layout
+    help: Matrix prints the lower triangle with * p < .05, ** p < .01, *** p < .001; pairs gives one row per pair with the coefficient, p and N.
+subtitle: '{items} · {method}'
+template: |
+  {out.table} = {in.data}.report.correlation_matrix(
+      {items!r}, method={method!r}, missing={missing!r}, adjust={adjust!r}, layout={layout!r}
+  )
+  {out.stat} = {out.table}.stats
+preview: table

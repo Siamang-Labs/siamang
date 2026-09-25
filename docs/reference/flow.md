@@ -46,7 +46,7 @@ returns errors and warnings with a code and the node concerned:
 | Code | Meaning |
 |------|---------|
 | `UNKNOWN_NODE_TYPE`, `UNKNOWN_PARAM`, `PARAM_REQUIRED`, `PARAM_INVALID` | the node against its spec |
-| `PARAM_CONFLICT` (error or warning) | a rule of the spec's `checks` between its parameters: values that do not go together (errors), a choice the node would ignore (warnings) |
+| `PARAM_CONFLICT` (error or warning) | a rule of the spec's `checks` between its parameters: a post-hoc test that does not follow the test chosen, a t-test without the variable its design compares (errors); a choice the node would ignore (warnings) |
 | `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the questionnaire's codebook (when given); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) and the arm of a `Script.assign_condition` (nominal unless the codebook declares it) count as known |
 | `UNKNOWN_EDGE_NODE`, `UNKNOWN_PORT`, `PORT_TYPE_MISMATCH`, `INPUT_CONNECTED_TWICE`, `INPUT_NOT_CONNECTED` | edges against the ports |
 | `CYCLE` | not a DAG |
@@ -73,7 +73,7 @@ The runner and the generator use the same order.
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `cell_weights`, `rake_weights`, `apply_weight`, `index` |
-| analyze | `freq`, `crosstab`, `means`, `correlation`, `proportion_ci`, `compare_groups`, `describe` |
+| analyze | `freq`, `crosstab`, `means`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `describe` |
 | visualize | `bar`, `boxplot`, `heatmap`, `scatter` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `live_tile` |
 
@@ -87,15 +87,35 @@ and flags are columns inside a `SurveyData`.
 `prepare.apply_weight` names the weight column (`SurveyData.with_weight`), and
 from there each node either uses it and says so in its output, or has no
 standard weighted form and says it is unweighted. Weighted: Frequencies,
-Crosstab, Group means (not N or the test), Banner table, Net Promoter Score,
-Regression, TURF, MaxDiff, Conjoint, Share of preference, Principal components,
-Scale reliability, the Bar chart, a Heatmap with `by`, and Proportion CI with
-`weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
-is not applied)"` in the stat, or as the chart title's second line): Compare
-groups, Correlation, Cluster, Box plot, Scatter plot, a Heatmap without `by`,
+Crosstab (Fisher's exact test counts respondents), Group means (not N or the
+test), Banner table, Net Promoter Score, Regression, TURF, MaxDiff, Conjoint,
+Share of preference, Principal components, Scale reliability, Correlation and
+Correlation matrix with Pearson, the Bar chart, a Heatmap with `by`, and
+Proportion CI with `weighted` set. Unweighted and saying so (`"unweighted (the
+weight '<column>' is not applied)"` in the stat, or as the chart title's second
+line): Compare groups, Correlation and Correlation matrix with Spearman or
+Kendall, t-test, Cluster, Box plot, Scatter plot, a Heatmap without `by`,
 Response quality and Code open answers. Describe counts rows and adds a
 `weighted_n_valid` column. The HB exports carry no weight. The node's own
 `help` lists the same, so the palette says what the nodes do.
+
+**Tests chosen by hand.** `analyze.correlation` takes a `method` (`pearson`,
+`spearman` — the default — or `kendall`); `analyze.correlation_matrix` (`items`,
+`method`, `missing` pairwise | listwise, `adjust` none | holm | bonferroni |
+fdr_bh, `layout` matrix | pairs) and `analyze.ttest` (`kind` independent |
+paired | one_sample, `y`, `group`, `group_a` / `group_b`, `variances` welch |
+student, `y2`, `test_value`, `confidence`) are new; `analyze.means` takes a
+`method` (`auto` or `student`, `welch`, `anova`, `welch_anova`, `mannwhitney`,
+`kruskal`), a `posthoc` (`none`, `tukey`, `games_howell`, `dunn`) and Dunn's
+`adjust` (`holm` | `bonferroni`); `analyze.compare_groups` a `posthoc`
+(`none` | `dunn`) and `adjust`; `analyze.crosstab` a `method` (`chi2` |
+`fisher`). Their `checks` refuse a post-hoc test that does not follow its test
+and a t-test without what its design compares. A stored flow that never set
+the new parameters renders exactly the code it rendered before — the defaults
+select the templates' old fragments (`when: method=auto & posthoc=none`), and
+Group means and Crosstab keep their `test` checkbox with the new `method`
+beside it, so `test: true` / `false` keep their meaning. The methods are
+described in `siamang.data.inference` (data reference).
 `analyze.conjoint_shares` has a `stat` output (base, model, weight) beside its
 table.
 

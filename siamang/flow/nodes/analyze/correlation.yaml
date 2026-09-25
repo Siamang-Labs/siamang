@@ -1,7 +1,7 @@
 type: analyze.correlation
 category: analyze
 title: Correlation
-description: Spearman rank correlation between two variables.
+description: Pearson, Spearman or Kendall correlation between two variables, with its p-value and N — Pearson with a 95 % CI, and weighted when a weight is applied.
 inputs:
   data: SurveyData
 outputs:
@@ -23,7 +23,21 @@ params:
     - interval
     - ratio
     label: Y
+  method:
+    kind: enum
+    values:
+    - pearson
+    - spearman
+    - kendall
+    default: spearman
+    label: Method
+    help: Spearman and Kendall (tau-b) correlate ranks and suit rating scales; Pearson measures a straight-line relationship and gives a 95 % CI. Pearson is weighted when a weight is applied, the rank methods are not and say so. Pearson and Kendall leave the codebook's missing codes out and say how many; Spearman keeps its earlier result (put Missing values first to leave them out).
 subtitle: '{x} ~ {y}'
-template: |
-  {out.stat} = {in.data}.analysis.spearman({x!r}, {y!r})
+template:
+- when: method=spearman
+  code: |
+    {out.stat} = {in.data}.analysis.spearman({x!r}, {y!r})
+- when: method!=spearman
+  code: |
+    {out.stat} = {in.data}.analysis.correlation({x!r}, {y!r}, method={method!r})
 preview: stat

@@ -1,7 +1,7 @@
 type: analyze.compare_groups
 category: analyze
 title: Compare groups
-description: Mann-Whitney U for two groups, Kruskal-Wallis H for more.
+description: Mann-Whitney U for two groups, Kruskal-Wallis H for more — with Dunn's test on every pair of groups after Kruskal-Wallis when asked.
 inputs:
   data: SurveyData
 outputs:
@@ -30,9 +30,30 @@ params:
     - mannwhitney
     default: auto
     label: Test
+  posthoc:
+    kind: enum
+    values:
+    - none
+    - dunn
+    default: none
+    label: Post-hoc
+    help: Dunn's test compares every pair of groups after Kruskal-Wallis — one line per pair with z and the adjusted p. With it the codebook's missing codes are left out of the test too, and the result says how many.
+  adjust:
+    kind: enum
+    values:
+    - holm
+    - bonferroni
+    default: holm
+    label: Dunn p adjustment
 subtitle: '{y} by {group}'
+checks:
+- when: posthoc=dunn
+  require:
+  - test=kruskal
+  - test=auto
+  message: Dunn's test follows Kruskal-Wallis — set Test to kruskal or auto, or Post-hoc to none.
 template:
-- when: test=auto
+- when: test=auto & posthoc=none
   code: |
     _groups = {in.data}.frame[{group!r}].dropna().nunique()
     {out.stat} = (
@@ -40,10 +61,15 @@ template:
         if _groups == 2
         else {in.data}.analysis.kruskal({y!r}, {group!r})
     )
-- when: test=kruskal
+- when: test=kruskal & posthoc=none
   code: |
     {out.stat} = {in.data}.analysis.kruskal({y!r}, {group!r})
-- when: test=mannwhitney
+- when: test=mannwhitney & posthoc=none
   code: |
     {out.stat} = {in.data}.analysis.mannwhitney({y!r}, {group!r})
+- when: posthoc=dunn
+  code: |
+    {out.stat} = {in.data}.analysis.compare_groups(
+        {y!r}, {group!r}, test={test!r}, posthoc={posthoc!r}, adjust={adjust!r}
+    )
 preview: stat
