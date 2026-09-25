@@ -224,6 +224,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when the focus leaves it, not when it moves between its own controls (the
   dropdown's button and search box, one checkbox and the next, a choice and
   its Other box).
+- Enter did nothing after a click on a choice: the click leaves the focus on
+  its radio button or checkbox (a picture choice's too, and a conjoint's
+  "none"), and the runtime left every key to any field it was on, as it does
+  to a text field. On a radio button, a checkbox or a slider Enter now goes to
+  the next page, as it does elsewhere outside a text field, with the choice
+  kept; Space stays the control's own (it checks the radio, ticks or unticks
+  the box), and Esc and the digits act as they do elsewhere.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's

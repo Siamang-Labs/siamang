@@ -1472,6 +1472,87 @@ def test_after_a_click_enter_and_space_go_on_with_every_pick_kept(tmp_path):
     assert state["submitted"] == [{"sat": 2, "__status": "completed"}]
 
 
+def _choice_document() -> dict[str, Any]:
+    """A picture choice (a SingleChoice whose options carry images), then a
+    MultiChoice, then the end."""
+
+    pets = [{"code": 1, "label": "Cat"}, {"code": 2, "label": "Dog"}]
+    fruits = [{"code": 1, "label": "Apple"}, {"code": 2, "label": "Pear"}]
+    pictures = [
+        {
+            **pet,
+            "media": {"kind": "image", "url": f"{pet['label'].lower()}.png", "alt": pet["label"]},
+        }
+        for pet in pets
+    ]
+    return {
+        "schema_version": "1.0",
+        "title": "Choices",
+        "variables": {
+            "pet": {"scale": "nominal", "labels": pets},
+            "fruit": {"scale": "nominal", "labels": fruits},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "SingleChoice",
+                        "id": "pet",
+                        "var": "pet",
+                        "text": "Which?",
+                        "choices": pictures,
+                    }
+                ],
+            },
+            {
+                "name": "p2",
+                "items": [{"type": "MultiChoice", "id": "fruit", "var": "fruit", "text": "Which?"}],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_after_a_click_on_a_choice_enter_goes_on_and_space_is_its_own(tmp_path):
+    """A click on a radio or a checkbox leaves the focus on it, and every key
+    but Tab was ignored there: Enter did not go on, though it does anywhere
+    else outside a text field - "click a picture, press Enter" stayed on the
+    page. Enter now goes on with the choice kept; Space stays the radio's or
+    the box's own (it checks the radio, ticks or unticks the box)."""
+
+    scenario = (
+        _MATRIX_KEYS
+        + """
+        const pages = () => page.evaluate(() => window.__T.pages.slice());
+        const checked = (type) => page.$$eval(`input[type=${type}]`, (is) => is.map((i) => i.checked));
+        await page.click("label.sd-radio >> nth=1");
+        const focus = await page.evaluate(() => document.activeElement.type);
+        await press(" ");
+        await page.waitForTimeout(250);
+        const radioSpace = { pages: await pages(), checked: await checked("radio") };
+        await press("Enter");
+        await page.waitForTimeout(250);
+        const radioEnter = await pages();
+        await page.click("label.sd-checkbox >> nth=0");
+        await press(" ");
+        const unticked = await checked("checkbox");
+        await press(" ");
+        const ticked = await checked("checkbox");
+        await press("Enter");
+        await page.waitForTimeout(250);
+    """
+        + _STATE.replace("return {", "return { focus, radioSpace, radioEnter, unticked, ticked,")
+    )
+    state = run_in_browser(_choice_document(), scenario, tmp_path)
+    assert state["focus"] == "radio"
+    assert state["radioSpace"] == {"pages": ["p1"], "checked": [False, True]}
+    assert state["radioEnter"] == ["p1", "p2"]
+    assert (state["unticked"], state["ticked"]) == ([False, False], [True, False])
+    assert state["pages"] == ["p1", "p2", "done"]
+    assert state["submitted"] == [{"pet": 2, "fruit": [1], "__status": "completed"}]
+
+
 # ── Piping ───────────────────────────────────────────────────────────────────
 
 

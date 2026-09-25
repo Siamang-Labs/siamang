@@ -590,11 +590,19 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
     const handler = (e) => {
       const nav = navRef.current;
       if (!nav) return;
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+      // A radio or a checkbox (a choice, a picture choice, a conjoint's
+      // "none") and a slider have keys of their own - Space checks the radio
+      // or ticks the box, the arrows move - but not Enter, which goes on, as
+      // it does anywhere outside a text field: a click on a choice leaves the
+      // focus on it, and Enter there did nothing. Every other field keeps
+      // all its keys.
+      const tag = e.target.tagName;
+      const choice = tag === "INPUT" && /^(radio|checkbox|range)$/.test(e.target.type);
+      if (!choice && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) return;
       if (e.target.isContentEditable) return;
-      const control = e.target.closest ? e.target.closest(OWN_KEYS_SELECTOR) : null;
+      const control = !choice && e.target.closest ? e.target.closest(OWN_KEYS_SELECTOR) : null;
 
-      if ((e.key === "Enter" || e.key === " ") && (!control || control === pointed)) {
+      if ((e.key === "Enter" || (e.key === " " && !choice)) && (!control || control === pointed)) {
         e.preventDefault();
         if (nav.onNext) nav.onNext();
       }
