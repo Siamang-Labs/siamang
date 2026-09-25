@@ -173,7 +173,11 @@ DEFS: dict[str, Any] = {
         "additionalProperties": False,
     },
     "labels": {
-        "description": "Value labels in display order. The object form is accepted as shorthand.",
+        "description": (
+            "Value labels in display order. The object form is accepted as shorthand; "
+            "JSON tools do not keep an object's key order, so its codes are read 0 and up "
+            "ascending, then the negative codes from -1 down, then text codes as listed."
+        ),
         "anyOf": [
             {
                 "type": "array",
