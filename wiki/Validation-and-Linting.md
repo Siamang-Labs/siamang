@@ -34,7 +34,9 @@ would produce a broken survey:
   collects that a custom script writes: `answers.panel = …`, `+=` and the like,
   `++`, `delete`, a destructuring or loop target — `[answers.panel, x] = …`,
   `for (answers.panel of …)` — or the value changed in place,
-  `answers.panel.push(…)`, `answers.panel.k = …`), or a name beginning with `__`
+  `answers.panel.push(…)`, `answers.panel.k = …`, `(answers.panel || []).push(…)`,
+  `Reflect.set(answers.panel, …)`; wherever the write stands, after `if (c)` or
+  `else` and after a regular expression included), or a name beginning with `__`
   (the runtime's own state). A codebook variable nothing writes does not count —
   the runtime captures no embedded data — so an entry left over from a renamed
   variable leaves the id free. If a script does write it, the message offers two
@@ -154,7 +156,7 @@ every level:
 | `INCOMPATIBLE_QUESTION_SCALE` | error | `NumericInput` not on interval/ratio, or `LikertScale` not on ordinal. |
 | `CATEGORICAL_WITHOUT_LABELS` | error | A `SingleChoice`/`MultiChoice` variable has no value labels. |
 | `NA_STORED_AS_TEXT` | warning | A `LikertScale` or `Matrix` offers "Not applicable" but its variable declares no missing value of kind `not_applicable`, so N/A is stored as the text `"na"`; declare one (and label it) to store its code. |
-| `SCRIPT_STALE_QUESTION_ID` | warning | A custom script still names a question whose answer is stored under a different key (its id is not its variable) as a string or a bare identifier — outside the `answers[…]` / `__errors__[…]` / `__options__[…]` / `__timers__[…]` accesses the compiler translates. Comments, and strings that merely mention the id, do not count. |
+| `SCRIPT_STALE_QUESTION_ID` | warning | A custom script still names a question whose answer is stored under a different key (its id is not its variable) as a string or a bare identifier — outside the `answers[…]` / `__errors__[…]` / `__options__[…]` / `__timers__[…]` accesses the compiler translates. Comments, regular expressions, and strings that merely mention the id, do not count. |
 | `SCRIPT_TARGET_IS_A_PAGE` | warning | An `onQuestionShow` / `onAnswer` script targets a page name. The runtime dispatches those triggers with a question's key, so the script would never run. |
 | `SCRIPT_TARGET_IS_A_QUESTION` | warning | An `onPageEnter` / `onPageExit` script targets a question. The runtime dispatches those triggers with a page's name, so the script would never run. |
 | `UNUSED_VARIABLE` | warning | A registered variable is never used in the questionnaire. |

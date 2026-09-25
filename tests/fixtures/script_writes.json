@@ -137,6 +137,66 @@
       ]
     },
     {
+      "code": "var r = /\"/; answers.panel = 1; var t = \"x\";",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "if (!/^https?:\\/\\//.test(u)) answers.panel = \"web\";",
+      "written": [
+        "panel"
+      ]
+    },
+    {
+      "code": "x = s.replace(/[\"']/g, \"\"); answers.q2 = 1;",
+      "written": [
+        "q2"
+      ]
+    },
+    {
+      "code": "if (c) [answers.panel, x] = [1, 2]; else (answers.q2) = 1;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "do (answers.panel) = 1; while (0); function f() { return [answers.q2] = [1]; }",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "delete (answers.panel); if (c) (answers.q2).push(1);",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "(answers.panel || []).push(x); (0, answers.q2).sort();",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "(c ? y : answers.panel).k = 1; Reflect.set(answers.q2, \"k\", 1);",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
+      "code": "x = (a + b) / 2; answers.panel = 1; y = c / 3; z = d++ / 4; answers.q2 = 1; w = e / 5;",
+      "written": [
+        "panel",
+        "q2"
+      ]
+    },
+    {
       "code": "if (answers.panel == 1 || answers.q2 <= 2) ok = answers.panel;",
       "written": []
     },
@@ -182,6 +242,26 @@
     },
     {
       "code": "state.answers.panel = 1; answers.panelist = 2; x.answers.q2.push(1);",
+      "written": []
+    },
+    {
+      "code": "var re = /answers.panel = 1/; if (/[\"']/.test(answers.q2)) {}",
+      "written": []
+    },
+    {
+      "code": "x = (answers.panel ? a : b).push(1); y = (answers.q2 == 1 || z).push(1);",
+      "written": []
+    },
+    {
+      "code": "Array.of(answers.panel).push(1); if (answers.q2) (y) = 1; if (answers.q2) [y] = [1];",
+      "written": []
+    },
+    {
+      "code": "delete answers.panel.slice().k; Object.assign(answers.q2.slice(), o);",
+      "written": []
+    },
+    {
+      "code": "x = `${answers.panel}`.length; y = (a, answers.q2, b).push(1);",
       "written": []
     }
   ]
