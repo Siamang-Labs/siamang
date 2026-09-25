@@ -32,6 +32,16 @@ Every table component supports the following common interface:
 * **`export_xlsx(path: str | Path) -> Path`**:
   Exports the table directly to an Excel sheet named `"Table"`. The destination directory must already exist.
 
+The statistics a table reports (`stats`) print under it as `key = value`,
+joined by `; ` — and a statistics mapping given to `Report.add` prints the
+same way. A float keeps up to four decimals without padding (`df = 124.98`; a
+whole one keeps its `.0`), and one too small for four decimals keeps three
+significant digits with its exponent (`p = 5.8e-07`), so nothing that is not 0
+reads `0.0000`. A p-value in `stats` or in a table cell keeps four decimals, or
+four significant digits where four decimals would make it 0 (`1.134e-24`). The
+HTML writes each number of a table as the Markdown does, so the `.html` and the
+`.md` of a report show the same values.
+
 #### Weighted data
 
 Every table reads `SurveyData.weight` (set by `with_weight()`, the flow's Apply weight node) and says in `stats` what it did with it. `FreqTable` sums weights for N and the percentages and adds an `Unweighted N` column; `CrossTable` sums weights in its cells and runs χ² on the counts scaled to Kish's effective base (with `test=False` its stats still give `Weighted N` and `Weight`); `GroupMeanTable` weights means, SDs and medians while N, the test and any post-hoc pairs stay unweighted, and says so in `Note`. Fisher's exact test in `CrossTable` counts respondents and says so in `Base`; `CorrelationMatrixTable` weights Pearson's coefficient (p on Kish's effective base) and `TTestTable` states `Weight: unweighted (the weight '<column>' is not applied)`. The banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the `Weight`. The quality and theme tables count responses and state `Weight: unweighted (the weight '<column>' is not applied)`. The full list, including the analysis methods, is in the data reference under *What the weight reaches*.

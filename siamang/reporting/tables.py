@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_p
+
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
 
@@ -111,14 +113,43 @@ def _frame_to_markdown(df: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
+def stat_text(value: Any) -> str:
+    """A statistic as a table's footer and a report's statistics line print it.
+
+    A float keeps up to four decimals, without padding (``df = 124.98``, not
+    ``124.9800``; a whole one keeps its ``.0``, as a table cell prints it); one
+    that is not 0 but too small for four decimals — a p-value, most often —
+    keeps three significant digits with its exponent (``p = 5.8e-07``), so
+    nothing that is not 0 is printed as ``0.0000``.
+    """
+    if isinstance(value, float) and not isinstance(value, bool):
+        if not np.isfinite(value):
+            return str(value)
+        if value != 0 and abs(value) < 5e-5:
+            return f"{value:.3g}"
+        text = f"{value:.4f}".rstrip("0")
+        text = text + "0" if text.endswith(".") else text
+        return "0.0" if text == "-0.0" else text
+    return str(value)
+
+
 def frame_to_html(df: pd.DataFrame, caption: str | None = None) -> str:
     """Convert a DataFrame to a clean HTML table.
 
     Public because a report renders bare DataFrames through the same path as
     its table components, so every table in a document carries the same class
     and the stylesheet has one thing to style.
+
+    A number is written as the Markdown writes it (``str``): pandas' own
+    formatting pads a column to one width and turned a p of ``3.363e-07``
+    into ``0.0`` beside a ``.md`` that said ``3.363e-07``.
     """
-    html = df.to_html(index=False, classes="siamang-table", border=0)
+    shown = df.astype(object)
+    for position in range(shown.shape[1]):
+        shown.iloc[:, position] = shown.iloc[:, position].map(
+            lambda value: str(value) if isinstance(value, float) and value == value else value
+        )
+    html = shown.to_html(index=False, classes="siamang-table", border=0)
     if caption:
         html = html.replace("<table", f"<caption>{caption}</caption>\n<table", 1)
     return html
@@ -182,14 +213,8 @@ class SurveyTable:
         return path
 
     def _format_stats(self) -> str:
-        """Format statistics footer."""
-        parts = []
-        for key, val in self._stats.items():
-            if isinstance(val, float):
-                parts.append(f"{key} = {val:.4f}")
-            else:
-                parts.append(f"{key} = {val}")
-        return "; ".join(parts)
+        """Format statistics footer (each value as :func:`stat_text` writes it)."""
+        return "; ".join(f"{key} = {stat_text(val)}" for key, val in self._stats.items())
 
     def __repr__(self) -> str:
         self._ensure_built()
@@ -569,7 +594,7 @@ class CrossTable(SurveyTable):
                 self._stats = {
                     "χ²": round(chi2_stat, 3),
                     "df": int(dof),
-                    "p": round(p_value, 4),
+                    "p": round_p(p_value),
                     "Cramér's V": round(cramers_v, 3),
                     "N": int(frame.shape[0]),
                 }
@@ -815,17 +840,17 @@ class GroupMeanTable(SurveyTable):
             if n_groups == 2:
                 if use_nonparametric:
                     stat, p = sp_stats.mannwhitneyu(groups[0], groups[1], alternative="two-sided")
-                    self._stats = {"Mann-Whitney U": round(stat, 3), "p": round(p, 4)}
+                    self._stats = {"Mann-Whitney U": round(stat, 3), "p": round_p(p)}
                 else:
                     stat, p = sp_stats.ttest_ind(groups[0], groups[1])
-                    self._stats = {"t": round(stat, 3), "p": round(p, 4)}
+                    self._stats = {"t": round(stat, 3), "p": round_p(p)}
             else:
                 if use_nonparametric:
                     stat, p = sp_stats.kruskal(*groups)
-                    self._stats = {"Kruskal-Wallis H": round(stat, 3), "p": round(p, 4)}
+                    self._stats = {"Kruskal-Wallis H": round(stat, 3), "p": round_p(p)}
                 else:
                     stat, p = sp_stats.f_oneway(*groups)
-                    self._stats = {"F": round(stat, 3), "p": round(p, 4)}
+                    self._stats = {"F": round(stat, 3), "p": round_p(p)}
 
             self._stats["N"] = n
             self._stats["Variable"] = col_label

@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.data import inference
+from siamang.data.listwise import round_p
 from siamang.reporting.tables import (
     SurveyTable,
     _BlankUndefined,
@@ -110,7 +111,7 @@ def means_test(
                 "Test": result.method,
                 "t": round(result.t, 3),
                 "df": _df(result.df),
-                "p": round(result.p_value, 4),
+                "p": round_p(result.p_value),
                 "Mean difference": round(result.difference, 3),
                 "Difference": f"{names[0]} − {names[1]}",
                 _ci_key(result.confidence): _interval(result.lower, result.upper),
@@ -132,7 +133,7 @@ def means_test(
         stats["df"] = (
             f"{_df(found.df)}, {_df(found.df2)}" if found.df2 is not None else _df(found.df)
         )
-    stats["p"] = round(found.p_value, 4)
+    stats["p"] = round_p(found.p_value)
     if found.effect_name is not None and found.effect is not None:
         stats[found.effect_name] = round(found.effect, 3)
     return stats
@@ -192,14 +193,18 @@ class PostHocTable(_BlankUndefined, SurveyTable):
         rounded = lambda column, digits: [  # noqa: E731
             None if value != value else round(float(value), digits) for value in table[column]
         ]
+        # A p that four decimals would make 0 keeps its significant digits.
+        p_of = lambda column: [  # noqa: E731
+            None if value != value else round_p(value) for value in table[column]
+        ]
         if result.method == "dunn":
             frame = pd.DataFrame(
                 {
                     "Pair": pairs,
                     "Mean rank difference": rounded("difference", 3),
                     "z": rounded("statistic", 3),
-                    "p (unadjusted)": rounded("p_value", 4),
-                    f"p ({inference.ADJUSTMENT_NAMES[result.adjust]})": rounded("p_adjusted", 4),
+                    "p (unadjusted)": p_of("p_value"),
+                    f"p ({inference.ADJUSTMENT_NAMES[result.adjust]})": p_of("p_adjusted"),
                 }
             )
         else:
@@ -213,7 +218,7 @@ class PostHocTable(_BlankUndefined, SurveyTable):
             }
             if result.method == "games_howell":
                 columns["df"] = rounded("df", 2)
-            columns["p"] = rounded("p_adjusted", 4)
+            columns["p"] = p_of("p_adjusted")
             frame = pd.DataFrame(columns)
         self._result = frame
         stats: dict[str, Any] = {"Method": result.name}
@@ -262,7 +267,7 @@ def fisher_stats(
     except inference.NotTestable as exc:
         stats = {"Test": f"Fisher's exact test: not run — {exc}", "N": n}
     else:
-        stats = {"Test": found["method"], "p": round(found["p_value"], 4)}
+        stats = {"Test": found["method"], "p": round_p(found["p_value"])}
         if "odds_ratio" in found:
             row_labels = _get_value_labels(data, row)
             col_labels = _get_value_labels(data, col)
@@ -469,7 +474,7 @@ class TTestTable(_BlankUndefined, SurveyTable):
             "Test": result.method,
             "t": round(result.t, 3),
             "df": _df(result.df),
-            "p": round(result.p_value, 4),
+            "p": round_p(result.p_value),
             "Mean difference": round(result.difference, 3),
             "Difference": difference,
             _ci_key(result.confidence): _interval(result.lower, result.upper),
@@ -628,12 +633,12 @@ class CorrelationMatrixTable(_BlankUndefined, SurveyTable):
                     "Variable 1": [labels[columns.index(name)] for name in pairs["x"]],
                     "Variable 2": [labels[columns.index(name)] for name in pairs["y"]],
                     symbol: [None if v != v else round(float(v), 3) for v in pairs["coefficient"]],
-                    "p": [None if v != v else round(float(v), 4) for v in pairs["p_value"]],
+                    "p": [None if v != v else round_p(v) for v in pairs["p_value"]],
                 }
             )
             if adjusted:
                 frame[f"p ({inference.ADJUSTMENT_NAMES[self.adjust]})"] = [
-                    None if v != v else round(float(v), 4) for v in pairs["p_adjusted"]
+                    None if v != v else round_p(v) for v in pairs["p_adjusted"]
                 ]
             frame["N"] = pairs["n"].astype(int).tolist()
         self._result = frame

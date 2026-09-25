@@ -106,7 +106,7 @@ print(data.report.crosstab("it_role", "remote_freq", pct="row").to_markdown())
 | PM | 26.9 | 17.3 | 30.8 | 11.5 | 13.5 | 52 |
 | Total | 45.0 | 39.0 | 49.0 | 31.0 | 36.0 | 200 |
 
-χ² = 21.4850; df = 12; p = 0.0437; Cramér's V = 0.1890; N = 200
+χ² = 21.485; df = 12; p = 0.0437; Cramér's V = 0.189; N = 200
 ```
 
 ---
@@ -158,7 +158,7 @@ print(data.report.means("autonomy", by="remote_freq").to_markdown())
 | Mostly remote | 3.0 | 1.653 | 2.0 | 31 |
 | Fully remote | 3.278 | 1.386 | 4.0 | 36 |
 
-Kruskal-Wallis H = 2.1330; p = 0.7113; N = 200; Variable = Autonomy
+Kruskal-Wallis H = 2.133; p = 0.7113; N = 200; Variable = Autonomy
 ```
 
 Here `autonomy` is ordinal and `remote_freq` has five categories, so

@@ -833,3 +833,78 @@ def test_the_defaults_say_when_they_count_missing_codes_as_answers():
     assert "missing_codes_counted" not in clean.analysis.kruskal("sat", "grp")
     assert "Missing codes counted as answers" not in clean.report.means("sat", by="grp").stats
     assert "Missing codes counted as answers" not in clean.report.crosstab("grp", "ans").stats
+
+
+def test_a_tiny_p_is_never_printed_as_zero():
+    """A test that found something reads p = 1.13e-24, not 0: the statistics keep
+    four decimals, or four significant digits where four decimals would give 0,
+    and a footer, a report line and an HTML cell print what the Markdown does.
+    The references are SciPy's."""
+    from siamang.data.listwise import round_p
+    from siamang.reporting import Report
+    from siamang.reporting.tables import stat_text
+
+    rng = np.random.default_rng(0)
+    low, high = rng.normal(0, 1, 200), rng.normal(2, 1, 200)
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("y", "interval", label="Y"),
+            Variable("g", "nominal", label="G", labels={1: "One", 2: "Two", 3: "Three"}),
+            Variable("a", "nominal", label="A", labels={1: "Yes", 2: "No"}),
+        ]
+    )
+    frame = pd.DataFrame(
+        {
+            "y": np.r_[low, high, rng.normal(4, 1, 200)],
+            "g": [1] * 200 + [2] * 200 + [3] * 200,
+            "a": [1] * 190 + [2] * 10 + [2] * 190 + [1] * 10 + [1] * 200,
+        }
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    two = data.with_frame(frame[frame["g"] != 3])
+
+    welch = stats.ttest_ind(low, high, equal_var=False).pvalue  # 7.68e-58
+    ttest = two.report.ttest("y", by="g")
+    assert ttest.stats["p"] == pytest.approx(welch, rel=1e-3) and ttest.stats["p"] > 0
+    assert f"p = {welch:.3g};" in ttest.to_markdown()
+    assert two.report.means("y", by="g", method="welch").stats["p"] == ttest.stats["p"]
+    # The default test, chosen for you, too.
+    student = stats.ttest_ind(low, high).pvalue
+    assert two.report.means("y", by="g").stats["p"] == pytest.approx(student, rel=1e-3)
+
+    means = data.report.means("y", by="g", method="anova", posthoc="tukey")
+    anova = stats.f_oneway(*[frame.loc[frame["g"] == k, "y"] for k in (1, 2, 3)]).pvalue
+    assert means.stats["p"] == pytest.approx(anova, rel=1e-3) and anova < 1e-100
+    # Tukey's p for groups 2 SD apart is below what floating point can tell from 0:
+    # printed 0, as it is. One 1 SD apart is not.
+    pairs = means.posthoc_table.to_frame()["p"].tolist()
+    assert all(p is not None for p in pairs)
+    markdown, html = means.posthoc_table.to_markdown(), means.posthoc_table.to_html()
+    for p in pairs:
+        assert f"| {p} |" in markdown and f"<td>{p}</td>" in html
+
+    crosstab = data.report.crosstab("a", "g")
+    chi2 = stats.chi2_contingency(pd.crosstab(frame["a"], frame["g"]).to_numpy()).pvalue
+    assert crosstab.stats["p"] == pytest.approx(chi2, rel=1e-3) and chi2 < 1e-4
+    fisher = two.report.crosstab("a", "g", method="fisher")
+    exact = stats.fisher_exact(pd.crosstab(two.frame["a"], two.frame["g"]).to_numpy()).pvalue
+    assert fisher.stats["p"] == pytest.approx(exact, rel=1e-3) and exact < 1e-60
+    assert f"p = {exact:.3g};" in fisher.to_markdown()
+
+    matrix = data.with_frame(frame.assign(y2=frame["y"] + rng.normal(0, 6.5, 600)))
+    matrix.variables.add(Variable("y2", "interval", label="Y2"))
+    table = matrix.report.correlation_matrix(["y", "y2"], method="pearson", layout="pairs")
+    assert 0 < table.to_frame()["p"][0] < 1e-4
+
+    dunn = data.analysis.compare_groups("y", "g", posthoc="dunn")
+    assert "p = 0.0000" not in str(dunn) and "e-" in dunn["One vs Three"]
+
+    # Four decimals as before wherever they keep a p above 0.
+    assert round_p(0.041563) == 0.0416 and round_p(0.0) == 0.0 and math.isnan(round_p(np.nan))
+    assert round_p(1.13155862e-24) == 1.132e-24
+    # A footer and a report line print the same, without padding.
+    assert stat_text(124.98) == "124.98" and stat_text(64.4) == "64.4" and stat_text(2.0) == "2.0"
+    assert stat_text(5.8e-07) == "5.8e-07" and stat_text(0.0123) == "0.0123"
+    report = Report().add({"p_value": 2.17e-30, "df": 124.98}).to_markdown()
+    assert "p_value = 2.17e-30; df = 124.98" in report

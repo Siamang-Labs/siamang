@@ -358,6 +358,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parallel analysis. A template fragment may continue a call another opened,
   and the template renders only the parameters its fragments name.
 
+- **A tiny p-value is no longer printed as 0.** The t-test, Group means (by
+  hand and `auto`), Crosstab (χ² and Fisher), the correlation matrix's pairs and
+  the post-hoc tables rounded p to four decimals, so a strong effect read
+  `p = 0.0` in its statistics and in Studio; every footer printed floats with
+  `:.4f` (`p = 0.0000`, `Bartlett p = 0.0000`, and padded `df = 124.9800`); a
+  report's statistics line did the same, and its HTML tables used pandas'
+  formatting, which turned a p of `3.363e-07` into `0.0` beside a `.md` that
+  said `3.363e-07`. A p now keeps four decimals, or four significant digits
+  where four decimals would make it 0 (`siamang.data.listwise.round_p`);
+  footers and `Report.add` lines print a float with up to four decimals and no
+  padding, and one too small for them with its exponent
+  (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`); Compare groups'
+  Dunn lines too; and `frame_to_html` writes each number as the Markdown does.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a
