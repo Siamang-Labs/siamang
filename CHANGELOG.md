@@ -438,6 +438,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in Group A and Group B, unless the data this node reads holds only two of
   them."): a filter upstream may leave two, so it does not stop the flow.
 
+- **A made variable of the wrong scale is warned.** `VARIABLE_SCALE` knew only
+  the questionnaire's scales, so a Crosstab of a MaxDiff score or a factor
+  score (interval) passed the check and ran with one row per distinct float.
+  The variables the nodes make now carry the scale each node gives them, and a
+  later node naming one its parameter does not take gets a warning ("Parameter
+  'row' of xt: 'factor_1' is interval (as the node that makes it gives it),
+  expected nominal | ordinal.") — not an error, so a flow saved before runs on.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a

@@ -171,12 +171,24 @@ def check_flow(
     for name in _assigned_variables(questionnaire):
         # An arm the codebook leaves out is nominal, as Simulated data enters it.
         scales.setdefault(name, "nominal")
+    # The scales the nodes give what they make (the codebook's entry wins a
+    # shared name). A later node naming one of the wrong scale is warned, not
+    # stopped: a flow saved before this was checked may rely on it and runs.
+    made = (
+        {
+            name: scale
+            for name, scale in _made_scales(nodes, registry, questionnaire, scales).items()
+            if name not in scales
+        }
+        if questionnaire is not None
+        else {}
+    )
     for node_id, node in nodes.items():
         if node["type"] not in registry:
             continue
         spec = registry.get(node["type"])
         issues.extend(
-            _check_params(node_id, spec, node.get("params") or {}, known_variables, scales)
+            _check_params(node_id, spec, node.get("params") or {}, known_variables, scales, made)
         )
         issues.extend(_check_rules(node_id, spec, node.get("params") or {}))
         issues.extend(_check_design(node_id, spec, node.get("params") or {}, questionnaire))
@@ -407,6 +419,64 @@ def _known_variables(
     return known
 
 
+def _made_scales(
+    nodes: dict[str, dict[str, Any]],
+    registry: Registry,
+    questionnaire: dict[str, Any] | None,
+    codebook: dict[str, str | None],
+) -> dict[str, str]:
+    """The scale each variable a node makes is given — as the engine registers
+    it: Derive its Scale (ratio by default), Recode its Scale or the source's,
+    an index interval, Bands ordinal, a cluster, themes and quality flags
+    nominal, the quality score ratio, Explode's columns nominal, factor and
+    MaxDiff scores interval. Columns made without a variable (weights, the
+    speeders' timing) have no scale to check."""
+
+    scales: dict[str, str] = {}
+
+    def made(name: Any, scale: str | None) -> None:
+        if isinstance(name, str) and name and scale:
+            scales.setdefault(name, scale)
+
+    for node in nodes.values():
+        if node["type"] not in registry:
+            continue
+        spec = registry.get(node["type"])
+        params = resolved_params(spec, node.get("params") or {})
+        kind = spec.type
+        if kind == "prepare.derive":
+            made(params.get("name"), params.get("scale") or "ratio")
+        elif kind == "prepare.recode" and isinstance(params.get("variable"), str):
+            source = params["variable"]
+            made(
+                params.get("into") or f"{source}_recoded",
+                params.get("scale") or codebook.get(source) or scales.get(source) or "nominal",
+            )
+        elif kind == "prepare.index":
+            made(params.get("name"), "interval")
+        elif kind == "prepare.bands":
+            made(params.get("into"), "ordinal")
+        elif kind in ("analyze.cluster", "prepare.text_code"):
+            made(params.get("into"), "nominal")
+        elif kind == "prepare.quality":
+            made(params.get("flags_column"), "nominal")
+            made(params.get("score_column"), "ratio")
+        elif kind == "prepare.explode" and params.get("variable") and questionnaire:
+            for name in _exploded_names(questionnaire, params):
+                made(name, "nominal")
+        elif kind == "analyze.factor" and params.get("scores"):
+            for name in _factor_score_names(spec, params):
+                made(name, "interval")
+        elif (
+            kind == "prepare.maxdiff_scores"
+            and questionnaire
+            and isinstance(params.get("question"), str)
+        ):
+            for name in _maxdiff_score_names(questionnaire, params):
+                made(name, "interval")
+    return scales
+
+
 def _assigned_variables(questionnaire: dict[str, Any] | None) -> list[str]:
     """The variables the questionnaire's scripts write for every respondent —
     the arm ``Script.assign_condition`` draws — as
@@ -551,6 +621,7 @@ def _check_params(
     params: dict[str, Any],
     known: set[str] | None,
     scales: dict[str, str | None],
+    made: dict[str, str] | None = None,
 ) -> list[FlowIssue]:
     issues: list[FlowIssue] = []
     for name in params:
@@ -611,6 +682,22 @@ def _check_params(
                             "VARIABLE_SCALE",
                             f"Parameter {name!r} of {node_id}: {variable!r} is {scales[variable]}, "
                             f"expected {' | '.join(param.scales)}.",
+                            node_id,
+                        )
+                    )
+                elif (
+                    param.scales
+                    and made
+                    and variable in made
+                    and made[variable] not in param.scales
+                ):
+                    issues.append(
+                        FlowIssue(
+                            "warning",
+                            "VARIABLE_SCALE",
+                            f"Parameter {name!r} of {node_id}: {variable!r} is {made[variable]} "
+                            f"(as the node that makes it gives it), expected "
+                            f"{' | '.join(param.scales)}.",
                             node_id,
                         )
                     )
