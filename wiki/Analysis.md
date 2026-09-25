@@ -259,8 +259,8 @@ data.report.means(column, *, by, test=True, method="auto",
 `method` names the test instead of letting the table choose: `"student"`,
 `"welch"` (two groups), `"anova"`, `"welch_anova"` (two or more; Welch's does
 not assume equal variances), `"mannwhitney"`, `"kruskal"` (ranks). Each reports
-its statistic, df, p and an effect size — Cohen's d, η², the rank-biserial r or
-ε². A two-group test asked of three groups says `not run: … choose anova or
+its statistic, df (none for Mann–Whitney's U), p and an effect size — Cohen's d,
+η², the rank-biserial r or ε². A two-group test asked of three groups says `not run: … choose anova or
 welch_anova`.
 
 `posthoc` compares every pair of groups after the test it belongs to —
@@ -330,7 +330,9 @@ are weighted and the footer says the test is not.
 
 Test = Fisher's exact test; p = 0.3678; Odds ratio = 1.825; OR 95% CI = 0.463 – 7.466;
 Odds ratio of = Never (vs Fully remote) for Engineer over Data Scientist;
-Estimate = conditional maximum likelihood, as R's fisher.test; N = 43
+Estimate = conditional maximum likelihood with its exact interval, as R's fisher.test
+defines them (R stops its root search sooner, so its printed values can differ
+slightly on sparse tables); N = 43
 ```
 
 ### Multiple comparisons: `adjust_p`

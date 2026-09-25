@@ -918,8 +918,11 @@ def fisher_exact(table: Any, *, confidence: float = 0.95) -> dict[str, Any]:
     """Fisher's exact test of independence on a table of counts.
 
     2 × 2: SciPy's two-sided p and the conditional maximum-likelihood odds
-    ratio with its exact interval — the odds ratio and interval R's
-    ``fisher.test`` reports, oriented as (a·d)/(b·c) for [[a, b], [c, d]].
+    ratio with its exact interval — the estimate and interval R's
+    ``fisher.test`` defines, oriented as (a·d)/(b·c) for [[a, b], [c, d]], and
+    solved to full precision: R's ``uniroot`` stops at a tolerance of eps^0.25,
+    so on a sparse table R prints limits that differ slightly ([[8, 1], [2, 20]]:
+    upper limit 3712.06 here, 3592.50 in R; the p agrees to 1e-12).
     Larger: the Fisher–Freeman–Halton test, whose p is the probability of the
     tables with these margins that are no more likely than the one observed.
     It is summed exactly over every such table when there are at most

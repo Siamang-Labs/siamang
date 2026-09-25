@@ -159,8 +159,8 @@ the R script:
   like a snapshot's dictionary so `read_snapshot("import_survey.csv")` finds it;
 - `import_survey.R` — an R script that reads the CSV (as UTF-8) and the
   dictionary (via `jsonlite`), replaces missing-value codes with `NA`, applies
-  value labels with `factor(...)` and puts each question's text in the column's
-  `label` attribute, leaving the result in an object named `survey_data`. A code
+  value labels with `factor(...)` and puts each variable's codebook label (not
+  the question's text) in the column's `label` attribute, leaving the result in an object named `survey_data`. A code
   the codebook has no label for keeps a level of its own; a multiple-choice
   column (codes joined by `;`) stays text, because a factor holds one value per
   respondent; a text answer that reads `NA` stays an answer.
