@@ -30,9 +30,12 @@ would produce a broken survey:
   becomes `answers["nps_1"]` — so its id may not also be a name the answers hold
   something else under: a variable of any question (a matrix's rows, and its
   own, included), an Other text key (`<variable>_other`), a variable a script
-  assigns (`Script.assign_condition`), a codebook variable no question collects
-  (embedded data), or a name beginning with `__` (the runtime's own state). An
-  id that is its question's own key is renamed nowhere and may be any free name.
+  assigns (`Script.assign_condition`, or a codebook variable no question
+  collects that a custom script writes: `answers.panel = …`), or a name
+  beginning with `__` (the runtime's own state). A codebook variable nothing
+  writes does not count — the runtime captures no embedded data — so an entry
+  left over from a renamed variable leaves the id free. An id that is its
+  question's own key is renamed nowhere and may be any free name.
 - **Unknown `skip_to` targets** — a question may only skip to a known question
   ID or page name.
 - **Other and None codes** — an `other_code` / `none_code` must be a number or
