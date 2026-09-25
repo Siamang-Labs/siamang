@@ -264,14 +264,45 @@ def stale_answer_key_references(script: Script, aliases: Mapping[str, str]) -> l
 
 
 # An assignment to what precedes it: `=`, a compound one (`+=`, `??=`, …) —
-# not a comparison (`==`, `<=`) — or an increment or decrement after it.
-_WRITE_AFTER = r"\s*(?:(?:\*\*|<<|>>>?|&&|\|\||\?\?|[-+*/%&|^])?=(?!=)|\+\+|--)"
+# not a comparison (`==`, `<=`) nor an arrow (`=>`) — or an increment or
+# decrement after it.
+_WRITE_AFTER = re.compile(r"\s*(?:(?:\*\*|<<|>>>?|&&|\|\||\?\?|[-+*/%&|^])?=(?![=>])|\+\+|--)")
+# What makes the operand after it written: `++` / `--`, `delete`, or being the
+# object `Object.assign` copies into.
+_WRITE_BEFORE = re.compile(
+    rf"(?:\+\+|--|(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)delete|"
+    rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)Object\s*\.\s*assign\s*\()\s*$"
+)
+# The head of a for-in / for-of loop, up to its target.
+_FOR_HEAD = re.compile(rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)for\s*(?:await\s*)?\(\s*$")
+_FOR_TAIL = re.compile(rf"\s*(?:of|in)(?!{_JS_IDENTIFIER_CHAR})")
+# A step along a member chain — `.k`, `?.k`, `[…]`, `?.[…]` — and the array
+# methods that change the array they are called on.
+_MEMBER_DOT = re.compile(rf"\s*\??\.\s*((?:[^\W\d]|\$){_JS_IDENTIFIER_CHAR}*)")
+_MEMBER_BRACKET = re.compile(r"\s*(?:\?\.\s*)?\[")
+_CALL = re.compile(r"\s*(?:\?\.\s*)?\(")
+_MUTATORS = frozenset(
+    ("push", "pop", "shift", "unshift", "splice", "sort", "reverse", "fill", "copyWithin")
+)
+# A destructuring pattern is assigned by a plain `=` only.
+_PATTERN_ASSIGNED = re.compile(r"\s*=(?![=>])")
 
 
 def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
-    """Which of ``names`` a custom script's code writes an answer under —
-    ``answers.panel = …``, ``answers["panel"] += …``, ``answers.panel++`` —
+    """Which of ``names`` a custom script's code writes an answer under,
     outside its comments and strings, in the order of ``names``, each once.
+
+    An access ``answers.<name>`` / ``answers["<name>"]`` (the forms
+    :func:`rewrite_answer_keys` rewrites) is written when it is assigned
+    (``=``, ``+=``, ``??=`` …), incremented or decremented, deleted, the
+    target of a ``for (… of …)`` / ``for (… in …)``, an element of a
+    destructuring pattern that is assigned (``[answers.panel, x] = …``,
+    ``({v: answers.panel} = …)``) or all of a parenthesised one
+    (``(answers.panel) = …``) — or when the value under it is changed in place:
+    a property or an element of it assigned (``answers.panel.k = …``,
+    ``answers.panel[0] = …``), an array method that changes it
+    (``answers.panel.push(…)``, ``.splice``, ``.sort`` …), or
+    ``Object.assign(answers.panel, …)``. Everything else is a read.
 
     Read in the code as the author wrote it, before :func:`script_for_runtime`
     rewrites the accesses that name an aliased id. A library script writes
@@ -282,17 +313,102 @@ def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
     if not wanted or not script.code or _detect_library_script(script) is not None:
         return []
     code = _scannable_code(script.code, set(wanted))
-    head = rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)answers\s*"
+    head = rf"(?<!{_JS_IDENTIFIER_CHAR})(?:(?<=\.\.\.)|(?<!\.))answers\s*"
     written: list[str] = []
     for name in wanted:
         escaped = re.escape(name)
-        dot = rf"\.\s*{escaped}(?!{_JS_IDENTIFIER_CHAR})|" if _JS_IDENTIFIER_RE.match(name) else ""
-        access = rf"{head}(?:{dot}\[\s*([\"'`]){escaped}\1\s*\])"
-        if re.search(rf"{access}{_WRITE_AFTER}", code) or re.search(
-            rf"(?:\+\+|--)\s*{access}", code
-        ):
+        dot = (
+            rf"\??\.\s*{escaped}(?!{_JS_IDENTIFIER_CHAR})|" if _JS_IDENTIFIER_RE.match(name) else ""
+        )
+        access = re.compile(rf"{head}(?:{dot}(?:\?\.)?\[\s*([\"'`]){escaped}\1\s*\])")
+        if any(_is_written(code, m.start(), m.end()) for m in access.finditer(code)):
             written.append(name)
     return written
+
+
+def _is_written(code: str, start: int, end: int, *, pattern: bool = False) -> bool:
+    """Whether the expression ``code[start:end]`` is written (see
+    :func:`answer_keys_written`). ``pattern``: it is a destructuring pattern,
+    which only a plain ``=`` or a for-in/of head assigns."""
+
+    after = end
+    if pattern:
+        if _PATTERN_ASSIGNED.match(code, after):
+            return True
+    else:
+        # Along its member chain: a mutator called on the value or a part of
+        # it writes; any other call ends the chain (what follows is the
+        # call's value).
+        while True:
+            dot = _MEMBER_DOT.match(code, after)
+            if dot:
+                after = dot.end()
+                if dot.group(1) in _MUTATORS and _CALL.match(code, after):
+                    return True
+                continue
+            bracket = _MEMBER_BRACKET.match(code, after)
+            close = _closing(code, bracket.end() - 1) if bracket else -1
+            if close < 0:
+                break
+            after = close + 1
+        if _WRITE_AFTER.match(code, after) or _WRITE_BEFORE.search(code, 0, start):
+            return True
+    if _FOR_HEAD.search(code, 0, start) and _FOR_TAIL.match(code, after):
+        return True
+    # All of a parenthesised expression, or an element of a destructuring
+    # pattern: written when that is.
+    opener = _enclosing_opener(code, start)
+    close = _closing(code, opener) if opener >= 0 else -1
+    if close < 0:
+        return False
+    before = code[:start].rstrip()
+    rest = code[after:].lstrip()
+    closes = len(code) - len(rest) == close
+    # A `(` after a name, `)` or `]` is a call's (or an `if (`'s) and a `[`
+    # there a subscript; a `{` is a pattern only where an expression starts.
+    outside = code[:opener].rstrip()[-1:]
+    free = not re.match(rf"{_JS_IDENTIFIER_CHAR}|[)\]]", outside)
+    kind = code[opener]
+    if kind == "(":
+        whole = len(before) - 1 == opener and closes
+        return free and whole and _is_written(code, opener, close + 1)
+    element = closes or rest[:1] in (",", "=")
+    if kind == "[":
+        leads = free and before.endswith(("[", ",", "..."))
+    else:
+        leads = outside in ("", "(", ",", "[", ":", "=", "?", ".") and before.endswith((":", "..."))
+    return element and leads and _is_written(code, opener, close + 1, pattern=True)
+
+
+def _enclosing_opener(code: str, index: int) -> int:
+    """The index of the innermost bracket (``(``, ``[``, ``{``) open at
+    ``index``, or -1."""
+
+    depth = 0
+    for i in range(index - 1, -1, -1):
+        char = code[i]
+        if char in ")]}":
+            depth += 1
+        elif char in "([{":
+            if depth == 0:
+                return i
+            depth -= 1
+    return -1
+
+
+def _closing(code: str, opener: int) -> int:
+    """The index of the bracket that closes the one at ``opener``, or -1."""
+
+    depth = 0
+    for i in range(opener, len(code)):
+        char = code[i]
+        if char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
 
 
 def _scannable_code(code: str, keep: Container[str]) -> str:
