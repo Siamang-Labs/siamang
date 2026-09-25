@@ -376,12 +376,15 @@ over labels coded 0 … 10 store 0 … 10); else 1, 2, 3 … in column order, wh
 all there is to go on when the codebook says nothing.
 
 A **required** matrix needs an answer in every row — a row answered "Not applicable"
-has one. A matrix has no conditions on its rows, so every row is asked whenever the
-matrix is. Answered in some rows but not all, Next is refused with "Please answer every
-row." (`UIConfig.required_rows_text`) and the rows left are marked until each has an
-answer; with no row answered the message is the usual `required_text`. A `skip_to` on a
-matrix fires once any row is answered, as it always has; on a required matrix Next first
-asks for the rest.
+has one; a row a script set to `null` has none. A matrix has no conditions on its rows,
+so every row is asked whenever the matrix is. Answered in some rows but not all, Next is
+refused with "Please answer every row." (`UIConfig.required_rows_text`) and the rows left
+are marked until each has an answer — in the error colour, and with `aria-invalid` on
+their cells for screen readers; with no row answered the message is the usual
+`required_text`. Only Next marks rows: leaving the matrix unanswered, or a script's
+message on it, shows the message alone. A `Script.timed_question`'s automatic Next is
+held the same way. A `skip_to` on a matrix fires once any row is answered, as it always
+has; on a required matrix Next first asks for the rest.
 
 From the keyboard, one cell of the grid is in the tab order. The arrow keys move the
 focus between cells: ← and → along the row, answering it with the cell they reach (the

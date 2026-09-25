@@ -484,7 +484,7 @@ function rowNaCode(row) {
   return row && row.naCode !== undefined ? row.naCode : "na";
 }
 
-function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
+function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
   const v = value || {};
   // One cell is in the tab order (a roving tabindex) and the arrow keys move
   // the focus itself between the cells, the N/A column included: Left and
@@ -496,12 +496,11 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
   const [focusCol, setFocusCol] = useState(0);
   const cells = useRef({});
   const width = q.columns.length + (q.naOption ? 1 : 0);
-  // Once the survey has held a required matrix for its answer, the rows still
-  // without one are marked: the message goes with the next click, a row's mark
-  // when that row is answered.
-  const [flagged, setFlagged] = useState(false);
-  useEffect(() => { if (error && q.required) setFlagged(true); }, [error, q.required]);
-  const missing = flagged ? new Set(unansweredRows(q, v)) : null;
+  // Once Next has held the required matrix (`held`), the rows still without
+  // an answer are marked — to the eye and, on their cells, with
+  // aria-invalid — each until it is answered. The message goes with the next
+  // click, as every question's does.
+  const missing = held ? new Set(unansweredRows(q, v)) : null;
 
   const handleKeyDown = (e, rowIdx, colIdx) => {
     let row = rowIdx;
@@ -520,12 +519,14 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
     }
   };
 
-  // What every cell shares: its place in the keyboard's grid.
-  const cellProps = (rowIdx, colIdx) => ({
+  // What every cell shares: its place in the keyboard's grid, and whether its
+  // row is marked.
+  const cellProps = (row, rowIdx, colIdx) => ({
     ref: (el) => { cells.current[rowIdx + ":" + colIdx] = el; },
     tabIndex: rowIdx === focusRow && colIdx === focusCol ? 0 : -1,
     onFocus: () => { setFocusRow(rowIdx); setFocusCol(colIdx); },
     onKeyDown: (e) => handleKeyDown(e, rowIdx, colIdx),
+    "aria-invalid": missing && missing.has(row.id) ? "true" : undefined,
   });
 
   return (
@@ -553,7 +554,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
                         className={"sd-matrix__cell" + (selected ? " is-selected" : "")}
                         aria-label={`${row.label}: ${q.columns[colIdx]}`}
                         aria-pressed={selected}
-                        {...cellProps(rowIdx, colIdx)}
+                        {...cellProps(row, rowIdx, colIdx)}
                         onClick={() => onChange({ ...v, [row.id]: code })}
                       />
                     </td>
@@ -566,7 +567,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
                       className={"sd-matrix__cell" + (sameCode(v[row.id], rowNaCode(row)) ? " is-selected" : "")}
                       aria-label={`${row.label}: ${q.naOption}`}
                       aria-pressed={sameCode(v[row.id], rowNaCode(row))}
-                      {...cellProps(rowIdx, q.columns.length)}
+                      {...cellProps(row, rowIdx, q.columns.length)}
                       onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}
                     />
                   </td>
@@ -1126,14 +1127,14 @@ function Conjoint({ q, value, onChange, num, error, onBlur, answers }) {
    question's id; we build the per-question `onChange`/`onBlur` closures
    here so that they only get recreated when this dispatcher actually
    re-renders (which the memo below blocks unless props matter). */
-function _QuestionDispatcher({ q, qId, value, setAnswer, num, error, handleBlur, answers, onAutoAdvance }) {
+function _QuestionDispatcher({ q, qId, value, setAnswer, num, error, held, handleBlur, answers, onAutoAdvance }) {
   const onChange = (v) => setAnswer(qId, v);
   const onBlur = handleBlur ? () => handleBlur(qId) : undefined;
   switch (q.kind) {
     case "single":   return <SingleChoice q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} onAutoAdvance={onAutoAdvance} />;
     case "multi":    return <MultiChoice  q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "likert":   return <Likert       q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
-    case "matrix":   return <Matrix       q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
+    case "matrix":   return <Matrix       q={q} value={value} onChange={onChange} num={num} error={error} held={held} onBlur={onBlur} answers={answers} />;
     case "numeric":  return <NumericInput q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "text":     return <OpenText     q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
     case "dropdown": return <SearchableDropdown q={q} value={value} onChange={onChange} num={num} error={error} onBlur={onBlur} answers={answers} />;
@@ -1157,6 +1158,7 @@ const Question = React.memo(_QuestionDispatcher, (prev, next) => {
   if (prev.qId !== next.qId) return false;
   if (prev.value !== next.value) return false;
   if (prev.error !== next.error) return false;
+  if (prev.held !== next.held) return false;
   if (prev.num !== next.num) return false;
   if (prev.setAnswer !== next.setAnswer) return false;
   if (prev.handleBlur !== next.handleBlur) return false;

@@ -734,6 +734,113 @@ def test_the_walkthrough_counts_a_matrix_answered_once_every_row_is(tmp_path):
     assert state["all"] == {"answered": 1, "visible": 1, "skips": [{**skip, "answered": True}]}
 
 
+def test_the_rows_a_required_matrix_misses_are_marked_only_by_next(tmp_path):
+    """Leaving the matrix unanswered and a script's own message on it say what
+    they say without marking a row: the rows are marked once Next has held the
+    matrix for them — for assistive technology too (aria-invalid). Any message
+    on a required matrix used to mark every empty row, and the marks stayed
+    while the respondent worked down the rows."""
+
+    document = _required_matrix_document()
+    document["variables"]["note"] = {"scale": "nominal", "dtype": "str"}
+    document["pages"][0]["items"].append(
+        {"type": "OpenText", "id": "note", "var": "note", "text": "Anything else?"}
+    )
+    document["scripts"] = [
+        {
+            "type": "custom",
+            "trigger": "onAnswer",
+            "target": "media",
+            "code": (
+                "if (!answers.__errors__) answers.__errors__ = {};\n"
+                'if (answers.tv === 1) answers.__errors__.media = "Not TV, surely?";\n'
+                "else delete answers.__errors__.media;\n"
+            ),
+        }
+    ]
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        const invalid = () => page.$$eval("table.sd-matrix tbody tr", (trs) => trs.map((tr) =>
+            [...tr.querySelectorAll("button.sd-matrix__cell")]
+                .every((b) => b.getAttribute("aria-invalid") === "true")));
+        await page.focus("table.sd-matrix button[tabindex='0']");
+        await page.focus("input.sd-input");
+        await page.waitForTimeout(100);
+        const blurred = await held();
+        await pick(0, 1);
+        const answered = await held();
+        await pick(0, 0);
+        const script = await held();
+        await pick(0, 1);
+    """
+        + _NEXT
+        + """
+        return { blurred, answered, script, next: await held(), invalid: await invalid() };
+    """
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["blurred"]["errors"] == ["This question requires an answer."]
+    assert state["blurred"]["missing"] == [False, False, False]
+    assert state["answered"]["missing"] == [False, False, False]
+    assert state["script"]["errors"] == ["Not TV, surely?"]
+    assert state["script"]["missing"] == [False, False, False]
+    assert state["next"]["errors"] == ["Please answer every row."]
+    assert state["next"]["missing"] == [False, True, True]
+    assert state["invalid"] == [False, True, True]
+
+
+def test_a_matrix_row_a_script_set_to_null_is_not_an_answer(tmp_path):
+    """A row key holding null (a script clearing the row) holds no answer: a
+    required matrix with nothing else says "This question requires an
+    answer.", and a skip_to does not fire on it. The key alone used to count
+    as an answer to the matrix."""
+
+    script = {
+        "type": "custom",
+        "trigger": "onPageEnter",
+        "target": "p1",
+        "code": "answers.tv = null;",
+    }
+    required = _required_matrix_document()
+    required["scripts"] = [script]
+    scenario = _MATRIX_STEPS + _NEXT + "return await held();"
+    state = run_in_browser(required, scenario, tmp_path / "required")
+    assert state["errors"] == ["This question requires an answer."]
+    assert state["missing"] == [True, True, True]
+    optional = _required_matrix_document(required=False, skip_to="end")
+    optional["scripts"] = [script]
+    state = run_in_browser(optional, scenario, tmp_path / "optional")
+    assert state["pages"] == ["p1", "middle"]
+
+
+def test_a_timed_required_matrix_waits_for_every_row(tmp_path):
+    """A timed question's automatic Next is an ordinary Next: on a required
+    matrix answered in one row it is held like the respondent's own, and the
+    respondent finishes the rows and goes on."""
+
+    document = _required_matrix_document()
+    document["scripts"] = [{"type": "timed_question", "question": "media", "seconds": 1}]
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        await pick(0, 0);
+        await page.waitForSelector(".sd-question__error", { timeout: 10000 });
+        const timed = await held();
+        await pick(1, 0); await pick(2, 0);
+    """
+        + _NEXT
+        + "return { timed, after: await held() };"
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["timed"] == {
+        "errors": ["Please answer every row."],
+        "missing": [False, True, True],
+        "pages": ["p1"],
+    }
+    assert state["after"]["pages"] == ["p1", "middle"]
+
+
 # ── A matrix from the keyboard ───────────────────────────────────────────────
 
 # `press(...keys)` presses keys where the focus is; `chosen()` is each row's

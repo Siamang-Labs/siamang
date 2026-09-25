@@ -168,12 +168,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matrix has no conditions on its rows, so every row is asked). With some rows
   answered it says "Please answer every row." — the new
   `UIConfig.required_rows_text`, `{n}` being the rows left — and marks those
-  rows until each has an answer; with none it says `required_text`, as before.
-  Leaving the matrix still only asks for an answer at all: focus moves between
-  its cells while the respondent works down the rows. A `skip_to` on a matrix
-  fires on any row, as before, and Studio's walkthrough trace keeps saying so
-  for the skip, while its "answered" count now counts a matrix once every row
-  is answered — what Required asks for, as it already did for a MaxDiff.
+  rows until each has an answer, in the error colour and with `aria-invalid` on
+  their cells; with none it says `required_text`, as before (a row a script set
+  to `null` is not an answer). Only Next marks rows: leaving the matrix
+  unanswered, or a script's message on it, shows the message alone. Leaving the
+  matrix still only asks for an answer at all: focus moves between its cells
+  while the respondent works down the rows. A `Script.timed_question`'s
+  automatic Next is an ordinary Next and is held the same way, so on a required
+  matrix answered in part the respondent stays on the page, finishes the rows
+  and presses Next. A `skip_to` on a matrix fires on any row, as before, and
+  Studio's walkthrough trace keeps saying so for the skip, while its "answered"
+  count now counts a matrix once every row is answered — what Required asks
+  for, as it already did for a MaxDiff.
 - A matrix could not be answered from the keyboard beyond its first row. The
   arrow keys moved a marker, not the focus — after ↓ the next → answered row 1
   again — and the "Not applicable" column was out of their reach; and Enter or
