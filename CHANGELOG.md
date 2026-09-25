@@ -291,6 +291,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     with the columns the codebook lacks, and the variables the data lacks,
     gathered into one row each; stats `Checked`, `Errors`, `Warnings`, `Result:
     no problems found`, and on weighted data that the weight is not applied.
+    The weight column and the response metadata (`respondent_id`, `duration_s`,
+    `partial`, `url_*`, … — `checks.METADATA_COLUMNS`) are expected beside the
+    codebook and named in `Not in the codebook, as expected`, not reported.
   - **MaxDiff scores** (`prepare.maxdiff_scores`,
     `siamang.data.maxdiff.with_scores`): one interval variable per item,
     `<question>_score_<code>` unless a `prefix` is given, labelled `MaxDiff

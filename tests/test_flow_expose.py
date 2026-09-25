@@ -133,10 +133,14 @@ def test_a_flow_of_the_new_nodes_checks_runs_and_says_what_it_did(
     assert result.output("band", "stat")["Outside the bands"] == 0
     assert result.output("der").variables["older"].labels == {1: "Under 50", 2: "50 or over"}
 
-    # The weight column is the one thing the codebook does not know.
+    # The weight column is the one thing the codebook does not know, and it is
+    # expected there: the check finds nothing wrong.
     check = result.output("check", "table").to_frame()
-    assert list(check["Code"]) == ["EXTRA_COLUMN"] and check["Examples"].iloc[0] == "weight"
-    assert result.output("check", "stat")["Weight"].startswith("unweighted")
+    assert check.empty
+    stat = result.output("check", "stat")
+    assert stat["Result"] == "no problems found"
+    assert stat["Not in the codebook, as expected"] == "weight (the weight)"
+    assert stat["Weight"].startswith("unweighted")
 
     desc = result.output("desc", "table").to_frame()
     assert set(desc["Variable"]) == {"age", "satisfaction"}

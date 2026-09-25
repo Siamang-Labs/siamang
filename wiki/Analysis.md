@@ -598,7 +598,10 @@ checked.stats   # {'Checked': '4 variables, 200 rows', 'Errors': 2, 'Warnings': 
 
 Declared missing codes are not flagged as out of range. Columns the codebook
 does not know, and codebook variables the data lacks (common after a Select),
-are gathered into one row each. With nothing wrong the table is empty and
+are gathered into one row each. The weight column and the response metadata
+beside the answers — `respondent_id`, `duration_s`, `partial`, `started_at`,
+`url_*` and the like (`checks.METADATA_COLUMNS`) — are expected there, so they
+are not problems: `stats["Not in the codebook, as expected"]` names them. With nothing wrong the table is empty and
 `stats["Result"]` reads `no problems found`. The check counts rows, so on
 weighted data `stats["Weight"]` says the weight is not applied.
 

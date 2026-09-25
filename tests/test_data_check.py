@@ -128,3 +128,37 @@ def test_the_table_counts_rows_and_says_the_weight_is_not_used():
     printed = table.to_markdown()
     assert "| error | sat | outside the valid range 1–3 | 1 | 7 (1) | OUT_OF_RANGE |" in printed
     assert "nan" not in printed.lower() and "<NA>" not in printed
+
+
+def test_the_weight_and_the_response_metadata_are_expected_not_extra():
+    """A Cell or Rake weights node writes the weight, the platform and the
+    runtime keep respondent_id, the timing and the link's url_* beside the
+    answers: none is in a codebook, and a check that listed them as problems
+    could never say "no problems found" on weighted or platform data."""
+
+    variables = VariableMap()
+    variables.add(Variable("x", "ordinal", labels={1: "a", 2: "b"}))
+    frame = pd.DataFrame(
+        {
+            "x": [1, 2, 1],
+            "weight": [0.5, 1.5, 1.0],
+            "respondent_id": ["r1", "r2", "r3"],
+            "duration_s": [300, 280, 410],
+            "partial": [False, False, True],
+            "url_panel": ["p1", "p2", None],
+        }
+    )
+    data = SurveyData(frame=frame, variables=variables).with_weight("weight")
+    result = check(data)
+    assert result.table.empty and result.stats["Result"] == "no problems found"
+    assert result.stats["Not in the codebook, as expected"] == (
+        "weight (the weight); duration_s, partial, respondent_id, url_panel (response metadata)"
+    )
+    # A column nobody declared is still reported, and an unweighted weight
+    # column is just a column.
+    extra = check(data.with_frame(frame.assign(stray=1)))
+    assert list(extra.table["Code"]) == ["EXTRA_COLUMN"]
+    assert extra.table["Examples"].iloc[0] == "stray"
+    plain = check(SurveyData(frame=frame, variables=variables))
+    assert plain.table["Examples"].iloc[0] == "weight"
+    assert "the weight" not in plain.stats["Not in the codebook, as expected"]
