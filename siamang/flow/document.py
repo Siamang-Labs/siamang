@@ -173,6 +173,8 @@ def check_flow(
             _check_params(node_id, spec, node.get("params") or {}, known_variables, scales)
         )
         issues.extend(_check_rules(node_id, spec, node.get("params") or {}))
+        if spec.type == "prepare.maxdiff_scores" and questionnaire is not None:
+            issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -460,22 +462,63 @@ def _maxdiff_score_names(questionnaire: dict[str, Any], params: dict[str, Any]) 
     from siamang.model.document import DocumentError, _codebook_from_doc
 
     wanted = params["question"]
+    item = _maxdiff_question(questionnaire, wanted)
+    if item is None:
+        return set()  # _check_maxdiff_question names the questions there are
+    names = [name for name in item.get("var") or [] if isinstance(name, str)]
+    try:
+        if item.get("choices"):
+            codes = list(_codebook_from_doc(item["choices"], wanted))
+        else:
+            payload = (questionnaire.get("variables") or {}).get(names[0]) or {}
+            codes = list(_codebook_from_doc(payload.get("labels") or [], wanted))
+    except DocumentError:
+        return set()  # a broken codebook is the questionnaire check's to report
+    return set(score_names(wanted, codes, params.get("prefix")).values())
+
+
+def _maxdiff_questions(questionnaire: dict[str, Any]) -> list[tuple[dict[str, Any], str]]:
+    """Every MaxDiff question of the document, with the name the runtime gives
+    it (``question_output_name``: its name, else its id, else
+    ``maxdiff_<first variable>``)."""
+
+    found = []
     for item in _document_questions(questionnaire):
         names = [name for name in item.get("var") or [] if isinstance(name, str)]
-        if item.get("type") != "MaxDiff" or not names:
-            continue
-        if wanted not in {item.get("id"), item.get("name"), f"maxdiff_{names[0]}"}:
-            continue
-        try:
-            if item.get("choices"):
-                codes = list(_codebook_from_doc(item["choices"], wanted))
-            else:
-                payload = (questionnaire.get("variables") or {}).get(names[0]) or {}
-                codes = list(_codebook_from_doc(payload.get("labels") or [], wanted))
-        except DocumentError:
-            return set()  # a broken codebook is the questionnaire check's to report
-        return set(score_names(wanted, codes, params.get("prefix")).values())
-    return set()
+        if item.get("type") == "MaxDiff" and names:
+            found.append((item, item.get("name") or item.get("id") or f"maxdiff_{names[0]}"))
+    return found
+
+
+def _maxdiff_question(questionnaire: dict[str, Any], wanted: Any) -> dict[str, Any] | None:
+    """The MaxDiff question ``wanted`` names — by id, name or runtime name."""
+
+    for item, _name in _maxdiff_questions(questionnaire):
+        first = next(name for name in item["var"] if isinstance(name, str))
+        if wanted in {item.get("id"), item.get("name"), f"maxdiff_{first}"}:
+            return item
+    return None
+
+
+def _check_maxdiff_question(
+    node_id: str, params: dict[str, Any], questionnaire: dict[str, Any]
+) -> list[FlowIssue]:
+    """MaxDiff scores names a question the questionnaire has: a typo is named
+    before the run, with the questions to choose from."""
+
+    wanted = params.get("question")
+    if not isinstance(wanted, str) or not wanted or _maxdiff_question(questionnaire, wanted):
+        return []
+    names = [name for _item, name in _maxdiff_questions(questionnaire)]
+    known = f"this questionnaire has: {', '.join(names)}" if names else "it has none"
+    return [
+        FlowIssue(
+            "error",
+            "PARAM_INVALID",
+            f"Parameter 'question' of {node_id}: no MaxDiff question named {wanted!r}; {known}.",
+            node_id,
+        )
+    ]
 
 
 def _document_questions(questionnaire: dict[str, Any]):

@@ -348,3 +348,29 @@ def test_the_score_variables_are_known_to_the_check_before_a_run():
     code = generate_flow(flow, document)
     assert _lint(code).returncode == 0
     assert 'maxdiff.with_scores(n_sim, "q_md", prefix=None)' in code
+
+
+def test_a_maxdiff_question_the_questionnaire_lacks_is_named_before_the_run():
+    """A typo in the question passed the check and failed in the run; the check
+    now names it with the questions there are, as the run's error does."""
+
+    document = to_document(_maxdiff_survey())
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 20}),
+            ("sc", "prepare.maxdiff_scores", {"question": "q_mdx"}),
+        ],
+        [("sim", "data", "sc", "data")],
+    )
+    issues = check_flow(flow, questionnaire=document)
+    assert [(issue.code, issue.node) for issue in issues] == [("PARAM_INVALID", "sc")]
+    assert issues[0].message == (
+        "Parameter 'question' of sc: no MaxDiff question named 'q_mdx'; this questionnaire "
+        "has: q_md, maxdiff_mx_t1_best."
+    )
+    # A questionnaire without a MaxDiff question says it has none.
+    brand = loads((DOCUMENTS / "brand_awareness.questionnaire.json").read_text("utf-8"))
+    issues = check_flow(flow, questionnaire=brand)
+    assert issues[0].message.endswith("no MaxDiff question named 'q_mdx'; it has none.")
+    # Without a questionnaire there is nothing to check against.
+    assert check_flow(flow) == []
