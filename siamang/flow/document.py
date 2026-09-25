@@ -71,14 +71,14 @@ class FlowGraph:
         return self.document["name"]
 
     def params(self, node_id: str) -> dict[str, Any]:
-        """Parameters of a node with the registry defaults filled in."""
+        """Parameters of a node with the registry defaults filled in.
 
-        spec = self.specs[node_id]
-        given = self.nodes[node_id].get("params") or {}
-        resolved: dict[str, Any] = {}
-        for name, param in spec.params.items():
-            resolved[name] = given.get(name, param.default)
-        return resolved
+        A parameter stored as null, "", [] or {} is not set and takes its
+        default, as :func:`check_flow` reads it — so the code that runs is the
+        code the check approved.
+        """
+
+        return resolved_params(self.specs[node_id], self.nodes[node_id].get("params") or {})
 
     def upstream(self, node_id: str) -> list[str]:
         seen: list[str] = []
@@ -516,7 +516,7 @@ def _check_params(
         # {} here an optional `mapping` param could never be left alone: its empty
         # default reached _param_problem and came back "expected a non-empty
         # code → value object", while a required one reported the wrong code.
-        if value is None or value == "" or value == [] or value == {}:
+        if unset(value):
             if param.required:
                 issues.append(
                     FlowIssue(
@@ -600,11 +600,30 @@ def _check_params(
     return issues
 
 
+def unset(value: Any) -> bool:
+    """Whether a stored parameter value means "not set": null, "", [] or {}.
+
+    Studio stores [] or "" when a field is cleared, and other clients may
+    store null; each is the default, never a value of its own.
+    """
+
+    return value is None or (isinstance(value, str | list | dict) and len(value) == 0)
+
+
+def resolved_params(spec: NodeSpec, given: dict[str, Any]) -> dict[str, Any]:
+    """Every parameter of ``spec``: the value given, or the default when unset."""
+
+    return {
+        name: param.default if unset(given.get(name)) else given[name]
+        for name, param in spec.params.items()
+    }
+
+
 def _check_rules(node_id: str, spec: NodeSpec, given: dict[str, Any]) -> list[FlowIssue]:
     """The spec's ``checks``: parameters that do not go together (a post-hoc
     test that does not follow the test chosen), or one the node would ignore."""
 
-    params = {name: given.get(name, param.default) for name, param in spec.params.items()}
+    params = resolved_params(spec, given)
     return [
         FlowIssue(check.severity, "PARAM_CONFLICT", f"{node_id}: {check.message}", node_id)
         for check in spec.checks

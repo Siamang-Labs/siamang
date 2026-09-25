@@ -216,7 +216,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     post-hoc test that does not follow the test chosen ("Tukey's HSD follows a
     one-way ANOVA — set Test to anova, or Post-hoc to none."), a warning for a
     parameter the node would ignore. A template's `when` also reads `!=` and
-    joins conditions with `&`.
+    joins conditions with `&`. A parameter stored as null, `""`, `[]` or `{}`
+    takes its default in the rules, the conditions and the code alike, as the
+    check already read it.
 
   Stored flows keep their meaning and their code: Group means and Crosstab keep
   the **Significance test** checkbox (`test`) and the new **Test** sits beside

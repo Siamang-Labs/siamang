@@ -234,7 +234,11 @@ preview: table
   template may be a list of fragments, each a string or `{when: <condition>,
   code}`. A condition is `<param>` (set: not empty, not false; a code of 0 is
   set), `<param>=<value>` or `<param>!=<value>`, several joined by `&` when all
-  must hold.
+  must hold. A parameter stored as null, `""`, `[]` or `{}` is not set: the
+  check, the conditions, the rendered code and the subtitle all read its default
+  (`FlowGraph.params`, `document.resolved_params`), so a cleared field can
+  neither pass the check and then choose no fragment, nor mean something the
+  check did not see.
 - `checks`: rules between parameters, reported by `check_flow` as
   `PARAM_CONFLICT` on the node — `{when: <condition>, require: <condition> |
   [<condition>, …], message, severity: error | warning}`. When `when` holds,
