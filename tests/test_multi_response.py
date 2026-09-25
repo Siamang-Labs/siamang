@@ -426,3 +426,68 @@ def test_turf_runs_on_what_explode_produces():
     out = turf.turf(exploded.frame, ["reasons_1", "reasons_2", "reasons_3"], max_size=2)
     assert out.base == 4  # the same base multi.frequencies reports
     assert out["reach_percent"].iloc[-1] == 100.0
+
+
+def test_a_fixed_portfolio_is_read_without_a_search():
+    """a and b together, from the eight respondents above: a reaches rows 0–3,
+    b rows 0, 1, 4 and 5 — six people, two of whom only a reaches and two only b."""
+
+    out = turf.evaluate(_portfolio(), ["a", "b"], items=["a", "b", "c"])
+    assert out.method == "fixed" and out.base == 8
+    rows = out.set_index("option")
+    assert list(rows.index) == ["a", "b", "(portfolio)"]
+    assert list(rows["reach"]) == [4.0, 4.0, 6.0]
+    assert list(rows["reach_percent"]) == [50.0, 50.0, 75.0]
+    assert list(rows["unique"]) == [2.0, 2.0, 6.0]
+    assert list(rows["unique_percent"]) == [25.0, 25.0, 75.0]
+    # Those a reaches chose 2, 2, 1, 1 of the two; the reached six chose
+    # 2, 2, 1, 1, 1, 1 — TURF's frequency, 8 / 6.
+    assert list(rows["frequency"]) == [1.5, 1.5, round(8 / 6, 2)]
+    assert rows.loc["(portfolio)", "label"] == "All 2 together"
+
+
+def test_a_fixed_portfolio_agrees_with_the_search_that_finds_it():
+    fixed = turf.evaluate(_portfolio(), ["b", "c"], items=["a", "b", "c"])
+    best = turf.turf(_portfolio(), ["a", "b", "c"], max_size=2)
+    assert fixed["reach"].iloc[-1] == best["reach"].iloc[-1] == 8.0
+    assert fixed["frequency"].iloc[-1] == best["frequency"].iloc[-1] == 1.0
+
+
+def test_a_fixed_portfolio_is_weighted_like_the_search():
+    frame = _portfolio().assign(w=[2.0, 1, 1, 1, 1, 1, 1, 1])  # a base of 9
+    out = turf.evaluate(frame, ["a", "b"], items=["a", "b", "c"], weight="w")
+    assert out.base == 9
+    assert list(out["reach"]) == [5.0, 5.0, 7.0]  # row 0 (weight 2) chose both
+    assert list(out["reach_percent"]) == [55.6, 55.6, 77.8]
+    # Chosen 2, 2, 1, 1, 1, 1 of the portfolio with weights 2, 1, 1, 1, 1, 1.
+    assert out["frequency"].iloc[-1] == round(10 / 7, 2)
+    # The search's frequency is weighted too — it was a plain mean before,
+    # beside a weighted reach.
+    pair = turf.turf(frame, ["a", "b"], max_size=2, weight="w")
+    assert pair["frequency"].iloc[-1] == round(10 / 7, 2)
+    assert turf.turf(_portfolio(), ["a", "b"], max_size=2)["frequency"].iloc[-1] == round(8 / 6, 2)
+
+
+def test_a_fixed_portfolio_labels_its_options_and_refuses_what_it_cannot_read():
+    out = turf.evaluate(_portfolio(), ["c"], labels={"c": "Cherry"})
+    assert list(out["label"]) == ["Cherry", "All 1 together"]
+    # Without `items` the base is the portfolio's own respondents: all eight
+    # answered c.
+    assert out.base == 8 and out["reach_percent"].iloc[0] == 50.0
+    with pytest.raises(ValueError, match="not in the list: z"):
+        turf.evaluate(_portfolio(), ["a", "z"], items=["a", "b"])
+    with pytest.raises(ValueError, match="at least one option"):
+        turf.evaluate(_portfolio(), [])
+    with pytest.raises(TypeError, match="prepare.explode"):
+        turf.evaluate(pd.DataFrame({"reasons": [[1, 3], [2]]}), ["reasons"])
+
+
+def test_a_fixed_portfolio_of_nobody_reaches_nobody():
+    frame = pd.DataFrame({"a": [0, 0], "b": [0, None]})
+    out = turf.evaluate(frame, ["a", "b"])
+    assert list(out["reach"]) == [0.0, 0.0, 0.0]
+    assert list(out["frequency"]) == [0.0, 0.0, 0.0]
+    # Nobody answered at all: said, rather than a table of zeros over nothing.
+    empty = pd.DataFrame({"a": [None, None], "b": [None, None]}, dtype="Float64")
+    with pytest.raises(TypeError, match="hold no numbers"):
+        turf.evaluate(empty, ["a", "b"])

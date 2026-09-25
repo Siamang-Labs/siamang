@@ -1,0 +1,58 @@
+type: prepare.bands
+category: prepare
+title: Bands
+description: Cut a number into bands — age into age groups, income into brackets — as a labelled ordinal variable; what falls outside every band is counted.
+inputs:
+  data: SurveyData
+outputs:
+  data: SurveyData
+  stat: Stat
+params:
+  variable:
+    kind: variable
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variable
+    help: Its missing codes (a 999 "Refused") are left out before cutting, so they never land in a band.
+  bins:
+    kind: json
+    required: true
+    label: Boundaries
+    help: 'Increasing numbers, e.g. [18, 30, 45, 65, 100]. A band includes its lower boundary and runs up to, not including, the next; values outside every band stay blank.'
+  labels:
+    kind: json
+    label: Band labels
+    help: 'One fewer than the boundaries, e.g. ["18–29", "30–44", "45–64", "65+"]. Defaults to "18 to under 30" and so on.'
+  into:
+    kind: string
+    required: true
+    creates: variable
+    label: New variable
+  label:
+    kind: string
+    label: Label
+    help: Defaults to the variable's label and "(bands)".
+  right:
+    kind: bool
+    default: false
+    label: Bands include their upper boundary
+    help: Then a band runs from above its lower boundary up to and including the upper one (the first band takes its lower boundary too).
+subtitle: '{variable} → {into}'
+imports:
+- from siamang.data import bands
+template: |
+  _banded = bands.bands(
+      {in.data},
+      {variable!r},
+      bins={bins!r},
+      into={into!r},
+      labels={labels!r},
+      right={right!r},
+      label={label!r},
+  )
+  {out.data} = _banded.data
+  {out.stat} = _banded.stats
+preview: stat

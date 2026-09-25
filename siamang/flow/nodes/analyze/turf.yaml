@@ -23,34 +23,63 @@ params:
     values:
     - best
     - greedy
+    - fixed
     default: best
     label: Search
-    help: Best tries every combination. Greedy extends the previous winner and is fast, but can miss the best portfolio — the table says which ran.
+    help: Best tries every combination. Greedy extends the previous winner and is fast, but can miss the best portfolio — the table says which ran. Fixed searches nothing and reads the Portfolio below.
   include:
     kind: variables
     default: []
     label: Always include
     help: Options that are in the portfolio whatever they add — shelf space already committed.
+  portfolio:
+    kind: variables
+    default: []
+    label: Portfolio
+    help: 'For Search = fixed: exactly these options — each one''s reach, what only it reaches, and the reach and frequency of all of them together. Empty reads every option.'
 subtitle: up to {max_size}, {method}
 imports:
 - from siamang.data import turf
-template: |
-  # Reach is respondents: somebody who chose two of the options still counts
-  # once. The base is the people who answered the question, so a reach of 60 %
-  # is 60 % of them and never of everyone in the file.
-  {out.table} = turf.turf(
-      {in.data}.frame,
-      {items!r},
-      max_size={max_size!r},
-      method={method!r},
-      include={include!r},
-      weight={in.data}.weight,
-  )
-  {out.stat} = dict(
-      Base={out.table}.base,
-      Search={out.table}.method,
-      Note="each respondent counted once; reach is of the respondents who answered",
-  )
-  if {in.data}.weight:  # the base and the reach are sums of weights
-      {out.stat}["Weight"] = {in.data}.weight
+template:
+- code: |
+    # Reach is respondents: somebody who chose two of the options still counts
+    # once. The base is the people who answered the question, so a reach of 60 %
+    # is 60 % of them and never of everyone in the file.
+- when: method=fixed
+  code: |
+    _variables = {in.data}.variables or {}
+    {out.table} = turf.evaluate(
+        {in.data}.frame,
+        {portfolio!r},
+        items={items!r},
+        weight={in.data}.weight,
+        labels={name: _variables[name].label for name in {items!r} if name in _variables},
+    )
+    {out.stat} = dict(
+        Base={out.table}.base,
+        Search="none: a fixed portfolio",
+        Reach=f"{{out.table}['reach_percent'].iloc[-1]} %",
+        Frequency=float({out.table}["frequency"].iloc[-1]),
+        Note="each respondent counted once; reach is of the respondents who answered",
+    )
+- when: method=best
+  code: &search |
+    {out.table} = turf.turf(
+        {in.data}.frame,
+        {items!r},
+        max_size={max_size!r},
+        method={method!r},
+        include={include!r},
+        weight={in.data}.weight,
+    )
+    {out.stat} = dict(
+        Base={out.table}.base,
+        Search={out.table}.method,
+        Note="each respondent counted once; reach is of the respondents who answered",
+    )
+- when: method=greedy
+  code: *search
+- code: |
+    if {in.data}.weight:  # the base, the reach and the frequency are weighted
+        {out.stat}["Weight"] = {in.data}.weight
 preview: table

@@ -33,7 +33,18 @@ if TYPE_CHECKING:
     from siamang.core.question import MaxDiff
     from siamang.data.survey_data import SurveyData
 
-__all__ = ["MaxDiffAnswers", "answers", "choice_sets", "counts", "question_of", "utilities"]
+__all__ = [
+    "MaxDiffAnswers",
+    "ScoredData",
+    "answers",
+    "choice_sets",
+    "counts",
+    "question_of",
+    "respondent_scores",
+    "score_names",
+    "utilities",
+    "with_scores",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -347,3 +358,129 @@ def _row_weights(data: SurveyData, weight: str | None) -> np.ndarray | None:
     if column not in data.frame.columns:
         raise KeyError(f"column not found: {column!r}")
     return pd.to_numeric(data.frame[column], errors="coerce").fillna(0.0).to_numpy()
+
+
+@dataclass(frozen=True, slots=True)
+class ScoredData:
+    """What :func:`with_scores` returns: the data with one score variable per
+    item, and what the scores rest on."""
+
+    data: SurveyData
+    stats: dict[str, Any] = field(default_factory=dict)
+    #: item code -> the variable holding its score, in the question's order.
+    names: dict[Any, str] = field(default_factory=dict)
+
+
+def score_names(question_name: str, codes: list[Any], prefix: str | None = None) -> dict[Any, str]:
+    """The variable each item's score is written to: ``<prefix><code>``.
+
+    The default prefix is ``<question>_score_``, from the name the question was
+    asked for by — the one name a flow and its check both hold before anything
+    runs, so a later node can name ``q_md_score_3`` and be checked against it.
+    """
+
+    stem = f"{question_name}_score_" if prefix is None or prefix == "" else prefix
+    return {code: f"{stem}{code}" for code in codes}
+
+
+def with_scores(
+    data: SurveyData, question: MaxDiff | str, *, prefix: str | None = None
+) -> ScoredData:
+    """The counting score of every item, per respondent, as variables.
+
+    The same number :func:`respondent_scores` gives in long form — best minus
+    worst over the times the item was shown to *this* respondent, from −1 to 1
+    — but one column per item, unrounded, labelled with the item and registered
+    in the codebook, so it can go straight into a crosstab, a cluster or a
+    regression. A respondent who was never shown an item has no score for it
+    (a blank, not a zero: "never picked" and "never offered" are different
+    answers), and one with no readable task has none at all.
+
+    The scores are per respondent, so no weight enters them; weight the
+    variables where they are summarized. ``stats`` names the base, the
+    unreadable answers and — on weighted data — says the weight is not applied.
+    """
+
+    from siamang.core.question import question_output_name
+    from siamang.core.variable import Variable, VariableMap
+    from siamang.data.analysis import unweighted_note
+    from siamang.data.survey_data import SurveyData as _SurveyData
+
+    resolved = question_of(data, question)
+    read = answers(data, resolved)
+    labels = _labels(data, resolved)
+    codes = list(resolved.item_codes)
+    if not codes:
+        raise ValueError("This MaxDiff has no items, so there is nothing to score.")
+    asked_for = question if isinstance(question, str) else question_output_name(resolved)
+    names = score_names(asked_for, codes, prefix)
+
+    frame = data.frame
+    ours = set(names.values())
+    for name in sorted(ours & set(frame.columns)):
+        existing = data.variables.get(name) if data.variables is not None else None
+        if existing is None or existing.role != "derived":
+            raise ValueError(
+                f"The score of an item would be written to {name!r}, which the data already "
+                "holds. Give the node another prefix."
+            )
+
+    position = {code: i for i, code in enumerate(codes)}
+    shape = (len(frame), len(codes))
+    shown, best, worst = np.zeros(shape), np.zeros(shape), np.zeros(shape)
+    for record in read.frame.itertuples():
+        for code in record.shown:
+            if code in position:
+                shown[record.row, position[code]] += 1
+        if record.best in position:
+            best[record.row, position[record.best]] += 1
+        if record.worst in position:
+            worst[record.row, position[record.worst]] += 1
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scores = np.where(shown > 0, (best - worst) / shown, np.nan)
+
+    out = frame.copy()
+    variables = VariableMap()
+    if data.variables is not None:
+        for existing in data.variables.values():
+            if existing.name not in ours:
+                variables.add(existing)
+    text = resolved.text or asked_for
+    for code, name in names.items():
+        out[name] = scores[:, position[code]]
+        label = labels.get(code, str(code))
+        variables.add(
+            Variable(
+                name,
+                "interval",
+                label=f"MaxDiff score: {label}",
+                role="derived",
+                valid_range=(-1, 1),
+                description=(
+                    f"Best minus worst over times shown, per respondent, for item {code!r} "
+                    f"({label}) of {text}"
+                ),
+            )
+        )
+    scored = int((shown.sum(axis=1) > 0).sum())
+    listed = list(names.values())
+    stats: dict[str, Any] = {
+        "Question": text,
+        "Respondents scored": scored,
+        "Not scored": int(len(frame) - scored),
+        "Items": len(codes),
+        "Variables": listed[0] if len(listed) == 1 else f"{listed[0]} … {listed[-1]}",
+        "Score": "best minus worst over times shown, −1 to 1; blank where never shown",
+    }
+    if read.dropped:
+        stats["Unreadable answers"] = (
+            f"{read.dropped} ("
+            + ", ".join(f"{reason}: {n}" for reason, n in read.reasons.items())
+            + ")"
+        )
+    if data.weight is not None:
+        stats["Weight"] = unweighted_note(data.weight)
+    result = _SurveyData(
+        frame=out, variables=variables, questionnaire=data.questionnaire, weight=data.weight
+    )
+    return ScoredData(data=result, stats=stats, names=names)

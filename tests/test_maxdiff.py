@@ -428,3 +428,116 @@ def test_the_dictionary_describes_exactly_the_columns_in_the_file(tmp_path):
     assert dictionary["reference"] in dictionary["note"]
     assert len(dictionary["items"]) == len([c for c in frame.columns if c.startswith("x")]) + 1
     assert path.with_name("md.hb.R").read_text(encoding="utf-8").startswith("# Hierarchical Bayes")
+
+
+# ─── scores per respondent, as variables ─────────────────────────────────────
+
+
+def _hand_question() -> sg.MaxDiff:
+    """Four items, one version, two tasks: [1, 2, 3] then [2, 3, 4]."""
+
+    labels = {1: "A", 2: "B", 3: "C", 4: "D"}
+    variables = [
+        sg.Variable(f"hd_t{t}_{side}", "nominal", label=f"t{t} {side}", labels=labels)
+        for t in (1, 2)
+        for side in ("best", "worst")
+    ]
+    variables.append(sg.Variable("hd_version", "nominal", label="Design version"))
+    return sg.MaxDiff(
+        "Which?",
+        variables,
+        per_task=3,
+        tasks=2,
+        versions=1,
+        id="q_hd",
+        design={"items": [1, 2, 3, 4], "per_task": 3, "versions": [[[1, 2, 3], [2, 3, 4]]]},
+    )
+
+
+def _hand_data(index=None) -> SurveyData:
+    question = _hand_question()
+    frame = pd.DataFrame(
+        {
+            "hd_version": [0, 0, None, 0],
+            "hd_t1_best": [1, 3, 1, 4],  # row 3 picks an item the task never showed
+            "hd_t1_worst": [3, 1, 2, 1],
+            "hd_t2_best": [2, None, 2, 3],  # row 1 skipped task 2; row 3 picks 3 twice
+            "hd_t2_worst": [4, None, 3, 3],
+        },
+        index=index,
+    )
+    variables = sg.VariableMap()
+    variables.add_many(list(question.var))
+    return SurveyData(frame=frame, variables=variables, questionnaire=_survey(question))
+
+
+def test_every_item_gets_a_score_variable_computed_by_hand():
+    scored = md.with_scores(_hand_data(), "q_hd")
+    frame = scored.data.frame
+    names = ["q_hd_score_1", "q_hd_score_2", "q_hd_score_3", "q_hd_score_4"]
+    assert list(scored.names.values()) == names
+    # Row 0 saw 1 once (best), 2 twice (best once), 3 twice (worst once) and
+    # 4 once (worst): 1, 1/2, −1/2, −1.
+    assert list(frame.loc[0, names]) == [1.0, 0.5, -0.5, -1.0]
+    # Row 1 answered only task 1 (best 3, worst 1): item 4 was never shown to
+    # them, which is a blank, not a zero.
+    row1 = frame.loc[1, names]
+    assert list(row1[:3]) == [-1.0, 0.0, 1.0] and pd.isna(row1.iloc[3])
+    # No version, and nothing readable: no scores at all.
+    assert frame.loc[2, names].isna().all() and frame.loc[3, names].isna().all()
+
+
+def test_the_score_variables_are_labelled_and_in_the_codebook():
+    data = md.with_scores(_hand_data(), "q_hd").data
+    variable = data.variables["q_hd_score_2"]
+    assert variable.label == "MaxDiff score: B"
+    assert variable.scale == "interval" and variable.role == "derived"
+    assert variable.valid_range == (-1, 1)
+    assert "hd_version" in data.variables  # the rest of the codebook stays
+    # They are variables like any other: a table can be made of them.
+    table = data.report.means("q_hd_score_1", by="hd_version", test=False).to_frame()
+    assert table["N"].sum() == 2
+
+
+def test_the_stats_say_who_was_scored_and_what_could_not_be_read():
+    stats = md.with_scores(_hand_data(), "q_hd").stats
+    assert stats["Respondents scored"] == 2 and stats["Not scored"] == 2
+    assert stats["Items"] == 4
+    assert stats["Variables"] == "q_hd_score_1 … q_hd_score_4"
+    assert stats["Unreadable answers"] == (
+        "5 (no version: 2, not answered: 1, not in the task: 1, same item twice: 1)"
+    )
+    assert "Weight" not in stats
+    weighted = _hand_data()
+    weighted = weighted.with_frame(weighted.frame.assign(w=2.0)).with_weight("w")
+    assert md.with_scores(weighted, "q_hd").stats["Weight"] == (
+        "unweighted (the weight 'w' is not applied)"
+    )
+
+
+def test_a_prefix_names_the_variables_and_a_taken_name_is_refused():
+    data = md.with_scores(_hand_data(), "q_hd", prefix="pref_").data
+    assert {"pref_1", "pref_4"} <= set(data.frame.columns)
+    # Scoring twice replaces the scores it wrote itself …
+    again = md.with_scores(data, "q_hd", prefix="pref_").data
+    assert list(again.frame["pref_1"].fillna(9)) == list(data.frame["pref_1"].fillna(9))
+    # … but never a column that holds something else.
+    taken = _hand_data()
+    taken = taken.with_frame(taken.frame.assign(q_hd_score_2=5))
+    with pytest.raises(ValueError, match="'q_hd_score_2', which the data already holds"):
+        md.with_scores(taken, "q_hd")
+
+
+def test_rows_are_scored_by_position_even_with_a_repeated_index():
+    scored = md.with_scores(_hand_data(index=[7, 7, 8, 8]), "q_hd").data.frame
+    assert list(scored["q_hd_score_1"].iloc[:2]) == [1.0, -1.0]
+
+
+def test_the_variables_agree_with_the_long_form_scores():
+    question = _question(tasks=6, per_task=3, versions=4)
+    data = _fieldwork(question, n=40)
+    wide = md.with_scores(data, "q_md")
+    long = md.respondent_scores(data, "q_md")
+    for record in long.itertuples():
+        name = wide.names[record.item]
+        assert round(wide.data.frame.loc[record.respondent, name], 3) == record.score

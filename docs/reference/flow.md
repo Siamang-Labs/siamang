@@ -72,10 +72,10 @@ The runner and the generator use the same order.
 | Category | Nodes |
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
-| prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `cell_weights`, `rake_weights`, `apply_weight`, `index` |
-| analyze | `freq`, `crosstab`, `means`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `describe`, `paired`, `factor` |
+| prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `quality`, `cell_weights`, `rake_weights`, `apply_weight`, `index`, `derive`, `bands`, `explode`, `text_code`, `maxdiff_scores` |
+| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
 | visualize | `bar`, `boxplot`, `heatmap`, `scatter` |
-| output | `report_section`, `save_report`, `write_table`*, `export_file`, `live_tile` |
+| output | `report_section`, `save_report`, `write_table`*, `export_file`, `choice_data`, `conjoint_data`, `live_tile` |
 
 \* platform nodes: they need the project database (`db`). A `source.responses`
 / `source.table` is fed from a snapshot instead (`sources=` in the runner,
@@ -88,15 +88,16 @@ and flags are columns inside a `SurveyData`.
 from there each node either uses it and says so in its output, or has no
 standard weighted form and says it is unweighted. Weighted: Frequencies,
 Crosstab (Fisher's exact test counts respondents), Group means (not N or the
-test), Banner table, Net Promoter Score, Regression, TURF, MaxDiff, Conjoint,
-Share of preference, Principal components, Scale reliability, Correlation and
-Correlation matrix with Pearson, the Bar chart, a Heatmap with `by`, and
-Proportion CI with `weighted` set. Unweighted and saying so (`"unweighted (the
-weight '<column>' is not applied)"` in the stat, or as the chart title's second
-line): Compare groups, Correlation and Correlation matrix with Spearman or
-Kendall, t-test, Paired tests, Factor analysis, Cluster, Box plot, Scatter
-plot, a Heatmap without `by`,
-Response quality and Code open answers. Describe counts rows and adds a
+test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
+Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
+Principal components, Scale reliability, Correlation and Correlation matrix
+with Pearson, the Bar chart, a Heatmap with `by`, and Proportion CI with
+`weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
+is not applied)"` in the stat, or as the chart title's second line): Compare
+groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
+Paired tests, Factor analysis, Cluster, Box plot, Scatter plot, a Heatmap
+without `by`, Response quality, Code open answers, Data check, and the counts
+of MaxDiff scores and Bands. Describe counts rows and adds a
 `weighted_n_valid` column. The HB exports carry no weight. The node's own
 `help` lists the same, so the palette says what the nodes do.
 
@@ -140,6 +141,21 @@ and `scores` with the prefix `into` (default `factor_`). Outputs: `data` (with
 `stat`. `check_flow` knows the score variables, so a later node may name
 `factor_1`: exactly `n_factors` of them when it is fixed, and up to one fewer
 than the items when a rule chooses.
+Several nodes expose what the library already computed:
+
+| Node | Engine call | Outputs |
+|------|-------------|---------|
+| `analyze.descriptives` (Descriptive statistics) | `data.report.descriptives(variables, by=…, detail=…)` | `table`: N, Missing, Mean, SD, Min, Median, Max (+ Q1, Q3, Skewness, Kurtosis) per variable and group; `stat`: missing codes set aside, Weighted N, Effective N, Design effect |
+| `analyze.data_check` (Data check) | `data.report.data_check(variables)` | `table`: Severity, Variable, Problem, Rows, Examples, Code; `stat`: Checked, Errors, Warnings |
+| `prepare.maxdiff_scores` (MaxDiff scores) | `maxdiff.with_scores(data, question, prefix=…)` | `data` with `<prefix><item code>` per item (default `<question>_score_`); `stat`: respondents scored, unreadable answers |
+| `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labelled ordinal band variable; `stat`: count per band, outside, missing codes |
+| `analyze.turf` with `method: fixed` | `turf.evaluate(frame, portfolio, items=…, weight=…, labels=…)` | `table`: reach, unique reach and frequency per option and for the portfolio |
+
+`check_flow` knows the variables these create before a run: `into` of Bands,
+and one score variable per item of the named MaxDiff question (its `choices`,
+else its first variable's labels), so a later node naming `q_md_score_3` is
+checked like any other variable and `q_md_score_9` is `UNKNOWN_VARIABLE`.
+`prepare.derive` takes `labels` (code → label) for a formula that yields codes.
 
 `source.simulated` generates its rows with
 `siamang.local_simulator.simulate_survey(survey, n=…, seed=…)`: conditions at

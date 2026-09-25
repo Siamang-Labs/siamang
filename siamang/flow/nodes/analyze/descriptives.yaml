@@ -1,0 +1,37 @@
+type: analyze.descriptives
+category: analyze
+title: Descriptive statistics
+description: N, missing, mean, SD, median, minimum and maximum of several numeric variables — by group if you like, with quartiles, skewness and kurtosis on request.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  stat: Stat
+params:
+  variables:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Variables
+    help: The codebook's missing codes (a 99 "Don't know") are not answers and count as missing.
+  by:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: By group
+    help: Optional. One row per variable and group; a blank or a missing code of the group variable is no group.
+  detail:
+    kind: bool
+    default: false
+    label: Quartiles, skewness and kurtosis
+subtitle: '{variables}'
+template: |
+  # On weighted data the mean, SD, median and quartiles are weighted, N and
+  # Missing stay counts of respondents, and the stat gives Kish's effective N.
+  {out.table} = {in.data}.report.descriptives({variables!r}, by={by!r}, detail={detail!r})
+  {out.stat} = {out.table}.stats
+preview: table
