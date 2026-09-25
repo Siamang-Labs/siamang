@@ -64,16 +64,20 @@ def _weighted_summary(values: np.ndarray, weights: np.ndarray) -> tuple[float, f
     """Weighted mean, SD and median of ``values``, and their unweighted count.
 
     The SD is the weighted variance scaled by n / (n - 1), so equal weights give
-    exactly the sample SD the unweighted table shows. The median is the value at
-    which the cumulative weight first reaches half the total.
+    exactly the sample SD the unweighted table shows. An answer weighted 0 (a
+    missing weight counts 0) takes no part in it — n is the answers that carry
+    weight, and with fewer than two of them the SD is undefined (NaN), not 0.
+    The count stays every answer. The median is the value at which the
+    cumulative weight first reaches half the total.
     """
     n = int(len(values))
     total = float(weights.sum())
     if n == 0 or total <= 0:
         return float("nan"), float("nan"), float("nan"), n
     mean = float(np.average(values, weights=weights))
-    if n > 1:
-        variance = float(np.average((values - mean) ** 2, weights=weights)) * n / (n - 1)
+    kept = int((weights > 0).sum())
+    if kept > 1:
+        variance = float(np.average((values - mean) ** 2, weights=weights)) * kept / (kept - 1)
         sd = variance**0.5
     else:
         sd = float("nan")
@@ -108,8 +112,10 @@ def _frame_to_markdown(df: pd.DataFrame) -> str:
     headers = list(df.columns)
     lines.append("| " + " | ".join(str(h) for h in headers) + " |")
     lines.append("|" + "|".join("---" for _ in headers) + "|")
-    for _, row in df.iterrows():
-        lines.append("| " + " | ".join(str(v) for v in row.values) + " |")
+    # Row by row with each column's own type: iterrows() casts a row of numbers
+    # to one float dtype, which printed a count of 4 as "4.0".
+    for row in df.itertuples(index=False, name=None):
+        lines.append("| " + " | ".join(str(v) for v in row) + " |")
     return "\n".join(lines)
 
 
@@ -667,11 +673,38 @@ class CrossTable(SurveyTable):
             self._stats["Weight"] = weight
 
 
+class _BlankUndefined:
+    """Print NaN and None as empty cells; :meth:`SurveyTable.to_frame` keeps them.
+
+    For tables whose cells can be undefined (an SD of one answer, the sentiment
+    of a theme nobody was scored on): a report should show a blank there, not
+    ``nan``.
+    """
+
+    def _printable(self) -> pd.DataFrame:
+        self._ensure_built()  # type: ignore[attr-defined]
+        frame = self._result.astype(object)  # type: ignore[attr-defined]
+        return frame.where(frame.notna(), "")
+
+    def to_markdown(self) -> str:
+        md = _frame_to_markdown(self._printable())
+        if self._stats:  # type: ignore[attr-defined]
+            md += "\n\n" + self._format_stats()  # type: ignore[attr-defined]
+        return md
+
+    def to_html(self) -> str:
+        html = frame_to_html(self._printable())
+        if self._stats:  # type: ignore[attr-defined]
+            stats = self._format_stats()  # type: ignore[attr-defined]
+            html += f"\n<p class='siamang-stats'>{stats}</p>"
+        return html
+
+
 # ─── GroupMeanTable ───────────────────────────────────────────────────────────
 
 
 @dataclass
-class GroupMeanTable(SurveyTable):
+class GroupMeanTable(_BlankUndefined, SurveyTable):
     """Grouped means comparison table with automatic significance testing.
 
     Compares the mean of a continuous variable across categories of a
@@ -989,33 +1022,6 @@ class QualityTable(SurveyTable):
 
 
 # ─── Undefined cells ──────────────────────────────────────────────────────────
-
-
-class _BlankUndefined:
-    """Print NaN and None as empty cells; :meth:`SurveyTable.to_frame` keeps them.
-
-    For tables whose cells can be undefined (an SD of one answer, the sentiment
-    of a theme nobody was scored on): a report should show a blank there, not
-    ``nan``.
-    """
-
-    def _printable(self) -> pd.DataFrame:
-        self._ensure_built()  # type: ignore[attr-defined]
-        frame = self._result.astype(object)  # type: ignore[attr-defined]
-        return frame.where(frame.notna(), "")
-
-    def to_markdown(self) -> str:
-        md = _frame_to_markdown(self._printable())
-        if self._stats:  # type: ignore[attr-defined]
-            md += "\n\n" + self._format_stats()  # type: ignore[attr-defined]
-        return md
-
-    def to_html(self) -> str:
-        html = frame_to_html(self._printable())
-        if self._stats:  # type: ignore[attr-defined]
-            stats = self._format_stats()  # type: ignore[attr-defined]
-            html += f"\n<p class='siamang-stats'>{stats}</p>"
-        return html
 
 
 # ─── ThemeTable ───────────────────────────────────────────────────────────────

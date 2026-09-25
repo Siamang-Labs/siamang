@@ -577,7 +577,10 @@ data.report.descriptives(["autonomy"], by="it_role", detail=True).to_frame()
   the same formulas as the `GroupMeanTable` (the SD scaled by n / (n − 1), the
   median the first value whose cumulative weight reaches half), so the two never
   disagree — while `N` and `Missing` stay counts of respondents beside a
-  `Weighted N` column. `stats` gives `Weighted N`, `Effective N` (Kish) and the
+  `Weighted N` column. An answer weighted 0 (a missing weight counts 0) is set
+  aside from the weighted statistics, n of the SD included: equal weights and a
+  zero give the sample SD of the others, and one answer that carries weight has
+  no SD (blank). `Min` and `Max` are of every answer. `stats` gives `Weighted N`, `Effective N` (Kish) and the
   `Design effect`; skewness and kurtosis stay unweighted and the `Note` says so.
 - **Undefined is blank.** The SD of one answer, skewness below three answers and
   kurtosis below four (or without spread) are NaN in `to_frame()` and empty
