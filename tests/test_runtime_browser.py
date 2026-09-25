@@ -469,6 +469,271 @@ def test_saved_answers_from_the_nested_layout_resume_in_the_flat_one(tmp_path):
     assert "trust" not in submitted
 
 
+# ── A required matrix ────────────────────────────────────────────────────────
+
+
+def _required_matrix_document(**matrix: Any) -> dict[str, Any]:
+    """A required three-row matrix with an N/A column, then two pages — the
+    second one a skip_to's target — and the end."""
+
+    labels = [
+        {"code": 1, "label": "Never"},
+        {"code": 2, "label": "Sometimes"},
+        {"code": 3, "label": "Always"},
+        {"code": -1, "label": "Not applicable"},
+    ]
+    missing = [{"code": -1, "label": "Not applicable", "kind": "not_applicable"}]
+    rows = {"tv": "TV", "radio": "Radio", "press": "Press"}
+    variables: dict[str, Any] = {
+        name: {"scale": "ordinal", "label": label, "labels": labels, "missing": missing}
+        for name, label in rows.items()
+    }
+    variables["why"] = {"scale": "nominal", "dtype": "str"}
+    variables["more"] = {"scale": "nominal", "dtype": "str"}
+    item = {
+        "type": "Matrix",
+        "id": "media",
+        "text": "How often do you use…",
+        "var": list(rows),
+        "na_option": True,
+        "required": True,
+        **matrix,
+    }
+    return {
+        "schema_version": "1.0",
+        "title": "Media",
+        "variables": variables,
+        "pages": [
+            {"name": "p1", "items": [item]},
+            {
+                "name": "middle",
+                "items": [{"type": "OpenText", "id": "why", "var": "why", "text": "Why?"}],
+            },
+            {
+                "name": "end",
+                "items": [{"type": "OpenText", "id": "more", "var": "more", "text": "More?"}],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+# `pick(row, column)` clicks a cell (the N/A column is the last); `held()` is
+# what the page says: its messages, which matrix rows are marked as missing,
+# and the pages the respondent has been on.
+_MATRIX_STEPS = """
+    const pick = async (row, col) => {
+        const rows = await page.$$("table.sd-matrix tbody tr");
+        await (await rows[row].$$("button.sd-matrix__cell"))[col].click();
+        await page.waitForTimeout(50);
+    };
+    const held = async () => ({
+        errors: await page.$$eval(".sd-question__error", (es) => es.map((e) => e.textContent)),
+        missing: await page.$$eval("table.sd-matrix tbody tr",
+            (trs) => trs.map((tr) => tr.classList.contains("is-missing"))),
+        pages: await page.evaluate(() => window.__T.pages.slice()),
+    });
+"""
+
+
+def test_a_required_matrix_answered_in_every_row_goes_on(tmp_path):
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        await pick(0, 0); await pick(1, 1); await pick(2, 2);
+    """
+        + _NEXT
+        + "return await held();"
+    )
+    state = run_in_browser(_required_matrix_document(), scenario, tmp_path)
+    assert state == {"errors": [], "missing": [], "pages": ["p1", "middle"]}
+
+
+def test_a_required_matrix_holds_next_until_every_row_is_answered(tmp_path):
+    """One row of three used to count as the answer Required asks for. Next
+    now names the rows left and marks them until each is answered."""
+
+    scenario = (
+        _MATRIX_STEPS
+        + _NEXT
+        + """
+        const none = await held();
+        await pick(0, 1);
+        const first = await held();
+    """
+        + _NEXT
+        + """
+        const one = await held();
+        await pick(2, 0);
+        const two = await held();
+    """
+        + _NEXT
+        + """
+        const still = await held();
+        await pick(1, 2);
+    """
+        + _NEXT
+        + """
+        return { none, first, one, two, still, done: await held() };
+    """
+    )
+    state = run_in_browser(_required_matrix_document(), scenario, tmp_path)
+    # Nothing answered: the usual message, and every row is marked.
+    assert state["none"]["errors"] == ["This question requires an answer."]
+    assert state["none"]["missing"] == [True, True, True]
+    # An answer clears the message; the rows still empty stay marked.
+    assert state["first"]["errors"] == [] and state["first"]["missing"] == [False, True, True]
+    assert state["one"]["errors"] == ["Please answer every row."]
+    assert state["one"]["missing"] == [False, True, True]
+    assert state["two"]["missing"] == [False, True, False]
+    assert state["still"]["errors"] == ["Please answer every row."]
+    assert state["still"]["pages"] == ["p1"]
+    assert state["done"]["pages"] == ["p1", "middle"]
+
+
+def test_not_applicable_answers_a_required_matrix_row(tmp_path):
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        await pick(0, 3); await pick(1, 0); await pick(2, 3);
+    """
+        + _NEXT
+        + _NEXT
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_required_matrix_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert submitted == {"tv": -1, "radio": 1, "press": -1, "__status": "completed"}
+
+
+def test_a_matrix_skip_to_still_fires_on_any_answered_row(tmp_path):
+    """Skip to is "on Next, after any answer": one row is an answer to an
+    optional matrix; a required one is held first, then skips when complete."""
+
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        await pick(1, 0);
+    """
+        + _NEXT
+        + "return await held();"
+    )
+    optional = run_in_browser(
+        _required_matrix_document(required=False, skip_to="end"), scenario, tmp_path / "optional"
+    )
+    assert optional["pages"] == ["p1", "end"]
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        await pick(1, 0);
+    """
+        + _NEXT
+        + """
+        const one = await held();
+        await pick(0, 0); await pick(2, 0);
+    """
+        + _NEXT
+        + "return { one, all: await held() };"
+    )
+    required = run_in_browser(
+        _required_matrix_document(skip_to="end"), scenario, tmp_path / "required"
+    )
+    assert required["one"]["errors"] == ["Please answer every row."]
+    assert required["one"]["pages"] == ["p1"]
+    assert required["all"]["pages"] == ["p1", "end"]
+
+
+def test_a_resumed_required_matrix_still_needs_the_rows_left(tmp_path):
+    scenario = (
+        _MATRIX_STEPS
+        + _RELOAD
+        + """
+        await pick(0, 0); await pick(1, 1);
+    """
+        + _autosaved("answers.tv === 1 && answers.radio === 2")
+        + """
+        await reload(".siamang-resume-banner");
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(250);
+    """
+        + _NEXT
+        + """
+        const resumed = await held();
+        await pick(2, 2);
+    """
+        + _NEXT
+        + _NEXT
+        + _NEXT
+        + """
+        const T = await page.evaluate(() => window.__T);
+        return { resumed, submitted: T.submitted };
+    """
+    )
+    state = run_in_browser(_required_matrix_document(), scenario, tmp_path)
+    assert state["resumed"]["errors"] == ["Please answer every row."]
+    assert state["resumed"]["missing"] == [False, False, True]
+    (submitted,) = state["submitted"]
+    assert submitted == {"tv": 1, "radio": 2, "press": 3, "__status": "completed"}
+
+
+def test_the_rows_message_is_the_surveys_wording(tmp_path):
+    document = _required_matrix_document()
+    document["ui"] = {"required_rows_text": "Noch {n} Zeilen beantworten"}
+    scenario = (
+        _MATRIX_STEPS
+        + """
+        await pick(0, 0);
+    """
+        + _NEXT
+        + "return await held();"
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["errors"] == ["Noch 2 Zeilen beantworten"]
+
+
+# Design mode (Studio's walkthrough) posts its trace to the parent frame; a
+# page without one is its own parent, so the trace comes back to it.
+_TRACES = """
+    window.SIAMANG_DESIGN = {};
+    window.__traces = [];
+    window.addEventListener("message", (e) => {
+        if (e.data && e.data.type === "siamang:trace") window.__traces.push(e.data);
+    });
+"""
+
+
+def test_the_walkthrough_counts_a_matrix_answered_once_every_row_is(tmp_path):
+    """The trace's `answered` counts what Required asks for; a skip's
+    `answered` is whether it fires, which is any row."""
+
+    trace = """
+        await page.waitForTimeout(300);
+        const t = await page.evaluate(() => window.__traces[window.__traces.length - 1]);
+        return { answered: t.answered, visible: t.visible, skips: t.skips };
+    """
+    scenario = (
+        _MATRIX_STEPS
+        + "const last = async () => {"
+        + trace
+        + "};"
+        + """
+        const before = await last();
+        await pick(0, 0);
+        const one = await last();
+        await pick(1, 0); await pick(2, 3);
+        return { before, one, all: await last() };
+    """
+    )
+    state = run_in_browser(
+        _required_matrix_document(skip_to="end"), scenario, tmp_path, init=_TRACES
+    )
+    skip = {"id": "media", "target": "end"}
+    assert state["before"] == {"answered": 0, "visible": 1, "skips": [{**skip, "answered": False}]}
+    assert state["one"] == {"answered": 0, "visible": 1, "skips": [{**skip, "answered": True}]}
+    assert state["all"] == {"answered": 1, "visible": 1, "skips": [{**skip, "answered": True}]}
+
+
 # ── MaxDiff and Conjoint ─────────────────────────────────────────────────────
 
 
@@ -578,6 +843,48 @@ def test_maxdiff_and_conjoint_tasks_are_stored_by_variable(tmp_path):
     assert submitted["cj_t1"] == 2 and submitted["cj_t2"] == 2 and submitted["cj_version"] == 0
     # A condition on a conjoint task fires, and a MaxDiff pick pipes its label.
     assert f"Why {state['firstBest']}?" in state["shown"]
+
+
+def test_a_required_maxdiff_and_conjoint_still_need_every_task(tmp_path):
+    """Unchanged by the matrix rule: a required MaxDiff or conjoint is held with
+    the usual message until every task is answered."""
+
+    document = _trade_off_document()
+    for item in document["pages"][0]["items"]:
+        item["required"] = True
+    # Picked in the page rather than with the mouse, which moves the focus: the
+    # question left then says it is not finished, and its message pushes the
+    # next question down under the pointer between the press and the release.
+    scenario = (
+        """
+        const press = async (group, button, i, k) => {
+          await page.evaluate(([group, button, i, k]) =>
+            document.querySelectorAll(group)[i].querySelectorAll(button)[k].click(),
+            [group, button, i, k]);
+          await page.waitForTimeout(50);
+        };
+        const task = async (i) => {
+          await press("table.sd-maxdiff__task", "button.sd-maxdiff__pick", i, 0);
+          await press("table.sd-maxdiff__task", "button.sd-maxdiff__pick", i, 3);
+          await press(".sd-conjoint__task", "button.sd-conjoint__pick", i, 1);
+        };
+        await task(0);
+    """
+        + _NEXT
+        + """
+        const errors = await page.$$eval(".sd-question__error", (es) => es.map((e) => e.textContent));
+        const pages = await page.evaluate(() => window.__T.pages.slice());
+        await task(1);
+    """
+        + _NEXT
+        + """
+        return { errors, pages, after: await page.evaluate(() => window.__T.pages.slice()) };
+    """
+    )
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["errors"] == ["This question requires an answer."] * 2
+    assert state["pages"] == ["p1"]
+    assert state["after"] == ["p1", "p2"]
 
 
 # ── Piping ───────────────────────────────────────────────────────────────────

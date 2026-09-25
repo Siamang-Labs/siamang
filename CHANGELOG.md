@@ -160,6 +160,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A required `Matrix` let the respondent through after one row. The runtime
+  called any answer object with a key answered — MaxDiff and conjoint already
+  asked for every task, a matrix asked for nothing more — so nine rows of a
+  ten-row battery the author had made required could be left empty. Next now
+  needs an answer in every row (a row answered "Not applicable" has one; a
+  matrix has no conditions on its rows, so every row is asked). With some rows
+  answered it says "Please answer every row." — the new
+  `UIConfig.required_rows_text`, `{n}` being the rows left — and marks those
+  rows until each has an answer; with none it says `required_text`, as before.
+  Leaving the matrix still only asks for an answer at all: focus moves between
+  its cells while the respondent works down the rows. A `skip_to` on a matrix
+  fires on any row, as before, and Studio's walkthrough trace keeps saying so
+  for the skip, while its "answered" count now counts a matrix once every row
+  is answered — what Required asks for, as it already did for a MaxDiff.
 - `validate()` rejected a `show_if` / `next_if` on a variable no question
   collects — the arm `Script.assign_condition` writes, or embedded data declared
   in the codebook — as "unknown variables", which made the one thing an

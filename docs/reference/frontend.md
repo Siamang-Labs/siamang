@@ -179,8 +179,8 @@ next_button_text, prev_button_text, submit_button_text, submitting_text, saving_
 welcome_text, section_text, final_section_text, page_text, of_total_text,
 estimated_time_text,
 # Answering:
-required_text, of_text, selected_text, min_choices_text, max_reached_text,
-min_value_text, max_value_text, invalid_format_text, invalid_email_text,
+required_text, required_rows_text, of_text, selected_text, min_choices_text,
+max_reached_text, min_value_text, max_value_text, invalid_format_text, invalid_email_text,
 invalid_phone_text, invalid_url_text, invalid_date_text, invalid_time_text,
 select_placeholder, search_placeholder, no_options_text, other_text,
 other_placeholder, none_of_above_text, not_applicable_text, chars_remaining_text,

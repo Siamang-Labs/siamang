@@ -192,11 +192,11 @@ The base `Question` class defines the properties shared by all question types. I
 | :--- | :--- | :--- | :--- |
 | `text` | `str` | *Required* | The primary prompt or question text displayed to the respondent. Must be non-empty. |
 | `var` | `Variable \| list[Variable]` | *Required* | The variable or list of variables bound to this question. Responses are stored under these variable names. |
-| `required` | `bool` | `False` | If `True`, the respondent must answer this question before advancing to the next page. |
+| `required` | `bool` | `False` | If `True`, the respondent must answer this question before advancing to the next page. A `Matrix` needs an answer in every row (a "Not applicable" is one), a `MaxDiff` or `Conjoint` in every task. |
 | `hint` | `str \| None` | `None` | Explanatory helper or hint text displayed beneath the question text. |
 | `show_if` | `Expression \| str \| None` | `None` | An expression determining when this question should be visible. |
 | `hide_if` | `Expression \| str \| None` | `None` | An expression determining when this question should be hidden. |
-| `skip_to` | `str \| None` | `None` | The ID of a target page or question to jump to if this question is answered. |
+| `skip_to` | `str \| None` | `None` | The ID of a target page or question to jump to if this question is answered — a `Matrix` in any row. |
 | `randomize` | `bool` | `False` | If `True`, the display order of the answer choices will be randomized. "None of the above", exclusive answers and a choice that is the question's "Other" keep their position. |
 | `other_specify` | `bool` | `False` | `SingleChoice` / `MultiChoice`: if `True`, adds an "Other (please specify)" choice with a text entry field. The choice stores `metadata["other_code"]` (default `-66`, `DEFAULT_OTHER_CODE`) like any other code; the typed text is stored under `<variable>_other` (a wide `MultiChoice`: `<name or id>_other`) while Other is chosen. An `other_code` equal to one of the question's choices makes that choice the Other option. |
 | `tag` | `str \| list[str] \| None` | `None` | Optional tag or list of tags for categorization and filtering. |

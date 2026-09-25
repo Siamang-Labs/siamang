@@ -488,6 +488,12 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
   const v = value || {};
   const [focusRow, setFocusRow] = useState(0);
   const [focusCol, setFocusCol] = useState(0);
+  // Once the survey has held a required matrix for its answer, the rows still
+  // without one are marked: the message goes with the next click, a row's mark
+  // when that row is answered.
+  const [flagged, setFlagged] = useState(false);
+  useEffect(() => { if (error && q.required) setFlagged(true); }, [error, q.required]);
+  const missing = flagged ? new Set(unansweredRows(q, v)) : null;
 
   const handleKeyDown = (e, rowIdx) => {
     if (e.key === "ArrowRight") {
@@ -522,7 +528,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
           </thead>
           <tbody>
             {q.rows.map((row, rowIdx) => (
-              <tr key={row.id}>
+              <tr key={row.id} className={missing && missing.has(row.id) ? "is-missing" : undefined}>
                 <td>{row.label}</td>
                 {q.columns.map((_, colIdx) => {
                   const code = matrixColumnCode(q, colIdx);

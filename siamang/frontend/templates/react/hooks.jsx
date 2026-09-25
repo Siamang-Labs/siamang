@@ -160,7 +160,9 @@ function resolveTargetPageName(target, orderedPages) {
 }
 
 /* Decide where "Next" should land from `page`, honouring (in order):
-   1. skip_to on the first answered visible question,
+   1. skip_to on the first answered visible question (isAnswered: any answer —
+      a matrix with one row answered is answered here, though Required asks
+      for every row),
    2. the first matching next_if rule,
    3. default_next,
    4. the next visible page in sequence (return null → caller advances by 1).

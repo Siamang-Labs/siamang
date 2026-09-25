@@ -2356,6 +2356,16 @@
             }
           ]
         },
+        "required_rows_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "max_reached_text": {
           "anyOf": [
             {
