@@ -37,7 +37,11 @@ would produce a broken survey:
   `answers.panel.push(…)`, `answers.panel.k = …`), or a name beginning with `__`
   (the runtime's own state). A codebook variable nothing writes does not count —
   the runtime captures no embedded data — so an entry left over from a renamed
-  variable leaves the id free. An id that is its question's own key is renamed
+  variable leaves the id free. If a script does write it, the message offers two
+  ways out: another id for the question, or — when the entry is a leftover and the
+  script means the question, as a prefill from before answers were keyed by
+  variable does — deleting the entry, after which the script's name is rewritten
+  to the question's variable. An id that is its question's own key is renamed
   nowhere and may be any free name.
 - **Unknown `skip_to` targets** — a question may only skip to a known question
   ID or page name.
