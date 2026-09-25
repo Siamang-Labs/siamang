@@ -34,6 +34,12 @@ condition holds. A condition is ``<param>`` (set: not empty and not false),
 ``<param>=<value>`` or ``<param>!=<value>``, several joined by ``&`` when all
 must hold.
 
+``subtitle`` is the node's one-line summary (``{row} × {col}``), or a list of
+them written as template fragments — ``{when: <condition>, text: ...}`` or a
+plain string — of which the first that holds is used; the last plain one is
+also what :meth:`NodeSpec.to_json` gives a builder as ``subtitle``, with the
+list as ``subtitles``.
+
 ``checks`` are rules between parameters that :func:`~siamang.flow.check_flow`
 reports on the node (``PARAM_CONFLICT``) — a post-hoc test that does not follow
 the test chosen, a parameter the node would ignore::
@@ -181,6 +187,9 @@ class NodeSpec:
     template: tuple[Fragment, ...]
     preview: str | None = None
     subtitle: str | None = None
+    #: Subtitles that hold for some parameters only (``text`` in ``code``); the
+    #: first whose ``when`` holds wins, ``subtitle`` otherwise.
+    subtitles: tuple[Fragment, ...] = ()
     imports: tuple[str, ...] = ()
     #: Runs only on a platform (needs the project database).
     platform: bool = False
@@ -208,6 +217,11 @@ class NodeSpec:
             payload["preview"] = self.preview
         if self.subtitle:
             payload["subtitle"] = self.subtitle
+        if self.subtitles:
+            payload["subtitles"] = [
+                {"when": item.when, "text": item.code} if item.when else {"text": item.code}
+                for item in self.subtitles
+            ]
         if self.platform:
             payload["platform"] = True
         if self.snapshot:
@@ -326,6 +340,7 @@ def spec_from_dict(payload: dict[str, Any]) -> NodeSpec:
         for name, value in (payload.get("params") or {}).items()
     }
     template = _template_from(node_type, payload.get("template"), params)
+    subtitle, subtitles = _subtitles_from(node_type, payload.get("subtitle"), params)
     preview = payload.get("preview")
     if preview is not None and preview not in {"table", "chart", "stat", "text", "rows", "report"}:
         raise RegistryError(f"{node_type}: unknown preview {preview!r}.")
@@ -345,7 +360,8 @@ def spec_from_dict(payload: dict[str, Any]) -> NodeSpec:
         params=params,
         template=template,
         preview=preview,
-        subtitle=payload.get("subtitle"),
+        subtitle=subtitle,
+        subtitles=subtitles,
         imports=imports,
         platform=bool(payload.get("platform", False)),
         snapshot=bool(payload.get("snapshot", False)),
@@ -471,6 +487,34 @@ def condition_params(condition: str) -> list[str]:
         name = term.split("!=", 1)[0] if "!=" in term else term.split("=", 1)[0]
         names.append(name.strip())
     return names
+
+
+def _subtitles_from(
+    node_type: str, raw: Any, params: dict[str, ParamSpec]
+) -> tuple[str | None, tuple[Fragment, ...]]:
+    """A subtitle, or a list of ``{when, text}`` / strings: the plain one is the
+    default, the list is kept in order."""
+
+    if raw is None or isinstance(raw, str):
+        return raw, ()
+    if not isinstance(raw, list):
+        raise RegistryError(f"{node_type}: 'subtitle' must be a string or a list.")
+    variants: list[Fragment] = []
+    default: str | None = None
+    for item in raw:
+        if isinstance(item, str):
+            variants.append(Fragment(code=item))
+            default = item
+        elif isinstance(item, dict) and isinstance(item.get("text"), str) and item.get("when"):
+            for param in condition_params(str(item["when"])):
+                if param not in params:
+                    raise RegistryError(
+                        f"{node_type}: subtitle 'when' names unknown param {param!r}."
+                    )
+            variants.append(Fragment(code=item["text"], when=str(item["when"])))
+        else:
+            raise RegistryError(f"{node_type}: subtitles must be strings or {{when, text}}.")
+    return default, tuple(variants)
 
 
 def _checks_from(node_type: str, raw: Any, params: dict[str, ParamSpec]) -> tuple[Check, ...]:

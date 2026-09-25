@@ -594,10 +594,10 @@ class SurveyData:
             # to_numeric would coerce every list to NaN and the item would drop
             # out of the index in silence, which is the worst of the outcomes.
             raise TypeError(
-                f"{', '.join(listed)} hold multiple-choice answers (lists of codes), "
-                "which have no single numeric value. Run prepare.explode first: it "
-                "turns each option into its own 0/1 column, and those are what an "
-                "index, a scale or a cluster is built from."
+                f"{', '.join(listed)} {'holds' if len(listed) == 1 else 'hold'} "
+                "multiple-choice answers (lists of codes), which have no single numeric "
+                "value. Run prepare.explode first: it turns each option into its own 0/1 "
+                "column, and those are what an index, a scale or a cluster is built from."
             )
         return frame.apply(pd.to_numeric, errors="coerce")
 

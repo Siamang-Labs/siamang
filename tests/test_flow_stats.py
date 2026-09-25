@@ -96,6 +96,17 @@ def test_a_spec_checks_its_checks():
         spec_from_dict({**base, "checks": [{"when": "a=q", "message": "m", "severity": "info"}]})
     with pytest.raises(RegistryError, match="template 'when' names unknown param 'c'"):
         spec_from_dict({**base, "template": [{"when": "a=p & c=1", "code": "x"}]})
+    # A subtitle may vary with the parameters: the first variant that holds wins.
+    from siamang.flow.template import subtitle
+
+    varied = spec_from_dict({**base, "subtitle": [{"when": "a=q", "text": "q: {b}"}, "{a}, {b}"]})
+    assert varied.subtitle == "{a}, {b}" and len(varied.subtitles) == 2
+    assert subtitle(varied, {"a": "q", "b": "s"}) == "q: s"
+    assert subtitle(varied, {"a": "p", "b": "s"}) == "p, s"
+    with pytest.raises(RegistryError, match="subtitle 'when' names unknown param 'c'"):
+        spec_from_dict({**base, "subtitle": [{"when": "c=1", "text": "x"}]})
+    with pytest.raises(RegistryError, match="subtitles must be strings or"):
+        spec_from_dict({**base, "subtitle": [{"text": "no condition"}]})
 
 
 def test_a_post_hoc_test_must_follow_the_test_it_belongs_to(questionnaire_doc):

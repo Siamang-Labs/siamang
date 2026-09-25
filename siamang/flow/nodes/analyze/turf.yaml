@@ -37,7 +37,17 @@ params:
     default: []
     label: Portfolio
     help: 'For Search = fixed: exactly these options — each one''s reach, what only it reaches, and the reach and frequency of all of them together. Empty reads every option.'
-subtitle: up to {max_size}, {method}
+subtitle:
+- when: method=fixed
+  text: fixed portfolio {portfolio}
+- up to {max_size}, {method}
+checks:
+- when: method=fixed & include
+  severity: warning
+  message: Always include is not read with Search = fixed, which evaluates exactly the Portfolio — add those options to Portfolio.
+- when: method!=fixed & portfolio
+  severity: warning
+  message: Portfolio is read only with Search = fixed; best and greedy search for a portfolio themselves.
 imports:
 - from siamang.data import turf
 template:

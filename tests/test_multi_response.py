@@ -470,7 +470,8 @@ def test_a_fixed_portfolio_is_weighted_like_the_search():
 
 def test_a_fixed_portfolio_labels_its_options_and_refuses_what_it_cannot_read():
     out = turf.evaluate(_portfolio(), ["c"], labels={"c": "Cherry"})
-    assert list(out["label"]) == ["Cherry", "All 1 together"]
+    # One option is not "All 1 together".
+    assert list(out["label"]) == ["Cherry", "The one option"]
     # Without `items` the base is the portfolio's own respondents: all eight
     # answered c.
     assert out.base == 8 and out["reach_percent"].iloc[0] == 50.0

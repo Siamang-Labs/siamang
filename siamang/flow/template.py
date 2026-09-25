@@ -62,10 +62,15 @@ def render_node(graph: FlowGraph, node_id: str) -> str:
 def subtitle(spec: NodeSpec, params: dict[str, Any]) -> str:
     """The node's one-line summary (``{row} × {col}``) with parameters filled in."""
 
-    if not spec.subtitle:
+    text = spec.subtitle
+    for variant in spec.subtitles:
+        if variant.when is None or condition_holds(variant.when, params):
+            text = variant.code
+            break
+    if not text:
         return ""
     try:
-        return spec.subtitle.format(**{name: _short(value) for name, value in params.items()})
+        return text.format(**{name: _short(value) for name, value in params.items()}).strip()
     except (KeyError, IndexError, ValueError):
         return ""
 

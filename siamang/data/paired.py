@@ -422,6 +422,13 @@ def compare(
         raise ValueError(f"test must be one of {', '.join(TESTS)}.")
     variables = list(variables or [])
     if test == "auto":
+        if len(variables) < 2:
+            raise ValueError(
+                f"Paired tests compare two or more variables answered by the same "
+                f"respondents — two for Wilcoxon signed-rank (or McNemar), three or more "
+                f"for Friedman; {len(variables)} {'was' if len(variables) == 1 else 'were'} "
+                "given."
+            )
         test = "wilcoxon" if len(variables) == 2 else "friedman"
     if test in {"wilcoxon", "mcnemar"}:
         if len(variables) != 2:
@@ -777,7 +784,8 @@ def _yes_codes(
     shown = ", ".join(_code_text(data, variables, value) for value in _sorted(values))
     raise ValueError(
         f"McNemar needs to know which answer counts as yes: the variables hold {shown}. "
-        "Set 'yes' to that code (or a list of codes); every other answer counts as no."
+        "Name that code (or a list of codes) in Counts as yes — `yes` outside a flow; "
+        "every other answer counts as no."
     )
 
 
