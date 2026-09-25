@@ -164,7 +164,10 @@ Id.
   that refer to the inserted block's own renamed variables are updated to
   the new names;
 - a question offering **Other (please specify)** brings its `<variable>_other`
-  entry along, under its new variable's name.
+  entry along, under its new variable's name. Its variable (for a wide
+  Multiple choice, its Id) is also chosen so that the Other text's name is
+  free, as a variable and as an Id: `brand` inserted next to a question with
+  Id `brand_other` becomes `brand_2`, its Other text `brand_2_other`.
 
 What is **not** adjusted:
 

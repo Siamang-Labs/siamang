@@ -730,7 +730,10 @@ press **Check now** in **Validation → Engine**. These errors mark the Save
   **Assign to a condition**, a codebook variable no question collects that a
   custom script writes, or a name starting with `__` ("Question '<id>' stores
   its answer under '<variable>', but '<id>' is also <what>. A script that
-  names '<id>' could mean either; give the question another id."). Studio
+  names '<id>' could mean either; give the question another id.", with "…or,
+  if the codebook entry '<id>' is left over from renaming this question's
+  variable, delete that entry so that '<id>' in the script means the
+  question." added for a codebook variable a script writes). Studio
   translates a script's `answers["<id>"]` to the question's variable, so the
   script would reach the question instead (see
   [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take));
