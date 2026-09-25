@@ -959,6 +959,55 @@ def test_a_codebook_variable_nothing_writes_leaves_the_id_free():
     from_document(document).survey.validate()
 
 
+def test_an_old_builders_prefill_by_id_is_told_both_ways_out():
+    """The old Builder's leftover entry q2 beside id q2 -> comment, and a
+    script from before patch 0043, when answers were keyed by id, that
+    prefills the question by its id. The script writes q2, so the id is
+    refused — and the message names the way out that keeps the prefill:
+    with the entry deleted, the script's q2 is the question and is rewritten
+    to comment. Another id alone would leave the script writing the entry."""
+
+    document = {
+        "schema_version": "1.0",
+        "title": "Old Builder",
+        "variables": {
+            "q2": {"scale": "nominal", "dtype": "str", "label": "q2"},
+            "comment": {"scale": "nominal", "dtype": "str", "label": "q2"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [{"type": "OpenText", "id": "q2", "var": "comment", "text": "Why?"}],
+            }
+        ],
+        "scripts": [
+            {
+                "type": "custom",
+                "name": "prefill",
+                "trigger": "onInit",
+                "code": 'if (!answers.q2) answers.q2 = "(no comment)";',
+            }
+        ],
+    }
+    with pytest.raises(ValueError) as refused:
+        from_document(document).survey.validate()
+    assert str(refused.value).endswith(
+        "'q2' is also a variable the codebook declares, no question collects and script "
+        "'prefill' writes. A script that names 'q2' could mean either; give the question "
+        "another id, or, if the codebook entry 'q2' is left over from renaming this "
+        "question's variable, delete that entry so that 'q2' in the script means the question."
+    )
+    del document["variables"]["q2"]
+    survey = from_document(document).survey
+    survey.validate()
+    (script,) = compile_react_payload(survey)["SURVEY"]["scripts"]
+    assert script["code"] == 'if (!answers.comment) answers.comment = "(no comment)";'
+    # A refusal for any other reason keeps to the one way out.
+    other = _brand_document("brand_other")
+    with pytest.raises(ValueError, match=r"could mean either; give the question another id\.$"):
+        from_document(other).survey.validate()
+
+
 def test_what_a_custom_script_writes_is_read_from_its_code():
     """Every access the compiler would rewrite is a write when it is one:
     assigned or updated, deleted, a loop's or a destructuring pattern's

@@ -286,6 +286,10 @@ class Questionnaire:
             for name in aliases
             if name in declared and name not in stored and name not in assigned
         ]
+        # Codebook entries a script writes: the entry may be what the author
+        # meant, or one an older Builder left behind (see below) while the
+        # script means the question — so the message offers both ways out.
+        codebook_written: set[str] = set()
         if codebook_only:
             # ``siamang.model`` builds on ``siamang.core``: import here.
             from siamang.model.scripts import answer_keys_written
@@ -293,6 +297,7 @@ class Questionnaire:
             for index, script in enumerate(self.scripts):
                 label = f"script '{script.name}'" if script.name else f"script #{index + 1}"
                 for name in answer_keys_written(script, codebook_only):
+                    codebook_written.add(name)
                     assigned.setdefault(
                         name,
                         f"a variable the codebook declares, no question collects and {label} "
@@ -314,10 +319,17 @@ class Questionnaire:
                 taken = "a name the runtime keeps its own state under (it begins with '__')"
             else:
                 continue
+            remedy = "give the question another id"
+            if question_id in codebook_written:
+                remedy += (
+                    f", or, if the codebook entry '{question_id}' is left over from renaming "
+                    f"this question's variable, delete that entry so that '{question_id}' in "
+                    "the script means the question"
+                )
             raise ValueError(
                 f"Question '{question_id}' stores its answer under '{key}', but "
                 f"'{question_id}' is also {taken}. A script that names '{question_id}' "
-                "could mean either; give the question another id."
+                f"could mean either; {remedy}."
             )
 
     def preview(self) -> str:

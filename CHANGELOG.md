@@ -231,7 +231,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   does a codebook variable nothing writes: the runtime captures no embedded
   data, and the Builder before patch 0043 left such an entry behind whenever a
   question's variable was renamed (id `q2`, variable `comment`, entry `q2`), so
-  those documents stay valid.
+  those documents stay valid. Where such an entry is written by a script — a
+  prefill from before patch 0043, when answers were keyed by id, sets
+  `answers.q2` meaning the question — the refusal names the other way out,
+  the one that keeps the prefill working: "…; give the question another id,
+  or, if the codebook entry 'q2' is left over from renaming this question's
+  variable, delete that entry so that 'q2' in the script means the question."
 - A spread of a question's answer in a custom script — `[...answers.q1]`,
   `Math.max(...answers["q1"])` — was not rewritten to the answer key when the
   id is not the key: the rewrite took the `.` of `...` for some other object's
