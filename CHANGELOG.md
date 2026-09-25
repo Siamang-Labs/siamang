@@ -293,6 +293,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `Net sentiment` to the stats (`Sentiment: not in this codeframe` when it has
     none). `data.report.themes(codeframe, sentiment=False)`;
     `text_coding.uncoded_answers()` returns the uncoded texts.
+  - **Export file** writes an R bundle for a `.R` path (`<name>.csv`,
+    `<name>.dictionary.json` and the `<name>.R` script that reads them with
+    factors and `NA` for the missing codes) and the codebook alone for a `.json`
+    path. `siamang.io.export_file()` / `EXPORT_FORMATS` do the same outside a
+    flow.
   - **Bands** (`prepare.bands`, `siamang.data.bands.bands`): a number cut into
     a labelled ordinal variable (`18 to under 30`, …) after the codebook's
     missing codes are taken out, with a `stat` of the count per band and what
@@ -863,6 +868,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TURF's frequency was unweighted beside a weighted reach.** On weighted data
   the mean number of the portfolio's options a reached respondent chose is now
   weighted like the reach; unweighted results are unchanged.
+- **The R bundle's script lost answers.** `source("dir/import_survey.R")` from
+  any other directory failed to find its CSV (it looked in the working
+  directory); a multiple-choice column (`1;3`) and every code without a value
+  label became `NA` in `factor()`; a text answer "NA" became missing; and on a
+  non-UTF-8 locale labels were read in the wrong encoding. The script now finds
+  its files beside itself under `Rscript` and `source()`, reads the CSV as UTF-8
+  with only empty cells missing, keeps multiple-choice columns as text, gives an
+  unlabelled code a level of its own, leaves missing codes out of the levels and
+  sets each column's `label` attribute. Its dictionary is now
+  `<name>.dictionary.json` (was `<name>_dictionary.json`), the name every other
+  export uses, so `read_snapshot("<name>.csv")` finds it.
 
 ## [0.6.0] — 2026-08-30
 

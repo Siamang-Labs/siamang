@@ -1,9 +1,10 @@
 """The flow nodes that expose what the engine could already do.
 
 Descriptive statistics, Data check, MaxDiff scores, Bands, a fixed TURF
-portfolio, the codeframe's coverage and Derive's value labels: each one is
-checked against the questionnaire, generated into a script that lints clean,
-and run — and the script, run on its own, writes what the runner writes.
+portfolio, the codeframe's coverage, Derive's value labels and the R bundle and
+dictionary of Export file: each one is checked against the questionnaire,
+generated into a script that lints clean, and run — and the script, run on its
+own, writes what the runner writes.
 """
 
 from __future__ import annotations
@@ -82,12 +83,16 @@ def _brand_flow():
                 "portfolio": ["aware_1", "aware_3"],
             },
         ),
+        ("r", "output.export_file", {"path": "outputs/clean.R"}),
+        ("dict", "output.export_file", {"path": "outputs/codebook.json"}),
         ("sec", "output.report_section", {"heading": "Checks"}),
         ("save", "output.save_report", {"title": "Exposed", "path": "outputs/exposed.md"}),
     ]
     chain = ["sim", "band", "der", "expl", "cell", "apply"]
     edges = [(a, "data", b, "data") for a, b in zip(chain, chain[1:], strict=False)]
-    edges += [("apply", "data", n, "data") for n in ("check", "desc", "desc2", "reach")]
+    edges += [
+        ("apply", "data", n, "data") for n in ("check", "desc", "desc2", "reach", "r", "dict")
+    ]
     edges += [
         ("check", "table", "sec", "items"),
         ("desc", "table", "sec", "items"),
@@ -110,6 +115,7 @@ def test_the_new_nodes_are_in_the_registry_with_their_ports():
         "stat": "Stat",
     }
     assert registry.get("analyze.turf").params["method"].values == ("best", "greedy", "fixed")
+    assert ".R" in registry.get("output.export_file").description
 
 
 def test_a_flow_of_the_new_nodes_checks_runs_and_says_what_it_did(
@@ -156,7 +162,11 @@ def test_a_flow_of_the_new_nodes_checks_runs_and_says_what_it_did(
     assert reach_stat["Reach"] == f"{reach['reach_percent'].iloc[-1]} %"
     assert reach_stat["Weight"] == "weight"
 
-    report = (tmp_path / "outputs" / "exposed.md").read_text("utf-8")
+    outputs = tmp_path / "outputs"
+    assert {"clean.R", "clean.csv", "clean.dictionary.json", "codebook.json"} <= {
+        path.name for path in outputs.iterdir()
+    }
+    report = (outputs / "exposed.md").read_text("utf-8")
     assert "| Variable | Label | Age (bands) | N | Weighted N |" in report
     assert "nan" not in report.lower()
 
@@ -198,7 +208,7 @@ def test_the_generated_script_lints_clean_and_writes_what_the_runner_writes(
     code = generate_flow(flow, questionnaire_doc)
     lint = _lint(code)
     assert lint.returncode == 0, lint.stdout + lint.stderr
-    assert "turf.evaluate(" in code
+    assert "turf.evaluate(" in code and "export_file(n_apply" in code
     assert "report.descriptives(" in code and "report.data_check(" in code
 
     runner_dir, script_dir = tmp_path / "runner", tmp_path / "script"
@@ -230,7 +240,7 @@ def test_the_generated_script_lints_clean_and_writes_what_the_runner_writes(
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    for name in ("exposed.md",):
+    for name in ("exposed.md", "clean.csv", "codebook.json"):
         ours = (runner_dir / "outputs" / name).read_text("utf-8")
         assert ours == (script_dir / "outputs" / name).read_text("utf-8"), name
 

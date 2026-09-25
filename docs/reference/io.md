@@ -138,14 +138,20 @@ RScriptWriter().write(data, path="political_trust_R/")
 Writes a three-file bundle into the target directory:
 
 - `import_survey.csv` — the responses.
-- `import_survey_dictionary.json` — full `VariableMap` serialisation.
-- `import_survey.R` — an R script (using `jsonlite`) that reads the CSV,
-  replaces missing-value codes with `NA`, applies value labels
-  (`factor(...)`), and leaves a `survey_data` data frame.
+- `import_survey.dictionary.json` — full `VariableMap` serialisation (the name
+  a snapshot's dictionary has, so `read_snapshot` finds it beside the CSV).
+- `import_survey.R` — an R script (using `jsonlite`) that reads the CSV as
+  UTF-8 (`na.strings = ""`, so a text answer "NA" stays an answer), replaces
+  missing-value codes with `NA`, applies value labels (`factor(...)`; a code
+  without a label keeps a level of its own, and missing codes are no level),
+  sets each column's `label` attribute to the variable's label, and leaves a
+  `survey_data` data frame. Multiple-choice columns (codes joined by `;`) stay
+  text. The script finds its files beside itself when run with `Rscript` or
+  `source()`d from any directory.
 
 Returns the `Path` to `import_survey.R`. If `path` ends in `.R`, that
 name is used instead (e.g. `trust.R` → `trust.csv`,
-`trust_dictionary.json`, `trust.R`).
+`trust.dictionary.json`, `trust.R`).
 
 ---
 
@@ -194,4 +200,16 @@ text format turned into floats come back as nullable `Int64`.
 data file in the format of the suffix and the dictionary when `data` has
 variable metadata. Parquet needs `pip install "siamang[parquet]"`.
 `SurveyDataReader` also accepts `.parquet`.
+
+---
+
+## `export_file`
+
+`export_file(data, path) -> Path` (`siamang.io.export`) writes whatever the
+extension names — `EXPORT_FORMATS`: the snapshot formats as `write_snapshot`
+writes them (data plus `<stem>.dictionary.json`), `.R` for the
+[R bundle](#r), `.json` for the codebook alone (`DictionaryWriter`; a
+`ValueError` when the data has no codebook). Any other extension is a
+`ValueError` naming the ones that work. Every file lands beside `path`. The
+flow's `output.export_file` node is this call.
 

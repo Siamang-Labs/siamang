@@ -1,7 +1,7 @@
 type: output.export_file
 category: output
 title: Export file
-description: 'Write the data as a file (format by extension: .parquet .csv .xlsx .sav .dta) with its dictionary.'
+description: 'Write the data as a file (format by extension: .parquet .csv .xlsx .sav .dta) with its dictionary, as an R bundle (.R), or the dictionary alone (.json).'
 inputs:
   data: SurveyData
 params:
@@ -9,8 +9,9 @@ params:
     kind: path
     required: true
     label: Path
+    help: .parquet, .csv, .xlsx, .sav or .dta write the data and <name>.dictionary.json beside it. .R writes <name>.csv, <name>.dictionary.json and an R script that reads them with factors and NA for the missing codes. .json writes the codebook alone.
 subtitle: '{path}'
 imports:
-- from siamang.io import write_snapshot
+- from siamang.io.export import export_file
 template: |
-  write_snapshot({in.data}, {path!r})
+  export_file({in.data}, {path!r})

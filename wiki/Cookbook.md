@@ -285,7 +285,7 @@ SPSSWriter().write(data, "output.sav")                          # opens in SPSS 
 from siamang.io import RScriptWriter
 
 RScriptWriter().write(data, path="political_trust_R/")
-# Writes import_survey.csv, import_survey_dictionary.json, import_survey.R. Then in R:
+# Writes import_survey.csv, import_survey.dictionary.json, import_survey.R. Then in R:
 #   source("political_trust_R/import_survey.R")   # builds the `survey_data` data frame
 ```
 

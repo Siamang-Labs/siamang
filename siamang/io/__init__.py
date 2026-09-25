@@ -3,6 +3,7 @@
 from siamang.io.csv import CSVReader, CSVWriter
 from siamang.io.dictionary import DictionaryReader, DictionaryWriter
 from siamang.io.excel import ExcelReader, ExcelWriter
+from siamang.io.export import EXPORT_FORMATS, export_file
 from siamang.io.r import RScriptWriter
 from siamang.io.reader import SurveyDataReader
 from siamang.io.snapshot import (
@@ -30,6 +31,8 @@ __all__ = [
     "SPSSWriter",
     "SPSSReader",
     "SNAPSHOT_FORMATS",
+    "EXPORT_FORMATS",
+    "export_file",
     "dictionary_path_for",
     "read_snapshot",
     "write_snapshot",

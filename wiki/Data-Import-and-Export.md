@@ -155,18 +155,40 @@ Writes a three-file bundle into the target directory and returns the `Path` to
 the R script:
 
 - `import_survey.csv` — the responses;
-- `import_survey_dictionary.json` — full `VariableMap` serialisation;
-- `import_survey.R` — an R script that reads the CSV and dictionary (via
-  `jsonlite`), replaces missing-value codes with `NA`, and applies value labels
-  with `factor(...)`, leaving the result in an object named `survey_data`.
+- `import_survey.dictionary.json` — full `VariableMap` serialisation, named
+  like a snapshot's dictionary so `read_snapshot("import_survey.csv")` finds it;
+- `import_survey.R` — an R script that reads the CSV (as UTF-8) and the
+  dictionary (via `jsonlite`), replaces missing-value codes with `NA`, applies
+  value labels with `factor(...)` and puts each question's text in the column's
+  `label` attribute, leaving the result in an object named `survey_data`. A code
+  the codebook has no label for keeps a level of its own; a multiple-choice
+  column (codes joined by `;`) stays text, because a factor holds one value per
+  respondent; a text answer that reads `NA` stays an answer.
 
 If `path` ends in `.R` (e.g. `trust.R`), the files are named after its stem
-instead (`trust.csv`, `trust_dictionary.json`, `trust.R`).
+instead (`trust.csv`, `trust.dictionary.json`, `trust.R`). The script finds
+its files beside itself whether it is run with `Rscript` or `source()`d from
+another directory.
 
 ```r
 # In R:
 source("political_trust_R/import_survey.R")   # builds the labelled `survey_data`
 ```
+
+### One call for any format: `export_file`
+
+```python
+from siamang.io import export_file
+
+export_file(data, "outputs/clean.sav")      # data + clean.dictionary.json
+export_file(data, "outputs/clean.R")        # the R bundle above
+export_file(data, "outputs/codebook.json")  # the codebook alone
+```
+
+The format follows the extension: `.parquet`, `.csv`, `.xlsx`, `.sav` and
+`.dta` as `write_snapshot` writes them, `.R` the R bundle, `.json` the data
+dictionary alone (an error when the data has no codebook). Every file lands
+beside the path given. It is what the flow's **Export file** node runs.
 
 ---
 
