@@ -563,18 +563,38 @@ function useSubmission(store, finishSaved, surveyId) {
 
 /* ─── useKeyboardShortcuts ─────────────────────────────────────────────── */
 
+/* The controls whose Enter and Space are their own, never Next: a button or a
+   link is activated (a matrix cell or a rating point is chosen, Previous goes
+   back, the dropdown opens, the skip link skips, the Next button goes on by
+   itself), a video or an audio player plays or pauses, a summary opens its
+   details — and the like in a page's own HTML. */
+const OWN_KEYS_SELECTOR = "button, a[href], summary, video, audio, [role=button], [role=link], "
+  + "[role=checkbox], [role=radio], [role=switch], [role=tab], [role=menuitem], [role=option], "
+  + "[role=listbox], [role=combobox], [role=slider], [role=spinbutton]";
+/* Those of them a click activates. The mouse leaves the focus on the one it
+   pressed (Chromium does; Safari leaves it nowhere), and there the key would
+   do again what the click did — a MaxDiff or conjoint pick, a toggle, would be
+   taken back — so after a press of the mouse Enter and Space go on, as they
+   always have, until the focus moves. */
+const CLICKED_SELECTOR = "button, a[href], summary, [role=button], [role=link], [role=checkbox], "
+  + "[role=radio], [role=switch], [role=tab], [role=menuitem], [role=option]";
+
 function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
   useEffect(() => {
+    // The control the mouse last pressed, while the focus that gave it stays.
+    let pointed = null;
+    const onPress = (e) => {
+      pointed = e.target && e.target.closest ? e.target.closest(CLICKED_SELECTOR) : null;
+    };
+    const onFocus = (e) => { if (e.target !== pointed) pointed = null; };
     const handler = (e) => {
       const nav = navRef.current;
       if (!nav) return;
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
-      // A button's or a link's Enter and Space are its own: a matrix cell or a
-      // rating point is chosen, Previous goes back, the dropdown opens, the
-      // skip link skips — and the Next button goes on by itself.
-      const control = e.target.closest ? e.target.closest("button, a[href]") : null;
+      if (e.target.isContentEditable) return;
+      const control = e.target.closest ? e.target.closest(OWN_KEYS_SELECTOR) : null;
 
-      if ((e.key === "Enter" || e.key === " ") && !control) {
+      if ((e.key === "Enter" || e.key === " ") && (!control || control === pointed)) {
         e.preventDefault();
         if (nav.onNext) nav.onNext();
       }
@@ -603,7 +623,13 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("mousedown", onPress, true);
+    window.addEventListener("focusin", onFocus, true);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("mousedown", onPress, true);
+      window.removeEventListener("focusin", onFocus, true);
+    };
   }, []);
 }
 
