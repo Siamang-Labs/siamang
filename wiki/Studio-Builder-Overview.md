@@ -149,7 +149,12 @@ matters:
 > and its data column carried the Id. Studio has moved the answers already
 > collected that way to the variable's name and recounted the quota cells
 > involved; where a move could have mixed two questions' answers, the old
-> column was left as it was. The move also covers a question whose variable
+> column was left as it was. A survey still running a build published before
+> you renamed a variable has its answers moved to the name that build uses —
+> the variable's name in the Save it was published from — so the answers it
+> collected before the change and those it sends now share one column (see
+> [Renaming a variable](Studio-Codebook-and-Variables#renaming-a-variable)).
+> The move also covers a question whose variable
 > was renamed after a Save (an earlier Builder gave every new question its Id
 > as its variable) and one whose Id is a Matrix row or a per-choice variable
 > of another question; only a response that shows nothing of the older build
