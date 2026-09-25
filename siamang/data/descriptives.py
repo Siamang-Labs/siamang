@@ -173,6 +173,11 @@ def describe(
         stats["Note"] = (
             ("mean, SD, median and quartiles" if detail else "mean, SD and median")
             + " are weighted; N and Missing count respondents"
+            + (
+                "; rows weighted 0 are left out of the weighted statistics"
+                if bool((weights == 0).any())
+                else ""
+            )
             + ("; skewness and kurtosis are unweighted" if detail else "")
         )
     return Descriptives(table=table, stats=stats)
@@ -260,28 +265,36 @@ def _summary(
     row["Min"] = _round(float(values.min()))
     row["Max"] = _round(float(values.max()))
     spread = float(values.max() - values.min())
-    if weights is None or float(weights.sum()) <= 0:
-        if weights is not None:
+    if weights is None:
+        row["Mean"] = _round(float(values.mean()))
+        row["SD"] = _round(float(values.std(ddof=1))) if n > 1 else nan
+        q1, median, q3 = np.percentile(values, [25, 50, 75])
+        row.update({"Median": _round(median), "Q1": _round(q1), "Q3": _round(q3)})
+    else:
+        # An answer weighted 0 (or with no weight, which counts 0) is one the
+        # weighting set aside, as the design effect counts it: it takes no part
+        # in the mean, the SD — not even in its n / (n − 1) — or the quartiles.
+        # N and Missing still count it, and Min and Max are of every answer.
+        carried = weights > 0
+        if not carried.any():
             # Every answer weighs nothing: there is no weighted mean to give.
             row.update({"Mean": nan, "SD": nan, "Median": nan, "Q1": nan, "Q3": nan})
         else:
-            row["Mean"] = _round(float(values.mean()))
-            row["SD"] = _round(float(values.std(ddof=1))) if n > 1 else nan
-            q1, median, q3 = np.percentile(values, [25, 50, 75])
-            row.update({"Median": _round(median), "Q1": _round(q1), "Q3": _round(q3)})
-    else:
-        mean = float(np.average(values, weights=weights))
-        row["Mean"] = _round(mean)
-        if n > 1:
-            # The Group means table's weighted SD: the weighted variance scaled
-            # by n / (n − 1), so equal weights give exactly the sample SD.
-            variance = float(np.average((values - mean) ** 2, weights=weights)) * n / (n - 1)
-            row["SD"] = _round(variance**0.5)
-        else:
-            row["SD"] = nan
-        row["Median"] = _round(weighted_quantile(values, weights, 0.5))
-        row["Q1"] = _round(weighted_quantile(values, weights, 0.25))
-        row["Q3"] = _round(weighted_quantile(values, weights, 0.75))
+            values_w, weights_w = values[carried], weights[carried]
+            kept = int(len(values_w))
+            mean = float(np.average(values_w, weights=weights_w))
+            row["Mean"] = _round(mean)
+            if kept > 1:
+                # The Group means table's weighted SD: the weighted variance scaled
+                # by n / (n − 1) over the answers that carry weight, so equal
+                # weights give exactly the sample SD of those answers.
+                variance = float(np.average((values_w - mean) ** 2, weights=weights_w))
+                row["SD"] = _round((variance * kept / (kept - 1)) ** 0.5)
+            else:
+                row["SD"] = nan  # an SD needs two answers
+            row["Median"] = _round(weighted_quantile(values_w, weights_w, 0.5))
+            row["Q1"] = _round(weighted_quantile(values_w, weights_w, 0.25))
+            row["Q3"] = _round(weighted_quantile(values_w, weights_w, 0.75))
     if detail:
         from scipy import stats as sp_stats
 

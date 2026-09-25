@@ -372,6 +372,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`); Compare groups'
   Dunn lines too; and `frame_to_html` writes each number as the Markdown does.
 
+- **An answer weighted 0 no longer changes the weighted SD.** Descriptive
+  statistics and Group means scaled the weighted variance by n / (n − 1) with n
+  every answer, so a row weighted 0 (or with a blank weight, which counts 0)
+  still counted: 1, 2, 3 and a zero-weighted 100 gave SD 0.943 instead of
+  1.000, and a group in which one answer carried weight gave SD 0.0 instead of
+  none. n is now the answers that carry weight, and below two the SD is
+  undefined — blank, as an SD of one answer is. The mean and the quartiles
+  already ignored them; Min and Max stay those of every answer, and
+  Descriptive statistics' `Note` adds "rows weighted 0 are left out of the
+  weighted statistics" when there are any. Group means prints an undefined
+  cell blank rather than `nan`, and a table's Markdown prints each column in its
+  own type (a count of 4 read `4.0` when every column was a number).
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a

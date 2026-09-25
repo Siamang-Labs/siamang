@@ -190,6 +190,36 @@ def test_equal_weights_give_the_unweighted_mean_and_sd():
         assert list(weighted[column]) == list(plain[column])
 
 
+def test_an_answer_weighted_zero_is_set_aside_from_the_weighted_statistics():
+    """A weight of 0 — or none, which counts 0 — is an answer the weighting set
+    aside: the SD's n / (n − 1) counts only the answers that carry weight, and
+    one answer that does has no SD (Min and Max stay those of every answer). Equal weights plus a zero give the sample SD
+    of the rest: 1, 2, 3 → mean 2, SD 1 (0.943 when the zero counted in n)."""
+
+    zero = describe(
+        pd.DataFrame({"x": [1.0, 2.0, 3.0, 100.0], "w": [1.0, 1.0, 1.0, 0.0]}), ["x"], weight="w"
+    )
+    row = _row(zero.table, "x")
+    assert (row["N"], row["Missing"], row["Mean"], row["SD"]) == (4, 0, 2.0, 1.0)
+    assert row["Median"] == 2.0 and (row["Min"], row["Max"]) == (1.0, 100.0)  # every answer
+    assert "rows weighted 0 are left out" in zero.stats["Note"]
+    blank = describe(pd.DataFrame({"x": [1.0, 5.0], "w": [1.0, np.nan]}), ["x"], weight="w")
+    row = _row(blank.table, "x")
+    assert row["N"] == 2 and row["Mean"] == 1.0 and math.isnan(row["SD"])
+    nothing = describe(pd.DataFrame({"x": [1.0, 5.0], "w": [0.0, 0.0]}), ["x"], weight="w")
+    row = _row(nothing.table, "x")
+    assert row["N"] == 2 and all(math.isnan(row[k]) for k in ("Mean", "SD", "Median"))
+    # Group means' weighted SD is the same one.
+    frame = pd.DataFrame(
+        {"x": [1.0, 2, 3, 100, 4, 9], "g": [1, 1, 1, 1, 2, 2], "w": [1.0, 1, 1, 0, 1, 0]}
+    )
+    means = SurveyData(frame=frame).with_weight("w").report.means("x", by="g", test=False)
+    table = means.to_frame()
+    assert table["SD"].iloc[0] == 1.0 and math.isnan(table["SD"].iloc[1])
+    assert table["N"].tolist() == [4, 2]  # N stays the respondents counted
+    assert "| 2 | 4.0 |  | 4.0 | 2 |" in means.to_markdown()  # blank, not nan or 0.0
+
+
 def test_the_accessor_and_the_table_carry_the_weight():
     table = _data(weight=True).report.descriptives(["sat", "age"])
     frame = table.to_frame()
