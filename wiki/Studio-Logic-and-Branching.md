@@ -202,6 +202,9 @@ default is **— next page —**. It works like this:
   they answer.
 - The question must be **visible and answered**. An unanswered or hidden
   question does not skip.
+- On a **Matrix**, one answered row is enough. A required matrix is still
+  held by **Next** until every row is answered (see
+  [Matrix](Studio-Question-Types#matrix)), so its Skip to fires only then.
 - If several questions on the page have a Skip to, the **first** answered,
   visible one wins.
 - Skip to wins over the page's branch rules and default next.
@@ -513,6 +516,13 @@ A condition may read any variable that:
   value your custom JavaScript writes: the condition reads whatever the script
   has stored by the time the condition is checked.
 
+A variable that **Assign to a condition** writes, or that the codebook
+declares and a custom script writes, cannot also be the Id of a question
+whose own variable is different: a script naming it would reach that
+question's answer instead. The Builder flags such an Id and the Save is
+marked **errors** (see
+[Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)).
+
 A condition that reads any other name fails the engine's check when you
 Save: "… references unknown variables: <name>". The Save is marked
 **errors** and cannot be published.
@@ -714,6 +724,16 @@ press **Check now** in **Validation → Engine**. These errors mark the Save
   '<id>' has the id under which question '<other>' stores its answer; an id
   may not be another question's variable or output name."). Logic and script
   targets could not tell the two apart;
+- a question whose **Id** differs from its variable and is a name the
+  survey stores something else under: a variable any question stores (a
+  Matrix row included), a question's Other text, the arm of an
+  **Assign to a condition**, a codebook variable no question collects that a
+  custom script writes, or a name starting with `__` ("Question '<id>' stores
+  its answer under '<variable>', but '<id>' is also <what>. A script that
+  names '<id>' could mean either; give the question another id."). Studio
+  translates a script's `answers["<id>"]` to the question's variable, so the
+  script would reach the question instead (see
+  [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take));
 - a Matrix, MaxDiff, Conjoint or wide Multiple choice whose **Id** is another
   question's variable name ("Duplicate answer key in questionnaire: questions
   '<a>' and '<b>' both store their answer under '<name>'."). The survey

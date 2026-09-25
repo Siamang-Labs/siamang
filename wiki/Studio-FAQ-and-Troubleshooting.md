@@ -120,6 +120,24 @@ under — the engine refuses an id that is another question’s variable.", and
 **Validation → Structure** lists the question. New questions never get such
 an Id; you meet this after typing one, or in an imported or older document.
 
+**"Question '…' stores its answer under '…', but '…' is also …".**
+The question's **Id** differs from its variable and is a name the survey
+stores something else under: a Matrix row or another variable of a question
+("…is also a variable question 'grid' stores an answer under"), another
+question's Other text ("…the key question 'brand' stores its “Other (please
+specify)” text under"), the arm an **Assign to a condition** writes, a
+codebook variable a custom script writes, or a name starting with `__`.
+Studio translates a script's `answers["<id>"]` to the question's variable, so
+a script meaning the other thing would reach the question instead. Change
+the question's **Advanced → Id**, then Save. The **Id** field and
+**Validation → Structure** say which name it is before you save.
+→ [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)
+
+**"…the codebook still declares a variable "q2" that no question collects and nothing writes…" in Validation → Structure.**
+An earlier version of the Builder left the old codebook entry behind when
+you renamed the question's variable. The Id is fine: delete the entry in
+**Builder → Codebook**, where it is listed **unused**.
+
 **A branch rule never fires.**
 A rule with an empty condition never matches — it is not an "otherwise".
 **+ Rule** no longer adds a rule until its condition is complete (**Add
@@ -131,6 +149,14 @@ never fires") and in **Validation → Structure**. Give it a condition, or use
 it is checked before the page's branch rules, so for anyone who answers that
 question no rule fires.
 → [[Logic and Branching|Studio-Logic-and-Branching]]
+
+**Respondents cannot get past a Matrix: "Please answer every row."**
+**Required** on a Matrix asks for an answer in every row; a row answered
+"Not applicable" counts. **Next** marks the rows still empty. If only some
+rows matter, turn **Required** off, or turn on **Offer “N/A”** so that
+respondents can answer the rest with it. A survey published before this rule
+lets respondents on after one row until you republish it.
+→ [Matrix](Studio-Question-Types#matrix)
 
 **Skip to jumps for every answer, not just one.**
 That is how **Skip to** works (its hint: "on Next, after any answer to this
@@ -260,8 +286,11 @@ runtime it was built with, so until then it lacks, among other things:
 quota cells that stop respondents, the closed / paused / full notice as the
 page opens, **One per browser**, partial responses and the drop-off funnel,
 the page Body above the questions, "About N minutes", the completion
-**Title**, the newer Wording fields, auto-height in the script embed, and
-option shuffles that keep "None of the above" in place. Responses it already
+**Title**, the newer Wording fields, auto-height in the script embed,
+option shuffles that keep "None of the above" in place, a required Matrix
+that asks for every row, answering a Matrix row by row from the keyboard,
+and answers that say they are keyed by variable name, so Studio stores them
+exactly as sent. Responses it already
 collected need nothing: Data, exports and flows read them in today's layout.
 The one exception is a quota cell on a Matrix row or on a per-choice variable
 of a wide Multiple choice: it counts only responses collected after the

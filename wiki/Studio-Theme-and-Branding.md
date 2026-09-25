@@ -22,7 +22,7 @@ question you are answering:
 | **Appearance** | "How the questionnaire looks to respondents." | colors, typography, question style, progress, section labels |
 | **Branding** | "Whose study this is, and what carries its name." | logo, institution, subtitle |
 | **Respondent experience** | "What a respondent can see, do and read." | light/dark, navigation, survey information, completion screen |
-| **Wording** | "Every fixed phrase the runtime shows." | the 68 runtime texts |
+| **Wording** | "Every fixed phrase the runtime shows." | the 69 runtime texts |
 | **Advanced** | "Rarely needed, and nothing here is checked for you." | measurements, typefaces, custom CSS |
 
 - The number beside a section in the index is how many settings **this
@@ -296,7 +296,7 @@ are filled in by the survey, and {link} is the link that follows."
 - **Search wording…** searches labels, defaults and your own texts.
 - Filter chips: **All**, **Buttons**, **Answering**, **Saving**, **Ending**,
   **Failures**, **Closed**, **Around**, **Access**.
-- "N of 68 replaced" counts your replacements. **Reset all** asks "Reset every
+- "N of 69 replaced" counts your replacements. **Reset all** asks "Reset every
   runtime text?" ("This drops the N phrase(s) this study replaces and puts the
   runtime's own wording back. Nothing is saved until you press Save.").
 - A replaced field shows "default: …" under it and a **×** (tooltip "Back to
@@ -316,6 +316,7 @@ With no field set, every text reads exactly as the defaults below.
 | | **Progress: “of”** | `of` |
 | | **Estimated time** | `About {minutes} minutes` |
 | Answering | **Unanswered required question** | `This question requires an answer.` |
+| | **Required matrix: rows left** | `Please answer every row.` |
 | | **Dropdown placeholder** | `— Select —` |
 | | **Dropdown search** | `Type to search…` |
 | | **Dropdown search: nothing found** | `No options found` |
@@ -384,6 +385,11 @@ Where some of them appear:
   counter under a multiple-choice question with **Max answers**. The "of" is
   also used in the screen-reader names of star ratings and MaxDiff and
   conjoint tasks.
+- **Required matrix: rows left**: under a required Matrix answered in some
+  rows but not all, when **Next** is pressed; `{n}` is the number of rows
+  left (for example "Rows left to answer: {n}"). A required Matrix with no row
+  answered shows **Unanswered required question**. See
+  [Matrix](Studio-Question-Types#matrix).
 - **Too few choices**: under a multiple-choice question with **Min answers**,
   as a hint and as the error when **Next** is pressed with too few choices.
   **Number below its minimum** / **above its maximum**: under a number
