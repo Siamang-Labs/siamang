@@ -388,8 +388,9 @@ fa.loadings, fa.variance, fa.correlations, fa.stats, fa.data  # data has factor_
 
 Each returns a `PairedResult`: `table` (per variable N, mean, SD, median — and
 for Wilcoxon the difference, for Friedman the mean rank; McNemar's is the 2 × 2
-table of yes and no), `pairs` (Friedman's pairwise comparisons: A, B, N, W+,
-W−, Z, p, p adjusted, r, rank-biserial r), `stats` and `test` (the unrounded
+table of yes and no), `pairs` (Friedman's pairwise comparisons: A, B, N — every
+respondent compared, as in the footer — Zero differences, W+, W−, Z, p, p
+adjusted, r, rank-biserial r), `stats` and `test` (the unrounded
 numbers).
 
 - **Wilcoxon.** Differences are first minus second (`x − y`, as R's `wilcox.test(x, y, paired = TRUE)`, SciPy's `wilcoxon(x, y)` and the paired t-test; Friedman's pairs are A − B). `zeros="wilcox"` drops a

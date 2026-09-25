@@ -639,7 +639,10 @@ def _pairwise(
             {
                 "Variable A": label_of(data, first),
                 "Variable B": label_of(data, second),
-                "N": result.ranked,
+                # N is everyone compared, as in the footer and the two-variable
+                # table; the pairs that answered the same are counted beside it.
+                "N": result.n,
+                "Zero differences": result.zeros,
                 "W+": result.w_plus,
                 "W-": result.w_minus,
                 "Z": rounded(result.z, 3),
@@ -722,6 +725,7 @@ def _no_pairs(data: SurveyData, why: str) -> ResultTable:
         "Variable A",
         "Variable B",
         "N",
+        "Zero differences",
         "W+",
         "W-",
         "Z",

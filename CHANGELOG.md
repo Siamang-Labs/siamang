@@ -245,7 +245,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chi-square with continuity correction above; both discordant counts, the two
   shares, Cohen's g and the odds ratio), and **Friedman** for three or more
   (tie-corrected chi-square, Kendall's W, and pairwise Wilcoxon tests adjusted
-  by Holm or Bonferroni in a `pairs` output). `auto` runs Wilcoxon for two
+  by Holm or Bonferroni in a `pairs` output, whose N is every respondent
+  compared, with the zero differences of each pair beside it). `auto` runs Wilcoxon for two
   variables and Friedman for more. A respondent missing any of the variables
   is left out of all of them, the codebook's missing codes count as missing,
   and the statistics say how many were excluded and which codes were met.
