@@ -569,8 +569,12 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
       const nav = navRef.current;
       if (!nav) return;
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+      // A button's or a link's Enter and Space are its own: a matrix cell or a
+      // rating point is chosen, Previous goes back, the dropdown opens, the
+      // skip link skips — and the Next button goes on by itself.
+      const control = e.target.closest ? e.target.closest("button, a[href]") : null;
 
-      if (e.key === "Enter" || e.key === " ") {
+      if ((e.key === "Enter" || e.key === " ") && !control) {
         e.preventDefault();
         if (nav.onNext) nav.onNext();
       }

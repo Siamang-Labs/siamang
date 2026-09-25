@@ -154,6 +154,13 @@ Both `survey.deploy(...)` and `siamang preview` use the React runtime by
 default; `SurveyJSRuntime` is only the default when you construct a
 `FrontendBuilder` yourself.
 
+From the keyboard, Enter or Space goes to the next page (or submits on the last)
+wherever the focus is not in a text field, on a button or on a link; on a button or a
+link the key is its own — a matrix cell or a rating point is chosen, Previous goes
+back, the dropdown opens. Esc goes back when going back is allowed, and the digits
+1–9 pick that point on the page's first rating scale that has it. A matrix is a grid
+the arrow keys move through (see [[Question Types|Question-Types]]).
+
 Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`,
 `stylesheet`, `static_assets`) — see
 [`docs/reference/frontend.md`](https://github.com/hanelias/siamang/blob/main/docs/reference/frontend.md).
