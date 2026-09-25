@@ -23,7 +23,7 @@ params:
     - nominal
     - ordinal
     label: By group
-    help: Optional. One row per variable and group; a blank or a missing code of the group variable is no group.
+    help: Optional. One row per variable and group; a blank or a missing code of the group variable is no group. A multiple-choice question gives one group per option, and they overlap.
   detail:
     kind: bool
     default: false

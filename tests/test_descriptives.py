@@ -258,3 +258,38 @@ def test_what_cannot_be_described_is_refused_with_a_reason():
         describe(frame, ["nope"])
     with pytest.raises(ValueError, match="at least one"):
         describe(frame, [])
+
+
+def test_a_multiple_choice_group_gives_one_overlapping_group_per_option():
+    """Grouped by a question with several answers, each option is a group of
+    everyone who chose it — as Group means does — and the stats say that the
+    groups overlap. It raised "unhashable type: 'list'" before."""
+
+    variables = VariableMap()
+    variables.add(
+        Variable(
+            "aware",
+            "nominal",
+            label="Aware of",
+            labels={1: "Acme", 2: "Globex", 99: "Don't know"},
+            missing_values=(99,),
+        )
+    )
+    frame = pd.DataFrame(
+        {
+            "x": [10.0, 20.0, 30.0, 40.0, 50.0],
+            "aware": [[1], [1, 2], [2], [99], []],
+        }
+    )
+    result = describe(frame, ["x"], variables=variables, by="aware")
+    table = result.table
+    assert list(table["Aware of"]) == ["Acme", "Globex"]  # the missing code is no group
+    # Acme: 10 and 20; Globex: 20 and 30 — the respondent who chose both is in both.
+    assert (_row(table, "x", **{"Aware of": "Acme"})["Mean"]) == 15.0
+    assert (_row(table, "x", **{"Aware of": "Globex"})["Mean"]) == 25.0
+    assert list(table["N"]) == [2, 2]
+    # Three respondents are in a group; the Don't know and the empty answer are not.
+    assert result.stats["Not in a group"] == 2
+    assert result.stats["Groups"].startswith("overlap: Aware of allows several answers")
+    data = SurveyData(frame=frame, variables=variables)
+    assert data.report.descriptives(["x"], by="aware").to_frame().equals(table)

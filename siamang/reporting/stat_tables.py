@@ -342,6 +342,8 @@ class TTestTable(_BlankUndefined, SurveyTable):
             columns = [self.column, self.other]
         else:
             columns = [self.column]
+        grouping = self.by if self.kind == "independent" else None
+        _single_answers(self.data, columns, grouping=grouping)
         source, left_out = inference.without_missing_codes(
             self.data.frame, columns, self.data.variables
         )
@@ -478,6 +480,29 @@ class TTestTable(_BlankUndefined, SurveyTable):
         if result.hedges_g is not None:
             stats["Hedges' g"] = round(result.hedges_g, 3)
         return stats
+
+
+def _single_answers(data: SurveyData, columns: list[str], *, grouping: str | None) -> None:
+    """Refuse a multiple-choice column: a list of codes has no mean, and groups
+    a respondent can be in twice are not the separate groups a t-test needs."""
+
+    from siamang.data import multi
+
+    for column in columns:
+        if column not in data.frame.columns or not multi.is_multi(data.frame[column]):
+            continue
+        label = _get_label(data, column)
+        named = f"{label} ({column!r})" if label != column else repr(column)
+        if column == grouping:
+            raise ValueError(
+                f"{named} holds several answers per respondent, so its groups overlap and a "
+                "t-test, which compares two separate groups, cannot use them. Run Explode "
+                "multiple choice and compare by one option's 0/1 column (chose it or not)."
+            )
+        raise ValueError(
+            f"{named} holds several answers per respondent (a list of codes), which have no "
+            "mean. Run Explode multiple choice and test one option's 0/1 column."
+        )
 
 
 def _order(code: Any) -> tuple[int, Any]:

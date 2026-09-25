@@ -82,7 +82,9 @@ def describe(
     """N, missing, mean, SD, median, minimum and maximum of each of ``columns``.
 
     ``by`` splits every variable by the groups of another (labelled from the
-    codebook, in its order; its own missing codes are no group). ``detail``
+    codebook, in its order; its own missing codes are no group). A
+    multiple-choice ``by`` gives one group per option, of everyone who chose
+    it: the groups overlap, and the stats say so. ``detail``
     adds Q1 and Q3 (NumPy's default linear interpolation, R's type 7 — the
     weighted ones by :func:`weighted_quantile`), skewness and excess kurtosis
     (the bias-corrected G1 and G2 SPSS and Excel report). ``weight`` names a
@@ -143,9 +145,14 @@ def describe(
     stats: dict[str, Any] = {"Variables": len(names), "Rows": int(len(frame))}
     if by:
         stats["By"] = _label(variables, by)
-        grouped = sum(len(index) for _v, _l, index in groups)
+        grouped = len(set().union(*(index for _v, _l, index in groups)))
         if grouped < len(frame):
             stats["Not in a group"] = int(len(frame) - grouped)
+        if multi.is_multi(frame[by]):
+            stats["Groups"] = (
+                f"overlap: {_label(variables, by)} allows several answers, so a respondent "
+                "is in the group of every option they chose"
+            )
     if set_aside:
         stats["Missing codes"] = "; ".join(
             f"{name}: {', '.join(codes)}" for name, codes in set_aside.items()
@@ -216,24 +223,27 @@ def _groups(
     """``(value, label, rows)`` per group, codebook order first, then the rest.
 
     A blank and a declared missing code of ``by`` are no group: a mean for
-    "Don't know which region" is not a regional mean.
+    "Don't know which region" is not a regional mean. A multiple-choice ``by``
+    has a group per option chosen, and they overlap.
     """
+
+    from siamang.data import multi
 
     series = frame[by]
     variable = _variable(variables, by)
     missing = set(variable.missing_values) if variable is not None else set()
     labels = dict(variable.labels) if variable is not None else {}
-    present = [value for value in series.dropna().unique().tolist() if value not in missing]
+    listed = multi.is_multi(series)
+    found = multi.codes_in(series) if listed else series.dropna().unique().tolist()
+    present = [value for value in found if value not in missing]
     ordered = [value for value in labels if value in present]
     ordered += [value for value in sorted(present, key=str) if value not in ordered]
-    return [
-        (
-            value,
-            str(labels.get(value, _display(value))),
-            series.index[series.eq(value).fillna(False).to_numpy(dtype=bool)],
-        )
-        for value in ordered
-    ]
+
+    def rows(value: Any) -> pd.Index:
+        chose = multi.reach(series, value) if listed else series.eq(value)
+        return series.index[chose.fillna(False).to_numpy(dtype=bool)]
+
+    return [(value, str(labels.get(value, _display(value))), rows(value)) for value in ordered]
 
 
 def _summary(

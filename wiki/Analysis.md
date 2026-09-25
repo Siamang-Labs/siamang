@@ -216,7 +216,8 @@ data.report.ttest(column, *, kind="independent", by=None, groups=None,
 - `kind="independent"` compares `column` between two groups of `by`. When `by`
   has more than two values, `groups=[a, b]` names the two (as codes); without it
   the call is refused with the groups listed, and so is the same group twice
-  (`Group A and Group B are both 1 = Male; …`). `variances="welch"` (the default)
+  (`Group A and Group B are both 1 = Male; …`) and a multiple-choice `by`, whose
+  groups overlap (explode it and compare by one option's 0/1 column). `variances="welch"` (the default)
   does not assume the groups vary equally; `"student"` pools the variances.
 - `kind="paired"` compares `column` with `other` on the same respondents, over
   the complete pairs; the footer counts the incomplete ones left out.
@@ -558,7 +559,9 @@ data.report.descriptives(["autonomy"], by="it_role", detail=True).to_frame()
 - **A missing code is not an answer.** A code the codebook declares missing (a
   99 "Don't know") counts in `Missing`, as does a value that is not a number;
   `stats` names them (`Missing codes`, `Not numbers`). With `by`, a blank or a
-  missing code of the group variable is no group (`Not in a group`).
+  missing code of the group variable is no group (`Not in a group`). A
+  multiple-choice `by` gives one group per option, of everyone who chose it; a
+  respondent who chose two is in both, and `Groups` says the groups overlap.
 - **Weighted data:** `Mean`, `SD`, `Median` and the quartiles are weighted —
   the same formulas as the `GroupMeanTable` (the SD scaled by n / (n − 1), the
   median the first value whose cumulative weight reaches half), so the two never
