@@ -35,6 +35,35 @@ class NotTestable(ValueError):
     """The data cannot carry the test; the message says why, for the reader."""
 
 
+#: Values whose range is at most this share of their size differ by
+#: floating-point rounding alone. Three answers of 1.4 have a variance of 7e-32,
+#: not 0 (their mean is 1.4000000000000001), and 1.1 − 1.0 and 4.1 − 4.0 differ
+#: by 4e-16; read as spread, that noise gave t-values of 10^15.
+SPREAD_TOLERANCE = 1e-12
+
+
+def no_spread(values: Any, *, scale: float | None = None) -> bool:
+    """Whether ``values`` are all the same but for floating-point rounding.
+
+    They are when their range is at most :data:`SPREAD_TOLERANCE` times
+    ``scale`` — by default the largest of them in absolute value. For
+    differences, pass the size of the numbers they were taken from: the
+    rounding of 4.1 − 4.0 is a share of 4.1, not of 0.1.
+    """
+
+    array = np.asarray(values, dtype=float)
+    if array.size == 0:
+        return True
+    size = float(np.abs(array).max()) if scale is None else float(scale)
+    return float(np.ptp(array)) <= SPREAD_TOLERANCE * size
+
+
+def _variance(values: np.ndarray) -> float:
+    """The sample variance (n − 1): exactly 0 for values with no spread."""
+
+    return 0.0 if no_spread(values) else float(values.var(ddof=1))
+
+
 # ─── multiple comparisons ────────────────────────────────────────────────────
 
 ADJUSTMENTS = ("none", "holm", "bonferroni", "fdr_bh")
@@ -184,7 +213,7 @@ def correlate(
     n = int(len(xs))
     if n < 3:
         raise NotTestable(f"a correlation needs at least three complete pairs; there are {n}")
-    if np.ptp(xs) == 0 or np.ptp(ys) == 0:
+    if no_spread(xs) or no_spread(ys):
         raise NotTestable(
             "a variable has the same value for everyone, so it correlates with nothing"
         )
@@ -210,11 +239,12 @@ def correlate(
         total = float(w.sum())
         if total <= 0:
             raise NotTestable("the weights of the complete pairs sum to zero")
+        weighed = w > 0
+        if no_spread(xs[weighed]) or no_spread(ys[weighed]):
+            raise NotTestable("a variable has the same value for all the weight")
         share = w / total
         dx, dy = xs - share @ xs, ys - share @ ys
         sxx, syy = float(share @ (dx * dx)), float(share @ (dy * dy))
-        if sxx <= 0 or syy <= 0:
-            raise NotTestable("a variable has the same value for all the weight")
         r = float(np.clip(share @ (dx * dy) / math.sqrt(sxx * syy), -1.0, 1.0))
         base = total**2 / float((w * w).sum())
         p_value = _p_of_r(r, base)
@@ -450,7 +480,7 @@ def ttest_independent(
                 f"a t-test needs at least two values in each group; {name} has {len(values)}"
             )
     n1, n2 = len(a), len(b)
-    v1, v2 = float(a.var(ddof=1)), float(b.var(ddof=1))
+    v1, v2 = _variance(a), _variance(b)
     difference = float(a.mean() - b.mean())
     pooled = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2)
     if equal_var:
@@ -484,12 +514,13 @@ def ttest_paired(x: Any, y: Any, *, confidence: float = 0.95) -> TTest:
     n = len(diff)
     if n < 2:
         raise NotTestable(f"a paired t-test needs at least two complete pairs; there are {n}")
-    sd = float(diff.std(ddof=1))
-    if sd <= 0:
+    size = float(max(np.abs(xs[keep]).max(), np.abs(ys[keep]).max()))
+    if no_spread(diff, scale=size):
         raise NotTestable(
             "every respondent's two answers differ by the same amount, so there is no spread "
             "to test the difference against"
         )
+    sd = float(diff.std(ddof=1))
     difference = float(diff.mean())
     return _t_result(
         "paired", "Paired t-test", difference, sd / math.sqrt(n), n - 1, confidence, difference / sd
@@ -504,9 +535,9 @@ def ttest_one_sample(x: Any, mu: float = 0.0, *, confidence: float = 0.95) -> TT
     n = len(xs)
     if n < 2:
         raise NotTestable(f"a one-sample t-test needs at least two values; there are {n}")
-    sd = float(xs.std(ddof=1))
-    if sd <= 0:
+    if no_spread(xs):
         raise NotTestable("every value is the same, so there is no spread to test the mean against")
+    sd = float(xs.std(ddof=1))
     difference = float(xs.mean() - mu)
     return _t_result(
         "one_sample",
@@ -553,7 +584,7 @@ def anova(samples: Sequence[Any]) -> GroupTest:
         raise NotTestable("an ANOVA needs more respondents than groups")
     grand = np.concatenate(groups).mean()
     between = float(sum(len(g) * (g.mean() - grand) ** 2 for g in groups))
-    within = float(sum(((g - g.mean()) ** 2).sum() for g in groups))
+    within = float(sum((len(g) - 1) * _variance(g) for g in groups if len(g) > 1))
     if within <= 0:
         raise NotTestable("no group varies, so there is no spread to test the means against")
     from scipy.stats import f as f_dist
@@ -587,7 +618,7 @@ def welch_anova(samples: Sequence[Any], names: Sequence[str] | None = None) -> G
             raise NotTestable(
                 f"Welch's ANOVA needs at least two values in every group; {name} has {len(values)}"
             )
-        if float(values.var(ddof=1)) <= 0:
+        if no_spread(values):
             raise NotTestable(
                 f"Welch's ANOVA weighs each group by its variance, and every value in {name} "
                 "is the same"
@@ -780,7 +811,7 @@ def _tukey(
     df = total - k
     if df < 1:
         raise NotTestable("Tukey's HSD needs more respondents than groups")
-    mse = sum(float(((g - g.mean()) ** 2).sum()) for g in groups) / df
+    mse = sum((len(g) - 1) * _variance(g) for g in groups if len(g) > 1) / df
     if mse <= 0:
         raise NotTestable("no group varies, so there is no spread to compare the means against")
     critical = float(studentized_range.ppf(confidence, k, df))
@@ -812,7 +843,7 @@ def _games_howell(
             notes.append(f"{names[i]} vs {names[j]}: {small} has one value")
             rows.append([names[i], names[j], difference] + [np.nan] * 6)
             continue
-        s1, s2 = float(a.var(ddof=1)) / len(a), float(b.var(ddof=1)) / len(b)
+        s1, s2 = _variance(a) / len(a), _variance(b) / len(b)
         if s1 + s2 <= 0:
             notes.append(f"{names[i]} vs {names[j]}: neither group varies")
             rows.append([names[i], names[j], difference] + [np.nan] * 6)
@@ -1000,6 +1031,7 @@ __all__ = [
     "POSTHOCS",
     "POSTHOC_FOLLOWS",
     "POSTHOC_NAMES",
+    "SPREAD_TOLERANCE",
     "CorrelationMatrix",
     "GroupTest",
     "NotTestable",
@@ -1013,6 +1045,7 @@ __all__ = [
     "kruskal",
     "mannwhitney",
     "missing_codes_note",
+    "no_spread",
     "posthoc",
     "ttest_independent",
     "ttest_one_sample",

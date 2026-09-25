@@ -80,6 +80,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.inference import no_spread
 from siamang.data.listwise import (
     distinct,
     label_of,
@@ -412,7 +413,7 @@ def fit(
     if np.isnan(x).any():
         raise ValueError("fit() takes complete rows; drop the missing values first.")
     sds = x.std(axis=0, ddof=1)
-    flat = [names[i] for i in range(p) if not sds[i] > 0]
+    flat = [names[i] for i in range(p) if no_spread(x[:, i])]
     if flat:
         raise ValueError(
             f"{', '.join(flat)} {'has' if len(flat) == 1 else 'have'} the same answer "
