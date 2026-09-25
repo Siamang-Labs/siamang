@@ -10,7 +10,8 @@ Every text format writes that same ``1;3`` — CSV, Excel, SPSS and Stata — so
 the answers do not depend on which download button was pressed, and
 ``list_frame`` reads them back where the questionnaire says the column holds
 several answers. Parquet is the exception and keeps the real list, because the
-format can.
+format can (pandas reads it back as an array, which ``read_snapshot`` turns
+into the list again).
 """
 
 from __future__ import annotations
@@ -62,7 +63,8 @@ def list_frame(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
     """The inverse of :func:`scalar_frame` for columns known to hold lists.
 
     Only the named columns are touched, and only where a text format left a
-    string: a frame read from Parquet already holds lists and passes through.
+    string: a frame read from Parquet holds lists (``read_snapshot`` turns the
+    arrays pandas reads back into them) and passes through.
 
     An empty cell comes back as missing rather than as an empty list. The two
     are the same answer — "did not answer" — and no text format keeps them

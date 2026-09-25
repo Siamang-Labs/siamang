@@ -235,3 +235,22 @@ def test_lists_are_only_restored_where_the_questionnaire_says_so(tmp_path):
     path = write_snapshot(SurveyData(frame=frame), tmp_path / "t.csv", dictionary=False)
     back = read_snapshot(path, questionnaire=survey).frame
     assert back["comment"].tolist() == ["fast; cheap", "ok"]
+
+
+@pytest.mark.skipif(not HAS_PARQUET, reason="pyarrow")
+def test_a_parquet_snapshot_gives_back_lists_that_explode(tmp_path):
+    """pandas reads a Parquet list back as a numpy array, which no multiple-choice
+    helper takes for a list: a generated script run with --data …parquet failed
+    at Explode ("the truth value of an array … is ambiguous"). The lists come
+    back as lists, with or without a questionnaire."""
+    from siamang.data import multi
+
+    frame = pd.DataFrame({"aware": [[1, 3], [2], None, []], "x": [1, 2, 3, 4]})
+    path = write_snapshot(SurveyData(frame=frame), tmp_path / "r.parquet", dictionary=False)
+    back = read_snapshot(path)
+    cells = back.frame["aware"].tolist()
+    assert cells[0] == [1, 3] and isinstance(cells[0], list) and cells[1] == [2]
+    assert cells[2] is None and cells[3] == []
+    assert multi.is_multi(back.frame["aware"])
+    exploded = back.explode_multi("aware").frame
+    assert exploded["aware_1"].tolist()[:2] == [1, 0] and exploded["aware_3"].tolist()[0] == 1

@@ -403,6 +403,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   index; the data keeps its own), and the scores are placed by position
   (`Listwise.mask`).
 
+- **A Parquet snapshot gives back its multiple-choice lists.** pandas reads a
+  list stored in Parquet as a numpy array, and `read_snapshot` passed it on as
+  one, so `multi.is_multi` was false and a generated script run with `--data
+  …parquet` failed at Explode ("the truth value of an array … is ambiguous").
+  The arrays become the lists they were written as.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a
