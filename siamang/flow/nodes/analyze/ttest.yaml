@@ -75,10 +75,10 @@ checks:
 - when: kind=paired
   require: y2
   message: A paired t-test compares two measurements of the same respondents — choose the second in Second measurement.
-- when: group_a
+- when: kind=independent & group_a
   require: group_b
   message: Name both groups to compare in Group A and Group B, or neither when Groups has only two values.
-- when: group_b
+- when: kind=independent & group_b
   require: group_a
   message: Name both groups to compare in Group A and Group B, or neither when Groups has only two values.
 template:

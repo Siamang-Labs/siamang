@@ -53,6 +53,17 @@ returns errors and warnings with a code and the node concerned:
 | `UNREACHABLE_NODE` (warning) | not fed by any source |
 | `UNKNOWN_TILE_NODE`, `TILE_NOT_LIVE_TILE` | `live.tiles` |
 
+A parameter the node's code does not read with its current choices is not
+checked: `NodeSpec.reads(name, params)` is true when a template fragment that
+names the parameter (as `{name!r}` or in its `when`) holds for the node's
+choices — the `<param>=<value>` / `<param>!=<value>` terms of that `when` on an
+`enum` or `bool` parameter other than `name` — or when no fragment names it,
+or when it is required. So a paired t-test that still holds a Group A, or a
+Groups naming a variable that has since gone, is no error: the run ignores
+them. An error rule of `checks` that names such a parameter is skipped for the
+same reason; a warning rule is still given, since saying that a value is
+ignored is what one is for.
+
 `resolve_flow` raises `FlowError` on the first error and returns a
 `FlowGraph` (nodes, specs, edges, `order`, `inputs`, `params(node)`).
 
@@ -238,7 +249,10 @@ preview: table
   template may be a list of fragments, each a string or `{when: <condition>,
   code}`. A condition is `<param>` (set: not empty, not false; a code of 0 is
   set), `<param>=<value>` or `<param>!=<value>`, several joined by `&` when all
-  must hold. A parameter stored as null, `""`, `[]` or `{}` is not set: the
+  must hold. The fragments are joined line by line, so one may continue a call
+  another opened — Paired tests pass `yes` only for McNemar and Factor analysis
+  `into` only with `scores` — and a parameter is written only where it is read
+  (`NodeSpec.reads`). A parameter stored as null, `""`, `[]` or `{}` is not set: the
   check, the conditions, the rendered code and the subtitle all read its default
   (`FlowGraph.params`, `document.resolved_params`), so a cleared field can
   neither pass the check and then choose no fragment, nor mean something the

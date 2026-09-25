@@ -341,6 +341,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A value a node does not read is not checked.** The t-test's rules "Name
+  both groups to compare in Group A and Group B…" had no design condition, and
+  the variable checks ran on every parameter: a paired or one-sample t-test
+  that still held a Group A, or a Groups naming a variable that had since gone,
+  was an error-state flow that could not run, though the run ignores those
+  values. `check_flow` now checks a parameter only when the node's code reads
+  it with its current choices (`NodeSpec.reads`: a template fragment naming it
+  holds for the node's enum and bool choices), and skips an error rule that
+  names one it does not read; warnings about ignored values stay. The t-test's
+  two rules are scoped to `kind=independent`. The templates write a parameter
+  only where it is read, so a builder can tell which fields matter: Group
+  means passes `adjust` only with Dunn's test, Paired tests pass `yes` only to
+  McNemar, `zeros` to the ranked tests and `posthoc` to Friedman (and `auto`),
+  and Factor analysis passes `into` only with `scores` and `seed` only to
+  parallel analysis. A template fragment may continue a call another opened,
+  and the template renders only the parameters its fragments name.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a

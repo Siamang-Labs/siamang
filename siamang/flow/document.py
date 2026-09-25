@@ -27,7 +27,13 @@ from functools import cache
 from importlib import resources
 from typing import Any
 
-from siamang.flow.registry import NodeSpec, ParamSpec, Registry, default_registry
+from siamang.flow.registry import (
+    NodeSpec,
+    ParamSpec,
+    Registry,
+    condition_params,
+    default_registry,
+)
 
 FLOW_SCHEMA_VERSION = "1.0"
 _NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -553,7 +559,14 @@ def _check_params(
                     "error", "UNKNOWN_PARAM", f"{spec.type} has no parameter {name!r}.", node_id
                 )
             )
+    resolved = resolved_params(spec, params)
     for name, param in spec.params.items():
+        if not spec.reads(name, resolved):
+            # A value the node's code does not read with these choices (a Group A
+            # kept after Design went paired) changes nothing, so it is not
+            # checked: the run ignores it, and a builder that hides the field
+            # would otherwise report an error in a field nobody can see.
+            continue
         value = params.get(name, param.default)
         # An empty mapping means "not set", exactly as an empty list does. Without
         # {} here an optional `mapping` param could never be left alone: its empty
@@ -664,13 +677,27 @@ def resolved_params(spec: NodeSpec, given: dict[str, Any]) -> dict[str, Any]:
 
 def _check_rules(node_id: str, spec: NodeSpec, given: dict[str, Any]) -> list[FlowIssue]:
     """The spec's ``checks``: parameters that do not go together (a post-hoc
-    test that does not follow the test chosen), or one the node would ignore."""
+    test that does not follow the test chosen), or one the node would ignore.
+
+    An error rule about a parameter the code does not read with these choices
+    is not checked, as :func:`_check_params` does not check its value: it
+    would stop a run over a value the run ignores. A warning is still given —
+    saying that a value is ignored is what a warning rule is for.
+    """
 
     params = resolved_params(spec, given)
     return [
         FlowIssue(check.severity, "PARAM_CONFLICT", f"{node_id}: {check.message}", node_id)
         for check in spec.checks
         if check.violated(params)
+        and (
+            check.severity != "error"
+            or all(
+                spec.reads(name, params)
+                for condition in (check.when, *check.require)
+                for name in condition_params(condition)
+            )
+        )
     ]
 
 

@@ -34,8 +34,10 @@ def render_node(graph: FlowGraph, node_id: str) -> str:
     params = graph.params(node_id)
     outputs = output_names(node_id, spec)
     inputs = _input_names(graph, node_id)
-    values = {name: _render_param(spec, name, params[name], graph, node_id) for name in spec.params}
-    values["node"] = repr(node_id)
+    # Rendered as the fragments name them: a parameter the code does not read
+    # with these choices is not checked (``NodeSpec.reads``), so its value may
+    # be anything and must not be rendered.
+    values: dict[str, str] = {"node": repr(node_id)}
 
     def substitute(match: re.Match[str]) -> str:
         kind, port, param = match.group(1), match.group(2), match.group(3)
@@ -48,7 +50,9 @@ def render_node(graph: FlowGraph, node_id: str) -> str:
                 raise FlowError(f"{spec.type}: template names unknown output {port!r}.")
             return outputs[port]
         if param not in values:
-            raise FlowError(f"{spec.type}: template names unknown parameter {param!r}.")
+            if param not in spec.params:
+                raise FlowError(f"{spec.type}: template names unknown parameter {param!r}.")
+            values[param] = _render_param(spec, param, params[param], graph, node_id)
         return values[param]
 
     lines: list[str] = []

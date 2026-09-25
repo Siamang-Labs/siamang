@@ -4,6 +4,7 @@ and the checks that keep a post-hoc test after the test it follows."""
 
 from __future__ import annotations
 
+import itertools
 import json
 import subprocess
 from pathlib import Path
@@ -13,7 +14,7 @@ import pytest
 
 from siamang.data import SurveyData
 from siamang.flow import FlowError, FlowRunner, check_flow, default_registry, generate_flow
-from siamang.flow.document import resolve_flow
+from siamang.flow.document import resolve_flow, resolved_params
 from siamang.flow.registry import RegistryError, condition_holds, spec_from_dict
 from siamang.flow.template import render_node
 from siamang.model import from_document, loads
@@ -161,6 +162,177 @@ def test_a_post_hoc_test_must_follow_the_test_it_belongs_to(questionnaire_doc):
         resolve_flow(flow, questionnaire=questionnaire_doc)
 
 
+def _reads(node_type, name, params):
+    spec = default_registry().get(node_type)
+    return spec.reads(name, resolved_params(spec, params))
+
+
+def test_a_node_reads_a_parameter_only_under_the_choices_that_write_it():
+    # The t-test's designs: Groups and its codes for two groups of respondents,
+    # Second measurement for a paired one, Test value for one sample.
+    for name in ("group", "group_a", "group_b", "variances"):
+        assert _reads("analyze.ttest", name, {})  # independent is the default
+        assert not _reads("analyze.ttest", name, {"kind": "paired"})
+        assert not _reads("analyze.ttest", name, {"kind": "one_sample"})
+    assert _reads("analyze.ttest", "y2", {"kind": "paired"})
+    assert not _reads("analyze.ttest", "y2", {})
+    # Group B is read whether or not Group A is filled in: that is not a choice.
+    assert _reads("analyze.ttest", "group_b", {"group_a": None})
+    assert _reads("analyze.ttest", "y", {"kind": "paired"})  # required: always
+    # Dunn's adjustment only with Dunn; Tukey and Games-Howell allow for the pairs.
+    assert _reads("analyze.means", "adjust", {"method": "kruskal", "posthoc": "dunn"})
+    assert not _reads("analyze.means", "adjust", {"method": "anova", "posthoc": "tukey"})
+    assert not _reads("analyze.means", "adjust", {"method": "welch"})
+    assert not _reads("analyze.means", "adjust", {})
+    # Paired tests: each test is given what it reads.
+    assert _reads("analyze.paired", "yes_codes", {"test": "mcnemar"})
+    assert not _reads("analyze.paired", "yes_codes", {"test": "wilcoxon"})
+    assert not _reads("analyze.paired", "zeros", {"test": "mcnemar"})
+    for test in ("auto", "wilcoxon", "friedman"):
+        assert _reads("analyze.paired", "zeros", {"test": test})
+    assert _reads("analyze.paired", "posthoc", {"test": "friedman"})
+    assert _reads("analyze.paired", "posthoc", {})  # auto is Friedman for three or more
+    assert not _reads("analyze.paired", "posthoc", {"test": "mcnemar"})
+    assert not _reads("analyze.paired", "posthoc", {"test": "wilcoxon"})
+    for test in ("auto", "wilcoxon", "mcnemar", "friedman"):
+        assert _reads("analyze.paired", "p_value", {"test": test})
+    # Factor analysis: the score prefix with scores, the seed with parallel analysis.
+    assert _reads("analyze.factor", "into", {"scores": True})
+    assert not _reads("analyze.factor", "into", {})
+    assert _reads("analyze.factor", "seed", {"criterion": "parallel"})
+    assert not _reads("analyze.factor", "seed", {})
+    assert _reads("analyze.factor", "criterion", {"n_factors": 2})
+
+
+def _sentinel(param):
+    return {
+        "variable": "zz_other",
+        "variables": ["zz_other"],
+        "json": 12345,
+        "float": 0.123,
+        "int": 7,
+        "bool": not bool(param.default),
+        "string": "zz",
+        "path": "zz.csv",
+        "mapping": {"1": 2},
+    }.get(param.kind, "zz")
+
+
+def test_a_parameter_the_node_does_not_read_never_changes_its_code():
+    """What makes leaving a value unchecked safe: with the choices under which
+    the node does not read a parameter, no value of it changes the code."""
+    from siamang.flow.document import Edge, FlowGraph
+
+    registry = default_registry()
+    source = registry.get("source.simulated")
+    checked = 0
+    for spec in registry:
+        choices = sorted(
+            {
+                term.replace("!=", "=").split("=", 1)[0].strip()
+                for fragment in spec.template
+                if fragment.when
+                for term in fragment.when.split("&")
+                if "=" in term
+                and spec.params[term.replace("!=", "=").split("=", 1)[0].strip()].kind
+                in ("enum", "bool")
+            }
+        )
+        if not choices:
+            continue
+        values = [
+            list(spec.params[c].values) if spec.params[c].kind == "enum" else [True, False]
+            for c in choices
+        ]
+        required = {n: _sentinel(p) for n, p in spec.params.items() if p.required}
+
+        def render(params, spec=spec):
+            nodes = {
+                "src": {"id": "src", "type": "source.simulated"},
+                "n": {"id": "n", "type": spec.type, "params": params},
+            }
+            graph = FlowGraph(
+                document={"schema_version": "1.0", "name": "t", "nodes": list(nodes.values())},
+                registry=registry,
+                nodes=nodes,
+                specs={"src": source, "n": spec},
+                edges=[Edge("src", "data", "n", port) for port in spec.inputs],
+                order=["src", "n"],
+                inputs={"src": {}, "n": {port: [("src", "data")] for port in spec.inputs}},
+            )
+            return render_node(graph, "n")
+
+        for combination in itertools.product(*values):
+            base = {**required, **dict(zip(choices, combination, strict=True))}
+            resolved = resolved_params(spec, base)
+            for name, param in spec.params.items():
+                if name in choices or spec.reads(name, resolved):
+                    continue
+                assert render({**base, name: _sentinel(param)}) == render(base), (
+                    spec.type,
+                    name,
+                    combination,
+                )
+                checked += 1
+    assert checked > 40  # the t-test's designs, Dunn's adjustment, the paired tests, TURF…
+
+
+def test_a_value_the_node_does_not_read_is_not_checked(questionnaire_doc, survey, tmp_path):
+    """A paired t-test that still holds a Group A, or a Groups naming a variable
+    that has since gone, is not an error: the run ignores those values, and a
+    builder that hides the fields would report an error nobody can see."""
+
+    def errors(node_type, params):
+        found = _one(node_type, params, questionnaire_doc)[1]
+        return [(i.code, i.message) for i in found if i.severity == "error"]
+
+    paired = {"kind": "paired", "y": "trust_acme", "y2": "trust_globex"}
+    assert errors("analyze.ttest", {**paired, "group": "gender", "group_a": 1}) == []
+    assert errors("analyze.ttest", {**paired, "group": "age_band", "variances": "pooled"}) == []
+    assert errors("analyze.ttest", {"kind": "one_sample", "y": "satisfaction", "group_b": 2}) == []
+    # Read, they are checked as before.
+    assert errors("analyze.ttest", {"y": "age", "group": "age_band"}) == [
+        ("UNKNOWN_VARIABLE", "Parameter 'group' of n names unknown variable 'age_band'.")
+    ]
+    assert errors("analyze.ttest", {"y": "age", "group": "gender", "group_b": 2})[0][0] == (
+        "PARAM_CONFLICT"
+    )
+    assert errors("analyze.means", {"y": "age", "by": "region", "adjust": "sidak"}) == []
+    assert (
+        errors(
+            "analyze.means",
+            {"y": "age", "by": "region", "method": "kruskal", "posthoc": "dunn", "adjust": "sidak"},
+        )[0][0]
+        == "PARAM_INVALID"
+    )
+    # A warning that a value is ignored is still given: that is what it is for.
+    warnings = [
+        i.message
+        for i in _one(
+            "analyze.paired",
+            {"variables": ["trust_acme", "trust_globex"], "test": "wilcoxon", "yes_codes": 5},
+            questionnaire_doc,
+        )[1]
+    ]
+    assert warnings == [
+        "n: Counts as yes is read only by McNemar — set Test to mcnemar, or clear it."
+    ]
+    # And the flow runs, the stale values left out of the code.
+    flow = _flow(
+        [
+            ("src", "source.responses", {}),
+            ("n", "analyze.ttest", {**paired, "group": "age_band", "group_a": 1}),
+        ],
+        [("src", "data", "n", "data")],
+    )
+    code = generate_flow(flow, questionnaire=questionnaire_doc)
+    assert "age_band" not in code and 'kind="paired"' in code
+    result = FlowRunner(flow, questionnaire=survey).run(
+        sources={"src": survey.simulate(n=80, seed=3)}, cwd=tmp_path, raise_on_error=True
+    )
+    assert result.outputs["n"]["stat"]["Test"].startswith("Paired")
+
+
 # ─── existing documents ──────────────────────────────────────────────────────
 
 #: What each node's template rendered before it had a method to choose. A
@@ -260,7 +432,7 @@ def test_the_statistics_nodes_check_generate_and_run(questionnaire_doc, survey, 
     )
     assert lint.returncode == 0, lint.stdout
     assert 'n_pearson = n_apply.analysis.correlation("age", "trust_acme", method="pearson")' in code
-    assert 'method="anova", posthoc="tukey", adjust="holm"' in code
+    assert 'method="anova", posthoc="tukey")\n' in code  # Dunn's adjustment only with Dunn
 
     data = _responses(survey)
     result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(

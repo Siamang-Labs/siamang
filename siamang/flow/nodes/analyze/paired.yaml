@@ -61,7 +61,8 @@ checks:
   message: Counts as yes is read only by McNemar — set Test to mcnemar, or clear it.
 imports:
 - from siamang.data import paired
-template: |
+template:
+- |
   # Each respondent is compared with themselves, so the respondents who did not
   # answer every variable are left out of all of them (listwise), and the result
   # says how many. None of these tests has a weighted form: on weighted data
@@ -70,10 +71,25 @@ template: |
       {in.data},
       {variables!r},
       test={test!r},
-      yes={yes_codes!r},
-      zeros={zeros!r},
+# Each test is given only what it reads — McNemar its yes codes, the ranked
+# tests how to treat a zero difference, Friedman (and auto, which is Friedman
+# for three or more) its pairwise comparisons — so the inspector asks for
+# nothing the run ignores. The fragments continue the call above.
+- when: test=mcnemar
+  code: |2
+        yes={yes_codes!r},
+- when: test!=mcnemar
+  code: |2
+        zeros={zeros!r},
+- |2
       p_value={p_value!r},
-      posthoc={posthoc!r},
+- when: test=friedman
+  code: |2
+        posthoc={posthoc!r},
+- when: test=auto
+  code: |2
+        posthoc={posthoc!r},
+- |
   )
   {out.table} = _paired.table
   {out.pairs} = _paired.pairs
