@@ -639,6 +639,12 @@ def test_t_test_refuses_clearly_and_explains_degenerate_groups():
         data.report.ttest("sat", by="grp", groups=[1, 7]).to_frame()
     with pytest.raises(ValueError, match=r"9 \(Refused\) is a missing code of Group, not a group"):
         data.report.ttest("sat", by="grp", groups=[1, 9]).to_frame()
+    # The same group twice was a t of 0 on its respondents counted twice.
+    for same in ([1, 1], [1, "1"], [2.0, 2]):
+        with pytest.raises(ValueError, match="Group A and Group B are both"):
+            data.report.ttest("sat", by="grp", groups=same).to_frame()
+    with pytest.raises(ValueError, match="both 1 = North; a t-test compares two different"):
+        data.report.ttest("sat", by="grp", groups=[1, 1]).to_frame()
     # A group of the codebook without anyone in it is explained, not refused.
     lonely = data.with_frame(data.frame[data.frame["grp"] != 3])
     empty = lonely.report.ttest("sat", by="grp", groups=[1, 3]).stats
