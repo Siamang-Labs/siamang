@@ -203,6 +203,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arrow keys leave the focus on a chosen cell, and ↑ ↓ onto a row answered the
   same way changed nothing on screen. A chosen cell or pick in focus now shows
   both rings.
+- A `SingleChoice` shown as a dropdown could not be answered from the keyboard.
+  Enter on its button opened the list with the focus in the search box, and
+  there no key worked: the options took no focus, ↓ ↑ and Enter did nothing,
+  Esc was ignored and Tab left the list open — a required dropdown held a
+  respondent without a mouse for good. The search box is now a combobox over
+  the options: ↓ ↑ move along them (`aria-activedescendant`), Enter chooses
+  the one they are on and gives the focus back to the button, typing narrows
+  the list and puts the keys on its first match, and Esc or Tab away closes
+  it. On the button ↓ opens the list and Esc closes it.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's

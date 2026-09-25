@@ -1700,6 +1700,11 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   color: var(--siamang-accent);
   font-weight: 500;
 }
+/* The option the arrow keys are on. */
+.siamang-search-dropdown__option.is-active {
+  background: color-mix(in srgb, var(--siamang-accent) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--siamang-accent);
+}
 .siamang-search-dropdown__empty {
   padding: 20px 14px;
   text-align: center;

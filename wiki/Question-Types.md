@@ -92,6 +92,12 @@ class SingleChoice(Question):
 `var` must be a single `Variable`. When `choices` is omitted, the options come from
 `var.labels`.
 
+`"dropdown"` is a button that opens a searchable list. From the keyboard, Enter, Space
+or ↓ on the button opens it with the focus in the search box; typing narrows the list
+and puts the keys on its first match, ↓ and ↑ move along the options, Enter chooses the
+one they are on and gives the focus back to the button, and Esc or Tab away closes the
+list.
+
 ```python
 import siamang as sg
 
