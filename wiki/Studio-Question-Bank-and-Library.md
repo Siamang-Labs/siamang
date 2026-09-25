@@ -146,8 +146,11 @@ failed to load.
 
 Inserted questions and variables never overwrite what is already in the
 questionnaire. Ids, variables and codebook entries count as one set of names
-here: an inserted Id never equals a variable already in the questionnaire,
-and an inserted variable never equals a question's Id.
+here, together with the names the questionnaire stores something else under
+(a question's Other text, the arm of an **Assign to a condition**, a
+name a custom script writes): an inserted Id never equals a variable already
+in the questionnaire, and an inserted variable never equals a question's
+Id.
 
 - a question whose **Id and variable name are the same** — every
   single-answer question in the question bank — is renamed as one: both get

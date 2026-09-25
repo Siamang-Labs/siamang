@@ -31,8 +31,12 @@ names everywhere downstream.
 > exports and in flows, and the name conditions, piping and quotas use. The
 > question's **Id** may differ from it (a preset starts with Id `q5` and
 > variable `nps_5`), but no question's Id may be another question's variable
-> name. See
-> [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
+> name. An Id that differs from its variable also may not be a name the
+> survey stores something else under: a Matrix row or other variable of any
+> question, a question's `<variable>_other`, the variable an **Assign
+> to a condition** writes, or a codebook variable no question collects that a
+> custom script writes. See
+> [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take).
 
 ---
 
@@ -108,6 +112,18 @@ table:
 | **Values** | **N labels** (click to open the row), or the valid range as `18 … 99`, or the data type (click to open the row) |
 | **Used by** | the Id of each question that writes the variable (for `<variable>_other`, the question whose Other text it holds) — click to jump to it in **Structure** — or **unused** |
 | (last) | **Delete**, for a variable no question uses |
+
+An **unused** entry whose name is a question's Id is usually what an earlier
+version of the Builder left behind when it renamed that question's variable
+(`q2` renamed to `comment` kept `q2`). **Validation → Structure** lists it —
+"q2: the codebook still declares a variable "q2" that no question collects
+and nothing writes — delete it in the Codebook tab" — and **Delete** removes
+it. The question's Id can stay as it is. If a custom script writes that name
+(`answers.q2 = …`), nobody can tell whether the script means the question or
+the codebook variable, and the Id is flagged instead ("q2: the id is a
+codebook variable a custom script writes — …"): rename the Id if the script
+means the codebook variable, or delete the entry if it means the question
+(see [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)).
 
 Opening a row shows three more fields: **Value labels** (code and label rows,
 **+ Label**, and — for a variable a question writes — the hint "a code keeps

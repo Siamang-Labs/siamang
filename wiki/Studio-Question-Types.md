@@ -38,12 +38,12 @@ Presets: **Yes / No**, **Rating (stars)**, **NPS (0–10)**, **CES (1–7)**,
 |---|---|---|
 | **Question text** | Question | Shown as plain text: Markdown and HTML are not rendered. Piping works: `{answer:variable}` inserts an earlier answer, `{label:variable}` the chosen option's label (for an Other answer, the text the respondent typed). |
 | **Hint** | Question | Smaller text under the question ("optional guidance shown below the question"); piping works here too. |
-| **Required** | Question | The respondent cannot continue without answering: **Next** shows "This question requires an answer." Required questions show an asterisk to respondents. New questions start **optional**. |
+| **Required** | Question | The respondent cannot continue without answering: **Next** shows "This question requires an answer." A Matrix asks for an answer in **every row** (the checkbox's hint says "an answer in every row", or "an answer in every row — N/A counts" when the matrix offers N/A) — see [Matrix](#matrix); MaxDiff and Conjoint ask for every task. Required questions show an asterisk to respondents. New questions start **optional**. |
 | **Randomize option order** | Question | Shuffles the options per respondent. Single choice, Multiple choice and Ranking only. "None of the above", exclusive choices (such as "None of these") and a choice that is the question's Other keep their place; the other options are shuffled around them. The "Other" option Studio adds always comes last. |
 | **Attention check** | Question | Single choice, Likert scale, Number and Open text — see [Attention checks](#attention-checks). |
 | **Variable** | Variable | The codebook entry the question writes — [[Codebook and Variables\|Studio-Codebook-and-Variables]]. |
 | **Show if** / **Hide if** / **Skip to** | Logic | [[Logic and Branching\|Studio-Logic-and-Branching]]. |
-| **Id** | Advanced | The question's own handle ("names the question in scripts and comments; logic and data use the variable"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question — the field says "Another question already has this id." or "This is the variable … stores its answer under — the engine refuses an id that is another question’s variable." |
+| **Id** | Advanced | The question's own handle ("names the question in scripts and comments; logic and data use the variable"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question — the field says "Another question already has this id." or "This is the variable … stores its answer under — the engine refuses an id that is another question’s variable." An Id should not start with `__`, and one that differs from the question's variable may not be a name the survey stores something else under (a Matrix row, another question's Other text, an assigned arm): the field says why, for example "This is where brand stores the text typed into Other — scripts naming it would reach this question’s variable instead." See [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take). |
 | **Tags** | Advanced | Free labels, comma-separated, for your own organization of the instrument. |
 | **Media URL** | Advanced | An image, or a video if the link ends in `.mp4`/`.webm`, shown with the question ("a public https:// address; a file under Files has no public link"). Use a stable public URL (a download link from **Files** expires after 5 minutes). |
 
@@ -53,7 +53,8 @@ To respondents, questions are numbered `Q01`, `Q02`, …
 > **variable name**: that is its column in your data, and the name conditions,
 > piping and quotas use. The **Id** may differ from it — a preset starts with
 > Id `q5` and variable `nps_5` — as long as no question's Id is another
-> question's variable name. Details:
+> question's variable name or, for an Id that differs from its variable,
+> another name the survey stores something under. Details:
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ### The options editor
@@ -324,7 +325,13 @@ cannot have a format"); Max characters at least 1.
 A grid: statements down the side, one shared scale across the top.
 
 **The respondent sees** a table with one row per statement and one column per
-scale point (plus an N/A column if offered). Arrow keys move across a row.
+scale point (plus an N/A column if offered).
+
+**Keyboard.** One cell of the grid is in the tab order. `←` / `→` move along
+the row and answer it with the cell they reach, the N/A column included;
+`↑` / `↓` move to the same column in the row above or below without
+answering; `Space` or `Enter` chooses the focused cell; `Tab` leaves the
+grid. A required matrix can therefore be finished without a mouse.
 
 **Inspector → Options**
 
@@ -383,7 +390,29 @@ them: the question bank's *Trust in institutions*, headed `0` … `10`, stores
   column headers (possible from an import or the **Source** tab) keeps storing
   the text `na` when declaring a code would change which code its columns
   store; the Save then shows `NA_STORED_AS_TEXT`.
-- **Required** on a matrix is satisfied as soon as one row is answered.
+- **Required** on a matrix asks for an answer in **every row**; a row answered
+  N/A counts. The Inspector says so beside the checkbox: "an answer in every
+  row", or "an answer in every row — N/A counts" when **Offer “N/A”** is on.
+  A matrix has no conditions on its rows, so every row is one the respondent
+  sees. On **Next**:
+  - a required matrix with no row answered shows "This question requires an
+    answer.", as any required question does;
+  - one answered in some rows but not all shows "Please answer every row."
+    (**Theme → Wording → Required matrix: rows left**, where `{n}` is the
+    number of rows left);
+  - in both cases **Next** waits, and the rows still without an answer are
+    marked: the statement turns the error color with a bar on its left, and
+    the row's cells get error-colored outlines. Each mark goes when its row is
+    answered; the message goes with the next answer, as any question's does.
+
+  Leaving the matrix with no row answered shows "This question requires an
+  answer." at once; rows left empty wait for **Next**, since the respondent
+  is still working down the grid. A row a script cleared (set to empty) is
+  unanswered. In the Walkthrough, a matrix counts toward "A/V answered" only
+  once every row is answered.
+- **Skip to** on a matrix fires as soon as **any** row is answered — on an
+  optional matrix, one row is enough; a required one is held by **Next** until
+  every row is answered, and then skips.
 - Conditions and piping later in the survey can use a row's variable
   (**Show if** `q4_1 ≥ 4`, `{label:q4_1}`).
 
@@ -554,8 +583,8 @@ with no changes will do), then **Republish #N** on the environment's card. Until
 then its respondents get the old behavior: no Other entry in a dropdown, wide
 Multiple choice variables and exclusive choices that do not work, **Min
 answers** and a Number's range not checked on **Next**, conditions on matrix
-rows and MaxDiff or conjoint tasks that never fire, and no page Body above
-the questions.
+rows and MaxDiff or conjoint tasks that never fire, a required Matrix that
+lets the respondent on after one row, and no page Body above the questions.
 
 **Responses already collected are read in today's layout** — in the Data tab,
 every export, flows and the research bundle — so old and new responses sit in
@@ -716,7 +745,11 @@ Save.
 > Inside a block the place reads "(page 'page1', block 1, question 'q1')".
 
 Other problems — a duplicate question Id, a question Id that is another
-question's variable name, **Skip to** a page that no longer exists, a page
+question's variable name, an Id that differs from its question's variable and
+is a name the survey stores something else under (a Matrix row, another
+question's Other text, an assigned arm; see
+[Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)),
+**Skip to** a page that no longer exists, a page
 nobody can reach, an **Other** whose default code `-66` is already a choice's
 code (possible only from the **Source** tab or an import), a "None of the
 above" code that is one of the answers, an Other text column that another

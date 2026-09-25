@@ -39,6 +39,10 @@ and clicking it opens the item in Structure. The messages:
 | `<id>: writes variable "<v>", which <other> already writes — each variable belongs to one question` | rename one of the variables |
 | `<id>: stores its answer under "<key>", as <owner> does — rename one of them` | rename one question's Id or variable |
 | `<id>: the id is the variable <owner> stores its answer under, and the engine refuses that — rename the id (Advanced → Id)` | give the question another Id |
+| `<id>: the id is a variable <question> stores an answer under, and the engine refuses that — rename the id (Advanced → Id)` / `<id>: the id is one of the variables this question stores its answers under, and the engine refuses that — rename the id (Advanced → Id)` | the Id is a Matrix row or another variable a question stores (its own, for a matrix with a separate name) while the question's own variable is different: give the question another Id |
+| `<id>: the id is where <question> stores the text typed into Other — scripts naming it would reach <variable> instead; rename the id (Advanced → Id)` (or "…where this question stores…"), `<id>: the id is the variable an Assign to a condition script stores the arm in — …`, `<id>: the id is a codebook variable a custom script writes — …` | the Id differs from the question's variable and is a name the survey stores something else under: give the question another Id (see [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)) |
+| `<id>: ids starting with "__" are the survey runtime's own names — rename the id (Advanced → Id)` | give the question another Id |
+| `<id>: the codebook still declares a variable "<id>" that no question collects and nothing writes — delete it in the Codebook tab` | an unused codebook entry, usually left behind when an earlier Builder renamed the question's variable; the Id is fine. Delete the entry in **Builder → Codebook** |
 | `duplicate page name "<name>"` | rename one page |
 | `<page>: next_if target "<t>" does not exist` / `<page>: default_next "<t>" does not exist` | pick an existing page |
 | `<page>: the branch to "<target>" has no condition — an empty rule never fires; add one, or use Default next` | give the rule a condition, or remove it and set **Default next** |
@@ -125,6 +129,14 @@ and nothing is stored.
   variable written by two questions;
 - a question whose Id is another question's variable name ("Question '<id>'
   has the id under which question '<other>' stores its answer …");
+- a question whose Id differs from its variable and is a name the survey
+  stores something else under — a variable any question stores (a Matrix row
+  included), a question's Other text (`<variable>_other`), the arm of
+  an **Assign to a condition**, a codebook variable no question collects that
+  a custom script writes, or a name starting with `__` ("Question '<id>'
+  stores its answer under '<variable>', but '<id>' is also <what>. A script
+  that names '<id>' could mean either; give the question another id."; see
+  [Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take));
 - a Matrix, MaxDiff, Conjoint or wide Multiple choice whose Id is another
   question's variable name. The survey knows these questions by their Id
   (their variables are stored under their own names, but scripts and
@@ -231,8 +243,11 @@ The panel lists, for the page you are on:
   preview to try another path."
 
 The header line reads "<page> · page X of Y · A/V answered" (answered of
-visible questions). Answer-option conditions, option order and scripts are
-not listed.
+visible questions). A question counts as answered once it has everything
+**Required** would ask of it: a Matrix once every row is answered, a MaxDiff
+or Conjoint once every task is. A Matrix's Skip to line reads "→ fires" as
+soon as any row is answered. Answer-option conditions, option order and
+scripts are not listed.
 
 Take the walkthrough at least twice: once as someone who qualifies, once as
 someone who is screened out. It is the fastest way to debug routing. Scripts

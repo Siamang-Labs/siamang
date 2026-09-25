@@ -295,6 +295,18 @@ its answer is stored under 'nps_5' … Where the script means the question,
 write 'nps_5'."). Comments and longer strings that merely mention the Id are
 not reported.
 
+Because of that translation, a question whose Id differs from its variable
+cannot have an Id that your scripts use for something else: a codebook
+variable no question collects that a script writes (`answers.panel = 1`
+next to a question with Id `panel`), the variable an **Assign to a
+condition** writes, another question's Other text or Matrix row, or a name
+starting with `__`. The script would reach the question's answer instead, so
+the Builder flags such an Id and the Save is marked **errors** (see
+[Names an Id may not take](Studio-Builder-Overview#names-an-id-may-not-take)).
+A script that writes the question's own Id (`answers.q5 = 7`, to prefill
+it) is fine as long as the codebook has no entry named `q5`: it writes the
+question's answer.
+
 ### Examples
 
 These examples were checked against how the survey runs scripts. Replace

@@ -138,7 +138,9 @@ project's default report look (Project settings → **Reports**).
 **Id (question)** — a question's own handle in the Builder (**Advanced →
 Id**): scripts target it, and the Logic map and validation messages name the
 question by it. It may differ from the question's own variable name, but it
-must not be another question's variable name.
+must not be another question's variable name — nor, when it differs, a name
+the survey stores something else under (a Matrix row, another question's
+Other text, an assigned arm).
 → [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name)
 
 **Insights** — instant frequencies and crosstabs computed by the server from a

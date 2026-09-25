@@ -116,9 +116,10 @@ matters:
 - **An Id must be unique and must not be another question's variable name.**
   The survey could not tell which of the two questions is meant. The Builder
   keeps you out of this: a new question's Id is never a name the
-  questionnaire already uses (as an Id, a variable or a codebook entry), and a
-  variable you rename never takes another question's Id (a clash gets `_2`).
-  If you type such an Id yourself, the **Id** field says so at once —
+  questionnaire already uses (as an Id, a variable, a codebook entry or one
+  of the names in [Names an Id may not take](#names-an-id-may-not-take)),
+  and a variable you rename never takes another question's Id (a clash gets
+  `_2`). If you type such an Id yourself, the **Id** field says so at once —
   "Another question already has this id." or "This is the variable q1 stores
   its answer under — the engine refuses an id that is another question’s
   variable." — and **Validation → Structure** lists it ("q2: the id is the
@@ -127,6 +128,10 @@ matters:
   "Question 'q2' has the id under which question 'q1' stores its answer; an
   id may not be another question's variable or output name." Rename one of
   the two.
+- **An Id that differs from its variable must not be a name the survey
+  stores something else under** — another question's Other text, a Matrix
+  row, the arm an **Assign to a condition** draws, and a few more; see
+  [Names an Id may not take](#names-an-id-may-not-take).
 - **Renaming a variable renames it everywhere the questionnaire uses it** —
   conditions, branch rules, quotas, piping and scripts — and its codebook
   entry moves with it; see
@@ -148,6 +153,66 @@ matters:
 > old build: its answers are filed under the variable name as they arrive, but
 > its show-if conditions, branching and piping on such questions only work
 > once you publish it again.
+>
+> Filing an older build's answers never moves a value that is not a
+> question's answer into a question's column: the text typed into an Other,
+> the arm an **Assign to a condition** drew and the survey's own `__` names
+> stay where the survey sent them, even when a question's Id has the same
+> name. A survey published with the current Studio says that its answers are
+> keyed by variable name, and Studio stores them exactly as sent — nothing in
+> them is ever re-keyed. Republishing an older survey therefore also ends the
+> filing for it. One case stays ambiguous: where a Save made before the rule
+> in [Names an Id may not take](#names-an-id-may-not-take) gave a question
+> the Id of another question's Other text (`brand_other`), that question's
+> answers from an older build's partial or resumed interviews stay under the
+> Id and read as `brand`'s Other text.
+
+### Names an Id may not take
+
+A question's Id may never be another question's Id or another question's
+variable name (see above), and it should not start with `__`: those are the
+survey runtime's own names. For such an Id the **Id** field says "Ids
+starting with “__” are the survey runtime’s own names." and **Validation →
+Structure** lists "__score: ids starting with "__" are the survey runtime's
+own names — rename the id (Advanced → Id)".
+
+When the Id **differs from the question's own variable** — a preset's `q5` /
+`nps_5`, or a question whose variable you renamed — it may not be any other
+name the survey stores something under either. When Studio builds the survey
+it translates `answers["q5"]` in custom JavaScript to the question's variable,
+so a script that meant the other thing would reach the question's answer
+instead. The engine refuses such an Id; the Builder says so before you Save:
+
+| The Id is… | For example | The **Id** field says | **Validation → Structure** says |
+|---|---|---|---|
+| a variable another question stores an answer under: a Matrix row, a per-choice variable of a wide Multiple choice, a MaxDiff or Conjoint variable | Id `trust_1` on a question with variable `note`, while the matrix `trust` writes `trust_1` | "This is a variable trust stores an answer under — the engine refuses an id that is another question’s variable." | "trust_1: the id is a variable trust stores an answer under, and the engine refuses that — rename the id (Advanced → Id)" |
+| one of the question's own variables (a matrix given a separate name, from an import or the **Source** tab, whose Id is one of its rows) | | "This is one of the variables this question stores its answers under — the engine refuses it as the id." | `<id>: the id is one of the variables this question stores its answers under, and the engine refuses that — rename the id (Advanced → Id)` |
+| where a question stores the text typed into its **Other (please specify)**: `<variable>_other` (for a wide Multiple choice, `<Id>_other`) | Id `brand_other` on a question with variable `note`, while `brand` offers Other | "This is where brand stores the text typed into Other — scripts naming it would reach this question’s variable instead." ("…where this question stores…" for its own Other) | "brand_other: the id is where brand stores the text typed into Other — scripts naming it would reach note instead; rename the id (Advanced → Id)" |
+| the variable an **Assign to a condition** script stores the arm in | Id `condition` on a question with variable `cond_q` | "This is the variable an Assign to a condition script stores the arm in — scripts naming it would reach this question’s variable instead." | "condition: the id is the variable an Assign to a condition script stores the arm in — scripts naming it would reach cond_q instead; rename the id (Advanced → Id)" |
+| a codebook variable that no question collects and a custom script writes (`answers.panel = 1`) | Id `panel` on a question with variable `panel_q` | "This is a codebook variable a custom script writes — scripts naming it would reach this question’s variable instead." | "panel: the id is a codebook variable a custom script writes — scripts naming it would reach panel_q instead; rename the id (Advanced → Id)" |
+
+Saved anyway, such a Save is marked `errors` and cannot be published — as
+is one with an Id that starts with `__` and differs from its variable. The
+engine's reason names the clash, for example: "Question 'brand_other' stores
+its answer under 'note', but 'brand_other' is also the key question 'brand'
+stores its “Other (please specify)” text under. A script that names
+'brand_other' could mean either; give the question another id." Rename the
+Id.
+
+Two names that look similar are allowed:
+
+- **A codebook entry that no question collects and nothing writes.** An
+  earlier version of the Builder left the old codebook entry behind when you
+  renamed a question's variable, under a name that is often the question's
+  Id (`q2` renamed to `comment` kept `q2`). The Id is fine; the entry is
+  simply unused. **Validation → Structure** suggests removing it — "q2: the
+  codebook still declares a variable "q2" that no question collects and
+  nothing writes — delete it in the Codebook tab" — and the Codebook tab
+  lists it **unused** with **Delete**. The **Id** field says nothing.
+- **A name a custom script writes that the codebook does not declare.** A
+  script that writes the question's own Id (`answers.q5 = 7`, to prefill it)
+  writes the question's answer: Studio translates it to `answers.nps_5`.
+  Renaming the Id would leave the script writing a name nothing reads.
 
 ---
 

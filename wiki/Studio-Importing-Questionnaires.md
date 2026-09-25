@@ -211,7 +211,10 @@ Messages you may see (for a file read on the server — `.py`, `.qsf`, `.lss`,
    shows `id → variable`. An Id that differs from its variable is fine, but a
    question's Id must not be another question's variable name — if the engine
    check reports that a question "has the id under which question … stores
-   its answer", change that question's **Advanced → Id**. See
+   its answer", or that a question "stores its answer under '…', but '…' is
+   also …" (a Matrix row, another question's Other text, an assigned arm),
+   change that question's **Advanced → Id**. **Validation → Structure** names
+   each such question. See
    [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 3. **Look for introductory text.** A page that held only text becomes a
    text-only page and is shown as before. Text that shared a page with

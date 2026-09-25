@@ -75,11 +75,12 @@ variable `q1`. Make it your first question:
 > handle in the Builder — scripts target it, and the Logic map and validation
 > messages show it. Plain types start with the two equal (`q1` / `q1`);
 > presets such as **NPS (0–10)** do not (`q3` / `nps_3`), and that is fine.
-> One rule: an Id must not be **another** question's variable name, or the
-> Save is marked `errors`. Studio never gives a new question such an Id, and
-> if you type one, the **Id** field says so at once ("This is the variable
-> … stores its answer under — the engine refuses an id that is another
-> question’s variable."). See
+> The main rule: an Id must not be **another** question's variable name, or
+> the Save is marked `errors`. Studio never gives a new question such an Id
+> (nor one of the few other names an Id may not take), and if you type one,
+> the **Id** field says so at once ("This is the variable … stores its answer
+> under — the engine refuses an id that is another question’s variable.").
+> See
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 → [[Question Types|Studio-Question-Types]] ·

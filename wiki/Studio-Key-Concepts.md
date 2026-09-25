@@ -198,7 +198,9 @@ Answers are stored under the **variable name**: it names the column in your
 data, and it is what conditions, piping and quotas read. A question also has
 an **Id** — its handle in the Builder, which scripts target and the Logic map
 and validation messages show. The two may differ (presets start as `q3` /
-`nps_3`), but an Id must not be another question's variable name. See
+`nps_3`), but an Id must not be another question's variable name, nor —
+when it differs from its own variable — another name the survey stores
+something under, such as a Matrix row or another question's Other text. See
 [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 Renaming a variable in the Builder renames it everywhere the questionnaire

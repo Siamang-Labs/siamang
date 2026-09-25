@@ -92,7 +92,11 @@ turned off (Builder → Theme → Respondent experience), there is no Previous
 button.
 
 **Required questions.** Moving on with a required question unanswered shows
-"This question requires an answer." under it and scrolls to it. Format checks
+"This question requires an answer." under it and scrolls to it. A required
+Matrix needs an answer in every row (a row answered "Not applicable"
+counts): answered in some rows but not all, it shows "Please answer every
+row." and marks the rows still empty until each is answered (see
+[Matrix](Studio-Question-Types#matrix)). Format checks
 (email, phone, web address, date, time) show their own messages. A Number
 outside its range shows "Minimum value is 1" or "Maximum value is 10" when the
 field is left and on **Next**, and a Multiple choice with **Min answers** and
@@ -151,7 +155,8 @@ statement, when you set them.
 
 | Input | Does |
 |---|---|
-| `Enter` or `Space` (outside a text field) | next page (or submit on the last) |
+| `Enter` or `Space` (outside a text field) | next page (or submit on the last). On a focused button or link the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen |
+| `←` `→` / `↑` `↓` in a Matrix | move along the row, answering it with the cell reached (the N/A column included) / move to the same column in the row above or below; `Tab` leaves the grid |
 | `Esc` | previous page (when going back is allowed) |
 | `1`–`9` (outside a text field) | picks that point on the page's first rating scale that has it, as a click does: the answer is autosaved and the question's error message goes. On a scale that starts at 0 the key is the point's number; a digit the scale does not have does nothing |
 | swipe left / right | next / previous page on touch screens |
@@ -366,7 +371,11 @@ See also [[Security and Privacy|Studio-Security-and-Privacy]].
   screen readers ("Page 2 of 5"), and so is saving.
 - The submission-failed dialog is a proper modal dialog; the light/dark button
   is labeled "Switch to dark mode" / "Switch to light mode".
-- Every step works with the keyboard (see the table above).
+- Every step works with the keyboard (see the table above), a Matrix
+  included.
+- When **Next** holds a required Matrix, the cells of its rows still without
+  an answer are flagged as invalid to screen readers, as well as marked on
+  screen.
 
 ---
 
@@ -376,8 +385,9 @@ Most fixed phrases can be reworded — or translated — in **Builder → Theme 
 Wording**, grouped as **Buttons and navigation** (Next, Previous, Submit, the
 section labels "Welcome", "Section {n} of {total}" and "Final thoughts",
 "Page", "of", the estimated time), **Answering** (the required-question
-message, "Other", "None of the above", "Not applicable", the range, format and
-too-few-choices messages, and more), **Saving and resuming** ("Submitting your
+message and a required matrix's "Please answer every row.", "Other", "None
+of the above", "Not applicable", the range, format and too-few-choices
+messages, and more), **Saving and resuming** ("Submitting your
 responses…", "Saving…", the resume prompt and its buttons), **At the end**
 ("Response ID", "Submitted", the screen-out title, the redirect texts), **When
 something fails** (the submission-failed dialog, its buttons and the error
