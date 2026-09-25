@@ -421,7 +421,7 @@ respondents × items matrix.
 | Argument | Values |
 |----------|--------|
 | `n_factors` | a number; `None` chooses by `criterion`: `kaiser` (eigenvalues above 1) or `parallel` (above the 95th percentile of 100 random data sets of the same size, from `seed` with NumPy's stable `RandomState`) |
-| `method` | `minres` (factor_analyzer, `psych::fa`), `principal` (iterated principal axis as `psych::fa(fm="pa")`: SMC start, stops when the communalities' sum moves by < 0.001, 50 steps at most), `ml` (`factanal`; adds `Fit chi-square`, `Fit df`, `Fit p`) |
+| `method` | `minres` (factor_analyzer, `psych::fa`), `principal` (iterated principal axis as `psych::fa(fm="pa")`: SMC start, stops when the communalities' sum moves by < 0.001, 50 steps at most), `ml` (`factanal`'s objective; adds `Fit chi-square`, `Fit df`, `Fit p`; started from `factanal`'s start, the minres solution, 1 − SMC, 0.5 and `ML_RANDOM_STARTS` (10) points from the fixed `ML_SEED`, keeping the lowest objective) |
 | `rotation` | `varimax` (Kaiser-normalized, R's algorithm), `promax` (power 4, Kaiser-normalized as factor_analyzer and SPSS), `oblimin` (direct quartimin, γ = 0, as GPArotation), `none` |
 | `sort`, `hide_below` | order the items by the factor they load on most; blank loadings below the value in the table |
 | `scores`, `into` | add regression-method scores `<into>1`, `<into>2`, … (interval, labelled), missing for respondents left out |
@@ -445,7 +445,10 @@ respondents than items, an item without variance, a singular correlation matrix
 (an item that copies or totals others — named), as many factors as items, and
 more factors than maximum likelihood can identify. Warned in `stats["Warning"]`:
 KMO below 0.5, a Heywood case, a fit or rotation that did not converge, more
-factors than the correlations identify.
+factors than the correlations identify, and maximum likelihood starts that
+reached different optima ("maximum likelihood reached different solutions from
+different starting points; the best of 14 is shown. That usually means more
+factors than the data carry: compare a solution with fewer").
 
 ---
 

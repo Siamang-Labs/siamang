@@ -250,7 +250,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regression-method factor scores to the data as `factor_1`, `factor_2`, …
   (labelled variables a later node can name). The numbers reproduce the
   `factor_analyzer` package and `psych::fa` / `factanal`; the conventions
-  (sign, order, Kaiser normalization) are in the module's docstring. Fewer
+  (sign, order, Kaiser normalization) are in the module's docstring. Maximum
+  likelihood is started from 14 fixed points (factanal's, minres, 1 − SMC, 0.5
+  and ten from a fixed seed) and keeps the lowest objective, so a model with
+  more factors than the data carry does not report a local optimum as its fit;
+  the stats warn when the starts disagree. Fewer
   than three items, no more respondents than items, a constant item, a
   singular correlation matrix and as many factors as items are refused with
   the reason.

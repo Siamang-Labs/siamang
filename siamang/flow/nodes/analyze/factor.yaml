@@ -41,7 +41,7 @@ params:
     - ml
     default: minres
     label: Extraction
-    help: minres (minimum residual) as psych and factor_analyzer; principal is iterated principal axis factoring; ml is maximum likelihood, as R's factanal, and adds a test of fit.
+    help: minres (minimum residual) as psych and factor_analyzer; principal is iterated principal axis factoring; ml is maximum likelihood, as R's factanal, and adds a test of fit; it is started from 14 fixed points and keeps the best, and warns when they disagree (often a sign of too many factors).
   rotation:
     kind: enum
     values:

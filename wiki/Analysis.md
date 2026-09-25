@@ -443,7 +443,11 @@ positive, and the factors are ordered by the variance they carry. The analysis
 refuses, with the reason, fewer than three items, no more respondents than
 items, an item everyone answered the same, and an item that copies or totals
 others; it warns in `stats["Warning"]` about a KMO below 0.5 or an item with
-(almost) no uniqueness left. It is unweighted, and says so on weighted data.
+(almost) no uniqueness left. Maximum likelihood with more factors than the data
+carry — more than parallel analysis or the Kaiser rule suggest — can have
+several optima: the fit is started from 14 fixed points, keeps the best, and
+warns when they disagree, which is a reason to compare a solution with fewer
+factors. It is unweighted, and says so on weighted data.
 
 ---
 
