@@ -157,7 +157,11 @@ Several nodes expose what the library already computed:
 `check_flow` knows the variables these create before a run: `into` of Bands,
 and one score variable per item of the named MaxDiff question (its `choices`,
 else its first variable's labels), so a later node naming `q_md_score_3` is
-checked like any other variable and `q_md_score_9` is `UNKNOWN_VARIABLE`.
+checked like any other variable and `q_md_score_9` is `UNKNOWN_VARIABLE`. A
+`question` the questionnaire has no MaxDiff question for is `PARAM_INVALID`,
+with the ones it has: `Parameter 'question' of sc: no MaxDiff question named
+'q_mdx'; this questionnaire has: q_md, maxdiff_mx_t1_best.` (by id, name, or
+the runtime's `maxdiff_<first variable>` for a question with neither).
 `prepare.derive` takes `labels` (code → label) for a formula that yields codes.
 
 `source.simulated` generates its rows with

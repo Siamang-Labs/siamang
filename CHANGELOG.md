@@ -305,7 +305,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     worst over the times the item was shown to them, blank where it never was —
     so preferences feed Crosstab, Cluster and Regression. A `stat` output gives
     `Respondents scored`, `Not scored` and `Unreadable answers`. `check_flow`
-    knows the variables before a run.
+    knows the variables before a run, and names a question the questionnaire
+    has no MaxDiff question for, with the ones it has (`PARAM_INVALID`).
   - **TURF** reads a fixed portfolio: `method: fixed` with a `portfolio`
     (`siamang.data.turf.evaluate`) gives each option's reach, `unique` reach
     (what dropping it would lose) and frequency, and the portfolio's reach and
