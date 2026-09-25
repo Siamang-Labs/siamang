@@ -1130,15 +1130,17 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
             return id ? document.getElementById(id).textContent : null;
         });
         const role = () => page.evaluate(() => document.activeElement.getAttribute("role"));
+        const errors = () => page.$$eval(".sd-question__error", (es) => es.map((e) => e.textContent));
         await page.focus(".siamang-search-dropdown__trigger");
         await press("Enter");
-        const opened = { menu: await menu(), role: await page.evaluate(() => document.activeElement.getAttribute("role")) };
+        const opened = { menu: await menu(), role: await role(), errors: await errors() };
         await press("ArrowDown", "ArrowDown");
         const down = await activeOption();
         await press("ArrowUp");
         const up = await activeOption();
         await press("Escape");
-        const escaped = { menu: await menu(), focused: await focused(), label: await label(), pages: await pages() };
+        const escaped = { menu: await menu(), focused: await focused(), label: await label(), pages: await pages(),
+            errors: await errors() };
         await press("ArrowDown");
         await page.keyboard.type("plu");
         const typed = await activeOption();
@@ -1166,13 +1168,15 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
         )
     )
     state = run_in_browser(_dropdown_document(), scenario, tmp_path)
-    assert state["opened"] == {"menu": 1, "role": "combobox"}
+    # Opening the list says nothing about the answer it is there to take.
+    assert state["opened"] == {"menu": 1, "role": "combobox", "errors": []}
     assert (state["down"], state["up"]) == ("Pear", "Apple")
     assert state["escaped"] == {
         "menu": 0,
         "focused": "sd-input siamang-search-dropdown__trigger",
         "label": "— Select —",
         "pages": ["p1", "p2"],
+        "errors": [],
     }
     assert state["typed"] == "Plum"
     assert state["picked"] == {
@@ -1191,6 +1195,40 @@ def test_a_required_dropdown_is_answered_from_the_keyboard_alone(tmp_path):
     }
     assert state["tabbed"] == {"menu": 0, "inside": False, "pages": ["p1", "p2"]}
     assert state["submitted"] == [{"fruit": 3, "__status": "completed"}]
+
+
+def test_a_required_question_is_checked_when_the_focus_leaves_it(tmp_path):
+    """Opening a required dropdown moves the focus from its button to its
+    search box, and that blur checked the question: "This question requires
+    an answer." appeared, and was announced (role=alert), before anything
+    could be chosen - on a click as on Enter. The focus moving between a
+    question's own controls no longer checks it; leaving the question does."""
+
+    scenario = (
+        _MATRIX_KEYS
+        + _NEXT
+        + """
+        const errors = () => page.$$eval(".sd-question__error", (es) =>
+            es.map((e) => [e.textContent, e.getAttribute("role")]));
+        await page.click(".siamang-search-dropdown__trigger");
+        const clicked = await errors();
+        await press("Escape");
+        const escaped = { errors: await errors(), focused: await focused() };
+        await press("Tab");
+        const left = { errors: await errors(), focused: await focused() };
+        return { clicked, escaped, left };
+    """
+    )
+    state = run_in_browser(_dropdown_document(), scenario, tmp_path)
+    assert state["clicked"] == []
+    assert state["escaped"] == {
+        "errors": [],
+        "focused": "sd-input siamang-search-dropdown__trigger",
+    }
+    assert state["left"] == {
+        "errors": [["This question requires an answer.", "alert"]],
+        "focused": "sd-btn sd-navigation__prev-btn",
+    }
 
 
 # ── MaxDiff and Conjoint ─────────────────────────────────────────────────────
