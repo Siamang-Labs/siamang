@@ -469,6 +469,21 @@ print(cross_table.to_markdown())
 means_table = data.report.means("age", by="party")
 print(means_table.to_markdown())
 
+# A test chosen by hand, with every pair of groups compared after it
+data.report.means("age", by="party", method="welch_anova", posthoc="games_howell")
+
+# t-tests: two groups, two measurements of the same respondents, or a fixed value
+data.report.ttest("income", by="gender", groups=[1, 2])      # Welch's by default
+data.report.ttest("trust_govt", kind="paired", other="trust_courts")
+data.report.ttest("age", kind="one_sample", mu=40)
+
+# Fisher's exact test, a correlation matrix, descriptives, the data against its codebook
+data.report.crosstab("gender", "party", method="fisher")
+data.report.correlation_matrix(["trust_govt", "trust_courts", "trust_media"],
+                               method="kendall", adjust="holm")
+data.report.descriptives(["age", "income"], by="gender", detail=True)
+data.report.data_check()
+
 # Declarative Plotting
 data.plot.bar("trust").save("trust_bar.png")
 data.plot.boxplot("age", by="party").save("age_by_party.png")
@@ -491,14 +506,32 @@ ana.crosstab("gender", "party", normalize="columns", chi2=True)
 ana.proportion_ci("trust", value=5, confidence=0.95)
 data.scale_alpha(["trust_govt", "trust_courts", "trust_media"])
 
+ana.correlation("age", "income", method="pearson")   # r, p, N and a 95 % CI
+ana.compare_groups("trust", "party", posthoc="dunn")  # Kruskal-Wallis, then Dunn per pair
+
+# The same respondents answering several questions; what a set of items shares
+from siamang.data import factor, paired
+
+paired.wilcoxon(data, "trust_govt", "trust_courts").stats
+paired.compare(data, ["trust_govt", "trust_courts", "trust_media"]).pairs  # Friedman
+factor.analyze(data, items, rotation="promax").loadings                    # items: 3 or more
+
 # Weighted analysis
 data = data.with_weight("weight")
 data.analysis.frequencies("party", weighted=True)
 data.analysis.effective_sample_size()
 ```
 
-Available tests (require `scipy`): `kruskal`, `mannwhitney`,
-`spearman`, and `crosstab(chi2=True, cramers_v=True, phi=True)`.
+Available tests (`scipy`, a base dependency): `kruskal`, `mannwhitney` and
+`spearman`, which count the codebook's missing codes as answers and say so,
+and `crosstab(chi2=True, cramers_v=True, phi=True)`; and, leaving the missing
+codes out, `correlation` (Pearson, Spearman, Kendall), `compare_groups` (with Dunn's
+test), `report.means(method=…, posthoc=…)` (Student, Welch, ANOVA, Welch's
+ANOVA, Mann-Whitney, Kruskal-Wallis; Tukey, Games-Howell, Dunn),
+`report.ttest`, `report.crosstab(method="fisher")`,
+`report.correlation_matrix`, `siamang.data.paired` (Wilcoxon, McNemar,
+Friedman) and `siamang.data.factor`. See
+[`wiki/Analysis.md`](wiki/Analysis.md#choosing-the-test-yourself).
 
 ---
 

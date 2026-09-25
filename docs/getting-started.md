@@ -16,7 +16,7 @@ That's it — every feature is included out of the box:
 | `fastapi`, `uvicorn` | `siamang preview` local server |
 | `openpyxl` | Excel reader / writer |
 | `pyreadstat` | SPSS `.sav` and Stata `.dta` I/O |
-| `scipy` | Chi-square, Kruskal-Wallis, Mann-Whitney, Spearman |
+| `scipy` | Significance tests (chi-square, Fisher's exact, t-tests, ANOVA, Mann-Whitney, Kruskal-Wallis, Wilcoxon, McNemar, Friedman), post-hoc tests, correlations, factor analysis |
 | `supabase`, `requests` | Supabase backend / Vercel deploy |
 
 (The old `siamang[server]`, `siamang[excel]`, `siamang[all]`, … install
