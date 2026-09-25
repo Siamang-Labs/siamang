@@ -75,10 +75,13 @@ n_save.save(Path("outputs/satisfaction_by_region.md").with_suffix(".html"))
 
 Each node is a commented block — its title and summary, then `# studio:
 <node id>` — and its results are named after the node id (`n_xtab_table`).
-The **Save report** block adds the provenance footer from the
-`SIAMANG_PROVENANCE` environment variable, which the platform sets on every
-run and a research bundle's `run.sh` sets from `PROVENANCE.md`; run by hand
-without it, the report has no footer.
+The **Save report** block writes the look of its **Look** parameter
+(`theme=None` when the node has none: the engine's defaults) and adds the
+provenance footer from the `SIAMANG_PROVENANCE` environment variable. The
+platform sets that variable on every run, and a research bundle's `run.sh`
+sets it from `PROVENANCE.md` — both only while **Settings → Reports → End
+every report with the provenance footer** is on. Run by hand without it, the
+report has no footer.
 
 A flow script is **not standalone**:
 
@@ -89,7 +92,8 @@ A flow script is **not standalone**:
   exists only inside Studio. A flow with **two or more** database sources
   takes one option per source instead — `--data-<node-id>`, with `_` in the id
   written as `-` (for example `--data-src-wave1`);
-- **Write table** nodes are skipped when `--data` is given.
+- **Write table** nodes are skipped when the script is given a data file
+  (`--data`, or any `--data-<node-id>`).
 
 ---
 
@@ -100,15 +104,16 @@ History → open a Save → **More ▾** → under **Download a bundle**:
 | Option | Contents |
 |---|---|
 | **Code & documents** | "questionnaire.py, JSON documents, flows, README" — everything except the answers |
-| **With the responses so far** | "plus data/responses.csv (latest)" — the same, plus the responses and their manifest |
+| **With the responses so far** | "plus data/: the responses (latest), the tables and uploads the flows read" — the same, plus the data every flow reads and its manifest |
 | **questionnaire.py only** | just the generated questionnaire |
 
 The zip is built when you click and named `<project-slug>-s<N>.zip`, or
 `<project-slug>-s<N>-data.zip` with the responses ("Bundle of Save #17
 downloaded with the responses so far"). The data option takes at most 100,000
-responses; a larger table is refused with "This table exceeds the synchronous
-export limit of 100,000 rows. No file was generated; use a database export for
-the complete dataset." Downloads are recorded in the organization's audit log.
+rows from each table it reads; a larger table is refused with "This table
+exceeds the synchronous export limit of 100,000 rows. No file was generated;
+use a database export for the complete dataset." Downloads are recorded in
+the organization's audit log.
 
 ### What is inside
 
@@ -116,65 +121,128 @@ The files sit at the **root of the zip** — there is no enclosing folder, so
 unzip into a folder of your own.
 
 ```
-README.md                         what is inside, how to run it, notes
-PROVENANCE.md                     what everything was made from
-siamang.yaml                      the project manifest the engine's CLI reads
+README.md                                  what is inside, how to run it, what each flow reads, notes
+PROVENANCE.md                              what everything was made from
+siamang.yaml                               the project manifest the engine's CLI reads (flows in Run all order)
 survey/__init__.py
-survey/questionnaire.py           the generated questionnaire
-survey/questionnaire.json         the questionnaire document
-survey/codebook.md                one row per variable: label, scale, values, missing, range, used by
-analysis/<name>.codeframe.json    any codeframes (see Coding Open Answers)
-flows/<name>.flow.json            the flow documents
-scripts/<name>.py                 their generated scripts
-studio/settings.json              environments, runtime, connectors, report and study settings
-data/responses.csv                (with responses) the answers
-data/responses.manifest.json      (with responses) when taken, rows, sha256, environments, Save
-environment/requirements.txt      the engine pin plus your runtime packages
-environment/python-version
-environment/run.sh                install, validate, run every flow on the data
-environment/engine/<wheel>.whl    (when provided) Studio's build of the engine
-environment/engine/SHA256SUMS     (when provided) its checksum
-report/theme.json                 the project's report house style ({} when none)
-METHODS.md                        a draft Methods section
-CITATION.cff                      how to cite this Save
+survey/questionnaire.py                    the generated questionnaire
+survey/questionnaire.json                  the questionnaire document
+survey/codebook.md                         one row per variable: label, scale, values, missing, range, used by
+analysis/<name>.codeframe.json             any codeframes (see Coding Open Answers)
+flows/<name>.flow.json                     the flow documents
+scripts/<name>.py                          their generated scripts
+studio/settings.json                       environments, runtime, connectors, report and study settings
+data/responses.csv                         (with responses) the answers, as a flow sees them
+data/responses.<env>[.completed].csv       (with responses) the same, filtered as a Responses node filters
+data/tables/<table>.csv                    (with responses) the project tables the flows read
+data/tables/<table>.dictionary.json        (with responses) the variables stored with such a table
+data/responses.manifest.json               (with responses) when taken, rows, sha256 of each file, environments, Save
+assets/<name>                              (with responses) the uploads under Files that the flows read
+environment/requirements.txt               the engine pin plus your runtime packages
+environment/python-version                 the Python version Settings → Runtime asks for
+environment/run.sh                         install, validate, run every flow on its data
+environment/engine/<wheel>.whl             (when provided) Studio's build of the engine
+environment/engine/SHA256SUMS              (when provided) its checksum
+report/theme.json                          the project's report house style ({} when none)
+METHODS.md                                 a draft Methods section
+CITATION.cff                               how to cite this Save
 ```
 
 Details:
 
 - `data/responses.csv` is the project's whole `responses` table — every
-  environment, partial interviews included — with one column per variable.
-  Fieldwork metadata (interview durations, URL parameters, tab switches) is
-  not included. The manifest records `taken_at`, `rows`, `sha256`, `file`,
-  `label` (`latest`), `environments`, `snapshot` and `project`.
+  environment, partial interviews included — as a flow sees it: one column
+  per variable, with answers collected by an earlier survey runtime read into
+  today's layout (an "Other (please specify)" answer as the question's Other
+  code plus a `<variable>_other` text column, matrix answers as their column
+  codes — see [Responses](Studio-Node-Reference#responses)). It carries the
+  fieldwork columns a flow may read: `duration_s`, `started_at`, `captcha`,
+  `tab_switches`, `hidden_seconds` and `pastes`. The survey link's parameters
+  (`url_*`: panel ids and the like) are left out, except those a flow of the
+  Save names; the invitation token (`url_inv`) never travels. The README
+  says which were kept.
+- **One file per filter.** For each **Responses** node whose **Environment**
+  or **Only completed responses** leaves out some rows, the bundle adds the
+  rows it keeps, named after the filter: `data/responses.main.csv`,
+  `data/responses.main.completed.csv`. When the filter keeps every row, the
+  node reads `data/responses.csv`.
+- **Tables.** Each project table a flow reads (a **Project table** node, or a
+  Responses node naming another table) is `data/tables/<table>.csv`, as it was
+  in the project database when the bundle was built, with the variables its
+  **Write table** stored beside it in `data/tables/<table>.dictionary.json`. A
+  table no flow has written yet is not included. The same rule for link
+  parameters applies to these tables: a `url_*` column a table carries (a
+  cleaning flow writes the columns it read) travels only when a flow names
+  it, and `url_inv` never does.
+- **Uploads.** The files uploaded under **Files** that a flow names
+  (`assets/<name>`, the **File** of a **Data file** node) are included at that
+  path.
+- The manifest records `taken_at`, `rows`, `sha256`, `file`, `label`
+  (`latest`), `environments`, `snapshot` and `project`, plus `files` (each
+  extra data file with its table, rows, sha256 and filter) and `uploads`
+  (file, bytes, sha256).
 - A document that did not pass the engine check at that Save has no generated
   file; the README's **Notes** say which (for example "scripts/tables.py is
-  missing: the flow did not pass the engine check at this Save.").
-- `environment/python-version` is the Python version Studio used to build the
-  bundle; the project's chosen Python is in `siamang.yaml` under `runtime`.
+  missing: the flow did not pass the engine check at this Save."). A flow
+  saved earlier with a data source that names no table or environment a
+  project can have is not run by `run.sh` either: "scripts/<flow>.py is not
+  run by environment/run.sh: its data source names no table or environment a
+  project can have (…)." Today such a flow fails the engine check at Save
+  (see [Responses](Studio-Node-Reference#responses)), so it has no script.
+  Likewise a flow saved before step texts had to be one line, with a line
+  break in one: "scripts/<flow>.py is left out: a step's text holds a line
+  break, which its generated script would run as code — fix it in the flow
+  and save again." The same holds for the questionnaire: when a variable
+  name, question Id or page name holds a line break (the Builder's own
+  fields never produce one), the bundle leaves out the generated
+  questionnaire with "survey/questionnaire.py is left out: a variable,
+  question or page name holds a line break, which the code generated at
+  this Save may run as code — rename it in the Builder and save again."
+  Without that file `run.sh` stops at its `siamang validate` step. The
+  README also flags a flow with several sources and a **Write table** whose
+  script was generated by an older engine ("… read several
+  sources and also write a table; the engine's script for such a flow stops
+  at the write step (`args.data`). A Save in Studio regenerates the script
+  with the current engine, which runs it.") — save it again before you
+  download the bundle.
+- `environment/python-version` is the version **Settings → Runtime → Python
+  version** asks for (3.11 unless you chose another; the field's hint reads
+  "for the research bundle — Studio runs flows on Python 3.11"). Studio
+  itself runs every flow on Python 3.11 — the README says both ("Python:
+  Studio ran the flows on 3.11; `environment/python-version` asks for 3.12
+  (Settings → Runtime)"), and choosing another version gives the Save
+  warning "Studio runs every flow on Python 3.11. Python 3.12 (Settings →
+  Runtime) is the version a research bundle asks for
+  (environment/python-version), not the one the flows run on here."
 
 ### Installing the engine
 
-Studio runs a version of the siamang engine that includes changes not yet
-released in the public package, and the bundle says so:
+`requirements.txt` pins the engine in one of three ways, and the README says
+which:
 
-- When Studio provides its build, the bundle contains it under
-  `environment/engine/` and `requirements.txt` installs it from there ("The
-  patched engine shipped with this export; install from the bundle root.").
-- When it does not, `requirements.txt` pins `siamang[charts,parquet]==<version>`
-  with the comment "Until Studio's engine patches are released upstream,
-  install the engine from a checkout with them applied", and the README's
-  **Notes** warn that the public package does not contain them. Ask support
-  for the engine build before you rely on such a bundle.
+- **Shipped with the bundle.** When Studio provides its build, the bundle
+  contains it under `environment/engine/` (checksum in `SHA256SUMS`) and
+  `requirements.txt` installs it from there: "The engine is shipped in the
+  bundle … and `requirements.txt` installs it from there."
+- **From GitHub, at Studio's commit.** `requirements.txt` reads
+  `siamang[charts,parquet] @ git+https://github.com/Siamang-Labs/siamang@<commit>`
+  at the commit that matches the engine Studio runs. It needs git and network
+  access.
+- **From GitHub, at the last merged commit.** The same line at `4050de7`, the
+  Siamang-Labs/siamang commit that has Studio's engine changes as far as
+  upstream has merged them. Studio runs a newer engine than that, and the
+  README says what differs at that commit: "a Simulated data source or a
+  Share of preference node stops with an error, and after Apply weight the
+  MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal
+  components and scale reliability are computed unweighted; `siamang preview`
+  shows that commit's survey runtime, not Studio's." If a script stops or its
+  numbers differ from Studio's, install a later siamang revision that has
+  those changes.
 
-Studio's engine changes — including the weighted **Frequencies**,
-**Crosstab** and **Group means** tables and answers stored under their
-variable names — have since been merged into the engine's source code (the
-`main` branch of the repository this wiki belongs to), but they have not been
-released as a new version: the engine's version number is still 0.6.0, the
-version the bundle pins, and the bundle's comment above is unchanged.
-Installing the engine from that source, as [[Installation]] describes for
-unreleased code, gives you an engine with the changes; install it before you
-run `run.sh`, whose pin it already satisfies.
+The PyPI release (siamang 0.6.0) is **not** enough in any case: it predates
+Studio's engine changes and cannot run these scripts, although its version
+number is the same. See [[Installation]] for installing the engine from its
+source.
 
 ---
 
@@ -187,40 +255,75 @@ bash environment/run.sh
 
 `run.sh` does, in order: `pip install -r environment/requirements.txt`;
 `siamang validate survey/questionnaire.py`; exports `SIAMANG_PROVENANCE`
-(the text of `PROVENANCE.md`, which becomes every report's footer),
-`SIAMANG_REPORT_THEME` (`report/theme.json`) and `PYTHONPATH=.`; then runs
-every flow script, alphabetically, with `--data data/responses.csv`. It stops
-at the first error. Reports and files land in `outputs/`.
-
-Unlike **Run all** on the platform, `run.sh` does not reorder flows by the
-tables they read and write, and does not carry on past a failed flow. In a
-bundle the order makes no difference to the data a flow sees, because no flow
-reads another flow's table there: **Project table** reads the `--data` file
-and **Write table** is skipped (see
-[What reproduces](#what-reproduces-and-what-does-not)).
-
-A bundle **without** responses needs the data file:
+(the text of `PROVENANCE.md`, which becomes every report's footer — only
+while **End every report with the provenance footer** was on at that Save)
+and `PYTHONPATH=.`; then runs every flow script **in the order Studio's Run
+all runs them** — a flow after the flows whose tables it reads — each on the
+data it reads:
 
 ```bash
-DATA=/path/to/responses.csv bash environment/run.sh
+python scripts/cleaning.py --data data/responses.main.csv
+python scripts/tables.py --data data/tables/clean_responses.csv
+python scripts/waves.py --data-src-w1 data/responses.csv --data-src-w2 data/tables/wave2.csv
 ```
 
-(otherwise it stops with "set DATA=path/to/responses.csv").
+- A flow with one data source gets `--data` and that source's file; a flow
+  with several gets one `--data-<node-id>` per source. A flow with no source
+  but a **Write table** gets `--data data/responses.csv`, which only switches
+  its platform-only steps off.
+- A flow without a script at that Save is not run.
+- Every name that comes from a flow document is quoted for the shell, and a
+  flow whose data source names no table or environment a project can have is
+  not run (the README's **Notes** say so), so a flow document cannot run
+  commands on your machine.
 
-Step by step:
+It stops at the first error — unlike **Run all**, which carries on past a
+failed flow. Reports and files land in `outputs/`. `run.sh` no longer sets a
+report look: each flow renders in the look written into its script (see
+[The reports](#the-reports)).
+
+The README's **What each flow reads** section has a table with the columns
+**Flow**, **Source**, **On the platform** and **Here** — one row per data
+source — and a list of what a file cannot stand in for, for example
+"**Write table** steps do not run here: they write to the project database,
+and the scripts skip them when given a data file." and "The data files are
+the snapshot taken when this bundle was built; on the platform a flow reads
+the database as it is when the flow runs."
+
+**A bundle without responses** ("Code & documents") names the files the flows
+read but does not contain them. Its README says: "This bundle was made
+without data. Put the files the flows read (below) in place, or download the
+bundle with data from History, before `run.sh`." `run.sh` checks for them
+first and stops with "missing data/responses.csv: this bundle has no data —
+download it with data from History, or put the file there". Only the files a
+flow that `run.sh` runs would read are asked for. A file you supply is read
+as it is: no environment or completion filter is applied to it.
+
+Step by step (the README lists the exact lines):
 
 ```bash
 pip install -r environment/requirements.txt
 siamang validate survey/questionnaire.py
 siamang preview survey/questionnaire.py
-export SIAMANG_PROVENANCE="$(cat PROVENANCE.md)"
-export SIAMANG_REPORT_THEME="$PWD/report/theme.json"
-PYTHONPATH=. python scripts/satisfaction.py --data data/responses.csv
+export PYTHONPATH=.
+python scripts/satisfaction.py --data data/responses.main.csv
 ```
 
-> **Note.** `run.sh` passes `--data` to every script. A flow with two or more
-> database sources expects `--data-<node-id>` options instead, so `run.sh`
-> stops at it — run that script by hand with one option per source.
+These lines do not set the report footer. For it, also run
+`export SIAMANG_PROVENANCE="$(cat PROVENANCE.md)"` before the flow scripts,
+as `run.sh` does while the footer setting is on.
+
+### The reports
+
+Each flow writes `outputs/<flow>.md` and, with **Also save HTML**, its
+`.html` twin, in the look of its own **Save report** node — the `theme`
+written into `scripts/<flow>.py` — so a report renders here as it did in
+Studio. A flow that names no look renders with the engine's defaults, here as
+there. `report/theme.json` is the project's house style at this Save, which
+Studio stamps into new **Save report** nodes and renders the combined report
+with; nothing in the bundle reads it. To render a flow that names no look in
+the house style, run that flow with
+`SIAMANG_REPORT_THEME="$PWD/report/theme.json"`.
 
 ---
 
@@ -232,17 +335,19 @@ A table stating what everything in the bundle was made from:
 |---|---|
 | **Project** | `acme-research/brand-awareness-2026` |
 | **Questionnaire** | `Save #17 — Add charging question (2026-06-04 14:32 UTC, sha256 a3f2c81d09be), environments pilot, main` |
-| **Data** | `2026-06-20 09:00 UTC · 1247 responses (latest) · sha256 9f1c0b7e44d2` — or "not included — analysis reads the project database" |
+| **Data** | `2026-06-20 09:00 UTC · 1247 responses (latest) · sha256 9f1c0b7e44d2` — or "not included — analysis reads the project database"; then one row per other data file: `` `data/responses.main.csv` · 1180 rows · sha256 5b0e41c9a7d3 `` |
 | **Flow** | one row per flow: `flows/satisfaction.flow.json @ Save #17 (sha256 d8194e5a0c77)` |
-| **Engine** | `siamang 0.6.0 · python 3.11.9` |
+| **Engine** | `siamang 0.6.0 · python 3.11` — the Python Studio ran the flows on |
 | **Generated by** | `Siamang Studio <version> (codegen flow 1.0, questionnaire <version>)` |
 | **Validation at Save** | `valid`, `warnings` or `error` |
 | **Pre-registration** | only when a Save is tagged: "this Save (#17) is the pre-registration", or the registered Save and the documents "changed since" |
 | **Bundle built** | when the zip was made |
 
 It ends with "Hashes are SHA-256 of the files in this bundle (`sha256sum
-survey/questionnaire.json`)." — check them by hand. Every report produced by
-`run.sh` repeats this table in its footer. (Reports produced on the platform
+survey/questionnaire.json`)." — check them by hand. While **Settings →
+Reports → End every report with the provenance footer** was on at that Save,
+every report produced by `run.sh` repeats this table in its footer; with it
+off, `run.sh` does not set the footer. (Reports produced on the platform
 carry a shorter footer — see
 [The provenance footer](Studio-Reports#the-provenance-footer).)
 
@@ -252,25 +357,30 @@ carry a shorter footer — see
 
 | Result | From the bundle? |
 |---|---|
-| The questionnaire as a program (`validate`, `preview`) | **Yes**, with the engine build described above |
-| Simulated data | **Yes** — the seed is in the flow |
-| Tables, tests and weights of a flow whose source is **Responses** | **Yes, for the same data file and engine** — provided the flow does not depend on the points below |
-| **Environment** and **Only completed responses** on a Responses node | **Not applied** with `--data`: the CSV holds every environment and the partial interviews, so filter the file yourself or expect different bases |
-| Speeders (interview length) and anything using URL parameters or tab switches | **Differ**: that fieldwork metadata is not in the CSV, so **Speeders & partials** finds no speeders |
-| A flow that reads a **Project table** written by another flow | **No**: with `--data` it reads the raw responses file, not the cleaned table |
+| The questionnaire as a program (`validate`, `preview`) | **Yes**, with the engine pin described above (`preview` shows the pinned engine's survey runtime) |
+| Simulated data | **Yes** — the seed is in the flow; at a pin that lags behind Studio the node stops with an error |
+| Tables, tests and weights of a flow whose source is **Responses** | **Yes, for the same data file and engine** — at a pin that lags behind Studio, the weighted MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal components and scale reliability come out unweighted |
+| **Environment** and **Only completed responses** on a Responses node | **Yes** in a bundle with data: each node reads a file already filtered its way. With a file you supply, it is read as it is |
+| Speeders (interview length) and other fieldwork columns | **Yes** in a bundle with data: `duration_s`, `started_at`, `captcha`, `tab_switches`, `hidden_seconds` and `pastes` are in the files |
+| URL parameters (`url_*`) | **Only those a flow names**; the others — and always the invitation token — are left out of the files |
+| A flow that reads a **Project table** written by another flow | **Yes, from a snapshot**: it reads `data/tables/<table>.csv`, the table as it was when the bundle was built, with its variables. Running the writing flow in the bundle does not refresh it |
 | **Write table** | **Skipped** (there is no project database) |
 | **Code open answers** | **Yes** — the codeframe is in the bundle; no model is called |
-| **Data file** nodes | **Yes**, once you place the file at the path the node names |
+| **Data file** nodes | **Yes** — a bundle with data carries the uploads the flows name; otherwise place the file at the path the node names |
 | Charts | **Visually yes**; byte-identical only with the same matplotlib version and fonts |
-| Reports (`.md`, `.html`) | **Yes**, with the flow's look (or `report/theme.json`) and the bundle's provenance footer |
+| Reports (`.md`, `.html`) | **Yes**, in each flow's own look (the engine's defaults where a flow names none, as in Studio), with the bundle's provenance footer when the footer setting is on |
 | Live tiles | **No** — they exist only on the platform |
 | The combined report of Run all | **No** — `run.sh` runs the flows but does not assemble it |
 | Live responses | **No**, by design — a bundle carries a snapshot of the data |
 
-The honest summary: a single flow that goes from **Responses** (or
-**Simulated data**) to a report reproduces from the bundle. Chains of flows
-connected through tables, and flows that rely on environment filtering or
-fieldwork metadata, need the adjustments above.
+The honest summary: with the engine Studio ran and a bundle made with data,
+every flow reruns on the data a run in Studio would have read when the bundle
+was made — filtered the same way, in the same order, chained flows included
+— and gives the same tables and reports. What differs: tables other flows
+wrote are a snapshot rather than rewritten, **Write table**, Live and the
+combined report are platform-only, and an engine pin that lags behind Studio
+can stop a flow or change weighted numbers — the README says when that
+applies.
 
 ---
 
@@ -310,7 +420,12 @@ GitHub, Zenodo and reference managers:
 2. Open the Save to cite in History and choose **More ▾ → Deposit** to send
    its bundle to **Zenodo** (which mints a DOI) or **OSF**. The box "Use
    sandbox.zenodo.org (test DOI; needs a sandbox token)" is **ticked by
-   default** — untick it, with a zenodo.org token, for a real DOI. See
+   default** — untick it, with a zenodo.org token, for a real DOI. With
+   "Include the data collected so far: data/responses.csv, and the project
+   tables and uploaded files the flows read. Survey-link parameters (panel
+   ids) are included only where a flow reads one; invitation tokens never
+   are." ticked, the deposit publishes the same data files as a bundle with
+   the responses. See
    [Depositing to Zenodo or OSF](Studio-History-and-Versions#depositing-to-zenodo-or-osf).
 3. Put the DOI back into **Study & citation** so later bundles carry it.
 4. Cite the deposit, and attach the bundle as supplementary material.

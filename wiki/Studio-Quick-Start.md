@@ -35,32 +35,38 @@ You land on the organization's **Projects** tab. Press **New project**
 (or, on an empty list, **Start from the example study** to explore a finished
 study first).
 
-1. **Name** — e.g. `Customer Pulse 2026`. The dim line under it shows the
-   project's address (`/customer-pulse-2026`); it cannot be changed later.
-2. **Start from** — **Blank project** (an empty questionnaire) or
-   **Template**. For this tour choose **Blank project**.
+1. **Name** — e.g. `Customer Pulse 2026`. The dim line under it, "Its
+   address will be `/customer-pulse-2026`", shows the project's address; it
+   cannot be changed later. A name in another script is spelled in Latin
+   letters (`Опрос удовлетворённости` → `/opros-udovletvorennosti`), and an
+   address the organization already has gets `-2`, `-3`, … added.
+2. **Start from** — **Blank project** ("Start with one placeholder question")
+   or **Template**. For this tour choose **Blank project**.
 3. Press **Create →**.
 
-The project opens in the **Builder**. Its first Save, `#1`, already exists.
+The project opens in the **Builder**. Its first Save, `#1`, already exists
+and is `valid`.
 
 → [[Projects|Studio-Projects]]
 
 ## 3. Add a question
 
-In the Builder's **Structure** tab:
+In the Builder's **Structure** tab, the blank project's first page, `page1`,
+already holds one placeholder question: a **Single choice** reading "New
+question", with the choices **Option 1** and **Option 2**, stored in the
+variable `q1`. Make it your first question:
 
-1. At the bottom of the pages rail on the left, press **+ Question**. The menu
-   has two columns — **Types** and **Presets**. Choose **Single choice**.
-2. The question card appears on the canvas and the **Inspector** on the right
-   shows it. In **Question**, replace "New question" with your wording, e.g.
-   *How did you hear about us?*
-3. In **Options**, edit the **Choices** — each has a **Code** (what is stored)
+1. Click the question card. The **Inspector** on the right shows it. In
+   **Question**, replace "New question" with your wording, e.g. *How did you
+   hear about us?*
+2. In **Options**, edit the **Choices** — each has a **Code** (what is stored)
    and a **Label** (what is shown). **+ Option** adds one; pressing `Enter` in
    a label adds the next row.
-4. Open **Variable** and give the variable a real **Variable label (as in
+3. Open **Variable** and give the variable a real **Variable label (as in
    SPSS)** — e.g. *Source of awareness*. This is your codebook entry.
-5. Add a second question the same way, e.g. an **Open text** question
-   *Anything else you would like to tell us?*
+4. Add a second question: at the bottom of the pages rail on the left, press
+   **+ Question**. The menu has two columns — **Types** and **Presets**.
+   Choose **Open text** and write *Anything else you would like to tell us?*
 
 > **Note.** A question has two names, shown as `id → variable` in its card
 > and Inspector header. The answer is stored under the **variable name**: it
@@ -70,7 +76,10 @@ In the Builder's **Structure** tab:
 > messages show it. Plain types start with the two equal (`q1` / `q1`);
 > presets such as **NPS (0–10)** do not (`q3` / `nps_3`), and that is fine.
 > One rule: an Id must not be **another** question's variable name, or the
-> Save is marked `errors`. See
+> Save is marked `errors`. Studio never gives a new question such an Id, and
+> if you type one, the **Id** field says so at once ("This is the variable
+> … stores its answer under — the engine refuses an id that is another
+> question’s variable."). See
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 → [[Question Types|Studio-Question-Types]] ·
@@ -111,8 +120,13 @@ https://study.siamang.org/<survey-id>/
 
 Press **Copy**. That link stays the same every time you republish `pilot`.
 
-> New projects come with two environments: `pilot` (capped at 50 responses)
-> and `main` (capped at 1,200). Use `pilot` for testing, `main` for fieldwork.
+> New projects come with two environments: `pilot` (capped at 50 completed
+> interviews) and `main` (capped at 1,200). Use `pilot` for testing, `main`
+> for fieldwork. Only completed interviews count toward a cap — not
+> screen-outs, not unfinished interviews. On the Free plan the project as a
+> whole also stops at 1,000 completed interviews, `pilot` and `main`
+> together. See
+> [Response caps](Studio-Publishing-and-Environments#response-caps).
 
 → [[Publishing and Environments|Studio-Publishing-and-Environments]]
 
@@ -132,7 +146,9 @@ at the top — the grid shows the newest rows first: one column per variable
 details.
 
 - **Insights** — instant frequencies and crosstabs, no setup.
-- **Export ▾** — CSV, Excel, SPSS, Parquet or SQLite of the whole table.
+- **Export ▾** — CSV, Excel, SPSS, Stata, Parquet or SQLite of the whole
+  table. In an export the `meta` column becomes ordinary columns
+  (`duration_s`, `started_at`, one `url_<name>` per link parameter, …).
 
 → [[Responses and the Data Tab|Studio-Responses-and-Data]] ·
 [[Data Exports|Studio-Data-Exports]]

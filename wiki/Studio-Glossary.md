@@ -8,12 +8,16 @@ that explains each one in full.
 **Access code** — a code a respondent must enter before the first question
 (`PREFIX-NNNN`). Codes are stored in the questionnaire, so generating them
 creates a Save; republish the environment to apply them. The check happens in
-the respondent's browser. → [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]]
+the respondent's browser: a code can be used any number of times, and the
+code a respondent entered is not stored with the response.
+→ [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]]
 
 **Activity** — the audit log: who saved, published, ran, exported or deleted
 what, and who renamed the organization, added or removed a webhook, created
-or revoked an API key or generated access codes. Per organization (owners and
-admins) and per project (all members).
+or revoked an API key or generated access codes; also sign-ins, password and
+name changes, role changes, data and outcome exports, deleted contacts,
+closing-date changes and the **One per browser** switch. Per organization
+(owners and admins) and per project (all members).
 → [[Organizations and Team|Studio-Organizations-and-Team]]
 
 **AI assistant** — optional suggestions from a language model: reviews of
@@ -49,6 +53,12 @@ next. A rule without a condition never fires.
 **Build log** — the log of turning a Save into a published survey, on the
 environment's card in Distribute.
 
+**Closing date** — when an environment stops accepting responses: the
+questionnaire's deadline or the environment's `closes_at` (the earlier wins),
+or a date set with the **Closing date** chip on its card, which applies at
+once without a rebuild. Past it, the card reads **○ Closed** and offers
+**Extend**. → [Deadlines](Studio-Publishing-and-Environments#deadlines)
+
 **Codebook** — all variables with their scales, labels, value labels, valid
 ranges and missing codes; built alongside the questions and exported with the
 data. → [[Codebook and Variables|Studio-Codebook-and-Variables]]
@@ -58,10 +68,15 @@ data. → [[Codebook and Variables|Studio-Codebook-and-Variables]]
 without calling any model. → [[Coding Open Answers|Studio-Open-Answer-Coding]]
 
 **Combined report** — the single document **Run all** assembles from every
-flow's report. → [[Reports|Studio-Reports]]
+flow's report. When a flow failed, it is titled "Combined report
+(incomplete)" and opens with what is missing. → [[Reports|Studio-Reports]]
 
 **Comment** — a note on a question, page, flow or flow node, visible to the
 organization. → [[Working Together|Studio-Collaboration]]
+
+**Completed** — an interview that was submitted and did not end on a
+Screen-out page. Completed interviews are what response caps and quota cells
+count, and the second total on **Data → Insights** and **Live**.
 
 **Condition** — a rule over earlier answers (`age ≥ 18`, `region in [1, 2]`)
 used by show if, hide if, branch rules and the Filter rows node.
@@ -75,9 +90,9 @@ asks which one the respondent would choose.
 system (Sheets, a warehouse, storage, a CRM) or imports one.
 → [[Connectors|Studio-Connectors]]
 
-**Deadline** — a date and time set in the questionnaire after which a
-published environment accepts no more responses; the environment's card shows
-it as **Closes `<date>`**.
+**Deadline** — a date and time set in the questionnaire (in **Source**) after
+which a published environment accepts no more responses; one source of the
+environment's **closing date**, shown on its card as **Closes `<date>`**.
 → [Deadlines](Studio-Publishing-and-Environments#deadlines)
 
 **Default next** — where a page leads when none of its branch rules matches;
@@ -107,7 +122,10 @@ permanent link and response cap. → [[Publishing and Environments|Studio-Publis
 questionnaire or a flow at a given Save. → [[Reproducibility|Studio-Reproducibility]]
 
 **Flow** — an analysis drawn as connected nodes; saved as a document and
-generated into a Python script. → [[Analysis Flows|Studio-Flows]]
+generated into a Python script. It can be renamed, duplicated and deleted,
+each as a Save of its own. A flow that fails the engine check at Save cannot
+run until fixed; the rest of the project is not affected.
+→ [[Analysis Flows|Studio-Flows]]
 
 **Frozen workspace** — an organization that support has made read-only. Not
 the same as the end of a trial, which moves the organization to the Free plan.
@@ -147,8 +165,19 @@ value to SPSS and Stata.
 **Node** — one box in a flow: a source, a preparation step, an analysis, a
 chart or an output. → [[Node Reference|Studio-Node-Reference]]
 
+**One per browser** — an environment setting (off by default) under which a
+browser that has already answered sees "You have already taken part" instead
+of the questionnaire. Checked in the browser only; it does not identify
+people. → [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
+
 **Organization** — a workspace owning projects, members, the plan and the
 bill. → [[Organizations and Team|Studio-Organizations-and-Team]]
+
+**Other (please specify)** — an answer added with a switch on a single or
+multiple choice question. It is stored as the question's Other code (`-66`
+unless that code is taken) in the question's column, and the typed text in a
+column of its own, `<variable>_other`.
+→ [Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na)
 
 **Page kind** — what a page does: an ordinary **Content** page, a **Final**
 (thank-you) page, a **Screen-out** page or a **Redirect** page.
@@ -158,7 +187,8 @@ respondents with an id in the link and expects them back on a return URL.
 → [[Panel Providers|Studio-Panel-Providers]]
 
 **Partial** — an interview that was started but not submitted. Stored in the
-data; not counted toward caps or quotas.
+data (from surveys built with the current runtime); not counted toward caps
+or quotas.
 
 **Piping** — inserting an earlier answer into text: `{answer:var}`,
 `{label:var}` (or `{var:var}`). → [[Logic and Branching|Studio-Logic-and-Branching]]
@@ -172,19 +202,28 @@ CES, Attention check, Date, Email, Phone, Rating).
 → [[Question Types|Studio-Question-Types]]
 
 **Preview** — seeing the survey as a respondent will: on the Builder canvas
-(unsaved edits), as a preview deployment built from a Save, or through a
-24-hour share link. Answers are never stored.
+(unsaved edits), as a preview deployment built from a Save (with the banner
+"Preview — answers are not stored"), or through a 24-hour share link.
+Answers are never stored, and quotas are not checked.
 → [[Testing Your Survey|Studio-Testing-Your-Survey]]
 
 **Project** — one study: questionnaire, flows, settings, database,
 deployments and history. → [[Projects|Studio-Projects]]
 
 **Provenance** — the record of what produced a result: project, Save, data
-snapshot and engine version. In every bundle (`PROVENANCE.md`) and at the foot
-of every platform report. → [[Reproducibility|Studio-Reproducibility]]
+snapshot and engine version. In every bundle (`PROVENANCE.md`) and, unless
+**Settings → Reports** turns the footer off, at the foot of every report.
+→ [[Reproducibility|Studio-Reproducibility]]
 
-**Quota cell** — a `variable = value` pair with a target number of completed
-responses, counted during fieldwork. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
+**Quota cell** — a `variable = value` pair with a limit of completed
+interviews. Once full it closes: a later respondent with that answer ends on
+the quota-full screen when they leave the page. Screen-outs and partials do
+not count. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
+
+**Quota-full screen** — where a respondent stopped by a full quota cell (or
+arriving at a survey whose response cap is reached) ends: "Thank you for your
+interest" / "We have already reached our target sample for participants like
+you.", reworded in **Theme → Wording**. The interview is not submitted.
 
 **Report section / Save report** — the flow nodes that assemble a document
 from tables, charts and your text. → [[Reports|Studio-Reports]]
@@ -196,8 +235,11 @@ responses. → [[Reproducibility|Studio-Reproducibility]]
 **Respondent id** — a random identifier kept in the respondent's browser so
 an interview can resume; not an identity.
 
-**Response cap** — the number of completed responses an environment accepts
-(the tighter of its own cap and the plan's).
+**Response cap** — the number of completed interviews an environment accepts:
+its own cap, counted in that environment (new projects: `pilot` 50, `main`
+1,200), and on Free the plan's 1,000 per project, counted over all
+environments together — the tighter wins. Screen-outs and partials do not
+count. → [Response caps](Studio-Publishing-and-Environments#response-caps)
 
 **Run** — one execution of a flow (or of all flows) in the sandbox, with a log
 and output files. → [[Analysis Flows|Studio-Flows]]
@@ -205,11 +247,13 @@ and output files. → [[Analysis Flows|Studio-Flows]]
 **Run all** — running every flow of the project one after another and
 assembling the combined report. Flows run in dependency order (a flow that
 reads a table another flow writes comes after it), alphabetically otherwise;
-a failed flow skips only the flows that read its tables.
+a failed flow skips only the flows that read a table it did not write (one
+that ran and only missed its report file skips none).
 → [Run all](Studio-Flows#run-all)
 
 **Run to here** — executing a flow up to the selected node to see its result,
-without producing a report or a run-history entry.
+without producing a report or a run-history entry, and without writing any
+project table.
 
 **Save (noun)** — a numbered version of the whole project (`#17`): validated,
 with generated code stored alongside it. → [[History and Versions|Studio-History-and-Versions]]
@@ -225,7 +269,8 @@ ratio.
 
 **Screen-out** — ending an interview for someone who does not qualify, by
 routing them to a Screen-out page. The response is stored with the status
-`screened_out`.
+`screened_out` (the `__status` column); it is not a completed interview, so it
+counts toward no response cap or quota cell.
 
 **Secret** — an encrypted, write-only project credential used by connectors
 and deposits. → [[Project Settings|Studio-Project-Settings]]
@@ -234,7 +279,10 @@ and deposits. → [[Project Settings|Studio-Project-Settings]]
 answers are not stored.
 
 **Simulated data** — synthetic respondents generated from the questionnaire,
-for building and testing the analysis before fieldwork.
+for building and testing the analysis before fieldwork. They follow its
+conditions and routing, the arm of **Assign to a condition** and **Randomize
+pages**; **Test → Simulate** also applies the quotas, while a flow's
+**Simulated data** node does not. → [Simulate](Studio-Testing-Your-Survey#simulate)
 
 **Skip to** — on a question: when the respondent presses Next on that page
 with the question answered, jump to a chosen page.
@@ -252,8 +300,10 @@ ships twelve, and your organization can save its own.
 **Theme** — the survey's look and fixed wording, set in **Builder → Theme**.
 → [[Theme and Branding|Studio-Theme-and-Branding]]
 
-**Validation** — the engine's check of a document at every Save. Errors block
-publishing; warnings ask for confirmation.
+**Validation** — the engine's check of a document at every Save. A
+questionnaire that fails validation makes the Save `errors`, which blocks
+publishing; lint errors and warnings ask for confirmation; a flow that fails
+its check cannot run, and blocks nothing else.
 → [[Testing Your Survey|Studio-Testing-Your-Survey]]
 
 **Variable** — one column of data with its codebook entry. A question's answer
@@ -270,10 +320,12 @@ to Slack. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 **Weighting** — adjusting respondents to known population shares: **Cell
 weights** for one variable, **Rake weights** for several margins. **Apply
-weight** then makes the tables (**Frequencies**, **Crosstab**, **Group
-means**, **Banner table**), **Net Promoter Score**, **Regression** and **TURF**
-after it use the weight; the charts, **Compare groups**, **Correlation** and
-several other analyses still compute unweighted.
+weight** then makes the nodes after it use the weight — the tables,
+**Net Promoter Score**, **Regression**, **TURF**, **MaxDiff**, **Conjoint**,
+**Share of preference**, **Principal components**, **Scale reliability**,
+the **Bar chart** and a **Heatmap** with **By**. **Compare groups**,
+**Correlation**, **Cluster (k-means)**, **Box plot**, **Scatter plot** and a
+**Heatmap** without **By** stay unweighted and say so in their output.
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
 ## See also

@@ -2,9 +2,9 @@
 
 Studio is priced **per organization**, not per seat: one plan covers everyone in
 the workspace, and responses are not metered on paid plans. This page lists
-what each plan includes, explains the 30-day Pro trial and what happens when
-it ends, walks through the **Billing** tab, and shows what you see when you
-reach a limit.
+what each plan includes, explains the 30-day Pro trial, paid periods and what
+happens when they end, walks through the **Billing** tab, and shows what you
+see when you reach a limit.
 
 ---
 
@@ -15,7 +15,7 @@ reach a limit.
 | Price shown in Studio | Free | $25/mo | $99/mo | Custom (**Contact sales**) |
 | Projects per organization | 2 | 10 | unlimited | unlimited |
 | Members per organization (owner included) | 2 | 15 | unlimited | unlimited |
-| Completed responses per published survey | 1,000 | unlimited | unlimited | unlimited |
+| Completed responses per project (all environments together) | 1,000 | unlimited | unlimited | unlimited |
 | Stored files per organization | 250 MB | 5 GB | 50 GB | unlimited |
 | Analysis flows per project | 3 | 20 | unlimited | unlimited |
 | Access codes per questionnaire | 100 | 5,000 | unlimited | unlimited |
@@ -52,10 +52,13 @@ reach a limit.
 
 ### How the numbers are counted
 
-- **Responses** are counted per **published survey** (each environment's link,
-  such as `pilot` or `main`, counts separately). Only **completed** responses
-  count; partial interviews don't. A survey's own response cap, if you set one,
-  applies too, and the lower of the two wins.
+- **Responses** are counted per **project**: the Free plan's 1,000 is shared
+  by all of the project's environments together (`pilot` and `main`, say).
+  Only **completed** interviews count. Partial interviews and screen-outs
+  don't, and a screen-out is still recorded when the cap is full. In a
+  project made from the example study, its sample rows don't count either. A
+  survey's own response cap, if you set one, is counted over that survey
+  alone, the same way; whichever cap fills first stops new completions.
 - **Storage** is the total of the files stored for all projects of the
   organization, checked when you upload. A single upload can be at most 50 MB
   on every plan.
@@ -71,6 +74,15 @@ reach a limit.
   from the model: one credit is about 1,000 tokens (pieces of words). The daily
   allowance resets at midnight UTC and the monthly one with the next month.
   See [[AI Assistant|Studio-AI-Assistant]].
+
+> **Note.** The Free response cap used to be counted for each environment
+> separately, with screen-outs included. It now counts completed interviews
+> across the whole project, so the same responses can put a project on
+> either side of the cap: a Free project with 700 completed responses in
+> `pilot` and 400 in `main` has 1,100 and stops accepting completions, while
+> one whose count was swollen by screen-outs gets room back. Nothing already
+> collected is removed. To make room, delete test responses you no longer
+> need in **Data** (owners and admins can), or upgrade.
 
 ### Your history is never capped
 
@@ -101,8 +113,9 @@ card required (see [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]]).
 
 - the topbar pill `Pro trial · 27d` (hover: "Pro trial — 27 days left");
 - a `27d` pill next to the organization in the workspace chip menu;
-- **Settings → Billing**: "**Pro · 27 days left.** Full access to every Pro
-  feature; one subscription covers the whole organization. Afterward the
+- the **Organizations** screen: **Pro trial · 27d left**;
+- **Settings → Billing**: "**Pro trial · 27 days left.** Full access to every
+  Pro feature; one subscription covers the whole organization. Afterward the
   organization switches to the free plan — your data and surveys are kept."
 
 The day count is rounded up, so a trial with a few hours left shows `1d`.
@@ -123,7 +136,7 @@ The day count is rounded up, so a trial with a few hours left shows `1d`.
 **Reminders**
 
 - The owners get an email **7 days** and again **1 day** before the trial
-  ends: "Your Siamang Studio Pro period for *organization* ends in N day(s)".
+  ends: "Your Siamang Studio Pro trial for *organization* ends in N day(s)".
 - In the last **3 days**, a banner appears under the topbar: "**Pro trial ends
   in 3 days.** After the trial, Free plan limits apply. Your data is preserved
   and stays exportable. Choose a paid plan in Settings → Billing to keep using
@@ -142,14 +155,15 @@ The organization moves to the **Free** plan. It does **not** become read-only:
 you keep signing in, editing, saving, publishing, running flows and
 collecting responses, within Free's limits. Nothing is deleted. The owners get
 an email: "*organization* is now on the free plan — the Siamang Studio Pro
-period ended".
+trial ended". The end of a paid period works the same way (see
+[Paid periods](#paid-periods)).
 
 Concretely, once the trial is over:
 
 | Area | What changes |
 |---|---|
 | Projects and members | Everything you have keeps working. **New project** is blocked while the organization has 2 or more projects, and **Invite member** while it has 2 or more members. |
-| Responses | A published survey that already has **1,000 or more completed responses** stops accepting new completions. Surveys below that keep collecting up to 1,000. |
+| Responses | A project that already has **1,000 or more completed responses**, all its environments together, stops accepting new completions. Projects below that keep collecting until the project reaches 1,000. |
 | Custom JavaScript / CSS | Publishing a Save that contains custom JavaScript or custom CSS is refused ("Custom JavaScript in the questionnaire is included from Plus — remove the script or upgrade to deploy this Save", or the CSS equivalent). Surveys already live keep running. |
 | Flows | Runs get Free's 5 minutes and 512 MB. Saves may not add flows beyond 3 per project; existing ones stay. |
 | **Run to here** | 30 per hour per project, one at a time. |
@@ -178,6 +192,29 @@ freeze and resumes the surveys it paused.
 
 ---
 
+## Paid periods
+
+A beta year offer (see [The Billing tab](#the-billing-tab)) gives the
+organization a plan for a paid period that ends on a date. Studio shows it as
+paid, not as a trial:
+
+| Where | During a paid Plus period (example) |
+|---|---|
+| Topbar pill | `Plus · 200d`, hover "Paid period — 200 days left" |
+| Workspace chip menu | a `200d` pill, hover "Paid period — 200 days left" |
+| **Organizations** screen | **Paid period · 200d left** |
+| **Settings → Billing** | "**Plus · 200 days left of the paid period.** Full access to every Plus feature; one subscription covers the whole organization. …", and the Plus card carries a **paid period** pill |
+| Banner, last 3 days | "**Your paid Plus period ends in 3 days.** Afterwards, Free plan limits apply. Your data is preserved and stays exportable. Renew in Settings → Billing to keep using paid features." Once it is over: "**Your paid period has ended.**" |
+| Owners' emails, 7 and 1 day before | "Your Siamang Studio paid Plus period for *organization* ends in N day(s)" |
+| Owners' email at the end | "*organization* is now on the free plan — the Siamang Studio paid Plus period ended" |
+
+A paid period is not a trial: **email invitations** to respondents work, and
+the **AI assistant** has the plan's full monthly allowance, not the trial's
+one-off 500 credits. When the period ends, the organization moves to Free
+exactly as after a trial (see [When the trial ends](#when-the-trial-ends)).
+
+---
+
 ## The Billing tab
 
 **Settings → Billing** of an organization. Every member can open it, and **only
@@ -185,7 +222,7 @@ the owner can change the plan**. Other members see "Only the owner can change
 the organization's plan." and the plan buttons are disabled for them.
 
 ```
-┌ Pro · 27 days left. Full access to every Pro feature; …                      ┐
+┌ Pro trial · 27 days left. Full access to every Pro feature; …                ┐
 ┌ Beta offer: 12 months of Plus for $200 — one payment, 33% off …  [Get the Plus year] ┐
 ┌ Beta offer: 12 months of Pro for $800 — one payment, 33% off …   [Get the Pro year]  ┐
 ┌ Card, invoices and cancellation are managed in the Stripe portal. [Manage billing]   ┐
@@ -193,18 +230,31 @@ the organization's plan." and the plan buttons are disabled for them.
  ┌ Free ─────────┐ ┌ Plus ─────────┐ ┌ Pro  trial ───┐ ┌ Corporate ────┐
  │ Free          │ │ $25/mo        │ │ $99/mo        │ │ Custom        │
  │ Kick the …    │ │ Run real …    │ │ Scale …       │ │ Enterprise …  │
- │ • …           │ │ • …           │ │ • …           │ │ • …           │
- │ [Coming soon] │ │ [Coming soon] │ │ [Extend Pro]  │ │[Contact sales]│
+ │ • Core        │ │ • AI assistant│ │ • AI assistant│ │ • AI assistant│
+ │   features    │ │ • …           │ │ • …           │ │ • …           │
+ │               │ │ [Upgrade]     │ │ [Extend Pro]  │ │[Contact sales]│
  └───────────────┘ └───────────────┘ └───────────────┘ └───────────────┘
 ```
 
-**The status note** at the top shows the trial countdown while the
-organization has one. Once card payments are live it adds "Subscribe or
-extend now: **billing starts only when the free period ends**."
+The sketch shows an organization on the Pro trial once card payments are
+live. Until then, the cards' buttons read **Coming soon** (see the table
+below).
 
-**Plan cards.** One card per plan: its name (the plan you are trialing carries
-a **trial** pill and is highlighted), its price, a one-line summary and a
-short list of what it includes. The summaries read:
+**The status note** at the top shows the countdown while the organization
+has a trial or a paid period that ends on a date: "**Pro trial · 27 days
+left.**" or, for a paid period, "**Plus · 200 days left of the paid
+period.**", followed by "Full access to every *plan* feature; one
+subscription covers the whole organization. Afterward the organization
+switches to the free plan — your data and surveys are kept." Once card
+payments are live it adds "Subscribe or extend now: **billing starts only when
+the free period ends**." Without a countdown it reads "The Siamang engine is
+source-available; Studio is billed per plan. One subscription covers the whole
+organization."
+
+**Plan cards.** One card per plan: its name (the plan whose trial or paid
+period is running is highlighted and carries a **trial** or **paid period**
+pill), its price, a one-line summary and the list of what it includes. The
+summaries read:
 
 | Plan | Summary on the card |
 |---|---|
@@ -217,14 +267,25 @@ short list of what it includes. The summaries read:
 > not available as Studio connectors. The connector lists above are what each
 > plan actually includes.
 
+Under the summary, each card lists the features the plan unlocks:
+
+| Card | Listed features |
+|---|---|
+| Free | Core features |
+| Plus | AI assistant · Connectors · Custom CSS in the survey theme · Custom JavaScript in surveys · Email invitations · Organization library · Live tiles recomputed on new responses · Scheduled runs · Webhooks |
+| Pro | the Plus list, with **Larger AI model for drafts from a brief** after **AI assistant** |
+| Corporate | the Pro list, plus **Self-hosting** |
+
+Single sign-on is not listed on any card: it is not available in the beta.
+
 The button at the bottom of a card is one of:
 
 | Button | Meaning |
 |---|---|
-| **current plan** (a label) | the plan the organization is on, when it is not on a trial |
-| **Upgrade** | a higher plan than the current one; opens the checkout dialog (owner only) |
-| **Extend Pro** | on the plan you are trialing; subscribes now, with billing starting when the trial ends (owner only) |
-| **Coming soon** (disabled) | card payments are not live yet in the beta ("Available at the official release") |
+| **current plan** (a label) | the plan the organization is on, when no trial or paid period is running |
+| **Upgrade** | a higher plan than the current one (during a trial or a paid period, whichever of Plus and Pro is not the running plan); opens the checkout dialog (owner only) |
+| **Extend Pro** / **Extend Plus** | on the plan whose trial or paid period is running; subscribes now, with billing starting when the running period ends (owner only) |
+| **Coming soon** (disabled) | card payments are not live yet in the beta ("Available at the official release"). Until they are, every card except the current plan and Corporate shows it. |
 | **Contact sales** (disabled) | Corporate is arranged with the Siamang team, not bought in the app ("Sales-assisted — coming soon"). Write to `info@siamang-team.org`. |
 
 There is no button to move to a lower plan on the cards. See
@@ -245,7 +306,7 @@ buy again. An offer cannot be added on top of an active monthly subscription
 ("…a subscription is active; a year offer cannot be added to it — cancel the
 subscription first"). After the deadline the offers disappear.
 
-**The checkout dialog.** **Upgrade**, **Extend Pro** and the offer buttons
+**The checkout dialog.** **Upgrade**, **Extend Pro** (or **Extend Plus**) and the offer buttons
 open **Switch to *plan***, which shows the plan and its price (`$25/mo`,
 `$99/mo`, `$200 one-time`, `$800 one-time`), and the line "Plans, trials and
 year offers are described in the Terms of Use; how we handle your data is in
@@ -299,9 +360,9 @@ checkout it answers "Could not open the billing portal. No billing account yet
 
 | Limit | What you see |
 |---|---|
-| Projects | **New project** is disabled on the **Projects** tab and in the workspace chip menu ("Your plan allows 2 projects — upgrade to add more"). The **Projects** tab adds the note "You've reached the **2-project** limit on the free plan. **Upgrade your plan** to add more." The API answers "Could not create project. Plan 'free' allows up to 2 projects; upgrade to add more." |
+| Projects | **New project** is disabled on the **Projects** tab, in the workspace chip menu and on the **Library** tab ("Your plan allows 2 projects — upgrade to add more"). The **Projects** tab adds the note "You've reached the **2-project** limit on the free plan. **Upgrade your plan** to add more." The API answers "Could not create project. Plan 'free' allows up to 2 projects; upgrade to add more." |
 | Members | **Invite member** is disabled ("Your plan allows 2 members — upgrade to add more") with a similar note. Pending invitations count toward the limit: "Could not add member. Plan 'free' allows up to 2 members; upgrade to add more." |
-| Responses | The survey stops accepting new completed responses once it has reached the cap. |
+| Responses | Once the project's completed responses, all environments together, reach 1,000, its surveys stop accepting new completions. A respondent who opens the link then sees "Thank you for your interest" / "We have already reached our target sample for participants like you." (or the survey's own wording of that screen from **Theme → Wording**, and its quota-full redirect if it has one); someone already answering sees it when they submit. Screen-outs are still recorded. A survey published before this behavior shows the notice only on submitting: republish it so respondents see it as the page opens. |
 | Storage | "Upload failed. Plan 'free' allows up to 250 MB of stored files; delete files or upgrade to add more." |
 | Flows per project | the Save is refused: "Save failed. Plan 'free' allows up to 3 analysis flows per project; this Save would have 4 — delete one or upgrade." |
 | Access codes | the Save is refused: "Save failed. Plan 'free' allows up to 100 access codes; this Save would have 150." |

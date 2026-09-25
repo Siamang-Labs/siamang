@@ -63,6 +63,33 @@ an older version was not restored — the document has been saved since."
 > over is for when someone left a tab open and went to lunch, not for
 > tug-of-war.
 
+### Renaming, duplicating and deleting a flow
+
+The edit lock also protects a flow from being renamed or deleted under the
+person editing it:
+
+- In the flow editor's **More** menu, **Rename flow…** and **Delete flow…** are
+  disabled while you follow a colleague (tooltip "*Anna* is editing").
+- From the ⋮ menu on the **Flows** screen, **Rename…** and **Delete…** of a
+  flow a colleague has open are refused with "*Anna* is editing *flow*; it can
+  be renamed once they are done." ("… it can be deleted once they are
+  done.").
+- A flow with your own unsaved changes cannot be renamed either. In the editor,
+  **Rename flow…** is disabled with the tooltip "Save first"; from the Flows
+  screen, **Rename…** is refused with "*flow* has unsaved changes. Open it and
+  save them (or undo them) first: renaming saves the last saved version, and
+  the changes would be lost."
+- **Rename…** and **Duplicate…** always start from the flow as last saved on
+  the server, including a colleague's Save made after you opened the project,
+  so they never bring back an older copy.
+
+A rename moves the flow's schedules and comment threads to the new name, and
+**Live** keeps showing its latest tiles; its past runs and reports keep the old
+name. Restoring a Save from before the rename moves the schedules and comments
+back. Each of these actions is an ordinary Save ("Rename flow *a* to *b*",
+"Duplicate flow *a* as *b*", "Delete flow *a*"). See
+[Rename, duplicate or delete a flow](Studio-Flows#rename-duplicate-or-delete-a-flow).
+
 ---
 
 ## Drafts are per person
@@ -114,9 +141,14 @@ badge ("2 open comments").
   comments when they look at the element.
 - **Not live.** Comments load when you open the project. To see colleagues' new
   comments, reload the page or reopen the project.
-- **Tied to ids and names.** A thread belongs to a question's id, a page's name
-  or a node's id. If you rename one, its comments no longer appear on it;
-  renaming it back makes them reappear.
+- **Tied to ids and names.** A thread belongs to a question's id (the
+  **Advanced → Id** field, "names the question in scripts and comments; logic
+  and data use the variable"), a page's name, a node's id or a flow. If you
+  change a question's id, a page's name or a node's id, its comments no longer
+  appear on it; changing it back makes them reappear. Renaming a question's
+  **variable** does not touch its id, so its comments stay. A flow's comments
+  follow it when you rename it with **Rename…** (see
+  [above](#renaming-duplicating-and-deleting-a-flow)).
 - Comments cannot be edited in the app, are not part of Saves and bundles, and
   are not recorded in Activity.
 - Only the oldest 500 comments of a project are loaded.
@@ -143,8 +175,10 @@ with **Cancel**, **Reload #18** and **Save on top**:
   **Compare with** in History shows exactly what differs. To recover them,
   re-apply them by hand or restore #18.
 
-Settings changes (study metadata, runtime, reports, adding a connector) and
-restores are saved without this check.
+Settings changes (study metadata, runtime, reports, adding a connector),
+restores, and renaming, duplicating or deleting a flow are saved without this
+check. A rename or a duplicate reads the flow as last saved on the server
+first, so it does not undo a colleague's newer Save of that flow.
 
 Because the edit lock normally keeps two people from editing the same document
 at once, a conflict usually means someone saved a *different* document, or the
@@ -160,6 +194,7 @@ do in the areas on this page:
 | | member | admin | owner |
 |---|---|---|---|
 | Edit, Save, restore, pre-register, deposit | yes | yes | yes |
+| Rename, duplicate and delete flows | yes | yes | yes |
 | Take the edit lock, take over | yes | yes | yes |
 | Comment, resolve, delete own comments | yes | yes | yes |
 | Delete anyone's comments | — | yes | yes |
@@ -175,17 +210,25 @@ a short reason, or left out:
 | Control | What a member sees |
 |---|---|
 | **New project** | disabled — "Only owners and admins can create projects"; an empty Projects screen adds "Only owners and admins can create projects — ask one to set it up." |
+| **New project** on Library → **Templates** and on an **Organization library** questionnaire | disabled — "Only owners and admins can create projects"; under Templates: "Only owners and admins can create projects — ask one to set it up." |
 | **Save changes** on Settings → General (rename) | disabled — "Only owners and admins can rename a project." |
+| **Delete project** on Settings → **Danger Zone** | disabled — tooltip "Only owners and admins can do this"; the card says "Only owners and admins can delete a project." |
 | **Add secret** and **Delete** on Settings → Secrets | disabled — "Only owners and admins can add or delete secrets." |
 | **Run export** / **Run import** on a connector | disabled — "Only owners and admins can run a connector" |
 | **Delete** on a row of the `responses` table (**Data** tab) | not shown |
 | **Webhooks** card in Organization settings → Integrations | "Only owners and admins can see and manage the organization's webhooks." |
 | **Activity** tab in Organization settings | not shown |
 
-Two of these actions still answer only when used: **Delete project** in
-Settings → **Danger Zone** ("Could not delete project. You do not have
-permission to do this.") and **Save secret** inside a connector's dialog
-("Could not add secret. You do not have permission to do this.").
+One owner-and-admin action still answers only when used: **Save secret**
+inside a connector's dialog ("Could not add secret. You do not have
+permission to do this.").
+
+In the organization **Library** *(Plus)*, any member can save items, but only
+owners, admins and the member who saved an item can replace or delete it. For
+a member, the delete icon of an item someone else saved is disabled (tooltip
+"Only owners and admins can delete an item another member saved"), and a note
+under the table says "Only owners and admins can delete items other members
+saved." See [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]].
 
 The full matrix, and how to invite people and change roles, is in
 [[Organizations and Team|Studio-Organizations-and-Team]].

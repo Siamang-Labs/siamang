@@ -45,12 +45,19 @@ When you add a question, Studio creates its variable for you:
   for a Multiple choice switched to the wide layout, one per choice named
   after the choice's code (`q7_1`, `q7_2`, …); for MaxDiff and Conjoint, one
   per task plus a version variable (see
-  [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]). If a name is taken,
-  `_2`, `_3`, … is added.
+  [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]). If a name is taken —
+  by a variable, a codebook entry or another question's Id — `_2`, `_3`, … is
+  added.
 - **Label** — the question's text when the variable is created, or its **Id**
   while the text is still "New question" (so most new questions get the Id);
-  for a wide Multiple choice, each choice's label. Write a real label — it is
-  what SPSS, the Data tab and every table show.
+  for a wide Multiple choice, each choice's label; for a Matrix row, "<question
+  text> — <statement>". Write a real label — it is what SPSS, the Data tab and
+  every table show.
+- **An extra variable for Other** — a question with **Add “Other (please
+  specify)”** on also gets `<variable>_other` (for a wide Multiple choice,
+  `<Id>_other`) for the typed text: nominal, text, labeled "<question text> —
+  other (please specify)". Its **Used by** is the question, and it follows the
+  question's variable when you rename it.
 - **Scale** — from the type:
 
   | Type | Scale |
@@ -59,8 +66,10 @@ When you add a question, Studio creates its variable for you:
   | Likert scale, Matrix rows, Ranking | ordinal |
   | Number | ratio |
 
-- **Value labels** — from the choices, scale points or matrix columns (see
-  [Value labels](#value-labels)).
+- **Value labels** — from the choices, scale points or matrix columns, plus
+  the codes that **Other**, **None of the above** and **N/A** store (see
+  [Value labels](#value-labels) and
+  [Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na)).
 
 ---
 
@@ -73,11 +82,18 @@ In the Builder, select the question: its **Variable** section (marked
 
 | Field | Notes |
 |---|---|
-| name | editable, including each variable of a wide Multiple choice; applied when you leave the field or press `Enter` (see [Renaming a variable](#renaming-a-variable)). Matrix, MaxDiff and Conjoint variables are named by the question and cannot be renamed here. |
+| name | editable, including each variable of a wide Multiple choice and each row variable of a Matrix; applied when you leave the field or press `Enter` (see [Renaming a variable](#renaming-a-variable)). MaxDiff and Conjoint variables are named by the question and cannot be renamed here. |
 | scale | **nominal**, **ordinal**, **interval**, **ratio** |
 | **Variable label (as in SPSS)** | the label |
 | value labels | shown read-only as `1=Strongly disagree · 2 · …` |
 | **Min** / **Max** | the valid range; shown only when the scale is **ratio** or **interval** |
+
+Under the cards, a Matrix adds "Matrix rows write one variable each, in the
+order of Options → Rows; rename a row's variable here." Once the
+questionnaire has been published, the section also says: "This questionnaire
+has been published. Renaming a variable renames its column in the data:
+answers already collected keep the old name, answers collected after you
+publish again get the new one."
 
 ### The Codebook tab
 
@@ -90,12 +106,13 @@ table:
 | **Label** | editable in place (`—` when empty) |
 | **Scale** | editable in place |
 | **Values** | **N labels** (click to open the row), or the valid range as `18 … 99`, or the data type (click to open the row) |
-| **Used by** | the Id of each question that writes the variable — click to jump to it in **Structure** — or **unused** |
+| **Used by** | the Id of each question that writes the variable (for `<variable>_other`, the question whose Other text it holds) — click to jump to it in **Structure** — or **unused** |
 | (last) | **Delete**, for a variable no question uses |
 
 Opening a row shows three more fields: **Value labels** (code and label rows,
-**+ Label**, and — for a variable a question writes — the hint "choice
-questions overwrite these on edit"), **Description** and **Missing codes**
+**+ Label**, and — for a variable a question writes — the hint "a code keeps
+its label here until the question changes that code's choice or scale
+point"), **Description** and **Missing codes**
 ("code, then its label — e.g. -9 Refused, -8 Don't know"; see
 [Missing codes](#missing-codes)). With no questions yet the tab says "No
 variables yet — every question you add creates one."
@@ -126,27 +143,38 @@ ordinal choice variable without value labels gets `CATEGORICAL_WITHOUT_LABELS`.
 
 ## Value labels
 
-For most question types Studio writes the value labels for you — and rewrites
-them **every time you edit the question**, so the codebook always follows the
-question:
+For most question types Studio writes the value labels for you and keeps them
+in step with the question — but only as far as the question changes:
 
-| Type | Value labels come from | Rewritten on every edit of the question |
-|---|---|---|
-| Single choice, Multiple choice (array layout), Ranking | the choices | yes |
-| Multiple choice (wide layout) | `0` No, `1` Yes on every per-choice variable; the choice's label becomes the variable label | yes |
-| Likert scale | the points: `1 — <left label>`, `2`, …, `N — <right label>` | yes |
-| Matrix | the columns, coded `1` … *n* | yes (every row variable) |
-| MaxDiff | the items | yes (every task variable) |
-| Conjoint | "Concept 1" … "Concept *n*" (and the "none" text) | yes (every task variable) |
-| Number, Open text | — | no: the labels are yours to write |
+| Type | Value labels come from |
+|---|---|
+| Single choice, Multiple choice (array layout), Ranking | the choices, plus the codes Other and None of the above store |
+| Multiple choice (wide layout) | `0` No, `1` Yes on every per-choice variable; the choice's label becomes the variable label |
+| Likert scale | the points: `1 — <left label>`, `2`, …, `N — <right label>`, plus the N/A code |
+| Matrix | the columns, under the codes they store — `1` … *n* for a matrix you build — plus the N/A code, on every row variable |
+| MaxDiff | the items, on every task variable |
+| Conjoint | "Concept 1" … "Concept *n*" and the "none" text, on every task variable |
+| Number, Open text | — the labels are yours to write |
 
-So: change answer wording in the question (choices, scale labels, columns), not
-in the Codebook tab — edits there to a variable of the types marked "yes" are
-overwritten the next time you touch the question (for a wide Multiple choice,
-the variable labels too). For a Likert scale this means
-the middle points are labeled with their numbers only; if every point needs
-words, use a **Single choice** with **Display → buttons** and one option per
-point.
+The rule: **a code keeps the label the Codebook has for it until an edit of
+the question changes that code's own choice, scale point, column, item or
+concept label.** Then that code takes the question's new label. So:
+
+- a label you write in the Codebook tab survives editing the question text,
+  its hint, **Required**, or another choice — for a Likert scale you can label
+  the middle points (`3 = Neither agree nor disagree`) in the Codebook, and
+  they stay;
+- relabeling a choice, column or item in the question replaces that code's
+  label in the Codebook;
+- a code the question stops using (a removed choice) loses its label;
+- a code you added by hand in the Codebook, which the question never had,
+  stays.
+
+The same goes for the variable labels that follow a part of the question: a
+wide Multiple choice variable takes its choice's new label only when that
+choice is relabeled, and a Matrix row variable is relabeled "<question text> —
+<statement>" only when the question text or that statement changes. A label
+you write for either in the Codebook stays through every other edit.
 
 Codes are what the data stores; the label is only its meaning. The engine warns
 with `OPTION_CODE_WITHOUT_LABEL` when a choice's code has no value label.
@@ -161,8 +189,14 @@ range limits the input and sets the slider's ends. A range whose Min is greater
 than its Max makes the questionnaire impossible to save. The engine warns with
 `RANGE_LABEL_MISMATCH` when a value label falls outside the range.
 
-The runtime does not stop a respondent from typing an out-of-range number; see
+For a Number question the survey enforces the range: a number typed below
+**Min** or above **Max** shows "Minimum value is …" or "Maximum value is …"
+and **Next** does not move on until it is corrected; see
 [Number](Studio-Question-Types#number).
+
+On a variable with a valid range (an NPS 0–10, a CES 1–7), the codes that
+**Other** and **None of the above** store (`-66`, `-77`) are also declared as
+missing codes, so the range check and the means leave them out.
 
 ---
 
@@ -207,9 +241,19 @@ A missing code that is not among the variable's value labels triggers the
 warning `MISSING_CODE_NOT_IN_LABELS` — it still works, but the refusal code
 never appears as a category.
 
+**Declared for you.** Turning on **Offer “N/A”** on a Likert scale or a Matrix
+declares the not-applicable code itself: `-1 Not applicable`, of kind
+*not applicable*, with the value label `-1 = Not applicable` — on every row
+variable of a matrix (except a matrix without column headers, which keeps
+storing `na`; see [Matrix](Studio-Question-Types#matrix)). The survey then
+stores `-1` for N/A instead of the text `na`. Turning the option off leaves the declaration in place, so answers
+already stored with `-1` stay missing. See
+[Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na).
+
 **In the Source tab.** Two things need **More ▾ → Source**:
 
-- the **kind** of a missing code. Add `"kind"` to the entry in the variable's
+- the **kind** of a missing code (other than the not-applicable code **Offer
+  “N/A”** declares for you). Add `"kind"` to the entry in the variable's
   `"missing"` list:
 
   ```json
@@ -235,13 +279,25 @@ labels. A five-statement battery gives five ordinal variables, ready for an
 index or a reliability check without reshaping.
 
 Builder-made matrices name their variables `<base>_1`, `<base>_2`, … (for
-question `q4`: `q4_1`, `q4_2`, …). They cannot be renamed in the Builder; to
-give rows meaningful names (`trust_gov`, `trust_press`), edit the `var` list
-and the `variables` entries in the **Source** tab, or start from a question
-bank block such as *Trust in institutions*, whose rows are already named. Each
-row variable's label ("<question> — <statement>") is set when the row is
-created and does not follow later edits of the statement — update it in the
-Codebook tab.
+question `q4`: `q4_1`, `q4_2`, …). To give rows meaningful names
+(`trust_gov`, `trust_press`), rename them in the question's **Variable**
+section, which has a name field per row, in the order of **Options → Rows**
+(hover a row's number there to see its variable) — or start from a question
+bank block such as *Trust in institutions*, whose rows are already named.
+
+Each row keeps its own variable: removing a row removes its variable and its
+codebook entry, and the rows below keep theirs, so their data columns stay
+where they were. A new row gets the next free `<base>_<n>`, with the first
+row's value labels, missing codes and valid range. Each row
+variable's label reads "<question text> — <statement>" and follows edits of
+the statement; a label you write yourself in the Codebook tab stays until the
+question text or that statement changes.
+
+The answer stored for a row is the code of the chosen column, as the value
+labels give it: `1` … *n* in a matrix you build, `0` … `10` in *Trust in
+institutions*. Renaming a column keeps its code, and moving or removing a
+column leaves the other columns' codes as they are; see
+[Matrix](Studio-Question-Types#matrix).
 
 ---
 
@@ -254,50 +310,69 @@ Codebook tab.
   each choice (`brands` becomes `brands_1`, `brands_2`), each coded `0` No /
   `1` Yes and labeled with its choice. Adding, removing or relabeling a choice
   keeps the variables in step, and clicking **array** collapses them back
-  into one variable. Details in
+  into one variable. In the data each per-choice variable is `1` when the
+  option was chosen, `0` when the question was answered without it, and empty
+  when the question was not answered or the option was hidden by its own
+  condition. Conditions, piping and quotas on a per-choice variable
+  (`brands_1 = 1`) work, and so do exclusive choices. Details in
   [Multiple choice](Studio-Question-Types#multiple-choice).
 
-> **Current limitation.** The published survey does not yet write the wide
-> layout as 0/1 columns: real responses arrive as one column named after the
-> question's Id, listing the chosen options' variable names, and the
-> per-choice variables stay empty (simulated data on **Test** does show 0/1
-> columns). Keep **array** for fieldwork, and when an analysis needs one 0/1
-> column per option, add an **Explode multiple choice** node in the flow ("One
-> 0/1 column per option of a multiple-answer question, so weights,
-> regression, clustering and TURF can read it."): **Multiple-choice
-> variable**, **Column prefix** (default: the variable's name and an
-> underscore, so option 1 becomes `brand_1`) and **Drop the original column**
-> (off).
+Responses collected by a survey built before the wide layout was stored this
+way — one column named after the question's Id, listing the chosen options'
+variables — are read into the per-choice variables in the Data tab, exports
+and flows: `1` for each chosen option, `0` for the others. See
+[Older surveys and responses](Studio-Question-Types#older-surveys-and-responses).
+
+For an **array** question, when an analysis needs one 0/1 column per option,
+add an **Explode multiple choice** node in the flow ("One 0/1 column per
+option of a multiple-answer question, so weights, regression, clustering and
+TURF can read it."): **Multiple-choice variable**, **Column prefix** (default:
+the variable's name and an underscore, so option 1 becomes `brand_1`) and
+**Drop the original column** (off).
 
 ---
 
 ## Renaming a variable
 
 Type the new name in the Variable card and press `Enter` (or leave the field).
-The name is lower-cased, and if it is taken, `_2` is appended. The new name
-gets a fresh codebook entry, the one Studio proposes for a new question: the
-question's text (or its Id) as its label, the type's default scale and, for choice
-questions, the choices as value labels. A label, scale, valid range, missing
-codes or description you had set stay on the **old** entry — copy them over
-in the Variable card or the Codebook tab. From then on the question's answers
-are stored under the new name.
+The name is lower-cased, and if it is taken — by another variable, a codebook
+entry or another question's Id — `_2` is appended. From then on the
+question's answers are stored under the new name.
+
+Renaming renames the variable **everywhere the questionnaire uses it**:
+
+- the question that writes it;
+- its **codebook entry**, which moves across whole — label, scale, value
+  labels, valid range, missing codes, description — and keeps its place, so
+  no **unused** entry is left behind under the old name;
+- **conditions**: **Show if** / **Hide if** on pages, blocks, questions and
+  options, and **Branch (next if)** rules;
+- **quotas** on the variable;
+- **piping**: `{answer:…}` and `{label:…}` in question texts, hints, page
+  titles and bodies;
+- **scripts**: a script whose target was the variable, and the answer
+  accesses in custom JavaScript (`answers.old_name`, `answers["old_name"]`);
+- the Other text column: `old_name_other` becomes `new_name_other`.
 
 What renaming does **not** do:
 
-- it does not rewrite **conditions**, **quotas**, **piping** or **scripts**
-  that use the old name — they keep pointing at it and silently stop working;
-- it does not remove the old entry: it stays in the Codebook tab as
-  **unused** (delete it there), and because it still exists no check warns
-  about the conditions that refer to it;
-- it does not change the question's **Id**. That is fine — the Id and the
-  variable name may differ — but do not give a variable the name of another
-  question's Id: the Save is then marked `errors` ("Question '…' has the id
-  under which question '…' stores its answer; …"). See
-  [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
+- it does not change a string inside custom JavaScript that merely holds the
+  name (`"old_name"` passed to a function) — check your scripts;
+- it does not change **flows**: a flow whose nodes name the old variable
+  fails the engine's check at the next Save — it is marked with errors and
+  cannot run — until you pick the new name in those nodes
+  ([[Analysis Flows|Studio-Flows]]);
+- it does not change the question's **Id** — the Id and the variable name may
+  differ (see
+  [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name));
+- it does not rename collected data. Once the questionnaire has been
+  published, the Variable section warns: "This questionnaire has been
+  published. Renaming a variable renames its column in the data: answers
+  already collected keep the old name, answers collected after you publish
+  again get the new one."
 
-After a rename, open **Logic map** and **Validation** and update every
-condition, quota and pipe that used the old name. Renaming a **page** is
-different: page references are updated for you.
+Renaming a **page** updates its references for you too (branch rules,
+**Default next**, **Skip to** and page scripts).
 
 ---
 

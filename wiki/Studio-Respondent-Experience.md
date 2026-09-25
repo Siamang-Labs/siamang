@@ -14,9 +14,18 @@ consent text, and use it to answer respondents' questions.
 - Published surveys ask search engines not to index them.
 - A link whose first build has not finished yet shows a plain "not found" page.
 - A closed environment shows "This survey is closed — The researchers have
-  stopped collecting responses." instead of the survey.
-- A survey past the questionnaire's deadline still opens; the "closed" notice
-  comes at submit (see [below](#paused-closed-and-full-surveys)).
+  stopped collecting responses." instead of the survey, and then sends the
+  respondent on to the environment's post-close redirect, if you set one.
+- As the page opens, the survey asks Studio whether it is collecting. A
+  survey that is paused, past its closing date or has reached its response cap
+  shows its notice at once, before the first question (see
+  [below](#paused-closed-and-full-surveys)). If Studio cannot be reached, the
+  survey simply opens.
+- With [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
+  on, a browser that has already answered sees "You have already taken part"
+  instead of the questionnaire.
+- A staged preview shows a bar along the bottom, "Preview — answers are not
+  stored".
 
 What they see first depends on your setup: the access-code gate (if you use
 codes), then your first page.
@@ -45,9 +54,11 @@ with the response.
 
 There is no built-in welcome or consent step: the first page of your
 questionnaire is the first thing respondents see. Use a page with a **Body**
-(intro text above the questions) for the introduction, and a required question
-for consent, with a branch to a **Screen-out** page for those who decline. See
-[[The Builder|Studio-Builder-Overview]] and
+(HTML, shown above the questions — or the whole page, on a page without
+questions) for the introduction, and a required question for consent, with a
+branch to a **Screen-out** page for those who decline. If you set **Estimated
+minutes** (Theme → Respondent experience), the first page says "About 6
+minutes" under its title. See [[The Builder|Studio-Builder-Overview]] and
 [[Logic and Branching|Studio-Logic-and-Branching]].
 
 Things your consent text should reflect (details below):
@@ -82,33 +93,48 @@ button.
 
 **Required questions.** Moving on with a required question unanswered shows
 "This question requires an answer." under it and scrolls to it. Format checks
-(email, phone, web address, date, time) show their own messages.
+(email, phone, web address, date, time) show their own messages. A Number
+outside its range shows "Minimum value is 1" or "Maximum value is 10" when the
+field is left and on **Next**, and a Multiple choice with **Min answers** and
+too few options ticked shows "Select at least 1 more" — in both cases **Next**
+waits until the answer is corrected. An exclusive answer such as "None of
+these" is a whole answer on its own, so **Min answers** does not hold it, and
+an optional question left empty can still be skipped.
 
 **Progress.** Unless you hide it, a progress bar runs across the top of every
-question page. Beside it stands "Welcome" on the questionnaire's first page,
-"Section N of M" on the pages after it and "Final thoughts" on its last page
-(fixed English texts). These labels follow each page's position in the
-questionnaire, end pages included, not the respondent's path: M counts the
-end pages too, and because a **Final**, **Screen-out** or **Redirect** page
-shows no bar, a survey that ends on one never shows "Final thoughts". Page
-counts shift under branching, so the bar is approximate on routed surveys. The
-setting is Builder → Theme → Appearance → **Progress**:
+question page, with a section label beside it: "Welcome" on the first page the
+respondent answers, "Section N of M" on the pages between and "Final thoughts"
+on the last one. The same label stands above each page's title. The labels and
+the bar count the question pages the respondent is shown, in the order they
+see them: pages hidden by a **Show if** / **Hide if** and end pages (**Final**,
+**Screen-out**, **Redirect**) are left out, so the last question page reads
+"Final thoughts" with a full bar. A page that routing jumps over still counts,
+so the bar can move in bigger steps on routed surveys. The settings are in
+Builder → Theme → Appearance → Question style → **Progress**:
 
 | Progress | Respondents see |
 |---|---|
-| **bar** (default) | the progress bar |
-| **dots** or **both** | the progress bar and, under it, a row of dots, one per page |
-| **hidden** | no progress bar; dots chosen earlier stay |
+| **bar** (default) | the progress bar with its text |
+| **dots** | only the page dots, one per question page, no bar |
+| **both** | the bar and the dots |
+| **hidden** | neither bar nor dots |
 
-The published survey follows this setting the same way the Builder's previews
-do. An environment keeps the build it was last published with, so one
-published before Studio added the bar to published surveys usually shows none
-until you republish it.
+- **Section labels** (a checkbox in the same card) off: no label above the
+  page title, and the text beside the bar reads "Page 2 of 5".
+- **Progress text** off: the bar has no text.
+- All these words can be changed in Theme → Wording.
+
+**Page dots.** A dot goes back to a page the respondent has already been
+through on the way to the current one; dots ahead, and dots of pages the
+routing skipped, are greyed out and do nothing. With **Allow going back** off,
+no dot goes back. Only pages actually visited are drawn as done.
+
+The published survey follows these settings the same way the Builder's
+previews do. An environment keeps the build it was last published with, so a
+survey published before these rules keeps its older progress display — where
+dots could jump forward past required questions — until you
+[republish](Studio-Publishing-and-Environments#republishing) it.
 See [[Theme and Branding|Studio-Theme-and-Branding]].
-
-> **Current limitation.** The page dots can be clicked, and a respondent can
-> jump **forward** to any page, past unanswered required questions and your
-> routing. Prefer **bar** when routing or required answers matter.
 
 **Light and dark.** Unless you fixed the color mode (Theme → Respondent
 experience → **Color mode**: **Always light** / **Always dark**), a small
@@ -142,16 +168,32 @@ hours**.
   appears). The saved answers are kept for 24 hours.
 - **Coming back.** Reopening the link in that browser within 24 hours shows a
   banner: "We saved your progress from earlier. Would you like to resume?"
-  with **Resume** (back to the page they left) and **Start over**. After 24
-  hours, or in another browser or device, they start from the beginning.
-- **Leaving the page.** Closing or reloading the tab with answers given asks
-  the browser's usual "Leave site?" question.
+  with **Resume** (back to the page they left, along the path they took — in
+  the same page order if your pages are shuffled) and **Start over**. After 24
+  hours, or in another browser or device, they start from the beginning. Each
+  survey keeps its own saved progress, so answers saved for one survey are
+  never offered in another.
+- **Once it is over.** When the interview is submitted, or ended by a full
+  quota, the browser keeps no saved progress: reopening the link starts a new
+  interview rather than offering to resume the finished one.
+- **Leaving the page.** Closing or reloading the tab asks the browser's usual
+  "Leave site?" question once the respondent has answered something in this
+  sitting and the interview is still running — not for a survey they opened
+  and left untouched.
 - **To your database.** Each time the respondent moves to another page, and
   when they switch away from the tab, the answers so far are sent to Studio as
   a **partial** response (at most 60 times per visit). The final submission
-  replaces that partial row. This is what feeds the drop-off funnel and lets an
-  invitation show as `started`. It needs a reasonably modern browser; very old
-  browsers send only the final submission.
+  replaces that partial row, and an interview that has ended is never sent
+  again as a partial, even if the thank-you page is reloaded. This is what
+  feeds the drop-off funnel and lets an invitation show as `started`. It needs
+  a reasonably modern browser; very old browsers send only the final
+  submission.
+
+> **Note.** A survey published before the current runtime sends no partial
+> responses and keeps one saved-progress slot shared by every survey on the
+> survey host. Republish it to get the behavior above (see
+> [Republishing](Studio-Publishing-and-Environments#republishing)); progress
+> saved by the older build cannot be resumed in the new one.
 
 ---
 
@@ -162,17 +204,20 @@ Then the thank-you page:
 
 ```
 ✓  Thank you for participating
-   Your responses help inform open research.
+   Thank you for your participation!
 
    Response ID   4817
    Submitted     6/4/2026, 2:41:07 PM
 ```
 
-- The message is yours to set (Builder → Theme → Respondent experience →
-  **Completion screen** → **Message**). The title "Thank you for participating"
-  cannot be changed there; for a title of your own, end the survey on a
-  **Final (thank you)** page, whose title and body you write (see
-  [Ending on a special page](#ending-on-a-special-page)).
+- The title and the message are yours to set (Builder → Theme → Respondent
+  experience → **Completion screen** → **Title** and **Message**; the defaults
+  are the two lines above). They are
+  shown where the survey ends without text of its own — on **Submit
+  responses**, or on a **Final (thank you)** page with no title or body; a
+  Final page's own title and body win (see
+  [Ending on a special page](#ending-on-a-special-page)). The words "Response
+  ID" and "Submitted" can be changed in Theme → Wording.
 - **Response ID** is the row number of the response — the `id` column in the
   Data tab. It is the simplest way for a respondent to identify their answers
   in a withdrawal or erasure request: ask them to note it, and see
@@ -181,21 +226,28 @@ Then the thank-you page:
   page adds "You will be redirected in 5 seconds. Click here if not
   redirected."
 - After completing, the same browser can start the survey again as a **new**
-  respondent: nothing prevents someone from answering twice, other than
-  [access codes](Studio-Distribution-Channels#access-codes) (which are
-  reusable) or your own checks in the analysis.
+  respondent — unless the environment has
+  [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
+  switched on, in which case reopening the link shows "You have already taken
+  part". That check lives in the browser only: a private window or another
+  device can still answer again, and
+  [access codes](Studio-Distribution-Channels#access-codes) are reusable. For
+  one answer per person, use personal links or your own checks in the
+  analysis.
 
 ### Ending on a special page
 
 | Page kind (Builder) | Respondent sees | Recorded as |
 |---|---|---|
-| **Final (thank you)** | the page's title and body (or the default thank-you texts) with Response ID | completed |
-| **Screen-out** | the page's title (default "Thank you") and body — no Response ID | submitted with `__status` = `screened_out` |
+| **Final (thank you)** | the page's title and body (or the Completion screen's title and message) with Response ID | completed |
+| **Screen-out** | the page's title (default "Thank you") and body (the Completion screen's message when the page has none) — no Response ID | submitted with `__status` = `screened_out` |
 | **Redirect** | "Redirecting you now. Continue if you are not redirected." — then the page's URL after its delay (5 s by default) | completed |
 
 Reaching one of these pages submits the response at once; any redirect happens
-only after the response is stored. A screened-out response counts toward the
-environment's response cap. Panel redirects are covered in
+only after the response is stored. The title and body can pipe earlier answers
+(`{answer:…}`, `{label:…}`). A screened-out response is stored even when the
+response cap is full, and it does not count toward the cap or fill a quota
+cell. Panel redirects are covered in
 [[Panel Providers|Studio-Panel-Providers]].
 
 ---
@@ -214,9 +266,10 @@ We could not save your responses. Attempt 1 of 3.
 
 - **Try again** sends the answers again.
 - **Save locally and finish** shows the thank-you page, but the answers are
-  **only kept in that browser** (for 24 hours) — they **never reach you**. If a
-  respondent tells you they used it, ask them to reopen the link in the same
-  browser within 24 hours, **Resume**, and submit again.
+  **only kept in that browser** (for 24 hours) — they are **not submitted**; at
+  most the progress the survey saved along the way reaches you, as a partial
+  response. If a respondent tells you they used it, ask them to reopen the
+  link in the same browser within 24 hours, **Resume**, and submit again.
 - After the third failed attempt: "Submission error — We could not save your
   responses. Please refresh and try again."
 
@@ -224,28 +277,43 @@ We could not save your responses. Attempt 1 of 3.
 
 ## Paused, closed and full surveys
 
-These notices cover the whole page. Most of them appear **when the respondent
-submits** — not when they open the link — so someone can fill in the whole
-questionnaire first.
+These notices cover the whole page. The survey checks its state **as the page
+opens**, so someone who arrives at a paused, closed or full survey learns it
+before answering anything. Someone who was already answering when the state
+changed meets the same notice **when they submit** — or, for a pause or a
+closing, in a survey with quotas, as soon as a quota check runs when they
+leave a page.
 
 | Situation | When the respondent sees it | Title | Text |
 |---|---|---|---|
-| Environment **paused** | at submit | **This survey is paused** | "The researchers have paused collection. Please try again later." |
-| Environment **closed** | on opening the link; or at submit if they already had the page open | **This survey is closed** | "The researchers have stopped collecting responses." |
-| Questionnaire **deadline** passed | at submit — the survey itself still opens | **This survey is closed** | "The researchers have stopped collecting responses." |
-| **Response cap** reached | at submit | **Thank you for your interest** | "We have already reached our target sample for participants like you." — followed, after 3 seconds, by the panel's quota-full URL if you set one |
-| **Preview** deployment | at submit | the "Submission failed" dialog | previews never collect |
+| Environment **paused** | on opening the link; at submit if they already had the page open | **This survey is paused** | "The researchers have paused collection. Please try again later." |
+| Environment **closed** | on opening the link; at submit if they already had the page open | **This survey is closed** | "The researchers have stopped collecting responses." — then, after 3 seconds, the environment's post-close redirect if you set one (the static closed page also says "Redirecting you now. Continue if you are not redirected.") |
+| **Closing date** passed | on opening the link; at submit if they already had the page open | **This survey is closed** | "The researchers have stopped collecting responses." — then, after 3 seconds, the post-close redirect if you set one |
+| **Response cap** reached | on opening the link; at submit if they already had the page open | **Thank you for your interest** | "We have already reached our target sample for participants like you." — followed, after 3 seconds, by the panel's quota-full URL if you set one |
+| **Quota cell** full | when they leave the page holding an answer whose cell is full | **Thank you for your interest** | the same text, plus "Redirecting you now. Continue if you are not redirected." when a quota-full URL is set; see [When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full) |
+| **One response per browser**, already answered | on opening the link, or at submit in a second tab | **You have already taken part** | "This survey takes one response from each browser, and this browser has already sent one. Thank you!" |
+
+A **preview** never shows these notices: it carries the banner "Preview —
+answers are not stored" and ends on the survey's normal completion page.
 
 A paused respondent's answers stay in their browser for 24 hours: if you resume
 collection within that time and they reopen the link, they can pick up where
-they left off. While a survey is paused, closed or past its deadline, progress
-of unfinished interviews is not saved to your database either. These notices
-are fixed texts and cannot be reworded. See
-[Deadlines](Studio-Publishing-and-Environments#deadlines).
+they left off. While a survey is paused, closed or past its closing date,
+progress of unfinished interviews is not saved to your database either. If the
+survey page cannot reach Studio as it opens, it opens normally, and the
+submission is still checked.
 
-> **Current limitation.** Full quota cells do not yet turn respondents away;
-> only the environment's response cap does. See
-> [Response caps](Studio-Publishing-and-Environments#response-caps).
+The two "Thank you for your interest" texts follow Theme → Wording → **Quota
+full: title** and **Quota full: text** when you reword them. The paused and
+closed notices and "You have already taken part" are fixed English texts. See
+[Deadlines](Studio-Publishing-and-Environments#deadlines) and
+[Response caps](Studio-Publishing-and-Environments#response-caps).
+
+> **Note.** The page-open check, the post-close redirect on the survey page,
+> quota cells that stop respondents and One response per browser come with the
+> current runtime. A survey published before it shows the paused, closed and
+> cap notices only at submit, and lets everyone through a full quota cell,
+> until you [republish](Studio-Publishing-and-Environments#republishing) it.
 
 ---
 
@@ -259,14 +327,20 @@ are fixed texts and cannot be reworded. See
 | URL parameters | `url_<name>` for up to 8 parameters of the link (a panel id, a source tag, an invitation token) |
 | `tab_switches`, `hidden_seconds`, `pastes` | how often they left the tab, for how long in total, and how many times they pasted — counts only, no content |
 | `captcha` | `pass` or `unavailable`, when the captcha is on |
-| `respondent_id` | a random identifier created in their browser to connect the partial and final saves; it is not derived from anything about the person |
+| `respondent_id` | a random identifier created in their browser to connect the partial and final saves (and to keep a seeded random draw, such as an assigned arm, the same after a reload); it is not derived from anything about the person, and the browser drops it when the interview ends |
 
 **Not recorded:** IP address, browser or device details, location, keystrokes,
 or which access code was entered. (Network addresses are used briefly to limit
-abuse, and are not stored with responses.)
+abuse, and are not stored with responses. With the captcha on, the address is
+also passed to Cloudflare to verify the check — see below.)
 
 **In the respondent's browser**, the survey keeps the autosaved answers (24
-hours), the random respondent id and the light/dark choice.
+hours, removed once the interview is submitted or ended by a full quota), the
+random respondent id of an interview in progress, the time an interview in
+this browser last ended, and the light/dark choice. With
+[One response per browser](Studio-Distribution-Channels#one-response-per-browser)
+on, it also notes that this browser has answered. Nothing of this is sent to
+Studio beyond the responses themselves.
 
 **Identifiable responses.** A response becomes linked to a person when the link
 carried something personal: an [[email invitation|Studio-Email-Invitations]]
@@ -275,7 +349,9 @@ parameter you added yourself. Say so in your consent text.
 
 **Captcha.** With the [captcha](Studio-Distribution-Channels#captcha) on, the
 page loads Cloudflare Turnstile, which checks the browser invisibly when the
-respondent submits.
+respondent submits. Cloudflare sees each respondent's IP address and browser,
+and Studio sends Cloudflare the respondent's IP address with the token to
+verify it. Name Cloudflare Turnstile in your privacy notice.
 
 See also [[Security and Privacy|Studio-Security-and-Privacy]].
 
@@ -295,15 +371,24 @@ See also [[Security and Privacy|Studio-Security-and-Privacy]].
 ## Changing the wording
 
 Most fixed phrases can be reworded — or translated — in **Builder → Theme →
-Wording**, grouped as **Buttons and navigation** (Next, Previous, Submit,
-"Page", "of"), **Answering** (the required-question message and more),
-**Saving and resuming** ("Submitting your responses…", "Saving…", the resume
-prompt and its buttons), **When something fails** (the submission-failed dialog
-and its buttons) and **Access code** (the gate's title, text, field and
-button). The thank-you message is under **Theme → Respondent experience →
-Completion screen**; the thank-you title, the progress labels ("Welcome",
-"Section N of M", "Final thoughts") and the paused, closed and cap notices
-cannot be changed. See
+Wording**, grouped as **Buttons and navigation** (Next, Previous, Submit, the
+section labels "Welcome", "Section {n} of {total}" and "Final thoughts",
+"Page", "of", the estimated time), **Answering** (the required-question
+message, "Other", "None of the above", "Not applicable", the range, format and
+too-few-choices messages, and more), **Saving and resuming** ("Submitting your
+responses…", "Saving…", the resume prompt and its buttons), **At the end**
+("Response ID", "Submitted", the screen-out title, the redirect texts), **When
+something fails** (the submission-failed dialog, its buttons and the error
+screens), **Closed or full** (the quota-full title and text), **Around the
+survey** (the Privacy and Contact links, the skip link) and **Access code**
+(the gate's title, text, field, button and wrong-code message). In a text,
+`{n}`, `{total}`, `{min}`, `{max}`, `{minutes}` and `{seconds}` are filled in
+by the survey. The thank-you title and message are under **Theme →
+Respondent experience → Completion screen**. The paused and closed notices
+Studio shows, the static closed page and "You have already taken part" stay in
+English; the **Survey closed** fields under **Closed or full** do not change
+them. Screen-reader-only labels (the names of the page dots, "Loading
+survey", the light/dark button) are English too. See
 [[Theme and Branding|Studio-Theme-and-Branding]].
 
 ## See also

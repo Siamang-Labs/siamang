@@ -19,10 +19,10 @@ question you are answering:
 
 | Section | Blurb | Answers |
 |---|---|---|
-| **Appearance** | "How the questionnaire looks to respondents." | colors, typography, question style, progress |
+| **Appearance** | "How the questionnaire looks to respondents." | colors, typography, question style, progress, section labels |
 | **Branding** | "Whose study this is, and what carries its name." | logo, institution, subtitle |
 | **Respondent experience** | "What a respondent can see, do and read." | light/dark, navigation, survey information, completion screen |
-| **Wording** | "Every fixed phrase the runtime shows." | the 22 runtime texts |
+| **Wording** | "Every fixed phrase the runtime shows." | the 68 runtime texts |
 | **Advanced** | "Rarely needed, and nothing here is checked for you." | measurements, typefaces, custom CSS |
 
 - The number beside a section in the index is how many settings **this
@@ -41,6 +41,9 @@ question you are answering:
 - If your organization has a house style that this study does not follow, a
   banner offers **Use the organization's house style** (see
   [below](#the-organizations-house-style)).
+- Everything here is built into the survey when you publish. A survey already
+  in the field keeps the look and wording of the build it was published with
+  until you publish it again.
 
 There are no ready-made theme presets. The closest thing is the **Font
 preset**, and the house style gives you your own starting point.
@@ -99,40 +102,62 @@ The fonts load from Google Fonts. To use your own typefaces, see
 |---|---|---|
 | **Style** | **plain**, **carded**, **divided**, **accent** | plain |
 | **Progress** ("hidden removes the indicator entirely") | **bar**, **dots**, **both**, **hidden** | bar |
+| **Section labels** ("“Welcome”, “Section 2 of 5”, “Final thoughts” above each page title; off, the progress text reads “Page 2 of 5”") | checkbox | on |
+| **Progress text** ("the words beside the progress bar") | checkbox | on |
 
 The published survey, the header **Preview** and the Builder's previews
 (canvas, Walkthrough, share link) all show the same indicator:
 
 | Progress | What respondents see |
 |---|---|
-| **bar** | a bar with a section label |
-| **dots** | the bar **and** a row of page dots |
+| **bar** | the progress bar and its text |
+| **dots** | a row of page dots, and no bar |
 | **both** | the bar and the page dots |
-| **hidden** | no bar; but if **dots** or **both** was chosen before, the page dots stay |
+| **hidden** | neither, whatever was chosen before |
 
 Choosing **bar**, **dots** or **both** switches the indicator on;
 **hidden** switches it off. A questionnaire that says nothing about progress
 shows the bar.
 
-> **Current limitation.** The **Progress** setting does not yet behave
-> exactly as its labels say:
->
-> - **dots** shows the bar as well as the dots, the same as **both**.
-> - To show **no indicator at all**: choose **bar**, then **hidden**.
-> - The text beside the bar is always "Welcome" on the first page, "Section N
->   of M" in between and "Final thoughts" on the last page. It cannot be
->   changed.
-> - The page dots can be clicked. Respondents can jump **forward** to any
->   page, past unanswered required questions and your routing. Prefer the bar
->   when routing or required answers matter.
+**What the indicator counts.** The bar and the words count the question
+pages open to the respondent, in the order they get them: pages hidden by
+their Show if / Hide if, and end pages (Final, Screen-out, Redirect), are left
+out. A page that a branch rule or Skip to jumps over still counts, so after
+such a jump the bar moves on by more than one step. The last question page
+reads "Final thoughts" with a full bar, also in a survey that ends on a Final
+page followed by a Screen-out page.
 
-> **Note.** Earlier versions of Studio published surveys **without** the
-> progress bar (only the page dots, for **dots** or **both**) unless the
-> questionnaire's `options` held `"show_progress": true`, whatever the
-> Builder's previews showed. A survey still in the field from that time keeps
-> its look until you publish it again; the new build follows the
-> **Progress** setting. If respondents should keep seeing no bar, choose
-> **bar**, then **hidden** before you republish.
+**Section labels.** With **Section labels** on, each question page carries a
+small label above its title: "Welcome" on the first page, "Section n of m" on
+the pages between and "Final thoughts" on the last, and the same words stand
+beside the bar. For a respondent who is shown five pages, that is Welcome,
+Section 1 of 4, Section 2 of 4, Section 3 of 4, Final thoughts. Switched off,
+the pages carry no label and the text beside the bar reads "Page 2 of 5". The
+words themselves are Wording fields (**Section label: first page**, **Section
+label: pages between**, **Section label: last page**, **Progress: “Page”**,
+**Progress: “of”**). With **Progress text** off, the bar has no words at all.
+
+**Page dots.** One dot per question page the bar counts; hidden pages and
+end pages get none.
+The dots let a respondent go **back**, never forward:
+
+- a dot of a page they visited on the way to the current page takes them back
+  there, and **← Previous** then continues from that page;
+- dots ahead of the current page, and dots of pages the routing skipped, are
+  greyed out and do nothing;
+- only pages actually visited are drawn as completed;
+- with **Allow going back** off, no dot goes back.
+
+A respondent who resumes a saved interview can go back along the saved path.
+
+> **Note.** A survey published before these fixes still shows its old
+> indicator until you publish it again: there, **dots** showed the bar as
+> well, **hidden** kept the dots when **dots** or **both** had been chosen
+> before, the dots could jump **forward** past required questions and
+> routing, and the section label counted every page, end pages included.
+> Earlier still, surveys were published **without** the bar unless the
+> questionnaire's `options` held `"show_progress": true`. Publish again to
+> get the indicator described above.
 
 ---
 
@@ -142,13 +167,13 @@ shows the bar.
 
 | Label | What to enter |
 |---|---|
-| **Logo URL** (hint "upload under Files and paste the link") | the web address of your logo image. A live preview shows beside the field |
+| **Logo URL** (hint "a public https:// address of the image — a file under Files has no public link") | the web address of your logo image. A live preview shows beside the field |
 | **Position** | **left** (default), **center**, **right** |
 
 > **Tip.** Use a **stable public address** for the logo, such as the logo on
-> your institution's website. A link copied from **Files** is a download link
-> that expires after a few minutes, and the logo then disappears for
-> respondents.
+> your institution's website. A file uploaded under **Files** has no public
+> link: its download links expire after 5 minutes, and the logo would then
+> disappear for respondents.
 
 ### Study identity
 
@@ -175,6 +200,9 @@ title, the institution and the subtitle.
 With **Respondent chooses**, a small moon / sun button under the footer
 switches between light and dark. The survey remembers the choice in that
 browser, for this survey only. **Starts on** is only where respondents begin.
+(Surveys published before this fix shared one remembered choice across the
+surveys of the host; after you publish again, a returning respondent starts
+once more from **Starts on**.)
 
 With **Always light** or **Always dark** the button is not shown and every
 respondent sees the same thing. Do that when the presentation is part of the
@@ -185,12 +213,11 @@ people.
 
 ### Navigation
 
-- **Show the survey title** (on by default). Turned off, it hides the
-  whole header only when **Institution** and **Logo URL** are both empty. If
-  either is set, the header stays, and the title stays with it.
-
-  > **Tip.** To hide just the title while keeping a logo *(Plus)*: add
-  > `.siamang-header__title { display: none; }` under **Custom CSS**.
+- **Show the survey title** (on by default). Turned off, it hides the survey
+  title. The header stays when **Institution** or **Logo URL** is set, with
+  the logo and the institution but without the title; with both empty, the
+  whole header goes. (A survey published before this fix kept the title
+  whenever a logo or an institution was set; publish it again.)
 
 - **Allow going back** (on by default). Turned off, it hides **← Previous**
   and disables going back with the `Esc` key, the swipe gesture and the page
@@ -201,17 +228,19 @@ people.
 
 | Label | Where respondents see it |
 |---|---|
-| **Estimated minutes** | nowhere (see below) |
+| **Estimated minutes** | under the title of the first page, as "About N minutes" ("About 1 minute" for 1) |
 | **Contact email** | footer of every page, as a **Contact research team** email link |
 | **Privacy URL** | footer of every page, as a **Privacy** link (opens in a new tab) |
 | **Ethics statement** | footer of every page, as a paragraph under the links |
 
 The footer also carries the institution's name, and it appears on end pages
-and on the completion screen too.
+and on the completion screen too. The link texts and the estimate's wording
+are Wording fields (**Contact link**, **Privacy link**, **Estimated time**,
+whose `{minutes}` is filled in; a replaced text has no separate form for 1
+minute).
 
-> **Current limitation.** **Estimated minutes** is saved but **not shown**
-> to respondents. Say how long the survey takes in the first page's text or
-> in the **Study subtitle**.
+The estimate appears on the first page the respondent is shown, only. A
+survey published before this fix showed no estimate; publish it again.
 
 ### Completion screen
 
@@ -221,84 +250,177 @@ responses** and sees the completion screen: a title, a message, their
 
 | Label | Placeholder |
 |---|---|
+| **Title** | "Thank you for participating" |
 | **Message** | "Your responses help inform open research." |
 
+- **Title** is the heading. Left empty, respondents see "Thank you for
+  participating".
 - **Message** is the text under the title. If you leave it empty,
   respondents see "Thank you for your participation!", not the placeholder.
-- The title is always "Thank you for participating". There is no control for
-  it, because no questionnaire setting changes it.
+  If the questionnaire sets `ui.completion_body` in **Source**, the hint says
+  "the completion text set in Source (ui.completion_body) is shown instead",
+  and that text wins.
 
-For your own title and text, end the survey on a **Final (thank you)** page
-instead. It shows its own title and body (see
-[[Logic and Branching|Studio-Logic-and-Branching]]).
+**Final pages.** A survey that ends on a **Final (thank you)** page shows that
+page's own title and body (see
+[End pages](Studio-Logic-and-Branching#end-pages)); a Final page Studio adds
+comes with both. **Title** and **Message** fill in only what the Final page
+leaves empty, and the fields say so when a Final page has its own:
+
+- **Title** hint: "your Final page “<title>” shows its own title; this one is
+  shown only where the survey ends without one — Submit on a question page,
+  or a Final page with no title";
+- **Message** hint: "your Final page “<title or name>” shows its own text; this
+  one is shown only where the survey ends without it — Submit on a question
+  page, or a Final page with no body".
+
+To change what most respondents read at the end, edit the Final page. A
+Screen-out page with no title shows the Wording field **Screen-out page
+title** ("Thank you"); one with no body shows the **Message**, so give every
+Screen-out page a body of its own.
 
 ---
 
 ## Wording
 
-Every fixed phrase the survey shows can be replaced. This is how a survey
-runs in another language today. The section opens with: "Leave a field empty
+Every fixed phrase the survey shows can be replaced, apart from the few
+listed at the end of this section. This is how a survey runs in another
+language today. The section opens with: "Leave a field empty
 and the respondent sees the default under it. Replacing all of them is how a
 survey runs in another language today — one questionnaire is still one
 language."
 
+It goes on: "In a text, {n}, {total}, {min}, {max}, {minutes} and {seconds}
+are filled in by the survey, and {link} is the link that follows."
+
 - **Search wording…** searches labels, defaults and your own texts.
-- Filter chips: **All**, **Buttons**, **Answering**, **Saving**, **Failures**,
-  **Access**.
-- "N of 22 replaced" counts your replacements. **Reset all** asks "Reset every
+- Filter chips: **All**, **Buttons**, **Answering**, **Saving**, **Ending**,
+  **Failures**, **Closed**, **Around**, **Access**.
+- "N of 68 replaced" counts your replacements. **Reset all** asks "Reset every
   runtime text?" ("This drops the N phrase(s) this study replaces and puts the
   runtime's own wording back. Nothing is saved until you press Save.").
 - A replaced field shows "default: …" under it and a **×** (tooltip "Back to
   “…”") that restores that one field.
+
+With no field set, every text reads exactly as the defaults below.
 
 | Group | Label | Default |
 |---|---|---|
 | Buttons and navigation | **Next button** | `Next section →` |
 | | **Previous button** | `← Previous` |
 | | **Submit button** | `Submit responses` |
-| | **Progress: “Page”** | `Page` (screen readers only, see below) |
-| | **Progress: “of”** | `of` (screen readers only) |
-| | **“of” elsewhere** | no effect (see below) |
+| | **Section label: first page** | `Welcome` |
+| | **Section label: pages between** | `Section {n} of {total}` |
+| | **Section label: last page** | `Final thoughts` |
+| | **Progress: “Page”** | `Page` |
+| | **Progress: “of”** | `of` |
+| | **Estimated time** | `About {minutes} minutes` |
 | Answering | **Unanswered required question** | `This question requires an answer.` |
-| | **Dropdown placeholder** | no effect |
-| | **“selected” counter** | no effect |
+| | **Dropdown placeholder** | `— Select —` |
+| | **Dropdown search** | `Type to search…` |
+| | **Dropdown search: nothing found** | `No options found` |
+| | **“of” in “2 of 3 selected”** | `of` |
+| | **“selected” in “2 of 3 selected”** | `selected` |
+| | **Choice limit reached** | `Maximum reached` |
+| | **Too few choices** | `Select at least {n} more` |
+| | **“Other” option** | `Other` |
+| | **“Other” text box** | `Please specify...` |
+| | **“None of the above” option** | `None of the above` |
+| | **“N/A” option** | `Not applicable` |
+| | **Number below its minimum** | `Minimum value is {min}` |
+| | **Number above its maximum** | `Maximum value is {max}` |
+| | **Characters left** | `{n} characters remaining` |
+| | **Ranking: how to answer** | `Tap or drag to rank` |
+| | **Ranking: items not ranked yet** | `Remaining options` |
+| | **Answer in the wrong format** | `Please check the format of your answer.` |
+| | **Invalid email address** | `Please enter a valid email address.` |
+| | **Invalid phone number** | `Please enter a valid phone number.` |
+| | **Invalid web address** | `Please enter a valid web address (https://…).` |
+| | **Invalid date** | `Please enter a valid date.` |
+| | **Invalid time** | `Please enter a valid time.` |
 | Saving and resuming | **While submitting** | `Submitting your responses…` |
 | | **While saving** | `Saving…` |
 | | **Resume prompt** | `We saved your progress from earlier. Would you like to resume?` |
 | | **Resume button** | `Resume` |
 | | **Start over button** | `Start over` |
+| At the end | **Completion screen: “Response ID”** | `Response ID` |
+| | **Completion screen: “Submitted”** | `Submitted` |
+| | **Screen-out page title** | `Thank you` |
+| | **Redirect page: countdown** | `You will be redirected in {seconds} seconds. {link} if not redirected.` |
+| | **Redirect page: link** | `Click here` |
+| | **Redirecting at once** | `Redirecting you now. {link} if you are not redirected.` |
+| | **Redirecting at once: link** | `Continue` |
 | When something fails | **Failed submission title** | `Submission failed` |
 | | **Failed submission text** | `We could not save your responses.` |
+| | **Submission attempt** | `Attempt {n} of {max}.` |
 | | **Try again button** | `Try again` |
 | | **Save locally button** | `Save locally and finish` |
+| | **Submission error title** | `Submission error` |
+| | **Submission error text** | `We could not save your responses. Please refresh and try again.` |
+| | **Page error title** | `Something went wrong` |
+| | **Page error text** | `An unexpected error occurred. Your previous answers have been saved.` |
+| | **Survey error title** | `Survey temporarily unavailable` |
+| | **Survey error text** | `We encountered an unexpected error. Your previous answers have been saved.` |
+| | **Reload button** | `Reload survey` |
+| Closed or full | **Quota full: title** | `Thank you for your interest` |
+| | **Quota full: text** | `We have already reached our target sample for participants like you.` |
+| | **Survey closed: title** | `Survey closed` |
+| | **Survey closed: text** | `This survey is no longer accepting responses.` |
+| Around the survey | **Privacy link** | `Privacy` |
+| | **Contact link** | `Contact research team` |
+| | **Skip link (keyboard and screen reader)** | `Skip to questionnaire` |
 | Access code | **Access code: title** | `Access required` |
 | | **Access code: text** | `Please enter the access code to begin this survey.` |
 | | **Access code: field** | `Enter access code` |
 | | **Access code: button** | `Continue` |
+| | **Access code: wrong code** | `Invalid access code. Please try again.` |
 
-The four access-code texts only appear when the survey requires an access code
-(see [Access codes](Studio-Distribution-Channels#access-codes)).
+Where some of them appear:
 
-> **Current limitation.** Not every word is replaceable yet:
->
-> - **“of” elsewhere**, **Dropdown placeholder** and **“selected” counter**
->   have no effect. The dropdown always reads "— Select —" and the
->   multiple-choice counter "N of M selected".
-> - **Progress: “Page”** and **Progress: “of”** are only read out by screen
->   readers. The visible progress text is "Welcome", "Section N of M" and
->   "Final thoughts".
-> - These texts stay in English: "Select at least N more", "Other", "None of
->   the above", "No options found", the format messages ("Please enter a valid
->   email address." and similar), "Response ID" and "Submitted", the redirect
->   notices ("You will be redirected in 5 seconds. Click here if not
->   redirected.", "Redirecting you now. Continue if you are not redirected."),
->   the closed and full-sample screens ("Survey closed", "Thank you for your
->   interest", …), the footer's "Privacy" and "Contact research team", "Invalid
->   access code. Please try again.", "Attempt N of 3." and the default titles
->   of the completion screen and screen-out pages.
->
-> For another language, translate your questions and these 19 fields, and end
-> the survey on a Final page with your own title and text.
+- **Section label** fields and **Progress: “Page”** / **Progress: “of”**: see
+  [Question style and progress](#question-style-and-progress). The "Page 2 of
+  5" words are also what screen readers announce on each page.
+- **“of” in “2 of 3 selected”** and **“selected” in “2 of 3 selected”**: the
+  counter under a multiple-choice question with **Max answers**. The "of" is
+  also used in the screen-reader names of star ratings and MaxDiff and
+  conjoint tasks.
+- **Too few choices**: under a multiple-choice question with **Min answers**,
+  as a hint and as the error when **Next** is pressed with too few choices.
+  **Number below its minimum** / **above its maximum**: under a number
+  question outside its valid range.
+- **“Other” option**, **“None of the above” option** and **“N/A” option**:
+  the labels of the options Studio adds to a question.
+- **Redirect page: countdown** and its link: on the completion screen when a
+  **Completed → return URL** sends respondents on (after 5 seconds).
+  **Redirecting at once** and its link: on end pages that send respondents on
+  (a Redirect page, or a Final or Screen-out page with a return URL), and on
+  the quota-full screen with a **Quota full → return URL**.
+- **Submission attempt**: in the **Submission failed** dialog ("Attempt 1 of
+  3."). After the third failed attempt the survey shows **Submission error
+  title** and **text**.
+- **Quota full**: the screen a full quota cell shows (see
+  [When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full)),
+  and the notice of a survey whose sample is full as it opens.
+- **Survey closed**: the engine's own closed screen. A survey published from
+  Studio shows Studio's notice instead when it is closed or paused (see
+  below).
+- The access-code texts only appear when the survey requires an access code
+  (see [Access codes](Studio-Distribution-Channels#access-codes)).
+
+What stays in English whatever you set:
+
+- labels only screen readers hear: the page dots' names, "Loading survey",
+  the light/dark button, "Task n" of a MaxDiff and "Choice n" of a conjoint;
+- Studio's own notices around the survey: "This survey is closed" / "The
+  researchers have stopped collecting responses.", "This survey is paused" /
+  "The researchers have paused collection. Please try again later.", "You
+  have already taken part" (**One per browser**) and the preview banner
+  "Preview — answers are not stored".
+
+For another language, translate your questions, your page texts and end
+pages, and the Wording fields; the notices above are the only fixed English
+left. A survey published before these fields existed shows the English
+defaults until you publish it again.
 
 ---
 
@@ -403,28 +525,34 @@ fielded, not what your organization's settings say today.
 - **Changing the house style changes nothing that already exists.** To bring
   a study up to date, open its Theme tab. The banner "Your organization has a
   house style this study does not follow." offers **Use the organization's
-  house style**. The confirmation names what will change ("This changes N of
-  this study's look settings to your organization's — primary color, logo
-  url, …"). Here the house values win, because pressing the button is you
-  asking for them. It is an ordinary unsaved edit: it shows in the Save's
-  changes, and restoring an earlier Save undoes it.
-- A questionnaire created with **Draft from a brief** starts without the
-  house style. Use the button afterwards.
+  house style**. The confirmation, "Use the organization's house style?",
+  names what will change ("This changes N of this study's look settings to
+  your organization's — primary color, logo url, …"). Here the house values
+  win, because pressing the button is you asking for them. It is an ordinary
+  unsaved edit: it shows in the Save's changes, and restoring an earlier Save
+  undoes it.
+- The Builder's **Create questionnaire** button (in a project with no
+  questionnaire yet) and **Draft from a brief → Use this draft** start the
+  questionnaire with the house style too. A draft keeps any look setting it
+  makes itself; the house style fills in the rest.
 
 ### Custom CSS in the house style
 
-Custom CSS is a *(Plus)* feature at publishing time:
+Custom CSS is a *(Plus)* feature at publishing time, and below Plus the house
+style's custom CSS is **left out** wherever the style is copied, so you are
+not handed a study that cannot be published:
 
-- Below Plus it is **left out** of the projects the house style starts, so you
-  are not handed a study that cannot be published. Upgrade, and the next
-  project you create carries it.
-- **Use the organization's house style** and the Builder's **Create
-  questionnaire** button (in a project with no questionnaire yet) copy the
-  custom CSS **whatever the plan**. Below Plus, clear it under **Theme →
-  Custom CSS** before you publish.
-- Below Plus the form says: "Custom CSS is included from Plus. You can write
-  it here, but on the Free plan it is left out of the projects this style
-  starts — a Save carrying it does not deploy."
+- in the projects the house style starts (upgrade, and the next project you
+  create carries it);
+- by **Use the organization's house style**, whose confirmation then adds
+  " Its custom CSS is left out: custom CSS is included from Plus.";
+- by **Create questionnaire** and by **Draft from a brief → Use this draft**.
+
+Below Plus, custom CSS alone does not make a study "not follow" the house
+style: the banner appears only when another setting differs. The form says:
+"Custom CSS is included from Plus. You can write it here, but on the Free
+plan it is left out of the projects this style starts — a Save carrying it
+does not deploy."
 
 ## See also
 

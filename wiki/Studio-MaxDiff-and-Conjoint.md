@@ -43,13 +43,21 @@ measurement.
 
 Under the fields Studio shows how often each item is seen:
 
-> Each respondent sees 8 × 4 of 6 items — about 5.3 showings each. The design
-> is generated when you save.
+> Each respondent sees 8 × 4 of 6 items — about 5.3 showings each.
 
 (With no items: "Add items to see how often each is shown.") That number is
 the one to watch: it is per respondent, and if it is small every estimate rests
 on very little. Across respondents, **Versions** spread the items so that
 between them they cover far more combinations than any one person sees.
+
+A second note says what the design is made from:
+
+> The design is worked out from the question’s Id, the item codes and the
+> numbers above, the same way on every build. Change any of them after
+> fieldwork starts and later respondents get a different design from earlier
+> ones.
+
+See [How the design works](#how-the-design-works).
 
 ### What the respondent sees (MaxDiff)
 
@@ -74,31 +82,40 @@ Two per task, plus the design version — 17 variables for 8 tasks:
 
 | Variable | Holds | Codebook |
 |---|---|---|
-| `<name>_t1_best` | the code of the item picked as best in task 1 | nominal, the items as value labels, label "… — task 1, Best" |
-| `<name>_t1_worst` | the code of the item picked as worst in task 1 | nominal, the items as value labels |
+| `<name>_t1_best` | the code of the item picked as best in task 1 | nominal, the items as value labels, label "… — task 1, best" |
+| `<name>_t1_worst` | the code of the item picked as worst in task 1 | nominal, the items as value labels, label "… — task 1, worst" |
 | … | … up to `<name>_t8_worst` | |
 | `<name>_version` | which version of the design this respondent saw (`0`, `1`, …) | nominal, no value labels, label "… — design version" |
 
 `<name>` is the question's variable base (`q7` for a question `q7`). The list
-is rebuilt whenever you change **Tasks**, and the variables cannot be renamed by
-hand.
+is rebuilt whenever you change **Tasks** — lowering it removes the variables
+and codebook entries of the tasks that went — and the variables cannot be
+renamed by hand. Value labels you write for the items in the Codebook tab stay
+until you change that item's label in **Items**.
 The version variable is not bookkeeping: without it nobody can read the picks,
 because knowing somebody chose "Price" says nothing until you know what Price
 was up against.
+
+Later pages can use these variables like any other: a **Show if** or a branch
+rule on `q7_t1_best`, or `{label:q7_t1_best}` in a question text to name the
+item picked as best in task 1.
 
 ### Checks (MaxDiff)
 
 | Where | Message | Meaning |
 |---|---|---|
-| Save refused ("… is too short") | fewer than three items | a best and a worst need at least three items |
+| Save refused ("…/choices: needs at least 3 entries (page …, question 'q7')") | fewer than three items | a best and a worst need at least three items |
 | Validation → Structure | "q7: a best–worst question needs at least three items" | same, while you edit |
 | Validation → Structure | "q7: showing 6 of 6 items means every task shows everything, and nothing is learned from which items met" | lower **Items per task** or add items |
 | Validation → Engine, Save `warnings` | `MAXDIFF_COMPLETE_DESIGN` (error) — "MaxDiff 'q7' shows 6 of 6 items per task, so every task shows everything: nothing is learned from which items met. Show fewer items per task." | same |
 | Validation → Engine, Save `warnings` | `MAXDIFF_SINGLE_VERSION` (warning) — "… has one version of the design, so every respondent sees the same tasks. More versions cover more of the item space." | legal, rarely intended |
 
 Lint findings, even error-level ones, do not stop a Save; they mark it
-`warnings`, and publishing asks you to confirm. Read **Validation** before you
-publish.
+`warnings`. An error-level finding such as `MAXDIFF_COMPLETE_DESIGN` is still
+called an error: the Save toast says "Saved #18 — the questionnaire has 1
+error (see Builder → Validation)", and publishing asks you to confirm with
+**Publish #18 with errors** → **Publish anyway**. Read **Validation** before
+you publish.
 
 ---
 
@@ -136,14 +153,20 @@ people who buy something.
 
 Under the fields Studio says whether the design can be estimated:
 
-> 3 part-worths to estimate from 200 choice tasks across all versions. The
-> design is generated when you save.
+> 3 part-worths to estimate from 200 choice tasks across all versions.
 
 The part-worths are one per level beyond each attribute's first; the choice
 tasks are **Tasks × Versions**. When the tasks are fewer than twice the
-part-worths the line adds "— that is thin; add tasks or versions." (With no
-attributes: "Add attributes and levels to see whether the design can be
-estimated.")
+part-worths the line ends "— that is thin; add tasks or versions." instead of
+the period. (With no attributes: "Add attributes and levels to see whether the
+design can be estimated.")
+
+A second note says what the design is made from:
+
+> The design is worked out from the question’s Id, the attributes and their
+> level codes and the numbers above, the same way on every build. Change any
+> of them after fieldwork starts and later respondents get a different design
+> from earlier ones.
 
 ### What the respondent sees (conjoint)
 
@@ -171,23 +194,27 @@ One per task — which product was chosen — plus the design version:
 
 | Variable | Holds | Codebook |
 |---|---|---|
-| `<name>_t1` … `<name>_t10` | `1` … *n* for the product chosen, left to right; *n*+1 for "none of these" | nominal, labels "Concept 1" … "Concept *n*" (and the none text) |
-| `<name>_version` | which version of the design this respondent saw | nominal, no value labels |
+| `<name>_t1` … `<name>_t10` | `1` … *n* for the product chosen, left to right; *n*+1 for "none of these" | nominal, labels "Concept 1" … "Concept *n*" (and the none text), label "… — task 1" |
+| `<name>_version` | which version of the design this respondent saw | nominal, no value labels, label "… — design version" |
 
 One variable per task, not one per attribute: the answer *is* the choice, and
-which levels it carried is in the design.
+which levels it carried is in the design. Lowering **Tasks** removes the
+variables and codebook entries of the tasks that went. As for MaxDiff, later
+pages can test and pipe the task variables.
 
 ### Checks (conjoint)
 
 | Where | Message | Meaning |
 |---|---|---|
-| Save refused | fewer than two attributes, an attribute with fewer than two levels, an attribute name that is not a plain identifier, two attributes with the same name, two levels with the same code | fix the attributes |
+| Save refused (for example "…/attributes: needs at least 2 entries (page …, question 'q9')") | fewer than two attributes, an attribute with fewer than two levels, an attribute name that is not a plain identifier, two attributes with the same name, two levels with the same code | fix the attributes |
 | Validation → Structure | "q9: a conjoint needs at least two attributes to trade off", "attribute name "x y" must be a plain identifier — it becomes a column in the results", "attribute "x" needs at least two levels — one level is a constant", "two attributes share a name" | same, while you edit |
 | Validation → Engine, Save `warnings` | `CONJOINT_NOT_ESTIMABLE` (error) — "Conjoint 'q9' cannot be estimated: 2 tasks of 3 across 1 version cannot pin down 7 part-worths. Add tasks, add versions, add alternatives, or use fewer levels." | the design cannot be fitted at all — found before anyone is interviewed |
 | Validation → Engine, Save `warnings` | `CONJOINT_SINGLE_VERSION` (warning) — "… has one version of the design, so every respondent sees the same products." | legal, rarely intended |
 
 `CONJOINT_NOT_ESTIMABLE` does not stop the Save or the publish — no lint does
-— so read **Validation** before you publish.
+— but it is reported as an error: the Save toast counts it ("the
+questionnaire has 1 error") and publishing asks you to confirm with **Publish
+anyway**. Read **Validation** before you publish.
 
 ---
 
@@ -196,18 +223,31 @@ which levels it carried is in the design.
 - The design — which items or products each task of each version shows — is
   computed by the engine from the question's **Id**, its parameters (**Items
   per task** or **Products per task**, **Tasks**, **Versions**), its **item
-  or level codes** and, for a conjoint, the **attribute names**. The same inputs always give the same design, on any
-  computer, so the published survey, the preview, the generated
-  `questionnaire.py` and the analysis all agree.
+  or level codes** and, for a conjoint, the **attribute names**. The same
+  inputs always give the same design, on any computer, so the published
+  survey, the preview, the generated `questionnaire.py` and the analysis all
+  agree.
+- Nothing freezes the design: it is worked out again on every build, which is
+  what the Inspector's note says. **Changing the Id, the items or levels (or
+  their codes), the attribute names, Items/Products per task, Tasks or
+  Versions produces a different design** — and after fieldwork has started,
+  later respondents get that different design. Wording is not an input: item
+  and level labels can change without touching the design.
+- A questionnaire can carry a `seed` for the question, or the design itself,
+  written in the **Source** tab. With a seed, the note names it instead of the
+  Id ("The design is worked out from the seed (1234), …"). With a stored
+  design, the note reads "The design is stored in the questionnaire (see
+  Source) and used as it is; changing the items or the numbers above clears
+  it." (for a conjoint: "changing the attributes or the numbers above clears
+  it") — the design is then derived again from the new inputs. Any edit in
+  **Items** or **Attributes** clears a stored design, a change to a label
+  included.
 - MaxDiff designs are balanced across versions: each item is shown about
   equally often, and pairs of items meet about equally often.
-- Each respondent is assigned one version from their respondent id, so a
-  respondent who resumes an interview gets the same tasks back. The version is
+- Each respondent is dealt one version, drawn from their respondent id:
+  respondents are spread over the versions, and a respondent who reloads the
+  page or resumes the interview gets the same tasks back. The version is
   written into `<name>_version`.
-- "The design is generated when you save" in the Inspector means the design
-  follows the question as saved. It is not frozen separately: **changing the
-  Id, the items or levels (or their codes), the attribute names,
-  Items/Products per task, Tasks or Versions produces a different design.**
 
 > **Important.** Once fieldwork has started, do not change a MaxDiff or
 > conjoint question at all — not even its Id. The analysis reads the design
@@ -216,7 +256,9 @@ which levels it carried is in the design.
 > a new question (with new variables) and treat the two as separate
 > measurements. Labels (the wording of items and levels, attribute labels, and
 > the Best/Worst headings) can be corrected safely: the design depends on the
-> codes and names, not the words.
+> codes and names, not the words. The exception is a design stored in the
+> questionnaire (see above): editing an item's or a level's label in the
+> Builder clears it, and the design is worked out anew.
 
 ---
 
@@ -244,10 +286,11 @@ summary lists the question, the base ("247 respondents"), the tasks read, the
 method, the reference item, a warning if the model did not converge, and how
 many answers could not be read.
 
-After **Apply weight**, the counts (**Shown**, **Best**, **Worst**, rounded to
-whole numbers) and the **Score** are weighted, but **Utility** and **Share %**
-are still fitted unweighted, so on weighted data the two can rank items
-differently. The base still counts respondents. See
+After **Apply weight**, every column is weighted: **Shown**, **Best** and
+**Worst** are sums of weights (rounded to whole numbers), the **Score** is
+computed from them, and **Utility** and **Share %** are fitted on the weighted
+choices. The summary adds "Weight: *column*", and the base reads
+"247 respondents (231.4 weighted)". See
 [Apply weight](Studio-Node-Reference#apply-weight).
 
 ### Choice data for HB (MaxDiff)
@@ -259,7 +302,7 @@ dictionary and a script that runs it."
 | Parameter | Values |
 |---|---|
 | **MaxDiff question** | the question's Id |
-| **Path** | "Written as `<name>.csv`, with `<name>.dictionary.json` and `<name>.hb.R` beside it." |
+| **Path** | "Written as `<name>.csv`, with `<name>.dictionary.json` and `<name>.hb.R` beside it. The file has no weight column (the HB packages take none), so an applied weight is not in it; weight the individual utilities when you aggregate them." |
 
 You then run hierarchical Bayes on your own machine, with as many draws as it
 needs.
@@ -278,9 +321,10 @@ The table has one row per level: **Attribute**, **Level**, **Part-worth**
 attribute's share of the decision. The summary adds the base, the tasks read,
 the method (conditional logit, aggregate) and the note "importance is of the
 levels tested, not of the attribute in general": price from £10 to £12 will
-look unimportant beside price from £10 to £100. The model is fitted
-unweighted, even after **Apply weight** — and so are the part-worths behind
-**Share of preference** below.
+look unimportant beside price from £10 to £100. After **Apply weight** the
+part-worths, and so the **Importance %**, are fitted on the weighted choices;
+the summary adds "Weight: *column*" and gives the weighted base beside the
+respondents ("247 respondents (231.4 weighted)").
 
 ### Share of preference
 
@@ -294,13 +338,22 @@ This answers "what if we changed the price".
 | **Include "none of these"** | off by default — "Only when the question offered it. Leaving it out rescales everyone who would have walked away into buyers." |
 
 The table has one row per product with its utility and predicted share (%).
+A summary goes with it: **Question**, **Base** ("247 respondents"), **Method**
+("logit rule on aggregate conditional-logit part-worths") and **Note**
+("shares of the products listed, not market shares", or with **Include "none
+of these"**: "shares of the products listed and of choosing none, not market
+shares"). After **Apply weight** the shares come from the weighted
+part-worths, the base adds the weighted total, and the summary names the
+**Weight**.
 
 ### Conjoint data for HB
 
 **Conjoint data for HB** writes "A conjoint's choices in the long format R's
 hierarchical Bayes packages read, with a column dictionary and a script that
 runs it." Parameters: **Conjoint question** and **Path** (written as
-`<name>.csv`, `<name>.dictionary.json` and `<name>.hb.R`).
+`<name>.csv`, `<name>.dictionary.json` and `<name>.hb.R`). As for MaxDiff,
+the file has no weight column: an applied weight is not in it, so weight the
+individual utilities when you aggregate them.
 
 ---
 

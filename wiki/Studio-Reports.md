@@ -38,7 +38,10 @@ Three rules make sure a report arrives:
    `outputs/` are kept after a run; a report saved elsewhere is lost.
 2. Set the same file as the flow's **Report path** (Flow settings, click the
    empty canvas) if you want it in the [combined report](#the-combined-report)
-   of **Run all**. The Report view does this for you.
+   of **Run all**. The Report view does this for you, and changing the
+   **Save report** node's **Path** afterwards moves the **Report path** with
+   it. A **Report path** that names a file the flow does not write makes the
+   flow fail in **Run all**; **Check** and the Save warn about it first.
 3. There is no PDF writer: a **Path** ending in `.pdf` fails. Print or convert
    the HTML instead ([below](#pdf-and-word)).
 
@@ -48,8 +51,9 @@ are kept before the figures, so the report still arrives; the charts past the
 cap are missing next to the `.md`, while the `.html` carries its charts
 inside. See [What a run keeps](Studio-Flows#running-a-flow).
 
-A report produced by a run on the platform always ends with a
-[provenance footer](#the-provenance-footer).
+A report produced by a run on the platform ends with a
+[provenance footer](#the-provenance-footer) unless you turn it off in
+**Settings → Reports**.
 
 ---
 
@@ -86,8 +90,9 @@ into it."
 charts you add to it — all three optional") adds a **Report section** node
 wired into **Save report**. The first one also creates **Save report** — title
 = the flow's title, **Path** `outputs/<flow>.md`, **Also save HTML** on, the
-project's house style as its look — and sets the flow's **Report path** to the
-same file.
+project's house style (when it has one) as its look — and sets the flow's
+**Report path** to the same file. Renaming or duplicating the flow moves that
+default path to the new name (`outputs/<new>.md`); a path you chose stays.
 
 Each section card:
 
@@ -118,13 +123,15 @@ Each output is one row:
 | grip (left) | drag to reorder ("Drag to reorder") |
 | type | **Table**, **Chart** or **Stat** |
 | name | the node's kind (**Banner table**); the node id is added when two rows are the same kind |
-| caption | "Table caption" or "Figure caption" |
-| size | the width it is set to — see [Size and placement](#size-and-placement) |
+| caption | "Table caption", "Figure caption", or for a statistic "Label before the values" |
+| size | the width it is set to — see [Size and placement](#size-and-placement); a statistic shows "one line" instead |
 | **⋮** | the node id, **Move up**, **Move down**, **Show on the canvas**, **Remove from section** |
 
 After a preview, each row also shows a small preview of that output. A
 statistic (**Stat**) is printed in the report as one line, `Caption: key =
-value; …`.
+value; …` — the caption is the label before the values. It has no size or
+placement: its row reads "one line", with the tooltip "A statistic is one
+line of the report: size and placement apply to tables and charts only".
 
 ### Size and placement
 
@@ -140,8 +147,8 @@ The size control on a row reads the width it is set to — **Full**, **¾**,
 Two outputs at **Half** sit side by side; that is the whole layout model, and
 it is enough for almost every report. A row that has been sized says so while
 folded. The same control is in the **Report section** node's inspector, under
-**Size and placement**. Size and placement reach the `.html` only, and have no
-effect on a **Stat** row.
+**Size and placement** (where a statistic, again, reads "one line"). Size
+and placement reach the `.html` only.
 
 ### Preview report
 
@@ -151,7 +158,10 @@ from your unsaved draft on the current data and shows the engine's own HTML
 document — the same renderer and look a run uses. **Rendered | Markdown**
 switches to the Markdown source.
 
-- The preview has **no provenance footer**; runs add it.
+- The preview has **no provenance footer**; runs add it (while the setting in
+  **Settings → Reports** is on).
+- The preview renders in the look of the flow's **Save report** node, as a
+  run does — the engine's defaults when the node has none.
 - The Markdown view shows the first 4,000 characters; the rendered view shows
   the whole document.
 - Changing anything upstream marks it "changed since — run again".
@@ -172,8 +182,10 @@ switch to **Report** and write the words around the outputs.
 **Look** sets the look of the whole report. It is a parameter of the **Save
 report** node, so — as the tab says — "it is in this flow, in
 `scripts/<flow>.py` and in the research bundle. Whoever re-runs the study on
-their own laptop gets this document, not a default one." Everything here
-reaches the `.html` only.
+their own laptop gets this document, not a default one. **Preview report**
+shows it." Everything here reaches the `.html` only. A **Save report** node
+whose look is empty renders with the engine's defaults — in Studio as in the
+downloaded script.
 
 The four main choices:
 
@@ -218,28 +230,40 @@ report node the look belongs to."
 **Settings → Reports** holds the project's report settings, part of
 `studio/settings.json` and versioned with every Save:
 
+- **End every report with the provenance footer** ("— the Save, the engine
+  version and the data snapshot it was built from"), on by default. It
+  decides whether reports end with the
+  [provenance footer](#the-provenance-footer): with it off, reports from
+  platform runs — single runs, **Run all**, schedules, Live — and from a
+  research bundle's `run.sh` have no footer.
 - **Combined report** — where **Run all** writes the combined report
   (placeholder `reports/report.md`, "where Run all writes the merged report;
   Markdown, inside the project"). A path outside the project or not ending in
   `.md` is refused: "A combined report must be a Markdown path inside the
-  project, like reports/report.md."
+  project, like reports/report.md." The **combined** badge on the Reports
+  screen follows this path.
 - **House style** — the same form as the **Look** tab.
-- A checkbox about the provenance footer. Reports from platform runs **always**
-  end with the provenance footer, whatever this box says.
 
-The house style is used in four ways:
+The house style is a **stamp**, never a setting a run reads: a flow's report
+always renders in the look of its own **Save report** node — the same look
+its downloaded script and a research bundle use. It is used in three ways:
 
-1. It is **stamped** into a new **Save report** node when the Report view
-   creates one.
+1. It is **stamped** into a new **Save report** node — when the Report view
+   creates one, and when you add one from the palette. From then on the node
+   carries its own copy; changing the house style later does not change it.
 2. It renders the **combined report** of **Run all**, which has no node of its
    own.
-3. It applies **at run time** to every **Save report** node that has no look
-   of its own — on the platform, in previews and in a research bundle. A node
-   with its own look always keeps it.
-4. **Apply to every flow** ("Write this style into the Save report node of
+3. **Apply to every flow** ("Write this style into the Save report node of
    every flow, so each flow — and each bundle — carries it") copies it into
    every **Save report** node (or clears their looks when the house style is
-   empty). If nothing changes: "Every flow already uses the house style."
+   empty). If nothing changes: "Every flow already uses the house style".
+
+A **Save report** node with no look of its own renders with the engine's
+defaults, on the platform as in its script. Earlier, such a node silently
+took the house style when Studio ran it, but not when its downloaded script
+ran; a flow saved that way now renders plain everywhere until you stamp the
+style in — **Apply to every flow**, or **Use the house style** in its
+**Look** tab.
 
 **Save report settings** and **Apply to every flow** each create a new Save
 at once ("Update report settings", "Apply the report house style to 3 flows")
@@ -253,35 +277,50 @@ at once ("Update report settings", "Apply the report house style to 3 flows")
 ┌ Reports ─────────────────────┐┌ outputs/tables/tables.md   [Markdown] [HTML] [Print / PDF] ┐
 │ Tables                        ││                                                                 │
 │ tables · tables.md · 23/09    ││   Digital Life – key tables                                     │
-│ Combined report  combined     ││   …                                                             │
+│ Report  combined              ││   …                                                             │
 │ report.md · 23/09             ││                                                                 │
 └──────────────────────────────┘└─────────────────────────────────────────────────────────────────┘
 ```
 
 - **The left rail** lists every report the project's runs have produced: every
-  `.md` (or `.html`) under `outputs/` and `reports/`. The title comes from the
-  file name ("satisfaction_by_region.md" → "Satisfaction by region"); the line
-  under it reads "`flow · file · date`". The combined report at
-  `reports/report.md` carries a **combined** badge.
+  `.md` (or `.html`) under `outputs/` and `reports/`, and the combined report
+  wherever **Settings → Reports** puts it. The title comes from the file name
+  ("satisfaction_by_region.md" → "Satisfaction by region", `report.md` →
+  "Report"); the line under it reads "`flow · file · date`" (without the flow
+  for a file outside `outputs/`). When two reports share a file name — a
+  combined report moved to `deliverables/report.md` next to an older
+  `reports/report.md`, say — the line shows each one's path instead of the
+  file name, and clicking either opens its own file. The combined report —
+  at the path **Settings → Reports** names, `reports/report.md` by default —
+  carries a **combined** badge.
 - **The document** renders in the middle: the HTML twin when there is one
   (exactly as the flow styled it), otherwise the Markdown with a plain
   stylesheet. It is shown as a document only — scripts in a report never run.
 - **The bar** offers **Markdown**, **HTML** (only when the report has an HTML
   twin) and **Print / PDF**.
 
-Each run of a flow replaces its report on this screen; earlier versions stay
-downloadable from their run cards in the flow's **Run history**.
+**Markdown** ("The .md — with its figures in a .zip when it has any, since it
+refers to them by file name") downloads a report with charts as
+`<name>.zip`: a folder `<name>/` holding the `.md` and the figures it names,
+so the images show wherever you unpack it. A report without figures
+downloads as the plain `.md`. The toast names the file ("Downloaded
+tables.zip"); a failure reads "Could not download tables.md. *reason*".
+**HTML** downloads the one self-contained `.html`.
+
+Each run of a flow replaces its report on this screen — so does a **Run all**
+in which the flow succeeded; earlier versions stay downloadable from their
+run cards in the flow's **Run history**. A renamed flow's earlier reports keep
+the old name (`outputs/<old>/…`).
 
 With no reports: "No reports yet — Run a flow with a Report node (or Run all)
 and its report shows up here." with **Open Flows**. If a stored file cannot be
 read: "The stored file could not be read — download it instead." with a
 download button.
 
-> **Tip.** To share a report, send the **HTML**. The **Markdown** download is
-> the `.md` alone: its charts are separate `fig_N.png` files (in **Files**), so
-> they are missing when the `.md` is opened elsewhere. The HTML carries its
-> charts inside. Reports have no share link of their own; for a live,
-> read-only link use Live tiles ([[Live Monitoring|Studio-Live-Monitoring]]).
+> **Tip.** To share a report, send the **HTML**: one file, charts inside. The
+> **Markdown** zip is for a repository or an editor. Reports have no share
+> link of their own; for a live, read-only link use Live tiles
+> ([[Live Monitoring|Studio-Live-Monitoring]]).
 
 ### PDF and Word
 
@@ -306,8 +345,9 @@ and the HTML is the honest input to it.
 
 ## The provenance footer
 
-Every report produced by a run on the platform ends with a rule and a
-**Provenance** table:
+While **Settings → Reports → End every report with the provenance footer**
+is on (the default), every report produced by a run on the platform ends with
+a rule and a **Provenance** table:
 
 | Row | Content |
 |---|---|
@@ -321,8 +361,12 @@ Every report produced by a run on the platform ends with a rule and a
 When you email a PDF to a client, the document itself says which version of
 the questionnaire produced those numbers and when the data was read. A report
 produced from a research bundle carries the bundle's `PROVENANCE.md` instead,
-which adds the data file's row count and hash (see
+which adds the data files' row counts and hashes (see
 [[Reproducibility|Studio-Reproducibility]]). Previews have no footer.
+
+Untick the box, and the next runs — on the platform and from a research
+bundle made from that Save — write their reports without the footer. Reports
+already written keep theirs.
 
 ---
 
@@ -339,23 +383,41 @@ writes one combined document, "Combined report":
   included;
 - written to `reports/report.md` (or the path in **Settings → Reports**) with
   an `.html` twin in the house style; charts are copied beside it as
-  `<flow>__fig_N.png` (an `_` in the flow name becomes `-`).
+  `<flow>__fig_N.png` (an `_` in the flow name becomes `-`), taken from each
+  flow as soon as it finishes, so two flows' `fig_1.png` never mix.
 
 Because it is assembled from each flow's Markdown, the combined HTML has the
 house style's typefaces, measure and page box but plainer tables than a single
 flow's own HTML.
 
-The combined report is written only when every flow succeeded. If a flow
-fails, **Run all** still runs the flows that do not depend on it, but ends as
-failed without a combined report, so the **Reports** screen keeps the last
-combined report that was written.
+**When a flow fails**, **Run all** still runs the flows that do not depend on
+it and ends as failed — and still writes the combined report from the flows
+that succeeded, titled **Combined report (incomplete)**. Its first section,
+**Missing from this report**, reads: "This Run all did not finish every flow,
+so this report has only the sections of the flows that did. Not in it:",
+then one line per flow — "**tables** — failed: *reason*" or "**charts** —
+skipped: needs tables, which failed" — and "Fix them and run all flows again
+for the complete report." It replaces the previous combined report on this
+screen. Only when none of the flows that succeeded has a report is no
+combined report written, and the last one stays.
 
-> **Important.** If a flow's **Report path** names a file the flow does not
-> write, the whole **Run all** fails at once. Keep **Report path** equal to the
-> **Save report** node's **Path**.
+A flow whose **Report path** names a file it did not write counts as failed
+("report outputs/tables.md was not written: the flow's Report path names a
+file none of its nodes saves — set it to the Path of its Save report node");
+the other flows, including those that read its tables, go on. Keep **Report
+path** equal to the **Save report** node's **Path** — the Report view sets
+both, changing the node's **Path** (or clearing it back to
+`outputs/report.md`) moves the **Report path** along, and deleting that node
+clears the **Report path** it set; a **Report path** you pointed elsewhere
+yourself stays. A **Report path** that no **Save report** node writes is
+caught before **Run all**: **Check** and the Save warn "The flow's Report path
+is “outputs/tables.md”, but no Save report step saves there: Run all will fail
+this flow. Set it to the Path of a Save report step, or clear it."
 
-**Run all** keeps only the combined report — each flow's own report is not
-updated by it. See [Run all](Studio-Flows#run-all).
+**Run all** also stores each successful flow's own report (its `.md`, `.html`
+and figures) under `outputs/<flow>/`, where a single run of the flow puts
+it, so this screen shows the flows' reports from that Run all too. See
+[Run all](Studio-Flows#run-all).
 
 ---
 

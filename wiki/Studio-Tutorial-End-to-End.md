@@ -62,24 +62,29 @@ Two naming habits make everything downstream easier:
 1. **Projects → New project**. **Name**: `Customer Pulse 2026`.
 2. **Start from**: **Blank project** → **Create →**.
 
-The Builder opens on an empty page. (A blank project starts at `warnings #1`
-because its only page is empty — that disappears once you add questions.)
+The Builder opens on `page1`, which holds one placeholder question ("New
+question", a single choice with **Option 1** / **Option 2**, variable `q1`).
+The first Save, `#1`, is `valid`.
 
 ### Page 1 — consent
 
 1. Select the page in the rail. In the Inspector (**Page**), set **Title** to
-   *About this survey* and **Name** to `consent_page`.
+   *About this survey* and **Name** to `consent_page`. The new name takes
+   effect when you leave the field or press `Enter` (`Esc` puts the old one
+   back).
 2. **+ Question → Presets → Yes / No**. Set the **Question text** to
    *Do you agree to take part in this survey?* and turn **Required** on.
 3. Open **Variable** and change the variable name to `consent` (press `Enter`).
    Then open **Advanced** and set **Id** to `consent` too.
+4. Select the placeholder question `q1` and press **Delete question** (the
+   trash icon in the Inspector's header).
 
 > The Yes / No preset codes `1 = Yes`, `0 = No` and shows them as buttons.
 
-Introductory text for respondents belongs on this page — but the page **Body**
-is shown only on text-only, final and screen-out pages. Put the explanation in
-the question's **Hint** instead: *The survey takes about five minutes. Your
-answers are anonymous.*
+Introductory text for respondents goes in the page's **Body** (hint "HTML,
+shown above the questions …"): *The survey takes about five minutes. Your
+answers are anonymous.* It is HTML, not Markdown — wrap paragraphs in
+`<p>…</p>` if you write more than one.
 
 ### Page 2 — screener
 
@@ -123,26 +128,34 @@ rules you add next.
 ### Routing
 
 **Screen out non-consenters.** Select `consent_page`. In **Logic → Branch (next
-if)** press **+ Rule**, then **Add condition**: **Variable** `consent`,
-operator **=**, value **No (0)** → **Done**. Set the rule's target to
-`disqualification`.
+if)** press **+ Rule**. A draft rule opens with its condition editor already
+showing a comparison on the page's last question: **Variable** `consent`,
+operator **=**. Pick the value **No (0)**, set the target (**→**) to
+`disqualification`, and press **Add rule** — it stays disabled until the
+comparison has a value ("Pick what the rule tests — it is added once the
+condition is complete.").
 
-**Screen out minors.** Select `screener` and add a rule: `age` **<** `18` →
-`disqualification`.
+**Screen out minors.** Select `screener` and press **+ Rule**. The draft opens
+on `region`, the page's last question: change **Variable** to `age`, the
+operator to **<** and the value to `18`, target `disqualification`, **Add
+rule**.
 
 > A branch rule with an **empty** condition never fires — it is not an
-> "otherwise". Until you give a new rule its condition, Studio shows "Add a
-> condition — an empty rule never fires." under it, and the Logic map labels
-> its arrow "no condition — never fires". Use **Default next** for "everyone
-> else".
+> "otherwise". Studio does not add a draft rule until its condition is
+> complete, but a rule can lose its condition later (**Clear**) or arrive
+> without one from an import; then the Inspector shows "Add a condition — an
+> empty rule never fires." under it, and the Logic map labels its arrow "no
+> condition — never fires". Use **Default next** for "everyone else".
 
 **Ask for a comment only from detractors.** Select the `comment` question.
 **Logic → Show if → Add condition**: `nps` **≤** `6` → **Done**.
 
 **Also screen out inattentive respondents?** For this study, no — we flag
 them in the analysis instead. (The attention check's **Also end the survey
-for respondents who fail** option would add a branch rule to the screen-out
-page.)
+for respondents who fail** option would add a branch rule from `experience`
+to a Screen-out page placed after the Final page — here `disqualification`,
+which already sits there — so that respondents who pass still finish on
+`final`.)
 
 ### Check the routing
 
@@ -154,13 +167,17 @@ and no arc is red (a red arc means a condition reads an answer given *later*).
 
 ### Quotas
 
-Open **More ▾ → Quotas**. Next to "or one for every value of", pick `region`,
+Open **More ▾ → Quotas**. In "or one for every value of", pick `region`,
 set the limit to `100` and press **Add 3 cells**.
 
-> **Current limitation.** Quota cells are **counted and displayed** on
-> Distribute and Live, but a full cell does **not** stop new respondents yet —
-> only the environment's response cap does. Watch the bars during fieldwork
-> (Part 7). See [[Quotas and Randomization|Studio-Quotas-and-Randomization]].
+Each cell closes once 100 **completed** interviews have its region;
+screen-outs and unfinished interviews do not count. A later respondent who
+picks a full region is stopped when they leave the `screener` page, on the
+quota-full screen: "Thank you for your interest" / "We have already reached
+our target sample for participants like you." Their interview is not
+submitted. Previews do not check quotas — publish to `pilot` with a small
+limit to see the screen. See
+[When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full).
 
 ### Save
 
@@ -184,17 +201,22 @@ Open **More ▾ → Theme**.
    a **Logo URL** from a stable public address (your website). Do not use a
    link from **Files** — those download links expire after a few minutes.
 3. **Respondent experience** — fill **Contact email**, **Privacy URL** and the
-   **Ethics statement**. They appear in the footer of every page.
-4. **Wording** — optionally rephrase the runtime's fixed texts (buttons,
-   saving and failure messages).
+   **Ethics statement**. They appear in the footer of every page. Set
+   **Estimated minutes** to `5`: respondents see "About 5 minutes" under the
+   title of the first page (you can then drop the sentence about the length
+   from the consent page's Body).
+4. **Wording** — optionally rephrase the runtime's fixed texts: buttons,
+   section labels, answering hints and error messages, saving and failure
+   messages, the screen-out and quota-full screens. The notices a published
+   survey shows when it is closed or paused stay in English.
 
-> **Note.** **Completion screen** has only a **Message**: its title cannot be
-> changed there. This study ends on its own Final page, whose **Title** and
-> **Body** you already set, so the completion screen is not used.
-
-> **Current limitation.** **Estimated minutes** is not shown to respondents —
-> say how long the survey takes in the consent question's hint, as on page 1.
-> See [[Theme and Branding|Studio-Theme-and-Branding]].
+> **Note.** **Completion screen** has a **Title** and a **Message**, but they
+> are shown only where a survey ends without its own ending text — on
+> **Submit** of a question page, or on a Final page with no title (for the
+> Title) or no body (for the Message). This study ends on its own Final page,
+> whose **Title** and **Body** you already set, and the hints beside the two
+> fields say that the Final page's own text is shown instead. See
+> [Completion screen](Studio-Theme-and-Branding#completion-screen).
 
 Switch the canvas to **Structure | Preview** and check both **Desktop** and
 **Mobile**. **Save** (*Theme*).
@@ -223,8 +245,12 @@ once more as a 16-year-old.
 the preview rows and the codebook, then download **SPSS** and open it: are the
 variable and value labels right?
 
-> Simulation follows page routing and screen-outs, but not block conditions,
-> randomization, scripts or quotas.
+> Simulation follows the questionnaire's logic the way a respondent meets it:
+> page, block and question conditions, routing and screen-outs, the arm of
+> **Assign to a condition**, **Randomize pages** and quotas — a simulated
+> respondent who answers into a full `region` cell stops there. Option
+> shuffles and custom JavaScript are not simulated. See
+> [Simulate](Studio-Testing-Your-Survey#simulate).
 
 ### Share preview for reviewers
 
@@ -285,16 +311,21 @@ Connect the Banner table's `table`, the Bar chart's `chart`, the NPS `table` and
 Response quality `table` (counts per quality flag) to the Report section's
 `items` input in the order they should appear.
 
-> **Which outputs are weighted?** After **Apply weight**, these nodes use the
-> weight: **Banner table**, **Frequencies**, **Crosstab**, **Group means**,
-> **Net Promoter Score**, **Regression**, **TURF**, and **Proportion CI** with
-> **Weighted** ticked. A Banner table is used here for its
-> significance letters; a **Crosstab** (**Rows** `satisfaction`, **Columns**
-> `region`, **Percentages** `col`) would also give weighted column percentages,
-> with a chi-square test on the effective base instead of letters. The charts
-> (and **Compare groups** and **Correlation**) still ignore the weight, so the
-> bar chart here shows the **unweighted** distribution — say so in its
-> caption. See
+> **Which outputs are weighted?** After **Apply weight**, the node's **Weight
+> column** help lists them: **Frequencies**, **Crosstab**, **Group means**
+> (not N or the test), **Banner table**, **Net Promoter Score**,
+> **Regression**, **TURF**, **MaxDiff**, **Conjoint**, **Share of
+> preference**, **Principal components**, **Scale reliability**, **Bar
+> chart**, **Heatmap** with **By**, and **Proportion CI** with **Weighted**
+> ticked. A Banner table is used here for its significance letters; a
+> **Crosstab** (**Rows** `satisfaction`, **Columns** `region`, **Percentages**
+> `col`) would also give weighted column percentages, with a chi-square test
+> on the effective base instead of letters. The **Bar chart** here, with
+> **By** `region`, shows weighted mean satisfaction per region (its axis
+> reads "Weighted mean …"). **Compare groups**, **Correlation**, **Cluster
+> (k-means)**, **Box plot**, **Scatter plot**, a **Heatmap** without **By**,
+> **Response quality** and **Code open answers** stay unweighted and say so
+> in their output. See
 > [Making tables and tests use the weight](Studio-Cleaning-and-Weighting#making-tables-and-tests-use-the-weight).
 
 ### Preview and check
@@ -303,8 +334,10 @@ Response quality `table` (counts per quality flag) to the Report section's
   weighted table appears in the inspector, with column percentages, counts and
   significance letters.
 - Press **Check** — the engine should report no errors. Fix anything it lists
-  **before** saving: a flow saved with engine errors stops every run in the
-  project and blocks publishing from that Save.
+  **before** saving: a flow saved with engine errors is stored without code,
+  so it cannot run (its **Run** button is disabled and the flows table marks
+  it **errors**) until you fix it and save again. The questionnaire and the
+  project's other flows are not affected.
 - Switch to **Report** view to write the words around the outputs and use
   **Preview report**.
 
@@ -344,6 +377,13 @@ In the flow, drag in a **Responses** node, set **Environment** `main` and tick
 quality** — this replaces the connection from Simulated data — then delete
 **Simulated data**. **Check**, **Save**.
 
+> **Only completed responses** leaves out unfinished interviews only.
+> Screen-outs — here the non-consenters and the minors — were submitted, so
+> they stay in the flow, marked `screened_out` in `__status`. To analyze only
+> the people who qualified, put a **Filter rows** node between **Responses**
+> and **Response quality** with the condition `consent` **=** `1` and `age`
+> **≥** `18`.
+
 ### Pre-register *(optional)*
 
 **History** → open the latest Save → **More ▾ → Pre-register**. The Save is
@@ -357,16 +397,21 @@ also **Deposit** it to Zenodo (Part 8 shows how).
 Share the `main` link: email it, print the **QR** code, or paste the **Embed**
 snippet into your website.
 
-> New projects cap `main` at **1,200** completed responses and `pilot` at
-> **50**. When a cap is reached, further respondents are refused when they
-> submit.
+> New projects cap `main` at **1,200** completed interviews and `pilot` at
+> **50**; screen-outs and unfinished interviews do not count. On the Free plan
+> the project also stops at **1,000** completed interviews, all environments
+> together. When a cap is reached, a respondent who opens the link sees "Thank
+> you for your interest — We have already reached our target sample for
+> participants like you." at once; someone who was already answering sees it
+> when they submit, and their interview is not stored as completed.
 
 Alternative channels:
 
 - a sample provider — [[Panel Providers|Studio-Panel-Providers]];
 - personal email invitations with reminders *(Plus, after the first
   payment)* — [[Email Invitations|Studio-Email-Invitations]];
-- restricted access with codes — [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]].
+- restricted access with codes, or **One per browser** to refuse a second
+  interview from the same browser — [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]].
 
 **Checkpoint.** `main` is live; the analysis reads real responses.
 
@@ -374,13 +419,15 @@ Alternative channels:
 
 ## Part 7 — Monitor fieldwork
 
-- **Distribute** tiles: **Responses · main** against the cap, **Completion**,
-  **Median duration** (and speeders), **Quality screen** (share failing the
-  attention check), **Today**.
+- **Distribute** tiles: **Responses · main** — the completed interviews
+  against the cap (the tooltip gives all rows, partial and screened-out ones
+  included) — **Completion**, **Median duration** (and speeders), **Quality
+  screen** (share failing the attention check), **Today**.
 - The `main` card: one bar per quota cell (`region=1 · 64/100`). When a region
-  reaches its target, decide what to do — the cell will not close itself. A
-  common move: add a branch rule on `screener` sending `region = North (1)` to
-  `disqualification`, **Save**, and **Republish #N** on the card.
+  reaches its target, the cell closes by itself: later respondents from that
+  region end on the quota-full screen when they leave `screener`, and the
+  other regions go on. To collect more from a region, raise its limit,
+  **Save** and **Republish #N**.
 - **Drop-off** on the card: which page people abandon.
 - **Live** tab: project totals, a responses-per-day chart and the flow's tiles.
   **Create public link** gives the client a read-only page with just the tiles
@@ -396,9 +443,14 @@ Alternative channels:
 
 On the `main` card press **Close** → **Close survey**. Respondents now see
 "This survey is closed". (**Reopen** would rebuild the same Save into the same
-link.) If you know the end date in advance, you can instead give the
-questionnaire a **deadline**: collection stops by itself when it passes — see
-[Deadlines](Studio-Publishing-and-Environments#deadlines).
+link.)
+
+If you know the end date in advance, set it instead: the **Closing date** chip
+on the `main` card → pick the date → **Save date**. It applies at once,
+without a new Save or a rebuild. When the date passes, collection stops by
+itself, anyone who opens the link sees "This survey is closed", and the card
+reads **○ Closed** with an **Extend** button in case you need a few more
+days — see [Deadlines](Studio-Publishing-and-Environments#deadlines).
 
 ### Final run and report
 
@@ -410,8 +462,11 @@ use **Print / PDF**.
 ### Export the data
 
 **Data → responses → Export ▾ → SPSS** gives a labeled `.sav` of the whole
-table (all environments, partials included — filter on `survey_id` and
-`partial`).
+table: all environments, partials and screen-outs included — filter on
+`survey_id`, `partial` and `__status` (`screened_out`). The answers come in
+the questionnaire's order, followed by the fieldwork columns (`duration_s`,
+`started_at`, `url_<name>` for each link parameter, the captcha verdict and
+the tab-switch counts). **Stata** gives the same as a `.dta`.
 
 ### Citation, bundle, deposit
 
@@ -422,7 +477,10 @@ table (all environments, partials included — filter on `survey_id` and
    section built from your documents; everything marked `[...]` needs you.
 3. **More ▾ → Download a bundle → With the responses so far**: the study as a
    zip — questionnaire and flow code, documents, codebook, `METHODS.md`,
-   `CITATION.cff`, `PROVENANCE.md` and the data.
+   `CITATION.cff`, `PROVENANCE.md` and the data (the responses, and the
+   project tables and uploaded files the flows read). The survey link's
+   parameters, such as panel ids, are included only where a flow reads one,
+   and invitation tokens never are.
 4. **More ▾ → Deposit** *(needs a Zenodo token stored under **Settings →
    Secrets**, which an owner or admin adds)*: choose **Zenodo**, pick the token, **untick "Use
    sandbox.zenodo.org"** for a real DOI, decide on **Publish immediately**, and
@@ -443,11 +501,11 @@ and citable.
 |---|---|
 | Pages, presets, Ids and variables | [[The Builder\|Studio-Builder-Overview]], [[Question Types\|Studio-Question-Types]] |
 | Branch rules, show if, piping, Logic map | [[Logic and Branching\|Studio-Logic-and-Branching]] |
-| Quota cells and their current limits | [[Quotas and Randomization\|Studio-Quotas-and-Randomization]] |
+| Quota cells and the quota-full screen | [[Quotas and Randomization\|Studio-Quotas-and-Randomization]] |
 | Theme and footer details | [[Theme and Branding\|Studio-Theme-and-Branding]] |
 | Validation, walkthrough, simulation, share preview | [[Testing Your Survey\|Studio-Testing-Your-Survey]] |
 | Flows, quality flags, raking, reports, live tiles | [[Analysis Flows\|Studio-Flows]], [[Reports\|Studio-Reports]] |
-| Environments, pilot, launch, closing | [[Publishing and Environments\|Studio-Publishing-and-Environments]] |
+| Environments, pilot, launch, response caps, closing dates | [[Publishing and Environments\|Studio-Publishing-and-Environments]] |
 | Pre-registration, bundles, deposits | [[History and Versions\|Studio-History-and-Versions]] |
 
 ## See also

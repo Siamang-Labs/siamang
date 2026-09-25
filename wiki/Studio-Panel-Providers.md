@@ -16,7 +16,7 @@ the counts to reconcile with the provider's invoice.
                          respondent answers
                                    │
         ┌──────────────────────────┼───────────────────────────┐
-     completed                screened out               sample full (cap)
+     completed                screened out       sample full (quota cell or cap)
         │                          │                           │
    Completed → return URL    Screened out → return URL    Quota full → return URL
         └──────────── each URL carries the id back: …&RID={url:RID} ────────┘
@@ -46,7 +46,7 @@ environment serves a survey (live or paused), not on previews. The header reads
 | **Entry link for the provider** | read-only, with a copy button: your survey link plus the id parameter and the provider's macro. Paste it into the provider's project. Shown once the environment has a link and the id parameter is set |
 | **Completed → return URL** | where respondents go after completing |
 | **Screened out → return URL** | where respondents go after reaching a screen-out page |
-| **Quota full → return URL** | where respondents go when the environment's response cap refuses their submission |
+| **Quota full → return URL** | where respondents go when a full quota cell or a full response cap turns them away |
 
 Notes the panel may show:
 
@@ -98,8 +98,10 @@ provider's current documentation and your project page.
 | `{label:var}` | the label of that answer |
 
 Values are URL-encoded. A placeholder that has no value is removed rather than
-sent to the provider as literal braces. In the **Quota full** URL only
-`{url:NAME}` is filled in.
+sent to the provider as literal braces. In the **Quota full** URL, answers are
+filled in when a full quota cell ends the interview; when a full response cap
+turns the respondent away (as the page opens, or at submit), only `{url:NAME}`
+is filled in and `{answer:…}` / `{label:…}` are removed.
 
 ---
 
@@ -111,24 +113,28 @@ sent to the provider as literal braces. In the **Quota full** URL only
 | reaches a **Final (thank you)** page | the **Completed** URL | 5 seconds |
 | reaches a **Screen-out** page | the **Screened out** URL | 5 seconds |
 | reaches a **Redirect** page | the page's own **Redirect URL** (the **Completed** URL if the page has none) | the page's **Delay (s)**, 5 by default |
-| submission refused because the environment's response cap is reached | the **Quota full** URL | 3 seconds after the "Thank you for your interest" notice |
-| submission refused because the environment is paused, closed or past the questionnaire's [deadline](Studio-Publishing-and-Environments#deadlines) | nowhere — the respondent stays on the "This survey is paused" or "This survey is closed" notice | — |
+| leaves a page with an answer whose quota cell is full | the **Quota full** URL | 3 seconds after the "Thank you for your interest" screen, which adds "Redirecting you now. Continue if you are not redirected." |
+| a response cap is full — the notice appears as the page opens, or at submit for someone already answering | the **Quota full** URL | 3 seconds after the "Thank you for your interest" notice |
+| the environment is closed or past its [closing date](Studio-Publishing-and-Environments#deadlines) | the environment's post-close redirect (`redirect_after_close` in `studio/settings.json`), if it has one; otherwise the respondent stays on the "This survey is closed" notice | 3 seconds |
+| the environment is paused | nowhere — the respondent stays on the "This survey is paused" notice | — |
 
 A terminal page with its own redirect keeps it — the page wins over the
 survey-level URL; the Panel chip lists those pages. On terminal pages the
 redirect happens only after the response has been stored, with "Redirecting you
 now. Continue if you are not redirected."
 
-> **Current limitation.** The **Quota full** URL is used when the
-> environment's **response cap** refuses a submission. Quota cells defined in
-> the Builder are counted but do not yet turn respondents away, so a full cell
-> does not send anyone to this URL. To stop a full sample, lower the
-> environment's cap, or pause or close the environment. See
-> [[Quotas and Randomization|Studio-Quotas-and-Randomization]] and
-> [Response caps](Studio-Publishing-and-Environments#response-caps).
+The quota-full rows depend on the survey page: a survey built before quota
+cells could stop respondents, or before the page-open check existed, uses the
+**Quota full** URL only when the response cap refuses a submission, until you
+[republish](Studio-Publishing-and-Environments#republishing) it. How cells
+fill and when they stop someone is described under
+[When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full); the
+caps under [Response caps](Studio-Publishing-and-Environments#response-caps).
 
 Screen-outs are submitted responses: they are stored (with `__status` set to
-`screened_out`) and they count toward the environment's response cap.
+`screened_out`), but they are not completed interviews — they fill no quota
+cell and do not count toward a response cap. A screen-out is recorded even
+when the cap is full.
 
 ---
 
@@ -194,29 +200,38 @@ reconcile with the provider**:
 | **partial** | interviews started and not submitted |
 
 Each count with at least one response has a **CSV** button. The file
-(`<project>-<environment>-<outcome>.csv`) has one row per response with
+(`<environment>-outcomes-<outcome>.csv`, e.g. `main-outcomes-completed.csv`)
+has one row for **every** response of the environment with that outcome, with
 `response_id`, `outcome`, a column named after your id parameter (spelled as
 in **Respondent id parameter**, e.g. `PROLIFIC_PID`) holding each respondent's
-provider id, and `submitted_at`. The CSVs cover up to the first 5,000
-responses of the environment.
+provider id, and `submitted_at`. If the download fails, the toast reads "Could
+not download the outcomes." followed by the reason. Each download is recorded
+in **Settings → Activity** as `outcomes.export`, since the provider ids leave
+Studio with it.
 
 Under the counts, a line says how many responses carry an id — **`972` of
 `1,184` responses carry a `PROLIFIC_PID`;** (or "Set the id parameter to see
 provider ids;" before you set one) — followed by "quota-full returns are not
 counted here — the response is refused, the provider's count is the record."
-Respondents turned away by the cap leave no response, so the provider's own
-report is the reference for them.
+Respondents turned away by a full quota cell or cap leave no completed
+response, so the provider's own report is the reference for them. Someone who
+was turned away after answering a page or two may still appear under
+**partial**, with the progress the survey had saved.
+
+Partial rows arrive only from a survey built with the current runtime; for one
+published earlier, **partial** stays at 0 until you
+[republish](Studio-Publishing-and-Environments#republishing) it.
 
 Studio stores URL parameter names in lower case (`url_prolific_pid`), and the
 outcomes match your id parameter regardless of case, so the upper-case ids of
 the Prolific (`PROLIFIC_PID`) and Cint (`RID`) presets are found like any
 other.
 
-> **Tip.** For more than 5,000 responses, or to put the provider id next to
-> answers, use a flow: the responses data carries the id as `url_<parameter>`
+> **Tip.** To put the provider id next to the answers, export the `responses`
+> table from **Data**: the export carries the id as a `url_<parameter>` column
 > in lower case (`url_prolific_pid`, `url_rid`, `url_psid`), next to
-> `__status` and `partial`. A small flow with an **Export file** node produces a
-> reconciliation file for any number of responses. See
+> `__status` and `partial` (see [[Data Exports|Studio-Data-Exports]]). A flow
+> with an **Export file** node does the same after cleaning. See
 > [[Analysis Flows|Studio-Flows]].
 
 The outcome block is not shown for paused or closed environments; for those,

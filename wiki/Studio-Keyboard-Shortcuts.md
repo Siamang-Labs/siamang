@@ -16,7 +16,7 @@ on macOS and `Ctrl` elsewhere.
 | `Tab` (first press on a page) | shows **Skip to content**; press `Enter` to jump past the topbar and tabs to the screen itself |
 | `Tab` / `Shift + Tab` | move between controls |
 | `Enter` or `Space` | activate a focused row or card that opens something (a Save in History, a list row) |
-| `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, the Builder's **Library** menu and its menu for adding a question, the Data export menu |
+| `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, the **⋮** menu of a row in the flows table, the Builder's **Library** menu and its menu for adding a question, the Data export menu |
 
 ## Dialogs
 
@@ -24,7 +24,7 @@ on macOS and `Ctrl` elsewhere.
 |---|---|
 | `Esc` | close the dialog without doing anything |
 | `Tab` / `Shift + Tab` | move between the dialog's controls; focus stays inside the dialog and wraps around |
-| `Enter` | submit, in these fields: **Name** in **New project** (Create) · **Organization name** in **Create organization** (Create) · **Title** in **New flow** (Open canvas) · **Message** in **Save** (Save; not while a conflict is shown) · **Email** in **Invite member** (Send invite) · **Value** in **Add secret** (Add secret) · **Name** in **Save … to library** (Save to library) |
+| `Enter` | submit, in these fields: **Name** in **New project** (Create) · **Organization name** in **Create organization** (Create) · **Title** in **New flow** (Open canvas) · **Name** in **Rename *flow*** and **Duplicate *flow*** (Rename / Duplicate) · **Message** in **Save** (Save; not while a conflict is shown) · **Email** in **Invite member** (Send invite) · **Value** in **Add secret** (Add secret) · **Name** in **Save … to library** (Save to library) |
 | `↓` on the template picker, then `↑` / `↓` | open the template list in **New project**, then move through the templates |
 | `Esc` in the template list | close the list (not the dialog) |
 | `Enter` or `Space` on the drop area | choose a file in **Import questionnaire** |
@@ -48,7 +48,9 @@ Other dialogs (for example **Deposit**, **Connect …**, **Schedule a run**,
 | `Ctrl/Cmd + Z` | undo | not while the cursor is in a text field (the field's own undo works there) and not while following |
 | `Shift + Ctrl/Cmd + Z` or `Ctrl/Cmd + Y` | redo | same conditions |
 | `Enter` in an answer option's **Label** | add a new option below it, with the next code | Inspector → options |
-| `Enter` in **Variable name** | apply the rename | question Inspector, variable card |
+| `Enter` in **Variable name** | apply the rename (leaving the field does the same) | question Inspector, variable card; conditions, quotas, piping and scripts that use the variable follow it |
+| `Enter` in a page's **Name** | apply the new name (leaving the field does the same) | page Inspector; the name is not applied while you type |
+| `Esc` in a page's **Name** | put the current name back | page Inspector |
 
 Undo keeps up to **100 steps**. The undo history is cleared when you save,
 when you switch projects, and while a colleague's edits are shown to you.
@@ -104,6 +106,7 @@ The picker's footer repeats this: "↑ ↓ choose · Enter adds · Esc closes".
 
 | Keys | Action |
 |---|---|
+| `Enter` in **Filter loaded rows…** | search **every** row of the table on the server, not only the loaded ones (the same as **Search all rows**) |
 | `Enter` or `Space` on a focused column header | sort the loaded rows by that column |
 | `Esc` | close the export menu |
 

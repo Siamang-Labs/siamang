@@ -1,6 +1,6 @@
 # Data Exports
 
-**Export** on the Data tab downloads a whole table as CSV, Excel, SPSS,
+**Export** on the Data tab downloads a whole table as CSV, Excel, SPSS, Stata,
 Parquet or SQLite. This page describes exactly what each file contains, what
 every export includes and leaves out, how multiple answers are written, the
 size limit, and the other ways to get data out of Studio.
@@ -12,29 +12,40 @@ size limit, and the other ways to get data out of Studio.
 1. Open **Data** and pick the table in the rail (`responses`, a table a flow
    wrote, `quota_counters`, …).
 2. Click **Export ▾** at the bottom right of the grid.
-3. Choose **CSV**, **Excel**, **SPSS**, **Parquet** or **SQLite**.
+3. Choose **CSV**, **Excel**, **SPSS**, **Stata**, **Parquet** or **SQLite**.
 
 A toast says **Preparing responses.csv…**, then **Exported responses.csv**. The
-file is named after the table (`responses.sav`, `clean_responses.xlsx`, …).
+file is named after the table (`responses.sav`, `responses.dta`,
+`clean_responses.xlsx`, …).
 
 The export always contains the **whole table** — not just the 100 rows the
 grid shows, and regardless of the grid's search, sort or quick filters.
 
 If an export fails, the reason stays under the grid with a **Retry** button
-(e.g. **Retry CSV**) until you dismiss it.
+(e.g. **Retry CSV**) until you dismiss it. A file the format cannot hold is
+refused with a reason rather than a server error, for example "The table
+cannot be written as .dta: …" or "The table cannot be written as Parquet: …".
 
 Every member of the organization can export; exports are not limited by plan.
+Each export is recorded in the project's activity log (**Settings →
+Activity**) as `data.export`, with the table, the format and the number of
+rows — never the data.
 
 ---
 
 ## What every export contains
 
-For the `responses` table:
+For the `responses` table, in this order:
 
 | Included | Notes |
 |---|---|
-| one column per variable | the answers, each column named after its variable (not the question's Id); a matrix gives one column per row. A Multiple choice in the wide layout is still one column named after the question's Id — see [Multiple choice](Studio-Question-Types#multiple-choice) |
-| `__status` | `completed`, `screened_out` or `redirect` for interviews that ended on a special page; empty otherwise |
+| one column per variable, in the questionnaire's order | the answers as codes, each column named after its variable (not the question's Id), in the order the current Save asks them. A matrix gives one column per row (the chosen column's code); a Multiple choice in the wide layout one column per choice (`1` chosen, `0` offered and not chosen, empty when not answered or when the option was hidden from the respondent). "Other (please specify)" is the Other code (`-66` unless the question names another) in the question's column and the typed text in `<variable>_other`, right after it; "None of the above" is `-77`; "Not applicable" the declared not-applicable code (`-1` from the Builder). See [Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na) |
+| codebook-only variables | variables no question asks — hidden, computed or assigned ones, such as an experimental arm — right after the questions |
+| other answer keys | `__status` (`completed`, `screened_out` or `redirect` for interviews that ended on a special page; empty otherwise), a column left under an old Id, a flag a custom script wrote |
+| `url_<name>` | each URL parameter the link carried: a source tag, a panel id (`url_prolific_pid`), the invitation token (`url_inv`) |
+| `duration_s`, `started_at` | seconds from opening the page to the last save, and when the page was opened |
+| `captcha` | `pass` or `unavailable`, when the captcha is on |
+| `tab_switches`, `hidden_seconds`, `pastes` | the behavioral counts (see [[Data Quality\|Studio-Data-Quality]]) |
 | `id` | the row number (the respondent's **Response ID**) |
 | `survey_id` | the environment that collected the row |
 | `respondent_id` | the random id of the interview |
@@ -43,20 +54,40 @@ For the `responses` table:
 
 - **All rows**: completed **and partial** interviews, from **all
   environments** (`pilot` and `main` together). Filter before you analyze:
-  `partial` = `false` for completed interviews, `survey_id` for one
+  `partial` = `false` for submitted interviews, `survey_id` for one
   environment (it is the 12-character id in that environment's link),
   `__status` ≠ `screened_out` to drop screen-outs.
-- **Left out: `meta`.** Timing, the last page, URL parameters (`url_source`,
-  panel ids, invitation tokens), behavioral counts and the captcha verdict are
-  not in Data exports. They are available in flows as columns (`duration_s`,
-  `url_*`, `captcha`, …); use a flow with an **Export file** node to write
-  them to a file (see [Other routes out](#other-routes-out)).
+- **Fieldwork columns.** The metadata columns carry the names a flow gives
+  them, so a downloaded file and a flow's data agree. A column appears when
+  at least one row has the value (a survey without the captcha has no
+  `captcha` column). If one of your variables has the same name as one of
+  them (say, a variable `duration_s`), the answer wins in the rows that hold
+  one, and the other rows keep the metadata value. `last_page` is not
+  exported: it belongs to the drop-off funnel.
+- **Personal data.** The `url_*` columns include panel ids and invitation
+  tokens, which tie a response to a person. Treat a Data export accordingly. A
+  [research bundle](Studio-Reproducibility#the-research-bundle) leaves out the
+  parameters no flow reads, and never carries the invitation token.
 - If a variable is named like a table column (`id`, `partial`, …), the
   variable keeps the name and the table column becomes `_id`, `_partial`, ….
+- **Responses collected by an older survey build** are written in the same
+  layout as new ones: a matrix stored as one object becomes one column per row
+  with the column's code (a 0–10 scale stored as 1–11 is written 0–10), a wide
+  Multiple choice stored as one list becomes 0/1 per choice, Other stored as
+  `__other__` becomes the Other code plus `<variable>_other`, `__none__` the
+  None code, `na` the declared not-applicable code (still `na` without one),
+  and script flags stored under `__flags__` become columns (`speeder`). The
+  survey page's internal columns (`__options__`, `__pages__`, `__errors__`,
+  `__timers__`) no longer appear. An export you make now can therefore differ
+  from one you downloaded earlier for the same responses. See
+  [Older surveys and responses](Studio-Question-Types#older-surveys-and-responses).
 - Answers collected by earlier versions of Studio under a question's Id have
   been moved to the variable's column; the few that could not be moved safely
   stay in a column named after the Id (see
   [The responses table](Studio-Responses-and-Data#the-responses-table)).
+
+Other tables — `quota_counters`, `survey_meta`, the tables your flows write —
+are exported as they are, column for column.
 
 ### Multiple answers
 
@@ -67,7 +98,9 @@ For the `responses` table:
 | other structured answers | JSON text | JSON text |
 
 The `1;3` form is the same one the engine and a flow's **Export file** node
-write, so every file of a project spells multiple answers the same way.
+write, so every file of a project spells multiple answers the same way. (A
+Multiple choice in the wide layout has no list to write: it is one 0/1 column
+per choice.)
 
 ---
 
@@ -107,9 +140,12 @@ The labels come from the **current Save** of the questionnaire — not from the
 version that collected the data. If you renamed a variable or changed codes
 mid-field, older responses are labeled with today's codebook (see
 [Data from more than one version](Studio-Responses-and-Data#data-from-more-than-one-version)).
-Columns that are not questionnaire variables (`id`, `survey_id`, …) are written
-without labels. If the questionnaire cannot be read, the file is still
-produced, unlabeled.
+The codes Studio adds for Other, None of the above and N/A carry their labels
+("Other", "None of the above", "Not applicable" as a declared missing code),
+and a `<variable>_other` column has its own variable label. Columns that are
+not questionnaire variables (`id`, `survey_id`, the `url_*` and other
+fieldwork columns, …) are written without labels. If the questionnaire cannot
+be read, the file is still produced, unlabeled.
 
 Variable names are adjusted to SPSS rules — the same names in every export:
 
@@ -128,6 +164,13 @@ for tables.
 
 - Column types are kept: numbers, booleans, timestamps with time zone.
 - Multiple answers stay lists.
+- A Parquet column holds one type. When a column does not — text next to
+  numbers (for example `na` next to codes, where the codebook declares no N/A
+  code), or lists next to single values — the whole file is written the way
+  the other formats write it: multiple answers as `1;3`, and each column that
+  mixes text with numbers as text. A column that mixes `true`/`false` with
+  numbers — a script flag such as `speeder`, stored as `true` by an older
+  survey build and as `1` by a current one — is written as `1`/`0`.
 
 Good for: Python and R pipelines, large tables, type-faithful archiving.
 
@@ -141,17 +184,20 @@ tool.
 
 ### Stata (.dta)
 
-Stata is not in the Data tab's menu. For your responses:
+- Labeled like the SPSS file: variable labels, value labels, declared missing
+  values, from the **current Save**.
+- Names follow the SPSS rules above, cut at **32** characters (Stata's limit);
+  names that clash after the cut get `_1`, `_2`, ….
+- Timestamps are written without time zone.
+- A missing text answer is written as an empty string, which is how Stata
+  stores a missing string anyway. Long open answers (2,045 characters and more)
+  are written as Stata long strings, next to skipped ones.
 
-- a flow with an **Export file** node and a path ending in `.dta` — labeled
-  like the SPSS file; or
-- the [[API|Studio-API-and-API-Keys]], which offers the same export as the
-  Data tab in Stata format too.
-
-Stata names follow the SPSS rules above, cut at 32 characters. (The
-**Simulate** mode of **Builder → Test** downloads *simulated* responses as
-CSV, Excel, SPSS, Stata or Parquet — useful for preparing your analysis before
-fieldwork, but it is not your data.)
+Good for: Stata, with labels ready. A flow's **Export file** node with a path
+ending in `.dta` writes a labeled Stata file of the data at that point of the
+flow. (The **Simulate** mode of **Builder → Test** downloads *simulated*
+responses as CSV, Excel, SPSS, Stata or Parquet — useful for preparing your
+analysis before fieldwork, but it is not your data.)
 
 ---
 
@@ -176,7 +222,7 @@ includes the responses are limited to 100,000 rows as well.
 | Flow **Export file** node | `.csv`, `.xlsx`, `.sav`, `.dta` or `.parquet` of the data at that point of the flow — cleaned, weighted, with `url_*` and timing columns — plus its data dictionary | [[Analysis Flows\|Studio-Flows]], [[Node Reference\|Studio-Node-Reference]] |
 | Flow **Write table** node | a new project table, which you can export from Data | [[Analysis Flows\|Studio-Flows]] |
 | Connectors *(Plus; some targets Pro)* | a table pushed to Google Sheets, Excel 365, Supabase, Airtable, Dropbox, HubSpot *(Plus)*, or S3, GCS, Azure, BigQuery, Snowflake, your own database, SFTP, REDCap, Salesforce, HTTP *(Pro)* | [[Connectors\|Studio-Connectors]] |
-| Research bundle | data, questionnaire, code, codebook and a provenance file in one zip — the export for a co-author or a paper | [[Reproducibility\|Studio-Reproducibility]] |
+| Research bundle | data, questionnaire, code, codebook and a provenance file in one zip — the export for a co-author or a paper. Its data files keep the fieldwork columns but only the `url_*` parameters a flow reads, and never the invitation token | [[Reproducibility\|Studio-Reproducibility]] |
 | API | the same exports for a script, with an API key | [[API and API Keys\|Studio-API-and-API-Keys]] |
 
 ## See also

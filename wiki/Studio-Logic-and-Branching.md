@@ -20,6 +20,14 @@ logic before you publish.
 > right. To fix the routing in the respondent's browser, publish the survey
 > again.
 
+> **Note.** The survey runtime was updated. Conditions on Matrix rows, on the
+> per-choice variables of a wide Multiple choice and on MaxDiff and Conjoint
+> tasks now fire, a nested block's conditions now apply, a comparison with an
+> empty value now means "not answered" in the browser too, and piping now
+> works on end pages. A survey that is already in the field keeps the runtime
+> it was built with: **publish it again** to give respondents the new
+> behavior. Every Save you publish from now on gets it.
+
 ---
 
 ## Where logic lives
@@ -28,7 +36,7 @@ logic before you publish.
 |---|---|---|---|
 | Page | **Show if**, **Hide if** | Inspector → Page → **Logic** | shows or skips the whole page; checked when the respondent arrives at it |
 | Page | **Branch (next if)**, **Default next** | Inspector → Page → **Logic** | where the respondent goes when leaving the page |
-| Block | **Show if**, **Hide if** | Inspector → Block → **Logic** | shows or hides every question in the block together |
+| Block | **Show if**, **Hide if** | Inspector → Block → **Logic** | shows or hides every question in the block together, including the questions of blocks inside it |
 | Question | **Show if**, **Hide if** | Inspector → Question → **Logic** | shows or hides one question |
 | Question | **Skip to** | Inspector → Question → **Logic** | jumps to a page once the question is answered (on **Next**) |
 | Answer option | show if / hide if | **Source** tab only | hides one answer option of a question |
@@ -40,8 +48,11 @@ with a Skip to shows **→ page name**. In the page rail, **⤳** marks a page
 that has branch rules or a default next.
 
 Answer-option conditions have no editor in the Builder. You can write them in
-the **Source** tab (or bring them in by import). The runtime applies them, and
-the Logic map shows them as **OPTION SHOW IF** / **OPTION HIDE IF**.
+the **Source** tab (or bring them in by import). The runtime applies them,
+**Test → Simulate** applies them, and the Logic map shows them as **OPTION
+SHOW IF** / **OPTION HIDE IF**. In a wide Multiple choice, the 0/1 variable of
+an option that its own condition hid from a respondent is left empty
+(missing) rather than 0: 0 means "offered and not chosen".
 
 ---
 
@@ -75,6 +86,11 @@ Show if   (age ≥ 18) and (region in [1, 2])      Edit  Clear
   of **Assign to a condition**), including variables asked **later**.
   Picking a later one is allowed but is flagged (see
   [Studio's check](#studios-check)).
+- A question that writes several variables offers each of them: one per
+  Matrix row, one 0/1 variable per choice of a wide Multiple choice (for
+  example `brands_1 = Yes (1)`), the best and worst variables of each MaxDiff
+  task and the variable of each Conjoint task. The text typed into "Other
+  (please specify)" is a variable too, `<variable>_other`.
 - With no variables yet (no question and no codebook entry), **+ Condition**
   is disabled with "Add a question first — conditions reference its
   variable."
@@ -96,6 +112,23 @@ Use **chose** / **did not choose** for multiple-choice questions. An answer of
 anyone who picked more than one option.
 
 The comparison is exact: the code `2` and the text `"2"` are different values.
+
+### Comparing with "no answer"
+
+A row whose value is left empty compares with no answer at all. The sentence
+shows it as `∅`:
+
+- `q7 = ∅` holds for a respondent who has not answered `q7` (or never saw
+  it);
+- `q7 ≠ ∅` holds for a respondent who has.
+
+The survey and **Test → Simulate** now read these the same way. (Surveys
+built before the runtime update treated an unanswered question as never
+equal to `∅`, so `≠ ∅` held for everyone; publish again to change that.) On
+a variable with value labels the engine's check warns about an empty value
+(`UNKNOWN_CONDITION_VALUE`); there, **in** with every code of the question
+says "answered" without a warning. A new branch rule cannot be added with an
+empty value (see [Adding a rule](#adding-a-rule)).
 
 ### Value pickers
 
@@ -144,6 +177,10 @@ on the Logic map and no check applies to them.
   `REQUIRED_CONDITIONAL` in Validation. That is expected, and you can accept
   it.
 - A hidden **page** is passed over in navigation, as if it were not there.
+- A **block inside a block** behaves as it reads: its own Show if / Hide if
+  gates every question inside it, on top of the outer block's. Only a page's
+  own blocks show their **Title** to respondents; the title of a block inside
+  another block is not displayed.
 - Conditions are live: a question further down the same page appears or
   disappears as soon as the answer it depends on changes.
 
@@ -155,7 +192,8 @@ questions.
 
 ## Skip to
 
-**Skip to** (hint "after answering") is a page dropdown on a question. The
+**Skip to** (hint "on Next, after any answer to this question — checked
+before the page’s Branch rules") is a page dropdown on a question. The
 default is **— next page —**. It works like this:
 
 - It is **unconditional**. It fires for **any** answer, not for a particular
@@ -170,6 +208,10 @@ default is **— next page —**. It works like this:
 
 To route people **by their answer**, use a branch rule on the page instead.
 
+The dropdown lists pages. A questionnaire brought in by import (or edited in
+**Source**) may name a question's Id as the target instead; the survey then
+goes to the page that holds that question, and Studio's check accepts it.
+
 ---
 
 ## Branch (next if) and Default next
@@ -177,17 +219,47 @@ To route people **by their answer**, use a branch rule on the page instead.
 On a page, Inspector → **Logic**:
 
 - **Branch (next if)** (hint "first matching rule wins") is an ordered list of
-  rules. Each rule is a condition plus a target page (**→** page name). **+
-  Rule** adds one; **×** (**Remove rule**) deletes it. The target list offers
-  every page except the current one. **+ Rule** is disabled while the
-  questionnaire has only one page.
+  rules. Each rule is a condition plus a target page (**→** page name, the
+  **Target page** list). **×** (**Remove rule**) deletes a rule. The target
+  list offers every page except the current one. **+ Rule** is disabled while
+  the questionnaire has only one page.
 - **Default next** (hint "when no rule matches"): the page to go to when no
   rule matched. **— following page —** means the next **visible** page in
   document order.
 
+### Adding a rule
+
+**+ Rule** opens a **draft** rule under the existing ones, with the condition
+editor already open. It starts with one comparison, **=** on the last
+question of this page (or the first variable, on a page without questions),
+and the first other page as its target. While the draft is open, **+ Rule**
+is hidden.
+
+```
+Branch (next if)                      first matching rule wins
+                                                              Done
+  [ age ▾ ]  [ =  ▾ ]  [ value     ]                           ×
+  + Condition
+  Pick what the rule tests — it is added once the condition is complete.
+  →  [ about_you ▾ ]                          [Add rule]  [Cancel]
+```
+
+The note under the comparisons disappears once every comparison has a value.
+
+- Pick the variable, the operator and the value, and the target page.
+- **Add rule** stays disabled until every comparison has a value. Pressing it
+  adds the rule at the end of the list.
+- **Cancel** drops the draft; nothing was added.
+
+A draft is not part of the questionnaire until you press **Add rule**, so a
+half-written rule never reaches the survey or the Logic map.
+
+### Rules with no condition
+
 A rule whose condition is empty never matches: it is not an "otherwise". A
-new rule from **+ Rule** starts out empty, so Studio flags it until you give
-it a condition:
+draft cannot be added empty, but a rule can still lose its condition (press
+**Clear** on it) or arrive without one from an import or an older document.
+Studio flags such a rule until you give it a condition:
 
 - under the rule in the Inspector: "Add a condition — an empty rule never
   fires.";
@@ -198,6 +270,11 @@ Give every rule a condition, and use **Default next** for "everyone else".
 
 ### What happens when Next is pressed
 
+First the page is checked: required questions, formats and limits, script
+messages. Then, in a published survey with quotas, the answers are checked
+against the quota cells: a respondent whose answer falls into a full cell
+ends on the quota-full screen here, before any routing (see
+[[Quotas and Randomization|Studio-Quotas-and-Randomization]]). Otherwise
 Studio works through these in order and uses the first that applies:
 
 1. **Skip to** of the first visible, answered question on the page that has one.
@@ -210,7 +287,9 @@ lands on the first visible page after it.
 
 The **Previous** button retraces the path the respondent actually took, so
 someone who was branched past three pages goes straight back to where they
-came from.
+came from. The page dots (Theme → **Progress**) follow the same path: they go
+back only to pages the respondent visited on the way here, never forward. A
+respondent who resumes a saved interview goes back along the saved path too.
 
 This is how you build interview routes: send employed respondents down one
 path and students down another, then bring them together on a common page
@@ -231,12 +310,18 @@ page**. When routing reaches an end page, the interview ends there:
 | **Screen-out** | the page's title and body (defaults "Thank you" / "You do not qualify for this study.") | screened out |
 | **Redirect** | the page, then a redirect to **Redirect URL** after **Delay (s)** (5 seconds by default) | redirect |
 
-- Reaching an end page **submits the response**. Screen-outs and redirects are
-  submitted responses, so they count toward the environment's
-  [response cap](Studio-Publishing-and-Environments#response-caps) and they
-  advance quota counters.
-- The body of an end page is shown as written. [Piping](#piping) does not work
-  there.
+- Reaching an end page **submits the response**. A redirect counts as a
+  completed response. A screen-out is stored and shows in **Data**, but it
+  is not a completed interview: it does not count toward the environment's
+  [response cap](Studio-Publishing-and-Environments#response-caps) or the
+  Free plan's per-project cap, and it fills no quota cell.
+- The **Body** of a Final or Screen-out page is HTML (hint "HTML, shown to
+  the respondent; {answer:variable} or {label:variable} pipes an earlier
+  answer"). [Piping](#piping) works in the title and body of every end page.
+- A Final page without a title shows the completion screen's **Title**, and
+  one without a body shows its **Message**; a Screen-out page without a title
+  shows the Wording field **Screen-out page title** ("Thank you"). See
+  [Completion screen](Studio-Theme-and-Branding#completion-screen).
 - If the survey ends on a content page instead, the respondent presses
   **Submit responses** and sees the completion screen (see
   [Completion screen](Studio-Theme-and-Branding#completion-screen)).
@@ -281,44 +366,83 @@ Likert, number and open text questions.
 
 By default, a failed check is only flagged in the data, for your analysis to
 decide (see [[Data Quality|Studio-Data-Quality]]). To stop the interview
-instead, tick **Also end the survey for respondents who fail**. This adds an
-ordinary branch rule to the page ("branches to <page>"): answers other than
-the expected one send the respondent to the first Screen-out page. The rule is
-checked when the page is left, so respondents finish the page first, and their
-answers are still stored and counted as screened out. The rule appears in the
-page's **Logic** section like any other, and unticking the box removes it.
+instead, tick **Also end the survey for respondents who fail** (hint "adds a
+screen-out branch"; once ticked, "branches to <page>"). This adds an ordinary
+branch rule to the page that holds the check, pointing at a Screen-out page
+that only this rule leads to. Under the box the Inspector explains:
 
-If the questionnaire has no Screen-out page yet, Studio creates one and places
-it directly **before** the first **Final** or **Redirect** page. If there is no
-Final or Redirect page either, Studio first adds a Final page after your last
-content page, then places the Screen-out page in front of it:
+> An ordinary page branch, editable in Logic: it is evaluated when this page
+> is left, so they finish the page first, and their answers are still
+> collected and counted as screened out. Its Screen-out page sits after the
+> Final page, so only this branch leads there. Leave it off to keep everyone
+> and decide in the analysis instead.
+
+(The middle sentence appears only while the Screen-out page really does sit
+behind the Final page.) The rule appears in the page's **Logic** section like
+any other, and unticking the box removes it; the Screen-out page stays.
+
+**Who is screened out.** Only a respondent who answered, and answered
+something other than the expected answer:
+
+- on a question with answer codes (single choice, Likert, or a variable with
+  value labels), the rule is "the answer is one of the other codes" (**in**);
+- on a number or open-text question without codes, it is "answered and
+  different" (`≠ ∅` and `≠` the expected answer).
+
+A respondent who leaves an optional check empty is not screened out. (In a
+survey built before the runtime update, the "answered and different" rule
+also caught respondents who left a number or open-text check empty; publish
+again to fix that.)
+
+**Where the Screen-out page goes.** Pages are shown in order, so a Screen-out
+page anywhere a respondent can walk onto would catch the people who passed.
+Studio therefore places it **after the last Final or Redirect page**:
+
+- If a Screen-out page without a Show if / Hide if already sits there, the
+  rule points at it.
+- Otherwise Studio adds one right after the last Final or Redirect page,
+  named `disqualification`, with the title "Thank you" and the body "You do
+  not qualify for this study." (edit both as you like).
+- If no Final or Redirect page ends the survey for everyone (one without a
+  Show if / Hide if), Studio first adds a Final page, `final` ("Thank you" /
+  "Thank you for taking part."), after your last content page and any end
+  pages right behind it.
 
 ```
-before:  screener → about_you → thanks (Final)
-after:   screener → about_you → screenout (Screen-out) → thanks (Final)
+before:  screener → about_you
+after:   screener → about_you → final (Final) → disqualification (Screen-out)
 ```
 
-> **Current limitation.** In that layout the new Screen-out page sits in front
-> of the Final page, and pages run in order: respondents who **pass** the
-> check reach it when they press **Next** on the page before it, and are
-> recorded as screened out. After ticking the box, drag the Screen-out page
-> below the Final page in the page rail, as in the
-> [dependable pattern](#screening-people-out) (the branch rule points at the
-> page by name, so it follows). Then walk the survey once as a respondent who
-> passes.
+Respondents who pass walk on to the Final page and are recorded as
+completed. Respondents who fail jump from the check's page to the Screen-out
+page and are recorded as screened out.
 
-> **Current limitation.** If the questionnaire already has a Screen-out page,
-> the rule points at that one. Every template that asks for consent has one:
-> `screen_out`, right after the consent page, with **Show if** `consent = 0`, so
-> only people who decline see it. For everyone who consented that page is
-> hidden, and a branch to a hidden page lands on the first visible page after
-> it (see [What happens when Next is pressed](#what-happens-when-next-is-pressed)),
-> which is the first question page. A respondent who fails the check is sent back
-> to the start of the questionnaire, not screened out. Add a second Screen-out
-> page below the Final page. Then, in the **Logic** section of the page that
-> holds the check, change the rule's target (the page after **→**) to the new
-> page. The question's inspector then reads "branches to" that page, and
-> unticking the box still removes the rule.
+A conditional Screen-out page that already exists keeps its own job. Every
+template that asks for consent has one (`screen_out`, right after the consent
+page, **Show if** `consent = 0`); the attention check does not use it, because
+for everyone who consented it is hidden, and a branch to a hidden page lands
+on the first visible page after it.
+
+#### Checks saved before this placement
+
+Studio used to put the new Screen-out page in front of the Final page, or
+reuse a conditional one. A questionnaire saved that way shows an error under
+the checkbox, and the same finding in **Validation → Structure** as
+`<question>: the screen-out branch for failing this attention check does not work. <reason>`:
+
+| Reason shown | What it means | Fix |
+|---|---|---|
+| "Respondents who pass reach “<page>” too: it comes after this page with no Final page in between, and pages are shown in order." | respondents who pass walk into the Screen-out page and are recorded as screened out | **Fix the branch** |
+| "“<page>” has a show if or hide if of its own. Where it is hidden, a respondent who fails is sent on to the next page shown after it instead of being screened out." | the rule points at a conditional Screen-out page (the consent templates' `screen_out`) | **Fix the branch** |
+| "Skip to on <question> is checked before branch rules, so for anyone who answers <question> this branch never fires." | a question on the same page has a Skip to, which wins over every branch rule | remove the Skip to, or put the check on a page of its own |
+
+**Fix the branch** rebuilds the rule as a new tick would. A Screen-out page
+that passing respondents walk into is moved, with its wording, to right after
+the last Final or Redirect page (a Final page is added first if none ends the
+survey), and the rule is pointed at it. A conditional Screen-out page is left
+where it is for its own job, and the rule is pointed at a Screen-out page
+behind the Final page, added if there is none. Save, then publish again: a
+survey already in the field keeps the old routing until you do.
 
 ---
 
@@ -336,12 +460,16 @@ Insert an earlier answer into text:
 Text:  You told us you mostly use {label:main_brand}. How satisfied are you with it?
 ```
 
-- **Where it works:** question text and hint, and a content page's title and
-  body. The Inspector reminds you under Question → **Advanced**: "To insert a
-  previous answer into question text or a hint, use {answer:variable} or
-  {label:variable}."
-- **Where it does not:** the body of Final, Screen-out and Redirect pages
-  (shown as written), and answer-option labels.
+- **Where it works:** question text and hint; a page's title and **Body**
+  (on a page with questions the body is shown above them); and the title and
+  body of Final, Screen-out and Redirect pages. The Inspector reminds you
+  under Question → **Advanced**: "To insert a previous answer into question
+  text or a hint, use {answer:variable} or {label:variable}."
+- **Where it does not:** answer-option labels.
+- `{label:…}` shows the chosen option's label. For "Other (please specify)"
+  it shows what the respondent typed. A Matrix row's variable gives the
+  column's label, and a MaxDiff task's best or worst variable the item's
+  label (`{label:md_t1_best}`).
 - A multiple-choice answer is inserted as a comma-separated list ("Daily,
   Weekly").
 - An **unanswered** variable leaves the token on screen exactly as typed
@@ -390,16 +518,40 @@ Save: "… references unknown variables: <name>". The Save is marked
 **errors** and cannot be published.
 
 > **Note.** Because a codebook entry counts as a known variable, a condition
-> that reads a name left over in the codebook passes both checks, but it never
-> sees an answer: **=**, **in** or **chose** on it never match anyone, and
-> **≠**, **not in** or **did not choose** match everyone. That happens when
-> you rename a variable in the Inspector: the
-> conditions that read it are not updated, and the old name stays in the
-> codebook. Rename variables before you write logic. If you rename one later,
-> edit each condition that reads the old name. In the Logic map's
-> **Questions** lens, such a condition's **Reads answers from** shows the old
-> name as "not collected by any question", and the Save carries an
-> `UNUSED_VARIABLE` warning for it.
+> that reads a name only the codebook declares passes both checks even when
+> nothing ever writes it: **=**, **in** or **chose** on it then never match
+> anyone, and **≠**, **not in** or **did not choose** match everyone. In the
+> Logic map's **Questions** lens, such a condition's **Reads answers from**
+> shows the name as "not collected by any question". Make sure a script
+> really writes it.
+
+---
+
+## Renaming variables and pages
+
+Logic refers to variables and pages by name, and renaming either one carries
+the references along.
+
+**A variable.** Renaming a variable in the Inspector's **Variable** section
+renames it everywhere the questionnaire uses it: conditions and branch rules,
+quotas, `{answer:}` / `{label:}` piping, script targets, and `answers.<name>`
+accesses in Custom JavaScript. Its codebook entry moves with it, so no unused
+old entry is left behind. A string inside custom code that merely holds the
+name is not changed. See
+[Renaming a variable](Studio-Codebook-and-Variables#renaming-a-variable).
+Once the questionnaire has been published, the Inspector adds: "This
+questionnaire has been published. Renaming a variable renames its column in
+the data: answers already collected keep the old name, answers collected
+after you publish again get the new one."
+
+**A page.** The page's **Name** field (hint "used by logic (skip to, next
+if) and page scripts") takes the new name when it loses focus or when you
+press `Enter`; `Escape` puts the current name back. A name another page
+already has is refused with "Another page already has this name." The rename
+updates every branch rule and **Default next** that points at the page, every
+**Skip to** that names it, and the target of Custom JavaScript that runs on
+it (**onPageEnter** / **onPageExit**), so the next Save does not fail on a
+stale script target.
 
 ---
 
@@ -431,7 +583,8 @@ Forward jumps arc above the row and backward jumps below it. The header reads
 "N pages · N routing rules" and "✕ N issues" when there are problems. The ⓘ
 button explains the view.
 
-Two problems are listed above the map. The engine refuses both at Save:
+Two problems are listed above the map. The engine rejects both at Save — the
+Save is marked **errors** and cannot be published until you fix them:
 
 - **UNREACHABLE**: "No route leads to page X — the engine rejects the
   questionnaire until a rule points at it or it moves into the flow." Click it
@@ -536,14 +689,19 @@ never blocks a Save:
   condition**, for example) is not flagged.
 - A branch rule with an empty condition:
   `<page>: the branch to "<target>" has no condition — an empty rule never fires; add one, or use Default next`.
-- `<question>: skip_to points at unknown page "<page>"`,
+- An attention check whose screen-out branch cannot work:
+  `<question>: the screen-out branch for failing this attention check does not work. <reason>`
+  (see [Checks saved before this placement](#checks-saved-before-this-placement)).
+- `<question>: skip_to points at unknown page "<page>"` (a Skip to that names
+  an existing question's Id is not reported: it goes to that question's page),
   `<page>: next_if target "<t>" does not exist`,
   `<page>: default_next "<t>" does not exist`.
 
 ### The engine's check
 
-The engine's check runs at every Save. These errors mark the Save **errors**
-and block publishing:
+The engine's check runs at every Save, and on the working document when you
+press **Check now** in **Validation → Engine**. These errors mark the Save
+**errors** and block publishing:
 
 - unreachable pages and cycles in the page routing;
 - a Skip to, branch or default-next target that does not exist;
@@ -558,8 +716,10 @@ and block publishing:
   targets could not tell the two apart;
 - a Matrix, MaxDiff, Conjoint or wide Multiple choice whose **Id** is another
   question's variable name ("Duplicate answer key in questionnaire: questions
-  '<a>' and '<b>' both store their answer under '<name>'."). Such a question
-  stores its answers under its Id, so the two would share one name.
+  '<a>' and '<b>' both store their answer under '<name>'."). The survey
+  knows such a question by its Id (its variables are stored under their own
+  names, but scripts and messages address the question by the Id), so the
+  two would share one name.
 
 It also returns warnings, which do not block. Examples: a condition that
 compares with a code the variable no longer has (`UNKNOWN_CONDITION_VALUE`),
@@ -577,12 +737,14 @@ Validation tab.
 - **Test → Walkthrough**: take the survey yourself, including unsaved edits,
   with a panel listing each show / hide result, which branch rule matched,
   whether a Skip to fires, and where **Next** will take you.
-- **Test → Simulate**: synthetic respondents that follow page show / hide,
-  Skip to, branch rules and default next. Simulate does not apply block
-  conditions or answer-option conditions, and it does not draw an arm for
-  **Assign to a condition**, so conditions on the arm are checked as if it
-  were unanswered. The Walkthrough runs the assignment (with the weighted
-  draw), so you can walk each arm's route.
+- **Test → Simulate**: synthetic respondents that follow page, block
+  (nested blocks included) and question show / hide, answer-option
+  conditions, Skip to, branch rules and default next. Each simulated
+  respondent is drawn into an arm of **Assign to a condition**, so pages and
+  questions gated on the arm are filled for that arm, gets their own page
+  order from **Randomize pages**, and is stopped by a full quota cell. The
+  Walkthrough runs the assignment too (with the weighted draw), so you can
+  walk each arm's route.
 - **Logic map** for reachability and forward references at a glance.
 - **Validation** for the engine's own verdict.
 
@@ -592,12 +754,12 @@ See [[Testing Your Survey|Studio-Testing-Your-Survey]].
 
 ## Practical advice
 
-- Settle variable names before you write logic. Renaming a variable does not
-  update the conditions that read it (see the note under
-  [Assignment and "embedded data"](#assignment-and-embedded-data)).
+- Settle variable names before you publish. Renaming a variable updates the
+  logic that reads it, but after publishing it also starts a new data column
+  (see [Renaming variables and pages](#renaming-variables-and-pages)).
 - Name pages meaningfully (`screener`, `about_you`, `thanks`). Page names are
-  what rules and the Logic map show. Renaming a page updates the rules that
-  point at it.
+  what rules and the Logic map show. Renaming a page updates the rules, Skip
+  to targets and page scripts that point at it.
 - Give every branch rule a condition, and let **Default next** be the
   "otherwise".
 - Prefer **in** over a chain of **=** rows under **ANY**: it reads better and

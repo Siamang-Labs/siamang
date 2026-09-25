@@ -67,9 +67,9 @@ invalid input, a list of the fields that failed.
 | 402 | not included in the organization's plan, or a plan limit reached — the message names the plan |
 | 403 | your role is not enough (`"insufficient role"`), or the workspace is frozen and read-only |
 | 404 | not found — also returned for organizations and projects you are not a member of |
-| 409 | a conflict: someone saved since your `base_seq`, a run is already in progress, the project was never saved |
+| 409 | a conflict: someone saved since your `base_seq`, a colleague has a flow open that your Save would delete or rename, a run is already in progress, a flow did not pass the engine check, the project was never saved |
 | 413 | an export or bundle is larger than 100,000 rows, or an upload is larger than 50 MB |
-| 422 | a document or body did not validate |
+| 422 | a document or body did not validate, or a table cannot be written in the export format asked for |
 | 429 | a rate limit (for example preview runs per hour) |
 
 > **Note.** The interactive API documentation (`/docs`) is turned off on the
@@ -90,7 +90,7 @@ the member role or higher.
 | `GET /auth/me` | you and your memberships |
 | `GET /orgs` | your organizations |
 | `GET /orgs/{org}/projects` | the organization's projects: `id`, `slug`, `name`, `current_snapshot_seq`, `responses` |
-| `POST /orgs/{org}/projects` **(admin)** | create a project: `{"slug": "…", "name": "…", "template": "empty"}` |
+| `POST /orgs/{org}/projects` **(admin)** | create a project: `{"slug": "…", "name": "…", "template": "empty"}`. A slug that breaks the rule answers 422 with "a project's address is 3 to 64 characters — lowercase letters, digits and hyphens — and starts and ends with a letter or a digit"; one the organization already has answers 409 ("project slug already exists in org") — unlike the app's **New project** dialog, the API does not add `-2` for you |
 | `GET /orgs/{org}/audit` **(admin)** | the organization's activity log |
 | `GET /auth/api-keys` · `POST /auth/api-keys` · `DELETE /auth/api-keys/{id}` | list, create (`{"name": "…", "expires_days": 90}`), revoke your keys |
 
@@ -100,21 +100,21 @@ the member role or higher.
 |---|---|
 | `GET /projects/{id}/database/tables` | the project's tables with row counts |
 | `GET /projects/{id}/database/tables/{table}/schema` | a table's columns |
-| `GET /projects/{id}/database/tables/{table}/preview?limit=100` | up to `limit` rows (1–1,000; default 100), newest first when the table has a `created_at` or `id` column (as `responses` does) |
-| `GET /projects/{id}/database/tables/{table}/export?format=…` | the whole table as a file: `csv`, `xlsx`, `parquet`, `sav` (SPSS), `dta` (Stata) or `sqlite`; SPSS and Stata files carry the codebook labels; up to 100,000 rows |
-| `DELETE /projects/{id}/database/responses/{response_id}` **(admin)** | delete one response (recorded in Activity) |
+| `GET /projects/{id}/database/tables/{table}/preview?limit=100` | up to `limit` rows (1–1,000; default 100), newest first when the table has a `created_at` or `id` column (as `responses` does). For `responses`, the answers come as one column per variable, in the questionnaire's order, as in the **Data** tab. Optional: `q` (up to 200 characters) searches **the whole table** — a row matches when any of its values contains the text, ignoring case (a response id, a respondent id, a panel id from the link, an answer); `outcome` = `completed`, `screened_out` or `partial` keeps those responses. With either, `matched` gives how many rows of the whole table match (the page holds at most `limit` of them); without, it is `null`. An unknown outcome answers 400 ("unknown outcome '*x*'; one of completed, screened_out, partial"), as does `outcome` on a table without response outcomes ("*table* has no response outcomes") |
+| `GET /projects/{id}/database/tables/{table}/export?format=…` | the whole table as a file: `csv`, `xlsx`, `parquet`, `sav` (SPSS), `dta` (Stata) or `sqlite`; SPSS and Stata files carry the codebook labels; up to 100,000 rows. For `responses`: one column per variable in the questionnaire's order, then the fieldwork columns `url_<name>`, `duration_s`, `started_at`, `captcha`, `tab_switches`, `hidden_seconds`, `pastes` (see [[Data Exports\|Studio-Data-Exports]]). A table the format cannot hold answers 422 ("The table cannot be written as .*fmt*: *reason*"). Each download is recorded in the project's Activity as `data.export` |
+| `DELETE /projects/{id}/database/responses/{response_id}` **(admin)** | delete one response (recorded in Activity); the quota cells of its survey are recounted from the responses that remain, so a cell it filled goes down |
 
 ### Saves and documents
 
 | Method and path | What it does |
 |---|---|
-| `GET /projects/{id}/snapshots?limit=50&offset=0` | Saves, newest first (up to 200 per page) |
+| `GET /projects/{id}/snapshots?limit=50&offset=0` | Saves, newest first (up to 200 per page). Each has `validation_state`, `issues` and `flow_errors` — the names of the flows that failed the engine check at that Save (they leave the state at `warnings` but cannot run) |
 | `GET /projects/{id}/snapshots/{seq}` | one Save with every document's content |
 | `GET /projects/{id}/snapshots/{seq}/diff?against={seq2}` | line diffs per changed document |
 | `GET /projects/{id}/snapshots/{seq}/generated/survey/questionnaire.json` | that Save's `questionnaire.py` (use a flow's path, e.g. `flows/tables.flow.json`, for its `.py`) |
 | `GET /projects/{id}/snapshots/{seq}/bundle?data=none` or `data=latest` | the research bundle zip, optionally with the responses |
 | `GET /projects/{id}/snapshots/{seq}/methods` | the Methods draft as Markdown |
-| `POST /projects/{id}/snapshots` | Save: `{"documents": {"<path>": <content>}, "message": "…", "base_seq": 17}` (a `null` content deletes a flow) |
+| `POST /projects/{id}/snapshots` | Save: `{"documents": {"<path>": <content>}, "message": "…", "base_seq": 17}` (a `null` content deletes a flow). To rename a flow so that its schedules and comments follow it, delete the old path (`null`), add the new one (its `name` set to the new name) and name the pair in `"renames": {"flows/old.flow.json": "flows/new.flow.json"}`; a pair that is not deleted and added in the same Save answers 422 ("rename '*old*' → '*new*': a rename deletes the old flow and adds the new one in the same Save"), and a new name that already exists answers 409 ("a flow named '*new*' already exists"). A Save that would delete or rename a flow a colleague has open answers 409 naming them |
 | `POST /projects/{id}/snapshots/{seq}/restore` | restore as a new Save |
 | `PUT /projects/{id}/snapshots/{seq}/tag` | pre-register: `{"tag": "preregistered"}`, or `{"tag": null}` to remove |
 | `POST /projects/{id}/snapshots/{seq}/deposit` | deposit: `{"target": "zenodo", "secret_key": "ZENODO_TOKEN", "publish": false, "sandbox": false, "data": "none"}` (OSF: `"target": "osf", "osf_node": "ab3cd"`) |
@@ -127,12 +127,13 @@ the member role or higher.
 
 | Method and path | What it does |
 |---|---|
-| `GET /projects/{id}/scripts` | the runnable flows |
-| `POST /projects/{id}/scripts/{flow}/run` | run one flow on the current Save |
+| `GET /projects/{id}/scripts` | the project's flows, in the order Run all runs them. Each has `check_state` (`valid`, `warnings` or `error` at the current Save) with its `check_issues`, and its newest finished run of its own (manual, scheduled or Live — not Run all's): `last_run_status`, `last_run_started_at`, `last_run_finished_at` (`null` when it has none since **Reset history**) |
+| `POST /projects/{id}/scripts/{flow}/run` | run one flow on the current Save. A flow whose `check_state` is `error` answers 409: "flow '*name*' did not pass the engine check at Save #*N*: open it, fix its errors and save before running it" |
 | `POST /projects/{id}/scripts/run-all` | Run all |
 | `GET /projects/{id}/runs?limit=50&type=…&path=…` | run history, newest first; `type` is `analysis`, `analysis_all` or `connector` |
 | `GET /projects/{id}/runs/{run_id}/outputs/download?path=…` | a link (valid 5 minutes) to one output file of a run |
-| `GET /projects/{id}/reports` | stored reports |
+| `GET /projects/{id}/reports` | stored reports; `combined` is `true` on Run all's combined report (the path set under **Settings → Reports**) |
+| `GET /projects/{id}/reports/{path}/markdown` | a Markdown report ready to open elsewhere, `{path}` being its path from the list (for example `outputs/tables/tables.md`): a zip with the `.md` and the figures it refers to in one folder (`tables.zip` → `tables/tables.md`, `tables/fig_1.png`), or the `.md` itself when it shows no figure. Errors: 400 "not a Markdown report", 404 "the stored report could not be read", 503 "object storage is not configured" |
 
 ### Connectors, schedules, secrets, files
 
@@ -157,8 +158,13 @@ the member role or higher.
 | `PATCH /projects/{id}` **(admin)** | rename: `{"name": "…"}` |
 | `DELETE /projects/{id}` **(admin)** | delete the project permanently |
 | `GET /projects/{id}/audit?limit=100` | the project's activity (up to 500) |
-| `GET /projects/{id}/deployments` | deployments with status and URL |
-| `GET /orgs/{org}/webhooks` · `POST …/webhooks` · `DELETE …/webhooks/{id}` **(admin)** | list, create, delete webhooks |
+| `GET /projects/{id}/deployments` | deployments with status and URL, plus `responses` (completed interviews so far — not partials, not screen-outs), `closes_at` (when it stops accepting responses), `closes_at_manual` (the date was set on the card), `redirect_after_close` and `one_response_per_browser` |
+| `POST /projects/{id}/deployments/{dep}/closing-date` | move the closing date without a new Save: `{"closes_at": "2026-10-31T18:00:00Z"}`, `{"closes_at": null}` for none, or `{"from_save": true}` to take the Save's date again. A date in the past answers 422 ("the closing date must be in the future — use Close to stop collecting now"); a preview answers 409 ("a preview has no closing date") |
+| `POST /projects/{id}/deployments/{dep}/one-response-per-browser` | `{"one_response_per_browser": true}` or `false`; a preview answers 409 ("a preview takes no responses") |
+| `GET /projects/{id}/dashboard/summary?days=14` | fieldwork totals: `responses` (every row), `completed` (what quota cells and response caps count), `screened_out`, `partial`, `partial_percent`, `last_response_at` and `per_day` (the last `days` days, 1–90). `respondents` and `duplicates` are still there for older scripts, but they count interviews, not people: Studio cannot tell whether two responses came from the same person |
+| `GET /projects/{id}/dashboard/frequencies?variable=…` · `GET …/dashboard/crosstab?rows=…&cols=…` | the counts behind **Data → Insights**: a variable's `bins` and their `base`, or a crosstab's `cells` and totals (`multiple` is true for a multiple choice, whose shares add up to more than 100 %). By default over every row of `responses`; `environment=main` keeps that environment's responses plus rows no deployment claims (imported or sample data), and `only_completed=true` leaves out partial interviews — the rows a flow's **Responses** node with that **Environment** and **Only completed responses** reads |
+| `GET /ingest/{survey_id}/status` | **no key needed** — whether a published survey is collecting, as its page asks when it opens: `state` is `open`, `closed`, `paused`, `deadline` (past its closing date) or `full` (a response cap is reached), with `redirect_url` (the environment's `redirect_after_close`, for a closed or past-deadline survey) and `one_response_per_browser`. An unknown survey answers 404 |
+| `GET /orgs/{org}/webhooks` · `POST …/webhooks` · `DELETE …/webhooks/{id}` **(admin)** | list, create, delete webhooks. Each listed webhook has `signed` (it has a secret) and `unknown_events` (subscribed names no event carries); creating one with an unknown event name answers 422 (see [[Schedules and Webhooks\|Studio-Schedules-and-Webhooks]]) |
 | `GET /orgs/{org}/webhooks/deliveries?limit=50` **(admin)** | the delivery log (up to 200) |
 
 A frozen workspace answers every change with 403; reading and exporting keep
@@ -192,9 +198,17 @@ curl -s -H "$AUTH" -o responses.sav \
   "$API/projects/42/database/tables/responses/export?format=sav"
 ```
 
-The file carries variable and value labels from the current codebook. Use
-`format=csv`, `xlsx`, `parquet`, `dta` or `sqlite` for other formats. A table
-above 100,000 rows answers 413 with nothing generated.
+The file carries variable and value labels from the current codebook. Its
+answer columns follow the questionnaire's order, and responses collected by an
+earlier version of the survey page are read in today's layout — for example a
+legacy "Other (please specify)" answer as the question's Other code in
+`<variable>` plus its text in `<variable>_other`. The fieldwork columns
+(`url_<name>`, `duration_s`, `started_at`, `captcha`, `tab_switches`,
+`hidden_seconds`, `pastes`) come after them, so a script that reads columns by
+position should read them by name. Use `format=csv`, `xlsx`, `parquet`, `dta`
+or `sqlite` for other formats. A table above 100,000 rows answers 413 with
+nothing generated. What every column means is on
+[[Data Exports|Studio-Data-Exports]].
 
 ### 3. Download the research bundle of a Save
 
@@ -225,10 +239,24 @@ A run's `status` goes `queued` → `running` → `completed` or `failed`. Run al
 runs the flows in dependency order (a flow after the flows whose tables it
 reads) and does not stop at a failed flow: the flows that do not need its
 tables still run, and the run ends as `failed` once every flow has had its
-turn, with each failed or skipped flow named in its log. Starting a second Run
-all while one is in progress answers 409 ("a run-all is already in progress
-for this project"). A project with no flows answers 409 ("project has no flows
-to run"). To run one flow use `POST $API/projects/42/scripts/tables/run`.
+turn. The last line of its `log` names them — "failed: *names*" (then
+"; skipped: *names*" for flows that needed a failed one). The reports of the
+flows that succeeded are stored even then, and the combined report is written
+from them as "Combined report (incomplete)" (the log says "combined report
+(incomplete): reports/report.md"). Starting a second Run all while one is in
+progress answers 409 ("a run-all is already in progress for this project"). A
+project with no flows answers 409 ("project has no flows to run"). To run one
+flow use `POST $API/projects/42/scripts/tables/run`; it answers 409 while that
+flow is already running ("a run for this flow is already in progress") or when
+it did not pass the engine check at the current Save.
+
+To see where each flow stands without walking the run history, read the flows
+list:
+
+```bash
+curl -s -H "$AUTH" $API/projects/42/scripts \
+  | jq -r '.[] | "\(.name)\t\(.check_state)\t\(.last_run_status // "never")\t\(.last_run_finished_at // "")"'
+```
 
 ### 5. Download an output file of the latest run
 
@@ -263,6 +291,42 @@ settings → Integrations → Webhooks**; either way the secret is never returne
 by the API or shown again. Creating and deleting webhooks is recorded in the
 organization's Activity (`webhook.create`, `webhook.delete`).
 
+### 7. Find a respondent's responses
+
+```bash
+curl -s -G -H "$AUTH" \
+  --data-urlencode "q=PANEL-83921" --data-urlencode "limit=20" \
+  "$API/projects/42/database/tables/responses/preview" \
+  | jq '{matched, ids: [.rows[].id]}'
+```
+
+`q` searches every row of the table, not only the newest ones — useful for an
+erasure request about an old response. `matched` is how many rows contain the
+text; `rows` holds the newest `limit` of them. Add `outcome=completed` (or
+`screened_out`, `partial`) to narrow it further. Deleting a response is
+`DELETE /projects/42/database/responses/{id}` (owner or admin).
+
+### 8. Download a report with its figures
+
+```bash
+curl -s -H "$AUTH" $API/projects/42/reports | jq -r '.[] | select(.path | endswith(".md")) | .path'
+
+curl -s -H "$AUTH" -OJ "$API/projects/42/reports/outputs/tables/tables.md/markdown"
+# → tables.zip (tables/tables.md and its figures), or tables.md when it has none
+```
+
+### 9. Check whether a survey is collecting
+
+```bash
+curl -s https://api.studio.siamang.org/ingest/3f9a1c07b2de/status
+# → {"state": "open", "redirect_url": null, "one_response_per_browser": false}
+```
+
+This is the public check a survey page makes as it opens, so it needs no key;
+use the `survey_id` from `GET /projects/{id}/deployments`. `state` is `open`,
+`closed`, `paused`, `deadline` or `full`. It is rate-limited (429 "rate limit
+exceeded; slow down"), so poll it gently.
+
 ---
 
 ## Change studio/settings.json through the API
@@ -278,6 +342,8 @@ curl -s -H "$AUTH" "$API/projects/42/documents/studio/settings.json" | jq .conte
 SEQ=$(curl -s -H "$AUTH" $API/projects/42 | jq .current_snapshot_seq)
 
 # 2. Edit settings.json — e.g. set "max_responses" of "main" in "environments",
+#    give it "closes_at": "2026-12-01T00:00:00Z" and
+#    "redirect_after_close": "https://example.org/thanks",
 #    or remove an entry from "connectors".
 
 # 3. Save it as a new version
@@ -294,8 +360,22 @@ jq -n --slurpfile s settings.json --argjson base "$SEQ" \
   name uses lowercase letters, digits and `-`, starting with a letter, and must
   be unique; `max_responses` is a whole number of at least 1. Connector names
   must be unique and use lowercase letters, digits and `_`.
-- New environments and caps take effect when you next publish to that
-  environment.
+- New environments, caps, `closes_at` and `redirect_after_close` take effect
+  when you next publish to that environment; until then its **Distribute**
+  card adds "the environment’s closing settings changed — republish *env* to
+  apply" when the settings name a redirect, or an earlier closing date, that
+  the live deployment does not have yet. A closing date set on the
+  **Distribute** card (`closes_at_manual`) outlives a republish: `closes_at`
+  from the settings applies to that deployment again only after
+  `{"from_save": true}` on its `closing-date` endpoint (**Use the Save’s
+  date** in the app). A cap counts completed
+  interviews only (not screen-outs or partial responses). The survey closes
+  at the earlier of `closes_at` and the questionnaire's own deadline, and
+  `redirect_after_close` is used only when it is an `http://` or `https://`
+  address.
+- A **Python version** other than 3.11 in `runtime` makes the Save
+  **warnings** (`RUNTIME_PYTHON`): Studio runs flows on 3.11, and the setting
+  only tells a research bundle which version to ask for.
 
 ## See also
 

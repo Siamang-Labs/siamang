@@ -38,31 +38,42 @@ error until you fill it in. The inspector marks every other parameter
 
 | Type | How you set it in the inspector |
 |---|---|
-| variable | a dropdown of codebook variables (`name — label`), filtered to the scales the node accepts |
-| variables (several) | a checklist of codebook variables, filtered the same way |
+| variable | a dropdown of the variables available at this node (`name — label`), filtered to the scales the node accepts |
+| variables (several) | a checklist of the same variables, filtered the same way |
 | choice | a dropdown of the allowed values (**— default —** leaves the default) |
 | whole number, number | a number box; the placeholder shows the default |
 | checkbox | ticked = on |
 | text | a text box; where the text names a new variable or column, the hint says "names a new variable" |
 | JSON object, JSON | a text box that must contain valid JSON; it is read when you leave the box, and a parse error is shown under it |
-| condition | the Builder's condition editor |
-| formula | a monospaced box, with your codebook's variable names listed under it |
-| file path | a text box; paths are relative to the project, e.g. `outputs/clean.csv` |
+| condition | the Builder's condition editor, over the variables available at this node |
+| formula | a monospaced box, with the variables available at this node listed under it |
+| file path | a text box; paths are relative to the project, e.g. `outputs/clean.csv`. For a **Data file** the hint reads "assets/<name> — a file uploaded under Files", for an output node "outputs/… under Files" |
 
-> **Current limitation.** The variable dropdowns and checklists list the
-> **questionnaire's** variables only. A variable created by an earlier node in
-> the flow — by **Recode**, **Derive**, **Index / scale**, **Explode multiple
-> choice**, **Cluster (k-means)**, **Response quality** or **Speeders &
-> partials** — is kept in the data, exported by **Export file** and **Write
-> table**, and listed by **Describe**, but it cannot yet be *picked* in a later
-> node's variable parameter. Parameters you type — weighting targets, **Apply
-> weight**'s column, formulas — can name it. Where you need a derived measure
-> in tables today, consider computing it in the questionnaire itself.
+**The variables available at a node** are the questionnaire's codebook
+variables, then those that nodes upstream of it make — a **Recode**,
+**Derive**, **Index / scale**, **Explode multiple choice**, **Cluster
+(k-means)**, **Response quality**, **Speeders & partials**, a weighting node,
+or a **Code open answers** whose **Theme variable** is filled in — labeled
+"*label* · made by *node*" (or "made by *node*"), then those a table the flow
+reads brings, labeled "from table *table* · made by *flow*". A variable made
+further down the flow is not offered: it does not exist yet when this node
+runs. See
+[Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers).
+
+**One-line texts.** The texts a node's card summarizes — a **Report
+section**'s **Heading**, a **Derive** formula, a **Live tile**'s **Label**, a
+path, a table or variable name — are written into a comment line of the
+generated script, so they must be one line. A line break (or another control
+character; a tab is fine) fails the engine check at **Check** and at Save,
+on that node: "“heading” holds a line break or another control character: it
+must be one line of text." The flow then has no script until you fix it.
 
 **Where files go.** On the platform, only files a node writes **under
 `outputs/`** are kept after a run and appear in **Files** (as
 `outputs/<flow>/<file>`) and on the run's card. Give every path parameter of an
-output node a value that starts with `outputs/`.
+output node a value that starts with `outputs/`. A file a flow *reads* on the
+platform is an upload under **Files**, named by its path `assets/<name>` (see
+[Data file](#data-file)).
 
 ---
 
@@ -73,24 +84,33 @@ Nodes with no input that produce **SurveyData**. A flow needs at least one.
 ### Data file
 
 `source.file` — reads a data file with its codebook: Parquet, CSV, Excel,
-SPSS (`.sav`) or Stata (`.dta`). With a dictionary (a
-`<name>.dictionary.json` beside the file, or the one you name) the columns
-arrive labeled; otherwise the questionnaire's codebook labels the columns it
-knows.
+SPSS (`.sav`) or Stata (`.dta`). The palette describes it as "A data file from
+Files: Parquet, CSV, Excel, SPSS or Stata, with its dictionary when present."
+With a dictionary (a `<name>.dictionary.json` beside the file, or the one you
+name) the columns arrive labeled; otherwise the questionnaire's codebook
+labels the columns it knows.
 
 **In:** none → **Out:** `data` (SurveyData)
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **File** | file path | required | — | Path of the data file, relative to the project (for example `data/wave1.sav`). |
+| **File** | file path | required | — | Path of the data file, relative to the project. On the platform: an upload's path, `assets/<name>` (the hint reads "assets/<name> — a file uploaded under Files"). |
 | **Dictionary (JSON)** | file path | — | — | Optional `<name>.dictionary.json`; found automatically when next to the file. |
 
-> **Current limitation.** Files you upload under **Files** are not available to
-> flow runs in the current build, so a Data file node on the platform cannot
-> read an upload. The node is useful in a downloaded research bundle, where you
-> place the file at the path the node names (see
-> [[Reproducibility|Studio-Reproducibility]]). On the platform, read your data
-> with **Responses** or **Project table** instead.
+- **On the platform** the node reads a file you uploaded under
+  [[Files|Studio-Files]], by the path shown under the file's name there (the
+  copy icon beside it copies "the path a flow reads it by"), for example
+  `assets/ev_q2_labeled.sav`. Runs, **Run all** and **Run to here** all get
+  it.
+- Only the uploads a flow names are copied into its run. An uploaded
+  dictionary is therefore not found "next to the file" on the platform: name
+  it in **Dictionary (JSON)** as well (`assets/ev_q2.dictionary.json`).
+- An upload that is missing shows in the run's log before the node fails:
+  "note: assets/panel.csv is not among this project's Files" (or "… is listed
+  under Files but its content is gone").
+- In a research bundle made **with the responses so far**, the uploads the
+  flows name are included at the same path; in a bundle without data, put
+  the file there yourself (see [[Reproducibility|Studio-Reproducibility]]).
 
 ### Responses
 
@@ -103,28 +123,65 @@ questionnaire's codebook. New flows start with one of these already placed
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Table** | text | `responses` | — | Which project table to read. `responses` is the table your survey writes. |
-| **Environment** | text | `main` | — | Keep the responses collected by this environment's deployments (plus rows no deployment collected, such as imported or sample data). Typed as text, e.g. `main` or `pilot`. |
+| **Table** | text | `responses` | — | Which project table to read. `responses` is the table your survey writes. A table name has lowercase letters, digits and `_`, starts with a letter or `_`, and has at most 63 characters. |
+| **Environment** | text | `main` | — | Keep the responses collected by this environment's deployments (plus rows no deployment collected, such as imported or sample data). Typed as text, e.g. `main` or `pilot`: lowercase letters, digits and `-`, starting with a letter, at most 63 characters. |
 | **Only completed responses** | checkbox | off | — | Drop interviews that were started but not submitted. |
 
 What comes in besides the answers: `duration_s` (interview length in
 seconds), `started_at`, `captcha`, `tab_switches`, `hidden_seconds`, `pastes`
-and every URL parameter of the survey link (`url_…`). A question that writes
-several variables (a matrix, a MaxDiff) arrives as one column per variable.
+and every URL parameter of the survey link (`url_…`).
+
+**How the answers arrive.** One column per variable, whichever survey runtime
+collected the response — responses stored before the current runtime are read
+into the same layout:
+
+- A question that writes several variables — a matrix, a MaxDiff, a conjoint,
+  a Multiple choice with **Data layout** `wide` — arrives as one column per
+  variable. A wide choice is 1 when chosen and 0 when offered and not chosen;
+  with the current survey runtime, an option the respondent never saw
+  (hidden by its own condition) is left empty rather than 0.
+- A matrix answer is the column's codebook code: a 0–10 scale is 0–10.
+  Responses collected by an earlier runtime, which stored the column's
+  position (1–11 for a 0–10 scale), are read as the code too — so a matrix
+  whose codes are not 1, 2, 3, … gives different numbers than it did before
+  this was fixed. Check **Recode** mappings, **Filter rows** values and
+  weighting targets written against the old values.
+- "Other (please specify)" arrives as the question's Other code (`-66` unless
+  the question sets another) in the question's variable, and the typed text
+  in its own column, `<variable>_other`. "None of the above" is the
+  question's None code (`-77` unless set), and "Not applicable" the
+  variable's declared not-applicable code — or the text `na` when the
+  codebook declares none. See
+  [[Codebook and Variables|Studio-Codebook-and-Variables]].
+- A variable a custom script writes arrives as its own column; flags an
+  earlier runtime stored together (`__flags__`) arrive one column each (for
+  example `speeder`).
+
+Notes:
 
 - **Environment** keeps the responses of that environment's deployments plus
   the rows no deployment collected (imported data, a template's sample data).
 - **Only completed responses** has no effect on a table without a `partial`
-  column.
-- In a research bundle this node reads the file you pass with `--data`
-  instead of the database, and there **Environment** and **Only completed
-  responses** are not applied — the file is read as is.
+  column. Partial interviews reach the `responses` table only from surveys
+  published with the current survey runtime: a survey published before
+  partial saves were fixed sends only submitted interviews until you publish
+  it again, and from then on a flow that does not tick this box sees its
+  partial interviews too.
+- A **Table** or **Environment** that no project can have (see the rules
+  above) fails the engine check at Save: "“x y” is not a table name: …" or
+  "“Main” is not an environment name: …".
+- In a research bundle this node reads a data file instead of the database.
+  A bundle made with data carries one already filtered the way this node
+  filters (`data/responses.main.csv`, `data/responses.main.completed.csv`, or
+  `data/responses.csv` when the filter keeps every row); with a file you
+  supply yourself, the file is read as is. See
+  [[Reproducibility|Studio-Reproducibility]].
 
 ### Simulated data
 
-`source.simulated` — synthetic respondents generated from the questionnaire's
-own pages and logic, for building and testing a flow
-before fieldwork. The same seed gives the same data, including in a research
+`source.simulated` — "Synthetic responses generated from the questionnaire's
+logic — conditions, routing, assigned arms — for building a flow before
+fieldwork." The same seed gives the same data, including in a research
 bundle.
 
 **In:** none → **Out:** `data` (SurveyData)
@@ -133,6 +190,22 @@ bundle.
 |---|---|---|---|---|
 | **Respondents** | whole number | `200` | at least 1 | How many synthetic respondents to generate. |
 | **Seed** | whole number | `42` | — | Random seed: the same seed gives the same data every time. |
+
+Each simulated respondent walks the questionnaire as the survey would move
+them, its scripts included:
+
+- a Scripts → **Assign to a condition** arm is drawn by the arms' weights and
+  arrives as a column (a nominal variable labeled with the arms), and the
+  pages shown only to one arm are filled for that arm;
+- a page shuffle is dealt to each respondent;
+- questions hidden by their own, their block's or their page's condition stay
+  empty, and so do answer options hidden by their own condition.
+
+Quotas belong to publishing, not to the questionnaire, so no quota closes
+here (Test → Simulate in the Builder does apply them). The generated line is
+`n_<id> = simulate_survey(survey, n=…, seed=…)`. In a research bundle whose
+engine pin lags behind Studio (the README says so), this node stops with an
+error — see [[Reproducibility|Studio-Reproducibility]].
 
 ### Project table
 
@@ -144,18 +217,25 @@ responses), as SurveyData labeled by the questionnaire's codebook.
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Table** | text | required | — | Name of a project table written by a **Write table** node (or another table in **Data**). |
+| **Table** | text | required | — | Name of a project table written by a **Write table** node (or another table in **Data**): lowercase letters, digits and `_`, starting with a letter or `_`, at most 63 characters. |
 
 - **Run all** runs this flow after the flow whose **Write table** writes the
   table named here, whatever the flows are called, and skips it (marked
   failed) when that flow fails. Running this flow on its own does not run the
   writer first: it reads the table as it is. See
   [Run all](Studio-Flows#run-all).
-- Only the rows and columns are stored in a table, not codebook entries for
-  variables another flow created; see
+- The table brings the variables its writer stored with it — labels, scales
+  and value labels of a recode, a derived variable, an index, a cluster, the
+  quality flags — merged with the questionnaire's codebook (the
+  questionnaire's entry wins a name both have). They can be picked in this
+  flow's nodes ("from table *table* · made by *flow*"), and naming one passes
+  the engine check. A table last written before tables kept their variables
+  arrives without those labels until its writer runs again. See
   [Cleaning and Weighting Data](Studio-Cleaning-and-Weighting#writing-the-cleaned-data-to-a-table).
-- In a research bundle this node reads the `--data` file (normally the raw
-  responses), not the table another flow wrote.
+- In a research bundle made with data this node reads `data/tables/<table>.csv`
+  — the table as it was in the project database when the bundle was made,
+  with its variables in `data/tables/<table>.dictionary.json` — not a table
+  the writing flow produces there.
 
 ---
 
@@ -167,17 +247,20 @@ preparation". The recommended order is described in
 
 ### Apply weight
 
-`prepare.apply_weight` — tells the dataset which column holds the weights,
-after **Cell weights** or **Rake weights** created it (or when the data
-already carries one).
+`prepare.apply_weight` — "Weight the results downstream by a column. Weighted
+results say so, and a result with no weighted form says it is unweighted."
+Use it after **Cell weights** or **Rake weights** created the column (or when
+the data already carries one).
 
 **In:** `data` (SurveyData) → **Out:** `data` (SurveyData)
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Weight column** | text | `weight` | — | The column holding the weights. |
+| **Weight column** | text | `weight` | — | The column holding the weights. The hint under it lists which results are weighted and which are not (the two tables below). |
 
-These nodes use the applied weight:
+These nodes use the applied weight, and their output names it (`Weight` or
+`weight` among the statistics). In the weighted tables and charts a weight
+that is missing or not a number counts as 0.
 
 | Node | Weighted |
 |---|---|
@@ -188,19 +271,41 @@ These nodes use the applied weight:
 | **Net Promoter Score** | the shares and the score (its standard error on Kish's effective base); N counts respondents |
 | **Regression** | linear models become weighted least squares; logistic models are weighted too |
 | **TURF** | the base and each portfolio's reach |
-| **MaxDiff** | the counts (**Shown**, **Best**, **Worst**) and the **Score** — not the **Utility** and **Share %** columns; the base counts respondents |
-| **Proportion CI** | only when its **Weighted** box is ticked |
+| **MaxDiff** | every column: **Shown**, **Best**, **Worst**, **Score**, **Utility** and **Share %** (see [MaxDiff](#maxdiff)) |
+| **Conjoint** | the part-worths and **Importance %** (see [Conjoint](#conjoint)) |
+| **Share of preference** | the shares, from weighted part-worths |
+| **Principal components** | loadings, eigenvalues and explained variance, from the weighted covariance (or correlation) matrix |
+| **Scale reliability** | alpha, item means, item–total correlations and alpha-if-deleted |
+| **Bar chart** | bars are sums of weights, or weighted means with **By** (see [Bar chart](#bar-chart)) |
+| **Heatmap** with **By** | weighted means by group |
+| **Proportion CI** | only when its **Weighted** box is ticked (see [Proportion CI](#proportion-ci)) |
 
-> **Current limitation.** The palette describes Apply weight as "Use a weight
-> column in every table and statistic downstream", but these nodes still
-> compute **unweighted** after it: **Compare groups**, **Correlation**,
-> **Cluster (k-means)**, **Principal components**, **Scale reliability**,
-> **Conjoint**, **Share of preference**, the **Utility** and **Share %**
-> columns of **MaxDiff**, and all four charts. **Describe** and the tables of
-> **Response quality** and **Code open answers** count respondents as well. A
-> **Bar chart** of means by group can therefore disagree with a weighted
-> **Group means** table, and a MaxDiff's utilities with its weighted scores —
-> say which results are weighted in the section's note.
+These have no weighted form. After Apply weight they run on the respondents
+as they are and **say so**: "unweighted (the weight 'weight' is not applied)"
+— as a `weight` statistic, a `Weight` line under the table, or a second line
+of the chart's title (also under a title you set):
+
+| Node | Where it says so |
+|---|---|
+| **Compare groups**, **Correlation** | statistic `weight` |
+| **Cluster (k-means)** | statistic `weight` |
+| **Proportion CI** with **Weighted** unticked | statistic `weight` |
+| **Box plot**, **Scatter plot**, **Heatmap** without **By** | second title line |
+| **Response quality**, **Code open answers** | `Weight` under their table: they count responses and answers |
+
+**Describe** counts rows and, on weighted data, adds a `weighted_n_valid`
+column: the weighted base a table of each variable would report. The data
+files of **Choice data for HB** and **Conjoint data for HB** have no weight
+column. The Methods draft describes the step as "estimates that support
+weights were weighted by `weight` (rank tests, k-means clustering, box and
+scatter plots and correlation heatmaps stay unweighted)".
+
+> **Note.** The MaxDiff **Utility** and **Share %**, Conjoint, Share of
+> preference, Principal components, Scale reliability, the Bar chart and the
+> Heatmap of means were computed unweighted after Apply weight before this was
+> fixed, and a weighted **Proportion CI** counted non-respondents in its base.
+> Run a weighted flow again and these numbers change; reports and tiles from
+> earlier runs keep the old ones.
 
 ### Cell weights
 
@@ -291,7 +396,9 @@ Two behaviors to know before you read a result:
 
 A formula is checked when you press **Check** and when you Save: an unreadable
 one says where reading stopped ("… (at character 14)"), and a variable that is
-not in the codebook is named.
+neither in the codebook nor made earlier in the flow is named. Write it on one
+line: the box wraps long formulas, but a line break in it fails the check (see
+[One-line texts](#reading-this-page)).
 
 ### Explode multiple choice
 
@@ -310,12 +417,10 @@ read it.
 Someone who did not answer the question gets a **blank** in every indicator,
 not a row of zeroes — "chose nothing" and "was never asked" are different
 facts, and only the first belongs in a base. The indicator names follow the
-codebook's codes (`<prefix><code>`).
-
-> **Current limitation.** The indicator columns cannot yet be picked in later
-> nodes' variable lists (see [Reading this page](#reading-this-page)). They
-> reach **Export file**, **Write table** and **Describe**, and you can name
-> them in typed parameters such as weighting targets.
+codebook's codes (`<prefix><code>`), and later nodes offer them in their
+variable lists ("made by *node*") — for example as a **TURF**'s **Options**.
+A Multiple choice question with **Data layout** `wide` already has one 0/1
+variable per choice and needs no Explode.
 
 ### Filter rows
 
@@ -330,9 +435,12 @@ with the same visual editor as the questionnaire's logic.
 
 The editor offers **ALL of the following** / **ANY of the following**, the
 operators = ≠ > ≥ < ≤ **in**, **not in**, **chose**, **did not choose**, and
-value pickers that show value labels (`Capital region (1)`). A condition that
-nests groups opens as JSON. Conditions typed as raw text are refused ("raw
-string conditions cannot be evaluated on data").
+value pickers that show value labels (`Capital region (1)`). Its variables
+are those available at this node — the codebook's, and those made upstream,
+such as `quality_score` or a recode — so you can, for example, keep only
+`quality_score` = `0`. A condition that nests groups opens as JSON.
+Conditions typed as raw text are refused ("raw string conditions cannot be
+evaluated on data").
 
 ### Index / scale
 
@@ -399,7 +507,12 @@ The four checks:
 - **Second output — `table`:** one row per check with N and %, then **Any
   check** and **Clean**, as shares of everyone screened, counted *before*
   anything is dropped. Wire it into a **Report section** to put your exclusion
-  numbers in the report.
+  numbers in the report. The counts are of responses whatever the weight; on
+  weighted data the table says "Weight: unweighted (the weight 'weight' is not
+  applied)".
+- Later nodes offer `quality_flags` and `quality_score` in their variable
+  lists, so a **Filter rows** can keep the clean responses (`quality_score` =
+  `0`) instead of **Mode** `drop`.
 - For **Attention checks**, the inspector offers **Fill from the questionnaire
   (N marked)** when questions are marked as attention checks in the Builder;
   otherwise it says "Mark a question as an attention check in Builder to fill
@@ -449,6 +562,8 @@ merging small categories, harmonizing codes between waves.
   codes. Say what the codes mean in the **Label** or in a caption.
 - **Scale** defaults to the source variable's scale; **Label** defaults to the
   new variable's name.
+- Later nodes offer the new variable in their variable lists, as
+  "*label* · made by *node*".
 
 ### Select columns
 
@@ -467,7 +582,9 @@ weight, `respondent_id`, timestamps. Select late, or include them.
 
 `prepare.speeders` — quality screening on interview length and completeness.
 It adds two columns, `duration_s` and `partial`, and drops speeders and
-(optionally) partial interviews.
+(optionally) partial interviews. Later nodes offer both in their variable
+lists ("completion time · made by *node*", "partial response · made by
+*node*").
 
 **In:** `data` (SurveyData) → **Out:** `data` (SurveyData)
 
@@ -500,7 +617,7 @@ inside your flow. See [[Coding Open Answers|Studio-Open-Answer-Coding]].
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Codeframe** | file path | required | — | The codeframe file `(analysis/<name>.codeframe.json`) built from these answers. |
+| **Codeframe** | file path | required | — | The codeframe file (`analysis/<name>.codeframe.json`) built from these answers. |
 | **Theme variable** | text | — | — | Defaults to the name the codeframe carries. |
 | **Also add sentiment** | checkbox | off | — | Only when the codeframe was built with it. |
 
@@ -515,19 +632,25 @@ inside your flow. See [[Coding Open Answers|Studio-Open-Answer-Coding]].
   `<theme variable>_sentiment` variable coded −1 / 0 / 1 (Negative / Neutral /
   Positive).
 - **Output `table`:** one row per theme with N and % of coded answers, then
-  **Coded** and **Uncoded** rows.
+  **Coded** and **Uncoded** rows. It counts answers, not weights; on weighted
+  data it says "Weight: unweighted (the weight 'weight' is not applied)".
 - Answers are matched by their normalized text. An answer the codeframe has
   never seen — collected after it was built — stays blank (uncoded) rather
   than being guessed.
+- Later nodes offer the theme variable in their variable lists when you type
+  its name in **Theme variable** (for example `feedback_theme`); left empty,
+  the node still creates it under the codeframe's name, but the pickers do
+  not list it. The sentiment variable is not offered.
 
 ---
 
 ## Analyze
 
-SurveyData in; a **Table**, a **Stat**, or both (three nodes also pass the
-data on). Frequencies and Crosstab wired straight to a **Responses** node also
-show instant counts in the inspector — see
-[Run to here](Studio-Flows#run-to-here-and-preview-all).
+SurveyData in; a **Table**, a **Stat**, or both (**Cluster (k-means)** also
+passes the data on). Frequencies and Crosstab wired straight to a
+**Responses** node also show instant counts in the inspector — see
+[Instant counts](Studio-Flows#instant-counts). How each node treats an
+applied weight is summed up under [Apply weight](#apply-weight).
 
 ### Banner table
 
@@ -563,8 +686,14 @@ names — and three rules keep that claim honest, all restated under the table:
 `analyze.cluster` — segments respondents on a set of items with k-means
 (k-means++ start, deterministic for a given seed). It adds a labeled nominal
 cluster variable to the data and returns the centroids. Wire its `data` output
-to **Export file** or **Write table** to take the segments further (the new
-cluster variable cannot yet be picked in later nodes' variable lists).
+on to use the segments: later nodes offer the cluster variable in their
+variable lists (a **Crosstab** by segment, say), and **Export file** or
+**Write table** take it further.
+
+The segmentation is drawn on the respondents as they are, never on the
+weight: on weighted data its statistics carry `weight` = "unweighted (the
+weight 'weight' is not applied)". To give the segments their weighted sizes,
+run a **Frequencies** of the cluster variable on the weighted data.
 
 **In:** `data` (SurveyData) → **Out:** `data` (SurveyData), `table` (Table), `stat` (Stat)
 
@@ -589,6 +718,10 @@ between groups: Mann-Whitney U for two groups, Kruskal-Wallis H for more.
 | **Group** | variable | required | nominal / ordinal variables | The grouping variable. |
 | **Test** | choice | `auto` | `auto`, `kruskal`, `mannwhitney` | `auto` uses Mann-Whitney U for two groups and Kruskal-Wallis H for more. |
 
+Rank tests have no standard weighted form: on weighted data the test runs on
+the respondents as they are, and the statistics add `weight` = "unweighted
+(the weight 'weight' is not applied)".
+
 ### Conjoint
 
 `analyze.conjoint` — part-worths and attribute importance from a
@@ -605,8 +738,13 @@ sits at zero. Importance is an attribute's range of part-worths over the sum of
 all ranges — **of the levels you tested**: price from £10 to £12 will look
 unimportant beside price from £10 to £100, and that is a fact about your
 design. Estimates are aggregate; for individual-level part-worths, export with
-**Conjoint data for HB**. The model is fitted unweighted, even after **Apply
-weight**. See
+**Conjoint data for HB**. The statistics give the **Question**, the **Base**
+("812 respondents"), **Tasks read**, the **Method** ("conditional logit
+(aggregate)"), the **Reference**, **Pseudo R²** and a **Note** that importance
+is of the levels tested. After **Apply weight** the part-worths — and so the
+importances — are fitted on the weighted choices, the **Base** gives the
+weighted total beside the people ("812 respondents (798 weighted)") and
+**Weight** names the column. See
 [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]].
 
 ### Share of preference
@@ -614,7 +752,7 @@ weight**. See
 `analyze.conjoint_shares` — a market simulator: what the part-worths predict a
 market of specific products would do.
 
-**In:** `data` (SurveyData) → **Out:** `table` (Table)
+**In:** `data` (SurveyData) → **Out:** `table` (Table), `stat` (Stat)
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
@@ -624,8 +762,17 @@ market of specific products would do.
 
 A half-specified product has no utility, so give every attribute a level.
 Leaving "none of these" out when the question offered it rescales the people
-who would have walked away into buyers. The part-worths behind the shares
-are fitted unweighted, as in **Conjoint**, even after **Apply weight**.
+who would have walked away into buyers.
+
+The table has one row per product (its utility and share) and a footer; the
+`stat` output carries the same footer: **Question**, **Base** ("812
+respondents"), **Method** ("logit rule on aggregate conditional-logit
+part-worths") and **Note** — "shares of the products listed, not market
+shares", or with **Include "none of these"** "shares of the products listed
+and of choosing none, not market shares". After **Apply weight** the shares
+come from part-worths fitted on the weighted choices, as in **Conjoint**; the
+**Base** adds the weighted total ("812 respondents (798 weighted)") and
+**Weight** names the column.
 
 ### Correlation
 
@@ -638,6 +785,10 @@ only method offered).
 |---|---|---|---|---|
 | **X** | variable | required | ordinal / interval / ratio variables | First variable. |
 | **Y** | variable | required | ordinal / interval / ratio variables | Second variable. |
+
+A rank correlation has no standard weighted form: on weighted data it runs on
+the respondents as they are, and the statistics add `weight` = "unweighted
+(the weight 'weight' is not applied)".
 
 ### Crosstab
 
@@ -664,9 +815,10 @@ sample size, as the **Banner table** does: weights make a sample behave like a
 smaller one. With **Chi-square test** on, the statistics keep **N** (the
 respondents counted) and add
 **Weighted N**, **Effective N**, **Weight** and **Base** ("effective (Kish)
-for the test; weighted counts shown"). For a multiple-answer row variable the
-percentages are of each column's weighted base, and an **Unweighted base** row
-follows the "Base (respondents answering)" row.
+for the test; weighted counts shown"); with the test off they are **Weighted
+N** and **Weight**. For a multiple-answer row variable the percentages are of
+each column's weighted base, and an **Unweighted base** row follows the "Base
+(respondents answering)" row.
 
 ### Describe
 
@@ -679,6 +831,12 @@ itself.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Show** | choice | `variables` | `variables`, `codebook` | `variables`: one row per variable with N, missing and unique values; `codebook`: the codebook table. |
+
+The rows include the variables earlier nodes made. The counts are of rows
+(records), which is what a completeness check is about; after **Apply
+weight** a `weighted_n_valid` column stands beside them — the sum of the
+weights of the rows that have a value, the weighted base a table of that
+variable would report.
 
 ### Frequencies
 
@@ -720,11 +878,17 @@ implies.
 
 The design is read from the questionnaire, so the only thing to name is the
 question. Utilities come from an **aggregate** conditional logit; individual
-ones need hierarchical Bayes, which **Choice data for HB** exports for. After
-**Apply weight**, the counts (**Shown**, **Best**, **Worst**, rounded to whole
-numbers) and the **Score** are weighted, but the **Utility** and **Share %**
-columns are still fitted unweighted — so on weighted data the two orders can
-differ for that reason alone. The base in the footer counts respondents.
+ones need hierarchical Bayes, which **Choice data for HB** exports for. The
+footer gives the **Question**, the **Base** ("812 respondents"), **Tasks
+read**, the **Method**, the **Reference** item and **Pseudo R²**.
+
+After **Apply weight** every column is weighted: **Shown**, **Best** and
+**Worst** are sums of weights (rounded to whole numbers), the **Score**
+follows them, and the **Utility** and **Share %** are fitted on the weighted
+choices. The footer adds **Weight** and gives the weighted total beside the
+people: "812 respondents (798 weighted)". Before this was fixed the
+**Utility** and **Share %** columns stayed unweighted; a weighted flow run
+again gives different numbers there.
 
 ### Group means
 
@@ -758,6 +922,10 @@ Uses the applied weight.
 |---|---|---|---|---|
 | **0–10 item** | variable | required | ordinal / interval / ratio variables | A 0–10 likelihood-to-recommend item. |
 
+After **Apply weight** the group shares and the score are weighted and the
+standard error uses Kish's effective base; the **N** column still counts
+respondents, and the statistics add **Weight**.
+
 ### Principal components
 
 `analyze.pca` — loadings and explained variance of a set of items. Three
@@ -771,6 +939,11 @@ variance) and `stat`; the node's preview shows the loadings.
 | **Items** | variables (several) | required | ordinal / interval / ratio variables | The items to analyze. |
 | **Components** | whole number | — | at least 1 | Empty keeps the components with an eigenvalue above 1. |
 | **Standardize items** | checkbox | on | — | Analyze the correlation rather than the covariance matrix. |
+
+After **Apply weight** the components are those of the weighted covariance
+(or, standardized, correlation) matrix, so the loadings, eigenvalues and
+explained variance are weighted; equal weights give the unweighted result.
+The `n` statistic stays the rows analyzed, and `weight` names the column.
 
 ### Proportion CI
 
@@ -786,11 +959,24 @@ its confidence interval.
 | **Confidence** | number | `0.95` | 0–1 | Confidence level between 0 and 1. |
 | **Weighted** | checkbox | off | — | Use the applied weight. |
 
+The statistics are `p` (the share), `lower`, `upper` and `n`. The base is
+the respondents who answered the variable — someone who skipped it is not
+counted as "did not choose".
+
+- **Weighted** ticked: the share is weighted and `n` is Kish's effective base
+  of those respondents; a missing weight counts as 0, and weights of 1 give
+  the unweighted result. The statistics add `weight` with the column's name.
+  Earlier, a weighted share also counted the respondents who did not answer,
+  which made it too small; a flow run again reports the corrected share.
+- **Weighted** unticked on weighted data: the share is of the respondents as
+  they are, and `weight` reads "unweighted (the weight 'weight' is not
+  applied)".
+
 ### Regression
 
 `analyze.regression` — linear (OLS) or logistic regression with a coefficient
 table. With a weight applied, OLS becomes weighted least squares and the
-logistic model is weighted too. Nominal
+logistic model is weighted too, and the statistics add `weight`. Nominal
 predictors are dummy-coded against their first category, using the codebook's
 labels.
 
@@ -813,6 +999,11 @@ correlations and alpha-if-deleted per item.
 |---|---|---|---|---|
 | **Items** | variables (several) | required | ordinal / interval / ratio variables | The items of the scale. |
 
+After **Apply weight** alpha, the item means, the item–total correlations and
+alpha-if-deleted are all computed with the weight, and the statistics add
+`weight`. A row is dropped for a missing item, never for a missing weight
+(that weighs 0), so the respondents counted (`n`) are the same either way.
+
 ### TURF
 
 `analyze.turf` — how many **different** people a shortlist of options reaches
@@ -830,17 +1021,17 @@ most popular".
 
 - Each respondent is counted once however many options they chose — that is
   what makes it *unduplicated* reach rather than a sum of percentages. The
-  base is the respondents who answered; the applied weight is used.
+  base is the respondents who answered; the applied weight is used, and the
+  statistics then add **Weight**.
 - The table also reports frequency (the mean number of a portfolio's options a
   reached respondent chose) and names which search ran, because an exhaustive
   answer and a greedy one are not the same claim.
 - Options must be 0/1 columns. An exhaustive search that would not finish
   says so and suggests the ways out.
-
-> **Current limitation.** **Options** lists the questionnaire's variables
-> only, so the columns **Explode multiple choice** creates cannot be picked
-> here yet. TURF works today when the questionnaire already has one 0/1
-> variable per option — for example a set of yes/no questions.
+- Where the columns come from: an **Explode multiple choice** node upstream
+  (its indicator columns are offered in **Options**), a Multiple choice
+  question with **Data layout** `wide`, or a set of yes/no questions coded
+  0/1.
 
 ---
 
@@ -850,9 +1041,17 @@ SurveyData in, **Chart** out. All four accept a **Title**, a **Figure width
 (in)** and **Figure height (in)** (2–30 inches, 10 × 6 by default) and a
 **Palette** — **Heatmap** takes a **Color map** instead. Width and height
 resize the figure the engine draws, not the picture of it, so the axis labels
-keep their proportion. Charts are drawn unweighted, even after **Apply
-weight** — a bar chart of means by group can differ from a weighted **Group
-means** table of the same variables.
+keep their proportion.
+
+After **Apply weight** a chart either draws the weighted numbers or says
+under its title that it does not — so a picture never disagrees in silence
+with a weighted table beside it:
+
+| Chart | On weighted data |
+|---|---|
+| **Bar chart** | weighted: bars are sums of weights, or weighted means with **By** — matching the **Frequencies** and **Group means** tables of the same data |
+| **Heatmap** with **By** | weighted means by group; the color bar reads "Weighted mean" |
+| **Box plot**, **Scatter plot**, **Heatmap** without **By** | unweighted — a box, a point per respondent and a rank correlation have no standard weighted form — with a second title line "unweighted (the weight 'weight' is not applied)", under your own **Title** too |
 
 ### Bar chart
 
@@ -872,6 +1071,11 @@ means** table of the same variables.
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10` | Color palette. |
 
+After **Apply weight**, a distribution's bars are sums of weights — the axis
+reads "Weighted count" and the values on the bars have one decimal when they
+are fractional — and with **By** the bars are weighted means, on an axis
+"Weighted mean *label*". Unweighted, the axes read "Count" and "Mean *label*".
+
 ### Box plot
 
 `visualize.boxplot` — the distribution of a variable across groups.
@@ -888,6 +1092,10 @@ means** table of the same variables.
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10` | Color palette. |
 
+Quartiles and whiskers are of the respondents as they are; on weighted data
+the title's second line says "unweighted (the weight 'weight' is not
+applied)".
+
 ### Heatmap
 
 `visualize.heatmap` — the correlation matrix of several items, or their means
@@ -903,6 +1111,11 @@ by group when **By** is set.
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Color map** | text | `YlOrRd` | — | A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. |
+
+After **Apply weight**, the means by group are weighted and the color bar is
+labeled "Weighted mean". The correlation matrix (no **By**) is a Spearman
+correlation, which is never weighted: its title's second line says
+"unweighted (the weight 'weight' is not applied)".
 
 ### Scatter plot
 
@@ -921,6 +1134,10 @@ a third, with a trend line.
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10` | Color palette. |
+
+Every respondent is one point and the trend line is fitted unweighted; on
+weighted data the title's second line says "unweighted (the weight 'weight'
+is not applied)".
 
 ---
 
@@ -943,7 +1160,10 @@ hierarchical-Bayes packages read.
 Three files, so that estimating individual-level utilities on your own machine
 needs no rewriting: the choices (`<name>.csv`), a dictionary saying what every
 column means (`<name>.dictionary.json`) and a script that runs the model and
-writes the per-respondent estimates back (`<name>.hb.R`).
+writes the per-respondent estimates back (`<name>.hb.R`). The **Path** help
+adds: "The file has no weight column (the HB packages take none), so an
+applied weight is not in it; weight the individual utilities when you
+aggregate them."
 
 Why export rather than estimate here: hierarchical Bayes takes minutes of
 MCMC, and a flow run has one CPU and a few minutes for everything. A cut-down
@@ -962,6 +1182,9 @@ long format, a column dictionary and an R script.
 |---|---|---|---|---|
 | **Conjoint question** | text | required | — | The question's id or name. Its attributes and design are read from the questionnaire. |
 | **Path** | file path | required | — | Output CSV path under `outputs/`. The dictionary and R script are written beside it. |
+
+As for MaxDiff, the file has no weight column: weight the individual
+part-worths when you aggregate them.
 
 ### Export file
 
@@ -995,7 +1218,9 @@ table, a chart or a statistic — as a tile on the **Live** screen. See
 
 - Tiles are published by every run of the flow (a manual run, a scheduled
   run of this flow, a live recompute). **Run all** and **Run to here** do not
-  publish tiles.
+  publish tiles, and do not clear them either: the Live screen shows the
+  tiles of the flow's latest completed run. After a rename it goes on showing
+  them until the flow runs under its new name.
 - **Show** = `rows` is the usual way to show "respondents after cleaning":
   connect the SurveyData output of the last cleaning step.
 - A tile's size on the Live screen is not set from the canvas; tiles appear at
@@ -1013,7 +1238,7 @@ the sections around it. Usually edited in the flow's **Report** view — see
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Heading** | text | — | — | Section title. Leave empty for a plain block of text between sections. |
+| **Heading** | text | — | — | Section title, on one line. Leave empty for a plain block of text between sections. |
 | **Text** | Markdown | — | — | Introductory text (Markdown). |
 | **Captions** | one caption per input | — | — | A caption for each connected table, chart or statistic. |
 | **Size and placement** | size per input | — | — | Per item — a width (60%, 320px), an alignment, or a page break before it. The Markdown is unaffected. |
@@ -1021,7 +1246,10 @@ the sections around it. Usually edited in the flow's **Report** view — see
 
 - The order you connect items in is the order they appear.
 - A statistic (a **Stat** output) is printed as one line —
-  `Caption: key = value; …` — so its size and placement have no effect.
+  `Caption: key = value; …` — where its caption is the label before the
+  values. It has no size or placement: under **Size and placement** its row
+  reads "one line" ("A statistic is one line of the report: size and
+  placement apply to tables and charts only").
 - Size and placement reach the HTML only; the Markdown is unaffected.
 
 ### Save report
@@ -1029,8 +1257,9 @@ the sections around it. Usually edited in the flow's **Report** view — see
 `output.save_report` — combines sections, in the order you connect them, into
 one report and saves it: Markdown (the content, with each chart as
 `fig_N.png` beside it) and, by default, an HTML twin (the look, stylesheet
-and images inside the file). Every report produced by a run on the platform
-ends with a provenance footer.
+and images inside the file). A report produced by a run on the platform ends
+with a provenance footer while **Settings → Reports → End every report with
+the provenance footer** is on (the default).
 
 **In:** `sections` (Report, several) → **Out:** `report` (Report)
 
@@ -1043,11 +1272,20 @@ ends with a provenance footer.
 | **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report. The Markdown is unaffected. |
 
 - The **Look** parameter is edited in the **Look** tab of the Report view
-  ([Reports](Studio-Reports#the-look-tab)). With no look of its own, the node
-  renders in the project's house style.
+  ([Reports](Studio-Reports#the-look-tab)). A node created by the Report view
+  or added from the palette starts with the project's house style as its
+  look, when the project has one. A node with no look renders with the
+  engine's defaults — on the platform, in previews and in a research bundle
+  alike; the house style is not applied to it behind the scenes.
 - Keep **Path** under `outputs/`; set the same file as the flow's **Report
   path** (Flow settings) if you want this report in the combined report of
-  **Run all**. The Report view does both for you when it creates the node.
+  **Run all**. The Report view does both for you when it creates the node;
+  changing the node's **Path** (or clearing it back to `outputs/report.md`)
+  moves a **Report path** that named the old file along with it, and deleting
+  the node clears the **Report path** it set. A node added from the palette
+  sets no **Report path**. A **Report path** that no **Save report** node of
+  the flow writes gets a warning at **Check** and at Save ("… but no Save
+  report step saves there: Run all will fail this flow. …").
 - There is no PDF output: a path ending in `.pdf` fails. Print the HTML
   instead.
 
@@ -1063,15 +1301,16 @@ for other flows (**Project table**) and a table on the **Data** screen.
 | **Table name** | text | required | — | Table name: lowercase letters, digits and `_`, starting with a letter or `_`, at most 63 characters. |
 | **If it exists** | choice | `replace` | `fail`, `replace`, `append` | `replace` (drop and recreate), `append` (add rows) or `fail` (stop the run with "table already exists"). |
 
-- The table holds rows and columns only — not the codebook entries of
-  variables created in the flow.
-- In a research bundle run with `--data`, this node is skipped: there is no
-  project database outside Studio.
-
-> **Current limitation.** **Run to here** or **Preview all** that reaches a
-> Write table node really writes the table — the preview is not a dry run for
-> this node. Preview the node *before* it, or accept that the table is
-> replaced.
+- The table keeps the variables of the columns it holds — labels, scales and
+  value labels, including those of variables the flow created — so a flow
+  that reads it gets them back (see [Project table](#project-table)). With
+  `append`, the variables are merged with those the table already carries.
+- A preview (**Run to here**, **Preview all**) never writes the table. The
+  node's Preview pane says what a run would do: "Not written: a preview never
+  writes project tables. A run writes 812 rows to table 'clean_responses' (if
+  it exists: replace)."
+- In a research bundle, when the script is given a data file, this node is
+  skipped: there is no project database outside Studio.
 
 ---
 

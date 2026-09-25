@@ -82,7 +82,9 @@ remaining credits."
 **Draft questions** ("Drafting…") returns "<title> — N questions across P
 page(s). Read it in the Builder before you save." with a list of pages and
 questions. **Try another brief** goes back; **Use this draft** opens the
-ordinary **Save** dialog, so the draft becomes your first Save.
+ordinary **Save** dialog, so the draft becomes your first Save. The
+organization's house style is applied on the way, as it is for **Create
+questionnaire** (see below).
 
 What a draft contains:
 
@@ -99,8 +101,11 @@ What a draft contains:
   question's **Id** is the same as its variable name;
 - a hint under a question when the assistant writes one (up to 300
   characters);
-- no theme settings. Your organization's house style is not applied; use
-  **Theme → Use the organization's house style** afterwards.
+- no theme settings of its own. **Use this draft** puts your organization's
+  house style under it, as **Create questionnaire** does: colors, type,
+  logo, institution, privacy link and the rest, custom CSS included (both the
+  assistant and custom CSS come with Plus). See
+  [The organization's house style](Studio-Theme-and-Branding#the-organizations-house-style).
 
 If the brief gave the assistant nothing to work with: "The assistant made
 nothing usable of this brief. Say who the respondents are and what you want
@@ -303,7 +308,8 @@ reason:
   from the question, and new ones take new codes. On a multiple-choice
   question in the wide layout, each new option also gets its own 0/1
   variable, and a removed option's variable goes.
-- After **Use this draft**, add your theme and read every question as a
+- After **Use this draft**, check the theme (it starts from your
+  organization's house style, if there is one) and read every question as a
   respondent would.
 - Tell your ethics board and your respondents' consent text what you send to
   the provider, if your institution requires it.

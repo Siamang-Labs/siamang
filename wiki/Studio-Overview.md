@@ -31,8 +31,8 @@ Studio is trapped in Studio.
 |---|---|---|
 | **Build** | Pages, blocks, nine question types plus presets, a visual condition builder, branching, quotas, randomization, a codebook built alongside the questions, theme, scripts, import from Qualtrics / LimeSurvey / SurveyJS | [[The Builder\|Studio-Builder-Overview]] |
 | **Test** | Engine validation, a live preview on the real runtime, a routing walkthrough, simulated respondents, a public preview link for reviewers | [[Testing Your Survey\|Studio-Testing-Your-Survey]] |
-| **Field** | Environments (`pilot`, `main`), permanent links, QR codes, embeds, access codes, captcha, panel-provider returns, email invitations with reminders | [[Publishing and Environments\|Studio-Publishing-and-Environments]] |
-| **Monitor** | Responses against caps, quota fill, drop-off by page, data quality while the field is open, live tiles from your analysis | [[Live Monitoring\|Studio-Live-Monitoring]] |
+| **Field** | Environments (`pilot`, `main`), permanent links, QR codes, embeds, access codes, captcha, one response per browser, panel-provider returns, email invitations with reminders, closing dates you can move without a rebuild | [[Publishing and Environments\|Studio-Publishing-and-Environments]] |
+| **Monitor** | Completed interviews against caps, quota cells that close when full, drop-off by page, data quality while the field is open, live tiles from your analysis | [[Live Monitoring\|Studio-Live-Monitoring]] |
 | **Data** | The response database, instant insights, exports to CSV, Excel, SPSS, Stata, Parquet and SQLite, deletion for erasure requests | [[Responses and the Data Tab\|Studio-Responses-and-Data]] |
 | **Analyze** | A canvas of engine nodes: cleaning, weighting, crosstabs, banner tables, tests, regression, MaxDiff, conjoint, TURF, charts | [[Analysis Flows\|Studio-Flows]] |
 | **Report** | Documents built from the flow with your own text, a report theme, HTML and print-to-PDF, public live dashboards | [[Reports\|Studio-Reports]] |
@@ -129,7 +129,7 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
 - [[AI Assistant|Studio-AI-Assistant]] — reviews, rewrites, answer options, drafts from a brief
 
 ### Fieldwork
-- [[Publishing and Environments|Studio-Publishing-and-Environments]] — publish, pause, close, republish, roll back
+- [[Publishing and Environments|Studio-Publishing-and-Environments]] — publish, pause, close, closing dates, response caps, republish, roll back
 - [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]] — sharing the survey and restricting who answers
 - [[Panel Providers|Studio-Panel-Providers]] — Prolific, Cint, Dynata and custom panels
 - [[Email Invitations|Studio-Email-Invitations]] — contacts, personal links, reminders, unsubscribes
@@ -137,12 +137,12 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
 - [[Live Monitoring|Studio-Live-Monitoring]] — fieldwork monitor, live tiles, public dashboards
 
 ### Data
-- [[Responses and the Data Tab|Studio-Responses-and-Data]] — tables, columns, insights, deleting a response
+- [[Responses and the Data Tab|Studio-Responses-and-Data]] — tables, columns, searching every row, insights, deleting a response
 - [[Data Exports|Studio-Data-Exports]] — every format and what it carries
 - [[Data Quality|Studio-Data-Quality]] — attention checks, speeders, straightliners, captcha flags
 
 ### Analysis & output
-- [[Analysis Flows|Studio-Flows]] — the canvas, running, scheduling, live mode
+- [[Analysis Flows|Studio-Flows]] — the canvas, renaming and deleting flows, running, scheduling, live mode
 - [[Node Reference|Studio-Node-Reference]] — every node and every parameter
 - [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]] — preparing data the documented way
 - [[Coding Open Answers|Studio-Open-Answer-Coding]] — codeframes and the frozen-coding approach

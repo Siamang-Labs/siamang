@@ -18,25 +18,35 @@ address. Still nothing: write to `info@siamang-team.org`.
 You were already signed in, and the sign-in page sends signed-in people to the
 app. Sign out (or use a private window) and open the link again.
 
-**Studio asked me to create an account although I have one.**
-The address check can fail on a slow network or after too many attempts in a
-minute — 10 for the same address, or 20 from one network across all
-addresses (a busy office or campus network can reach that) — and Studio then
-assumes the address is new. Go **← Use a different email**, wait a minute,
-and enter the address again.
+**"Could not check your email. …" on the sign-in card.**
+Studio looks up the address before it asks for a password, and that lookup
+failed. The message says why — for example "Too many sign-in attempts from
+your network just now — wait a minute and try again." (more than 10 attempts
+in a minute for the same address, or 20 from one network across all
+addresses; a busy office or campus network can reach that) or "The server
+could not be reached — check your connection and try again." Wait a moment
+and press **Continue** again. A failed lookup never sends you to **Create
+your account**: only a definite "no account" does.
 
 **"Your session expired. Please sign in again."**
 Sign in again. Unsaved Builder and flow edits are kept as your server-side
 draft and come back when you reopen the editor.
 
-**I created my account from a colleague's invitation and the link now says
-"This invitation link is invalid or has already been used."**
-You are already a member — the invitation was accepted when your account was
-created. Switch to the organization with the workspace chip in the topbar. If
-it is not listed, reload the page.
+**I created my account from a colleague's invitation. Where am I?**
+In your colleague's organization: the invitation is accepted as your account
+is created, and the invitation link takes you straight into the inviting
+organization. You also get an organization of your own, on its own trial;
+switch between the two with the workspace chip in the topbar. If the
+invitation page says "Could not load the invitation." followed by a reason,
+the server was busy or could not be reached — the link itself is fine; press
+**Try again**. "This invitation has expired. …" and "This invitation link is
+invalid or has already been used." are about the link itself: ask for a new
+invitation.
+→ [If you create your account from the invitation](Studio-Sign-Up-and-Sign-In#if-you-create-your-account-from-the-invitation)
 
 **I landed in my own workspace, not my colleague's.**
-Every new account also gets its own trial organization. Switch with the
+After sign-in Studio opens your oldest membership. If you had an account
+before you were invited, that is your own workspace; switch with the
 workspace chip. → [[Organizations and Team|Studio-Organizations-and-Team]]
 
 **How do I create a second organization?**
@@ -49,18 +59,21 @@ address, with the organization you got at sign-up.
 **"Only owners and admins can create projects" (or rename a project, add a
 secret, run a connector).**
 Your role in this organization is **member**. Members build, publish and
-analyze, but creating and renaming projects, adding or deleting secrets,
-running connectors, deleting responses, managing webhooks and reading the
-organization's **Activity** are for owners and admins; those controls are
-disabled or hidden for you. Ask an owner or admin, or to be made an admin.
+analyze, but creating, renaming and deleting projects, adding or deleting
+secrets, running connectors, deleting responses, managing webhooks, deleting
+a library item another member saved and reading the organization's
+**Activity** are for owners and admins; those controls are disabled or hidden
+for you, and hovering a disabled one says who can use it. Ask an owner or
+admin, or to be made an admin.
 → [Things members may notice](Studio-Organizations-and-Team#things-members-may-notice)
 
 **My trial ended. What changed?**
 The organization is now on the **Free** plan. Nothing is deleted and surveys
-keep collecting within Free limits (1,000 completed responses per
-environment); you cannot add projects or members beyond Free's caps, schedules
-and live recomputation stop, and Saves with custom JavaScript or CSS can no
-longer be published. → [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
+keep collecting within Free limits — 1,000 completed interviews per project,
+all its environments together, counting the ones it already has; you cannot
+add projects or members beyond Free's caps, schedules and live recomputation
+stop, and Saves with custom JavaScript or CSS can no longer be published.
+→ [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
 
 **"This workspace is frozen and read-only."**
 Support has frozen the organization. Everything stays viewable and
@@ -76,15 +89,19 @@ Conditions, piping and quotas read a question's **variable name**, and the
 answer is stored under that name, so the question's Id does not matter. Check,
 in this order:
 
-- **A renamed variable.** Renaming a variable does not update the conditions,
-  piping and quotas that use the old name. Find them with the **Logic map**
-  and update them.
-- **An old build.** Earlier versions of Studio stored an answer under the
-  question's **Id**, so logic on a question whose Id differs from its variable
-  (every preset, `q5` / `nps_5`) never matched. A survey published before that
-  change keeps its old build until you publish it again: **Save** (with
-  nothing changed, Save re-validates with the current engine) and press
-  **Republish #N** on the environment's card.
+- **An old build.** A published survey keeps the runtime it was built with.
+  Several things only work in a survey built with the current one: logic on
+  a question whose Id differs from its variable (every preset, `q5` /
+  `nps_5` — earlier builds stored the answer under the Id), conditions on a
+  Matrix row, a MaxDiff or Conjoint task, or a per-choice variable of a wide
+  Multiple choice (`brands_1 = 1`), `{label:…}` showing a label rather than a
+  code, and piping in the title and body of Final, Screen-out and Redirect
+  pages. **Save** (with nothing changed, Save re-validates with the current
+  engine) and press **Republish #N** on the environment's card.
+- **A name inside custom JavaScript.** Renaming a variable in the Builder
+  updates the conditions, branch rules, quotas, piping, script targets and
+  `answers.<name>` accesses that use it, but a string in custom code that
+  merely holds the name is not changed — edit it yourself.
 - **The rule itself.** Take the path in **Test → Walkthrough**: the side panel
   shows which conditions fired.
 
@@ -97,18 +114,29 @@ could not tell which one a script or a **Skip to** means. Change that Id
 answer key in questionnaire: questions '…' and '…' both store their answer
 under '…'" is the same clash with a Matrix, MaxDiff, Conjoint or wide Multiple
 choice, which store their answers under their Id: change that question's Id.
+Studio now catches both before you save: the **Id** field shows "Another
+question already has this id." or "This is the variable … stores its answer
+under — the engine refuses an id that is another question’s variable.", and
+**Validation → Structure** lists the question. New questions never get such
+an Id; you meet this after typing one, or in an imported or older document.
 
 **A branch rule never fires.**
 A rule with an empty condition never matches — it is not an "otherwise".
-Studio says so under the rule ("Add a condition — an empty rule never
-fires."), on the Logic map ("no condition — never fires") and in **Validation
-→ Structure**. Give it a condition, or use **Default next** for "everyone
-else". → [[Logic and Branching|Studio-Logic-and-Branching]]
+**+ Rule** no longer adds a rule until its condition is complete (**Add
+rule** stays disabled), but a rule can lose its condition (**Clear**) or
+arrive without one from an import. Studio says so under the rule ("Add a
+condition — an empty rule never fires."), on the Logic map ("no condition —
+never fires") and in **Validation → Structure**. Give it a condition, or use
+**Default next** for "everyone else". Also check the page for a **Skip to**:
+it is checked before the page's branch rules, so for anyone who answers that
+question no rule fires.
+→ [[Logic and Branching|Studio-Logic-and-Branching]]
 
 **Skip to jumps for every answer, not just one.**
-That is how **Skip to** works: when the question is answered, Next goes to the
-chosen page. For a jump that depends on the answer, use a **Branch (next if)**
-rule on the page.
+That is how **Skip to** works (its hint: "on Next, after any answer to this
+question — checked before the page’s Branch rules"): when the question is
+answered, Next goes to the chosen page. For a jump that depends on the
+answer, use a **Branch (next if)** rule on the page.
 
 **How do I enter missing codes?**
 In **Builder → Codebook**, open the variable's row and type each code followed
@@ -120,16 +148,34 @@ code, or is labeled `Missing (<code>)`.
 **I want one 0/1 column per option of a Multiple choice question.**
 **Options → Data layout → wide** turns the question into one 0/1 variable
 per choice (`brands_1`, `brands_2`, …) and keeps them in step with the
-choices; **array** turns them back into one variable. The published survey
-does not yet store real answers in that shape, though, so for fieldwork keep
-**array** and add an **Explode multiple choice** node in the flow.
-→ [Multiple-choice layouts](Studio-Codebook-and-Variables#multiple-choice-layouts)
+choices; **array** turns them back into one variable. A published survey
+stores each chosen option's variable as `1` and the others as `0` once the
+question is answered (an option hidden by its own condition stays empty),
+exclusive choices such as "None of these" clear the others, and conditions
+and quotas on `brands_1 = 1` work. A survey published before this worked
+needs to be published again; its earlier answers are read as 1/0 columns in
+Data and exports. → [Multiple-choice layouts](Studio-Codebook-and-Variables#multiple-choice-layouts)
+
+**What are the `-66`, `-77` and `<variable>_other` values in my data?**
+The codes of the answers added with a switch: "Other (please specify)" is
+stored as `-66` in the question's column, with the typed text in
+`<variable>_other`; "None of the above" is `-77`; "Not applicable" is `-1`,
+declared as a missing code (where the codebook declares no such code, N/A is
+stored as the text `na`). The Inspector's hint beside each switch says what
+is stored ("stored as -66; the text goes to brand_other"), and the codebook
+labels the codes. A choice that already uses one of these codes pushes the
+added answer to the next free one (`-67`). Responses collected before these
+codes were written are read the same way (older exports showed `__other__`,
+`__none__` or `code` / `text` columns instead).
+→ [Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na)
 
 **How do I change the title of the completion screen?**
-You cannot: **Theme → Completion screen** offers only the **Message**, and the
-title is always "Thank you for participating". For your own title and text,
-end the survey on a **Final** page with its own **Title** and **Body**.
-→ [Completion screen](Studio-Theme-and-Branding#completion-screen)
+**Theme → Respondent experience → Completion screen → Title** (the default
+is "Thank you for participating") and **Message**. They are shown where the
+survey ends without its own ending text: on **Submit** of a question page, or
+on a Final page with no title (or body). A Final page's own **Title** and
+**Body** win, and the hints beside the two fields say so. Save and publish
+again. → [Completion screen](Studio-Theme-and-Branding#completion-screen)
 
 **"…references unknown variables: …" and the Save is `errors`.**
 A condition names a variable that nothing in the questionnaire writes: no
@@ -141,9 +187,15 @@ JavaScript writes), but not URL parameters.
 → [Assignment and "embedded data"](Studio-Logic-and-Branching#assignment-and-embedded-data)
 
 **The Save badge says `errors`.**
-Click it (it opens the Save in History) or open **Builder → Validation**. A Save
-with errors cannot be published; warnings can be, after a confirmation.
-→ [[Testing Your Survey|Studio-Testing-Your-Survey]]
+Click it (it opens the Save in History) or open **Builder → Validation**. The
+questionnaire does not pass the engine's validation (for example a page
+nothing leads to, or a quota on an unknown variable), and such a Save cannot
+be published. Red lint findings such as `EMPTY_PAGE` leave the badge at
+`warnings` — the Save toast says "Saved #N — the questionnaire has 1 error
+(see Builder → Validation)" — and can be published after the confirmation
+"Publish #N with errors" → **Publish anyway**. A flow with errors leaves the
+badge at `warnings` too.
+→ [What blocks publishing](Studio-Testing-Your-Survey#what-blocks-publishing)
 
 **"Unreachable pages in navigation graph" or "Cycle detected in page navigation graph."**
 Open **Logic map → Pages**: some page has no route leading to it, or routing
@@ -154,19 +206,32 @@ It reads an answer given later in the interview. Move the question earlier or
 the condition later.
 
 **My page's Body text does not appear.**
-On a page with questions the Body is not shown; it appears on text-only,
-**Final**, **Screen-out** and **Redirect** pages. Put introductory text in a
-question's **Hint**.
+A page's **Body** is shown on every kind of page except a Redirect page: on a
+page with questions, above them. It is HTML, not Markdown — Markdown marks
+such as `**` appear as typed. A survey published before the Body was shown on
+question pages shows it there only after you publish it again: **Save**, then
+**Republish #N**. A text-only page (a Body and no questions) made in the
+Builder before this update showed respondents only its title: make any edit
+in the Builder — Studio then stores the page so that its Body is shown — and
+**Save** and republish.
 
 **Piping shows `{answer:x}` literally.**
 The variable name is wrong (piping uses the variable name, not the question's
-Id), or the question has not been answered yet at that point.
+Id), or the question has not been answered yet at that point. In a survey
+published before piping worked in the title and body of Final, Screen-out and
+Redirect pages, those pages show the placeholder until you publish again.
 
-**I renamed a variable and a condition or flow broke.**
-Renaming does not update conditions, quotas, piping, scripts or flow
-parameters. Update them, or rename back. Answers are stored under the
-variable name, so renaming a variable and republishing during fieldwork
-leaves you with two columns (see *Two columns where I expect one* below).
+**I renamed a variable and a flow broke.**
+Renaming a variable in the Builder updates the questionnaire — conditions,
+branch rules, quotas, piping and scripts — but not your flows: a node
+parameter that names the old variable now names one the codebook does not
+have. Update the flow, or rename back. Once the survey is in the field,
+answers are stored under the variable name, so renaming a variable and
+republishing leaves you with two columns (see *Two columns where I expect
+one* below); on a published questionnaire the Inspector's **Variable**
+section says so: "This questionnaire has been published. Renaming a variable
+renames its column in the data: answers already collected keep the old name,
+answers collected after you publish again get the new one."
 
 **I cannot edit — "*Name* is editing".**
 A colleague holds the edit lock; you are following their draft live. **Take
@@ -182,7 +247,26 @@ there, then Save.
 
 **The Publish button is disabled.**
 The panel says why: the project has never been saved, the current Save has
-errors, or the environment already runs that Save ("…nothing to publish").
+errors (its questionnaire does not validate), or the environment already runs
+that Save ("…nothing to publish"). A flow with errors does not stop
+publishing, and a Save with lint errors or warnings is published after a
+confirmation.
+
+**My survey was published before the latest Studio update. Do I need to do
+anything?**
+Publish it again: **Save** (a Save with nothing changed will do), then
+**Republish #N** on the environment's card. A deployment keeps the survey
+runtime it was built with, so until then it lacks, among other things:
+quota cells that stop respondents, the closed / paused / full notice as the
+page opens, **One per browser**, partial responses and the drop-off funnel,
+the page Body above the questions, "About N minutes", the completion
+**Title**, the newer Wording fields, auto-height in the script embed, and
+option shuffles that keep "None of the above" in place. Responses it already
+collected need nothing: Data, exports and flows read them in today's layout.
+The one exception is a quota cell on a Matrix row or on a per-choice variable
+of a wide Multiple choice: it counts only responses collected after the
+republish.
+→ [Older surveys and responses](Studio-Question-Types#older-surveys-and-responses)
 
 **"Custom JavaScript in the questionnaire is included from Plus…" / "Custom CSS in the theme is included from Plus…"**
 Your plan does not include custom code in published surveys. Remove the script
@@ -194,53 +278,81 @@ not — and hard-refresh the page (browsers cache survey files).
 
 **The published survey's progress indicator differs from the preview.**
 Published surveys follow **Theme → Progress** (**bar**, **dots**, **both** or
-**hidden**; the bar when you never chose), like the Builder's previews. A
-survey published with an earlier version of Studio shows no bar until you
-publish it again — **Save**, then **Republish #N**. To show no indicator at
-all, choose **bar** and then **hidden**.
+**hidden**; the bar when you never chose), like the Builder's previews:
+**bar** shows only the bar and its text, **dots** only the page dots,
+**hidden** nothing at all. **Section labels** and **Progress text** switch off
+the words above the page title and beside the bar. A survey published with an
+earlier version of Studio can show a different indicator until you publish it
+again — **Save**, then **Republish #N**.
 → [Question style and progress](Studio-Theme-and-Branding#question-style-and-progress)
 
 **A quota cell is full but respondents keep coming.**
-Quota cells are counted, not enforced. Add a branch rule that screens out the
-full cell's value and republish; the environment's response cap is the only
-automatic stop. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
+A full cell stops only the respondents whose answer falls into it, when they
+leave the page with that answer; everyone else goes on. If people with that
+answer still get through:
 
-**The deadline passed but the card still says ● Live.**
-That is expected. When the questionnaire's deadline passes, the environment
-stops accepting responses — anyone who submits sees "This survey is closed" —
-but the card does not change and the link still opens the survey. Press
-**Close** when you want the link itself to show the closed page. A closing
-date or redirect declared for the **environment** in `studio/settings.json`
-is only displayed on the card; it does not close anything.
-→ [Deadlines](Studio-Publishing-and-Environments#deadlines)
+- the survey was published before quota cells closed — publish it again;
+- you are looking at a **preview**: previews never check quotas;
+- the count includes only **completed** interviews — screen-outs and
+  unfinished interviews do not fill a cell, so a cell can show fewer than you
+  expect;
+- they left that page before the cell filled: each answer is checked once,
+  when its page is left, and the submission does not check quota cells again,
+  so a cell can end a little over its limit;
+- the server did not answer the check within 4 seconds — the respondent is
+  let through and checked again on a later page.
+
+→ [When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full)
+
+**The survey closed on its date. How do I extend it?**
+Once the closing date passes, the card reads **○ Closed** ("Closed —
+deadline passed *date*") and anyone who opens the link sees "This survey is
+closed". Press **Extend** on the card, pick a later date and **Extend to this
+date**: the survey collects again at once, without a new Save or a rebuild.
+The date can come from the questionnaire's deadline, the environment's
+`closes_at` in `studio/settings.json` (the earlier of the two wins), or the
+**Closing date** chip. → [Set or extend a closing date](Studio-Recipes#set-or-extend-a-closing-date)
 
 **Respondents answered everything and then saw "This survey is paused" / "This survey is closed" / "Thank you for your interest…".**
-Pause, the questionnaire's deadline and the response cap take effect when a
-respondent submits — and so does **Close**, for someone who already had the
-survey open. Their answers are not stored. Resume, move the deadline in a new
-Save, or raise the cap (new projects cap `main` at 1,200 and `pilot` at 50).
+The survey page checks as it opens whether the environment is paused, closed
+(by **Close** or its closing date) or full (a response cap reached), and shows
+the notice at once. Someone who already had the survey open when that
+happened meets it when they submit, and their interview is not stored as
+completed. Resume, extend the closing date, or raise the cap (new projects cap
+`main` at 1,200 and `pilot` at 50 completed interviews; on Free the project
+stops at 1,000). A survey published before the check as the page opens shows
+these notices only at submit until you publish it again.
+→ [Paused, closed and full surveys](Studio-Respondent-Experience#paused-closed-and-full-surveys)
 
 **The count is not moving.**
-Check you are looking at the right environment, that it is not paused, and
-that interviews are being *completed* — partials show in Data but do not count
-toward caps.
+Check you are looking at the right environment, that it is not paused or
+closed, and that interviews are being *completed*. With a cap, the
+**Responses** tile and bar count completed interviews only — partials and
+screen-outs show in Data but not there (the tooltip gives the total of all
+rows).
 
 **The build failed.**
 Open **Build log** on the card. If a republish failed, the previous version is
-still serving the link. Fix the cause, then publish again.
+still serving the link. Fix the cause, **Save**, and publish again. A failed
+card with no earlier version still live behind it offers **Deploy current
+Save #N** (**Retry Save #N** when the failed build was already the current
+Save).
 
 **Access codes are not asked for.**
 Generating codes creates a new Save; republish the environment.
 
-**The Header "Preview" survey says "Submission failed".**
-Preview builds never accept answers. Test with the `pilot` environment
-instead. → [[Testing Your Survey|Studio-Testing-Your-Survey]]
+**The header "Preview" survey shows "Preview — answers are not stored".**
+That is what a preview build is: it never stores answers, says so in a banner
+at the bottom, and ends on the survey's normal completion page. A preview
+built before this banner existed ends with "Submission failed" instead;
+**Preview** again to rebuild it. To test real submissions, use the `pilot`
+environment. → [[Testing Your Survey|Studio-Testing-Your-Survey]]
 
 **Where do I get the panel ids to reconcile with Prolific / Cint?**
 From **Outcomes · reconcile with the provider** at the end of the **Panel**
 chip on a live environment's card: its completed, screened-out and partial
-CSVs list each respondent's provider id (up to 5,000 responses). The id
-parameter is matched however it is capitalized (`PROLIFIC_PID`, `RID`).
+CSVs list each respondent's provider id, for every response of that outcome.
+The id parameter is matched however it is capitalized (`PROLIFIC_PID`, `RID`).
 → [Reconciling outcomes](Studio-Panel-Providers#reconciling-outcomes)
 
 ---
@@ -253,15 +365,32 @@ filter (environment, **Only completed responses**, dedup, speeders, filters).
 Run to each node and watch the row count.
 
 **I cannot find a response in the grid.**
-The grid loads the **newest** 100 rows of a table (25 per page), and
-**Filter loaded rows…** and sorting work on those rows only. For an older
-response, export the table to find the row; to delete it, see
+The grid loads the **newest** 100 rows of a table (25 per page), and typing
+in **Filter loaded rows…** narrows those rows only. Press `Enter` (or **Search
+all rows**) to search **every** row of the table on the server: a row
+matches when any of its values contains the text — an answer, the response
+`id`, the `respondent_id`, or a panel id or invitation token in `meta`. The
+note then reads "N rows of the whole table match “…”", with the newest 100
+matches loaded; **Clear search** goes back. To delete the row you find, see
 [Handle a data erasure request](Studio-Recipes#handle-a-data-erasure-request).
 
-**My export has no URL parameters or durations.**
-Exports from Data leave out the `meta` column. Those values are available in
-flows (`url_<name>`, `duration_s`) — write them out with an **Export file**
-node. → [[Data Exports|Studio-Data-Exports]]
+**Where are the URL parameters and durations in my export?**
+In columns of their own, after the answers: `url_<name>` for each link
+parameter (up to 8), `duration_s`, `started_at`, `captcha`, `tab_switches`,
+`hidden_seconds` and `pastes` — in every format of **Export ▾**, and in flows
+under the same names. The Data grid itself still shows them together in the
+`meta` column. An export you downloaded before this change has no such
+columns; export again. → [[Data Exports|Studio-Data-Exports]]
+
+**My matrix answers changed from 1–11 to 0–10.**
+A Matrix answer is its column's code from the codebook: a 0–10 scale stores
+0–10. Surveys built before this stored the column's position (1–11); Data,
+exports and flows now read those older responses as the column's code too, so
+old and new responses sit on one scale. An export or a flow result you made
+before therefore differs from one you make now. Surveys published before the
+change store positions until you publish them again, and are read correctly
+either way.
+→ [Older surveys and responses](Studio-Question-Types#older-surveys-and-responses)
 
 **SPSS labels are missing or look wrong.**
 Exports are labeled with the **current** Save's codebook. Fill in labels in
@@ -276,13 +405,24 @@ two questions' answers — those stay under the Id. Either way, harmonize the
 two in a flow with **Recode** or **Derive** rather than editing the raw
 table.
 
-**"Respondents" equals "Responses".**
-Studio does not identify people across sessions, so each completed interview
-counts as a respondent.
+**Can the same person answer twice? Why is there no "respondents" count?**
+Studio does not identify people, so every interview is a response of its own.
+The totals on **Data → Insights** and **Live** therefore read **responses**
+(every row: completed, screened-out and partial) and **completed** (submitted
+interviews that did not end on a screen-out page — what quota cells and
+response caps count). To refuse a second interview from the same browser,
+switch on **One per browser** on the environment's card; for one answer per
+person, use email invitations or a panel's own checks.
+→ [Accept one response per browser](Studio-Recipes#accept-one-response-per-browser)
 
 **There is no Delete button on the rows.**
 Only owners and admins can delete responses, so only they see **Delete** on
 the rows of the `responses` table. Ask one of them to handle the request.
+
+**I deleted a response. What else changed?**
+The response counts and any quota cell it had filled go down: the survey's
+cells are recounted from the responses that remain. The deletion is recorded
+in the Activity log, without the response's content.
 
 ---
 
@@ -293,24 +433,36 @@ the rows of the `responses` table. Ask one of them to handle the request.
 Pro 600). Wait, or use **Run**. "…A preview is already running" — wait for it
 to finish.
 
-**Every run fails with "…has no generated code (it did not pass the engine check at Save)".**
-One flow in the project was saved with engine errors, and that stops every run
-and blocks publishing from that Save. Open that flow, press **Check**, fix it
-and **Save**. → [[Analysis Flows|Studio-Flows]]
+**A flow shows a red "errors" pill and its Run button is disabled.**
+The flow did not pass the engine check at the current Save, so it was saved
+without code and cannot run ("Fix this flow's errors and save first"). The
+pill's tooltip lists the errors node by node, and opening the flow shows them
+in a banner. Only that flow is affected: the questionnaire can be published,
+and the other flows, **Run all** and previews work — in Run all it fails with
+"flow '*name*' did not pass the engine check at Save #N, so it has no script
+to run: open it, fix its errors and save". Press **Check**, fix what it
+lists and **Save**. → [A flow with errors](Studio-Flows#a-flow-with-errors)
 
 **In what order does Run all run my flows?**
 In dependency order: a flow that reads a table another flow writes (through a
 **Project table** node, or a **Responses** node set to that table) runs after
 the flow with the **Write table** node. Flows that do not depend on each other
 run in alphabetical order of their names; you do not need to name flows so
-that a writer sorts first. → [Run all](Studio-Flows#run-all)
+that a writer sorts first. The flows table, the pipeline strip and the **Run
+flow** dialog list the flows in that order. Flows that read each other's
+tables get an amber **cycle** pill and run one after another in alphabetical
+order. → [Run all](Studio-Flows#run-all)
 
 **Run all failed, but some flows ran.**
 One failed flow does not stop the run. The others still run, except those
-that read a table the failed flow writes — their log line reads "skipped:
-needs *flow*, which failed". The run ends as failed and no combined report is
-written; **View logs** lists every flow as ok or failed, with each error. Fix
-the flows it names and run again.
+that read a table the failed flow did not write — their log line reads
+"skipped: needs *flow*, which failed". The run ends as failed (its last log
+line, "failed: *names*", lists them), and **View logs** lists every flow as
+ok or failed, with each error. The flows that succeeded keep their reports
+under **Reports**, and the combined report is written anyway, titled
+"Combined report (incomplete)": its first section, "Missing from this
+report", names each missing flow and why. Fix the flows it names and run all
+flows again for the complete report.
 
 **The Schedules section shows "Requires Plus" instead of "Schedule a run".**
 Schedules are available from the Plus plan ("Schedules are available from the
@@ -318,33 +470,55 @@ Plus plan"); on Free the button opens the plans. Run flows by hand, or
 upgrade. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 **How do I delete, rename or duplicate a flow?**
-Not possible from the interface yet. Restoring a Save made before the flow
-existed removes it; otherwise contact support.
+With the **⋮** at the end of its row on **Flows** (**Rename…**,
+**Duplicate…**, **Delete…**) or the editor's **More ▾** (**Rename flow…**,
+**Duplicate flow…**, **Delete flow…**). Each is a Save of its own, so
+restoring an earlier Save undoes it. A rename moves the flow's schedules and
+comments; a delete pauses its schedules; past runs and reports keep the old
+name. → [Rename, duplicate or delete a flow](Studio-Recipes#rename-duplicate-or-delete-a-flow)
+
+**"*flow* has unsaved changes. Open it and save them (or undo them) first …"**
+A rename takes the flow as it was last saved, so Studio refuses it while you
+have unsaved changes to that flow. Save (or undo) them, then rename.
 
 **My Data file node cannot find the file I uploaded.**
-Files uploaded under **Files** are not available to flow runs. Bring the data
-in with a connector import into a project table, or run the downloaded flow
-script on your own computer with the file beside it.
+Give the node's **File** the upload's path, `assets/<name>` — the copy icon
+on the file's row in **Files** copies it ("Copy the path a flow reads it by").
+Runs, **Run all** and **Run to here** read it from there. If the run log
+says "note: assets/*name* is not among this project's Files", the name is
+wrong or the file was deleted.
 → [[Files|Studio-Files]]
 
-**Run to here changed a project table.**
-A preview that reaches a **Write table** node does write the table. Disconnect
-the node while experimenting.
+**Can Run to here change a project table?**
+No. A preview never writes project tables: a **Write table** node it reaches
+says "Not written: a preview never writes project tables. A run writes N rows
+to table '*name*' …", and the Live tiles are not touched. Only a run of the
+flow — **Run**, **Run all**, a schedule — writes the table.
 
 **The report is empty or missing.**
 A report needs a **Report section** connected to a **Save report** node, and the
 flow must have run. Output paths must be under `outputs/`.
 → [[Reports|Studio-Reports]]
 
-**A flow is missing from the combined report, or Run all fails with just a file path.**
+**A flow is missing from the combined report, or Run all says "report … was not written".**
 The combined report takes each flow's **Report path** (flow settings). A flow
-without one is left out; a path the flow does not write fails the Run all.
+without one is left out. A path the flow does not write fails that flow:
+"report outputs/*x*.md was not written: the flow's Report path names a file
+none of its nodes saves — set it to the Path of its Save report node". The
+flow's tables were still written, so the flows that read them run, and the
+combined report is marked incomplete. The Save warns about this beforehand
+(`REPORT_PATH_UNWRITTEN`: "The flow's Report path is “…”, but no Save report
+step saves there: Run all will fail this flow. Set it to the Path of a Save
+report step, or clear it."). Changing the **Path** of a flow's **Save
+report** node moves the Report path it had set along with it, and deleting
+the node clears it.
 
 **Live tiles are stale.**
-Tiles show the last *completed* run; a failed run leaves the previous tiles in
-place (check "updated …"). On Free, press **Recompute now**; automatic
-recomputation is Plus and above and needs **Live: recompute on new responses**
-ticked and saved. → [[Live Monitoring|Studio-Live-Monitoring]]
+Tiles show the flow's last *completed* run; a failed run leaves the previous
+tiles in place (check "updated …"), and previews never change them. On Free,
+press **Recompute now**; automatic recomputation is Plus and above and needs
+**Live: recompute on new responses** ticked and saved. A failed automatic
+recompute does not email the owners. → [[Live Monitoring|Studio-Live-Monitoring]]
 
 **The public live link shows "page not found".**
 It was revoked or rotated, or the organization's plan no longer includes Live.
@@ -356,15 +530,23 @@ It was revoked or rotated, or the organization's plan no longer includes Live.
 **"Import contacts" or "New mailing" is disabled.**
 Invitations need a paid plan (Plus and above) — during an unpaid trial they
 stay locked — plus a published, live environment and at least one subscribed
-contact. → [[Email Invitations|Studio-Email-Invitations]]
+contact. An environment that has closed by its closing date is not offered.
+If the button's tooltip reads "Mailings are paused for this organization",
+see the next answer. → [[Email Invitations|Studio-Email-Invitations]]
 
-**The invitations panel shows an upgrade message although we are on Plus.**
-Mailings may have been paused automatically after bounces or spam complaints.
-Contact support.
+**"Mailings are paused for this organization — …"**
+Mailings were paused automatically after too many bounces or spam
+complaints; the panel names the reason and adds "Contact support to resume
+them." A mailing that was sending when this happened reads "Paused — *reason*;
+the rest stays queued until support resumes it." Contact support.
 
-**Someone who already answered got a second reminder.**
-Send **one** reminder per invitation: people who completed through a
-reminder's link still count as not completed on the original invitation.
+**Who gets a reminder?**
+**Remind** goes to the invitees of that mailing who have not completed —
+through the invitation or any earlier reminder — so someone who answered
+through a reminder's link is not reminded again, and a second reminder is
+safe. Its tooltip and the reminder dialog give the number, and the preview
+shows the message as its first recipient will get it ("Preview · as
+*email*"). The mailing's **Completed** column adds "+N via reminders".
 
 ---
 
@@ -373,12 +555,15 @@ reminder's link still count as not completed on the original invitation.
 **My webhook does not fire for some events.**
 A webhook receives only the events selected under **Events** when it was
 added — **Deploys**: live, failed, stopped; **Runs**: completed, failed — and
-every event when none is selected. A webhook whose row lists `deploy`, `run`
-or `terminal` was added with an earlier version of the chips: those names
-match no event, so it receives nothing — delete it and add it again. Check
-**Recent deliveries** for errors from your endpoint. Webhooks are *(Plus)*,
-and only owners and admins can see and manage them: for members the
-**Webhooks** card holds only that notice.
+every event when none is selected. Webhooks added with an earlier version of
+the chips (`deploy`, `run`) have been switched to the matching events and now
+receive them. One that subscribed only to `terminal` shows an amber pill
+"never fires: terminal" — nothing emits that event, so delete the webhook and
+add it again with the events you want. An **unsigned** pill means its
+deliveries carry no `X-Siamang-Signature` header; add it again with a secret
+to sign them. Check **Recent deliveries** for errors from your endpoint.
+Webhooks are *(Plus)*, and only owners and admins can see and manage them:
+for members the **Webhooks** card holds only that notice.
 → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 **Can a webhook post to Slack?**
