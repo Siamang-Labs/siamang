@@ -5,7 +5,10 @@ a test is chosen by hand.
 The numbers come from :mod:`siamang.data.inference`; this module only lays
 them out — labels from the codebook, rounding, and a footer that names the
 test, what it was computed on and what it left out. A test the data cannot
-carry is reported in words ("not run: …") rather than as a number.
+carry is reported in words ("not run: …") rather than as a number, and a cell
+it leaves undefined (the SD of one answer, a pair that could not be compared)
+is blank when printed — NaN in ``to_frame()``, never ``nan`` or ``None`` in a
+report.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import pandas as pd
 from siamang.data import inference
 from siamang.reporting.tables import (
     SurveyTable,
+    _BlankUndefined,
     _get_label,
     _get_value_labels,
     _unweighted_note,
@@ -163,7 +167,7 @@ def posthoc_for(
 
 
 @dataclass
-class PostHocTable(SurveyTable):
+class PostHocTable(_BlankUndefined, SurveyTable):
     """Every pair of groups after a test of several, one row per pair.
 
     Tukey's HSD and Games-Howell give the difference of the means with its
@@ -230,8 +234,7 @@ class PostHocTable(SurveyTable):
         return f"**{self.title}**\n\n" + super().to_markdown()
 
     def to_html(self) -> str:
-        self._ensure_built()
-        html = frame_to_html(self._result, caption=self.title)
+        html = frame_to_html(self._printable(), caption=self.title)
         if self._stats:
             html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
         return html
@@ -295,7 +298,7 @@ TTEST_KINDS = ("independent", "paired", "one_sample")
 
 
 @dataclass
-class TTestTable(SurveyTable):
+class TTestTable(_BlankUndefined, SurveyTable):
     """A t-test with the descriptives it rests on.
 
     ``kind="independent"`` compares ``column`` between two groups of ``by`` —
@@ -513,7 +516,7 @@ _METHOD_TITLES = {
 
 
 @dataclass
-class CorrelationMatrixTable(SurveyTable):
+class CorrelationMatrixTable(_BlankUndefined, SurveyTable):
     """Correlations between every pair of ``columns``.
 
     ``layout="matrix"`` is the table a report prints: the lower triangle of

@@ -189,6 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     **Missing answers** pairwise or listwise, **p adjustment** none / holm /
     bonferroni / fdr_bh, and a **Layout**: the lower triangle with `*`, `**`,
     `***` marks, or one row per pair with the coefficient, p, adjusted p and N.
+    A pair that cannot be computed is blank when printed, as are a t-test's SD
+    of one answer and a post-hoc pair that cannot be compared.
   - **`analyze.ttest`** (new; `data.report.ttest`, `TTestTable`): **Design**
     independent (Welch's by default, Student's under **Variances**; **Group A** /
     **Group B** pick two groups of a grouping with more, and without them such a
