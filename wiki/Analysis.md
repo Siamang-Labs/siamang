@@ -244,9 +244,9 @@ print(data.report.ttest("age", by="it_role", groups=[1, 4]).to_markdown())
 | Engineer | 58 | 46.845 | 16.559 | 2.174 |
 | PM | 52 | 47.5 | 18.873 | 2.617 |
 
-Test = Welch's t-test (unequal variances); t = -0.1930; df = 102.1500; p = 0.8477;
-Mean difference = -0.6550; Difference = Engineer − PM; 95% CI = -7.404 – 6.094;
-Cohen's d = -0.0370; Hedges' g = -0.0370; N = 110; Variable = Age
+Test = Welch's t-test (unequal variances); t = -0.193; df = 102.15; p = 0.8477;
+Mean difference = -0.655; Difference = Engineer − PM; 95% CI = -7.404 – 6.094;
+Cohen's d = -0.037; Hedges' g = -0.037; N = 110; Variable = Age
 ```
 
 ### Several groups and post-hoc tests: `report.means`
@@ -283,7 +283,7 @@ print(data.report.means("age", by="it_role", method="welch_anova",
 | DevOps | 46.209 | 16.29 | 44.0 | 43 |
 | PM | 47.5 | 18.873 | 41.0 | 52 |
 
-Test = Welch's ANOVA; F = 1.2530; df = 3, 106.78; p = 0.2942; η² = 0.0170;
+Test = Welch's ANOVA; F = 1.253; df = 3, 106.78; p = 0.2942; η² = 0.017;
 Post-hoc = Games-Howell: 0 of 6 pairs differ at p < 0.05; N = 200; Variable = Age
 
 **Post-hoc: Games-Howell**
@@ -328,7 +328,7 @@ are weighted and the footer says the test is not.
 | Data Scientist | 9 | 15 | 24 |
 | Total | 19 | 24 | 43 |
 
-Test = Fisher's exact test; p = 0.3678; Odds ratio = 1.8250; OR 95% CI = 0.463 – 7.466;
+Test = Fisher's exact test; p = 0.3678; Odds ratio = 1.825; OR 95% CI = 0.463 – 7.466;
 Odds ratio of = Never (vs Fully remote) for Engineer over Data Scientist;
 Estimate = conditional maximum likelihood, as R's fisher.test; N = 43
 ```

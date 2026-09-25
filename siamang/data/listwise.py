@@ -176,6 +176,20 @@ def p_rounded(value: float | None) -> float | None:
     return float(f"{value:.4g}")
 
 
+def round_p(value: float) -> float:
+    """A p-value to four decimals, as the tables have always printed one — or,
+    when four decimals would make it 0, to four significant digits
+    (``1.134e-24``): a test that found something never reports p = 0.
+
+    NaN stays NaN, as ``round`` leaves it.
+    """
+    value = float(value)
+    if not np.isfinite(value):
+        return value
+    kept = round(value, 4)
+    return kept if kept != 0 or value == 0 else float(f"{value:.4g}")
+
+
 __all__ = [
     "Listwise",
     "distinct",
@@ -183,6 +197,7 @@ __all__ = [
     "listwise",
     "p_rounded",
     "result_table",
+    "round_p",
     "rounded",
     "unweighted",
 ]

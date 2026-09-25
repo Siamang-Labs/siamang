@@ -305,10 +305,12 @@ class DataAnalysis:
                 except inference.NotTestable as exc:
                     result["posthoc"] = f"not run: {exc}"
                 else:
+                    from siamang.reporting.tables import stat_text
+
                     result["posthoc"] = pairs.name
                     for row in pairs.table.itertuples():
                         result[f"{row.group_1} vs {row.group_2}"] = (
-                            f"z = {row.statistic:.3f}, p = {row.p_adjusted:.4f}"
+                            f"z = {row.statistic:.3f}, p = {stat_text(float(row.p_adjusted))}"
                         )
         note = inference.missing_codes_note(left_out, self.variables)
         if note:

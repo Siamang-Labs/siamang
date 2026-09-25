@@ -242,10 +242,9 @@ class Report:
             self._blocks.append(("table", (component, caption, placement)))
         elif isinstance(component, Mapping):
             # A statistics dict (a table's .stats, an analysis result): one line.
-            parts = [
-                f"{key} = {value:.4f}" if isinstance(value, float) else f"{key} = {value}"
-                for key, value in component.items()
-            ]
+            from siamang.reporting.tables import stat_text
+
+            parts = [f"{key} = {stat_text(value)}" for key, value in component.items()]
             text = "; ".join(parts) if parts else "—"
             self._blocks.append(("md", f"*{caption}*: {text}" if caption else text))
         else:
