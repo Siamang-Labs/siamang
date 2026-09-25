@@ -402,6 +402,32 @@ def adjust(pvalues: Any, method: str = "holm") -> np.ndarray:
 # ── on survey data ───────────────────────────────────────────────────────────
 
 
+def count_problem(test: str, count: int) -> str | None:
+    """Why ``test`` cannot compare ``count`` variables, or None when it can.
+
+    The message :func:`compare` raises, and the one ``check_flow`` gives for
+    the node before a run: the number of variables is known from the flow.
+    """
+
+    given = f"{count} {'was' if count == 1 else 'were'} given"
+    if test == "auto" and count < 2:
+        return (
+            "Paired tests compare two or more variables answered by the same "
+            "respondents — two for Wilcoxon signed-rank (or McNemar), three or more "
+            f"for Friedman; {given}."
+        )
+    if test in {"wilcoxon", "mcnemar"} and count != 2:
+        name = "Wilcoxon signed-rank" if test == "wilcoxon" else "McNemar"
+        more = " For three or more, use Friedman." if test == "wilcoxon" else ""
+        return f"{name} compares exactly two variables; {given}.{more}"
+    if test == "friedman" and count < 3:
+        return (
+            f"Friedman's test compares three or more variables; {given}. For two, use "
+            "Wilcoxon signed-rank (or McNemar for yes/no)."
+        )
+    return None
+
+
 def compare(
     data: SurveyData,
     variables: list[str],
@@ -421,23 +447,12 @@ def compare(
     if test not in TESTS:
         raise ValueError(f"test must be one of {', '.join(TESTS)}.")
     variables = list(variables or [])
+    problem = count_problem(test, len(variables))
+    if problem:
+        raise ValueError(problem)
     if test == "auto":
-        if len(variables) < 2:
-            raise ValueError(
-                f"Paired tests compare two or more variables answered by the same "
-                f"respondents — two for Wilcoxon signed-rank (or McNemar), three or more "
-                f"for Friedman; {len(variables)} {'was' if len(variables) == 1 else 'were'} "
-                "given."
-            )
         test = "wilcoxon" if len(variables) == 2 else "friedman"
     if test in {"wilcoxon", "mcnemar"}:
-        if len(variables) != 2:
-            name = "Wilcoxon signed-rank" if test == "wilcoxon" else "McNemar"
-            more = " For three or more, use Friedman." if test == "wilcoxon" else ""
-            raise ValueError(
-                f"{name} compares exactly two variables; {len(variables)} "
-                f"{'was' if len(variables) == 1 else 'were'} given.{more}"
-            )
         if test == "wilcoxon":
             return wilcoxon(data, variables[0], variables[1], zeros=zeros, p_value=p_value)
         return mcnemar(data, variables[0], variables[1], yes=yes, p_value=p_value)
@@ -584,12 +599,9 @@ def friedman(
     if posthoc not in POSTHOC:
         raise ValueError(f"posthoc must be one of {', '.join(POSTHOC)}.")
     variables = list(variables)
-    if len(variables) < 3:
-        raise ValueError(
-            f"Friedman's test compares three or more variables; {len(variables)} "
-            f"{'was' if len(variables) == 1 else 'were'} given. For two, use Wilcoxon "
-            "signed-rank (or McNemar for yes/no)."
-        )
+    problem = count_problem("friedman", len(variables))
+    if problem:
+        raise ValueError(problem)
     distinct(variables)
     _ordered(data, variables, "Friedman's test")
     rows = listwise(data, variables)
@@ -817,6 +829,7 @@ __all__ = [
     "SignedRank",
     "adjust",
     "compare",
+    "count_problem",
     "friedman",
     "friedman_test",
     "mcnemar",

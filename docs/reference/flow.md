@@ -46,7 +46,7 @@ returns errors and warnings with a code and the node concerned:
 | Code | Meaning |
 |------|---------|
 | `UNKNOWN_NODE_TYPE`, `UNKNOWN_PARAM`, `PARAM_REQUIRED`, `PARAM_INVALID` | the node against its spec |
-| `PARAM_CONFLICT` (error or warning) | a rule of the spec's `checks` between its parameters: a post-hoc test that does not follow the test chosen, a t-test without the variable its design compares (errors); a choice the node would ignore (warnings) |
+| `PARAM_CONFLICT` (error or warning) | a rule of the spec's `checks` between its parameters: a post-hoc test that does not follow the test chosen, a t-test without the variable its design compares (errors); a choice the node would ignore (warnings). And what the parameters settle before any data: Paired tests with a number of variables its test cannot compare (`McNemar compares exactly two variables; 3 were given.` — an error), and a t-test of two groups whose Groups has more than two answers in the codebook (its missing codes left out) with Group A and Group B empty (a warning: a filter upstream may leave two) |
 | `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the questionnaire's codebook (when given); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) and the arm of a `Script.assign_condition` (nominal unless the codebook declares it) count as known |
 | `UNKNOWN_EDGE_NODE`, `UNKNOWN_PORT`, `PORT_TYPE_MISMATCH`, `INPUT_CONNECTED_TWICE`, `INPUT_NOT_CONNECTED` | edges against the ports |
 | `CYCLE` | not a DAG |

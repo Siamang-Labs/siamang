@@ -179,6 +179,7 @@ def check_flow(
             _check_params(node_id, spec, node.get("params") or {}, known_variables, scales)
         )
         issues.extend(_check_rules(node_id, spec, node.get("params") or {}))
+        issues.extend(_check_design(node_id, spec, node.get("params") or {}, questionnaire))
         if spec.type == "prepare.maxdiff_scores" and questionnaire is not None:
             issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
 
@@ -698,6 +699,74 @@ def _check_rules(node_id: str, spec: NodeSpec, given: dict[str, Any]) -> list[Fl
                 for name in condition_params(condition)
             )
         )
+    ]
+
+
+def _check_design(
+    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any] | None
+) -> list[FlowIssue]:
+    """What a node's parameters settle before any data, beyond the rules its
+    grammar can say: how many variables a paired test compares (an error — the
+    run would refuse it), and a t-test of two groups whose Groups has more than
+    two answers in the codebook with none named (a warning: a filter upstream
+    may leave two in the data)."""
+
+    params = resolved_params(spec, given)
+    if spec.type == "analyze.paired":
+        from siamang.data.paired import count_problem
+
+        variables = params.get("variables")
+        if isinstance(variables, list) and variables:
+            problem = count_problem(str(params.get("test")), len(variables))
+            if problem:
+                return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {problem}", node_id)]
+    if (
+        spec.type == "analyze.ttest"
+        and questionnaire is not None
+        and params.get("kind") == "independent"
+        and unset(given.get("group_a"))
+        and unset(given.get("group_b"))
+        and isinstance(params.get("group"), str)
+    ):
+        payload = (questionnaire.get("variables") or {}).get(params["group"]) or {}
+        answers = _answers(payload)
+        if len(answers) > 2:
+            listed = ", ".join(f"{code} = {label}" for code, label in answers)
+            name = payload.get("label") or params["group"]
+            return [
+                FlowIssue(
+                    "warning",
+                    "PARAM_CONFLICT",
+                    f"{node_id}: {name} has {len(answers)} answers ({listed}); a t-test "
+                    "compares two — name them in Group A and Group B, unless the data "
+                    "this node reads holds only two of them.",
+                    node_id,
+                )
+            ]
+    return []
+
+
+def _answers(payload: dict[str, Any]) -> list[tuple[Any, str]]:
+    """A codebook variable's labelled answers, its missing codes left out
+    (value labels and missing codes as a list of ``{code, label}`` or a mapping)."""
+
+    def pairs(raw: Any) -> list[tuple[Any, str]]:
+        if isinstance(raw, dict):
+            return [(code, str(label)) for code, label in raw.items()]
+        if isinstance(raw, list):
+            return [
+                (item.get("code"), str(item.get("label", item.get("code"))))
+                for item in raw
+                if isinstance(item, dict) and "code" in item
+            ]
+        return []
+
+    missing = {str(code) for code, _label in pairs(payload.get("missing"))}
+    missing |= {
+        str(item) for item in payload.get("missing") or [] if isinstance(item, int | float | str)
+    }
+    return [
+        (code, label) for code, label in pairs(payload.get("labels")) if str(code) not in missing
     ]
 
 

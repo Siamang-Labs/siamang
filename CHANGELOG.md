@@ -427,6 +427,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`"fa.variance"`); the node's own key still answers for an output without
   one, so stored sections render as before.
 
+- **What a node's parameters settle is checked before the run.** Paired tests
+  with Test = mcnemar or wilcoxon and three variables, or friedman and two, and
+  a t-test of two groups whose Groups had three answers and none named, passed
+  `check_flow` and failed only when run. A paired test's variable count is now
+  an error of the check, in the words the run refuses it with
+  (`paired.count_problem`: "McNemar compares exactly two variables; 3 were
+  given."), and the t-test gets a warning naming the answers ("Gender has 3
+  answers (1 = Male, 2 = Female, 3 = Other); a t-test compares two — name them
+  in Group A and Group B, unless the data this node reads holds only two of
+  them."): a filter upstream may leave two, so it does not stop the flow.
+
 - A required `Matrix` let the respondent through after one row. The runtime
   called any answer object with a key answered — MaxDiff and conjoint already
   asked for every task, a matrix asked for nothing more — so nine rows of a
