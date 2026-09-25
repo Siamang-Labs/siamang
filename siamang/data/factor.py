@@ -267,8 +267,11 @@ def analyze(
         detail = method if m == 1 or rotation == "none" else f"{method}, {rotation} rotation"
         for j in range(m):
             name = f"{into}{j + 1}"
-            series = pd.Series(np.nan, index=data.frame.index, dtype=float)
-            series.loc[rows.frame.index] = values[:, j]
+            # By position, not by label: a repeated index label would put one
+            # respondent's score on every row that shares it.
+            placed = np.full(len(data.frame), np.nan)
+            placed[rows.mask] = values[:, j]
+            series = pd.Series(placed, index=data.frame.index, dtype=float)
             result_data = result_data.with_derived(
                 name,
                 series,

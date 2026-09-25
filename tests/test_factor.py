@@ -420,3 +420,16 @@ def test_ml_is_started_several_times_and_keeps_the_best_optimum():
     # A model the data carry has one optimum: no warning, factanal's solution.
     two = factor.fit(x, n_factors=2, method="ml")
     assert not any("starting points" in warning for warning in two.warnings)
+
+
+def test_scores_land_on_their_rows_when_the_index_repeats():
+    """Scores are placed by position: a repeated index label used to raise
+    "cannot set using a list-like indexer…" (or put a score on every row that
+    shares the label)."""
+    data = _survey()
+    repeated = data.with_frame(data.frame.set_axis([i // 2 for i in range(len(data.frame))]))
+    ours = factor.analyze(repeated, ITEMS, n_factors=2, scores=True).data.frame
+    theirs = factor.analyze(data, ITEMS, n_factors=2, scores=True).data.frame
+    assert ours.index.tolist() == repeated.frame.index.tolist()
+    assert ours["factor_1"].to_numpy() == pytest.approx(theirs["factor_1"].to_numpy(), nan_ok=True)
+    assert ours["factor_1"].isna().tolist()[:3] == [True, True, False]
