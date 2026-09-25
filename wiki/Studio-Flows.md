@@ -24,6 +24,10 @@ here is exactly what the generated script does.
   wrote, or simulated respondents) and leave results in **Files**, **Reports**,
   the **Data** screen (tables) and **Live** (tiles).
 - Every run is recorded in **Run history** with its log and output files.
+- A flow is checked on its own: one that fails the engine's check cannot run
+  until it is fixed, but it does not stop the questionnaire from being
+  published or the other flows from running (see
+  [A flow with errors](#a-flow-with-errors)).
 
 > **Note.** Flows run against a Save. A project that has never been saved
 > shows "This project has no Save yet — flows run against a Save. Save the
@@ -34,16 +38,16 @@ here is exactly what the generated script does.
 ## The Flows screen
 
 ```
-Flows  Load → Clean → Analyze → Report · run history        [More ▾] [+ New flow] [▶ Run flow]
+Flows  Load → Clean → Analyze → Report · run history          [More ▾] [+ New flow] [▶ Run flow]
 
 Flows  2 · one document each under flows/
-┌──────────┬─────────────────────┬──────────────────────────┬───────────────────┬────────────┐
-│ Flow     │ Description         │ Last run                 │ Report            │            │
-│ cleaning │ Clean raw responses │ ● 23 Sep, 09:12 · 0m 08s │ —                 │ review run │
-│ tables   │ Key tables          │ ● 23 Sep, 09:13 · 0m 34s │ outputs/tables.md │ review run │
-└──────────┴─────────────────────┴──────────────────────────┴───────────────────┴────────────┘
+┌──────────┬─────────────────────┬──────────────────────────┬───────────────────┬──────────────┐
+│ Flow     │ Description         │ Last run                 │ Report            │              │
+│ cleaning │ Clean raw responses │ ● 23 Sep, 09:12 · 0m 08s │ —                 │ review run ⋮ │
+│ tables   │ Key tables          │ ● 23 Sep, 09:13 · 0m 34s │ outputs/tables.md │ review run ⋮ │
+└──────────┴─────────────────────┴──────────────────────────┴───────────────────┴──────────────┘
 
-Pipeline  flows run in order · each step may read the previous step's table
+Pipeline  the order Run all runs them · a flow after the flows whose tables it reads
    ● cleaning ──── ● tables
 
 Schedules  1 · cron, UTC · fired by the worker                         [+ Schedule a run]
@@ -68,23 +72,27 @@ under it while a review is open), **Pipeline**, **Schedules**, **Run history**.
 ### The flows table
 
 The heading reads "**Flows** `N` · one document each under flows/". One row
-per flow:
+per flow, in the order **Run all** runs them — a flow after the flows whose
+tables it reads, alphabetical where that leaves a choice (see
+[Run all](#run-all)):
 
 | Column | Shows |
 |---|---|
-| **Flow** | the flow's name (its file name) |
+| **Flow** | the flow's name (its file name), with a red **errors** pill when the flow did not pass the engine's check at the current Save (see [A flow with errors](#a-flow-with-errors)) and an amber **cycle** pill when it and another flow read each other's tables (see [Flows that read each other's tables](#flows-that-read-each-others-tables)); hover a pill for the details |
 | **Description** | the flow's title (or description) |
-| **Last run** | status dot, time and duration of the latest run you started or watched in this browser session; "running" while one is in progress |
+| **Last run** | status dot, start time and duration ("0m 34s") of the flow's latest finished run of its own — started by hand, by a schedule or by Live; "running" while a run of the flow is in progress; "never" when the flow has not finished a run since the last **Reset history**. **Run all** does not count here |
 | **Report** | the flow's **Report path**, or "—" |
 
-Click a row to open the flow on the canvas. Two links on the right:
+**Last run** comes from the server, so it survives a reload of the page.
+
+Click a row to open the flow on the canvas. On the right:
 
 - **review** — asks the AI assistant to read the flow for analysis mistakes
   (see [AI flow review](#ai-flow-review)). Click it again to close the panel.
-- **run** — runs the flow (disabled while it is already running).
-
-> **Note.** After you reload the page, **Last run** may read "never" even for
-> a flow that has run. **Run history** below is always complete.
+- **run** — runs the flow (disabled while it is already running, and for a
+  flow with errors: "Fix this flow's errors and save first").
+- **⋮** ("More for *flow*") — **Rename…**, **Duplicate…** and **Delete…**;
+  see [Rename, duplicate or delete a flow](#rename-duplicate-or-delete-a-flow).
 
 With no flows: "**No flows yet.** The example study ships one to read; start
 your own with **New flow**." (The example study ships two flows, `cleaning`
@@ -93,19 +101,16 @@ and `tables`.)
 ### Pipeline
 
 The strip shows every flow as a chip with the status of its latest run, in
-**alphabetical order of the flow names** — the order of the flows table. Its
-sub-title reads "flows run in order · each step may read the previous step's
-table". **Run all** does not always follow the strip: a flow that reads a
-table another flow writes runs after that flow, even when its chip comes
-first (see [Run all](#run-all)). The strip does not show the order **Run all**
-uses. Click a chip to open the **Run flow** dialog with that flow
+the same order as the flows table — the order **Run all** runs them. Its
+sub-title reads "the order Run all runs them · a flow after the flows whose
+tables it reads". Click a chip to open the **Run flow** dialog with that flow
 selected.
 
 ### The Run flow dialog
 
 | Field | Content |
 |---|---|
-| **Flow** | the flow to run; the hint gives its place in the **Pipeline** strip, e.g. "step 2 of 3 — runs after cleaning" or "step 1 of 3 — runs first" ("flows run against the current Save" when the project has one flow). The hint counts the strip's alphabetical order, so for a flow that reads a table written by a flow that sorts after it, the hint differs from the order **Run all** uses |
+| **Flow** | the flow to run, in **Run all** order; the hint gives its place in that order, e.g. "step 2 of 3 — runs after cleaning" or "step 1 of 3 — runs first" ("flows run against the current Save" when the project has one flow). "runs after" names every flow before it in the order, not only the flows whose tables it reads |
 | **Description** | read-only |
 | **Runs as** | read-only, `scripts/<name>.py` — the generated script |
 | **Report** | read-only, the report path, "written when the run completes" |
@@ -136,9 +141,9 @@ ten more, up to the 50 most recent runs.
 | Status | **success**, **warnings**, **failed** or **running** |
 | Type | **flow**, **run all** or **connector** (open-answer coding jobs also appear, as **flow**) |
 | `#id`, time | the run number and when it started |
-| Steps | **Queued → Run → Done** with "ran in 0m 34s"; a Run all shows one step per flow, in the order of the flows table, each marked as that flow finishes (a cross for a flow that failed or was skipped) |
+| Steps | **Queued → Run → Done** with "ran in 0m 34s"; a Run all shows one step per flow, in the order of the flows table (the order it runs them), each marked as that flow finishes (a cross for a flow that failed or was skipped) |
 | Entry | the flow name (or script path) and "· Save #N" — the Save it ran |
-| Error line | for a failed run, the last line of its log (for example the Python error), or "Run failed — open the logs for details." For a Run all it is the log's last line, which may be about a flow that succeeded (`task tables: ok`) — **View logs** shows every flow's outcome |
+| Error line | for a failed run, the last line of its log (for example the Python error), or "Run failed — open the logs for details." For a failed Run all it is the summary line "failed: *flows*", followed by "; skipped: *flows*" when some were skipped — **View logs** shows every flow's outcome and error |
 | Output chips | one per file the run kept, with its size; click to download |
 | **View logs** / **Hide logs** | the run's log; while a run is in progress the logs are open and end with "running…" |
 | **Re-run** | runs the same flow (or Run all) again |
@@ -198,19 +203,90 @@ flow cannot share its name with a connector; a Save that tries is refused
 A Save that would exceed the cap is refused with "plan 'free' allows up to 3
 analysis flows per project; this Save would have 4 — delete one or upgrade". A
 project that is already over the cap (after a downgrade) can still be saved as
-long as the number of flows does not grow.
+long as the number of flows does not grow — a rename, for example, does not
+add one. Deleting a flow frees its place.
 
-> **Current limitation.** Flows cannot be renamed, duplicated or deleted from
-> the interface yet. What you can do instead:
-> - **Rename or copy:** create a new flow with the name you want and rebuild it
->   (inside one flow, **Duplicate** copies a node with its parameters).
-> - **Remove a flow you just created:** restoring an earlier Save
->   ([History → Restore](Studio-History-and-Versions#restore-an-earlier-version))
->   removes every flow created after that Save — but it also restores the
->   questionnaire and settings of that Save, so use it only when nothing else
->   has changed since.
-> - Otherwise contact support. On the Free plan (3 flows per project) plan your
->   flows before you create them.
+---
+
+## Rename, duplicate or delete a flow
+
+Each of these is an ordinary Save of its own: it gets a number in History,
+the plan's flow cap applies to it, and restoring an earlier Save undoes it.
+They are in two places:
+
+- the **⋮** at the end of a row in the flows table ("More for *flow*"):
+  **Rename…**, **Duplicate…**, **Delete…**;
+- the editor's **More ▾** menu: **Rename flow…**, **Duplicate flow…**,
+  **Delete flow…**.
+
+In the editor, **Rename flow…** and **Duplicate flow…** are disabled while
+the flow is new or has unsaved changes (tooltip "Save first"); **Rename
+flow…** and **Delete flow…** are also disabled while a colleague holds the
+edit lock ("*Name* is editing"). **Delete flow…** on a flow that was never
+saved says "Not saved yet — All flows discards it".
+
+### Rename
+
+The dialog **Rename *flow*** reads: "A new Save stores the flow under the new
+name. Its schedules and comments move with it, and Live keeps showing its
+latest tiles; its past runs and reports keep the old name. Restoring an
+earlier Save moves them back."
+
+1. Type the new name in **Name**. The hint shows where it will be saved
+   ("saved as flows/*name*.flow.json") or what is wrong with the name: "Give
+   the flow a name.", "Use lowercase letters, digits and _, starting with a
+   letter (at most 63).", "\"survey\" is the questionnaire's name." or "A flow
+   or connector named *name* already exists."
+2. **Rename** ("Saving…" while it works), or **Cancel**.
+
+What follows a rename:
+
+| Thing | After the rename |
+|---|---|
+| The flow document | stored as `flows/<new>.flow.json`; the old file is gone from the new Save. History records "Rename flow *old* to *new*" |
+| Its default report path | a **Report path** and **Save report** path that were `outputs/<old>.md` become `outputs/<new>.md`; a path you chose yourself stays |
+| Schedules | move to the new name, still active or paused as they were |
+| Comments | move with the flow (the flow's and its nodes') |
+| Live | the Live screen and a public Live link keep showing the flow's latest tiles until its next run |
+| Past runs and reports | keep the old name: the run cards, and the reports under `outputs/<old>/` in **Reports** and **Files**. **Last run** reads "never" until the flow runs under its new name |
+
+Restoring a Save from before the rename brings the flow back under its old
+name, and moves its schedules (keeping their state) and comments back with
+it.
+
+Rename always takes the flow **as it is saved now** — including a
+colleague's newer Save — not the copy your tab loaded. It is refused while
+you have unsaved changes to that flow: "*flow* has unsaved changes. Open it
+and save them (or undo them) first: renaming saves the last saved version,
+and the changes would be lost." It is also refused while a colleague has the
+flow open: "*Name* is editing *flow*; it can be renamed once they are done."
+
+### Duplicate
+
+The dialog **Duplicate *flow*** reads: "A new Save adds a copy of the saved
+flow under a new name. Schedules are not copied." The name offered is
+`<name>_copy` (then `<name>_copy_2`, …) and the copy's title is "*title*
+(copy)". The same name rules apply as for a rename; the button is
+**Duplicate**. The copy is taken from the flow as it is saved now, and its
+default report path follows its new name, so the copy does not write over
+the original's report. History records "Duplicate flow *name* as *copy*".
+A duplicate counts toward the plan's flow cap. From the editor, the copy
+opens once it is saved.
+
+### Delete
+
+The confirmation **Delete *flow*** reads: "A new Save removes
+flows/*flow*.flow.json. Its past runs and reports stay, its schedules are
+paused, and restoring an earlier Save on the History screen brings the flow
+back." From the editor, with unsaved changes, it adds that it "discards your
+unsaved changes". Confirm with **Delete flow**. History records "Delete flow
+*flow*". A flow a colleague has open cannot be deleted: "*Name* is editing
+*flow*; it can be deleted once they are done."
+
+Restoring an earlier Save
+([History → Restore](Studio-History-and-Versions#restore-an-earlier-version))
+brings a deleted flow back; its schedules stay paused until you **Resume**
+them. A Restore that removes flows pauses their schedules too.
 
 ---
 
@@ -241,8 +317,8 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
 | **↶ ↷** | undo / redo (`Ctrl/Cmd + Z`, `Shift + Ctrl/Cmd + Z`) |
 | **Canvas \| List \| Report** | the three views of the same flow (below) |
 | **Check** | runs the engine's check on your draft ("Checking…"), see [Checks](#checks) |
-| **More ▾** | "This flow" status line — "Analysis flow · edited · 9 nodes · 10 edges · no issues" and the file path; the draft-sync status; **Export Python** |
-| **▶ Run** | runs the flow as of the current Save; disabled for a new or edited flow (tooltip "Save first") |
+| **More ▾** | "This flow" status line — "Analysis flow · edited · 9 nodes · 10 edges · no issues" and the file path; the draft-sync status; **Export Python**; **Rename flow…**, **Duplicate flow…**, **Delete flow…** (see [Rename, duplicate or delete a flow](#rename-duplicate-or-delete-a-flow)) |
+| **▶ Run** | runs the flow as of the current Save; disabled for a new or edited flow (tooltip "Save first") and for a flow that failed the engine check at the current Save ("Fix this flow's errors and save first") |
 | **Save changes** / **Saved** | opens the Save dialog (`Ctrl/Cmd + S`) |
 
 ### Three views
@@ -276,7 +352,10 @@ nodes that need the project database. Hover an item for its description.
 - **Drag** an item onto the canvas to drop it where you want.
 
 A new node gets an id from its short name (`crosstab`, then `crosstab_2`, …)
-and its parameters' defaults.
+and its parameters' defaults. A **Save report** node added from the palette
+also starts with the project's report house style, when it has one, as its
+**Look** (see
+[[Reports|Studio-Reports]]).
 
 ### Connecting nodes
 
@@ -326,7 +405,7 @@ took (`120 ms`, `1.4 s`).
 |---|---|
 | **Title** | the flow's title |
 | **Description** | shown in the flows table and the methods draft |
-| **Report path** | the report file this flow declares (placeholder `outputs/report.md`); **Run all** puts this file into the combined report, and the flows table and **Run flow** dialog show it |
+| **Report path** | the report file this flow declares (placeholder `outputs/report.md`); **Run all** puts this file into the combined report — and counts the flow as failed when the file was not written — and the flows table and **Run flow** dialog show it. It follows the **Save report** node's **Path** when you change that (see [The combined report](#the-combined-report)) |
 | **Live: recompute on new responses** | Live mode (see [Live mode](#live-mode)) |
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
@@ -338,7 +417,7 @@ parameters, the **Instant** counts where available, the **Preview** pane with
 **remove**) and **Comments**.
 
 Below the inspector, the **Checks** block lists the flow's problems ("Checks
-2 errors · 1 warning", up to twelve); click one to select its node.
+2 errors · 0 warnings", up to twelve); click one to select its node.
 
 ### Node ids
 
@@ -353,42 +432,80 @@ size setting with it.
 
 Each parameter has a control that fits its kind (see
 [Reading this page](Studio-Node-Reference#reading-this-page) in the node
-reference). Variable parameters are dropdowns or checklists of the codebook's
-variables, shown as `name — label` and filtered to the scales the node accepts
-(the scales are the hint under the field). A stored name that is no longer in
-the codebook shows as "(not in codebook)". In **Filter rows** the value
-pickers show value labels — `Capital region (1)` — so you pick the meaning,
-not the code. Mappings, weighting targets and answer codes are typed as JSON
-codes (`{"1": 0.45, "2": 0.55}`).
+reference). Variable parameters are dropdowns or checklists, shown as
+`name — label` and filtered to the scales the node accepts (the scales are
+the hint under the field). They offer, in this order:
 
-> **Current limitation.** The variable dropdowns and checklists list the
-> questionnaire's variables only. A variable created earlier in the flow (by
-> **Recode**, **Derive**, **Index / scale**, **Explode multiple choice**,
-> **Cluster (k-means)** and the quality nodes) stays in the data — it is
-> exported and listed by **Describe** — but cannot yet be picked in a later
-> node. Parameters you type (weighting targets, **Apply weight**'s column,
-> formulas) can name it.
+- the questionnaire's codebook variables;
+- the variables that nodes **upstream** of this one make — a **Recode**,
+  **Derive**, **Index / scale**, **Explode multiple choice**, **Cluster
+  (k-means)**, **Code open answers** (when its **Theme variable** is filled
+  in), **Response quality**, **Speeders & partials** or weighting node
+  earlier in the flow. Their label says so:
+  "*label* · made by *node*", or "made by *node*" when the node gives no
+  label (`duration_s` reads "completion time · made by *node*", `partial`
+  "partial response · made by *node*"). A node further down the flow does not
+  offer them: they do not exist yet when it runs;
+- the variables brought by a table the flow reads (see
+  [Tables between flows](#tables-between-flows)), labeled "from table
+  *table* · made by *flow*".
+
+The same list is behind the **Filter rows** condition editor and the
+variable names listed under a formula. A stored name that is in none of
+these shows as "(not in codebook)". In **Filter rows** the value pickers show
+value labels — `Capital region (1)` — so you pick the meaning, not the code.
+Mappings, weighting targets and answer codes are typed as JSON codes
+(`{"1": 0.45, "2": 0.55}`).
 
 ### Checks
 
 Studio checks a flow twice:
 
 - **As you edit**, on the canvas: required parameters, compatible wires,
-  cycles, nodes not fed by any source, variables not in the codebook. These
-  light the nodes and fill the **Checks** block.
+  cycles, nodes not fed by any source, variables of the wrong scale, and
+  variables that are neither in the codebook nor made by a node of the flow
+  or brought by a table it reads — "variable: \"q99\" is neither in the
+  codebook nor made by this flow or a table it reads." These light the nodes
+  and fill the **Checks** block. A variable of the wrong scale is a red error
+  here, as it is for the engine — for example 'y: "brands" is nominal; this
+  node expects ordinal/interval/ratio.'
 - **With the engine**, when you press **Check**, when you preview and when you
   Save. The banner says "**Engine check: valid.** The engine can generate and
   run this flow." — or lists each problem by node. The engine's verdict is the
-  one that counts: a variable of the wrong scale, for example, is only a
-  warning on the canvas but an error for the engine.
+  one that counts.
 
-> **Warning.** A flow **with engine errors can still be saved**, but it has no
-> generated script — and because every run uses the whole Save, that one flow
-> stops **all** runs and previews of the project ("… failed before sandbox: …
-> has no generated code (it did not pass the engine check at Save)") and the
-> survey cannot be published from that Save ("snapshot #N has validation
-> errors; fix them and save before deploying"). **Press Check before you
-> Save**, and fix what it reports.
+**Press Check before you Save**, and fix what it reports: a flow the engine
+rejects is saved, but it cannot run.
+
+### A flow with errors
+
+A flow that fails the engine check at Save is still saved — without a
+generated script — and only that flow is affected:
+
+- The Save counts as **warnings**, not **error**. Its questionnaire can be
+  published, and the project's other flows, **Run all** and previews go on
+  working.
+- The Save toast names it: "Saved #18 — flow tables has errors and cannot run
+  until fixed" (several: "Saved #18 — flows cleaning, tables have errors and
+  cannot run until fixed").
+- The flows table shows a red **errors** pill next to its name. Its tooltip
+  reads "Did not pass the engine check at the current Save, so it cannot run.
+  Open it, fix these and save:" followed by one "• *node*: *message*" line per
+  error.
+- Its **run** link and the editor's **▶ Run** are disabled ("Fix this flow's
+  errors and save first"). Starting it any other way is refused with "flow
+  'tables' did not pass the engine check at Save #18: open it, fix its errors
+  and save before running it".
+- Opening it shows a banner above the canvas: "**This flow did not pass the
+  engine check at the current Save, so it cannot run.** Fix these and save:
+  *node*: *message* · …"
+- In **Run all**, and in a schedule that fires for it, the flow fails with
+  "flow 'tables' did not pass the engine check at Save #18, so it has no
+  script to run: open it, fix its errors and save". The other flows run,
+  except those that read a table it writes (see [Run all](#run-all)).
+- **Export Python** has nothing to download for it.
+
+Fix it, press **Check**, and Save: the next Save gives it a script again.
 
 ### Saving, drafts and the edit lock
 
@@ -450,20 +567,31 @@ need not be), and the draft must pass the engine's check.
 | chart | the rendered chart |
 | stat | the statistics as a list of names and values |
 | report | the report as rendered, with a **Rendered \| Markdown** switch in the Report view |
-| file, table write, tile | "This node has no preview (its output is a file or a table write)." |
+| table write | what a run would do, without doing it: "Not written: a preview never writes project tables. A run writes 812 rows to table 'clean_responses' (if it exists: replace)." |
+| file, tile | "This node has no preview (its output is a file or a table write)." |
 
 A node that failed shows its error; nodes after it show "Not reached by the
 last preview run." When you change a node, it and everything after it turn
 **stale** ("changed since — run again") until the next preview. A failed node
 also raises the message "Preview: *ids* failed — see the node".
 
-Previews do not appear in **Run history**, do not save files and do not touch
-**Reports** or **Live**. The report preview has no provenance footer — that is
-added by real runs.
+**A preview writes nothing.** It does not appear in **Run history**, keeps no
+files, and does not touch **Reports**, **Live** or the project's tables:
 
-> **Current limitation.** A preview that reaches a **Write table** node really
-> writes the project table. Preview the node *before* the Write table node, or
-> expect the table to be replaced.
+- A **Write table** node in a preview is recorded, not executed — the table
+  other flows and the **Data** screen read stays as it is, and the node's
+  Preview pane says what a run would write.
+- What other output nodes write (an **Export file**, a **Save report**) is
+  discarded when the preview ends; only the previews shown in the inspector
+  remain.
+- **Live** keeps showing the tiles of the flow's latest completed real run;
+  a preview does not blank them.
+- The report preview has no provenance footer — that is added by real runs,
+  while **Settings → Reports → End every report with the provenance footer**
+  is on.
+
+A preview reads what a run reads: the project's data, and the files uploaded
+under **Files** that a **Data file** node names (`assets/<name>`).
 
 ### Preview limits
 
@@ -485,14 +613,23 @@ engine's check — fix the errors first."
 ### Instant counts
 
 A **Frequencies** node (with a variable) or a **Crosstab** node (with two
-different variables) connected **directly** to a **Responses** node also shows
-an **Instant** panel marked **SQL · responses**: the counts straight from the
-responses table, refreshed as you change the parameters, without a preview
-run and without using your preview allowance. It reads "counting…", then
-"live" (or "unavailable"). These counts are unweighted and cover all responses
-in the table, whatever the Responses node's **Environment** and **Only
-completed responses** say. For a multiple-answer question it notes that
-percentages are of the respondents who answered.
+different variables) connected **directly** to a **Responses** node that
+reads the `responses` table also shows an **Instant** panel: the counts
+straight from the responses table, refreshed as you change the parameters,
+without a preview run and without using your preview allowance. It reads
+"counting…", then "live" (or "unavailable").
+
+The counts are exactly the rows the Responses node keeps. The pill names its
+environment — **SQL · main**, or **SQL · main, completed** with **Only
+completed responses** ticked (tooltip "Counted by the server straight from
+the responses table — no sandbox run") — and the note under the counts says
+the same in words: "Counts what this source keeps: main's responses and any
+rows no deployment claims (imported or sample data), partial ones included."
+(", completed only" in place of ", partial ones included" when **Only
+completed responses** is ticked). The counts are always **unweighted**,
+since the node is fed by the source directly. For a multiple-answer question
+the panel notes that percentages are of the respondents who answered. A
+Responses node that reads another table shows no Instant panel.
 
 ---
 
@@ -520,6 +657,15 @@ plus allows 15 min". A run may also write at most 1 GB of files ("script
 exceeded the sandbox disk budget (1024 MB written) and was stopped"). A run
 stuck without any sign of life for 40 minutes is marked failed ("[reaper] run
 timed out and was marked failed").
+
+**Uploads a flow reads.** Before the sandbox starts, Studio copies in the
+files uploaded under [[Files|Studio-Files]] that the project's flows name by
+their path, `assets/<name>` — the **File** (and **Dictionary (JSON)**) of a
+**Data file** node. Other uploads are not copied. When one cannot be, the log says
+why before the script runs: "note: assets/panel.csv is not among this
+project's Files", "note: assets/panel.csv is listed under Files but its
+content is gone" or "note: uploads cannot be read (*reason*)"; the node that
+reads it then fails with the path it looked for.
 
 **What a run keeps.** Only files the flow writes **under `outputs/`** are kept:
 up to 50 files and 200 MB per run. When a run writes more, Studio keeps `.json`
@@ -558,27 +704,59 @@ The log lists what was kept ("outputs: outputs/tables/tables.md, …").
    except those that read a table it writes (and, in turn, the flows that read
    theirs): they would read an old table or none at all, so they are marked
    failed without running. In the log such a flow's "task tables: failed" line
-   is followed by "skipped: needs cleaning, which failed".
-3. When every flow has succeeded, Studio assembles the **combined report**. If
-   any flow failed or was skipped, the run ends as **failed** once every flow
-   has had its turn and no combined report is written; **View logs** lists
-   each flow as ok or failed, with each failed flow's error under it — one Run
-   all names every broken flow, not only the first.
-
-Flows that read each other's tables in a circle (each needs a table the other
-writes) cannot be put in order: they, and the flows that read their tables,
-run last, in alphabetical order.
+   is followed by "skipped: needs cleaning, which failed". A flow that fails
+   the engine check at Save counts as failed here ("… so it has no script to
+   run …", see [A flow with errors](#a-flow-with-errors)).
+3. **A missing report is that flow's failure.** When a flow runs but the file
+   its **Report path** names was not written, the flow is marked failed with
+   "report outputs/tables.md was not written: the flow's Report path names a
+   file none of its nodes saves — set it to the Path of its Save report
+   node". Its script did run, so the flows that read its tables still run.
+   The Save already warns about such a flow (see
+   [The combined report](#the-combined-report)).
+4. **Once every flow has had its turn**, Studio writes the **combined
+   report**. If any flow failed or was skipped, the run ends as **failed**,
+   and the combined report holds the flows that succeeded, marked incomplete
+   (see [The combined report](#the-combined-report)). **View logs** lists each
+   flow as ok or failed, with each failed flow's error under it — one Run all
+   names every broken flow, not only the first. The log's last line sums it
+   up: "failed: tables" or "failed: tables; skipped: charts".
 
 A project can have one Run all in progress at a time ("A run-all is already in
 progress — see Run history").
 
 > **Note.** Running a single flow never runs the flows it reads from; it reads
-> their tables as they are. The **Pipeline** strip and the hint in the **Run
-> flow** dialog list flows alphabetically and do not show the dependency order.
+> their tables as they are.
 
-**What Run all keeps.** Only the combined report (and its figures). Each
-flow's own report and files are **not** saved by Run all, and Live tiles are
-not updated — run a flow on its own (or schedule it) for those.
+### Flows that read each other's tables
+
+Flows that read each other's tables in a circle (each needs a table the other
+writes) cannot be put in order. Studio warns at Save: each flow of the circle
+gets the warning "Flows cleaning and tables read each other's tables, so Run
+all cannot put them in order: it runs them one after another in alphabetical
+order, and each reads what the others wrote on an earlier run." (with three
+or more: "Flows a, b and c …"), and the flows table marks them with an amber
+**cycle** pill that shows the warning. **Run all** repeats it as the second
+line of its log ("warning: flows cleaning, tables read each other's tables; no
+order satisfies them, so they run one after another in alphabetical order").
+
+Run all takes such a circle when nothing else can go, runs its flows in
+alphabetical order, and then runs the flows that read what the circle wrote —
+they still come after it. Break the circle (let one flow write a table the
+other does not read back) to get a meaningful order.
+
+### What Run all keeps
+
+- The **combined report**, with its `.html` twin and figures.
+- **Each successful flow's report** — its `.md`, the `.html` twin and the
+  figures the `.md` names — stored as soon as that flow finishes, under
+  `outputs/<flow>/` in **Files** and on **Reports**, where a single run of
+  the flow stores it. It replaces the flow's previous report there.
+- The tables its **Write table** nodes write, as in any run.
+
+Other files the flows write under `outputs/` (exports, HB files) are not kept
+by Run all, and Live tiles are not updated — run a flow on its own (or
+schedule it) for those. Open the reports from **Reports**.
 
 ### The combined report
 
@@ -587,14 +765,31 @@ one section per flow that declares a **Report path**, titled with the flow's
 title and containing that flow's report. It is written to `reports/report.md`
 with an `.html` twin in the project's report house style, and appears on
 **Reports** with a **combined** badge. The path can be changed in **Settings →
-Reports**.
+Reports**; the badge follows it.
 
 The sections follow the order in which the flows ran. A flow without a
-**Report path** is left out. A flow whose **Report path** names a file the
-flow does not write makes the whole Run all fail at once — the flows after it
-do not run, and the log shows only the missing file's path. Keep the **Report
-path** equal to the **Save report** node's **Path** (the Report view sets both
-when it creates the node). See [[Reports|Studio-Reports]].
+**Report path** is left out. Keep the **Report path** equal to the **Save
+report** node's **Path**. Studio keeps them together where it can: the Report
+view sets both when it creates the node, changing that node's **Path** in the
+inspector (or clearing it back to the default `outputs/report.md`) moves the
+**Report path** along, and deleting the node clears the **Report path** it
+set. A **Report path** you pointed elsewhere yourself is left alone. When the
+**Report path** names a file no **Save report** node of the flow saves — typed
+by hand, or saved that way before — **Check** and the Save warn: "The flow's
+Report path is “outputs/tables.md”, but no Save report step saves there: Run
+all will fail this flow. Set it to the Path of a Save report step, or clear
+it."
+
+**After a failure** the combined report is still written from the flows that
+succeeded, titled **Combined report (incomplete)**. Its first section,
+**Missing from this report**, reads "This Run all did not finish every flow,
+so this report has only the sections of the flows that did. Not in it:",
+then one line per flow — "**tables** — failed: *reason*" or "**charts** —
+skipped: needs tables, which failed" — and "Fix them and run all flows again
+for the complete report." The log says "combined report (incomplete):
+reports/report.md". It replaces the previous combined report on **Reports**.
+When none of the flows that succeeded has a report, no combined report is
+written and the previous one stays. See [[Reports|Studio-Reports]].
 
 ---
 
@@ -606,8 +801,14 @@ on a timer: **Every 30 minutes**, **Hourly**, **Daily at 02:00** (default),
 **Weekdays at 08:00**, **Weekly, Monday 09:00**, or **Custom cron…** (five
 fields, UTC). Scheduled runs use the Save that is current when they fire and
 land in **Run history** like manual ones; **Run now** fires one immediately,
-**Pause** / **Resume** stop and restart it. If a scheduled run fails, the
-organization's owners get an email. On the Free plan the heading shows
+**Pause** / **Resume** stop and restart it. A schedule never starts a run
+beside one that is still going: while the flow's previous run (for a Run all
+schedule, a Run all) is queued or running, it waits, and fires at the
+scheduler's first check (once a minute) after that run ends — late rather
+than twice at once. If a scheduled
+run fails, the organization's owners get an email. A renamed flow keeps its
+schedules; a deleted one's are paused (see
+[Rename, duplicate or delete a flow](#rename-duplicate-or-delete-a-flow)). On the Free plan the heading shows
 **Requires Plus** in place of **Schedule a run** (tooltip "Schedules are
 available from the Plus plan"); it opens **Billing** in the organization
 settings. Full details: [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]].
@@ -621,10 +822,12 @@ then on, new responses trigger a recompute of the flow about ten seconds after
 they arrive (a burst of responses gives one recompute), and its **Live tile**
 nodes refresh the **Live** screen. Each recompute is an ordinary run: it
 appears in **Run history**, replaces the flow's files and reports, and uses
-the plan's run time. Automatic recompute is a *Plus* feature; on Free you
-refresh tiles by hand with **Recompute now** on the Live screen. Live tiles
-are also refreshed by any ordinary run of the flow, with or without Live
-mode. See [[Live Monitoring|Studio-Live-Monitoring]].
+the plan's run time. A recompute that fails sends no email (a failed
+scheduled run does); it shows in **Run history**. Automatic recompute is a *Plus* feature; on Free you refresh tiles by hand
+with **Recompute now** on the Live screen. Live tiles are also refreshed by
+any ordinary run of the flow, with or without Live mode; the Live screen
+shows the tiles of the flow's latest completed run. **Run all** and previews
+do not change them. See [[Live Monitoring|Studio-Live-Monitoring]].
 
 ---
 
@@ -639,11 +842,28 @@ explained in [[Reproducibility|Studio-Reproducibility]].
 
 ---
 
+## Tables between flows
+
+A **Write table** node saves its data as a project table; another flow reads
+it with a **Project table** node (or a **Responses** node whose **Table**
+names it). The table keeps the variables of the columns it holds — labels,
+scales and value labels — so a variable the writing flow made (a recode, a
+derived variable, an index, a cluster, the quality flags) arrives in the
+reading flow labeled, can be picked in its nodes ("from table *table* · made
+by *flow*"), and passes the engine check at Save. **Run all** runs the writing
+flow first. A table last written before tables kept their variables arrives
+without those labels: run the writing flow once more to store them. The
+recipe is in
+[Cleaning and Weighting Data](Studio-Cleaning-and-Weighting#writing-the-cleaned-data-to-a-table).
+
+---
+
 ## Comments and working together
 
 Comments attach to the flow (Flow settings → **Comments**) or to a node (its
 inspector's **Comments**, with a count badge on the node). One person edits at
-a time; the others follow live. See [[Working Together|Studio-Collaboration]].
+a time; the others follow live. Comments move with a renamed flow. See
+[[Working Together|Studio-Collaboration]].
 
 ---
 
@@ -676,7 +896,8 @@ Simulated data (n 500, seed 42)
   → Rake weights (region + gender to population shares)
   → Apply weight (weight)
       ├→ Banner table (satisfaction down × region across)
-      ├→ Group means (satisfaction by region, test)  →  Bar chart (satisfaction by region)
+      ├→ Group means (satisfaction by region, test)
+      ├→ Bar chart (satisfaction, by region)
       └→ Live tile (Show: rows, "Clean respondents")
                     ↓
             Report section ("Satisfaction by region", captions, base in the note)
@@ -701,9 +922,10 @@ new wire replaces the old one), delete **Simulated data**, **Check**, Save.
 Every table in the report now recomputes from real responses. The banner and
 the **Group means** table use the applied weight (the means are weighted;
 their N and test are not — see [Group means](Studio-Node-Reference#group-means)).
-The **Bar chart** is drawn unweighted, so its bars can differ from the
-weighted means in the table: say so in its caption, or leave it out of a
-weighted report (see [Apply weight](Studio-Node-Reference#apply-weight)).
+The **Bar chart** with **By** draws the weighted means too — its axis reads
+"Weighted mean *label*" — so its bars match the table. What else is weighted,
+and what says it is not, is listed under
+[Apply weight](Studio-Node-Reference#apply-weight).
 
 ---
 

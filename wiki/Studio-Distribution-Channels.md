@@ -2,9 +2,9 @@
 
 Once an environment is live, you hand out its link — directly, as a QR code,
 embedded in your own web page, tagged with URL parameters — and decide who may
-answer: anyone with the link, holders of an access code, or only real people
-(captcha). Everything on this page lives in the chips of an environment card on
-**Distribute**. Panel providers and email invitations have their own pages:
+answer: anyone with the link, holders of an access code, only real people
+(captcha), or one response per browser. Everything on this page lives in the
+chips of an environment card on **Distribute**. Panel providers and email invitations have their own pages:
 [[Panel Providers|Studio-Panel-Providers]] and
 [[Email Invitations|Studio-Email-Invitations]].
 
@@ -24,12 +24,21 @@ https://study.siamang.org/3f9a1c07b2de/
   the easiest way to tell `pilot` from `main` in your data.
 - **Copy** next to the link on the card copies it.
 - After **Close**, the same link shows "This survey is closed — The researchers
-  have stopped collecting responses."
-- After the questionnaire's [deadline](Studio-Publishing-and-Environments#deadlines),
-  the link still opens the survey, but submitting shows that same notice.
+  have stopped collecting responses." If the environment declares a post-close
+  redirect, the page adds "Redirecting you now. Continue if you are not
+  redirected." and sends the visitor there after 3 seconds.
+- After the environment's [closing date](Studio-Publishing-and-Environments#deadlines)
+  — the questionnaire's deadline, the environment's `closes_at`, or a date set
+  in the **Closing date** panel — the survey page shows that same notice as it
+  opens, and sends the visitor on to the post-close redirect if there is one.
+  While the environment is paused, the page says "This survey is paused"
+  instead, and once a response cap is full, "Thank you for your interest". (A
+  survey built before this check existed shows these notices only at submit,
+  until you republish it.)
 - Surveys published before the switch to survey-id links may also answer on an
   older `…/<organization>/<project>/<environment>/` address; those links keep
-  working.
+  working. A survey published with a survey-id link from the start answers
+  only there.
 - A preview deployment has a different, temporary address and never collects —
   do not hand it to respondents.
 
@@ -76,19 +85,22 @@ it into an iframe:
 ```
 
 Copy the snippet from the panel — it contains the correct script address.
-Optional attributes on the `div`:
+The frame grows and shrinks with the survey: each time a page gets longer or
+shorter, the survey tells the loader its height, so your visitors never scroll
+inside a scrolling page. Optional attributes on the `div`:
 
 | Attribute | Effect |
 |---|---|
-| `data-height` | minimum height of the frame, e.g. `data-height="900px"` (default `720px`) |
+| `data-height` | minimum height of the frame, e.g. `data-height="900px"` (default `720px`): the frame never gets shorter than this |
 | `data-title` | the frame's accessible title (default `Survey`) |
 
 Several placeholders on one page each get their own frame.
 
-> **Current limitation.** Despite its label, the script embed does not yet
-> resize itself to the survey's content: it gives a frame at least 720 pixels
-> high (or your `data-height`). Choose a height that fits your longest page, or
-> link to the survey instead of embedding it.
+> **Note.** The height comes from the survey page itself, so a survey built
+> before auto-height existed keeps a frame of the minimum height (720 pixels,
+> or your `data-height`) until you
+> [republish](Studio-Publishing-and-Environments#republishing) the environment.
+> The plain iframe never resizes.
 
 Surveys may be embedded on any website.
 
@@ -115,13 +127,15 @@ carry an id from another system — without touching the questionnaire.
 
 Where you find them:
 
-- **Data** tab: inside the `meta` column of the `responses` table (searchable
-  with the grid's filter).
+- **Data** tab: inside the `meta` column of the `responses` table. Type a value
+  in the filter and press `Enter` (or **Search all rows**) to find it in the
+  whole table.
+- **Exports** from the Data tab: as columns `url_source`, `url_wave`, … (see
+  [[Data Exports|Studio-Data-Exports]]).
 - **Flows**: as ordinary columns `url_source`, `url_wave`, … of the responses
   data, ready for filtering, crosstabs and joins.
-- **Not** in the files you export from the Data tab — exports leave `meta` out
-  (see [[Data Exports|Studio-Data-Exports]]). To export them, use a flow with an
-  **Export file** node.
+- A **research bundle** keeps only the parameters one of its flows reads, and
+  never the invitation token (see [[Reproducibility|Studio-Reproducibility]]).
 
 Two parameters are used by Studio itself: `inv` carries an email invitation's
 personal token ([[Email Invitations|Studio-Email-Invitations]]), and a panel
@@ -196,13 +210,21 @@ access codes; this Save would have 150".
 
 ### What access codes are — and are not
 
-> **Current limitation.** Access codes are a light gate, not a security
-> control. The check happens in the respondent's browser; a code can be used
-> any number of times, by anyone who has it; and the code a respondent entered
-> is not stored with the response, so you cannot tell who used which code
-> ("Usage is not tracked yet: reconcile against the exported list"). Codes are
-> matched exactly, including upper/lower case. For one link per person with
-> completion tracking, use [[Email Invitations|Studio-Email-Invitations]].
+The panel says it in bold, whether codes are on or off:
+
+> **Checked in the browser only.** The codes are part of the published survey
+> page and are compared there, not by the server: they keep casual visitors
+> out, but anyone who reads the page source can find them, a code can be used
+> any number of times, and the code a respondent entered is not stored with
+> the response. For a closed list of participants, use email invitations (a
+> personal link each).
+
+> **Limitation.** Access codes are a light gate, not a security control.
+> Because the code a respondent entered is not stored, you cannot tell who
+> used which code ("Usage is not tracked yet: reconcile against the exported
+> list"). Codes are matched exactly, including upper/lower case. For one link
+> per person with completion tracking, use
+> [[Email Invitations|Studio-Email-Invitations]].
 
 ---
 
@@ -231,12 +253,69 @@ limited to **3 per hour** from one network address per survey. (Saving
 progress of an unfinished interview does not use up that allowance.)
 
 The verdict is written by Studio, never by the respondent's browser. Filter on
-it in **Data** (the **Captcha unavailable** quick filter) or in a flow (the
-`captcha` column). See [[Data Quality|Studio-Data-Quality]].
+it in **Data** (the **Captcha unavailable** quick filter), in an export or in a
+flow (the `captcha` column). See [[Data Quality|Studio-Data-Quality]].
+
+The panel ends with a note on privacy:
+
+> **Privacy.** The check loads from Cloudflare, so Cloudflare sees each
+> respondent’s IP address and browser, and Studio sends Cloudflare the
+> respondent’s IP address with the token to verify it. Name Cloudflare
+> Turnstile in your survey’s privacy notice.
 
 The captcha is a project setting, not part of the questionnaire: a
 `questionnaire.py` you download and run yourself has no captcha. **Turn off**
 works the same way as turning it on (a Save, then republish).
+
+---
+
+## One response per browser
+
+By default anyone with the link can answer as often as they like: every
+interview is a new response, and Studio cannot tell whether two came from the
+same person. The **One per browser** chip lets an environment refuse a second
+interview from a browser that has already answered. It is off by default and is
+offered on every published environment except previews.
+
+1. Open **One per browser**. The panel reads **One response per browser ·
+   off**: "Anyone with the link can answer again: every interview is a new
+   response, and Studio cannot tell whether two came from the same person.
+   Turn this on and the survey page remembers, in the respondent’s browser,
+   that the survey was answered there. Off by default."
+2. Click **Turn on**. Toast: **One response per browser — on for main**. The
+   chip now reads **One per browser · on**, and the panel: "A browser that has
+   already sent a response to main — or ended on a screen-out or a full quota —
+   sees “You have already taken part” instead of the questionnaire. It applies
+   at once, without a new Save or a rebuild, to the interviews that end from
+   now on."
+
+**Turn off** allows repeat answers again (toast **Repeat answers allowed again
+in main**). If the change fails: "Could not change repeat answers." followed by
+the reason.
+
+A browser that has already answered sees a full-page notice instead of the
+questionnaire:
+
+```
+You have already taken part
+This survey takes one response from each browser, and this browser has
+already sent one. Thank you!
+```
+
+The same notice appears if the respondent had the survey open in a second tab
+and tries to submit there. The setting belongs to the environment: a browser
+that answered `pilot` can still answer `main`. It survives a republish, a
+rebuild and **Reopen**, and every change is recorded in **Settings →
+Activity** as `deploy.one_response_per_browser`.
+
+> **Limitation.** The panel says what this is and is not: "Checked in the
+> browser only. Nothing about the browser is sent to Studio, so a private
+> window, cleared browser data or another device can answer again, and people
+> who share one browser count as one. A survey published before this option
+> existed needs one republish of main for its page to honour it." Interviews
+> that ended before you turned it on are not remembered. For one answer per
+> *person*, use [[Email Invitations|Studio-Email-Invitations]] or a panel
+> provider's own checks.
 
 ---
 
@@ -257,6 +336,7 @@ sample from a search.
 | One personal link per person, completion tracked, reminders | [[Email Invitations\|Studio-Email-Invitations]] *(Plus)* |
 | Respondents from Prolific, Cint, Dynata … | [[Panel Providers\|Studio-Panel-Providers]] |
 | Keep bots out | [Captcha](#captcha) |
+| Discourage the same browser from answering twice | [One response per browser](#one-response-per-browser) |
 | Know which channel a response came from | [URL parameters](#url-parameters) |
 
 ## See also

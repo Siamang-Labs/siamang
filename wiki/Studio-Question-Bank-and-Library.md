@@ -38,11 +38,21 @@ templates and your own blocks*.
 | **Kind** | **Block**, **Questionnaire** or **Flow** |
 | **Size** | `3 questions · 4 variables` for a block; `7 pages · 11 questions · 15 variables` for a questionnaire |
 | **Saved** | the date it was saved |
-| (actions) | **New project** (questionnaires only) and **Delete** |
+| (actions) | **New project** (questionnaires only) and **Delete** (the trash icon) |
 
 **Delete** asks "Delete “Screener”?" — "The block is removed from the
 organization's library. Projects that already used it keep their copy." —
-**Delete**. Any member of the organization can delete a library item.
+**Delete**. Owners and admins can delete any library item; a member can
+delete only the items they saved themselves. On an item another member saved,
+a member sees the trash icon disabled ("Only owners and admins can delete an
+item another member saved"), and the table adds the note "Only owners and
+admins can delete items other members saved." Saving to the library stays
+open to every member.
+
+**New project** on a saved questionnaire opens the New project dialog with it
+already chosen. It is disabled for members ("Only owners and admins can create
+projects") and at your plan's project cap ("Your plan allows 10 projects —
+upgrade to add more" on Plus).
 
 With nothing saved yet: **Nothing saved yet** — "In the Builder, select a
 question or a block and choose Library → Save to library; a questionnaire can
@@ -59,10 +69,14 @@ that matches nothing: **Nothing matches** and **Clear the search**.
 "start a project from a complete questionnaire" — one card per built-in
 template with its description, its size (`8 pages · 12 questions · 18
 variables`) and **New project**, which opens the New project dialog with the
-template already chosen. Only owners and admins can create the project — a
-member who tries gets "Could not create project. Only owners and admins can
-create projects." (see [Creating a project](Studio-Projects#creating-a-project)).
-The twelve templates and what they contain are listed in
+template already chosen. Only owners and admins can create projects: for a
+member every **New project** button is disabled ("Only owners and admins can
+create projects"), and a note under the templates says "Only owners and
+admins can create projects — ask one to set it up." At your plan's project
+cap the buttons are disabled for everyone ("Your plan allows 2 projects —
+upgrade to add more" on Free, 10 on Plus). See
+[Creating a project](Studio-Projects#creating-a-project). The twelve templates
+and what they contain are listed in
 [Built-in templates](Studio-Projects#built-in-templates).
 
 ### Question bank
@@ -92,12 +106,15 @@ terms; the source is named so a Methods section can cite it.
 | **Big Five Inventory — 10 items (BFI-10)** (Psychometrics) — "Two items per trait on a five-point agreement scale; reversed items are named so a flow can recode them before scoring." | matrix `bfi10` ("I see myself as someone who…") with rows `bfi_reserved`, `bfi_trusting`, `bfi_lazy`, `bfi_relaxed`, `bfi_artistic`, `bfi_outgoing`, `bfi_faults`, `bfi_thorough`, `bfi_nervous`, `bfi_imagination`; labels name the trait and "(reversed)" | Rammstedt & John (2007) |
 | **Trust in institutions (0–10)** (Attitudes) — "Three 0–10 trust items in the ESS format; add or drop institutions as needed." | matrix `trust` with rows `trust_parliament`, `trust_legal`, `trust_police`, columns `0`–`10` | European Social Survey core module |
 
-> **Current limitation.** Matrix answers are stored as the column's
-> **position**, 1 to *n*. In **Trust in institutions**, a respondent who
-> chooses the column "0" is stored as `1` and "10" as `11`, while the inserted
-> codebook labels the codes `0`–`10`. Subtract 1 in your flow (for example with
-> a **Recode** or **Derive** node) before you report the 0–10 scores. The
-> other bank matrices use codes 1–5 and are not affected.
+A matrix stores the code of the chosen column, so **Trust in institutions**
+stores `0` for the column "0" and `10` for "10", exactly as its codebook labels
+them; the other bank matrices store `1`–`5`. Responses collected by a survey
+built before matrices stored codes (when this block stored `1`–`11`) are read
+as `0`–`10` in the Data tab, exports and flows — see
+[Older surveys and responses](Studio-Question-Types#older-surveys-and-responses).
+Renaming a column of this block changes only its label, and removing one
+leaves the other columns' codes as they are (without "5", "6" still stores
+`6`).
 
 The NPS, CSAT and CES blocks are **Single choice** questions, not Likert
 scales, so their codes are exactly the numbers shown.
@@ -128,31 +145,32 @@ failed to load.
 ### When names are already taken
 
 Inserted questions and variables never overwrite what is already in the
-questionnaire:
+questionnaire. Ids, variables and codebook entries count as one set of names
+here: an inserted Id never equals a variable already in the questionnaire,
+and an inserted variable never equals a question's Id.
 
 - a question whose **Id and variable name are the same** — every
   single-answer question in the question bank — is renamed as one: both get
   the first name that is free as an Id *and* as a variable, adding `_2`,
   `_3`, … (`nps` → Id `nps_2`, variable `nps_2`);
-- any other **variable** whose name exists gets `_2`, `_3`, … (a matrix row
+- any other **variable** whose name is taken gets `_2`, `_3`, … (a matrix row
   `trust_police` → `trust_police_2`);
-- any other **question Id** that exists gets a number with no underscore
+- any other **question Id** that is taken gets a number with no underscore
   (the matrix `trust` → `trust1`, `trust2`, …);
 - conditions (**Show if**, **Hide if**) on the inserted questions and blocks
   that refer to the inserted block's own renamed variables are updated to
-  the new names.
+  the new names;
+- a question offering **Other (please specify)** brings its `<variable>_other`
+  entry along, under its new variable's name.
 
 What is **not** adjusted:
 
 - conditions that refer to variables *outside* the block keep the names they
   had — they work only if this questionnaire has variables of those names;
 - conditions on individual options are not renamed;
-- **Skip to** targets are page names; if the page does not exist here, the
-  Save is marked `errors` until you change or clear it;
-- the Id of an inserted matrix (or other multi-variable question) is checked
-  only against other Ids; if it equals a variable name already in the
-  questionnaire, the Save is marked `errors` — change the matrix's
-  **Advanced → Id**.
+- **Skip to** is left exactly as it was saved: it names a page, and the insert
+  never rewrites it. If that page does not exist here, the Save is marked
+  `errors` until you change or clear it.
 
 > **Note.** A question saved to your organization's library with an Id that
 > differs from its variable (a preset such as Id `q5`, variable `nps_5`)
@@ -201,12 +219,18 @@ Good to know:
 - Library items are **copies**. Inserting a block or starting a project copies
   it; later changes to the library item (or deleting it) do not reach projects
   that already used it, and edits in a project do not change the library.
-- There is no editing in place: to update an item, save a new version under a
-  new name and delete the old one.
+- There is no editing in place on the Library screen: to update an item, save
+  a new version under a new name and delete the old one. Deleting — and
+  replacing an item through the [[API|Studio-API-and-API-Keys]] — is for
+  owners and admins and for the member who saved the item; the API refuses
+  anyone else ("only owners and admins can replace a library item another
+  member saved"). Replacing needs the Plus plan, like saving.
 - Flows cannot be saved to the library from Studio's screens; the **Flow** kind
   appears only for items created through the [[API|Studio-API-and-API-Keys]].
 - Starting a project from a saved questionnaire works on every plan, including
-  after a downgrade; only saving requires Plus.
+  after a downgrade — in **New project → Template**, under **Your
+  organization's library** — for owners and admins; only saving requires
+  Plus.
 
 ## See also
 

@@ -32,7 +32,12 @@ part of any Save.
 
 > **Note.** Published surveys use the address shown on each card in
 > **Distribute** — normally `study.siamang.org/<survey-id>/` — not the pattern in
-> the **Survey host** field. Always copy links from **Distribute**. See
+> the **Survey host** field. A survey published with such a link is not
+> reachable at `<org>/<project>/<environment>` at all, so nobody who knows your
+> organization's and project's slugs can open an environment by its name. Only
+> a survey that was already served at that older path keeps answering there
+> (and shows its closed page there after **Close**). Always copy links from
+> **Distribute**. See
 > [[Publishing and Environments|Studio-Publishing-and-Environments]].
 
 If you switch tabs with an unsaved name, Studio asks **Discard unsaved
@@ -78,14 +83,26 @@ Where this metadata goes:
 Packages must come from the platform's curated allowlist; a Save declaring
 anything else fails validation."
 
-- **Python version** — **3.11** or **3.12**. The choice is recorded in the
-  project and in the research bundle's `siamang.yaml`.
+- **Python version** — **3.11** (the default) or **3.12**, with the hint "for
+  the research bundle — Studio runs flows on Python 3.11". Studio runs every
+  flow on Python 3.11 whatever you pick here: the setting is the version a
+  research bundle asks for, written to its `environment/python-version` and
+  `siamang.yaml`. The bundle's README says both ("Python: Studio ran the flows
+  on 3.11; `environment/python-version` asks for 3.12 (Settings → Runtime)"),
+  and its `PROVENANCE.md` names the version the flows actually ran on.
 - **Packages** — "pip requirement specifiers", for example `scipy>=1.11`. Type
   one and click **Add** (or press `Enter`); **Remove** takes one off. New
   projects start with `siamang[charts]`. With an empty list the card says "No
   extra packages declared."
 
 Click **Save runtime** to create a Save "Update runtime".
+
+With **3.12** chosen, every Save carries the warning `RUNTIME_PYTHON` —
+"Studio runs every flow on Python 3.11. Python 3.12 (Settings → Runtime) is
+the version a research bundle asks for (environment/python-version), not the
+one the flows run on here." — so its state is **warnings** rather than
+**valid**. Publishing and running are not affected. Pick **3.11** again to
+clear it.
 
 The allowlist: `numpy`, `pandas`, `scipy`, `statsmodels`, `scikit-learn`,
 `matplotlib`, `seaborn`, `pingouin`, `lifelines`, `openpyxl`, `pyreadstat`,
@@ -114,11 +131,19 @@ reader through the report's .html; the .md beside it carries the same content
 with no styling, for a diff or a repository."
 
 - **End every report with the provenance footer** — "the Save, the engine
-  version and the data snapshot it was built from". On by default.
+  version and the data snapshot it was built from". On by default. Turn it
+  off and save, and the reports of later runs — single flows, Run all and its
+  combined report, scheduled runs — end without the "Provenance" footer, and
+  so do the reports a research bundle of that Save produces when you run it.
+  Reports already stored keep the footer they were made with. Previews
+  (**Run to here**, **Preview all**) never print the footer. See
+  [The provenance footer](Studio-Reports#the-provenance-footer).
 - **Combined report** — "where Run all writes the merged report; Markdown,
   inside the project". Default `reports/report.md`. A path that is absolute,
   contains `..` or does not end in `.md` / `.markdown` shows "A combined report
-  must be a Markdown path inside the project, like reports/report.md."
+  must be a Markdown path inside the project, like reports/report.md." The
+  **Reports** screen marks the report at this path with the **combined**
+  badge, including a custom path.
 - **House style** — the report theme form (typeface, density, table style,
   page size, sizes, figures, captions, colors), described on
   [[Reports|Studio-Reports]].
@@ -126,8 +151,9 @@ with no styling, for a diff or a repository."
 Buttons:
 
 - **Save report settings** creates a Save "Update report settings". The house
-  style is stamped into a new flow's **Save report** node when you create one,
-  and Run all uses it for the combined report.
+  style is stamped into a **Save report** node when one is created — by the
+  report composer or from the canvas palette — and Run all uses it for the
+  combined report, which has no node of its own.
 - **Apply to every flow** — "Write this style into the Save report node of
   every flow, so each flow — and each bundle — carries it". It creates one Save
   "Apply the report house style to *N* flows". This is an ordinary edit you can
@@ -135,9 +161,16 @@ Buttons:
   "Every flow already uses the house style".
 
 A flow's report is always drawn with the style stored in its own **Save
-report** node, so a downloaded flow script looks the same outside Studio.
-Changing the house style alone does not restyle existing flows; **Apply to every
-flow** does.
+report** node — on the platform, in its downloaded script and in a research
+bundle alike. Changing the house style alone does not restyle existing flows;
+**Apply to every flow** does.
+
+> **Note.** A flow whose **Save report** node names no look of its own — for
+> example one made before the project had a house style — renders with the
+> engine's defaults. Earlier versions of Studio silently drew such a flow in
+> the house style on the platform (but not from its downloaded script), so its
+> next run may look plainer than before. Click **Apply to every flow** to
+> stamp the house style into it.
 
 ---
 
@@ -154,19 +187,47 @@ Every new project starts with two:
 | `pilot` | 50 |
 | `main` | 1,200 |
 
-Your plan's per-project response limit applies on top. When a project declares
-no environments at all, deployments use `pilot` and `main` with the plan's
-limit ("No environments declared — deployments use pilot and main with the
-plan's quota.").
+A cap counts **completed interviews** of that environment's survey:
+screen-outs and partial (unfinished) responses do not use it up. Your plan's
+per-project response limit applies on top — on Free, **1,000** completed
+interviews for the whole project, all environments together (the sample rows
+of a project made from the example template do not count). When either is
+reached, the survey stops taking new respondents; see
+[Response caps](Studio-Publishing-and-Environments#response-caps).
+
+Both counts are taken from the stored responses whenever they are checked, so
+responses collected before these rules count the same way: an environment
+that looked full only because of its screen-outs takes respondents again,
+and on Free a project whose environments together already hold 1,000
+completed interviews takes no more in any of them, even where each
+environment on its own is below 1,000. When a
+project declares no environments at all, deployments use `pilot` and `main`
+with the plan's limit ("No environments declared — deployments use pilot and
+main with the plan's quota.").
+
+An environment in `studio/settings.json` can also carry a closing date
+(`closes_at`) and a page to send respondents to once it is closed
+(`redirect_after_close`, an `http://` or `https://` address). Both are applied
+when you publish to that environment: the survey stops accepting responses at
+the earlier of this date and the questionnaire's own deadline, and a
+respondent who opens a closed survey is sent on to the redirect. A closing
+date set with the **Closing date** panel on a **Distribute** card takes
+precedence: a republish keeps it, and `closes_at` applies to that deployment
+again only after **Use the Save’s date**. The tab does not show these two
+fields. See
+[Deadlines](Studio-Publishing-and-Environments#deadlines).
 
 > **Current limitation.** The list is read-only: "Editing environments in the UI
 > arrives in phase 1; until then edit studio/settings.json via a Save." The app
-> has no editor for `studio/settings.json` itself. To add an environment or
-> change a cap today, save a new version of `studio/settings.json` through the
-> API (see [Change settings through the API](Studio-API-and-API-Keys#change-studiosettingsjson-through-the-api)),
-> or contact support. An environment name uses lowercase letters, digits and
-> `-`, starts with a letter and is unique; a cap is a whole number of at
-> least 1.
+> has no editor for `studio/settings.json` itself. To add an environment,
+> change a cap or set an environment's `closes_at` / `redirect_after_close`
+> today, save a new version of `studio/settings.json` through the API (see
+> [Change settings through the API](Studio-API-and-API-Keys#change-studiosettingsjson-through-the-api)),
+> or contact support, then publish to that environment again. An environment
+> name uses lowercase letters, digits and `-`, starts with a letter and is
+> unique; a cap is a whole number of at least 1. To move one deployment's
+> closing date without a new Save, use the **Closing date** panel on its
+> **Distribute** card instead.
 
 Publishing is covered in
 [[Publishing and Environments|Studio-Publishing-and-Environments]].
@@ -242,6 +303,20 @@ connector exports, schedules and secret changes."
   `bundle.download`, `bundle.deposit`, `deploy.create`, `deploy.stop`,
   `connector.run`, `schedule.create`, `secret.set`, `response.delete`), its
   target, who did it and when.
+- Data leaving the project is recorded too, never the data itself:
+  `data.export` for a download from **Data → Export** or the export API (the
+  table as the target; the format and the number of rows in the details), and
+  `outcomes.export` for an outcome CSV from **Distribute** (the environment as
+  the target, `<project>:<environment>`). Deleting contacts is
+  `contacts.delete` (the contact's id, or "*N* deleted" for all of them).
+- Changes on a **Distribute** card that need no Save are recorded as
+  `deploy.closing_date` (a new closing date, or "Use the Save’s date") and
+  `deploy.one_response_per_browser` (the **One per browser** switch, with
+  `enabled` true or false in the details).
+- A Save that renames or deletes a flow keeps that in its details: `renamed`
+  (old and new path) and `paused_schedules` (how many of the flow's schedules
+  it paused). A `snapshot.restore` that takes a rename back or removes a flow
+  carries the same two details.
 - A Save that adds access codes (**Generate codes** / **Generate more** or
   **Import CSV** on **Distribute**) is also recorded as
   `access_codes.generate`, with the Save number as the target and the number
@@ -287,10 +362,10 @@ response database, files and run outputs, secrets, schedules, runs, deposit
 records and comments. Published survey links show a closed page and previews
 are removed. Deposits already on Zenodo or OSF stay there.
 
-Only the **owner** or an **admin** can delete a project; a member who tries
-gets "Could not delete project. You do not have permission to do this." Before
-you do,
-download what you need — a research bundle with the responses (History → a Save
+Only the **owner** or an **admin** can delete a project. For members,
+**Delete project** is disabled (tooltip "Only owners and admins can do this")
+and the card adds "Only owners and admins can delete a project." Before you
+delete, download what you need — a research bundle with the responses (History → a Save
 → **More** → **With the responses so far**) and your data exports (see
 [[Data Exports|Studio-Data-Exports]]).
 

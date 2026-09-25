@@ -12,8 +12,8 @@ which you can also share with people outside Studio.
 
 ```
 ┌ Live   fieldwork monitor · brand-awareness                  [Open data] [Distribute] ┐
-│   1,284          1,251           212 · 16.5%        6/4/2026, 2:41 PM                 │
-│   responses      respondents     partial            last response                     │
+│   1,284          1,003           212 · 16.5%        6/4/2026, 2:41 PM                 │
+│   responses      completed       partial            last response                     │
 │ ┌ Responses per day · last 14 days ──────────────────────────────────────────────┐   │
 │ │            ▁▂▅▇▆▅▃                                                            │   │
 │ └────────────────────────────────────────────────────────────────────────────────┘   │
@@ -38,10 +38,17 @@ The strip at the top covers the **whole project** — all environments together:
 
 | Number | What it counts |
 |---|---|
-| **responses** | every response row, **including partial interviews** |
-| **respondents** | distinct respondent ids. Each finished interview gets its own id, so in practice this is close to **responses**; someone who answers twice counts twice |
+| **responses** | every response row, **including partial and screened-out interviews**. Tooltip: "Every response row: completed, screened-out and partial interviews. Each interview counts on its own — Studio cannot tell whether two responses came from the same person." |
+| **completed** | submitted interviews that did not end on a Screen-out page. Tooltip: "Submitted interviews that did not end on a screen-out page — what quota cells and response caps count. N screened out." |
 | **partial** | interviews started and not submitted, with their share of all rows |
 | **last response** | when the most recent row (partial or complete) arrived |
+
+Someone who answers twice counts twice in every number: each interview is a
+response of its own. To discourage repeat answers from one browser, see
+[One response per browser](Studio-Distribution-Channels#one-response-per-browser).
+Partial rows arrive only from surveys built with the current runtime; an
+environment published earlier adds none until you
+[republish](Studio-Publishing-and-Environments#republishing) it.
 
 **Responses per day · last 14 days** charts all rows, partials included, by
 the day they started. The chart is hidden while all fourteen days are zero.
@@ -52,14 +59,18 @@ The totals are loaded when you open the tab; open it again to update them.
 
 One card per environment that is **live** — a paused environment disappears
 from this list until you resume it. Each card shows **● Live**, the
-environment, the Save (`#17`), the publish time, the link, a **Responses** bar
-against the environment's cap, and one bar per quota cell
-(`region="north"` `240/400`). Cards refresh every 30 seconds while the tab is
-visible.
+environment, the Save (`#17`), the publish time, the link, a **Responses** row
+and one bar per quota cell (`region="north"` `240/400`). With an environment
+cap, **Responses** shows the completed interviews against it (`972/1,200`,
+with a bar and the percentage; the tooltip reads "972 completed interviews
+count toward the cap of 1,200; 1,184 responses in all, partial and screened
+out included"); without one, every response row. Cards refresh every 30
+seconds while the tab is visible.
 
-An environment whose questionnaire deadline has passed still has a **● Live**
-card here, although it no longer accepts responses; its counts simply stop
-moving. See [Deadlines](Studio-Publishing-and-Environments#deadlines).
+An environment past its closing date keeps a card here, marked **○ Closed**
+(tooltip "Closed — deadline passed `<date>`"): it no longer accepts responses,
+and its counts stop moving. To collect again, use **Extend** on Distribute.
+See [Deadlines](Studio-Publishing-and-Environments#deadlines).
 
 With nothing live: "Nothing is live — Deploy a Save to an environment and the
 fieldwork monitor shows up here — responses, quota cells and the per-day
@@ -85,7 +96,12 @@ stopped: one bar per page, most abandoned first (**`page3` … 18 left**). It is
 the funnel that tells you which page is too long or too intrusive. It counts
 partial interviews by the last page they reached — progress arrives when a
 respondent moves between pages or leaves the tab (see
-[Saving progress](Studio-Respondent-Experience#saving-progress)).
+[Saving progress](Studio-Respondent-Experience#saving-progress)). Respondents
+whom a full quota cell stopped keep the partial row their progress had already
+sent, so they usually show up on the page where they were stopped. Someone
+stopped on leaving the first page usually leaves no row, because progress is
+first sent when a respondent reaches the second page (or switches away from
+the tab).
 
 With nothing to show: "No partial responses recorded. The funnel fills in as
 respondents leave a survey without submitting — from surveys published with a
@@ -100,29 +116,41 @@ the Save in [[History|Studio-History-and-Versions]].
 
 ### What each number counts
 
-| Number | Where | Environment | Partials included? |
+| Number | Where | Environment | What it counts |
 |---|---|---|---|
-| Responses (tile, card bar) | Distribute, Live cards | one | **yes** |
-| Completion | Distribute tile | one | completed ÷ all rows |
-| Median duration, speeders | Distribute tile | one | completed only |
-| Today, 14-day sparkline | Distribute tile | one | completed only |
-| Quality screen | Distribute tile | one | completed only |
-| responses, respondents, partial, per-day chart | Live tab | **all** | **yes** |
-| Response cap | enforced at submit | one | completed only (screen-outs count) |
+| Responses (tile, card bar) | Distribute, Live cards | one | with an environment cap: completed interviews only; without one: every row, partials and screen-outs included |
+| Completion | Distribute tile | one | submitted (screen-outs included) ÷ all rows |
+| Median duration, speeders | Distribute tile | one | submitted only, screen-outs included |
+| Today, 14-day sparkline | Distribute tile | one | submitted only, screen-outs included |
+| Quality screen | Distribute tile | one | submitted only, screen-outs included |
+| responses, partial, per-day chart | Live tab | **all** | every row, partials and screen-outs included |
+| completed | Live tab | **all** | completed interviews only |
+| responses total | Distribute header | all listed | completed interviews only |
+| Response cap, quota cells | enforced: a cap as the page opens and at submit, a quota cell when the respondent leaves a page | one (Free plan cap: whole project) | completed interviews only — no partials, no screen-outs |
 
 ### Quota bars
 
 Each quota cell shows `current/target` and a bar that stops at 100 %. Counts
-advance once per completed response that falls in the cell; each environment
-counts separately, so `pilot` never fills `main`'s cells. A cell counts the
-answers of its variable whatever the question's Id is. Cells that had missed
-answers stored under a question's Id — before Studio stored every answer under
-its variable name — were recounted from the stored responses.
+advance once per **completed interview** that falls in the cell — screen-outs
+and partial interviews do not count — and a Multiple choice kept as one
+variable fills the cell of every value it holds. Each environment counts
+separately, so `pilot` never fills `main`'s cells. A cell counts the answers of
+its variable whatever the question's Id is. Erasing a response in **Data**
+lowers the cells it had filled. When this counting came in, every cell was
+recounted once from the stored responses, so cells that screen-outs had
+inflated went down.
 
-> **Current limitation.** A full quota cell does not yet stop new respondents.
-> Counts can go past the target (the bar stays at 100 %). Watch the bars; when
-> your cells are full, pause or close the environment, or lower its response
-> cap. See [[Quotas and Randomization|Studio-Quotas-and-Randomization]].
+When a cell is full, the survey stops the respondents who fall into it as
+they leave the page with that answer, on the quota-full screen; everyone else
+goes on. Someone who passed the check earlier can still complete, so a count
+can end slightly past its target (the bar stays at 100 %). This needs a survey
+built with the current runtime: an environment published earlier lets
+everyone through until you
+[republish](Studio-Publishing-and-Environments#republishing) it. See
+[When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full) and
+[How cells are counted](Studio-Quotas-and-Randomization#how-cells-are-counted),
+which also covers the cells that count only responses collected by the
+current runtime (on a matrix row, or on one choice of a wide Multiple choice).
 
 ---
 
@@ -193,9 +221,10 @@ longer for weighting or models.
   responses)"). Toasts: **Recompute queued — tiles update when the runs
   finish**, or **A recompute is already pending**. Works on **every plan** —
   it is how Free projects refresh.
-- *(Plus)* **Automatic recompute.** After a completed response arrives, the
+- *(Plus)* **Automatic recompute.** After a submitted response arrives, the
   live flows are re-run about **10 seconds** later; a burst of responses in that
-  window causes one run, not fifty. Unfinished interviews do not trigger it.
+  window causes one run, not fifty. Partial saves of unfinished interviews do
+  not trigger it.
   On Free the section header adds **· auto-recompute needs Plus**.
 
 The tiles refresh on screen every 30 seconds, and every 8 seconds for three
@@ -205,9 +234,14 @@ minutes after **Recompute now**.
 
 Tiles always show the **last completed run** of their flow. If a later run
 fails, the tiles keep the previous numbers — the **updated …** time tells you
-how old they are, and the flow's run history shows the error. A table or chart
-that could not be drawn shows a short error in the tile instead
-("chart could not be rendered: …").
+how old they are, and the flow's run history shows the error. A failed
+recompute does not email the organization's owners (the "Scheduled analysis
+failed" email is for schedules). A table or chart that could not be drawn
+shows a short error in the tile instead ("chart could not be rendered: …").
+
+Previewing a flow in the editor (**Run to here**, **Preview all**) never
+changes its tiles, and a renamed flow keeps showing its latest tiles, on the
+Live tab and on the public link.
 
 ---
 

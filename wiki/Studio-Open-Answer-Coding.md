@@ -161,17 +161,25 @@ The node has two outputs:
   first), then **Coded** and **Uncoded** rows; the statistics name the
   variable, how many people answered, the number of themes and which model
   built the codeframe, when. Wire it into a **Report section** — it is the
-  table most reports need.
+  table most reports need. It counts answers, not weights: after **Apply
+  weight** it stays unweighted and says so ("Weight: unweighted (the weight
+  'weight' is not applied)").
 
 Answers are matched by their text (normalized for spacing and case), so the
 same answer is coded the same way wherever it appears. An answer the
 codeframe has never seen — typically one collected after it was built — stays
 **uncoded**, and the table's **Uncoded** row says how many there are.
 
-> **Current limitation.** The theme and sentiment variables are created by the
-> flow, so later nodes' variable pickers do not list them yet. Use the node's
-> own **table** output in your report, and **Export file** or **Write table**
-> to take the coded variable further.
+**Run to here** on the node previews it with the codeframe of your current
+Save, as a run does.
+
+**Using the theme variable in later nodes.** Type its name in **Theme
+variable** — for example `feedback_theme`, the name the codeframe carries —
+and the nodes after it offer it in their variable lists ("made by *node*"):
+a **Crosstab** of themes by region, a **Filter rows** on one theme. Left
+empty, the node still creates the variable under the codeframe's name, but
+the pickers do not list it. The sentiment variable is not offered in the
+pickers; take it further with **Export file** or **Write table**.
 
 ---
 

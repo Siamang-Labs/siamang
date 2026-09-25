@@ -32,12 +32,26 @@ in the field?" answerable months later.
 | State | Meaning |
 |---|---|
 | **valid** | the engine found nothing to report |
-| **warnings** | saved; the engine has remarks (some may be graded as errors in the list) — still publishable |
-| **error** | saved, but a document did not validate — this Save cannot be published, previewed or deposited |
+| **warnings** | saved; the engine has remarks — still publishable. The list may include issues graded as errors: errors the engine's lint found in the questionnaire, and a flow that failed the engine check (see below) |
+| **error** | saved, but the questionnaire did not validate (or the second check below found a package outside the allowlist) — this Save cannot be published, previewed or deposited |
 | **checking** | the verdict is not in yet |
 
 The topbar Save badge shows the current Save's state as **valid**, **warnings**
 or **errors** with its number; click it to open that Save in History.
+
+Only the state **error** stops a Save from being published. Two kinds of
+errors leave a Save at **warnings** instead:
+
+- **A flow that fails the engine check.** It is saved without generated code
+  and cannot run until you fix it and save again; the questionnaire can still
+  be published, and every other flow, Run all and previews still work. Its row
+  on the **Flows** screen carries a red **errors** pill. See
+  [[Analysis Flows|Studio-Flows]].
+- **Errors the engine's lint finds in the questionnaire** (for example a
+  question page with nothing on it). They do not stop a Save or publishing,
+  but publishing from **Distribute** asks for a confirmation first ("Publish
+  #*N* with errors" → **Publish anyway**). Fix them before fieldwork; they are
+  listed in **Builder → Validation**.
 
 > **Note.** A questionnaire that fails validation is still saved (with state
 > **error**) so you never lose work. A document that is malformed — not valid
@@ -58,6 +72,10 @@ runs your flows and adds what only that sandbox can see:
 
 Because of this, a Save's state can change shortly after you save. Reload the
 page to see the updated verdict.
+
+The **Python version** under **Settings → Runtime** is checked by the Save
+itself: anything other than 3.11 adds the warning `RUNTIME_PYTHON` at once
+(see [Runtime](Studio-Project-Settings#runtime)).
 
 ---
 
@@ -87,8 +105,15 @@ Open it with:
   and re-validates them with the current engine." That is useful to re-check a
   project against a newer engine or to mark a milestone.
 - **Message** is optional, up to **240 characters**. Press `Enter` to save.
-- After saving you see **Saved #N**, **Saved #N (warnings)** or **Saved #N with
-  errors — see History**.
+- After saving you see one of these, the first that applies:
+
+  | Toast | When |
+  |---|---|
+  | "Saved #*N* with errors — see History" | the Save's state is **error** |
+  | "Saved #*N* — flow *name* has errors and cannot run until fixed" ("… — flows *a*, *b* have errors …" for several) | a flow failed the engine check |
+  | "Saved #*N* — the questionnaire has 1 error (see Builder → Validation)" ("… has *N* errors …") | the engine's lint found errors in the questionnaire |
+  | "Saved #*N* (warnings)" | other remarks |
+  | "Saved #*N*" | nothing to report |
 
 Write real messages: History becomes the project's changelog.
 
@@ -106,6 +131,7 @@ changes)". Actions that save on their own use fixed messages:
 | Settings → Runtime → **Save runtime** | "Update runtime" |
 | Settings → Reports | "Update report settings", "Apply the report house style to *N* flows" |
 | Adding a connector | "Add connector *name*" |
+| Flows → **Rename…** / **Duplicate…** / **Delete…** (or the flow editor's **More** menu) | "Rename flow *a* to *b*", "Duplicate flow *a* as *b*", "Delete flow *a*" |
 | Generating access codes | "Generate *N* access codes" |
 | Importing access codes (**Import CSV**) | "Import *N* access codes" |
 | Turning access codes off | "Turn off access codes" |
@@ -113,7 +139,8 @@ changes)". Actions that save on their own use fixed messages:
 | Panel setup | "Configure panel" |
 | Restoring | "Restore version #*N*" |
 
-History marks automatic messages with **auto**. A Save that adds access codes
+History marks the messages Studio writes for an empty **Message** with
+**auto**; the fixed messages in the table above are not marked. A Save that adds access codes
 (generated or imported) is also recorded in the project's Activity as
 `access_codes.generate`, with the number of codes added (see
 [Activity](Studio-Project-Settings#activity)).
@@ -124,6 +151,8 @@ History marks automatic messages with **auto**. A Save that adds access codes
 |---|---|---|
 | "Save failed." with a plan message such as "Plan 'free' allows up to 3 analysis flows per project; this Save would have 4 — delete one or upgrade." | the Save would add a flow or access codes beyond your plan's cap | delete a flow or upgrade; a Save that keeps or reduces the count always goes through |
 | "Save failed." naming the document and the problem (for example a flow named `survey`, or a connector with the same name as a flow: "task name '*x*' is already in use") | the document is malformed or names collide | fix the named item and save again |
+| "Save failed. questionnaire: pages/0/items/0/text: must not be empty (page 'page1', question 'q1')" | a questionnaire field that must be filled in is empty, or has the wrong shape; the message gives the field's path, then the page (by name), any block ("block 2") and the question (by id or variable). Other forms: "… needs at least 1 entry", "… 'Nope' is not a question type", "questionnaire: title: must not be empty" | fill in or correct that field (the same text appears as the **DOCUMENT** issue of **Source → Check** in the Builder) |
+| "Save failed. *Name* has this open for editing — yours will save once they are done." | a colleague holds the edit lock on a flow this Save would delete or rename | wait until they are done, or ask them; see [One editor per document](Studio-Collaboration#one-editor-per-document) |
 | The dialog turns into a conflict notice | a colleague saved since you started | see [Save conflicts](Studio-Collaboration#save-conflicts) |
 
 Flow and access-code caps per plan are in
@@ -229,7 +258,7 @@ validation
 | **More ▾** → **Pre-register** / **Pre-registered** | tag this Save as the pre-registration, or remove the tag ([below](#pre-registration)) |
 | **More ▾** → **Preview** | build a preview of this version ([below](#roll-back-the-survey-in-the-field)) |
 | **More ▾** → **Download a bundle**: **Code & documents** | the research bundle: questionnaire.py, JSON documents, flows, README |
-| **More ▾** → **With the responses so far** | the same bundle plus `data/responses.csv` (latest responses) |
+| **More ▾** → **With the responses so far** | "plus data/: the responses (latest), the tables and uploads the flows read" — the same bundle plus `data/responses.csv` (the latest responses), the project tables the flows read and the files uploaded under **Files** that they name |
 | **More ▾** → **questionnaire.py only** | just the generated questionnaire |
 | **Deploy** | publish this version to an environment |
 | **Restore** | make this version current again (not shown on the current Save) |
@@ -239,7 +268,13 @@ Save with errors ("A Save with errors cannot be deployed"). Bundles download
 as `<project-slug>-s<N>.zip`, or `<project-slug>-s<N>-data.zip` with responses.
 A bundle with responses is limited to **100,000 responses**; beyond that the
 download fails with "This table exceeds the synchronous export limit of
-100,000 rows." What is inside a bundle is described in
+100,000 rows." The responses in a bundle are laid out as a flow reads them —
+one column per variable (responses collected by an earlier version of the
+survey page included, read in today's layout), plus fieldwork columns such as
+`duration_s` — but the survey link's parameters (`url_*` columns, such as
+panel ids) are left out of every data file, the responses and the project
+tables alike, unless a flow reads them, and the invitation token (`url_inv`)
+is never included. What is inside a bundle is described in
 [[Reproducibility|Studio-Reproducibility]].
 
 ### Changes tab
@@ -300,7 +335,16 @@ What happens:
   #13 to #19 stay in History.
 - The documents become exactly those of #12. **Flows and codeframes that did not
   exist in #12 are removed** in the new Save (they remain in the older Saves,
-  so restoring one of those brings them back).
+  so restoring one of those brings them back). The schedules of a flow the
+  restore removes are **paused**, as when you delete the flow; its past runs
+  and reports stay.
+- **Renamed flows go back to their old names with what followed them.** If a
+  flow was renamed after #12, restoring #12 brings it back under its old name
+  together with its schedules (enabled or paused, as they were) and its
+  comment threads. Its runs and reports made under the newer name keep that
+  name.
+- A flow that was **deleted** after #12 comes back with the restore, but its
+  schedules stay paused: resume them on the **Flows** screen.
 - The restored documents are validated again with the **current** engine, so
   the new Save's state can differ from #12's.
 - Restoring does not publish anything. The environments keep serving what they
@@ -315,9 +359,13 @@ you are editing, deploy it:
 
 1. Open the Save and click **Deploy**.
 2. The **New deployment** dialog opens with that Save preselected under
-   **Version** ("#12 — Reworded the screener"). Only Saves without errors are
-   listed ("only valid Saves can be deployed"; a Save with warnings shows
-   "saved with warnings").
+   **Version** ("#12 — Reworded the screener"). Only Saves without the state
+   **error** are listed. The hint under the field reads "only valid Saves can
+   be deployed" for a valid Save, "saved with warnings" for a Save with
+   warnings, and "saved with 1 error — publishable after a confirmation" ("…
+   *N* errors …") for a Save whose questionnaire has lint errors — this dialog
+   deploys it without asking again, so read the Save's **Validation** tab
+   first.
 3. Choose the **Environment** and click **Deploy #12**.
 
 Your working documents stay as they are. Every deployment points at a Save,
@@ -331,8 +379,10 @@ publish's Save number). Publishing is covered in
 
 **More ▾ → Preview** builds a preview of that Save for looking at — it never
 accepts responses — and takes you to **Distribute**. You see "Building preview
-of #12…", then "Preview ready — not accepting responses". Preview builds are
-removed automatically after **7 days**.
+of #12…", then "Preview ready — not accepting responses". The preview shows a
+fixed banner "Preview — answers are not stored" at the bottom and ends on the
+survey's normal completion page. Preview builds are removed automatically
+after **7 days**.
 
 ---
 
@@ -442,7 +492,7 @@ citable. "Zenodo mints a DOI; OSF stores the file in your project."
 | **OSF project id** | OSF only — "the short code in osf.io/<id>", for example `ab3cd` |
 | "Use sandbox.zenodo.org (test DOI; needs a sandbox token)" | Zenodo only — **checked by default** |
 | "Publish immediately (mints the DOI; otherwise a draft to review on Zenodo)" | Zenodo only — unchecked by default |
-| "Include the responses collected so far (data/responses.csv)" | both; at most 100,000 responses |
+| "Include the data collected so far: data/responses.csv, and the project tables and uploaded files the flows read. Survey-link parameters (panel ids) are included only where a flow reads one; invitation tokens never are." | both; unchecked by default; at most 100,000 responses |
 
 > **Important.** The sandbox box is **on by default**, which gives a *test* DOI
 > on sandbox.zenodo.org. For a real DOI, untick it and choose a secret that

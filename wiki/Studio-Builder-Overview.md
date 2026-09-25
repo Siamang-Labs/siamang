@@ -91,32 +91,45 @@ more tabs move into **More ▾**; the tab you are on always stays visible. The
 Every question has two names, shown together as `id → variable` in its card
 header and in the Inspector header:
 
-- The **Id** (**Advanced → Id**) is the question's own handle. Scripts on the
-  **Scripts** tab target a question by its Id, comments are attached to it,
-  checks and validation messages quote it, the Codebook's **Used by** column
-  lists it, and the MaxDiff and Conjoint analysis nodes pick their question by
-  it.
+- The **Id** (**Advanced → Id**, hint "names the question in scripts and
+  comments; logic and data use the variable") is the question's own handle.
+  Scripts on the **Scripts** tab target a question by its Id, comments are
+  attached to it, checks and validation messages quote it, the Codebook's
+  **Used by** column lists it, and the MaxDiff and Conjoint analysis nodes
+  pick their question by it.
 - The **variable** (the **Variable** section) is the answer. A single-answer
   question — Single choice, Likert scale, Number, Open text, Ranking, and
   Multiple choice in the array layout — stores its answer under its
   **variable name**: that is the column in the **Data** tab and in every
   export, and the name conditions, piping, quotas and attention-check scoring
-  read. Matrix, MaxDiff and Conjoint questions write several variables, and
-  each becomes its own column in your data. (For Multiple choice in the wide
-  layout, see [Multiple choice](Studio-Question-Types#multiple-choice).)
+  read. Matrix, MaxDiff, Conjoint and wide-layout Multiple choice questions
+  write several variables, and each becomes its own column in your data (see
+  [Multiple choice](Studio-Question-Types#multiple-choice) for the wide
+  layout). A question offering **Other (please specify)** also writes the
+  typed text to a column of its own, `<variable>_other`.
 
 The two names may differ. **Presets** differ by design (Id `q5`, variable
 `nps_5`), and so does a question whose variable you rename in the Variable
 card; logic, piping and quotas on the variable work either way. What still
 matters:
 
-- **An Id must not be another question's variable name.** The survey could
-  not tell which of the two questions is meant, so such a Save is marked
-  `errors`: "Question 'q2' has the id under which question 'q1'
-  stores its answer; an id may not be another question's variable or output
-  name." Rename one of the two.
-- **Renaming a variable does not update the conditions, quotas, piping or
-  scripts that use the old name** — see
+- **An Id must be unique and must not be another question's variable name.**
+  The survey could not tell which of the two questions is meant. The Builder
+  keeps you out of this: a new question's Id is never a name the
+  questionnaire already uses (as an Id, a variable or a codebook entry), and a
+  variable you rename never takes another question's Id (a clash gets `_2`).
+  If you type such an Id yourself, the **Id** field says so at once —
+  "Another question already has this id." or "This is the variable q1 stores
+  its answer under — the engine refuses an id that is another question’s
+  variable." — and **Validation → Structure** lists it ("q2: the id is the
+  variable q1 stores its answer under, and the engine refuses that — rename
+  the id (Advanced → Id)"). Saved anyway, the Save is marked `errors`:
+  "Question 'q2' has the id under which question 'q1' stores its answer; an
+  id may not be another question's variable or output name." Rename one of
+  the two.
+- **Renaming a variable renames it everywhere the questionnaire uses it** —
+  conditions, branch rules, quotas, piping and scripts — and its codebook
+  entry moves with it; see
   [Renaming a variable](Studio-Codebook-and-Variables#renaming-a-variable).
 - **In custom JavaScript, answers are keyed by variable name**:
   `answers["nps_5"]`, and `answers.__errors__["nps_5"]` for a validation
@@ -183,10 +196,12 @@ bottom of the Presets column. The new item goes **at the end of the current
 page**, or at the end of the **selected block** when a block is selected. See
 [[Question Types|Studio-Question-Types]] for what each one is.
 
-New questions are called **New question**, are optional, and get the next free
-id `q1`, `q2`, … Their variable is named after the id (`q7`) — or, for a
-preset, after the preset (`nps_7`, `yes_no_7`); the answer is stored under the
-variable — see
+New questions are called **New question**, are optional, and get an Id
+numbered after the questions already there (`q7` for the seventh). If that
+name is taken — as another question's Id, a variable or a codebook entry —
+the number moves up until one is free (`q8`, `q9`, …). Their variable is named
+after the Id (`q7`) — or, for a preset, after the preset (`nps_7`,
+`yes_no_7`); the answer is stored under the variable — see
 [Question Id and variable name](#question-id-and-variable-name).
 
 ### The canvas bar
@@ -236,10 +251,10 @@ within its own page or block.
 
 | You see | Meaning |
 |---|---|
-| "This page has no questions yet." + **Add your first question** | an empty question page |
-| "A text-only page — add a question to make it interactive." + **Add your first question** | a page that has a Body but no questions — see [Pages and page kinds](#pages-and-page-kinds) before adding one |
+| "This page has no questions yet." + **Add your first question** | a page with neither questions nor a Body — the engine's check reports it as `EMPTY_PAGE` until you add one or the other |
+| "A text-only page — add a question to make it interactive." + **Add your first question** | a page that has a Body but no questions: respondents see its title and Body — see [Pages and page kinds](#pages-and-page-kinds) |
 | "No pages yet." + **Page** | the questionnaire has no pages |
-| **No questionnaire yet** — "This project has no survey/questionnaire.json. Create one from the empty template, or restore a Save that has one." | the project has no questionnaire document; **Create questionnaire** opens the Save dialog with a one-page questionnaire; **Draft from a brief** asks the [[AI Assistant\|Studio-AI-Assistant]] *(Plus)* |
+| **No questionnaire yet** — "This project has no survey/questionnaire.json. Create one — it starts like a blank project, with one placeholder question — or restore a Save that has one." | the project has no questionnaire document; **Create questionnaire** opens the Save dialog with the questionnaire a blank project starts with (one page, one placeholder question, your organization's house style — its custom CSS only from the Plus plan); **Draft from a brief** asks the [[AI Assistant\|Studio-AI-Assistant]] *(Plus)* |
 
 ---
 
@@ -250,44 +265,48 @@ A **page** is what the respondent sees at one time. The page Inspector's
 
 | Kind (Inspector) | What the respondent sees | Body |
 |---|---|---|
-| **Content** | the page title, the questions, **Previous** and **Next** | **not shown** — see below |
-| **Final (thank you)** | the title and the Body (without them: "Thank you for participating" / "Your responses help inform open research."), plus the response ID and submission time; the interview is submitted as **completed** | shown |
-| **Screen-out** | the title (default "Thank you") and the Body; the interview is submitted as **screened out** | shown |
+| **Content** | the page title, the Body, the questions, **Previous** and **Next** | shown **above the questions**; on a page without questions the Body is the page |
+| **Final (thank you)** | the title and the Body (without them: the **Completion screen** Title and Message of **Theme**, by default "Thank you for participating" / "Thank you for your participation!"), plus the response ID and submission time; the interview is submitted as **completed** | shown |
+| **Screen-out** | the title (without one: **Theme → Wording → Screen-out page title**, by default "Thank you") and the Body (without one: the completion Message); the interview is submitted as **screened out** | shown |
 | **Redirect** | the title and the Body, "Redirecting you now. Continue if you are not redirected.", then the browser goes to the **Redirect URL** after **Delay (s)** seconds (5 if empty) | shown |
 
-Give every Final and Screen-out page a **Title** and **Body** of your own: the
-defaults above are in English and are not among the phrases **Theme → Wording**
-can replace.
+Give every Final and Screen-out page a **Title** and **Body** of your own, or
+set the survey-wide defaults in **Theme** — **Respondent experience →
+Completion screen** (**Title**, **Message**) and **Wording** (**Screen-out
+page title** and the redirect texts). The built-in defaults are in English.
+See [[Theme and Branding|Studio-Theme-and-Branding]].
 
 Final, Screen-out and Redirect pages end the interview. Reaching one records
 the response. They are usually gated with a **Show if** condition or reached
 through a branch rule — see [[Logic and Branching|Studio-Logic-and-Branching]].
 
-**Text-only pages.** Templates and imported questionnaires can also contain
-*text-only* pages — an introduction, an information sheet, a debrief. The
-Inspector shows them as **Content** too. The respondent sees their title and
-Body (with **Previous** and **Next**) and nothing else.
+**Text-only pages.** A page with a **Body** and no questions is a *text-only*
+page — an introduction, an information sheet, a debrief. Make one with **+ Page
+→ Content page**: write the **Body** and add no questions. The Inspector shows
+it as **Content**, the canvas says "A text-only page — add a question to make
+it interactive.", and the respondent sees its title and Body with **Previous**
+and **Next**. Templates and imported questionnaires often contain them.
 
-> **Current limitation.** The **Body** of an ordinary question page is not
-> shown to respondents, even though the canvas displays it. To give
-> respondents introductory text:
->
-> - use the page **Title** for a short heading, or a question's **Hint** for a
->   sentence under the question; or
-> - use a **text-only page** before the questions. Keep the one a template
->   gave you, or add one in the **Source** tab as a page object like
->   `{"name": "intro", "kind": "content", "title": "Welcome", "body": "<p>Thank you for taking part…</p>"}`
->   placed in the `pages` list where you want it, then **Apply**.
->
-> Do not add questions to a text-only page: the respondent sees only its Body.
-> Check the result in **Preview**.
+Studio stores such a page as the engine's *content* page, and a page with
+questions as an ordinary one, and it keeps this in step as you edit: add a
+question to a text-only page and it becomes an ordinary page that shows the
+Body above the question; remove the last question from a page that has a Body
+and it is a text-only page again. You only notice this in the **Source** tab
+and in History diffs, where `"kind": "content"` appears on or disappears from
+such a page — also on the pages of an older questionnaire, the first time you
+edit anything in it after this change.
+
+> **Note — surveys published earlier.** Older survey builds showed the Body
+> of a page with questions only on the canvas, not to respondents, and showed
+> an imported *content* page that held questions without its questions. A
+> survey published before this change keeps that behavior until you
+> [republish](Studio-Publishing-and-Environments#republishing) it.
 
 **Body text is HTML**, not Markdown: `<p>…</p>`, `<b>…</b>`, `<a href="…">…</a>`
-and similar tags work; plain text works too, but line breaks collapse. In a
-text-only page's Body and in page titles, piping (`{answer:variable}`,
-`{label:variable}`) fills in an earlier answer. The Body of a Final,
-Screen-out or Redirect page is shown as written — piping is not filled in
-there.
+and similar tags work; plain text works too, but line breaks collapse. Piping
+(`{answer:variable}`, `{label:variable}`) fills in an earlier answer in the
+title and the Body of every kind of page, Final, Screen-out and Redirect pages
+included; `{label:variable}` shows the chosen option's label, not its code.
 
 ### Page properties
 
@@ -297,23 +316,36 @@ Select a page (click it in the rail, or its title in the pager) to edit it:
   page**; disabled when it is the only page);
 - **Page** section:
   - **Title** — shown as the page heading;
-  - **Name** ("used by logic (skip to, next if)") — letters, digits and `_`;
-    other characters turn into `_`, and the name cannot be emptied. Renaming a
-    page updates every branch rule, **Default next** and **Skip to** that
-    points at it. Names must be unique;
+  - **Name** ("used by logic (skip to, next if) and page scripts") — letters,
+    digits and `_`; other characters turn into `_`. The new name takes effect
+    when you leave the field or press `Enter`; `Esc` puts the current name
+    back, and so does leaving the field empty. Renaming a page updates every
+    branch rule, **Default next** and **Skip to** that points at it, and the
+    target of a custom JavaScript script that runs on the page. Names must be
+    unique: a name another page has shows "Another page already has this
+    name." and is not applied;
   - **Kind** — **Content**, **Final (thank you)**, **Screen-out**,
     **Redirect**;
-  - **Body** (all kinds except Redirect);
+  - **Body** (all kinds except Redirect) — hint "HTML, shown above the
+    questions (the whole page, on a page without any); {answer:variable} or
+    {label:variable} pipes an earlier answer" on a Content page, "HTML, shown
+    to the respondent; {answer:variable} or {label:variable} pipes an earlier
+    answer" on an end page;
   - **Redirect URL** and **Delay (s)** — whole seconds, 0 or more (Redirect
     pages);
   - **Randomize block order** (Content pages) — shuffles the page's blocks per
     respondent;
 - **Logic** section — **Show if**, **Hide if**, **Branch (next if)** ("first
-  matching rule wins"; **+ Rule** adds one, each rule is a condition → target
-  page) and **Default next** ("when no rule matches"; **— following page —**
-  by default). A rule without a condition never fires, so until you add one
-  it shows "Add a condition — an empty rule never fires."; for "otherwise",
-  use **Default next**. See [[Logic and Branching|Studio-Logic-and-Branching]];
+  matching rule wins"; each rule is a condition → target page) and **Default
+  next** ("when no rule matches"; **— following page —** by default).
+  **+ Rule** opens a draft rule with the condition editor already open (on the
+  page's last question, when the page has one), the note "Pick what the rule
+  tests — it is added once the condition is complete." and the buttons **Add
+  rule** (disabled until every comparison has a value) and **Cancel**;
+  **+ Rule** is hidden while a draft is open. A rule without a condition never fires, so a rule already
+  in the document without one shows "Add a condition — an empty rule never
+  fires."; for "otherwise", use **Default next**. See
+  [[Logic and Branching|Studio-Logic-and-Branching]];
 - **Comments** — a discussion thread on this page for your team
   ([[Working Together|Studio-Collaboration]]).
 
@@ -377,18 +409,27 @@ nothing selected it says "Select a page or a question to edit it."
 - **Options** (choice questions) or **Answer** (all others) — the
   type-specific settings; see [[Question Types|Studio-Question-Types]].
 - **Variable** (marked *codebook*) — the codebook entry this question writes:
-  name, scale, variable label, value labels, valid range; see
-  [[Codebook and Variables|Studio-Codebook-and-Variables]].
-- **Logic** — **Show if**, **Hide if** and **Skip to** ("after answering";
+  name, scale, variable label, value labels, valid range; one card per
+  variable, including each row of a Matrix. Once the questionnaire has been
+  published, the section adds: "This questionnaire has been published.
+  Renaming a variable renames its column in the data: answers already
+  collected keep the old name, answers collected after you publish again get
+  the new one." See [[Codebook and Variables|Studio-Codebook-and-Variables]].
+- **Logic** — **Show if**, **Hide if** and **Skip to** ("on Next, after any
+  answer to this question — checked before the page’s Branch rules";
   **— next page —** or a page name). Opens by itself when the question has
   logic.
 - **Advanced** (closed by default) —
-  - **Id** ("stable reference; used in logic") — letters, digits and `_`;
-    other characters turn into `_`;
+  - **Id** ("names the question in scripts and comments; logic and data use
+    the variable") — letters, digits and `_`; other characters turn into `_`.
+    An Id another question already has, or one that is another question's
+    variable, is flagged under the field (see
+    [Question Id and variable name](#question-id-and-variable-name));
   - a reminder that `{answer:variable}` and `{label:variable}` insert a
     previous answer into the question text or hint;
   - **Tags** ("comma-separated") — free labels for your own organization;
-  - **Media URL** ("image / video shown with the question") — a link ending in
+  - **Media URL** ("image / video shown with the question — a public https://
+    address; a file under Files has no public link") — a link ending in
     `.mp4` or `.webm` is shown as a video, anything else as an image.
 - **Comments** (closed by default) — the question's comment thread.
 
@@ -454,15 +495,22 @@ the Logic map, the checks — is in
 
 **Preview** in the header goes further: it builds a **preview deployment** —
 the full published survey at its own address — from the **current Save** and
-opens it in a new tab when it is ready.
+shows it in a new tab.
 
 - It needs a Save of what you see: with unsaved edits you get "Save first — a
   preview is built from a Save".
+- The new tab opens at once, titled **Preview**, and says "Building the
+  preview of Save #17… This tab shows it as soon as it is ready." It switches
+  to the survey when the build is live. If the build fails the tab closes
+  and the toast says **Preview build failed — see the card's log**.
 - Toasts: **Building preview of #17…**, then **Preview ready — not accepting
   responses**.
 - A Save marked `errors` cannot be previewed.
 - The preview deployment also appears on **Distribute**; it never collects
-  responses. See [Preview deployments](Studio-Publishing-and-Environments#preview-deployments).
+  responses. The survey shows a fixed banner at the bottom, "Preview —
+  answers are not stored", and ends on the survey's normal completion page. A
+  preview built before this banner existed shows it once you build that
+  preview again. See [Preview deployments](Studio-Publishing-and-Environments#preview-deployments).
 
 For a link colleagues can open without an account, use **Test → Share
 preview** ([[Testing Your Survey|Studio-Testing-Your-Survey]]).
@@ -483,10 +531,20 @@ saves.
   That is useful after an engine update.
 - With the message left empty, Studio writes one: `Update questionnaire`.
 - The engine validates the questionnaire and generates `questionnaire.py`.
-  The toast says **Saved #18**, **Saved #18 (warnings)** or **Saved #18 with
-  errors — see History**.
+  The toast says one of:
+
+  | Toast | Meaning |
+  |---|---|
+  | **Saved #18** | clean |
+  | **Saved #18 (warnings)** | the engine has remarks; publishing asks you to confirm |
+  | **Saved #18 — the questionnaire has 1 error (see Builder → Validation)** | the engine's check graded one or more findings as errors (for example an empty page, `EMPTY_PAGE`). They do not stop the Save or publishing — the Save is `warnings` — but publishing asks you to confirm with **Publish anyway** |
+  | **Saved #18 — flow *name* has errors and cannot run until fixed** | a flow failed the engine's check; the questionnaire is unaffected ([[Analysis Flows\|Studio-Flows]]) |
+  | **Saved #18 with errors — see History** | the questionnaire does not validate; the Save is `errors` and cannot be published |
+
 - A **malformed** document is refused outright and nothing is saved: "Save
-  failed." followed by the engine's reason. The usual causes are listed in
+  failed." followed by the reason, which names the field and where it is —
+  for example "questionnaire: pages/0/items/0/text: must not be empty (page
+  'page1', question 'q1')". The usual causes are listed in
   [What the engine refuses](Studio-Question-Types#what-the-engine-refuses).
 - A document the engine can read but that breaks a rule (a duplicate question
   id, a question Id that is another question's variable name, a skip to a page
@@ -573,9 +631,13 @@ or revert source edits before saving"). If the text is not valid JSON you see
 JSON object."
 
 Source is the escape hatch for anything the Builder does not offer yet, such as
-text-only pages, the *kind* of a missing-value code, or missing codes for a
-variable whose Codebook row cannot be opened (see
-[Missing codes](Studio-Codebook-and-Variables#missing-codes)).
+the *kind* of a missing-value code, missing codes for a variable whose
+Codebook row cannot be opened (see
+[Missing codes](Studio-Codebook-and-Variables#missing-codes)), or the codes
+an **Other** or **None of the above** option stores (`other_code`,
+`none_code` in the question's `metadata`). **Apply** goes through the same
+bookkeeping as any other edit: a page with a Body and no questions is stored
+as a text-only page, and one with questions as an ordinary page.
 
 ---
 

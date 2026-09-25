@@ -137,6 +137,20 @@ Save if a declared connector needs a higher plan than yours. See
 yet. Every export writes the **whole table**, header row first, all values as
 text.
 
+> **Note — exporting `responses`.** A connector sends the project table's
+> stored rows as they are. For `responses` that is one row per response with
+> the table's own columns (`id`, `survey_id`, `respondent_id`, `partial`,
+> `created_at`, `updated_at`), all the answers together in one `data` column
+> and the fieldwork metadata in `meta` — not one column per variable. In a
+> file, sheet or table, those two cells hold the values as Python writes them
+> (single quotes, `True`, `None`), not as JSON. The way
+> the **Data** tab, **Data → Export**, flows and research bundles read
+> responses (answers in the questionnaire's order, older responses in today's
+> layout and codes, a `<variable>_other` column for "Other" texts, columns
+> such as `duration_s` and `url_*`) is not applied to a connector run. To send
+> one column per variable, have a flow write the table with a **Write table**
+> node and export that table instead.
+
 | Target | Plan | Direction | Settings (* required) | Secret: suggested key and exact format | What each run writes | Rows |
 |---|---|---|---|---|---|---|
 | **Google Sheets** | Plus | export | **Spreadsheet ID*** ("From the sheet URL: /spreadsheets/d/<ID>/edit"); **Range** (optional, default `A1` on the first sheet) | `GSHEETS_SA` — a service-account JSON key: `{"client_email": "…@project.iam.gserviceaccount.com", "private_key": "-----BEGIN PRIVATE KEY-----\n…"}` | writes the table as plain values starting at the range | 50,000 |
@@ -376,7 +390,9 @@ Messages you may see when a run is refused or fails:
 - **Roles.** Any member can add a connector (it is a Save) and validate it.
   Only owners and admins can run one or create its secret.
 - **Whole-table, current-state exports.** Each run sends the entire table as it
-  is at that moment, all values as text.
+  is at that moment, all values as text — for `responses`, the stored rows with
+  the answers in one `data` column (see
+  [the note under All targets](#all-targets)).
 - **Row limits fail the whole run.** 100,000 rows, Google Sheets 50,000, Excel
   365 10,000. A larger table exports nothing.
 - **Public destinations only.** Endpoints, hosts and database addresses must be

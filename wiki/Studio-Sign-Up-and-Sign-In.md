@@ -63,6 +63,15 @@ sign up if it does not.
 If something goes wrong, a red line appears above the main button. The
 messages are listed under [Troubleshooting](#troubleshooting).
 
+On the **Continue with email** step, Studio moves on only when it knows the
+answer: **Welcome back** if the address has an account, **Create your
+account** if it definitely has none. If the lookup itself fails (your
+connection dropped, Studio is busy, or too many people on your network are
+signing in at once), the card stays on the email step with a line such as
+"Could not check your email. Too many sign-in attempts from your network just
+now — wait a minute and try again." Click **Continue** again when you are
+ready. A failed lookup never sends you to the sign-up form.
+
 ---
 
 ## Create an account
@@ -103,7 +112,8 @@ change it in your profile.
 A small Cloudflare Turnstile check may appear on the sign-up, sign-in and
 reset forms. The form's button stays disabled until the check has passed. If
 an attempt fails (a wrong password, say), the check resets and you solve it
-again for the next try.
+again for the next try. The check is loaded from Cloudflare (see
+[[Security and Privacy|Studio-Security-and-Privacy]]).
 
 ### Confirm your email
 
@@ -145,7 +155,12 @@ same address does not give you a new trial. Organizations you add later with
 **Create organization** start on the Free plan (see
 [Creating another organization](Studio-Organizations-and-Team#creating-another-organization)).
 
-After sign-in you arrive in your organization, on the **Projects** tab.
+After sign-in you arrive on the **Projects** tab of the organization you
+joined first. For a new account that is this workspace, unless you created
+the account with an address that had been invited to another organization:
+then the inviting organization opens first (see
+[If you create your account from the invitation](#if-you-create-your-account-from-the-invitation)).
+The workspace chip in the topbar switches between your organizations.
 
 ---
 
@@ -160,7 +175,8 @@ After sign-in you arrive in your organization, on the **Projects** tab.
 
 Click **Continue with Google** or **Continue with Microsoft** and complete the
 provider's sign-in. You return to Studio signed in. The first time, your Studio
-account and your trial workspace are created automatically. The same buttons
+account and your trial workspace are created automatically, and any pending
+invitations to your address are accepted with it. The same buttons
 appear on the **Create your account** step, so you can switch to a provider
 there too.
 
@@ -252,25 +268,44 @@ Sign in (or create an account) with the invited email to accept.
 
 - The address is shown masked (first letter only), so you can tell which
   mailbox the invitation is for.
-- **Sign in to accept** takes you to the sign-in card. After you sign in, you
-  come back to the invitation page, which now shows **Accept invitation**.
-  Click it ("Joining…") and you land in that organization's **Projects**.
+- **Sign in to accept** takes you to the sign-in card. Create your account
+  there with the invited address, as described below. You are brought back to
+  the invitation page, and from there into the organization.
+- If you come back signed in and the page shows **Accept invitation**, click
+  it ("Joining…"). With the invited address you land in that organization's
+  **Projects**; with another address the page tells you which one to use (see
+  [Invitation page messages](#invitation-page-messages)).
 - You must use the **same email address** the invitation was sent to. Upper
   and lower case don't matter.
 
 ### If you create your account from the invitation
 
-When you create a new account with the invited address, Studio adds you to
-the inviting organization as the account is created. You don't need to click
-anything else. When you are brought back to the invitation page afterwards, it
-says:
+When you create a new account with the invited address, whether on the
+**Create your account** step or with Google or Microsoft, Studio adds you to
+the inviting organization, with the role in the invitation, as your account is
+set up. You don't need to click anything else. The invitation page you are
+brought back to takes you straight into that organization, on its
+**Projects** tab.
 
-> This invitation link is invalid or has already been used.
+The inviting organization is also the one that opens first when you sign in
+later. Studio opens the organization you joined first, and of the
+organizations you joined when your account was set up, the inviting one is
+older than your new trial workspace (with invitations from several
+organizations, the oldest of them opens). Your own trial workspace is listed
+in the **workspace chip** menu; pick it there to switch.
 
-That is expected here. **You are already a member.** Click **Go to the
-console**, open the **workspace chip** in the topbar, and choose the
-organization. Your new account also has its own trial workspace, which may be
-the one that opens first.
+Good to know:
+
+- Invitations are matched by address. An account set up with an invited
+  address joins every organization that has a pending invitation for it, even
+  if you never opened the link.
+- If the inviting organization has no room left on its plan, that invitation
+  stays pending. The invitation page then shows **Accept invitation**, and
+  accepting answers "Could not accept the invitation. Plan 'free' allows up to
+  2 members; upgrade to add more." Accept it again once the owner has upgraded
+  or made room.
+- Opening the link again later, signed in with the account that used it,
+  takes you into the organization instead of showing an error.
 
 ### Invitation page messages
 
@@ -278,12 +313,14 @@ the one that opens first.
 |---|---|
 | **Loading invitation…** | the page is looking the invitation up |
 | "This invitation has expired. Ask the person who invited you to send a new one." | more than 7 days have passed |
-| "This invitation link is invalid or has already been used." | the invitation was already accepted (for example when you created your account), revoked by an admin, or replaced by a newer invitation to the same address, or the link was copied incompletely. Reloading the page many times in a minute can also show this; wait a minute and try again. |
+| "This invitation link is invalid or has already been used." | the invitation was already used, revoked by an admin, or replaced by a newer invitation to the same address, or the link was copied incompletely. If your own account used it and you are signed out, sign in and open the link again: it takes you into the organization. |
+| "Could not load the invitation. …" | the page could not look the invitation up just then. The rest of the line gives the reason, for example "The server could not be reached — check your connection and try again." or, after many reloads in a minute, "Rate limit exceeded; slow down." The link itself may be fine: click **Try again**. |
 | "This invitation was sent to j***@example.com — sign in with that account to accept it." | you are signed in with a different address. Sign out and sign in with the invited one. |
 | "Could not accept the invitation. Plan 'free' allows up to 2 members; upgrade to add more." | the organization is full on its plan. Ask its owner to upgrade, then accept again. |
 
 Error states show a button: **Go to the console** if you are signed in, **Go
-to sign in** if not.
+to sign in** if not. When the page could not load the invitation, a **Try
+again** button comes first.
 
 ---
 
@@ -291,7 +328,9 @@ to sign in** if not.
 
 | You see | Why, and what to do |
 |---|---|
-| **Create your account** although you already have an account | The address has a typo (check the sentence at the top), or Studio could not look the address up just then. From one network address, Studio answers at most 10 lookups a minute for the same email, and at most 20 a minute for all emails together. So this can happen after repeated tries, or when many people sign in at once from a shared network such as a classroom or an office. Go **← Use a different email**, wait a minute, and try again. If you signed up but never clicked the confirmation link, find that email first. |
+| **Create your account** although you already have an account | Studio shows this step only when it found no account for the address you typed, so check the address in the sentence at the top for a typo. Go **← Use a different email** and type it again. If you signed up but never clicked the confirmation link, find that email first. |
+| "Could not check your email. Too many sign-in attempts from your network just now — wait a minute and try again." | From one network address, Studio answers at most 10 lookups a minute for the same email, and at most 20 a minute for all emails together. Repeated tries, or many people signing in at once from a shared network such as a classroom or an office, can reach that. Wait a minute and click **Continue** again. |
+| "Could not check your email. The server could not be reached — check your connection and try again." | The lookup never reached Studio. Check your connection and click **Continue** again. Other reasons after "Could not check your email." (for example "The server is having trouble — try again in a moment." or "The server did not say whether this email has an account — try again.") mean the same: try again shortly. |
 | "This email already has an account — sign in instead." | You tried to sign up with an address that already has an account. Use **← Use a different email**, then sign in. |
 | "Could not sign you in. Invalid login credentials." | Wrong password, or the account was created with Google or Microsoft and has no password. Use **Forgot password?** or the provider button. |
 | "Could not sign you in. Email not confirmed." | Click the link in the confirmation email first. |

@@ -23,8 +23,8 @@ in the **Email invitations** panel.
 │ those who have not finished. · 588 of 1,000 emails left this month · 300 per day        │
 ├──────────┬───────────────────────────────┬──────────┬─────────┬─────────────┬─────────────┤
 │ Kind     │ Mailing                       │ Sent     │ Started │ Completed   │             │
-│ invite   │ Brand study: your personal link│ 409 · 2 failed │ 188 │ 141 · 34% │ [Remind] [Recipients] │
-│          │ main · 6/4/2026, 9:00 AM       │          │         │             │             │
+│ invite   │ Brand study: your personal link│ 409 · 2 failed · 1 bounced │ 188 │ 141 · 34% │ [Remind] [Recipients] │
+│          │ main · 6/4/2026, 9:00 AM       │          │         │ +60 via reminders │       │
 │ reminder │ Reminder: Brand study: …       │ 266      │ 41      │ 60 · 23%    │ [Recipients]│
 └──────────┴───────────────────────────────┴──────────┴─────────┴─────────────┴─────────────┘
 ```
@@ -39,8 +39,11 @@ send it to your contacts.", or, with no contacts, "Paste addresses (one per
 line, optionally with a name) to build the contact list."
 
 The **New mailing** button is disabled until you can send; its tooltip says
-why: "Upgrade to Plus", "Import contacts first" or "Publish an environment
-first".
+why: "Upgrade to Plus", "Import contacts first", "Publish an environment
+first" or "Mailings are paused for this organization" (see
+[Unsubscribes, bounces and pauses](#unsubscribes-bounces-and-pauses)). It also
+stays disabled while no environment is collecting — one past its
+[closing date](Studio-Publishing-and-Environments#deadlines) does not count.
 
 ---
 
@@ -90,11 +93,13 @@ A toast reports the result: **12 contacts added, 3 updated, 1 skipped**.
 
 ## Sending a mailing
 
-**New mailing** needs at least one subscribed contact and a **live**
-environment (a paused environment does not count). Studio does not check the
-questionnaire's [deadline](Studio-Publishing-and-Environments#deadlines): an
-environment past its deadline still counts as live and a mailing to it is
-sent, but the survey no longer accepts answers — move the deadline first.
+**New mailing** needs at least one subscribed contact and an environment that
+is collecting: a paused environment does not count, and neither does one past
+its [closing date](Studio-Publishing-and-Environments#deadlines). If another
+environment is collecting, the dialog's **Survey environment** list still
+includes one past its closing date, and a **Remind** can target it too — the
+email goes out, but the survey no longer accepts answers. Extend the date
+first (**Extend** on the environment's card) when you mean to collect.
 
 | Field | Default | Notes |
 |---|---|---|
@@ -120,7 +125,7 @@ Thank you!
 
 | Placeholder | Becomes |
 |---|---|
-| `{name}` | the contact's name — **empty** if you imported only an address |
+| `{name}` | the contact's name. For a contact imported without a name it is empty, and the space before it goes too: `Hi {name},` reads `Hi,` |
 | `{email}` | the contact's address |
 | `{link}` | the contact's **personal link** — **required**; without it the dialog shows "The message must contain {link}" and cannot send |
 | `{unsubscribe}` | the contact's unsubscribe link |
@@ -135,17 +140,18 @@ To stop receiving these emails: <unsubscribe link>
 
 ### Preview and send
 
-The right-hand **Preview · as `<first contact's email>`** renders the subject
-and text as your first contact will receive them (the personal token shows as
-`TOKEN`). It updates as you type. Underneath: "Goes to N subscribed contacts.
-Every email ends with an unsubscribe link."
+The right-hand **Preview · as `<email>`** renders the subject and text as the
+mailing's first recipient will receive them — for an invitation your first
+subscribed contact, for a reminder the first invitee it goes to (the personal
+token shows as `TOKEN`). It updates as you type. Underneath: "Goes to N
+subscribed contacts. Every email ends with an unsubscribe link."
 
-Click **Send to N**. The mailing is queued and sent in the background in
-batches; the toast says **Sending to N contacts…**, and the table row shows
-**queued…** and **sending…** in the **Sent** column until it is done (the
-panel refreshes every few seconds while a mailing is in flight). The number on
-the button is an estimate; contacts who bounced or complained earlier are
-skipped when the mailing is made.
+Click **Send to N**. Once the preview has rendered, N is the server's count of
+the people the mailing will reach: contacts who unsubscribed, bounced or
+marked an earlier email as spam are left out. The mailing is queued and sent in
+the background in batches; the toast says **Sending to N contacts…**, and the
+table row shows **queued…** and **sending…** in the **Sent** column until it is
+done (the panel refreshes every few seconds while a mailing is in flight).
 
 A personal link is your survey link plus `?inv=<token>`. The token comes back
 with the response, which is how Studio knows who started and who finished — no
@@ -161,9 +167,9 @@ The table has one row per mailing:
 |---|---|
 | **Kind** | `invite` or `reminder` |
 | **Mailing** | subject, environment and send time |
-| **Sent** | emails that left (including those that then started or completed), plus **· N failed** |
+| **Sent** | emails that left — including those that then started, completed, bounced or were marked as spam — plus **· N failed**, **· N bounced** and **· N marked as spam** when there are any. A mailing stopped by the safety thresholds adds "Paused — `<reason>`; the rest stays queued until support resumes it." |
 | **Started** | invitees whose interview has saved progress but who have not submitted yet |
-| **Completed** | invitees who submitted, with the completion rate (completed ÷ sent) |
+| **Completed** | invitees who submitted through this mailing's links, with the completion rate (completed ÷ sent). On an invitation row, **+N via reminders** underneath counts its invitees who completed through a reminder's link instead |
 
 **Recipients** expands the list of invitees (**Hide** collapses it): `Name
 <email> · status`, with the reason on hover for failures.
@@ -175,10 +181,15 @@ The table has one row per mailing:
 | `failed` | the email service refused it, or it still failed after the automatic retries; or it was skipped because the contact had unsubscribed, "complained earlier" or "bounced earlier" |
 | `started` | the respondent began answering and their progress reached Studio (after answering something and moving on a page, or leaving the tab) — opening the link alone does not count |
 | `completed` | the respondent submitted |
-| `bounced` | the recipient's mail server rejected the email after it was sent |
-| `complained` | the recipient marked it as spam |
+| `bounced` | the recipient's mail server rejected the email after it was sent (red dot) |
+| `marked as spam` | the recipient reported it as spam (red dot) |
 
 A mailing whose emails all failed ends as `failed`.
+
+> **Note.** `started` needs the survey page to send progress, which only a
+> survey built with the current runtime does. For an environment published
+> before that, invitations go straight from `sent` to `completed` until you
+> [republish](Studio-Publishing-and-Environments#republishing) it.
 
 ### Temporary sending errors
 
@@ -199,8 +210,9 @@ as `failed`, with the reason on hover in **Recipients**.
 
 ## Reminders
 
-On an **invite** row with more sent than completed, **Remind** (tooltip "Email
-the invitees who have not completed") opens **Send a reminder**:
+On an **invite** row, **Remind** shows while anyone the invitation reached is
+still left to remind (tooltip "Email the N invitees who have not completed —
+through the invitation or any reminder"). It opens **Send a reminder**:
 
 - **Subject** defaults to `Reminder: <original subject>`; the message to
 
@@ -213,19 +225,23 @@ the invitees who have not completed") opens **Send a reminder**:
 
   Thank you!
   ```
-- It goes to the invitees of that mailing who have **not completed** — minus
-  anyone who has since unsubscribed, bounced or complained ("Goes to the N
-  invitees of "…" who have not completed.").
+- It goes to the invitees of that invitation who have **not completed** —
+  neither through the invitation's link nor through any reminder sent for it
+  (nor through another invitation to the same environment) — minus anyone
+  who has since unsubscribed, bounced or complained: "Goes to the N invitees of
+  “…” who have not completed — through the invitation or any reminder." The
+  preview is rendered for the reminder's first recipient, and **Send to N**
+  uses the server's count.
 - Every reminder email carries a **new** personal link. A respondent counts as
   completed on the mailing whose link they used: someone who finishes through
-  the reminder's link shows as completed on the reminder row, not on the
-  invitation row.
+  the reminder's link shows as completed on the reminder row, and as **+1 via
+  reminders** on the invitation row.
 
 Reminders are sent by hand; there is no scheduling of mailings or automatic
-reminders. A reminder row has no **Remind** button. A second **Remind** from
-the invitation row again targets everyone who has not completed *through the
-invitation's link* — which includes people who have since finished through
-the first reminder. Send one reminder, not several.
+reminders. A reminder row has no **Remind** button: remind from the invitation
+row. A second or third reminder skips everyone who completed through an
+earlier reminder, so you can send several without bothering people who have
+already answered.
 
 ---
 
@@ -245,8 +261,11 @@ this project's contact list only.
 Automatic protections:
 
 - A **bounce** (other than a temporary one such as a full mailbox) suppresses
-  the address: it receives no further mailings in this project.
-- A **spam complaint** suppresses and unsubscribes the address.
+  the address: it receives no further mailings in this project. The
+  invitation shows as `bounced`, and the mailing's **Sent** column adds **· N
+  bounced**.
+- A **spam complaint** suppresses and unsubscribes the address. The invitation
+  shows as `marked as spam`, and **Sent** adds **· N marked as spam**.
 - If a mailing crosses a threshold, it is **paused** — its remaining queued
   emails stay unsent — and **all mailings of your organization** are paused:
 
@@ -256,10 +275,21 @@ Automatic protections:
   | at least 3 bounces and bounces ≥ 2 % |
 
   In practice a single complaint pauses a mailing of up to 2,000 recipients.
-  While paused, a new mailing is refused with "mailings are paused for this
-  organization (…) — contact support to resume", and the panel shows
-  invitations as unavailable, with its buttons disabled. Support lifts the pause after a conversation; suppressed addresses
-  stay suppressed.
+  While mailings are paused:
+
+  - the panel's subtitle reads "Mailings are paused for this organization —
+    `<reason>`. Contact support to resume them.", where the reason names the
+    mailing and what crossed the threshold, for example `mailing #12: spam
+    complaints: 1 of 450 delivered`;
+  - the paused mailing's row reads "Paused — `<reason>`; the rest stays queued
+    until support resumes it.";
+  - **New mailing** is disabled (tooltip "Mailings are paused for this
+    organization"), and a mailing sent any other way is refused with
+    "mailings are paused for this organization (…) — contact support to
+    resume". **Import contacts** still works.
+
+  Support lifts the pause after a conversation; suppressed addresses stay
+  suppressed.
 
 This is strict on purpose: every organization sends from a shared domain, and
 one bad list would damage deliverability for everybody.
@@ -310,10 +340,12 @@ project's activity log.
 - Import only lists you can justify: panel members, course participants,
   customers, prior study participants.
 - Import names with the addresses, or write a greeting that works without one —
-  `Hi {name},` becomes `Hi ,` for a contact without a name.
+  `Hi {name},` becomes `Hi,` for a contact without a name, which reads fine;
+  `Dear {name}, thank you` becomes `Dear, thank you`, which does not.
 - Put the study name in the subject and the sponsor in the **From name**;
   anonymous invitations get reported as spam.
-- Send the reminder **once**, three to five days later.
+- Send the first reminder three to five days later, and at most one more after
+  that — each one reaches only the people who have not completed yet.
 - Keep the message short and the link visible near the top.
 - Check the preview on a phone-sized window before sending.
 - Split a first list larger than your first-mailing limit: send the allowed

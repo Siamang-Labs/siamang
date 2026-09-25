@@ -16,7 +16,9 @@ short path; the linked pages have every option and caveat.
 - Fieldwork: [pilot then launch](#pilot-then-launch) ·
   [fix a live survey](#change-a-survey-that-is-already-in-the-field) ·
   [roll back](#roll-back-to-an-earlier-version) ·
-  [stop a full quota cell](#stop-a-quota-cell-that-is-full) ·
+  [closing date](#set-or-extend-a-closing-date) ·
+  [quota cells](#close-quota-cells-when-they-are-full) ·
+  [one response per browser](#accept-one-response-per-browser) ·
   [Prolific](#field-a-study-on-prolific) ·
   [email invitations](#invite-a-list-by-email-and-remind-non-responders) ·
   [invited participants only](#restrict-the-survey-to-invited-participants) ·
@@ -26,6 +28,8 @@ short path; the linked pages have every option and caveat.
   [weighted table](#a-weighted-table-with-significance-tests) ·
   [banner table](#a-banner-table-for-a-client-deck) ·
   [clean once, reuse](#clean-once-and-reuse-the-clean-data-in-several-flows) ·
+  [rename or delete a flow](#rename-duplicate-or-delete-a-flow) ·
+  [analyze an uploaded file](#analyze-a-file-you-uploaded) ·
   [open answers](#code-open-ended-answers) ·
   [nightly report](#a-nightly-report-on-a-schedule) ·
   [client dashboard](#a-live-dashboard-for-a-client) ·
@@ -38,9 +42,11 @@ short path; the linked pages have every option and caveat.
 > the variable", type the new name in the Inspector's **Variable** card. The
 > question's **Id** (Inspector → **Advanced**) may stay as Studio numbered it;
 > setting it to the same name makes the Logic map and validation messages,
-> which name questions by Id, easier to read. Rename variables **before** you
-> write conditions on them —
-> renaming does not update conditions that already use the old name. See
+> which name questions by Id, easier to read. Renaming a variable updates the
+> conditions, branch rules, quotas, piped text and scripts that already use
+> it, but not your flows — and once the survey is in the field, answers
+> collected after you publish again land in a column with the new name. So
+> rename **before** fieldwork and before you build flows. See
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
 ---
@@ -52,20 +58,23 @@ short path; the linked pages have every option and caveat.
 1. On the first page add **+ Question → Presets → Yes / No** — *Do you agree
    to take part?* — and turn **Required** on. Rename the variable to
    `consent`.
-2. Put the information text in the question's **Hint** (a page's Body is not
-   shown on pages with questions).
+2. Put the information text in the page's **Body**: it is shown above the
+   question, as HTML.
 3. **+ Page → Screen-out page** (Studio names it `disqualification`); write a
    polite message in its **Body**. Drag it to the end of the page list,
    **after** a Final page (add one with **+ Page → Final page** if you have
    none): pages run in order, so everyone who passes stops at the Final page
    and only the rule below reaches the Screen-out page.
-4. Select the consent page → **Logic → Branch (next if) → + Rule** →
-   **Add condition**: `consent` **=** **No (0)** → **Done**; target
-   `disqualification`.
+4. Select the consent page → **Logic → Branch (next if) → + Rule**. The
+   draft rule opens on `consent` **=**: pick **No (0)**, set the target to
+   `disqualification`, press **Add rule**.
 5. **Test → Walkthrough** — answer **No** and confirm you land on the
    screen-out page.
 
-The Pilot study template starts with this pattern.
+The templates that ask for consent (**Pilot study** among them) use a
+variant: a Screen-out page `screen_out` right after the consent page, with
+**Show if** `consent = 0`, so only people who decline ever see it. Both
+patterns work.
 → [[Logic and Branching|Studio-Logic-and-Branching]]
 
 ### An eligibility screener
@@ -74,15 +83,19 @@ Put the screening questions on their own page, then one **Branch (next if)**
 rule per exclusion, each pointing to the Screen-out page — for example
 `age` **<** `18`, then `employment` **in** `[5, 6]`. The first rule that
 matches wins; everyone else continues to the next page. Screened-out
-interviews are stored with the status `screened_out` and count toward the
-environment's response cap.
+interviews are stored with the status `screened_out` (the `__status` column
+in Data). They do not count toward the environment's response cap or any
+quota cell, and they are still recorded when the cap is full, so your
+screener numbers stay complete.
 
 ### A follow-up question for some respondents only
 
 Select the follow-up question → **Logic → Show if → Add condition** — for
 example `nps` **≤** `6`. To mention the earlier answer, pipe it into the text:
 *You gave us {answer:nps} out of 10 — what should we improve?* Use
-`{label:region}` for the label of a choice instead of its code. Check the
+`{label:region}` for the label of a choice instead of its code (a survey
+published before `{label:…}` showed labels still shows the code until you
+publish it again). Check the
 **Logic map → Questions** lens: an arc drawn upward in red means the
 condition reads an answer the respondent has not given yet.
 
@@ -91,25 +104,31 @@ condition reads an answer the respondent has not given yet.
 1. **+ Question → Presets → Attention check** (a required single choice,
    already marked, with its expected answer). Rename the variable to
    `attention`.
-2. In the Inspector, tick **Also end the survey for respondents who fail** —
-   Studio adds a branch rule from the check's page to the first Screen-out
-   page. If there is none, Studio creates one and places it directly
-   **before** the first Final (or Redirect) page, adding a Final page after
-   your last content page when there is none.
-3. **Check the page order.** Pages run in order, so a Screen-out page placed
-   in front of the Final page is where respondents who **pass** the check end
-   up too — recorded as screened out. Drag the Screen-out page **below** the
-   Final page in the page rail (the rule follows it by name), as in
-   [Screening people out](Studio-Logic-and-Branching#screening-people-out).
-   If the project started from a template with a consent page, its
-   `screen_out` page is visible only to people who decline consent, and the rule
-   points at it. Add a Screen-out page of your own below the Final page, then
-   set the rule's target to it in the page's **Logic** section.
-   Confirm with **Test → Walkthrough** twice: once answering the check
-   correctly, once failing it.
+2. In the Inspector, tick **Also end the survey for respondents who fail**
+   (the hint then reads "branches to *page*"). Studio adds a branch rule from
+   the check's page to a Screen-out page that only this rule leads to: one
+   **after the last Final or Redirect page**, so respondents who pass walk on
+   to the Final page and are recorded as completed.
+   - A Screen-out page without a Show if / Hide if already there is reused.
+   - Otherwise Studio adds one right after the last Final or Redirect page,
+     named `disqualification` ("Thank you" / "You do not qualify for this
+     study." — edit both).
+   - If nothing ends the survey for everyone, Studio first adds a Final page
+     after your last content page.
+   - A consent template's conditional `screen_out` page is left to its own
+     job; the rule gets a Screen-out page of its own behind the Final page.
+3. Confirm with **Test → Walkthrough** twice: once answering the check
+   correctly (you should end on the Final page), once failing it.
 4. To flag rather than exclude, leave that box off and use the **Response
    quality** node in your flow (**Fill from the questionnaire** picks up the
    check).
+
+A respondent who leaves an optional check empty is not screened out. In a
+questionnaire saved when Studio still put this Screen-out page in front of
+the Final page (or pointed the rule at a consent template's `screen_out`),
+the Inspector shows why the branch does not work, with **Fix the branch**:
+press it, Save, and publish again — see
+[Attention checks](Studio-Logic-and-Branching#attention-checks).
 
 → [[Data Quality|Studio-Data-Quality]]
 
@@ -124,14 +143,17 @@ condition reads an answer the respondent has not given yet.
 ### Shuffle answer options, questions or blocks
 
 - Options: select the question → **Randomize option order** (Single choice,
-  Multiple choice, Ranking). Only an **Other (please specify)** option stays
-  last; "None of the above" is shuffled with the rest.
+  Multiple choice, Ranking). "None of the above", exclusive choices such as
+  "None of these" and the Other option keep their places; the other options
+  are shuffled around them. (A survey published before this rule keeps
+  shuffling them with the rest until you publish it again.)
 - Questions inside a block: select the block → **Randomize question order**.
 - Blocks on a page: select the page → **Randomize block order**.
 - Pages: **More ▾ → Scripts → Randomize pages**. It keeps the **first** and
   the **last** page in place, and every **Final**, **Screen-out** and
   **Redirect** page wherever it sits, and shuffles the other pages among the
-  remaining positions.
+  remaining positions. A respondent who resumes a saved interview continues
+  in the order they were dealt.
 - **More ▾ → Randomization** lists every shuffle in one table.
 
 → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
@@ -140,10 +162,15 @@ condition reads an answer the respondent has not given yet.
 
 One questionnaire is one language. Write the question texts, options and page
 texts in the target language, then **More ▾ → Theme → Wording** and replace
-the runtime's fixed phrases (buttons, saving and failure messages). A few
-runtime texts are still English only — see
-[[Theme and Branding|Studio-Theme-and-Branding]]. For several languages, use
-one project per language.
+the runtime's fixed phrases: buttons and section labels ("Welcome", "Section
+{n} of {total}", "Final thoughts"), the estimated time, answering hints and
+error messages, "Other", "None of the above" and "Not applicable", saving and
+failure messages, the completion, screen-out, redirect and quota-full
+screens. A few texts are still English only — among them the notices a
+published survey shows when it is closed or paused, and labels only screen
+readers announce; see [[Theme and Branding|Studio-Theme-and-Branding]].
+Publish again after changing the wording. For several languages, use one
+project per language.
 
 ### Move a Qualtrics survey into Studio
 
@@ -169,7 +196,9 @@ one project per language.
 3. **Target** `main` → **Publish to main**. The `main` link stays the same for
    the whole study.
 
-New projects cap `pilot` at 50 and `main` at 1,200 completed responses.
+New projects cap `pilot` at 50 and `main` at 1,200 completed interviews
+(screen-outs and unfinished interviews do not count); on Free, the project as
+a whole stops at 1,000, so pilot interviews use up part of that.
 → [[Publishing and Environments|Studio-Publishing-and-Environments]]
 
 ### Change a survey that is already in the field
@@ -189,18 +218,58 @@ changes. Your working version in the Builder is untouched. To make the old
 version the one you edit, use **Restore** instead.
 → [[History and Versions|Studio-History-and-Versions]]
 
-### Stop a quota cell that is full
+### Set or extend a closing date
 
-Quota cells are counted but do not close by themselves. When
-`region=1 · 100/100` on the Distribute card:
+1. **Distribute** → the environment's card → **Closing date** chip.
+2. Pick a date and time (your browser's local time) → **Save date**. The toast
+   reads "Collecting until *date*". It applies at once — no new Save, no
+   rebuild — and the card shows **Closes *date* · set here**.
+3. When the date passes, anyone who opens the link sees "This survey is
+   closed", and the card reads **○ Closed** — "Closed — deadline passed
+   *date*".
+4. To collect again: **Extend** on the card → a later date → **Extend to
+   this date**. The card turns back to **● Live**.
 
-1. Select the page that asks `region` → add a **Branch (next if)** rule
-   `region` **=** **North (1)** → the Screen-out page (or a page telling them
-   the group is full).
-2. **Save** and **Republish #N**.
+**No closing date** removes the date; **Use the Save’s date** goes back to
+the questionnaire's deadline or the environment's `closes_at`. To stop right
+now, use **Close** instead. A survey published before the closing check ran
+as the page opens shows the notice only when someone submits, until you
+publish it again.
+→ [Deadlines](Studio-Publishing-and-Environments#deadlines)
 
-For an overall target, the environment's response cap is enforced
-automatically. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
+### Close quota cells when they are full
+
+1. **Builder → Quotas**: in "or one for every value of", pick the variable
+   (for example `region`), set the limit, press **Add N cells**. **Save**.
+2. Publish (or republish) the environment.
+
+Each cell closes once its limit of **completed** interviews has the value;
+screen-outs and unfinished interviews do not count. A later respondent who
+gives that answer is stopped when they leave the page, on the quota-full
+screen ("Thank you for your interest" / "We have already reached our target
+sample for participants like you."); for panel respondents, set **Quota
+full → return URL** on the **Panel** chip to send them back. Watch the
+fill on the Distribute card (`region=1 · 64/100`). To take more from a full
+cell, raise its limit, **Save** and **Republish #N**.
+
+A survey published before quota cells closed lets everyone through until you
+publish it again. The environment's response cap is a separate, overall
+limit. → [When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full)
+
+### Accept one response per browser
+
+**Distribute** → the environment's card → **One per browser** → **Turn on**.
+The toast reads "One response per browser — on for *env*" and the chip "One
+per browser · on". From then on, a browser that has sent a response — or
+ended on a screen-out or a full quota — sees "You have already taken part"
+instead of the questionnaire. No new Save or rebuild is needed, but a survey
+published before this option existed needs one republish.
+
+It is checked in the respondent's browser only: a private window, cleared
+browser data or another device can answer again, and people sharing one
+browser count as one. For one answer per person, use email invitations or a
+panel provider's own checks.
+→ [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
 
 ### Field a study on Prolific
 
@@ -227,7 +296,10 @@ automatically. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
    have names), your **From name** and **Reply-to**; check the preview; **Send
    to N**.
 4. Three to five days later, press **Remind** on that mailing row — it goes
-   only to invitees who have not completed.
+   only to invitees who have not completed, through the invitation or any
+   earlier reminder, so you can send a second reminder safely. The
+   **Completed** column counts completions via reminders under the total
+   ("+N via reminders").
 
 → [[Email Invitations|Studio-Email-Invitations]]
 
@@ -236,14 +308,23 @@ automatically. → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
 **Distribute** → card → **Access codes** → **Generate codes** (how many,
 prefix) — Studio saves a new version; republish the environment. **Export
 CSV** gives you the codes to hand out. The check runs in the respondent's
-browser and codes can be reused, so treat it as a light gate. For per-person
-tracking use email invitations. → [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]]
+browser, a code can be used any number of times, and the code a respondent
+entered is not stored with the response, so treat it as a light gate. For
+per-person tracking use email invitations. → [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]]
 
 ### Embed the survey in your website
 
-**Distribute** → card → **Embed** → copy the **Inline frame** snippet (or the
-script version) into your page. Both show the survey in a 720-pixel-high frame;
-set the height to suit your page.
+**Distribute** → card → **Embed**, then copy one of the two snippets into your
+page:
+
+- **Script (auto-height)** — the frame grows and shrinks with the survey, so
+  visitors never scroll inside your page; it is never shorter than 720 pixels
+  (or the `data-height` you put on its `div`). A survey published before
+  auto-height existed keeps the minimum height until you publish it again.
+- **Inline frame** — a plain frame 720 pixels high; change `height` to suit
+  your page.
+
+→ [Embedding the survey](Studio-Distribution-Channels#embedding-the-survey)
 
 ---
 
@@ -251,18 +332,19 @@ set the height to suit your page.
 
 ### Handle a data erasure request
 
-1. Find the response. The respondent's thank-you screen showed a **Response
-   ID** — that is the `id` column. Otherwise search by a panel id or an
-   invitation in the `meta` column.
-2. **Data → responses**: type the id in **Filter loaded rows…** and press
-   **Delete** on the row, confirm. Only owners and admins see the **Delete**
-   button.
-3. The grid loads the **newest** 100 rows of the table. If the response is
-   older than that, an owner or admin can delete it with the API
-   (`DELETE /projects/{id}/database/responses/{response_id}`) — see
-   [[API and API Keys|Studio-API-and-API-Keys]].
-4. The deletion is recorded in the Activity log (without its content) — keep
-   that as your evidence. Quota counts are not reduced.
+1. Find what identifies the response: the **Response ID** the respondent's
+   thank-you screen showed (the `id` column), their panel id or invitation
+   token (in the `meta` column), or an answer only they would have given.
+2. **Data → responses**: type it in **Filter loaded rows…** and press `Enter`
+   (or **Search all rows**). Studio searches **every row** of the table, not
+   only the 100 loaded, and the note reads "N rows of the whole table match
+   “…”". The search matches any value that *contains* the text, so for an id
+   such as `12` check the `id` column of the row you pick.
+3. Press **Delete** on the row and confirm. Only owners and admins see the
+   **Delete** button.
+4. The deletion is permanent. The response counts and any quota cell the
+   response filled go down with it. It is recorded in the Activity log
+   (without its content) — keep that as your evidence.
 
 → [[Responses and the Data Tab|Studio-Responses-and-Data]]
 
@@ -270,14 +352,18 @@ set the height to suit your page.
 
 - SPSS: **Data → responses → Export ▾ → SPSS** — variable labels, value labels
   and declared missing values from the current Save.
-- Stata: **Builder → Test → Simulate** downloads `.dta` for simulated data; for
-  real data use the API (`…/export?format=dta`) or a flow's **Export file**
-  node with a `.dta` path.
+- Stata: **Data → responses → Export ▾ → Stata** gives a labeled `.dta` the
+  same way (and **Builder → Test → Simulate** downloads one for simulated
+  data).
 - R: read the `.sav` with `haven::read_sav()` (labels kept), or export
   **Parquet** for a type-faithful table.
 
-Exports contain every row of the table — all environments and partial
-interviews; filter on `survey_id` and `partial`. → [[Data Exports|Studio-Data-Exports]]
+Exports contain every row of the table — all environments, partial
+interviews and screen-outs; filter on `survey_id`, `partial` and `__status`.
+The answers come in the questionnaire's order, an "Other (please specify)"
+answer as the question's Other code plus its text in `<variable>_other`, and
+the fieldwork details as columns of their own (`duration_s`, `started_at`,
+`url_<name>`, …). → [[Data Exports|Studio-Data-Exports]]
 
 ### A weighted table with significance tests
 
@@ -293,11 +379,15 @@ works too: **Rows** `satisfaction`, **Columns** `region`, **Percentages**
 effective base.
 
 > **Note.** After **Apply weight**, **Frequencies**, **Crosstab**, **Group
-> means**, **Banner table**, **Net Promoter Score**, **Regression**, **TURF**
-> and **Proportion CI** (with **Weighted** ticked) use the weight. The charts,
-> **Compare groups**, **Correlation** and several other analyses (the full
-> list is on the linked page) are still unweighted — say so in the report
-> section's note.
+> means** (not N or the test), **Banner table**, **Net Promoter Score**,
+> **Regression**, **TURF**, **MaxDiff**, **Conjoint**, **Share of
+> preference**, **Principal components**, **Scale reliability**, the **Bar
+> chart**, a **Heatmap** with **By**, and **Proportion CI** (with
+> **Weighted** ticked) use the weight.
+> **Compare groups**, **Correlation**, **Cluster (k-means)**, **Box plot**,
+> **Scatter plot**, a **Heatmap** without **By**, **Response quality** and
+> **Code open answers** stay unweighted and say so in their output
+> ("unweighted (the weight '…' is not applied)"). See the linked page.
 
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
@@ -317,9 +407,49 @@ across (**Breakdowns**), **Significance letters** on. Connect it to a
 `a_clean` first, whatever the names. If `a_clean` fails, `b_tables` is
 skipped ("skipped: needs a_clean, which failed") while unrelated flows still
 run. Running `b_tables` on its own does not run `a_clean` first — it reads
-the table as it was last written. In a downloaded bundle, flows read the
-responses file instead of the table — see
-[[Reproducibility|Studio-Reproducibility]].
+the table as it was last written. `b_tables` gets the table's variables with
+their labels and value labels, including variables `a_clean` made (a recode,
+a derived variable, an index), so its pickers offer them ("from table clean ·
+made by a_clean").
+
+**Run to here** in `a_clean` never writes `clean`: only a run does. In a
+research bundle made with data, `b_tables` reads `data/tables/clean.csv` —
+the table as it was when the bundle was made — and the **Write table** step
+does not run there; see [[Reproducibility|Studio-Reproducibility]].
+
+### Rename, duplicate or delete a flow
+
+On **Flows**, open the **⋮** at the end of the flow's row ("More for
+*flow*") — or, in the editor, **More ▾**, where the same commands read
+**Rename flow…**, **Duplicate flow…** and **Delete flow…** — and choose:
+
+- **Rename…** — type the new name (lower-case letters, digits and `_`,
+  starting with a letter) → **Rename**. A new Save stores the flow under the
+  new name; its schedules and comments move with it, and Live keeps its
+  tiles. Past runs and reports keep the old name. Save your own unsaved
+  changes to the flow first — a rename takes the flow as last saved.
+- **Duplicate…** — the name offered is `<name>_copy` → **Duplicate**. The
+  copy's title gets "(copy)"; schedules are not copied, and the copy counts
+  toward your plan's flow cap.
+- **Delete…** → **Delete flow**. A new Save removes the flow; its past runs
+  and reports stay, and its schedules are paused.
+
+Each is an ordinary Save, so **History → Restore** of an earlier Save brings
+a deleted or renamed flow back. A flow a colleague has open cannot be renamed
+or deleted until they are done.
+→ [Rename, duplicate or delete a flow](Studio-Flows#rename-duplicate-or-delete-a-flow)
+
+### Analyze a file you uploaded
+
+1. **Files → Upload** the data file (for example `panel.csv`).
+2. On its row, click the copy icon ("Copy the path a flow reads it by:
+   assets/panel.csv").
+3. In a flow, add a **Data file** source and paste `assets/panel.csv` into
+   **File**, then connect your analysis.
+
+Runs, **Run all** and **Run to here** read the upload directly; a research
+bundle made with data brings the uploads its flows name.
+→ [[Files|Studio-Files]]
 
 ### Code open-ended answers
 
@@ -334,8 +464,10 @@ answers' text is sent to the AI provider — check your consent wording first.
 *(Plus and above.)* **Flows → Schedules → Schedule a run** → **What to run**:
 your flow (or all flows) → **When**: **Daily at 02:00** (UTC) → **Schedule**.
 Each run replaces the report on **Reports**; owners get an email if a
-scheduled run fails. On Free, the button reads **Requires Plus** and opens
-the plans instead. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
+scheduled run fails. A schedule never starts a run beside one of the same
+flow (or a Run all) that is still going: it fires as soon as that run
+finishes. On Free, the button reads **Requires Plus** and opens the plans
+instead. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 ### A live dashboard for a client
 
@@ -382,7 +514,11 @@ bash environment/run.sh
 ```
 
 `run.sh` installs the pinned engine, validates the questionnaire and runs
-every flow on the bundled data; reports land in `outputs/`.
+every flow on the bundled data, in the order Studio's **Run all** runs them;
+reports land in `outputs/`. Read the bundle's `README.md` first: it says
+where the engine comes from — when `requirements.txt` installs it from
+GitHub, `run.sh` needs git and network access — and whether that engine can
+be older than the one Studio runs, in which case some results may differ.
 → [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]]
 
 ## See also

@@ -83,8 +83,9 @@ members and subscription. Owners and admins manage it here."
 
 The screen shows the organization you are in: its name and pills for its type
 (**personal** or **cooperative**), your role, its plan (for example "Pro
-plan") and, during a trial, **Pro trial · 27d left**. **Manage** opens
-**Organization settings**. **Create organization**, at the top right, opens
+plan") and, during a trial, **Pro trial · 27d left**, or during a paid period
+that ends on a date (a 12-month beta offer), **Paid period · 200d left**.
+**Manage** opens **Organization settings**. **Create organization**, at the top right, opens
 the dialog described in
 [Creating another organization](#creating-another-organization).
 
@@ -127,6 +128,10 @@ cooperative. The type is set in
   Every admin and member loses access immediately. Their past Saves and
   activity stay, attributed to them.
 
+  Pending invitations are not cancelled by the switch, and a personal
+  organization no longer lists them, so someone could still join through an
+  old link. Revoke them under **Settings → Members** before you switch.
+
 ---
 
 ## Roles
@@ -156,7 +161,8 @@ disabled or hidden, usually with a note saying who can (see
 | See and revoke pending invitations | ✓ | ✓ | — |
 | Read the organization's **Activity** log | ✓ | ✓ | — |
 | See and manage webhooks | ✓ | ✓ | — |
-| Save items to the organization **Library** *(Plus)*; delete library items | ✓ | ✓ | ✓ |
+| Save items to the organization **Library** *(Plus)*; delete the items you saved yourself | ✓ | ✓ | ✓ |
+| Delete (or, through the API, replace) a library item another member saved | ✓ | ✓ | — |
 | **Projects** | | | |
 | Create, rename and delete projects | ✓ | ✓ | — |
 | Delete an individual response | ✓ | ✓ | — |
@@ -175,11 +181,18 @@ per-project roles.
 
 ### Things members may notice
 
-- **New project** is disabled for members, on the **Projects** tab and in the
-  workspace chip menu. Hovering it says "Only owners and admins can create
-  projects". An organization with no projects yet also shows "Only owners and
-  admins can create projects — ask one to set it up." under its disabled
-  buttons.
+- **New project** is disabled for members, on the **Projects** tab, in the
+  workspace chip menu and on the **Library** tab (on each template and on
+  each questionnaire saved in the organization library). Hovering it says
+  "Only owners and admins can create projects". An organization with no
+  projects yet also shows "Only owners and admins can create projects — ask
+  one to set it up." under its disabled buttons, and the **Library** tab shows
+  the same line under its templates.
+- On the **Library** tab, the **Delete** (trash) button is disabled on items
+  another member saved. Hovering it says "Only owners and admins can delete an
+  item another member saved", and a note under the table reads "Only owners
+  and admins can delete items other members saved." Items you saved yourself
+  can still be deleted.
 - **Organization settings** has no **Activity** tab for members. Opening its
   address directly shows "Only owners and admins can see the organization's
   activity." Each project's own log stays readable under **Project settings →
@@ -196,9 +209,9 @@ per-project roles.
   secrets.").
 - On a connector, **Run export** or **Run import** is disabled. Hovering it
   says "Only owners and admins can run a connector".
-- **Delete project** under **Project settings → Danger Zone** is still shown
-  to members, but deleting fails with "Could not delete project. You do not
-  have permission to do this."
+- **Delete project** under **Project settings → Danger Zone** is disabled
+  for members. Hovering it says "Only owners and admins can do this", and the
+  Danger Zone adds "Only owners and admins can delete a project."
 
 ---
 
@@ -220,7 +233,7 @@ What happens next depends on the address:
 | The address… | Result | Notice |
 |---|---|---|
 | **already has a Studio account** | they are **added to the organization immediately**, with that role. No email is sent. The organization appears in their workspace chip the next time they open or reload Studio. | "*email* added to the team" |
-| **has no account yet** | a **pending invitation** is created and they get an email with a link, **valid for 7 days**. Opening it and signing in (or signing up) with that address makes them a member. | "Invitation sent to *email*" |
+| **has no account yet** | a **pending invitation** is created and they get an email with a link, **valid for 7 days**. An account set up with that address, by email or with Google or Microsoft, joins your organization as it is set up, whether or not they used the link, and opens in the inviting organization rather than in their own new workspace. | "Invitation sent to *email*" |
 
 What the invitee sees is described in
 [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]].
@@ -228,8 +241,14 @@ What the invitee sees is described in
 Good to know:
 
 - **Inviting someone who is already a member** changes their role to the one
-  you picked. Inviting the owner's address fails with "Could not add member.
+  you picked, and is recorded as a role change (`member.role`), not as an
+  invitation. Picking the role they already have changes and records
+  nothing. Inviting the owner's address fails with "Could not add member.
   Cannot change the owner's role."
+- **A full organization.** If your organization has no room left on its plan
+  when the invitee's account is set up, the invitation stays pending; they
+  can accept it from the link once you have upgraded or made room (see
+  [Member limits](#member-limits)).
 - **Re-inviting** an address with a pending invitation issues a new link, and
   the old one stops working.
 
@@ -248,6 +267,8 @@ Under the member table, owners and admins see:
 notice reads "Invitation to *email* revoked", and the link then shows "This
 invitation link is invalid or has already been used." An invitation past its
 expiry date stays in the list until you revoke it or re-invite the address.
+The list is loaded when you open the **Members** tab, so an invitation you
+have just sent appears once you open the tab again.
 
 ### Member limits
 
@@ -262,9 +283,10 @@ Corporate unlimited** (see [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
   members plus unexpired pending invitations must stay within the limit. If
   they don't, you see "Could not add member. Plan 'free' allows up to 2
   members; upgrade to add more." Revoke unused invitations to make room.
-- The limit is checked again when someone accepts. A full organization
-  answers "Could not accept the invitation. Plan 'free' allows up to 2 members;
-  upgrade to add more."
+- The limit is checked again when an invitee's account is set up (a full
+  organization leaves the invitation pending) and when someone accepts. A
+  full organization answers "Could not accept the invitation. Plan 'free'
+  allows up to 2 members; upgrade to add more."
 - After a downgrade, everyone who is already a member keeps access. You just
   cannot add more until the team fits the limit.
 
@@ -327,7 +349,7 @@ to owners and admins.
 | [General](#general) | name, type, slug |
 | [Branding](#branding) | the house style new surveys start from |
 | [Members](#members) | the member table, invitations, roles |
-| [Billing](#billing) | trial status, plan cards, offers, billing portal |
+| [Billing](#billing) | trial or paid-period status, plan cards, offers, billing portal |
 | [Integrations](#integrations) | AI assistant, webhooks |
 | [Activity](#activity) | the organization's audit log (owners and admins) |
 
@@ -351,6 +373,13 @@ project's questionnaire **when the project is created**, and never read
 again, so what a study looks like lives in the study and travels with its
 downloaded code. Changing it does not touch existing projects. To apply it to
 one, open the project and use **Theme → Use the organization's house style**.
+
+**Custom CSS** is a Plus feature. On a plan without it (Free, including an
+organization whose trial has ended), every copy of the house style leaves
+its custom CSS out: at project creation, and in the Builder on **Create
+questionnaire**, on **Use this draft** (a draft from a brief) and on **Use the
+organization's house style**. A study then never carries CSS that its plan
+would refuse to publish.
 
 Owners and admins edit it and click **Save changes** ("Survey style saved").
 **Discard** throws away unsaved edits. **Clear** asks "Clear the house style?"
@@ -388,10 +417,10 @@ cooperative** button for the owner.
 
 ### Billing
 
-Trial status, the plan cards, any beta offers and, once card payments are
-live, **Manage billing**. Every member can open this tab. Only the owner can
-change the plan; others see "Only the owner can change the organization's
-plan." Details are in
+The trial or paid-period status, the plan cards, any beta offers and, once
+card payments are live, **Manage billing**. Every member can open this tab.
+Only the owner can change the plan; others see "Only the owner can change the
+organization's plan." Details are in
 [The Billing tab](Studio-Plans-and-Billing#the-billing-tab).
 
 ### Integrations
@@ -433,9 +462,23 @@ endpoint. Owners and admins:
 Configured webhooks are listed with the events they receive, by their full
 names such as `deploy.live` or `run.failed` ("all events" when none were
 chosen; hovering an event pill in the form shows the same name), and
-**Delete**, which asks "Stop sending events to *URL*?". A webhook whose row
-lists `deploy`, `run` or `terminal` was added with an earlier version of this
-form and receives nothing; delete it and add it again (see
+**Delete**, which asks "Stop sending events to *URL*?". Two pills can appear
+on a row:
+
+- **unsigned**: the webhook was added without a secret. Hover: "Deliveries
+  carry no X-Siamang-Signature header. Delete the webhook and add it again
+  with a secret to sign them." A secret cannot be added afterwards.
+- **never fires: terminal** (or another name): the webhook subscribes to an
+  event nothing sends. Hover: "Nothing emits terminal: this webhook never
+  fires for it. Delete it and add it again with the events you want."
+
+Webhooks added with an earlier version of this form subscribed to `deploy`,
+`run` or `terminal`, which nothing sends. They have been converted: `deploy`
+now reads `deploy.live`, `deploy.failed`, `deploy.stopped`, `run` reads
+`run.completed`, `run.failed`, and those webhooks receive these events.
+`terminal` was removed from them, except where it was the webhook's only
+event: that webhook keeps it, still receives nothing, and shows the **never
+fires** pill. Delete it and add it again (see
 [Add a webhook](Studio-Schedules-and-Webhooks#add-a-webhook)).
 **Recent deliveries** shows each attempt with its status. Adding and deleting
 webhooks is recorded in [Activity](#activity). On Free, owners and admins see
@@ -464,9 +507,9 @@ Each row shows:
 
 | Column | Example |
 |---|---|
-| Action | `member.invite`, `snapshot.save`, `deploy.live`, `response.delete` |
+| Action | `member.invite`, `snapshot.save`, `deploy.live`, `data.export`, `response.delete` |
 | Project | `brand-awareness`, or `—` for organization-level events |
-| Target | what it acted on: an email, a Save, an environment |
+| Target | what it acted on: an email, a Save, an environment, a table |
 | Who | the person's name, or `—` for automatic events such as a lapsed trial or a payment |
 | When | the date |
 
@@ -481,9 +524,20 @@ Each row shows:
 
 **What is recorded**
 
-- **People:** invitations sent (a role change also appears as
-  `member.invite`), invitations revoked, people joining through an invitation
-  (`member.join`), removals (`member.remove`).
+- **People:** invitations sent (`member.invite`), role changes
+  (`member.role`: the target is the member's email, and the exported `meta`
+  holds the new role and the one before), invitations revoked, people
+  accepting an invitation on its page (`member.join`), removals
+  (`member.remove`). An account that joins as it is set up (see
+  [Inviting people](#inviting-people)) adds no `member.join` row; the
+  `member.invite` row of its invitation is the record.
+- **Accounts:** name changes (`profile.update`: the target is the new name,
+  and the old one is in the exported `meta`), recorded in every organization
+  the person belongs to. On an installation that signs people in itself
+  rather than through the managed sign-in service, password sign-ins
+  (`auth.login`) and password changes (`auth.password_change`) are recorded
+  the same way, with the person's email as the target. A failed sign-in is
+  never recorded.
 - **The organization:** renames (`org.rename`: the target is the new name, and
   the old one is in the exported `meta`), type changes, house style changes,
   webhooks added or deleted (`webhook.create`, `webhook.delete`: the target is
@@ -497,25 +551,35 @@ Each row shows:
 - **Plan and billing:** plan changes, checkouts started and completed,
   cancellations, failed payments, a subscription found to have already ended
   at the payment provider when the owner buys again
-  (`billing.subscription.stale`), and a trial lapsing to Free
-  (`org.plan_lapsed`).
+  (`billing.subscription.stale`), and a trial or a paid period lapsing to
+  Free (`org.plan_lapsed`).
 - **Projects:** created, renamed, deleted.
 - **Saves:** new Saves, restores, tags, and a Save that adds access codes
   (`access_codes.generate`: the target is the Save, the exported `meta` says
   how many codes were added, and the codes themselves are never recorded).
 - **Publishing:** a deployment going live, preview builds, failed builds,
-  pause, resume, close (`deploy.stop`), reopen, history reset.
+  pause, resume, close (`deploy.stop`), reopen, history reset, a closing date
+  set, removed or handed back to the Save on the Distribute card
+  (`deploy.closing_date`), and **One response per browser** switched on or off
+  (`deploy.one_response_per_browser`: the target is `<project>:<environment>`).
 - **Analysis:** runs completed or failed, run history reset, schedules created,
   changed or triggered, connector runs.
-- **Data and sharing:** response deletions, bundle downloads and deposits,
-  Live share links created and revoked, notable console commands.
-- **Email invitations:** contact imports, mailings created or paused,
-  bounces and spam complaints.
+- **Data and sharing:** response deletions, downloads from **Data → Export**
+  (`data.export`: the target is the table, and the exported `meta` holds the
+  format and the number of rows), panel outcome CSVs from Distribute
+  (`outcomes.export`: the target is `<project>:<environment>`, and the `meta`
+  holds the outcome and the id parameter), bundle downloads and deposits,
+  Live share links created and revoked, notable console commands. The data
+  itself is never recorded.
+- **Email invitations:** contact imports, contact deletions (`contacts.delete`:
+  the target is the contact's id, or `N deleted` when all of a project's
+  contacts go, never the address), mailings created or paused, bounces and
+  spam complaints.
 - **Secrets and library:** project secrets set or deleted; organization
   library items created, changed or deleted.
 
-**Not recorded:** sign-ins, profile and password changes, and creating an
-organization.
+**Not recorded:** sign-ins and password changes that go through the managed
+sign-in service (as on `studio.siamang.org`), and creating an organization.
 
 Use the log to answer "who switched the live version on Tuesday?", and to show
 when a contact list was imported with consent if a mailing is disputed.

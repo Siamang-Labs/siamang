@@ -21,9 +21,14 @@ study that collects personal or sensitive data.
 **12-character survey id**, for example `https://study.siamang.org/3f9a1c07b2de/`.
 The id is unguessable, and the link does not reveal your organization or
 project name. It stays the same when you republish to the same environment.
-Surveys first published in the earlier address form
-(`study.siamang.org/<organization>/<project>/<environment>/`) may still answer
-on it.
+An environment you publish for the first time now is reachable only there:
+nobody can open it (a pilot, an invitation-only wave) by guessing your
+organization's and project's names. An environment that was already published
+before this change may still also answer at the earlier, guessable address
+form (`study.siamang.org/<organization>/<project>/<environment>/`), whichever
+link you handed out, and keeps doing so when you republish or close it,
+because respondents may hold such links. Studio does not remove those
+addresses.
 
 **Isolation.** Every project has its **own database schema**. Every
 organization's records are separated by row-level security, and every request
@@ -40,13 +45,14 @@ with a role that can see only their own project.
   names exist.
 - **Roles** decide what a member can do: see
   [Roles](Studio-Organizations-and-Team#roles). For example, only owners and
-  admins can delete a response, manage webhooks or read the organization-wide
-  Activity log; members don't see those controls at all.
+  admins can delete a response or a project, delete library items other
+  members saved, manage webhooks or read the organization-wide Activity log;
+  members find those controls hidden or disabled.
 - **Public by design, and only when you create them:**
 
 | Public surface | What it shows | Lifetime |
 |---|---|---|
-| A published survey link, or the survey embedded in your site | the questionnaire, for respondents to answer | until you close or unpublish it. If the questionnaire sets a deadline, the survey stops accepting answers once it passes. |
+| A published survey link, or the survey embedded in your site | the questionnaire, for respondents to answer | until you close or unpublish it, or until its closing date passes (the questionnaire's deadline, the environment's closing date, or a date set under **Distribute → Closing date**). After that the link shows "This survey is closed" as it opens (a survey published before this update shows it only when the respondent submits, until you republish it), and no response is accepted. |
 | A **share preview** link | the respondent view of a draft, for reviewers. Answers given there are not stored. | 24 hours. Each person can create up to 50 per day. |
 | A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
 | The **unsubscribe** link in invitation emails | a page where the recipient opts out of further mailings | sent with every invitation email |
@@ -58,14 +64,47 @@ Nothing else is public.
 
 ## Respondent data
 
-- **What a response holds:** the answers plus fieldwork metadata: timings,
-  the last page reached, and any URL parameters that were in the link.
+- **What a response holds:** the answers (including anything a custom script
+  writes) plus fieldwork metadata: when the interview started and how long it
+  took, the last page reached, the captcha verdict when the captcha is on,
+  three behavioral counts (tab switches, seconds the page was hidden, pastes),
+  and any URL parameters that were in the link, such as a panel's respondent
+  id or, for an email invitation, the personal invitation token (`url_inv`).
+- **What a download carries.** **Data → Export** turns that metadata into
+  columns: `duration_s`, `started_at`, `captcha`, `tab_switches`,
+  `hidden_seconds`, `pastes`, and one `url_<name>` column per link parameter,
+  panel ids and the invitation token included (the last page reached stays
+  out). Exports downloaded before this update had none of these columns. A
+  research bundle or a deposit **with data** keeps the timings, the captcha
+  verdict and the counts, but only the link parameters a flow reads, and
+  never the invitation token. See [[Data Exports|Studio-Data-Exports]] and
+  [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]].
 - **IP addresses are not stored with responses.** They are used briefly to
   limit how fast one address can submit. On surveys where you switch on the
-  **captcha**, the respondent's IP address is sent to Cloudflare together with
-  the captcha token so Cloudflare can verify it.
-- **The respondent id** is a random identifier that lets an interview resume
-  and lets you deduplicate. It is not an identity.
+  **captcha**, the check loads from Cloudflare, so Cloudflare sees each
+  respondent's IP address and browser, and Studio sends Cloudflare the
+  respondent's IP address with the captcha token so Cloudflare can verify it.
+  The **Captcha** panel on the Distribute card says so and asks you to name
+  Cloudflare Turnstile in your survey's privacy notice (see
+  [Captcha](Studio-Distribution-Channels#captcha)).
+- **The respondent id** is a random identifier the survey page keeps in the
+  respondent's browser for one interview, so that its saved progress and the
+  finished response land on the same row. It is dropped when the interview
+  ends, and the next interview in that browser gets a new one. It is not an
+  identity: Studio cannot tell whether two responses came from the same
+  person.
+- **One response per browser**, an option on the Distribute card (off by
+  default), makes the survey page remember in the respondent's own browser
+  that the survey was answered there. Nothing about the browser is sent to
+  Studio, so a private window, cleared browser data or another device can
+  answer again. A survey published before this option existed needs one
+  republish of its environment for its page to honor it.
+- **In the respondent's browser**, the survey keeps the answers given so far
+  for up to 24 hours, so that a reload can resume the interview, and removes
+  them once the interview is submitted or ends on a full quota. Until then,
+  someone else opening the same link in that browser is offered to resume.
+  A survey published before this update may keep them after the interview
+  ends; republish it to get this behavior.
 - **Personal data you ask for** (a name, an email, a phone number) is personal
   data you collected. Treat it accordingly, and say so on your consent page.
 - **Email invitations** store the contact list you imported, each person's
@@ -75,13 +114,22 @@ Nothing else is public.
 
 ### Erasure requests
 
-1. Find the response in **Data**: by `respondent_id`, by invitation address,
-   or by a panel id in the URL parameters.
+1. Find the response in **Data**. Type what identifies it in the filter (its
+   response id, the `respondent_id`, a panel id from the survey link, or an
+   answer such as an email address the person typed) and press `Enter` or
+   click **Search all rows**. The search covers the whole table on the
+   server, not only the newest rows loaded in the grid.
 2. Delete it. Only owners and admins can; members don't see the **Delete**
    button on response rows.
 3. The row is removed from the database, and the deletion is recorded in the
    Activity log (`response.delete`) **without** its content, which gives you
-   the evidence.
+   the evidence. The response counts, and any quota cell the response filled,
+   go down with it.
+
+If the person was also on an email-invitation contact list, delete the
+contact too. There is no screen for that in the beta, so it goes through the
+API (see [[API and API Keys|Studio-API-and-API-Keys]]). The deletion is
+recorded as `contacts.delete` by the contact's id, never by address.
 
 Exports and research bundles downloaded **before** the deletion still contain
 the row. Delete or re-create those copies as well. See
@@ -90,8 +138,9 @@ the row. Delete or re-create those copies as well. See
 ### Consent and ethics
 
 **Builder → Theme** carries the fields an ethics committee usually asks for:
-**Estimated minutes**, **Contact email**, **Privacy URL** and **Ethics
-statement**. Put your consent text on the first page with a required "I agree"
+**Estimated minutes** (shown to respondents as "About N minutes" under the
+first page's title; a survey published before this update shows it after one
+republish), **Contact email**, **Privacy URL** and **Ethics statement**. Put your consent text on the first page with a required "I agree"
 question, and route anyone who declines to the end of the survey (see
 [[Logic and Branching|Studio-Logic-and-Branching]]).
 
@@ -107,7 +156,12 @@ question, and route anyone who declines to the end of the survey (see
   read as text. Anything the reader cannot follow is reported with line
   numbers, not run.
 - **Custom JavaScript** *(Plus)* runs only in the respondent's browser, inside
-  the survey. It never runs on Siamang's servers and never touches the analysis.
+  the survey page and with the page's own access: it is not sandboxed from
+  it. It never runs on Siamang's servers. What a script writes to the answers
+  is submitted with the response (keys starting with `__` excepted), so it
+  reaches your data like any answer, and a script can also call other web
+  addresses from the respondent's browser. Review scripts you did not write
+  before you publish.
 
 ---
 
@@ -126,8 +180,9 @@ adds the webhook under **Settings → Integrations**, is stored encrypted and is
 never shown again. Each delivery then carries an `X-Siamang-Signature` header
 (`sha256=` followed by an HMAC-SHA256 of the request body), so your endpoint
 can check that the request came from Studio. A webhook added without a secret
-is sent unsigned. See
-[Integrations](Studio-Organizations-and-Team#integrations).
+is sent unsigned, and its row in the list carries an **unsigned** pill. A
+secret cannot be added later: delete the webhook and add it again with one.
+See [Integrations](Studio-Organizations-and-Team#integrations).
 
 ## API keys
 
@@ -171,16 +226,21 @@ leave the assistant off. See [[AI Assistant|Studio-AI-Assistant]] and the
 ## Audit trail
 
 Each organization keeps an append-only **Activity** log: Saves, restores,
-publishing, pausing and closing, runs, response deletions, bundle downloads,
-Live share links, contact imports, mailings (including bounces and spam
-complaints), member changes, secret changes, plan and billing events, the AI
+publishing, pausing and closing, closing dates and the **One response per
+browser** switch, runs, response deletions, bundle downloads, Live share
+links, contact imports and deletions (by contact id, never the address),
+mailings (including bounces and spam complaints), member changes including
+role changes, name changes, secret changes, plan and billing events, the AI
 assistant switch, organization renames, webhooks added or deleted (with the
-endpoint, never the signing secret), personal API keys created or revoked
-(by their first characters, never the token), and Saves that add access codes
-(the count, never the codes). Owners and admins read the organization-wide
-log; every member can read a single project's log. Sign-ins and profile or
-password changes are **not** recorded. The full list is under
-[Activity](Studio-Organizations-and-Team#activity).
+endpoint, never the signing secret), personal API keys created or revoked (by
+their first characters, never the token), and Saves that add access codes
+(the count, never the codes). Data leaving the platform is recorded too:
+every download from **Data → Export** (the table, the format and the number
+of rows) and every panel outcome CSV (the environment and the outcome), never
+the data itself. Owners and admins read the organization-wide log; every
+member can read a single project's log. Sign-ins and password changes that go
+through the managed sign-in service are **not** recorded. The full list is
+under [Activity](Studio-Organizations-and-Team#activity).
 
 ---
 
@@ -190,12 +250,16 @@ password changes are **not** recorded. The full list is under
   uppercase letter, a number and a symbol. Signing up with email and password
   requires **confirming the address** from the email Studio sends.
 - **Captcha** (Cloudflare Turnstile) protects sign-up, sign-in and password
-  reset when it is enabled.
+  reset when it is enabled. The check loads from Cloudflare, like the one on
+  surveys.
 - **Too many attempts** are slowed down: the sign-in service limits attempts,
   and Studio limits how often it tells whether an email address has an
   account. From one network (IP) address it answers at most 10 lookups a
   minute for the same email and at most 20 a minute across all emails, so a
-  list of addresses cannot be checked quickly.
+  list of addresses cannot be checked quickly. Past that limit the email step
+  says "Could not check your email. Too many sign-in attempts from your
+  network just now — wait a minute and try again." It never treats a failed
+  lookup as "no account".
 - **Google and Microsoft** sign-in inherit the provider's protections,
   including its two-factor authentication. This is the recommended route for
   sensitive studies. A provider sign-in whose email address is not verified
@@ -238,8 +302,12 @@ For the current legal texts see the
 - Get consent before contacting people. The contact importer asks you to
   confirm it, and the import is recorded.
 - Decide deliberately about the AI assistant (above) before turning it on.
-- Download bundles with care: a bundle **with data** contains raw responses.
-  Store and share it like the personal data it may be.
+- Download bundles and exports with care. A bundle **with data** contains raw
+  responses, the project tables and uploaded files the flows read, and the
+  survey-link parameters a flow reads. A **Data → Export** file carries every
+  link parameter, panel ids and invitation tokens included. Store and share
+  them like the personal data they may be, and check what is in the data
+  before you tick **Include the data collected so far** in a deposit.
 - Remove people from the organization when they leave, and revoke API keys
   you no longer use.
 

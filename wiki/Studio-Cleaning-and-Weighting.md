@@ -40,17 +40,16 @@ Why this order:
 
 Use **Run to here** on each node while you build: the preview of every
 Prepare node starts with "N rows × M columns", so you can see how many
-respondents each step removed.
+respondents each step removed. A preview never writes a project table, so
+previewing up to a **Write table** node is safe.
 
-> **Current limitation.** The variable dropdowns and checklists of later nodes
-> list the **questionnaire's** variables only. Variables you create in a flow
-> — with **Recode**, **Derive**, **Index / scale**, **Explode multiple
-> choice** — are kept in the data, written by **Export file** and **Write
-> table**, and listed by **Describe**, but cannot yet be picked in, say, a
-> **Crosstab** or **Group means**. Parameters you *type* can use them:
-> weighting targets, **Apply weight**'s column, and **Derive** formulas. If a
-> derived measure must appear in your tables today, consider computing it in
-> the questionnaire.
+Variables you create in a flow — with **Recode**, **Derive**, **Index /
+scale**, **Explode multiple choice**, **Response quality**, **Speeders &
+partials** — are offered by the variable dropdowns and checklists of the
+nodes after them, labeled "*label* · made by *node*": a recoded variable can
+go straight into a **Crosstab**, a quality score into a **Filter rows**, a
+derived measure into **Group means**. See
+[Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers).
 
 ---
 
@@ -65,6 +64,13 @@ exclude them:
   which defines "partial" by the answers *you* require (below). This is the
   better choice when some submitted interviews are also unusable because key
   questions are blank.
+
+> **Note.** Partial interviews reach the project only from surveys published
+> with the current survey runtime. Once you publish a survey again, its
+> partials start arriving, and a flow whose **Responses** node does not tick
+> **Only completed responses** includes them — its counts can grow for that
+> reason alone. Tick the box, or drop them as above, before you compare with
+> earlier runs.
 
 ## One row per respondent
 
@@ -127,10 +133,14 @@ Recipe:
 6. When you have decided, set **Mode** to `drop` — flagged responses are then
    removed, and the table still reports the shares of everyone screened.
 
-> **Current limitation.** **Filter rows** offers only the questionnaire's own
-> variables, so you cannot filter on `quality_score` (or on any variable a
-> flow creates) from the condition editor. Use **Mode** `drop` to exclude
-> flagged responses.
+To draw the line yourself, keep **Mode** at `flag` and add a **Filter rows**
+after it: its condition editor offers `quality_score` and `quality_flags`, so
+**Condition** `quality_score` = `0` keeps the clean responses, and
+`quality_score` < `2` keeps those that failed at most one check. A condition
+on any other variable you created works the same way.
+
+The quality table counts responses, not weights: on weighted data it says
+"Weight: unweighted (the weight 'weight' is not applied)".
 
 ## Missing values
 
@@ -141,6 +151,22 @@ removes the rows that are blank in the variables you list under **Drop rows
 missing in** — use it for the few variables every analysis needs. Missing
 codes are declared in the Builder; see
 [[Codebook and Variables|Studio-Codebook-and-Variables]].
+
+Codes the survey adds for you arrive in the data like any other answer:
+
+- "Not applicable" on a Likert or matrix question is the code the Builder
+  declares for it (`-1`, a missing code of kind "not applicable"), so
+  `to_nan` clears it too. Where the codebook declares no such code, N/A
+  arrives as the text `na`.
+- "Other (please specify)" is the question's Other code (`-66` unless the
+  question sets another), with the typed text in `<variable>_other`; "None
+  of the above" is `-77` unless set. On a variable with a valid range — an
+  NPS 0–10, say — the Builder also declares these codes missing, so `to_nan`
+  keeps them out of means.
+
+Responses collected before these codes were used are read the same way, so a
+flow sees one layout for old and new rows. See
+[Responses](Studio-Node-Reference#responses) for how every answer arrives.
 
 ## Recoding and harmonizing codes
 
@@ -168,9 +194,14 @@ Two rules to remember:
 - **The new variable's value labels are its codes** — Recode has no field for
   value labels, so the recoded variable shows `1`, `2`, `3`. Put the meaning in
   **Label** (as above).
-- Today the recoded variable reaches exports and written tables, and can be
-  used in formulas and weighting targets; it cannot yet be picked in a table
-  node (see the limitation above).
+- Later nodes offer the recoded variable in their lists — "Satisfaction (1 =
+  low, 2 = neutral, 3 = high) · made by recode" — so it goes straight into a
+  **Crosstab** or **Banner table**, as well as into formulas, weighting
+  targets, exports and written tables.
+- **Recode a matrix by its codes.** A matrix answer is the column's codebook
+  code — a 0–10 scale is 0–10, also for responses collected before this was
+  fixed, which stored the column's position (1–11). A mapping written against
+  those positions needs updating.
 
 > **Note.** One **Responses** node reads one environment. There is no node that
 > stacks two sources, so comparing `pilot` with `main` means two branches,
@@ -204,10 +235,15 @@ at the character.
 3. Put the reliability table in your report next to the index — it is the
    evidence the index is one thing.
 
-Reverse-keyed items: reverse them inside the formula of a **Derive** node
-that computes the index directly — `mean(q1, q2, 6 - q3, q4)` — since items
-recoded in the flow cannot yet be picked in **Index / scale**'s item list. The
-index, like any created variable, goes to your exports and written tables.
+Reverse-keyed items: either reverse the item with a **Derive** node first
+(**New variable** `q3_r`, **Formula** `6 - q3`) and tick `q3_r` in **Index /
+scale**'s **Items** — later nodes offer it — or compute the index directly in
+one **Derive**: `mean(q1, q2, 6 - q3, q4)`. The index, like any created
+variable, can be picked in the nodes after it and goes to your exports and
+written tables.
+
+If you run **Scale reliability** after **Apply weight**, alpha and the
+item statistics are weighted (the statistics say `weight`).
 
 ## Weighting
 
@@ -258,35 +294,50 @@ and preview it: the **%** column should equal your targets (45 % for code `1`
 of `region`), with the respondents actually counted in the **Unweighted N**
 column beside it. For a share with its confidence interval, use a
 **Proportion CI** with **Weighted** ticked — for example **Variable**
-`region`, **Answer code** `1` — which should give 0.45. A **Banner table** with
-the weighting variables as questions also shows weighted percentages. Large
-caps, or targets far from the sample, are the usual reasons for a miss.
+`region`, **Answer code** `1` — which should give 0.45 (its base is the
+respondents who answered `region`, and its `n` is their effective base). A
+**Bar chart** of `region` draws the weighted counts ("Weighted count" on the
+axis), and a **Banner table** with the weighting variables as questions also
+shows weighted percentages. Large caps, or targets far from the sample, are
+the usual reasons for a miss.
 
 ### Making tables and tests use the weight
 
-**Apply weight** tells the dataset which column to use, and from there on
-most tables and models use it:
+**Apply weight** tells the dataset which column to use. Its palette
+description says what follows: "Weight the results downstream by a column.
+Weighted results say so, and a result with no weighted form says it is
+unweighted." From there on:
 
 - **Frequencies** and **Crosstab** — counts and percentages are sums of
   weights. A frequency table shows the unweighted N in a column beside them, a
-  crosstab in its statistics (with the chi-square test on), and the crosstab's
-  chi-square test uses Kish's effective base.
+  crosstab in its statistics (with the chi-square test on), and the
+  crosstab's chi-square test uses Kish's effective base.
 - **Group means** — weighted means, SDs and medians; N and the significance
   test stay unweighted, and the table says so.
 - **Banner table** (tests on Kish's effective base), **Net Promoter Score**,
   **Regression** and **TURF**.
-- **MaxDiff** — the counts and the **Score** only.
+- **MaxDiff** — every column, **Utility** and **Share %** included;
+  **Conjoint** part-worths and importances; **Share of preference**.
+- **Principal components** and **Scale reliability**.
+- **Bar chart** (weighted counts, or weighted means with **By**) and
+  **Heatmap** with **By** (weighted means) — so a chart matches the weighted
+  table beside it.
 - **Proportion CI**, when its **Weighted** box is ticked.
 
-The details per node are in [Apply weight](Studio-Node-Reference#apply-weight).
+These have no weighted form and say so — "unweighted (the weight 'weight' is
+not applied)" in their statistics, table or chart title: **Compare groups**,
+**Correlation**, **Cluster (k-means)**, **Box plot**, **Scatter plot**,
+**Heatmap** without **By**, **Proportion CI** unticked, and the tables of
+**Response quality** and **Code open answers**. **Describe** counts rows and
+adds a `weighted_n_valid` column. Say in the section's note which results are
+weighted where a reader could miss it. The details per node are in
+[Apply weight](Studio-Node-Reference#apply-weight).
 
-> **Current limitation.** These still compute **unweighted** after Apply
-> weight: **Compare groups**, **Correlation**, **Cluster (k-means)**,
-> **Principal components**, **Scale reliability**, **Conjoint**, **Share of
-> preference**, the **Utility** and **Share %** columns of **MaxDiff**, and
-> all four charts. A **Bar chart** of means by group can therefore show
-> different numbers from a weighted **Group means** table beside it. Say in
-> the section's note which results are weighted.
+> **Note.** MaxDiff utilities and shares, Conjoint, Share of preference,
+> Principal components, Scale reliability, the Bar chart and the Heatmap of
+> means used to ignore the weight, and a weighted Proportion CI counted
+> non-respondents in its base. A weighted flow run again gives the corrected
+> numbers; reports from earlier runs keep the old ones.
 
 ## Writing the cleaned data to a table
 
@@ -309,17 +360,25 @@ To clean once and analyze in several flows:
 
 Things to know:
 
-- **A table holds rows and columns, not codebook entries.** The reading flow
-  labels columns from the questionnaire's codebook, so variables the cleaning
-  flow *created* (`satisfaction_3`, `quality_score`, `cluster`) arrive without
-  labels, cannot be picked in the reading flow's variable dropdowns, and a node
-  that names one fails the engine check. Create derived variables in the flow
-  that analyzes them (or recreate them there). A weight column is fine: **Apply
-  weight** takes its name as text.
-- **Run to here** on a Write table node (or **Preview all**) writes the table
-  for real — see [Run to here](Studio-Flows#run-to-here-and-preview-all).
-- In a research bundle, **Write table** is skipped and **Project table** reads
-  the raw responses file, so chained flows do not reproduce there; see
+- **The table keeps its variables.** **Write table** stores the variables of
+  the columns it writes — labels, scales and value labels — with the table, so
+  the variables the cleaning flow *created* (`satisfaction_3`,
+  `quality_score`, `cluster`) arrive in the reading flow labeled. Its
+  variable dropdowns offer them as "from table clean_responses · made by
+  cleaning", and naming one passes the engine check at Save. A table last
+  written before tables kept their variables has no labels for them yet: run
+  the cleaning flow once more. A weight column travels too; **Apply weight**
+  takes its name as text.
+- **A preview never writes the table.** **Run to here** on a Write table node
+  (or **Preview all**) shows what a run would write — "Not written: a
+  preview never writes project tables. A run writes … rows to table
+  'clean_responses' (if it exists: replace)." — and leaves the table as it
+  is. See [Run to here](Studio-Flows#run-to-here-and-preview-all).
+- In a research bundle made with data, **Write table** is skipped and
+  **Project table** reads `data/tables/clean_responses.csv` — the table as it
+  was when the bundle was made, with its variables beside it — so the
+  analysis flows reproduce what they computed in Studio from that table, but
+  running the cleaning flow there does not refresh it; see
   [[Reproducibility|Studio-Reproducibility]].
 
 ## Reporting exclusions
@@ -337,7 +396,10 @@ get the numbers into your report and onto Live:
   completed interviews; 96 speeders under 90 s and 59 straightliners
   excluded."
 - The Methods draft (History → a Save → **More ▾ → Methods**) lists every step
-  of every flow with its parameters.
+  of every flow with its parameters. For **Apply weight** it writes
+  "estimates that support weights were weighted by `weight` (rank tests,
+  k-means clustering, box and scatter plots and correlation heatmaps stay
+  unweighted)".
 
 ## See also
 

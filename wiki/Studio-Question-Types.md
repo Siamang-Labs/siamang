@@ -36,16 +36,16 @@ Presets: **Yes / No**, **Rating (stars)**, **NPS (0–10)**, **CES (1–7)**,
 
 | Field | Where | Notes |
 |---|---|---|
-| **Question text** | Question | Shown as plain text: Markdown and HTML are not rendered. Piping works: `{answer:variable}` inserts an earlier answer, `{label:variable}` its label. |
+| **Question text** | Question | Shown as plain text: Markdown and HTML are not rendered. Piping works: `{answer:variable}` inserts an earlier answer, `{label:variable}` the chosen option's label (for an Other answer, the text the respondent typed). |
 | **Hint** | Question | Smaller text under the question ("optional guidance shown below the question"); piping works here too. |
 | **Required** | Question | The respondent cannot continue without answering: **Next** shows "This question requires an answer." Required questions show an asterisk to respondents. New questions start **optional**. |
-| **Randomize option order** | Question | Shuffles the options per respondent. Single choice, Multiple choice and Ranking only. |
+| **Randomize option order** | Question | Shuffles the options per respondent. Single choice, Multiple choice and Ranking only. "None of the above", exclusive choices (such as "None of these") and a choice that is the question's Other keep their place; the other options are shuffled around them. The "Other" option Studio adds always comes last. |
 | **Attention check** | Question | Single choice, Likert scale, Number and Open text — see [Attention checks](#attention-checks). |
 | **Variable** | Variable | The codebook entry the question writes — [[Codebook and Variables\|Studio-Codebook-and-Variables]]. |
 | **Show if** / **Hide if** / **Skip to** | Logic | [[Logic and Branching\|Studio-Logic-and-Branching]]. |
-| **Id** | Advanced | The question's own handle ("stable reference; used in logic"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question. |
+| **Id** | Advanced | The question's own handle ("names the question in scripts and comments; logic and data use the variable"): scripts target it, comments hang on it, checks quote it. Letters, digits and `_` (other characters turn into `_`). Must be non-empty, unique, and not the variable name of another question — the field says "Another question already has this id." or "This is the variable … stores its answer under — the engine refuses an id that is another question’s variable." |
 | **Tags** | Advanced | Free labels, comma-separated, for your own organization of the instrument. |
-| **Media URL** | Advanced | An image, or a video if the link ends in `.mp4`/`.webm`, shown with the question. Use a stable public URL (a download link from **Files** expires after 5 minutes). |
+| **Media URL** | Advanced | An image, or a video if the link ends in `.mp4`/`.webm`, shown with the question ("a public https:// address; a file under Files has no public link"). Use a stable public URL (a download link from **Files** expires after 5 minutes). |
 
 To respondents, questions are numbered `Q01`, `Q02`, …
 
@@ -89,28 +89,31 @@ and "No options found" when nothing matches.
 |---|---|---|
 | **Display** | **radio** · **dropdown** · **buttons** | radio |
 | **Choices** | code · label list | `1` Option 1, `2` Option 2 |
-| **Add “None of the above”** | on/off | off |
-| **Add “Other (please specify)”** | on/off | off |
+| **Add “None of the above”** | on/off; when on, the hint says what it stores ("stored as -77") | off |
+| **Add “Other (please specify)”** | on/off; when on, the hint says what it stores and where the text goes ("stored as -66; the text goes to q1_other") | off |
 
-**Coding.** One variable, nominal, with the choices as value labels (kept in
-sync: editing the choices rewrites the labels). The answer is the chosen code.
+**Coding.** One variable, nominal, with the choices as value labels. The answer
+is the chosen code. Adding, removing or relabeling a choice updates that
+code's value label; a label you wrote for another code in the Codebook tab
+stays.
 
-- **None of the above** adds an option shown as "None of the above" whose
-  stored value is the text `__none__`. It has no value label and no numeric
-  code.
-- **Other (please specify)** adds an option shown as "Other"; choosing it opens
-  a text box ("Please specify...").
+- **None of the above** adds an option "None of the above" after the choices,
+  stored as the code `-77` and labeled `-77 = None of the above` in the
+  codebook.
+- **Other (please specify)** adds an option "Other" at the very end; choosing
+  it opens a text box ("Please specify..."). The answer is the code `-66`,
+  labeled `-66 = Other`, and the typed text goes to a column of its own,
+  `<variable>_other`. With **Display = dropdown**, Other is the last entry of
+  the list and its text box appears under the dropdown.
 
-> **Current limitation.** With **Add “Other (please specify)”** on, a
-> respondent who picks Other is stored in two columns named `code` (value
-> `__other__`) and `text` (what they typed) instead of the question's own
-> column. With **Display = dropdown**, Other is not offered at all. Until this
-> changes, add an ordinary option such as `97` "Other" and a separate **Open
-> text** question with **Show if** *your variable* `=` 97. Likewise, for a
-> "None of the above" you want to analyze, add it as an ordinary option with a
-> code (for example `99`) rather than using **Add “None of the above”**.
+How these codes are chosen, and what happens when a choice already uses one,
+is in [Codes for Other, None of the above and N/A](#codes-for-other-none-of-the-above-and-na).
 
-**Rules.** At least one choice; unique codes; non-empty labels.
+**Rules.** At least one choice; unique codes; non-empty labels. With Other on,
+the text column `<variable>_other` must not be the variable of another
+question (the Save is marked `errors`: "Question 'q1' stores its “Other
+(please specify)” text under 'q1_other', which question 'q9' already stores an
+answer under.").
 
 ---
 
@@ -119,9 +122,9 @@ sync: editing the choices rewrites the labels). The answer is the chosen code.
 Any number of answers.
 
 **The respondent sees** checkboxes. Picking an **exclusive** option clears the
-others, and picking any other option clears an exclusive one. With **Max
-answers** set, further boxes are disabled once the limit is reached and a
-counter shows "2 of 3 selected" / "Maximum reached".
+others, and picking any other option clears an exclusive one — in both data
+layouts. With **Max answers** set, further boxes are disabled once the limit
+is reached and a counter shows "2 of 3 selected" / "Maximum reached".
 
 **Inspector → Options**
 
@@ -132,7 +135,19 @@ counter shows "2 of 3 selected" / "Maximum reached".
 | **Max answers** | a whole number; "empty = no limit" | empty |
 | **Exclusive choices** | a chip per choice; "picking one clears the rest" | none |
 | **Data layout** | **array** · **wide** ("array: one column of codes · wide: one 0/1 variable per choice") | array |
-| **Add “Other (please specify)”** | on/off | off |
+| **Add “Other (please specify)”** | on/off; when on, the hint says what it stores and where the text goes ("stored as -66; the text goes to q7_other") | off |
+
+**Min answers** (2 or more) is checked when the respondent clicks **Next**:
+someone who picked some options but too few sees "Select at least 1 more"
+under the question, and **Next** does not move on until they pick enough. An
+exclusive answer ("None of these") is a complete answer on its own — it
+satisfies the minimum, and the hint disappears once it is picked. **Min
+answers** does not make the question required: an optional question can
+still be left empty, and a required one asks for an answer first ("This
+question requires an answer."). Under the options, the counter hint "Select at
+least N more" appears once the question is answered, or at once when it is
+required; it also shows without **Max answers**. A **Min answers** of `1` is
+not checked on **Next** — to require an answer, turn on **Required**.
 
 **Coding — array layout** (the default). One variable, nominal, with the
 choices as value labels. The answer is the list of chosen codes. In CSV,
@@ -140,6 +155,9 @@ Excel, SPSS and Stata exports it is written as codes separated by semicolons
 (`1;3`); Parquet keeps a list. Frequency tables of such a question use
 **respondents** as the base, so the shares add up to more than 100 %. In
 conditions, use **chose** / **did not choose** — `=` compares the whole list.
+A quota on the variable counts a completed response in the cell of every
+value it chose. With **Other (please specify)**, the list holds Other's code (`-66`)
+beside the others and the typed text goes to `<variable>_other`.
 
 **Coding — wide layout.** Clicking **wide** replaces the question's one
 variable with one variable per choice, named after the old variable and the
@@ -154,29 +172,21 @@ keeps its variables as they are while you edit it; switching it to **array**
 replaces them with a single variable and leaves the question without choices
 until you add some.
 
-> **Current limitation.** The published survey does not store the wide layout
-> as 0/1 columns yet. It records one column named after the question's **Id**,
-> holding the variable names of the chosen options (for example `q7_1` and
-> `q7_3`); the per-choice variables stay empty in your data, conditions, piping
-> and quotas on them do not see the answer, and **Exclusive choices** have no
-> effect. **Test → Simulate** does produce 0/1 columns, so simulated data
-> looks right while real responses do not. For fieldwork keep **array**, use
-> **chose** / **did not choose** in conditions, and when an analysis needs one
-> 0/1 column per option (weighting, regression, TURF), add an **Explode
-> multiple choice** node in the flow — see
-> [[Node Reference|Studio-Node-Reference]].
+In the data, each per-choice variable holds:
 
-> **Current limitation.** **Min answers** is not enforced when the respondent
-> clicks **Next**; it only adds the hint "Select at least N more" under the
-> options, and only when **Max answers** is also set. To require at least one
-> answer, turn on **Required**.
+| Value | Meaning |
+|---|---|
+| `1` | chosen |
+| `0` | offered and not chosen (the respondent answered the question) |
+| empty | the question was not answered, or this option was hidden from the respondent by its own **Show if** / **Hide if** |
 
-> **Current limitation.** With **Add “Other (please specify)”** on, every
-> respondent's answer to this question is stored in columns named `selected`
-> (the codes) and `otherText` (the typed text) instead of the question's own
-> column — and two such questions overwrite each other. Use an ordinary
-> "Other" option plus a separate **Open text** question shown if it was
-> chosen (**Show if** *variable* **chose** *code*).
+Conditions, piping and quotas on a per-choice variable (`q7_1 = 1`) see the
+answer, and **Exclusive choices** work. With **Other (please specify)**, Other
+has no 0/1 variable of its own: the typed text goes to `<Id>_other`, named
+after the question's **Id** (`q7_other`), which holds the text while Other is
+chosen. When an analysis of an **array** question needs one 0/1 column per
+option (weighting, regression, TURF), you can also add an **Explode multiple
+choice** node in the flow — see [[Node Reference|Studio-Node-Reference]].
 
 **Rules.** Min answers 0 or more; Max answers at least Min answers
 ("max_answers must be >= min_answers"); in the wide layout, Max answers no
@@ -200,16 +210,26 @@ applicable** choice.
 |---|---|---|
 | **Points** | 2–11 | 5 |
 | **Left label** / **Right label** | text | Strongly disagree / Strongly agree |
-| **Offer “N/A”** | on/off | off |
+| **Offer “N/A”** | on/off; when on, the hint says what N/A stores ("stored as -1, a missing code") | off |
 | **Display** | **Numbers** · **Stars** | Numbers |
 | **First point** | **1** · **0** ("0-based: an NPS scale is 0–10 (11 points)") | 1 |
 
 **Coding.** One variable, ordinal. The answer is the point's number (`1`–`5`,
 or `0`–`10` with First point 0). Value labels are generated as `1 — Strongly
-disagree`, `2`, `3`, `4`, `5 — Strongly agree`, and are **regenerated every time
-you edit the question** — label the middle points in the question's end labels
-rather than in the Codebook, where your edits would be overwritten. **Not
-applicable** is stored as the text `na`, which has no value label.
+disagree`, `2`, `3`, `4`, `5 — Strongly agree`. A label you write in the
+Codebook tab for a point — `3 = Neither agree nor disagree` — stays when you
+edit the question, until an edit changes that point's own label (a new
+**Right label** relabels the top point, and only it).
+
+**Not applicable** is stored as a declared missing code: turning on **Offer
+“N/A”** adds `-1 = Not applicable` to the variable's value labels and declares
+`-1` as its not-applicable missing code, so means and percentages leave it
+out. If the codebook declares no not-applicable code — a question set up
+before this was automatic and not edited since, or an import — N/A is stored
+as the text `na` instead (hint: "stored as the text “na” — the codebook
+declares no not-applicable code") and the Save shows the warning
+`NA_STORED_AS_TEXT`. See
+[Codes for Other, None of the above and N/A](#codes-for-other-none-of-the-above-and-na).
 
 **Rules.** The variable should be ordinal (otherwise the error-level lint
 `INCOMPATIBLE_QUESTION_SCALE`); when the number of value labels differs from
@@ -240,11 +260,12 @@ slider's range.
 
 **Coding.** One variable, ratio, stored as a number.
 
-> **Current limitation.** Min and Max do not stop a respondent from typing an
-> out-of-range number and clicking **Next** — only **Required** and the text
-> formats are checked there. Screen impossible values in your flow (for
-> example with a **Filter rows** node) or use the slider, which cannot leave
-> the range.
+**The range is enforced.** A typed number below **Min** or above **Max** shows
+"Minimum value is 18" or "Maximum value is 99" under the question as soon as
+the respondent leaves the field, and again on **Next**, which does not move on
+until the number is corrected. The slider cannot leave the range. An empty
+optional field is not checked. Both messages can be reworded in **Theme →
+Wording** ("Number below its minimum", "Number above its maximum").
 
 **Rules.** Step greater than 0; Min not greater than Max; the variable must be
 interval or ratio (otherwise `INCOMPATIBLE_QUESTION_SCALE`).
@@ -297,28 +318,46 @@ scale point (plus an N/A column if offered). Arrow keys move across a row.
 
 | Option | Values | Default |
 |---|---|---|
-| **Rows (statements)** | a list; "one variable per row"; **+ Row** | Statement 1, Statement 2 |
+| **Rows (statements)** | a list; "one variable per row"; **+ Row**. Hover a row's number to see the variable it writes | Statement 1, Statement 2 |
 | **Columns (scale)** | a list; **+ Column** | Strongly disagree, Disagree, Neutral, Agree, Strongly agree |
-| **Offer “N/A”** | on/off | off |
+| **Offer “N/A”** | on/off; when on, the hint says what N/A stores ("stored as -1, a missing code") | off |
 
 **Coding.** One ordinal variable **per row**, named `<base>_1`, `<base>_2`, …
-(for a question `q4`: `q4_1`, `q4_2`). Every row variable gets the columns as
-value labels, coded `1` to *n* from left to right. **Not applicable** is stored
-as `na`. Each row is its own column in the data, which is what scale
-construction and reliability analysis want.
+(for a question `q4`: `q4_1`, `q4_2`). Each row is its own column in the data,
+which is what scale construction and reliability analysis want. Every row
+variable gets the columns as value labels — coded `1` to *n* from left to
+right in a matrix you build — and the answer stored for a row is the **code**
+of the chosen column. A matrix inserted or imported with other codes keeps
+them: the question bank's *Trust in institutions*, headed `0` … `10`, stores
+`0`–`10`; a Qualtrics matrix stores its recodes.
 
+- **Rows.** Each row keeps its own variable. **+ Row** adds a row with a new
+  variable (`q4_3`), which takes the first row's value labels, missing codes
+  and valid range, so it stores and labels the same codes; removing a row
+  removes its variable and its codebook entry, and the other rows keep theirs
+  (and their data columns). A row
+  variable's label follows its statement, as "<question text> — <statement>".
+  Rename a row's variable in the **Variable** section, which has a name field
+  for each row ("Matrix rows write one variable each, in the order of Options
+  → Rows; rename a row's variable here."). A matrix whose rows came from its
+  variables' labels (an import, the example study) lists those labels under
+  **Rows**; editing, adding or removing a row turns them into statements.
+- **Columns.** A column's code follows its header. Renaming a column changes
+  only its label: the code it stores stays. Moving or removing a column leaves
+  the codes of the others as they are — remove `5` from a `0` … `10` scale and
+  `6` … `10` still store `6` … `10`. A new column takes the code the codebook
+  already gives its exact text (a "Refused" column beside a declared missing
+  `9` Refused stores `9`, and stays a missing code); otherwise it gets the next
+  code up that nothing uses.
+- **Not applicable** is an extra column at the end. It stores the row's
+  declared not-applicable code: turning on **Offer “N/A”** labels `-1 = Not
+  applicable` and declares it missing on every row variable. A matrix without
+  column headers (possible from an import or the **Source** tab) keeps storing
+  the text `na` when declaring a code would change which code its columns
+  store; the Save then shows `NA_STORED_AS_TEXT`.
 - **Required** on a matrix is satisfied as soon as one row is answered.
-- The row variables cannot be renamed in the Builder (only in the **Source**
-  tab).
-- Deleting a row in the middle moves the later statements onto the earlier
-  variable names — do not do it once fieldwork has started.
-
-> **Current limitation.** A matrix answer is always stored as the column's
-> **position** (`1` for the first column), whatever codes the row variables'
-> value labels use. That matches every matrix you build in the Builder, but a
-> matrix inserted or imported with other codes — the question bank's *Trust in
-> institutions* (0–10), or a Qualtrics matrix with recodes — stores `1`–`11`
-> where its labels say `0`–`10`. Recode in your flow before reporting.
+- Conditions and piping later in the survey can use a row's variable
+  (**Show if** `q4_1 ≥ 4`, `{label:q4_1}`).
 
 **Rules.** The number of rows must equal the number of variables.
 
@@ -362,7 +401,9 @@ called**, **Worst is called**.
 
 **Coding.** Two variables per task plus one for the design version:
 `<name>_t1_best`, `<name>_t1_worst`, …, `<name>_version` — 17 variables for 8
-tasks. They cannot be renamed.
+tasks. They cannot be renamed; lowering **Tasks** removes the variables (and
+codebook entries) of the tasks that went. Later pages can test and pipe them
+(`{label:q7_t1_best}`).
 
 The design, the lints and the analysis are described in
 [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]].
@@ -385,9 +426,100 @@ Price: Low, High), **Products per task** (default 3), **Tasks** (default 10),
 
 **Coding.** One variable per task — which product was chosen, `1` to *n* from
 left to right, *n*+1 for "none" — plus one for the design version:
-`<name>_t1` … `<name>_t10`, `<name>_version`.
+`<name>_t1` … `<name>_t10`, `<name>_version`. As for MaxDiff, lowering
+**Tasks** removes the variables of the tasks that went, and later pages can
+use the task variables in conditions and piping.
 
 Details in [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]].
+
+---
+
+## Codes for Other, None of the above and N/A
+
+Three answers are added with a switch rather than typed as choices: **Add
+“Other (please specify)”** (Single choice and Multiple choice), **Add “None of
+the above”** (Single choice) and **Offer “N/A”** (Likert scale and Matrix).
+Each is stored as a code of the question's variable, and Studio writes that
+code into the codebook for you, so exports label it and the Save has nothing
+to warn about. The hint beside the switch always says what is stored.
+
+| Option | Stored as | Added to the codebook |
+|---|---|---|
+| Other (please specify) | `-66` in the question's column; the typed text in `<variable>_other` (wide layout: `<Id>_other`) | the value label `-66 = Other` (not in the wide layout, which has no code column for it), and a variable `<variable>_other` — nominal, text, labeled "<question text> — other (please specify)" — whose **Used by** is the question |
+| None of the above | `-77` | the value label `-77 = None of the above` |
+| Not applicable | `-1` | the value label `-1 = Not applicable` and the missing code `-1 Not applicable` of kind *not applicable* — on the variable, or on every row variable of a matrix |
+
+- **When a code is taken.** If one of the question's choices already uses
+  `-66` or `-77`, Studio uses the next free code down (`-67`, `-78`, …) and the
+  hint says so ("stored as -67; the text goes to q1_other"). Adding a choice
+  coded `-66` to a question that offers Other moves Other to `-67`; the new
+  choice stays an ordinary option. N/A starts at `-1` and moves down the same
+  way when the scale uses `-1`.
+- **A choice as the Other option.** In the **Source** tab, `other_code` in the
+  question's `metadata` can name the code of one of its choices: that choice
+  becomes the Other option — it opens the text box, and no second "Other" is
+  added. A Qualtrics import does this for a text-entry choice.
+- **Options that come from the codebook.** A Single choice, or a Multiple
+  choice in the array layout, from an import or the example study can have no
+  **Choices** of its own: the survey then offers its variable's value labels.
+  Switching Other or None of the above on for such a question first copies
+  those labels into its **Choices** list (without the Other or None code
+  itself), so the new option is added beside them and the Save stays valid.
+- **Scales with a valid range** (an NPS 0–10, a CES 1–7): the Other and None
+  codes are also declared as missing codes, so means and the range check leave
+  them out.
+- **Switching an option off** removes its value label (and, for Other, the
+  `<variable>_other` entry) unless the code is declared missing. Switching
+  **Offer “N/A”** off keeps the "Not applicable" label and the missing code,
+  so answers already stored with it stay missing; delete them in the Codebook
+  tab if you do not want them.
+- **Wording.** Respondents see "Other", "Please specify...", "None of the
+  above" and "Not applicable". Replace them in **Theme → Wording** (**“Other”
+  option**, **“Other” text box**, **“None of the above” option**, **“N/A”
+  option**) — see [[Theme and Branding|Studio-Theme-and-Branding]].
+- **Questions set up before these codes were written for you.** A question
+  that offered Other, None or N/A and has not been edited since has no labels
+  for these codes. The Save then warns `ADDED_CODE_WITHOUT_LABEL` ("Question
+  'q1' stores “Other (please specify)” as -66, which variable 'q1' has no
+  value label for.") or `NA_STORED_AS_TEXT`, and its N/A is stored as the text
+  `na`. Edit the question once in the Builder — switching the option off and
+  on again is enough — and Studio adds the labels, the `<variable>_other`
+  entry and the N/A missing code.
+
+---
+
+## Older surveys and responses
+
+The survey runtime now stores several answers differently from earlier
+versions of Studio. Two things follow.
+
+**A survey published before the change keeps its old build** until you
+[republish](Studio-Publishing-and-Environments#republishing) it: Save (a Save
+with no changes will do), then **Republish #N** on the environment's card. Until
+then its respondents get the old behavior: no Other entry in a dropdown, wide
+Multiple choice variables and exclusive choices that do not work, **Min
+answers** and a Number's range not checked on **Next**, conditions on matrix
+rows and MaxDiff or conjoint tasks that never fire, and no page Body above
+the questions.
+
+**Responses already collected are read in today's layout** — in the Data tab,
+every export, flows and the research bundle — so old and new responses sit in
+the same columns:
+
+| Stored by an earlier build | Read as |
+|---|---|
+| Other, which showed up as columns named `code` (`__other__`) and `text` for a Single choice, or `selected` and `otherText` for a Multiple choice | the question's Other code (`-66` unless the question names another) in the question's own column, and the text in `<variable>_other` (`<Id>_other` for a wide question) |
+| None of the above: the text `__none__` | the None code (`-77` unless the question names another) |
+| N/A: the text `na` | the variable's declared not-applicable code, once the codebook declares one; without one it stays `na` |
+| Wide Multiple choice: one column named after the question's Id, listing the chosen options' variables | `1` in each chosen option's variable and `0` in the question's other variables |
+| Matrix: the chosen column's position (`1` … *n*) | the column's code — a 0–10 scale that was stored as `1`–`11` reads `0`–`10` |
+
+An export you make now can therefore differ from one you downloaded earlier
+for the same responses (`0`–`10` where it said `1`–`11`, `-66` where it said
+`__other__`). Two things cannot be recovered: an older wide answer cannot tell
+an option hidden from the respondent from one they did not choose, so both
+read `0`; and quota cells on a per-choice variable or a matrix row count only
+responses collected by a survey built after the change.
 
 ---
 
@@ -440,43 +572,43 @@ in the **Question** section:
    counted as screened out. You can edit or delete the rule (or change its
    target page) in the page's **Logic** section like any other; turning the
    option off removes the rule and leaves the page.
-   - If the questionnaire already has a Screen-out page, the rule points at
-     the first one.
-   - Otherwise Studio creates one ("Thank you" / "You do not qualify for this
-     study.") and inserts it **just before the first Final or Redirect
-     page**.
-   - If there is no Final or Redirect page either, Studio also adds a **Final**
-     page ("Thank you" / "Thank you for taking part.") after the last content
-     page and puts the Screen-out page before it.
 
-   Check the result before fielding. A Screen-out page that Studio places in
-   front of the Final page also catches respondents who **pass**, because
-   pages run in order. In the consent templates the existing Screen-out page is
-   hidden from anyone who consented, so a failing respondent is sent back to
-   the first question page. Both limitations and their fixes are explained in
-   [Attention checks](Studio-Logic-and-Branching#attention-checks).
+   The Screen-out page the rule points at sits **after the last Final or
+   Redirect page**, so that only the rule leads there: respondents who pass
+   finish on the Final page and are recorded as completed.
+   - If such a Screen-out page already exists (one without a **Show if** or
+     **Hide if** of its own, after the Final page), the rule points at it.
+   - Otherwise Studio adds one, named `disqualification` ("Thank you" / "You
+     do not qualify for this study."), right after the last Final or Redirect
+     page. A conditional Screen-out page elsewhere — such as the consent
+     screen-out of the built-in templates — keeps its own job and is not used.
+   - If no Final or Redirect page without a condition ends the survey, Studio
+     first adds a **Final** page ("Thank you" / "Thank you for taking part.")
+     after the last content page and any end pages right behind it.
 
-> **Current limitation — check the route after turning this on.** Pages run
-> in order, and a Screen-out page ends the interview for everyone who reaches
-> it, not only for those the rule sends there.
->
-> - **A Screen-out page Studio created** sits between your last content page
->   and the Final page, so respondents who *pass* the check walk into it when
->   they click **Next** on that last content page and are screened out too. Fix: in the pages
->   rail, drag the Screen-out page **below** the Final page. The Final page
->   then ends the interview for everyone who passes, and the rule still sends
->   failing respondents to the Screen-out page.
-> - **An existing Screen-out page with its own Show if** — such as the
->   consent screen-out of the built-in templates, shown only to people who
->   decline — is hidden when the rule fires, and a branch to a hidden page
->   goes on to the next visible page after it instead. Failing respondents are
->   not screened out; when that page lies earlier in the questionnaire, the
->   Save is marked `errors` with "Cycle detected in page navigation graph."
->   Fix: select the Final page, add a separate Screen-out page after it with
->   **+ Page → Screen-out page**, and choose that page as the rule's target in
->   the question page's **Logic → Branch (next if)**.
->
-> Walk through both answers in **Preview** before you publish.
+   The explanation under the checkbox reads: "An ordinary page branch,
+   editable in Logic: it is evaluated when this page is left, so they finish
+   the page first, and their answers are still collected and counted as
+   screened out. Its Screen-out page sits after the Final page, so only this
+   branch leads there. Leave it off to keep everyone and decide in the
+   analysis instead."
+
+**Questionnaires saved with an older placement.** Earlier versions of Studio
+put the Screen-out page in front of the Final page, or pointed the rule at an
+existing conditional Screen-out page. The Inspector says what goes wrong,
+under the checkbox — as it does, in any questionnaire, when a **Skip to** on
+the same page keeps the rule from firing (the last row below) — and
+**Validation → Structure** lists it as "*q7*: the screen-out branch for
+failing this attention check does not work. …":
+
+| Message | What happens | Fix |
+|---|---|---|
+| "Respondents who pass reach “*page*” too: it comes after this page with no Final page in between, and pages are shown in order." | everyone who passes is screened out as well | **Fix the branch** moves that Screen-out page, with its wording, right after the last Final or Redirect page (adding a Final page first if none ends the survey) and points the rule at it |
+| "“*page*” has a show if or hide if of its own. Where it is hidden, a respondent who fails is sent on to the next page shown after it instead of being screened out." | failing respondents are not screened out | **Fix the branch** points the rule at a Screen-out page after the Final page, adding one if needed; the conditional page keeps its job |
+| "Skip to on *question* is checked before branch rules, so for anyone who answers *question* this branch never fires." | the rule never fires for anyone who answers that question | no automatic fix: clear that question's **Skip to**, or move the check to another page |
+
+Walk through a passing and a failing answer in **Preview** before you publish;
+details in [Attention checks](Studio-Logic-and-Branching#attention-checks).
 
 Without step 3 nobody is screened out during the interview: the check is
 scored afterwards by the **Response quality** node, whose **Attention checks**
@@ -521,14 +653,19 @@ Save.
   attributes, an attribute with fewer than two levels, an attribute name that
   is not a plain identifier, or two attributes with the same name.
 
-> **Tip.** The engine's message names the place (`pages/0/items/2`, i.e. page
-> 1, item 3). For an empty field it sometimes names a neighboring property
-> instead — if the message does not make sense, look for an empty text, label
-> or Id on that question.
+> **Tip.** The message names the field that is wrong and where it is, by page
+> name and question Id — for example "questionnaire:
+> pages/0/items/0/text: must not be empty (page 'page1', question 'q1')", or
+> "…/choices: needs at least 3 entries (page 'page1', question 'q7')" for a
+> MaxDiff with two items. `pages/0/items/2` counts from zero: page 1, item 3.
+> Inside a block the place reads "(page 'page1', block 1, question 'q1')".
 
 Other problems — a duplicate question Id, a question Id that is another
 question's variable name, **Skip to** a page that no longer exists, a page
-nobody can reach — do **not** stop the Save; the Save is marked `errors` and
+nobody can reach, an **Other** whose default code `-66` is already a choice's
+code (possible only from the **Source** tab or an import), a "None of the
+above" code that is one of the answers, an Other text column that another
+question writes — do **not** stop the Save; the Save is marked `errors` and
 cannot be published. The Validation tab lists them; see
 [[Testing Your Survey|Studio-Testing-Your-Survey]].
 
@@ -540,10 +677,13 @@ cannot be published. The Validation tab lists them; see
 - **Multi-language questionnaires** — one questionnaire is one language. To run
   a survey in a single other language, write the questions in that language
   and replace the runtime's phrases (buttons, the required-answer message, the
-  resume prompt, …) under **Theme → Wording**
-  ([[Theme and Branding|Studio-Theme-and-Branding]]). A few built-in phrases —
-  "Other", "Please specify...", "None of the above", "Not applicable", the
-  text-format messages and the default thank-you text — are not in Wording yet.
+  resume prompt, "Other", "Please specify...", "None of the above", "Not
+  applicable", the minimum and maximum messages, the text-format messages, …)
+  under **Theme → Wording**, and the default thank-you text under **Theme →
+  Respondent experience → Completion screen**
+  ([[Theme and Branding|Studio-Theme-and-Branding]]). Labels that only
+  screen readers announce — such as "Task 1" on a MaxDiff task, "Choice 1" on
+  a conjoint task or "Loading survey" — stay in English.
 - **Exotic widgets** — constant sum, side-by-side grids, drill-downs, file
   upload, signatures, heat maps. When you import a questionnaire that has them,
   they are listed as not imported.

@@ -53,7 +53,7 @@ state from every tab. Click it to open that Save in **History**.
 | Badge | Meaning |
 |---|---|
 | `● valid #17` | Save 17 is clean — publishable and runnable |
-| `● warnings #17` | saved; the engine has remarks — publishable after you confirm |
+| `● warnings #17` | saved; the engine has remarks — publishable after you confirm. The remarks can include findings the engine grades as errors (an empty page, a design that cannot be estimated); they do not block publishing, but the confirmation names them |
 | `● errors #17` | saved but broken — cannot be published or previewed |
 | `● checking #17` | the Save's validation has not reported yet |
 | `saving…` | a Save is in progress |
@@ -129,25 +129,29 @@ members.
 | Plus | 10 |
 | Pro, Corporate | unlimited |
 
-At the cap the **New project** buttons (on the list, in the workspace chip and
-**Start from the example study** on an empty list) are disabled — hovering says
-"Your plan allows 2 projects — upgrade to add more" — and the list shows:
-"You've reached the **2-project** limit on the free plan. **Upgrade your
-plan** to add more." The **New project** buttons on the **Library** tab stay
-clickable, but at the cap creating the project is refused: "Could not create
-project. Plan 'free' allows up to 2 projects; upgrade to add more." See
+At the cap every **New project** button — on the list, in the workspace chip,
+**Start from the example study** on an empty list, and the **New project**
+buttons on the **Library** tab (on each template card and on each saved
+questionnaire) — is disabled; hovering says "Your plan allows 2 projects —
+upgrade to add more" (10 on Plus). The list also shows, for example on Free: "You've reached the **2-project**
+limit on the free plan. **Upgrade your plan** to add more." See
 [[Plans, Trial and Billing|Studio-Plans-and-Billing]].
+
+> **Plan.** On the Free plan each project also takes at most **1,000
+> completed responses**, counted over all of its environments together.
+> Screen-outs and partial responses do not count toward it, and neither do the
+> sample responses of the [example study](#the-example-study).
 
 ---
 
 ## Creating a project
 
 > **Plan and role.** Only **owners** and **admins** can create projects. For a
-> member, **New project** on the **Projects** list and in the workspace chip
-> is disabled ("Only owners and admins can create projects" when you hover
-> it). The **New project** buttons on the **Library** tab are not disabled, but
-> a member who uses one gets "Could not create project. Only owners and admins
-> can create projects." Members can open, edit and Save every project in the
+> member, every **New project** button — on the **Projects** list, in the
+> workspace chip and on the **Library** tab — is disabled ("Only owners and
+> admins can create projects" when you hover it), and the **Library** tab adds
+> under its templates: "Only owners and admins can create projects — ask one
+> to set it up." Members can open, edit and Save every project in the
 > organization.
 
 1. On **Projects**, click **New project** (or **Start from the example study**
@@ -175,7 +179,7 @@ is a name and, if you picked **Template**, a template.
 │ Start from                                                 │
 │ ┌────────────────────────────────────────────────────────┐ │
 │ │ ○ Blank project                                        │ │
-│ │   Start with an empty questionnaire                    │ │
+│ │   Start with one placeholder question                  │ │
 │ ├────────────────────────────────────────────────────────┤ │
 │ │ ● Template                                             │ │
 │ │   [Course evaluation                               ▾]  │ │
@@ -185,7 +189,7 @@ is a name and, if you picked **Template**, a template.
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **Blank project** — "Start with an empty questionnaire".
+- **Blank project** — "Start with one placeholder question".
 - **Template** — "Start with a pre-built questionnaire". Selecting it shows a
   picker (**Choose a template** until you pick one). The picker opens a list
   with a search box (`Search 13 templates…` — the count includes the example
@@ -205,29 +209,51 @@ The **slug** is the project's permanent address in Studio
 (`studio.siamang.org/<org>/projects/<slug>`). It is derived from the name and
 **cannot be changed later** — not even by renaming the project.
 
-How the name becomes a slug: lower-case it, turn every run of characters other
-than `a–z` and `0–9` into a single hyphen, and trim hyphens from the ends.
-`Employee Pulse 2026 Q1` becomes `employee-pulse-2026-q1`.
+How the name becomes a slug:
 
-Rules the slug must meet:
+1. The name is spelled in Latin letters: Cyrillic (Russian, Ukrainian,
+   Belarusian, Kazakh, Serbian, Macedonian) and Greek letters are
+   transliterated, and accented Latin letters lose their accents (`é` → `e`,
+   `ß` → `ss`). Characters with no Latin spelling (Chinese, Japanese, Arabic,
+   Hebrew, …) are dropped.
+2. It is lower-cased, every run of characters other than `a–z` and `0–9`
+   becomes a single hyphen, and hyphens are trimmed from the ends.
+3. A slug longer than 64 characters is cut to 64, at a word break when there
+   is one near the end.
+4. A name with nothing left to spell (only CJK characters, or only
+   punctuation) becomes `project`; one or two characters get `-project`
+   added.
+5. If the organization already has a project with that slug, `-2`, `-3`, … is
+   added.
 
-- 3 to 64 characters, lower-case letters, digits and hyphens, starting and
-  ending with a letter or digit;
-- unique within the organization — otherwise: "project slug already exists in
-  org".
+| Name | Address |
+|---|---|
+| `Employee Pulse 2026 Q1` | `/employee-pulse-2026-q1` |
+| `Опрос удовлетворённости` | `/opros-udovletvorennosti` |
+| `Щедрий вечір` | `/shchedriy-vechir` |
+| `Café Größe` | `/cafe-grosse` |
+| `Q1` | `/q1-project` |
+| `調査` | `/project` |
+| a second `Опрос` | `/opros-2` |
 
-> **Tip.** Include Latin letters or digits in the name. A name written only in
-> another script (Cyrillic, Greek, Chinese, …) or only in punctuation has no
-> characters to keep, so it becomes `untitled-project` — and the second such
-> project in the organization is refused because that slug is taken. A very
-> short name (one or two characters) or a very long one (over 64 characters of
-> slug) is refused too. You can rename the project to anything afterwards; the
-> slug stays.
+The dialog shows the result under the name ("Its address will be …") before
+you create anything, so what you see there is the address the project gets.
+The slug is always 3 to 64 characters of lower-case letters, digits and
+hyphens, starting and ending with a letter or digit. You can rename the
+project to anything afterwards; the slug stays.
 
 ### Blank project
 
-One empty page (`page1`) and default settings. Open the Builder and add
-questions — see [[The Builder|Studio-Builder-Overview]].
+One page (`page1`) holding one placeholder question, and default settings.
+The question is an optional **Single choice** called "New question", with the
+options `1` Option 1 and `2` Option 2, Id and variable `q1`, and its codebook
+entry. Rewrite it into your first question or delete it, then add the rest —
+see [[The Builder|Studio-Builder-Overview]].
+
+The placeholder is there so that the new project checks clean: a page with
+nothing on it is an error in the engine's check (`EMPTY_PAGE`). If you delete
+the question and leave the page empty, that finding comes back until you add
+a question or a Body.
 
 ### The example study
 
@@ -252,8 +278,10 @@ What you get:
 - **Logic** at page, question, block and option level, **randomized** blocks,
   options and block items, and a script that shuffles one question's options.
 - **Three quotas** on age group (400 each).
-- **A codebook** with a declared missing value (gender `99` = Prefer not to
-  say).
+- **A codebook** with declared missing values: gender `99` = Prefer not to
+  say (a refusal) and, on the Likert scale that offers N/A, `-1` = Not
+  applicable — the code the survey stores when a respondent picks **Not
+  applicable**.
 - **Two flows**: *Clean raw responses* (deduplicate, drop speeders under 120
   seconds and partials, write a `clean_responses` table, a live tile) and *Key
   tables* (a frequency table, a crosstab of life satisfaction by age group, a
@@ -261,7 +289,9 @@ What you get:
 - **300 synthetic responses** already in the database, so **Data**, **Live**
   and **Flows** have something to show before any fieldwork. About 8 % are
   partials and about 4 % are speeders, so the cleaning flow has real work to
-  do. They are tagged with the survey id `sample-data`.
+  do. They are tagged with the survey id `sample-data`, and they never count
+  toward a response cap: on the Free plan the project still takes 1,000
+  completed responses from real respondents.
 - Four pinned insights on the **Data** tab.
 
 ### Built-in templates
@@ -324,14 +354,14 @@ Creating a project sets up, in one step:
    not set itself, and it is a copy: changing the house style later does not
    touch existing projects. See [[Theme and Branding|Studio-Theme-and-Branding]].
 4. **Two environments**: `pilot` with a cap of **50** responses and `main`
-   with a cap of **1,200**. See
+   with a cap of **1,200** — counted in completed interviews, so screen-outs
+   and partial responses do not use them up. See
    [[Publishing and Environments|Studio-Publishing-and-Environments]].
 5. For the example study only: the two flows, the 300 sample responses and the
    pinned insights described above.
 
-> **Note.** A **blank** project starts at `● warnings #1`, not `● valid #1`:
-> its one page is empty, and the engine reports `EMPTY_PAGE` ("Page 'page1'
-> has no items."). Add a question and Save, and the warning goes away.
+A **blank** project, like the example study and the built-in templates, starts
+at `● valid #1`: its placeholder question keeps the engine's check clean.
 
 ---
 
@@ -369,6 +399,8 @@ Both are in **Settings** and are for **owners and admins** only:
   Deleting removes the questionnaire, the flows, every Save, all deployments
   and every response, immediately and permanently; live survey links stop
   accepting answers. Download a research bundle and export your data first.
+  A member sees **Delete project** disabled ("Only owners and admins can do
+  this"), with the note "Only owners and admins can delete a project."
 
 Details in [[Project Settings|Studio-Project-Settings]].
 
@@ -379,8 +411,11 @@ Details in [[Project Settings|Studio-Project-Settings]].
 - **One study per project.** Waves of the same tracker belong in one project,
   in separate environments or successive deployments, so the codebook and the
   history stay together.
-- **Name projects for humans** (`Employee Pulse 2026 Q1`), with at least a few
-  Latin letters or digits so the slug is meaningful.
+- **Name projects for humans** (`Employee Pulse 2026 Q1`). A name in Cyrillic
+  or Greek gets a readable transliterated address; a name written only in a
+  script with no Latin spelling (Chinese, Japanese, Arabic, …) gets the
+  address `/project`, so add a few Latin letters or digits if you want the
+  address to say what the study is.
 - **Save early, Save often, with messages.** Saves are cheap, and the message
   is what makes History readable six months later.
 - **Start from the example study once.** It shows every part of the product

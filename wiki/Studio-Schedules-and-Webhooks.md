@@ -38,7 +38,8 @@ cleaning pass every 30 minutes during fieldwork."
      name. Run all runs a flow after the flows whose tables it reads (a table
      one flow writes with **Write table** and another reads with **Project
      table**), in alphabetical order among flows that do not depend on each
-     other — see [Run all](Studio-Flows#run-all).
+     other; flows that read each other's tables run one after another in
+     alphabetical order — see [Run all](Studio-Flows#run-all).
    - **When**: a preset or **Custom cron…**.
 3. Click **Schedule**. You see "Scheduled Run all" or "Scheduled *flow*".
 
@@ -79,12 +80,28 @@ The **When** column describes common shapes in words — "every 30 min",
 - A scheduled Run all behaves like a manual one: a failed flow does not stop
   it. Every flow that does not read the failed flow's tables still runs;
   those that do are marked failed without running ("skipped: needs *flow*,
-  which failed" in the log). The run then ends as **failed**, with no
-  combined report.
+  which failed" in the log) — unless that flow ran and only its report file
+  was missing, in which case its tables were written and its readers run. The
+  run then ends as **failed**, but the reports
+  of the flows that succeeded are stored, and so is a combined report titled
+  "Combined report (incomplete)" that opens by naming what is missing from it
+  (see [The combined report](Studio-Flows#the-combined-report)).
+- A flow that did not pass the engine check at the current Save has nothing
+  to run: its scheduled run fails with "flow '*name*' did not pass the engine
+  check at Save #*N*, so it has no script to run: open it, fix its errors and
+  save". A schedule whose flow the current Save no longer has — for example
+  one resumed after its flow was deleted — fails with "flow '*name*' is not in
+  Save #*N*: it was deleted or renamed".
 - Its end sends the `run.completed` or `run.failed` webhook (below).
 - When a run the timer started fails, every **owner** of the organization gets
   an email, "Scheduled analysis failed: *org/project*", with the run number
-  and a link to open the run log. Runs started with **Run now** send no email.
+  and a link to open the run log. Runs started with **Run now** send no email,
+  and neither do the recomputes of a **Live** flow after new responses.
+- **A schedule never starts its run beside the same run still going.** While
+  the flow's own run (for a Run all schedule: a Run all) is queued or running
+  — started by hand, by **Run now** or by the previous tick — the schedule
+  waits, and fires at the first check after that run ends. A long flow on a
+  frequent timetable therefore runs late rather than twice at once.
 - Studio checks schedules once a minute. A new schedule starts from the moment
   you create it; it does not back-fill earlier times.
 - A schedule is skipped while it is paused, while the project has never been
@@ -114,6 +131,20 @@ upgrade to enable it". Schedules created before the organization moved to
 Free stay listed and can still be run with **Run now**, paused and removed,
 but the timer skips them. To change a schedule's time, remove it and create a
 new one (the API can also change the cron in place).
+
+Schedules follow their flow:
+
+- **Renaming** a flow (**Rename…** on the Flows screen or in the editor's
+  **More** menu) moves its schedules to the new name; they keep running.
+- **Deleting** a flow **pauses** its schedules. They stay listed, so restoring
+  a Save that has the flow brings it back with its schedules — still paused;
+  click **Resume** when you want them again.
+- **Restoring** a Save from before a rename moves the schedules back to the
+  old name, enabled or paused as they were. A restore that removes a flow
+  pauses its schedules, as deleting it does.
+- **Duplicating** a flow does not copy its schedules.
+
+See [Rename, duplicate or delete a flow](Studio-Flows#rename-duplicate-or-delete-a-flow).
 
 ---
 
@@ -148,11 +179,18 @@ example `deploy.failed, run.failed`), and **Delete** (**Delete webhook** —
 "Stop sending events to *url*?"). With none yet the card says "No webhooks
 configured yet."
 
+Two pills in a row warn about a webhook that does not do what you may expect:
+
+| Pill | Tooltip | What to do |
+|---|---|---|
+| **unsigned** | "Deliveries carry no X-Siamang-Signature header. Delete the webhook and add it again with a secret to sign them." | shown for every webhook without a secret; fine if your endpoint does not check signatures |
+| **never fires: *names*** | "Nothing emits *names*: this webhook never fires for it. Delete it and add it again with the events you want." | the webhook subscribes to an event name no event carries (see the note below) |
+
 > **Important.** Copy the secret into your receiving system **before** you
 > click **Add webhook**. The form clears it once the webhook is added, and
-> Studio never shows it again — the list does not even say which webhooks
-> have one. If you lose it, delete the webhook and add it again with a new
-> secret.
+> Studio never shows it again — the list only says whether a webhook has one
+> (no **unsigned** pill). If you lose it, delete the webhook and add it again
+> with a new secret.
 
 Adding and deleting a webhook is recorded in the organization's **Activity**
 as `webhook.create` and `webhook.delete`, with the endpoint URL (and, for a
@@ -164,11 +202,17 @@ delete it and add it again.
 > **Note — webhooks added in earlier versions.** Earlier versions of Studio
 > offered the chips **Deploys**, **Runs** and **Terminal**, which saved the
 > event names `deploy`, `run` and `terminal`. No event carries those names, so
-> a webhook that lists any of them in its row receives nothing. Earlier
+> such a webhook received nothing. Studio has since converted the stored
+> names: `deploy` became `deploy.live`, `deploy.failed`, `deploy.stopped`, and
+> `run` became `run.completed`, `run.failed` — those webhooks now receive the
+> matching events, and their rows list the new names. `terminal` was dropped;
+> a webhook that subscribed to `terminal` alone keeps it (an empty list would
+> mean every event), still receives nothing, and shows **never fires:
+> terminal** — delete it and add it again with the events you want. Earlier
 > versions also did not store the **Secret** typed in the form, so webhooks
-> added in the app back then send unsigned requests. Delete such a webhook
-> and add it again. A webhook that shows "all events" and needs no signature
-> works as it is.
+> added in the app back then send unsigned requests and show **unsigned**; a
+> secret cannot be added afterwards, so delete such a webhook and add it again
+> if your endpoint checks signatures.
 
 ### Create a webhook through the API
 
@@ -189,8 +233,13 @@ curl -X POST https://api.studio.siamang.org/orgs/acme-research/webhooks \
 ```
 
 `events` takes the exact event names from the table below — the same names
-the chips send; an empty list (`[]`) means every event. The webhook then
-appears in the app's list as usual.
+the chips send; an empty list (`[]`) means every event, and a name listed
+twice counts once. Any other name is refused with 422; `detail` lists the
+failed field, `events`, with the message "Value error, unknown webhook
+event(s): *names*; allowed: deploy.live, deploy.failed, deploy.stopped,
+run.completed, run.failed (none = every event)". The webhook then appears in
+the app's list as usual; the API's listing says the same as its pills, in
+`signed` (whether deliveries are signed) and `unknown_events`.
 
 ### Events and payloads
 
@@ -202,7 +251,7 @@ for people, and the event's fields:
 | `deploy.live` | a deployment finished building and is serving | `deployment_id`, `project`, `environment`, `url`, `survey_id` | `deploy.live · acme-research/brand-2026 (main) · https://study.siamang.org/3f9a1c07b2de/` |
 | `deploy.failed` | a deployment build failed | `deployment_id`, `project`, `environment` | `deploy.failed · acme-research/brand-2026 (main)` |
 | `deploy.stopped` | a deployment or preview was stopped | `deployment_id`, `project`, `environment` | `deploy.stopped · acme-research/brand-2026 (main)` |
-| `run.completed` | a flow run or Run all finished (manual or scheduled) | `run_id`, `kind` (`run_script` or `run_all`), `project`, `script` (the flow's name; not for Run all), `status` | `run.completed · acme-research/brand-2026 · flow tables · completed` — for Run all: `run.completed · acme-research/brand-2026 · all flows · completed` |
+| `run.completed` | a flow run or Run all finished (manual, scheduled, or a Live flow recomputed after new responses) | `run_id`, `kind` (`run_script` or `run_all`), `project`, `script` (the flow's name; not for Run all), `status` | `run.completed · acme-research/brand-2026 · flow tables · completed` — for Run all: `run.completed · acme-research/brand-2026 · all flows · completed` |
 | `run.failed` | a flow run or Run all failed | as `run.completed`, with `"status": "failed"` | `run.failed · acme-research/brand-2026 · flow tables · failed` |
 
 `project` is `<organization-slug>/<project-slug>`. A complete body:

@@ -15,12 +15,12 @@ documented and can be revisited.
 | Signal | Where you set it up | Where you see it |
 |---|---|---|
 | Attention checks | Builder → question inspector | Distribute **Quality screen** tile; **Response quality** node |
-| Straightlining | automatic for questions with 3+ items (Distribute); battery chosen in the node (flows) | **Quality screen** tile; **Response quality** node |
-| Speeders | automatic | **Median duration** tile (speeder count); **Speeders & partials** node |
-| Captcha | Distribute → **Captcha** chip | `captcha` in `meta`; **Captcha unavailable** quick filter; `captcha` column in flows |
-| Tab switches, time away, pastes | automatic | `meta`; columns in flows |
+| Straightlining | automatic for matrices with 3+ rows (Distribute); battery chosen in the node (flows) | **Quality screen** tile; **Response quality** node |
+| Speeders | automatic | **Median duration** tile (speeder count); `duration_s` column in exports and flows; **Speeders & partials** node |
+| Captcha | Distribute → **Captcha** chip | `captcha` in `meta`; **Captcha unavailable** quick filter; `captcha` column in exports and flows |
+| Tab switches, time away, pastes | automatic | `meta`; columns in exports and flows |
 | Contradictions, duplicate patterns | the **Response quality** node | `quality_flags` column |
-| Unfinished interviews | automatic | `partial`; **Partial** quick filter; drop-off funnel |
+| Unfinished interviews | automatic (surveys built with the current runtime) | `partial`; **Partial** quick filter; drop-off funnel |
 
 ---
 
@@ -50,40 +50,61 @@ question, in the inspector's **Question** section:
    field warns "Until an answer is set, this question checks nothing."
 3. Optionally check **Also end the survey for respondents who fail** (hint:
    "adds a screen-out branch", or "branches to `<page>`" once added). This adds
-   an ordinary branch rule to the page, editable in Logic: it is evaluated when
-   the page is left, so respondents finish the page first, and their answers
-   are still collected and counted as screened out. The rule points at the
-   first Screen-out page. If there is none, Studio creates one and places it
-   directly **before** the first **Final** or **Redirect** page — adding a
-   **Final** page after your last question page first, when there is no end
-   page at all. Leave the option off to keep everyone and decide in the
-   analysis instead.
+   an ordinary branch rule to the page, editable in Logic. The inspector
+   explains it: "An ordinary page branch, editable in Logic: it is evaluated
+   when this page is left, so they finish the page first, and their answers are
+   still collected and counted as screened out. Its Screen-out page sits after
+   the Final page, so only this branch leads there. Leave it off to keep
+   everyone and decide in the analysis instead." (The middle sentence appears
+   when it is true.)
 
-> **Current limitation.** Pages run in order, and an end page reached in order
-> ends the interview. With the Screen-out page Studio creates sitting in front
-> of the Final page, respondents who **pass** the check reach it when they
-> press **Next** on the page before it, and are recorded as screened out.
-> After checking the box, move the Screen-out page below the Final page — drag
-> it in the page rail, or open it and press **↓** ("Move page down") in the
-> canvas bar; the branch rule follows it by name — and walk the survey once as
-> a respondent who passes. See
-> [Attention checks](Studio-Logic-and-Branching#attention-checks) and
-> [Screening people out](Studio-Logic-and-Branching#screening-people-out).
+Where the Screen-out page goes matters, because pages are shown in order and
+an end page reached in order ends the interview. The branch therefore points
+at a Screen-out page placed **after** the last **Final** or **Redirect** page,
+where nobody arrives by walking forward — so respondents who pass finish
+normally and are recorded as completed:
 
-> **Current limitation.** When the questionnaire already has a Screen-out page,
-> the rule uses that one. In every template that asks for consent, that page is
-> `screen_out`, which only people who decline consent see. Everyone else skips
-> it, so the branch lands on the first visible page after it. A respondent who
-> fails the check goes back to the start of the questionnaire instead of being
-> screened out. Add your own Screen-out page below the Final page and point the
-> rule at it, as described under
-> [Attention checks](Studio-Logic-and-Branching#attention-checks).
+- If such a Screen-out page already exists (with no **Show if** / **Hide if**
+  of its own), the branch uses it.
+- Otherwise Studio adds one right after the last Final or Redirect page, named
+  `disqualification` (`disqualification_2`, … if the name is taken), with the
+  title "Thank you" and the body "You do not qualify for this study."
+- If nothing ends the survey for everyone (no Final or Redirect page without
+  a condition), Studio first adds a **Final** page ("Thank you" / "Thank you
+  for taking part.") after your last question page.
+- A Screen-out page that only some respondents see — such as the templates'
+  consent screen-out — is left to its own job; the check gets a page of its
+  own.
+
+**Checks set up before this placement.** A branch saved earlier may point at
+a Screen-out page in the running order, or at one with a condition of its own.
+The inspector then shows the problem under the checkbox, and Builder →
+Validation lists it as "`<question id>`: the screen-out branch for failing this
+attention check does not work. …":
+
+| Message | Meaning |
+|---|---|
+| "Respondents who pass reach “`<page>`” too: it comes after this page with no Final page in between, and pages are shown in order." | people who pass are screened out too |
+| "“`<page>`” has a show if or hide if of its own. Where it is hidden, a respondent who fails is sent on to the next page shown after it instead of being screened out." | people who fail are not screened out (in the consent templates they land back at the start) |
+| "Skip to on `<question id>` is checked before branch rules, so for anyone who answers `<question id>` this branch never fires." | a **Skip to** on the same page wins; change the routing by hand |
+
+The first two come with a **Fix the branch** button: it moves the old
+Screen-out page (keeping its wording) behind the last Final or Redirect page —
+or adds a new one, leaving a conditional page to its own job — adding a Final
+page first if none ends the survey, and points the branch at it. Save and
+republish afterwards, and walk the survey once as a respondent who passes. See
+[Attention checks](Studio-Logic-and-Branching#attention-checks) and
+[Screening people out](Studio-Logic-and-Branching#screening-people-out).
 
 Rules:
 
 - A check **fails** only when it was answered and the answer differs from the
-  expected one. A skipped check is not a failure.
-- Matrix and ranking questions cannot be attention checks.
+  expected one. A skipped check is not a failure, and the screen-out branch
+  never fires for it. (In a survey published before the current runtime, a
+  respondent who skipped an optional **Number** or **Open text** check was
+  screened out by the branch; republish to apply the rule above.)
+- Only **Single choice**, **Likert scale**, **Number** and **Open text**
+  questions can be attention checks; matrix and ranking questions cannot.
 - A new or changed check reaches the field when you save and republish.
 
 ---
@@ -95,14 +116,16 @@ fieldwork left to change**. They only count — nothing is dropped or stored.
 
 ### Quality screen
 
-The share of **completed** responses of the environment that failed an
-attention check **or** straightlined:
+The share of **submitted** responses of the environment (screen-outs included,
+partial interviews not) that failed an attention check **or** straightlined:
 
 - **Attention checks**: the questions marked in the Builder, with their
   expected answers.
-- **Straightlining**: every question that writes three or more variables (a
-  matrix with three or more rows, for example) counts as a battery; a response
-  is flat when all items are answered and all answers are identical.
+- **Straightlining**: every **Matrix** with three or more rows counts as a
+  battery; a response is flat when all rows are answered and all answers are
+  identical. A Multiple choice in the wide layout also writes one variable per
+  choice, but it is not a battery — ticking every option is not
+  straightlining.
 
 The checks come from the questionnaire **the environment is running**, not
 your latest edits. The tile shows the percentage and **`X` of `Y` flagged ·
@@ -110,21 +133,31 @@ your latest edits. The tile shows the percentage and **`X` of `Y` flagged ·
 **add an attention check in Builder** (and **—**) rather than a reassuring
 0 %.
 
+Straightlining is found in matrix rows whichever survey build collected them:
+rows stored the current way, one variable per row, and rows an older build
+stored together under the question. (An older build stored a matrix answer as
+the column's position rather than its code; for "all answers identical" that
+makes no difference.)
+
 These are the same definitions the **Response quality** node uses at its
 defaults, so the live number and your analysis agree.
 
 ### Median duration and speeders
 
 **Median duration** is the median time from opening the survey to submitting,
-over completed responses (`m:ss`). Underneath, **N speeders**: completed
-responses faster than **one third of the median**. Until timings arrive the
-tile says **timing arrives with responses**.
+over submitted responses, screen-outs included (`m:ss`). Underneath, **N
+speeders**: submitted responses faster than **one third of the median**. Until
+timings arrive the tile says **timing arrives with responses**.
 
 ### Completion and drop-off
 
-**Completion** is completed ÷ all rows (partials included); its subline names
-the page where most unfinished interviews stopped. The **Drop-off** chip shows
-the whole funnel — see [[Live Monitoring|Studio-Live-Monitoring]].
+**Completion** is submitted interviews ÷ all rows (partials included); its
+subline names the page where most unfinished interviews stopped. The
+**Drop-off** chip shows the whole funnel — see
+[[Live Monitoring|Studio-Live-Monitoring]]. Unfinished interviews arrive only
+from a survey built with the current runtime; for an environment published
+earlier, **Completion** reads 100 % and the funnel stays empty until you
+[republish](Studio-Publishing-and-Environments#republishing) it.
 
 ---
 
@@ -140,8 +173,8 @@ response carries a verdict in `meta`:
 
 Forged or replayed tokens are refused and never stored. In the Data tab, the
 **Captcha unavailable** quick filter shows the kept-without-token responses;
-in flows, filter on the `captcha` column. `unavailable` is not proof of a bot —
-treat it as one signal among several.
+in an export or a flow, filter on the `captcha` column. `unavailable` is not
+proof of a bot — treat it as one signal among several.
 
 ---
 
@@ -157,9 +190,10 @@ Every response records three counts in `meta` — never content:
 
 With `duration_seconds` they tell a respondent who answered in one sitting
 from one who had the questions open in another tab — or pasted open answers.
-In flows they are columns `tab_switches`, `hidden_seconds`, `pastes` (and
-`duration_s`), ready for a **Filter rows** node or a crosstab. Studio does not
-score them for you: choose thresholds that fit your survey and report them.
+In Data exports and in flows they are columns `tab_switches`,
+`hidden_seconds`, `pastes` (and `duration_s`), ready for a **Filter rows**
+node, a crosstab or your own statistics package. Studio does not score them
+for you: choose thresholds that fit your survey and report them.
 
 ---
 
@@ -173,7 +207,9 @@ The quick filters of the grid:
 | **Captcha unavailable** | responses stored without a captcha token |
 | **Quality flags** | rows with a non-empty `quality_flags` — in a table a flow wrote after a **Response quality** node |
 
-The chips work on the rows loaded in the grid (the 100 newest). See
+The chips work on the rows loaded in the grid — the 100 newest, or the rows a
+whole-table search found (type in the filter and press `Enter`). **Completed**
+keeps screen-outs too. See
 [[Responses and the Data Tab|Studio-Responses-and-Data]].
 
 ---

@@ -100,8 +100,8 @@ tab; click it to open that Save in History.
 | Badge | Meaning |
 |---|---|
 | `● valid #17` | Save 17 is clean — publishable and runnable |
-| `● warnings #17` | saved; the engine has remarks — publishable after you confirm |
-| `● errors #17` | saved but broken — cannot be published |
+| `● warnings #17` | saved; the engine has remarks — publishable after you confirm. This includes red lint errors in the questionnaire (the Save toast counts them) and a flow that failed its check: that flow cannot run, everything else works |
+| `● errors #17` | saved, but the questionnaire does not pass the engine's validation — cannot be published |
 | `checking #17` | validation of Save 17 is still running |
 | `unsaved` | the project has never been saved |
 | `saving…` | a Save is in progress |
@@ -140,8 +140,11 @@ and panel setups stay valid across versions.
 **One Save published into one environment.** Publishing builds the survey from
 the Python stored with that Save and serves it on the environment's link. A
 deployment is **live**, **paused**, **closed**, **building** or **failed**.
-If the questionnaire sets a **deadline**, a live deployment stops accepting
-responses once that moment passes (see
+A deployment can also have a **closing date** — the questionnaire's deadline,
+the environment's `closes_at`, or a date you set on the environment's card,
+which applies at once without a rebuild. Once it passes, the environment stops
+accepting responses, a respondent who opens the link is told "This survey is
+closed", and the card reads **○ Closed** with an **Extend** button (see
 [Deadlines](Studio-Publishing-and-Environments#deadlines)).
 Every response records the environment (survey id) that collected it. The
 environment keeps its id across republishes, so to know which Save was live on
@@ -149,7 +152,14 @@ a given day, use the project's **Activity** log: every publish is recorded
 there, and its **Export CSV** includes the Save number.
 
 A **preview deployment** is a staged build for looking at: it never accepts
-responses.
+responses. A banner at the bottom says "Preview — answers are not stored",
+and the survey ends on its normal completion page.
+
+**Republishing** matters beyond new questions: a deployment keeps the survey
+runtime it was built with. Improvements to how published surveys behave —
+quota cells that stop respondents, the page Body above the questions,
+progress saved for unfinished interviews — reach an environment published
+earlier only when you publish it again.
 
 → [[Publishing and Environments|Studio-Publishing-and-Environments]]
 
@@ -167,9 +177,12 @@ A **response** is one row of the project's `responses` table: the answers plus
 fieldwork metadata (timings, last page, URL parameters). A **respondent id** is
 a random identifier kept in the respondent's browser so an unfinished interview
 can resume — it is not an identity, and it does not stop the same person from
-answering twice. A **partial** is an interview that was started but not
-submitted; partials appear in the data but do not count toward response caps
-or quotas.
+answering twice (the **One per browser** switch on an environment's card
+refuses a second interview from the same browser, and nothing more). A
+**partial** is an interview that was started but not submitted. A
+**screen-out** ended on a Screen-out page. Both appear in the data, but only
+**completed** interviews — submitted, and not screened out — count toward
+response caps and quota cells.
 
 → [[Responses and the Data Tab|Studio-Responses-and-Data]]
 
@@ -188,6 +201,13 @@ and validation messages show. The two may differ (presets start as `q3` /
 `nps_3`), but an Id must not be another question's variable name. See
 [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
 
+Renaming a variable in the Builder renames it everywhere the questionnaire
+uses it — conditions, branch rules, quotas, piped text, scripts — and moves
+its codebook entry. It does not change your flows. Once the survey has been
+published, it also renames the data column: answers collected before keep the
+old name, answers collected after you publish again get the new one. See
+[Renaming a variable](Studio-Codebook-and-Variables#renaming-a-variable).
+
 → [[Codebook and Variables|Studio-Codebook-and-Variables]]
 
 ## Flow, node, run
@@ -200,16 +220,24 @@ outputs (reports, tables, files, live tiles). Wires carry typed data:
 and **Report**.
 
 - **Run to here** executes a flow up to one node and shows the result — a
-  quick preview that produces no report and no run-history entry (a
-  **Write table** node it reaches does write its table, though).
+  quick preview that produces no report and no run-history entry, and never
+  writes a project table: a **Write table** node it reaches only says how many
+  rows a run would write.
 - **Run** executes the flow's stored Python for the current Save in an
   isolated sandbox and records a **run** with its log and output files.
 - **Run all** runs every flow of the Save one after another and assembles a
   combined report. A flow that reads a table another flow writes runs after
   that flow; independent flows run in alphabetical order of their names. A
-  failed flow does not stop the others — only the flows that read its tables
-  are skipped — and the combined report is written only when every flow
-  succeeded. See [Run all](Studio-Flows#run-all).
+  failed flow does not stop the others — only the flows that read a table it
+  did not write are skipped — and the flows that succeeded still get their
+  reports. When any flow failed, the combined report is titled "Combined
+  report (incomplete)" and opens with what is missing from it. See
+  [Run all](Studio-Flows#run-all).
+
+A flow that fails the engine's check at Save is saved anyway, without code:
+that flow cannot run until you fix it, and nothing else in the project is
+held up. Flows can be renamed, duplicated and deleted; each is a Save of its
+own, so History can undo it.
 
 There is no code box anywhere in a flow: every node is a documented engine
 call, which is why each flow downloads as a readable `.py`.
@@ -230,9 +258,12 @@ screen — and, if you choose, to a public read-only link for clients.
 Any Save can be downloaded as a **research bundle**: a zip with the generated
 code, the documents, the codebook, a draft Methods section, a citation file,
 the pinned environment and, optionally, the responses. It runs outside Studio,
-with the engine version its `environment/requirements.txt` names. **Provenance** — which Save, which data snapshot,
-which engine version produced a result — is written into every bundle and into
-the footer of every generated report.
+with the engine version its `environment/requirements.txt` names; its README
+says where that engine comes from and whether it can be older than the one
+Studio runs. **Provenance** — which Save, which data snapshot,
+which engine version produced a result — is written into every bundle and,
+unless you untick **End every report with the provenance footer** under
+**Settings → Reports**, into the footer of every generated report.
 
 → [[Reproducibility|Studio-Reproducibility]]
 

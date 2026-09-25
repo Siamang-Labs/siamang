@@ -20,8 +20,8 @@ The topbar is the same on every screen:
 |---|---|
 | Wordmark and **Beta** | the product name. The **Beta** label says Studio is in open beta. |
 | **Workspace chip** | the colored square with your organization's initials, followed by the name of the **project** you are in, or the **organization** name when you are not in a project. Click it to switch organization or project. |
-| **Save badge** | shown only inside a project: the project's current Save and its validation state, e.g. `● valid #17`, `● warnings #17`, `● errors #17`, `checking #17`, `unsaved`, `saving…`. Click it to open that Save in **History**. See [[Key Concepts|Studio-Key-Concepts]]. |
-| **Trial pill** | `Pro trial · 27d`: the days left on your organization's Pro trial. Hover for "Pro trial — 27 days left". Absent when the organization is not on a trial. |
+| **Save badge** | shown only inside a project: the project's current Save and its validation state, e.g. `● valid #17`, `● warnings #17`, `● errors #17`, `checking #17`, `unsaved`, `saving…`. Click it to open that Save in **History**. See [[Key Concepts\|Studio-Key-Concepts]]. |
+| **Trial pill** | `Pro trial · 27d`: the days left on your organization's Pro trial. Hover for "Pro trial — 27 days left". During a paid period that ends on a date, such as a 12-month beta offer, the pill names the plan instead, for example `Plus · 200d` (hover: "Paid period — 200 days left"), and reads `Paid period ended` in the short time between its end and the switch to Free. Absent when the organization's plan has no end date. See [[Plans, Trial and Billing\|Studio-Plans-and-Billing]]. |
 | **Avatar** | a colored circle with your initials. Hover shows your name. Click it for the avatar menu. |
 
 Below the topbar are the **tabs**: the organization's (**Projects**, **Team**,
@@ -43,9 +43,11 @@ The chip opens a two-column menu:
 ```
 
 - **Organizations** lists every organization you belong to. Each row shows a
-  role pill (`owner`, `admin`, `member`), a trial pill (e.g. `27d`) when that
-  organization is on a trial, and a ✓ on the current one. Click another
-  organization to switch to it. You land on its **Projects** tab.
+  role pill (`owner`, `admin`, `member`), a days-left pill (e.g. `27d`) when
+  that organization's trial or paid period runs to a date (hover: "Pro trial —
+  27 days left" or "Paid period — 27 days left"), and a ✓ on the current one.
+  Click another organization to switch to it. You land on its **Projects**
+  tab.
 - **Manage organizations** opens the **Organizations** screen (see
   [[Organizations and Team|Studio-Organizations-and-Team]]).
 - **Create organization** opens the **Create organization** dialog. It is
@@ -88,14 +90,25 @@ They are remembered on this computer and do not follow you to another one.
 
 Two banners can appear across the top of every screen of an organization.
 
-**Trial ending.** Shown in the last three days of a Pro trial:
+**Trial or paid period ending.** Shown in the last three days of a Pro trial:
 
 > **Pro trial ends in 3 days.** After the trial, Free plan limits apply. Your
 > data is preserved and stays exportable. Choose a paid plan in Settings →
 > Billing to keep using paid features.
 
 The first sentence counts down ("Pro trial ends in 1 day.") and reads **Your
-Pro trial has ended.** right after the trial lapses. See
+Pro trial has ended.** right after the trial lapses. Studio moves the
+organization to Free within half an hour after that, and the banner goes
+away.
+
+A paid period that ends on a date, such as a 12-month beta offer, gets the
+same banner in its own words:
+
+> **Your paid Plus period ends in 3 days.** Afterwards, Free plan limits apply.
+> Your data is preserved and stays exportable. Renew in Settings → Billing to
+> keep using paid features.
+
+Once it is over, the first sentence reads **Your paid period has ended.** See
 [[Plans, Trial and Billing|Studio-Plans-and-Billing]].
 
 **Frozen workspace.** Shown only if Siamang has frozen the organization, which
@@ -128,6 +141,9 @@ It has five tabs: **Account**, **Security**, **Appearance**, **API keys**,
 
 Edit the name and click **Save changes**. The button is active only when the
 name has changed and is not empty. A "Profile updated" notice confirms it.
+The change is recorded in the Activity log of every organization you belong
+to, as `profile.update`, with the new name as the target and the old one in
+the exported `meta`.
 
 ### Security
 
@@ -144,7 +160,9 @@ This tab changes the password you use with **Continue with Email**.
    confirms it, and you stay signed in.
 
 Studio does not ask for your current password here: you are already signed in.
-Sign out when you leave a shared computer.
+Sign out when you leave a shared computer. The new password goes straight to
+the managed sign-in service, so the change does not appear in any
+organization's Activity log.
 
 **If you sign in with Google or Microsoft**, the same form **sets** a password
 on your account. From then on you can also sign in with **Continue with
@@ -233,17 +251,20 @@ Four tiles:
   role. Passwords and Google or Microsoft sign-ins are handled by a managed
   authentication service; Studio's own servers never receive your password.
 - **Your actions inside an organization**, recorded in its Activity log under
-  your name: Saves, publishing, deletions, member changes and so on, plus the
-  creation and revocation of your API keys, which appear in every organization
-  you belong to. See [Activity](Studio-Organizations-and-Team#activity).
+  your name: Saves, publishing, data exports, deletions, member changes and so
+  on. Changes to your name and the creation and revocation of your API keys
+  are account events: they appear in every organization you belong to.
+  Sign-ins and password changes go through the managed sign-in service and
+  are not recorded there. See
+  [Activity](Studio-Organizations-and-Team#activity).
 - **Personal drafts**: your unsaved Builder and Flows edits, stored per person
   so a colleague taking over a document cannot lose them.
 - **Your API keys**: name, first characters, creation and last-use time. The
   token itself is stored only as a hash.
 - If you turned the AI assistant on for an organization, the record that you
   did and when.
-- A record of the platform emails sent to you: invitations, trial and billing
-  notices.
+- A record of the platform emails sent to you: invitations, trial,
+  paid-period and billing notices.
 
 Respondent data is a separate matter; see
 [[Security and Privacy|Studio-Security-and-Privacy]].
@@ -258,7 +279,8 @@ Respondent data is a separate matter; see
   their own organization.
 - **Delete your account.** Not self-service in the beta. Write to
   `info@siamang-team.org` from the address you signed up with.
-- **Delete a project.** Self-service for owners and admins, and permanent; see
+- **Delete a project.** Self-service for owners and admins, and permanent;
+  members see **Delete project** disabled. See
   [[Project Settings|Studio-Project-Settings]].
 
 ## See also
