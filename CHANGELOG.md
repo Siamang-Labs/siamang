@@ -174,6 +174,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fires on any row, as before, and Studio's walkthrough trace keeps saying so
   for the skip, while its "answered" count now counts a matrix once every row
   is answered — what Required asks for, as it already did for a MaxDiff.
+- A matrix could not be answered from the keyboard beyond its first row. The
+  arrow keys moved a marker, not the focus — after ↓ the next → answered row 1
+  again — and the "Not applicable" column was out of their reach; and Enter or
+  Space on any button (a matrix cell, a rating point, a picture choice, the
+  dropdown, Previous) pressed Next, so no cell could be chosen and Previous went
+  forward. With a required matrix now asking for every row, a respondent without
+  a mouse could not finish one. The arrow keys now move the focus from cell to
+  cell — ← → along the row, answering it with the cell they reach, the N/A
+  column included; ↑ ↓ to the same column of the row below or above — and
+  Enter and Space on a button or a link are its own: they choose the cell or
+  the point, go back, open the dropdown. Elsewhere outside a text field they
+  still go to the next page.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
   else under: another question's Other text key (`brand_other`), a matrix's

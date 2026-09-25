@@ -486,8 +486,16 @@ function rowNaCode(row) {
 
 function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
   const v = value || {};
+  // One cell is in the tab order (a roving tabindex) and the arrow keys move
+  // the focus itself between the cells, the N/A column included: Left and
+  // Right answer the row with the cell they move to, Up and Down go to the
+  // same column of the row above or below. Space and Enter choose the cell
+  // the focus is on, as a button's own keys (useKeyboardShortcuts leaves a
+  // button's Enter and Space to it).
   const [focusRow, setFocusRow] = useState(0);
   const [focusCol, setFocusCol] = useState(0);
+  const cells = useRef({});
+  const width = q.columns.length + (q.naOption ? 1 : 0);
   // Once the survey has held a required matrix for its answer, the rows still
   // without one are marked: the message goes with the next click, a row's mark
   // when that row is answered.
@@ -495,25 +503,30 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
   useEffect(() => { if (error && q.required) setFlagged(true); }, [error, q.required]);
   const missing = flagged ? new Set(unansweredRows(q, v)) : null;
 
-  const handleKeyDown = (e, rowIdx) => {
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      const nextCol = Math.min(focusCol + 1, q.columns.length - 1);
-      setFocusCol(nextCol);
-      onChange({ ...v, [q.rows[rowIdx].id]: matrixColumnCode(q, nextCol) });
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      const nextCol = Math.max(focusCol - 1, 0);
-      setFocusCol(nextCol);
-      onChange({ ...v, [q.rows[rowIdx].id]: matrixColumnCode(q, nextCol) });
-    } else if (e.key === "ArrowDown" && rowIdx < q.rows.length - 1) {
-      e.preventDefault();
-      setFocusRow(rowIdx + 1);
-    } else if (e.key === "ArrowUp" && rowIdx > 0) {
-      e.preventDefault();
-      setFocusRow(rowIdx - 1);
+  const handleKeyDown = (e, rowIdx, colIdx) => {
+    let row = rowIdx;
+    let col = colIdx;
+    if (e.key === "ArrowRight") col = Math.min(colIdx + 1, width - 1);
+    else if (e.key === "ArrowLeft") col = Math.max(colIdx - 1, 0);
+    else if (e.key === "ArrowDown" && rowIdx < q.rows.length - 1) row = rowIdx + 1;
+    else if (e.key === "ArrowUp" && rowIdx > 0) row = rowIdx - 1;
+    else return;
+    e.preventDefault();
+    const cell = cells.current[row + ":" + col];
+    if (cell) cell.focus();
+    if (row === rowIdx) {
+      const target = q.rows[rowIdx];
+      onChange({ ...v, [target.id]: col < q.columns.length ? matrixColumnCode(q, col) : rowNaCode(target) });
     }
   };
+
+  // What every cell shares: its place in the keyboard's grid.
+  const cellProps = (rowIdx, colIdx) => ({
+    ref: (el) => { cells.current[rowIdx + ":" + colIdx] = el; },
+    tabIndex: rowIdx === focusRow && colIdx === focusCol ? 0 : -1,
+    onFocus: () => { setFocusRow(rowIdx); setFocusCol(colIdx); },
+    onKeyDown: (e) => handleKeyDown(e, rowIdx, colIdx),
+  });
 
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
@@ -540,9 +553,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
                         className={"sd-matrix__cell" + (selected ? " is-selected" : "")}
                         aria-label={`${row.label}: ${q.columns[colIdx]}`}
                         aria-pressed={selected}
-                        tabIndex={rowIdx === focusRow && colIdx === focusCol ? 0 : -1}
-                        onFocus={() => { setFocusRow(rowIdx); setFocusCol(colIdx); }}
-                        onKeyDown={(e) => handleKeyDown(e, rowIdx)}
+                        {...cellProps(rowIdx, colIdx)}
                         onClick={() => onChange({ ...v, [row.id]: code })}
                       />
                     </td>
@@ -555,7 +566,7 @@ function Matrix({ q, value, onChange, num, error, onBlur, answers }) {
                       className={"sd-matrix__cell" + (sameCode(v[row.id], rowNaCode(row)) ? " is-selected" : "")}
                       aria-label={`${row.label}: ${q.naOption}`}
                       aria-pressed={sameCode(v[row.id], rowNaCode(row))}
-                      tabIndex={-1}
+                      {...cellProps(rowIdx, q.columns.length)}
                       onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}
                     />
                   </td>

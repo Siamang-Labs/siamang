@@ -383,6 +383,11 @@ answer; with no row answered the message is the usual `required_text`. A `skip_t
 matrix fires once any row is answered, as it always has; on a required matrix Next first
 asks for the rest.
 
+From the keyboard, one cell of the grid is in the tab order. The arrow keys move the
+focus between cells: ← and → along the row, answering it with the cell they reach (the
+"Not applicable" column included), ↑ and ↓ to the same column of the row below or above.
+Space or Enter chooses the cell in focus, and Tab leaves the grid.
+
 ---
 
 ## `Ranking`

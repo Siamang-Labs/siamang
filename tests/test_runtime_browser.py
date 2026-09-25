@@ -734,6 +734,113 @@ def test_the_walkthrough_counts_a_matrix_answered_once_every_row_is(tmp_path):
     assert state["all"] == {"answered": 1, "visible": 1, "skips": [{**skip, "answered": True}]}
 
 
+# ── A matrix from the keyboard ───────────────────────────────────────────────
+
+# `press(...keys)` presses keys where the focus is; `chosen()` is each row's
+# chosen column (-1: none; the N/A column is the last), `focused()` the cell
+# (or the class of the button) that has the focus, `tabbable()` the cells in
+# the tab order.
+_MATRIX_KEYS = """
+    const press = async (...keys) => {
+        for (const key of keys) { await page.keyboard.press(key); await page.waitForTimeout(60); }
+    };
+    const chosen = () => page.$$eval("table.sd-matrix tbody tr", (trs) => trs.map((tr) =>
+        [...tr.querySelectorAll("button.sd-matrix__cell")]
+            .findIndex((b) => b.getAttribute("aria-pressed") === "true")));
+    const focused = () => page.evaluate(() =>
+        document.activeElement.getAttribute("aria-label") || document.activeElement.className);
+    const tabbable = () => page.$$eval("table.sd-matrix button.sd-matrix__cell[tabindex='0']",
+        (bs) => bs.map((b) => b.getAttribute("aria-label")));
+"""
+
+
+def test_a_required_matrix_is_answered_row_by_row_from_the_keyboard(tmp_path):
+    """Up and Down move the focus to the same column of the row below or
+    above, Left and Right answer the row with the cell they move to — the N/A
+    column included — and Space or Enter chooses the cell the focus is on. Up
+    and Down used to leave the focus on row 1, N/A was out of the keys' reach
+    and Space or Enter pressed Next, so a required matrix, which needs every
+    row, could not be finished from the keyboard."""
+
+    scenario = (
+        _MATRIX_STEPS
+        + _MATRIX_KEYS
+        + """
+        await page.focus("table.sd-matrix button.sd-matrix__cell[tabindex='0']");
+        await press(" ");
+        const space = { chosen: await chosen(), ...(await held()) };
+        await press("ArrowDown");
+        const down = await focused();
+        await press("ArrowRight", "ArrowDown", "ArrowRight", "ArrowRight");
+        const rows = { chosen: await chosen(), focused: await focused(), tabbable: await tabbable() };
+        await press("ArrowUp", "Enter");
+        const enter = { chosen: await chosen(), focused: await focused(), ...(await held()) };
+        await press("Tab");
+        const tab = await focused();
+        await press("Enter");
+        await page.waitForTimeout(250);
+        return { space, down, rows, enter, tab, pages: await page.evaluate(() => window.__T.pages.slice()) };
+    """
+    )
+    state = run_in_browser(_required_matrix_document(), scenario, tmp_path)
+    assert state["space"] == {
+        "chosen": [0, -1, -1],
+        "errors": [],
+        "missing": [False, False, False],
+        "pages": ["p1"],
+    }
+    assert state["down"] == "Radio: Never"
+    assert state["rows"] == {
+        "chosen": [0, 1, 3],
+        "focused": "Press: Not applicable",
+        "tabbable": ["Press: Not applicable"],
+    }
+    assert state["enter"]["chosen"] == [0, 3, 3]
+    assert state["enter"]["focused"] == "Radio: Not applicable"
+    assert state["enter"]["pages"] == ["p1"]
+    assert state["tab"] == "sd-btn sd-navigation__next-btn"
+    assert state["pages"] == ["p1", "middle"]
+
+
+def test_enter_and_space_on_a_button_are_the_buttons_own(tmp_path):
+    """Enter or Space outside a text field goes on, as before — but on a
+    button they are the button's: Previous goes back, a rating point is
+    chosen. Both used to press Next."""
+
+    scenario = (
+        _MATRIX_KEYS
+        + """
+        const pages = () => page.evaluate(() => window.__T.pages.slice());
+        await page.evaluate(() => document.activeElement && document.activeElement.blur());
+        await press("Enter");
+        await page.waitForTimeout(250);
+        const outside = await pages();
+        await page.focus(".sd-navigation__prev-btn");
+        await press("Enter");
+        await page.waitForTimeout(250);
+        return { outside, back: await pages() };
+    """
+    )
+    state = run_in_browser(_required_matrix_document(required=False), scenario, tmp_path / "prev")
+    assert state["outside"] == ["p1", "middle"]
+    assert state["back"] == ["p1", "middle", "p1"]
+    scenario = (
+        _MATRIX_KEYS
+        + """
+        await page.focus(".sd-rating__item:nth-child(3)");
+        await press(" ");
+        const space = await page.$$eval(".sd-rating__item.is-selected", (els) => els.map((e) => e.textContent.trim()));
+        await page.focus(".sd-rating__item:nth-child(4)");
+        await press("Enter");
+        const enter = await page.$$eval(".sd-rating__item.is-selected", (els) => els.map((e) => e.textContent.trim()));
+    """
+        + _STATE.replace("return {", "return { space, enter,")
+    )
+    state = run_in_browser(_likert_gate_document(), scenario, tmp_path / "rating")
+    assert (state["space"], state["enter"]) == (["3"], ["4"])
+    assert state["submitted"] == [] and state["pages"] == ["p1"]
+
+
 # ── MaxDiff and Conjoint ─────────────────────────────────────────────────────
 
 
