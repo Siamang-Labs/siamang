@@ -165,7 +165,8 @@ def rewrite_answer_keys(code: str, aliases: Mapping[str, str]) -> str:
     and a head that is itself a property of something else —
     ``state.answers.q1``, ``ctx?.answers["q1"]``, ``snapshot.__errors__.q1``
     — is some other object's and is not touched either (the stale check
-    reports what it still says). An id that is not a JavaScript identifier
+    reports what it still says); a spread of one, ``[...answers.q1]``, is
+    this one's and is. An id that is not a JavaScript identifier
     can only have been written in the bracket form, so only that form is
     looked for; a key that
     is not one is emitted in the bracket form, and a key that could not be
@@ -185,9 +186,9 @@ def rewrite_answer_keys(code: str, aliases: Mapping[str, str]) -> str:
     # The head is the runtime's `answers`, one of its sub-stores reached from
     # it (`answers.__errors__`, `answers?.__options__`) or a sub-store on its
     # own. Not a head: an `answers` or `__errors__` preceded by `.` or `?.` —
-    # a property of some other object.
+    # a property of some other object — unless the `.` is a spread's `...`.
     head = (
-        rf"(?<!{_JS_IDENTIFIER_CHAR})(?<!\.)"
+        rf"(?<!{_JS_IDENTIFIER_CHAR})(?:(?<=\.\.\.)|(?<!\.))"
         rf"(?:{_ANSWER_STORE}(?:\??\.(?:{substores}))?|(?:{substores}))"
     )
     pattern = re.compile(

@@ -337,6 +337,10 @@ def test_a_custom_script_reads_the_answer_by_the_key():
         "answers[\n  'q1'\n]": "answers[\n  'nps_1'\n]",
         "answers[`q1`]": "answers[`nps_1`]",
         "answers.__errors__?.[ `q1` ]": "answers.__errors__?.[ `nps_1` ]",
+        # A spread of the runtime's answers is still theirs.
+        "[...answers.q1]": "[...answers.nps_1]",
+        'Math.max(...answers["q1"])': 'Math.max(...answers["nps_1"])',
+        "({ ...answers.__errors__.q1 })": "({ ...answers.__errors__.nps_1 })",
     }
     for source, expected in forms.items():
         assert rewrite_answer_keys(source, aliases) == expected, source
