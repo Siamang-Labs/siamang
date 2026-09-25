@@ -384,6 +384,12 @@ class TTestTable(_BlankUndefined, SurveyTable):
                         )
             known = present + [code for code in labels if code not in present]
             chosen = [_find(code, known, by, labels) for code in self.groups]
+            if _code_text(chosen[0]) == _code_text(chosen[1]):
+                raise ValueError(
+                    f"Group A and Group B are both {_code_text(chosen[0])} = "
+                    f"{named(chosen[0])}; a t-test compares two different groups — name "
+                    "another in one of them."
+                )
         elif len(present) > 2:
             listed = ", ".join(f"{_code_text(code)} = {named(code)}" for code in present)
             raise ValueError(

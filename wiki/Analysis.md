@@ -215,7 +215,8 @@ data.report.ttest(column, *, kind="independent", by=None, groups=None,
 
 - `kind="independent"` compares `column` between two groups of `by`. When `by`
   has more than two values, `groups=[a, b]` names the two (as codes); without it
-  the call is refused with the groups listed. `variances="welch"` (the default)
+  the call is refused with the groups listed, and so is the same group twice
+  (`Group A and Group B are both 1 = Male; …`). `variances="welch"` (the default)
   does not assume the groups vary equally; `"student"` pools the variances.
 - `kind="paired"` compares `column` with `other` on the same respondents, over
   the complete pairs; the footer counts the incomplete ones left out.

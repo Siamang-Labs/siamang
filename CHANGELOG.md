@@ -194,7 +194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **`analyze.ttest`** (new; `data.report.ttest`, `TTestTable`): **Design**
     independent (Welch's by default, Student's under **Variances**; **Group A** /
     **Group B** pick two groups of a grouping with more, and without them such a
-    grouping is refused with its groups listed), paired, or one-sample against a
+    grouping is refused with its groups listed, as is one group named twice),
+    paired, or one-sample against a
     **Test value**; a row of N, mean, SD and SE per group, and t, df, p, the mean
     difference with its CI and Cohen's d in the footer.
   - **Group means** takes a **Test** — `auto` (the default: the automatic
