@@ -104,6 +104,9 @@ function isAnswered(q, v) {
   if (q && q.kind === "conjoint") {
     return (q.taskVars || []).every((name) => v && v[name] !== undefined);
   }
+  /* A matrix is answered once a row is. A row key holding null or "" (a
+     script clearing the row) holds no answer, though the key is there. */
+  if (q && q.kind === "matrix") return unansweredRows(q, v).length < (q.rows || []).length;
   if (typeof v === "object") return Object.keys(v).length > 0;
   return true;
 }
@@ -875,7 +878,7 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
   return { enabled, selectable, selectedId, onSelect };
 }
 
-function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design, section, estimate }) {
+function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, heldRows, onNext, onPrev, isFirst, isLast, totalQuestions, qStart, submitting, checking, handleBlur, uiTexts, design, section, estimate }) {
   // While a quota check runs the buttons wait; the page itself stays as it is.
   const busy = submitting || checking;
   const answers = useAnswersStore(store);
@@ -901,6 +904,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, onNext, 
             setAnswer={setAnswer}
             num={"Q" + String(qNum).padStart(2, "0")}
             error={errors[q.id]}
+            held={!!(heldRows && heldRows[q.id])}
             handleBlur={handleBlur}
             answers={answers}
             onAutoAdvance={onNext}
@@ -1176,6 +1180,10 @@ function App() {
   const [errors, setErrors] = useState({});
   const errorsRef = useRef(errors);
   errorsRef.current = errors;
+  // The required matrices the last Next held for rows left empty: each marks
+  // those rows until they are answered or the page is left. A message the
+  // matrix has for another reason — left unanswered, a script's — marks none.
+  const [heldRows, setHeldRows] = useState({});
 
   // ─── Access Code ───
   const [accessGranted, setAccessGranted] = useState(!(ui.requireAccessCode && ui.accessCodes));
@@ -1311,6 +1319,7 @@ function App() {
     if (!page || isTerminalPage(page)) return;
     const items = visibilityEngine.visibleItems(page, answers);
     const errs = {};
+    const held = {};
     const se = answers.__errors__ || {};
     let scriptBlocked = false;
     for (const q of items) {
@@ -1320,6 +1329,7 @@ function App() {
       const missing = requiredError(q, value, uiTexts);
       if (missing) {
         errs[q.id] = missing;
+        if (q.kind === "matrix") held[q.id] = true;
       } else if (formatError) {
         errs[q.id] = formatError;
       } else if (limitError) {
@@ -1334,6 +1344,7 @@ function App() {
     }
     if (Object.keys(errs).length > 0 || scriptBlocked) {
       setErrors(errs);
+      setHeldRows(held);
       requestAnimationFrame(() => {
         const el = document.querySelector(".sd-question.has-error");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1341,6 +1352,7 @@ function App() {
       return;
     }
     setErrors({});
+    setHeldRows({});
     const proceed = () => {
       if (nav.isLast) {
         cancelScriptTimers(store);
@@ -1371,6 +1383,7 @@ function App() {
   const handlePrev = useCallback(() => {
     if (leavingRef.current) return;
     setErrors({});
+    setHeldRows({});
     nav.goPrev();
   }, [nav]);
 
@@ -1378,6 +1391,7 @@ function App() {
   const handleDot = useCallback((idx) => {
     if (leavingRef.current || !nav.canGoBackTo(idx)) return;
     setErrors({});
+    setHeldRows({});
     nav.goBackTo(idx);
   }, [nav]);
 
@@ -1576,6 +1590,7 @@ function App() {
                   visibilityEngine={visibilityEngine}
                   setAnswer={setAnswer}
                   errors={{ ...scriptErrors, ...errors }}
+                  heldRows={heldRows}
                   onNext={handleNext}
                   onPrev={handlePrev}
                   isFirst={nav.isFirst}
