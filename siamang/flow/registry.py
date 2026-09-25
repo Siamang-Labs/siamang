@@ -29,8 +29,20 @@ becomes an ``Expression`` call, targets and mappings get typed codes), and
 ``{node!r}`` is the node id.
 
 A template may also be a list of fragments, each either a string or
-``{when: <param> | <param>=<value>, code: ...}`` — the fragment is written
-only when the parameter is truthy / equal to the value.
+``{when: <condition>, code: ...}`` — the fragment is written only when the
+condition holds. A condition is ``<param>`` (set: not empty and not false),
+``<param>=<value>`` or ``<param>!=<value>``, several joined by ``&`` when all
+must hold.
+
+``checks`` are rules between parameters that :func:`~siamang.flow.check_flow`
+reports on the node (``PARAM_CONFLICT``) — a post-hoc test that does not follow
+the test chosen, a parameter the node would ignore::
+
+    checks:
+    - when: posthoc=tukey
+      require: method=anova          # or a list: any one of them
+      message: Tukey's HSD follows a one-way ANOVA — set Test to anova.
+      severity: error                # or warning
 """
 
 from __future__ import annotations
@@ -141,6 +153,23 @@ class Fragment:
 
 
 @dataclass(frozen=True, slots=True)
+class Check:
+    """A rule between a node's parameters: when ``when`` holds, one of
+    ``require`` must hold too (with no ``require``, ``when`` alone is the
+    problem). Conditions are written as a template's ``when``."""
+
+    when: str
+    require: tuple[str, ...] = ()
+    message: str = ""
+    severity: str = "error"  # error | warning
+
+    def violated(self, params: dict[str, Any]) -> bool:
+        if not condition_holds(self.when, params):
+            return False
+        return not any(condition_holds(option, params) for option in self.require)
+
+
+@dataclass(frozen=True, slots=True)
 class NodeSpec:
     type: str
     category: str
@@ -158,6 +187,8 @@ class NodeSpec:
     #: A data source a local snapshot can stand in for (``--data``).
     snapshot: bool = False
     tags: tuple[str, ...] = field(default_factory=tuple)
+    #: Rules between the parameters, reported by ``check_flow``.
+    checks: tuple[Check, ...] = ()
 
     @property
     def name(self) -> str:
@@ -319,6 +350,7 @@ def spec_from_dict(payload: dict[str, Any]) -> NodeSpec:
         platform=bool(payload.get("platform", False)),
         snapshot=bool(payload.get("snapshot", False)),
         tags=tuple(payload.get("tags") or ()),
+        checks=_checks_from(node_type, payload.get("checks"), params),
     )
 
 
@@ -391,11 +423,11 @@ def _template_from(node_type: str, raw: Any, params: dict[str, ParamSpec]) -> tu
         elif isinstance(item, dict) and isinstance(item.get("code"), str):
             when = item.get("when")
             if when is not None:
-                param = str(when).split("=", 1)[0]
-                if param not in params:
-                    raise RegistryError(
-                        f"{node_type}: template 'when' names unknown param {param!r}."
-                    )
+                for param in condition_params(str(when)):
+                    if param not in params:
+                        raise RegistryError(
+                            f"{node_type}: template 'when' names unknown param {param!r}."
+                        )
             fragments.append(Fragment(code=item["code"].rstrip("\n"), when=when))
         else:
             raise RegistryError(
@@ -406,17 +438,79 @@ def _template_from(node_type: str, raw: Any, params: dict[str, ParamSpec]) -> tu
     return tuple(fragments)
 
 
+# ─── conditions ──────────────────────────────────────────────────────────────
+
+
+def condition_holds(condition: str, params: dict[str, Any]) -> bool:
+    """Whether a ``when`` condition holds for these parameter values.
+
+    ``<param>`` holds when the value is set — not None, empty or false (a code
+    of 0 is set); ``<param>=<value>`` / ``<param>!=<value>`` compare the value's
+    text; terms joined by ``&`` must all hold.
+    """
+
+    return all(_term_holds(term.strip(), params) for term in condition.split("&"))
+
+
+def _term_holds(term: str, params: dict[str, Any]) -> bool:
+    if "!=" in term:
+        name, expected = term.split("!=", 1)
+        return str(params.get(name.strip())) != expected.strip()
+    if "=" in term:
+        name, expected = term.split("=", 1)
+        return str(params.get(name.strip())) == expected.strip()
+    value = params.get(term)
+    return value is not None and value is not False and value not in ("", [], {})
+
+
+def condition_params(condition: str) -> list[str]:
+    """The parameters a condition reads."""
+
+    names = []
+    for term in condition.split("&"):
+        name = term.split("!=", 1)[0] if "!=" in term else term.split("=", 1)[0]
+        names.append(name.strip())
+    return names
+
+
+def _checks_from(node_type: str, raw: Any, params: dict[str, ParamSpec]) -> tuple[Check, ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise RegistryError(f"{node_type}: 'checks' must be a list.")
+    checks: list[Check] = []
+    for item in raw:
+        if not isinstance(item, dict) or not isinstance(item.get("when"), str):
+            raise RegistryError(f"{node_type}: a check needs 'when'.")
+        require = item.get("require") or ()
+        require = (require,) if isinstance(require, str) else tuple(str(r) for r in require)
+        message = item.get("message")
+        if not isinstance(message, str) or not message.strip():
+            raise RegistryError(f"{node_type}: a check needs a 'message'.")
+        severity = item.get("severity", "error")
+        if severity not in ("error", "warning"):
+            raise RegistryError(f"{node_type}: check severity must be error or warning.")
+        for condition in (item["when"], *require):
+            for param in condition_params(condition):
+                if param not in params:
+                    raise RegistryError(f"{node_type}: check names unknown param {param!r}.")
+        checks.append(Check(item["when"], require, message.strip(), severity))
+    return tuple(checks)
+
+
 __all__ = [
     "CATEGORIES",
     "PARAM_KINDS",
     "PORT_TYPES",
     "SCALES",
+    "Check",
     "Fragment",
     "NodeSpec",
     "ParamSpec",
     "PortSpec",
     "Registry",
     "RegistryError",
+    "condition_holds",
     "default_registry",
     "load_spec",
     "spec_from_dict",

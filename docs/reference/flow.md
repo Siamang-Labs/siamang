@@ -46,6 +46,7 @@ returns errors and warnings with a code and the node concerned:
 | Code | Meaning |
 |------|---------|
 | `UNKNOWN_NODE_TYPE`, `UNKNOWN_PARAM`, `PARAM_REQUIRED`, `PARAM_INVALID` | the node against its spec |
+| `PARAM_CONFLICT` (error or warning) | a rule of the spec's `checks` between its parameters: values that do not go together (errors), a choice the node would ignore (warnings) |
 | `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the questionnaire's codebook (when given); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) and the arm of a `Script.assign_condition` (nominal unless the codebook declares it) count as known |
 | `UNKNOWN_EDGE_NODE`, `UNKNOWN_PORT`, `PORT_TYPE_MISMATCH`, `INPUT_CONNECTED_TWICE`, `INPUT_NOT_CONNECTED` | edges against the ports |
 | `CYCLE` | not a DAG |
@@ -167,8 +168,16 @@ preview: table
   `{<param>!r}` (the parameter as a Python literal: a condition becomes
   `sg.compare(...)` / `sg.AND(...)`, targets and mappings get typed codes,
   captions become a list aligned with the many-input) and `{node!r}`. A
-  template may be a list of fragments, each a string or
-  `{when: <param> | <param>=<value>, code}`.
+  template may be a list of fragments, each a string or `{when: <condition>,
+  code}`. A condition is `<param>` (set: not empty, not false; a code of 0 is
+  set), `<param>=<value>` or `<param>!=<value>`, several joined by `&` when all
+  must hold.
+- `checks`: rules between parameters, reported by `check_flow` as
+  `PARAM_CONFLICT` on the node — `{when: <condition>, require: <condition> |
+  [<condition>, …], message, severity: error | warning}`. When `when` holds,
+  one of `require` must hold too; without `require`, `when` alone is the
+  problem. `Registry.to_json()` does not carry them: a builder gets them from
+  `check_flow`.
 - `imports`: the import statements the template needs; `platform: true` for
   nodes that need `db`; `snapshot: true` for sources a file can replace.
 
