@@ -62,6 +62,7 @@ siamang deploy   my_survey.py --backend supabase --frontend vercel
 | :--- | :--- |
 | **Core** | Variables (nominal/ordinal/interval/ratio), 7 question types, pages & blocks, skip logic (`show_if`/`hide_if`), quotas, validation |
 | **Reporting** | Declarative tables (`FreqTable`, `CrossTable`, `GroupMeanTable`) and charts (`BarChart`, `BoxPlot`, `HeatMap`, `ScatterPlot`) with automatic labels and statistical tests; composable `Report` documents |
+| **Analysis** | Tests chosen for you or by hand — t-tests, ANOVA and Welch's ANOVA, Mann-Whitney and Kruskal-Wallis with Tukey, Games-Howell and Dunn post-hoc tests, chi-square and Fisher's exact test, Pearson, Spearman and Kendall correlations and matrices, Wilcoxon, McNemar and Friedman for paired answers; descriptives, factor analysis, PCA, reliability, regression, clustering — each weighted or saying it is not ([[Analysis]]) |
 | **Scripts** | Inline JavaScript for survey-side behaviour — 7 trigger points |
 | **Frontend** | SurveyJS and React 18 runtimes, dark mode, auto-save, access codes, 6 theme presets |
 | **Deploy** | Local SQLite, Supabase, Google Sheets backends; Local, Vercel, Netlify frontends |
