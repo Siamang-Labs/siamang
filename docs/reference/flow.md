@@ -151,6 +151,7 @@ Several nodes expose what the library already computed:
 | `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labelled ordinal band variable; `stat`: count per band, outside, missing codes |
 | `analyze.turf` with `method: fixed` | `turf.evaluate(frame, portfolio, items=…, weight=…, labels=…)` | `table`: reach, unique reach and frequency per option and for the portfolio |
 | `prepare.text_code` | `data.report.themes(codeframe, sentiment=…)` | a `stat` output: Coverage, Distinct uncoded answers, and with sentiment the Sentiment split and Net sentiment |
+| `output.export_file` | `siamang.io.export_file(data, path)` | `.R` writes the R bundle (CSV, dictionary, import script), `.json` the codebook alone |
 
 `check_flow` knows the variables these create before a run: `into` of Bands,
 and one score variable per item of the named MaxDiff question (its `choices`,

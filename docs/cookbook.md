@@ -327,7 +327,7 @@ data = data.with_frame(data.frame).__class__(
 from siamang.io import RScriptWriter
 
 RScriptWriter().write(data, path="political_trust_R/")
-# Writes import_survey.csv, import_survey_dictionary.json, import_survey.R
+# Writes import_survey.csv, import_survey.dictionary.json, import_survey.R
 # Then in R:  source("political_trust_R/import_survey.R")
 ```
 
