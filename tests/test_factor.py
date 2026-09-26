@@ -352,7 +352,7 @@ def test_analyze_adds_labeled_scores_missing_for_those_left_out():
     variable = result.data.variables["f1"]
     assert variable.label == "Factor 1 score (minres, varimax rotation)"
     assert variable.scale == "interval"
-    assert result.stats["Scores"].startswith("f1, f2 (regression method); f3, f4")
+    assert result.stats["Scores"] == "f1, f2 (regression method)"
     assert result.stats["Factors chosen by"] == "Kaiser criterion (eigenvalues above 1)"
     rows = data.frame.drop(index=[0, 1])[ITEMS].to_numpy(dtype=float)
     assert frame.loc[2:, "f1"].to_numpy() == pytest.approx(result.solution.scores(rows)[:, 0])
@@ -438,21 +438,87 @@ def test_scores_land_on_their_rows_when_the_index_repeats():
 def test_scores_a_rule_did_not_keep_are_empty_and_say_why():
     """With the number chosen by a rule, check_flow lets a later node name every
     score the analysis could make (one fewer than the items), since the number
-    is known only after the run. The ones not kept are made empty and labelled,
-    so a node reading one gets an empty variable that says why — not a KeyError
-    "['factor_3'] not in index"."""
-    result = factor.analyze(_survey(), ITEMS, scores=True, into="f")  # Kaiser keeps 2 of 8
+    is known only after the run. A score a later step reads (``read_later``, what
+    a flow passes) that the rule did not keep is made empty and labelled, so a
+    node reading it gets an empty variable that says why — not a KeyError
+    "['factor_3'] not in index". No other is made: 0147 added every one, so 20
+    items with three factors kept put 16 empty columns into the data, its
+    exports and its tables, and blanked any variable of those names."""
+    survey = _survey()
+    survey = survey.with_frame(survey.frame.assign(f6=1.0))  # a variable of its own
+    result = factor.analyze(survey, ITEMS, scores=True, into="f", read_later=["f3", "f9", "x"])
     frame = result.data.frame
-    assert result.scores == ["f1", "f2"]
-    empty = [f"f{j}" for j in range(3, 8)]
-    assert all(frame[name].isna().all() for name in empty) and "f8" not in frame
+    assert result.scores == ["f1", "f2"]  # Kaiser keeps 2 of 8
+    assert frame["f3"].isna().all() and {"f4", "f5", "f7", "f8", "f9"}.isdisjoint(frame)
+    assert (frame["f6"] == 1.0).all()
     assert result.data.variables["f3"].label == (
         "Factor 3 score (not made: the Kaiser criterion kept 2 factors)"
     )
     assert result.data.variables["f3"].scale == "interval"
     assert result.stats["Scores"] == (
-        "f1, f2 (regression method); f3, f4, f5, f6, f7 empty: the Kaiser criterion kept 2 factors"
+        "f1, f2 (regression method); f3 empty: the Kaiser criterion kept 2 factors"
     )
+    # Called as a library, nothing is added beyond the scores made.
+    plain = factor.analyze(survey, ITEMS, scores=True, into="f")
+    assert [c for c in plain.data.frame if c.startswith("f")] == ["f6", "f1", "f2"]
+    assert plain.stats["Scores"] == "f1, f2 (regression method)"
     # A fixed number is known before the run: only its scores are made.
-    fixed = factor.analyze(_survey(), ITEMS, n_factors=2, scores=True, into="f")
+    fixed = factor.analyze(survey, ITEMS, n_factors=2, scores=True, into="f", read_later=["f3"])
     assert "f3" not in fixed.data.frame and "empty" not in fixed.stats["Scores"]
+
+
+def test_a_flow_makes_an_unkept_score_only_where_a_later_node_reads_it(tmp_path, monkeypatch):
+    """The flow passes the scores the nodes downstream name (``read_after``):
+    none when nothing reads one, factor_3 alone when a Group means reads it —
+    which then finds the empty, labelled variable and runs."""
+    from pathlib import Path
+
+    from siamang.flow import FlowRunner, generate_flow
+    from siamang.model import from_document, loads
+
+    document = Path("tests/documents/brand_awareness.questionnaire.json").read_text()
+    survey = from_document(loads(document)).survey
+    items = ["trust_acme", "trust_globex", "satisfaction", "age"]
+
+    def flow(*readers):
+        nodes = [
+            {"id": "src", "type": "source.simulated", "params": {"n": 200, "seed": 3}},
+            {"id": "fa", "type": "analyze.factor", "params": {"items": items, "scores": True}},
+        ]
+        edges = [{"from": {"node": "src", "port": "data"}, "to": {"node": "fa", "port": "data"}}]
+        for index, (reader, parent) in enumerate(readers):
+            nodes.append(
+                {
+                    "id": f"m{index}",
+                    "type": "analyze.means",
+                    "params": {"y": reader, "by": "gender"},
+                }
+            )
+            edges.append(
+                {
+                    "from": {"node": parent, "port": "data"},
+                    "to": {"node": f"m{index}", "port": "data"},
+                }
+            )
+        return {"schema_version": "1.0", "name": "fa", "nodes": nodes, "edges": edges}
+
+    monkeypatch.chdir(tmp_path)
+    alone = FlowRunner(flow(), questionnaire=survey).run()
+    assert [c for c in alone.outputs["fa"]["data"].frame if c.startswith("factor_")] == [
+        "factor_1",
+        "factor_2",
+    ]
+    assert "read_later=[]" in generate_flow(flow()).replace(" ", "")
+    # Read downstream — and a name read beside the data, not downstream, is not.
+    read = flow(("factor_3", "fa"), ("factor_1", "fa"), ("age", "src"))
+    assert "read_later=['factor_1','factor_3']" in generate_flow(read).replace(" ", "").replace(
+        '"', "'"
+    )
+    run = FlowRunner(read, questionnaire=survey).run()
+    assert run.ok
+    made = run.outputs["fa"]["data"].frame
+    assert [c for c in made if c.startswith("factor_")] == ["factor_1", "factor_2", "factor_3"]
+    assert made["factor_3"].isna().all()
+    assert (
+        "factor_3 empty: the Kaiser criterion kept 2 factors" in run.outputs["fa"]["stat"]["Scores"]
+    )

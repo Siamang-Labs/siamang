@@ -427,6 +427,7 @@ respondents × items matrix.
 | `rotation` | `varimax` (Kaiser-normalized, R's algorithm), `promax` (power 4, Kaiser-normalized as factor_analyzer and SPSS), `oblimin` (direct quartimin, γ = 0, as GPArotation), `none` |
 | `sort`, `hide_below` | order the items by the factor they load on most; blank loadings below the value in the table |
 | `scores`, `into` | add regression-method scores `<into>1`, `<into>2`, … (interval, labelled), missing for respondents left out |
+| `read_later` | score names a later step reads (a flow passes those its nodes downstream name): with `n_factors=None`, each the rule did not keep is added empty, labelled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)` and named in `stats["Scores"]` (`…; factor_3 empty: the Kaiser criterion kept 2 factors`); no other score is added |
 
 `FactorAnalysis` holds `loadings` (Variable, Label, Factor 1…, Communality,
 Uniqueness, MSA), `variance` (every eigenvalue with its % and cumulative %,

@@ -99,6 +99,11 @@ template:
   code: |2
         scores=True,
         into={into!r},
+# Chosen by a rule, a score the rule did not keep is made, empty and labelled
+# why, only when a node downstream names it: read_after lists those names.
+- when: scores=True & n_factors=None
+  code: |2
+        read_later={read_after!r},
 - when: criterion=parallel
   code: |2
         seed={seed!r},

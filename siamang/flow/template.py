@@ -49,6 +49,10 @@ def render_node(graph: FlowGraph, node_id: str) -> str:
             if port not in outputs:
                 raise FlowError(f"{spec.type}: template names unknown output {port!r}.")
             return outputs[port]
+        if param == "read_after" and param not in values:
+            # Not a parameter: the variables this node makes that a node
+            # downstream of it reads (FlowGraph.read_after), sorted.
+            values[param] = repr(sorted(graph.read_after(node_id)))
         if param not in values:
             if param not in spec.params:
                 raise FlowError(f"{spec.type}: template names unknown parameter {param!r}.")

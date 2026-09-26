@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import cache
 from importlib import resources
@@ -93,6 +94,29 @@ class FlowGraph:
                 if source not in seen:
                     seen.append(source)
         return seen
+
+    def read_after(self, node_id: str) -> set[str]:
+        """The variables ``node_id`` makes that a node downstream of it reads.
+
+        What a template passes as ``{read_after!r}``: Factor analysis makes the
+        score of a factor its rule did not keep only when a later node names it
+        (:func:`~siamang.data.factor.analyze`'s ``read_later``).
+        """
+
+        children: dict[str, set[str]] = {}
+        for edge in self.edges:
+            children.setdefault(edge.source, set()).add(edge.target)
+        below: set[str] = set()
+        stack = list(children.get(node_id, ()))
+        while stack:
+            other = stack.pop()
+            if other not in below:
+                below.add(other)
+                stack.extend(children.get(other, ()))
+        read: set[str] = set()
+        for other in below:
+            read |= variables_read(self.specs[other], self.params(other))
+        return read & _made_names(self.specs[node_id], self.params(node_id))
 
 
 # ─── JSON Schema ─────────────────────────────────────────────────────────────
@@ -401,22 +425,58 @@ def _known_variables(
             continue
         spec = registry.get(node["type"])
         params = node.get("params") or {}
-        for name, param in spec.params.items():
-            if param.creates and isinstance(params.get(name), str) and params[name]:
-                known.add(params[name])
-            if param.creates and isinstance(param.default, str) and param.default:
-                known.add(param.default)
-        if spec.type == "prepare.recode" and params.get("variable") and not params.get("into"):
-            known.add(f"{params['variable']}_recoded")
-        if spec.type == "prepare.speeders":
-            known.update({"duration_s", "partial"})
+        known.update(_made_names(spec, params))
         if spec.type == "prepare.explode" and params.get("variable"):
             known.update(_exploded_names(questionnaire, params))
-        if spec.type == "analyze.factor" and params.get("scores"):
-            known.update(_factor_score_names(spec, params))
         if spec.type == "prepare.maxdiff_scores" and isinstance(params.get("question"), str):
             known.update(_maxdiff_score_names(questionnaire, params))
     return known
+
+
+def _made_names(spec: NodeSpec, params: dict[str, Any]) -> set[str]:
+    """The names a node may make that need no codebook to tell: every
+    ``creates`` parameter's value and its default, a Recode's
+    ``<variable>_recoded``, the speeders' timing and flag, and factor scores."""
+
+    made: set[str] = set()
+    for name, param in spec.params.items():
+        if param.creates and isinstance(params.get(name), str) and params[name]:
+            made.add(params[name])
+        if param.creates and isinstance(param.default, str) and param.default:
+            made.add(param.default)
+    if spec.type == "prepare.recode" and params.get("variable") and not params.get("into"):
+        made.add(f"{params['variable']}_recoded")
+    if spec.type == "prepare.speeders":
+        made.update({"duration_s", "partial"})
+    if spec.type == "analyze.factor" and params.get("scores"):
+        made.update(_factor_score_names(spec, params))
+    return made
+
+
+def variables_read(spec: NodeSpec, params: dict[str, Any]) -> set[str]:
+    """The variables a node's parameters name: a variable or variables
+    parameter (not one that ``creates``), the names in a formula or a
+    condition, a targets mapping's variables."""
+
+    from siamang.data.formula import FormulaError, parse
+
+    names: set[str] = set()
+    for name, param in spec.params.items():
+        value = params.get(name)
+        if unset(value) or param.creates:
+            continue
+        if param.kind == "variable" and isinstance(value, str):
+            names.add(value)
+        elif param.kind == "variables" and isinstance(value, list):
+            names.update(item for item in value if isinstance(item, str))
+        elif param.kind == "formula" and isinstance(value, str):
+            with suppress(FormulaError):  # a formula that does not parse is reported
+                names.update(parse(value).variables())
+        elif param.kind == "condition":
+            names |= _condition_variables(value)
+        elif param.kind == "targets" and isinstance(value, dict):
+            names.update(str(key) for key in value)
+    return names
 
 
 def _made_scales(
