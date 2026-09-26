@@ -298,7 +298,10 @@ Post-hoc = Games-Howell: 0 of 6 pairs differ at p < 0.05; N = 200; Variable = Ag
 Tukey and Games-Howell give the difference of the means with its simultaneous
 interval, the studentized range statistic q and a p that already allows for the
 number of pairs; Dunn gives the difference of the mean ranks, z, and p before
-and after the adjustment.
+and after the adjustment. SciPy computes the studentized range's tail to about
+1e-11, so a Tukey or Games-Howell p below 1e-07 reads `< 1e-07` (and the
+footer's `p` says why) rather than a number whose digits are the integration's
+noise.
 
 `compare_groups` is the same for the rank tests alone, as a dict:
 

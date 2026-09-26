@@ -819,6 +819,25 @@ def _pairs(k: int) -> list[tuple[int, int]]:
     return [(i, j) for i in range(k) for j in range(i + 1, k)]
 
 
+#: The smallest p Tukey's HSD and Games-Howell give as a number. SciPy's
+#: ``studentized_range.sf`` is 1 − cdf, the cdf integrated to an absolute error
+#: of 1e-11, so a smaller p has fewer than four significant digits right, and
+#: past q ≈ 12 it is the integration's noise rather than a probability: every
+#: pair of three groups at 297 df reads 1.144e-14 whatever its q, 597 df gives 0,
+#: and in Games-Howell a larger q could get a larger p. Below the floor the p is
+#: 0.0 here, and the post-hoc table prints ``< 1e-07``.
+STUDENTIZED_P_FLOOR = 1e-7
+
+
+def _studentized_p(q: float, k: int, df: float) -> float:
+    """The studentized range's upper tail at ``q``: SciPy's, or 0.0 below
+    :data:`STUDENTIZED_P_FLOOR`, which SciPy does not compute to."""
+    from scipy.stats import studentized_range
+
+    p = float(studentized_range.sf(q, k, df))
+    return 0.0 if p < STUDENTIZED_P_FLOOR else p
+
+
 def _tukey(
     groups: list[np.ndarray], names: list[str], confidence: float
 ) -> tuple[pd.DataFrame, list[str]]:
@@ -838,7 +857,7 @@ def _tukey(
         difference = float(groups[i].mean() - groups[j].mean())
         se = math.sqrt(mse / 2 * (1 / len(groups[i]) + 1 / len(groups[j])))
         q = abs(difference) / se
-        p = float(studentized_range.sf(q, k, df))
+        p = _studentized_p(q, k, df)
         rows.append(
             [names[i], names[j], difference, q, float(df), p, p, difference - critical * se]
             + [difference + critical * se]
@@ -869,7 +888,7 @@ def _games_howell(
         se = math.sqrt(s1 + s2)
         df = (s1 + s2) ** 2 / (s1**2 / (len(a) - 1) + s2**2 / (len(b) - 1))
         q = abs(difference) / se * math.sqrt(2)
-        p = float(studentized_range.sf(q, k, df))
+        p = _studentized_p(q, k, df)
         half = float(studentized_range.ppf(confidence, k, df)) / math.sqrt(2) * se
         rows.append(
             [names[i], names[j], difference, q, df, p, p, difference - half, difference + half]
@@ -1053,6 +1072,7 @@ __all__ = [
     "POSTHOC_FOLLOWS",
     "POSTHOC_NAMES",
     "SPREAD_TOLERANCE",
+    "STUDENTIZED_P_FLOOR",
     "CorrelationMatrix",
     "GroupTest",
     "NotTestable",

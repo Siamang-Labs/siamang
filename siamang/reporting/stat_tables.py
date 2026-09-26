@@ -193,9 +193,18 @@ class PostHocTable(_BlankUndefined, SurveyTable):
         rounded = lambda column, digits: [  # noqa: E731
             None if value != value else round(float(value), digits) for value in table[column]
         ]
-        # A p below 0.0001 keeps four significant digits (round_p).
+        # A p below 0.0001 keeps four significant digits (round_p). Tukey's and
+        # Games-Howell's below the studentized range's floor is 0.0, which is
+        # not a p but "smaller than SciPy computes it": printed as a bound.
+        bounded = result.method in ("tukey", "games_howell")
+        floor = f"< {inference.STUDENTIZED_P_FLOOR:.0e}"
         p_of = lambda column: [  # noqa: E731
-            None if value != value else round_p(value) for value in table[column]
+            None
+            if value != value
+            else floor
+            if bounded and value < inference.STUDENTIZED_P_FLOOR
+            else round_p(value)
+            for value in table[column]
         ]
         if result.method == "dunn":
             frame = pd.DataFrame(
@@ -229,6 +238,10 @@ class PostHocTable(_BlankUndefined, SurveyTable):
         else:
             stats["Difference"] = "mean of the first group minus the second"
             stats["p"] = "adjusted for the number of pairs by the method itself"
+            if (table["p_adjusted"] < inference.STUDENTIZED_P_FLOOR).any():
+                stats["p"] += (
+                    f"; {floor} where it is smaller than SciPy computes the studentized " "range to"
+                )
         if result.notes:
             stats["Not compared"] = "; ".join(result.notes)
         if (note := _unweighted_note(self.data)) is not None:
