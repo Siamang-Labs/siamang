@@ -366,11 +366,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `:.4f` (`p = 0.0000`, `Bartlett p = 0.0000`, and padded `df = 124.9800`); a
   report's statistics line did the same, and its HTML tables used pandas'
   formatting, which turned a p of `3.363e-07` into `0.0` beside a `.md` that
-  said `3.363e-07`. A p now keeps four decimals, or four significant digits
-  where four decimals would make it 0 (`siamang.data.listwise.round_p`);
-  footers and `Report.add` lines print a float with up to four decimals and no
-  padding, and one too small for them with its exponent
-  (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`); Compare groups'
+  said `3.363e-07`. A p now keeps four decimals, or below 0.0001 four
+  significant digits (`siamang.data.listwise.round_p`); footers and
+  `Report.add` lines print a float with up to four decimals and no padding,
+  and one below 0.0001 with four significant digits and its exponent
+  (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`), so a footer prints
+  the p the statistics keep (`7.988e-32`, and `5e-05` rather than `0.0001`);
+  Compare groups'
   Dunn lines too; and a report's HTML writes each number as its Markdown does:
   a table component's cells, rounded already, with `str`, and a bare
   DataFrame's floats (a regression's coefficients, a PCA's loadings, a

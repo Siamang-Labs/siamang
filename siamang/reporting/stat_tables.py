@@ -193,7 +193,7 @@ class PostHocTable(_BlankUndefined, SurveyTable):
         rounded = lambda column, digits: [  # noqa: E731
             None if value != value else round(float(value), digits) for value in table[column]
         ]
-        # A p that four decimals would make 0 keeps its significant digits.
+        # A p below 0.0001 keeps four significant digits (round_p).
         p_of = lambda column: [  # noqa: E731
             None if value != value else round_p(value) for value in table[column]
         ]
