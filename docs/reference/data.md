@@ -386,7 +386,8 @@ fa.loadings, fa.variance, fa.correlations, fa.stats, fa.data  # data has factor_
 | `wilcoxon(data, x, y, *, zeros="wilcox", p_value="auto")` | Wilcoxon signed-rank of `x − y`. |
 | `mcnemar(data, x, y, *, yes=None, p_value="auto")` | McNemar; `yes` is a code or a list of codes, the rest is no. Left empty it is 1 when both variables hold only 0 and 1, and an error that lists the codes otherwise. |
 | `friedman(data, variables, *, posthoc="holm", zeros="wilcox", p_value="auto")` | Friedman on three or more; `posthoc` `holm` \| `bonferroni` \| `none` adjusts pairwise Wilcoxon tests. |
-| `signed_rank(differences, *, zeros, p_value)`, `mcnemar_test(b, c, *, p_value)`, `friedman_test(matrix)`, `adjust(pvalues, method)` | The same tests on plain numbers. |
+| `cochran(data, variables, *, yes=None, posthoc="holm", p_value="auto")` | Cochran's Q on three or more yes/no variables (`yes` as for McNemar); `posthoc` adjusts pairwise McNemar tests, whose p follows `p_value`. |
+| `signed_rank(differences, *, zeros, p_value)`, `mcnemar_test(b, c, *, p_value)`, `friedman_test(matrix)`, `cochran_test(matrix)`, `adjust(pvalues, method)` | The same tests on plain numbers. |
 
 Each returns a `PairedResult`: `table` (per variable N, mean, SD, median — and
 for Wilcoxon the difference, for Friedman the mean rank; McNemar's is the 2 × 2
@@ -412,6 +413,16 @@ numbers).
 - **Friedman.** Tie-corrected χ² on k − 1 df, `Kendall's W = χ² / (n (k − 1))`.
   Mean-rank post-hocs (Nemenyi, Dunn) are not offered: they compare two
   variables on ranks that depend on the others in the set.
+- **Cochran's Q.** `Q = (k − 1)(k ΣCⱼ² − N²) / (k N − ΣRᵢ²)` on k − 1 df (Cj:
+  yeses to variable j, Ri: yeses of respondent i, N: all yeses), as R's
+  `DescTools::CochranQTest` and statsmodels' `cochrans_q`; a respondent saying
+  yes to all or none carries no information. `table`: Variable, N, Yes, % yes;
+  stats `Test`, `Counts as yes`, `Variables`, `N`, `Q`, `df`, `p`, `Pairwise`.
+  `pairs`: per pair A, B, N, % yes A, % yes B, Difference (points, A − B), Yes
+  only A, Yes only B, Chi-square (blank when exact), p, p adjusted; its footer
+  names the adjustment, the p-value method and the pairs no respondent
+  answered differently. `CochranTest` holds the unrounded Q, df, p and the yes
+  count per variable.
 - Nothing to test is a result, not an error: everyone giving the same answer
   twice, or no discordant pair, leaves out `p` and says why in `Note`.
 

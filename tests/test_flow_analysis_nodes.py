@@ -12,6 +12,7 @@ import pytest
 
 from siamang.codegen import generate_questionnaire
 from siamang.flow import FlowRunner, check_flow, default_registry, generate_flow
+from siamang.flow.document import resolved_params
 from siamang.io import write_snapshot
 from siamang.model import from_document, loads
 from siamang.reporting.result_table import ResultTable
@@ -80,7 +81,7 @@ def test_the_nodes_are_registered_and_listed_as_unweighted():
     registry = default_registry()
     paired = registry.get("analyze.paired")
     assert paired.outputs == {"table": "Table", "pairs": "Table", "stat": "Stat"}
-    assert paired.params["test"].values == ("auto", "wilcoxon", "mcnemar", "friedman")
+    assert paired.params["test"].values == ("auto", "wilcoxon", "mcnemar", "friedman", "cochran")
     assert paired.params["yes_codes"].kind == "json"
     factor = registry.get("analyze.factor")
     assert list(factor.outputs) == ["data", "loadings", "variance", "correlations", "stat"]
@@ -204,3 +205,70 @@ def test_the_generated_script_reproduces_the_runner(questionnaire_doc, survey, t
     assert ours == theirs
     assert "Wilcoxon signed-rank" in ours and "McNemar" in ours
     assert json.dumps(result.output("fac", "stat"))  # a stat is plain JSON for a tile
+
+
+def test_cochrans_q_in_a_flow_on_exploded_awareness(questionnaire_doc, survey, tmp_path):
+    """Awareness of three brands, asked as one multiple-choice question and
+    exploded into 0/1 columns: Cochran's Q asks whether the brands are known
+    equally, and the pairs which of them differ. The check knows the count
+    (two are McNemar's), the code passes yes codes and pairwise comparisons
+    and nothing the test ignores, and the run matches the module."""
+
+    brands = ["aware_1", "aware_2", "aware_3"]
+    flow = _flow(
+        [
+            ("sim", "source.simulated", {"n": 300, "seed": 5}),
+            ("expl", "prepare.explode", {"variable": "aware"}),
+            ("q", "analyze.paired", {"variables": brands, "test": "cochran"}),
+            ("sec", "output.report_section", {"heading": "Awareness"}),
+            ("save", "output.save_report", {"title": "Awareness", "path": "outputs/q.md"}),
+        ],
+        [
+            ("sim", "data", "expl", "data"),
+            ("expl", "data", "q", "data"),
+            ("q", "table", "sec", "items"),
+            ("q", "pairs", "sec", "items"),
+            ("sec", "report", "save", "sections"),
+        ],
+        name="awareness",
+    )
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    # The inspector asks for what the test reads: yes codes, pairs, their p.
+    spec = default_registry().get("analyze.paired")
+    params = resolved_params(spec, {"variables": brands, "test": "cochran"})
+    assert all(spec.reads(name, params) for name in ("yes_codes", "posthoc", "p_value"))
+    assert not spec.reads("zeros", params)
+    code = generate_flow(flow, questionnaire_doc)
+    assert 'test="cochran"' in code and "yes=None" in code and 'posthoc="holm"' in code
+    assert "zeros=" not in code
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    stat = result.output("q", "stat")
+    assert stat["Test"] == "Cochran's Q" and stat["Variables"] == 3
+    assert stat["Counts as yes"] == "1 = Yes"  # Explode labels its 0/1 columns
+    data = result.output("expl", "data")
+    from siamang.data import paired
+
+    direct = paired.cochran(data, brands)
+    assert stat == direct.stats
+    assert len(result.output("q", "pairs").to_frame()) == 3
+    report = (tmp_path / "outputs" / "q.md").read_text("utf-8")
+    assert "Cochran's Q" in report and "McNemar for each pair" in report
+    assert json.dumps(stat)
+    # Two brands are McNemar's; a Counts as yes kept for Wilcoxon is warned of.
+    flow["nodes"][2]["params"]["variables"] = brands[:2]
+    issues = check_flow(flow, questionnaire=questionnaire_doc)
+    assert [(i.severity, i.message) for i in issues] == [
+        (
+            "error",
+            "q: Cochran's Q compares three or more yes/no variables; 2 were given. For two,"
+            " use McNemar.",
+        )
+    ]
+    flow["nodes"][2]["params"].update(variables=brands, test="friedman", yes_codes=1)
+    issues = check_flow(flow, questionnaire=questionnaire_doc)
+    assert [i.severity for i in issues] == ["warning"]
+    flow["nodes"][2]["params"].update(test="cochran")
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []

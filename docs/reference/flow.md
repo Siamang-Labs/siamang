@@ -135,14 +135,20 @@ table.
 
 `analyze.paired` compares answers from the same respondents
 (`siamang.data.paired.compare`): `test` is `auto` (Wilcoxon signed-rank for two
-`variables`, Friedman for three or more), `wilcoxon`, `mcnemar` or `friedman`;
-`yes_codes` (a code or a list) says what counts as yes for McNemar, `zeros`
+`variables`, Friedman for three or more), `wilcoxon`, `mcnemar`, `friedman` or
+`cochran` (Cochran's Q, three or more yes/no variables);
+`yes_codes` (a code or a list) says what counts as yes for McNemar and Cochran's
+Q, `zeros`
 (`wilcox` | `pratt`) how Wilcoxon treats a respondent who answered both the
 same, `p_value` (`auto` | `exact` | `approximate`) how the p-value is found, and
 `posthoc` (`holm` | `bonferroni` | `none`) how Friedman's pairwise Wilcoxon
-tests are adjusted. Outputs: `table` (descriptives, or McNemar's 2 × 2 table,
-with the test as its footer), `pairs` (Friedman's pairwise comparisons; empty,
-with a note, for the two-variable tests) and `stat`.
+tests and Cochran's pairwise McNemar tests are adjusted. Outputs: `table`
+(descriptives, McNemar's 2 × 2 table, or Cochran's yes count per variable,
+with the test as its footer), `pairs` (Friedman's or Cochran's pairwise
+comparisons; empty, with a note, for the two-variable tests) and `stat`.
+`check_flow` refuses Cochran's Q of two variables and McNemar of three before
+the run, and warns of a Counts as yes that neither McNemar nor Cochran's Q
+reads.
 
 `analyze.factor` runs an exploratory factor analysis
 (`siamang.data.factor.analyze`): `items`, `n_factors` (empty: by `criterion`,

@@ -1,7 +1,7 @@
 type: analyze.paired
 category: analyze
 title: Paired tests
-description: The same respondents answering two or more questions — Wilcoxon signed-rank or McNemar for two, Friedman for three or more, with pairwise comparisons.
+description: The same respondents answering two or more questions — Wilcoxon signed-rank or McNemar for two, Friedman or Cochran's Q for three or more, with pairwise comparisons.
 inputs:
   data: SurveyData
 outputs:
@@ -13,7 +13,7 @@ params:
     kind: variables
     required: true
     label: Variables
-    help: Two for Wilcoxon or McNemar, three or more for Friedman — asked of the same respondents, on the same answer scale. Differences are the first minus the second (for Friedman's pairs, A − B), as in the paired t-test. A respondent missing any of them is left out of all of them; the codebook's missing codes count as missing.
+    help: Two for Wilcoxon or McNemar, three or more for Friedman or Cochran's Q — asked of the same respondents, on the same answer scale. Differences are the first minus the second (for Friedman's pairs, A − B), as in the paired t-test. A respondent missing any of them is left out of all of them; the codebook's missing codes count as missing.
   test:
     kind: enum
     values:
@@ -21,12 +21,13 @@ params:
     - wilcoxon
     - mcnemar
     - friedman
+    - cochran
     default: auto
     label: Test
-    help: Auto runs Wilcoxon signed-rank for two variables and Friedman for more. McNemar is for two yes/no questions. Wilcoxon and Friedman rank the answers, so they refuse a nominal variable.
+    help: Auto runs Wilcoxon signed-rank for two variables and Friedman for more. McNemar is for two yes/no questions, Cochran's Q for three or more. Wilcoxon and Friedman rank the answers, so they refuse a nominal variable.
   yes_codes:
     kind: json
-    label: Counts as yes (McNemar)
+    label: Counts as yes (McNemar, Cochran's Q)
     help: The answer code, or a list of codes, that counts as yes; every other answer counts as no. Empty works for 0/1 variables such as the ones Explode multiple choice makes.
   zeros:
     kind: enum
@@ -44,7 +45,7 @@ params:
     - approximate
     default: auto
     label: p-value
-    help: 'Auto is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar: fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise.'
+    help: 'Auto is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar (and the pairs of Cochran''s Q): fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise.'
   posthoc:
     kind: enum
     values:
@@ -52,13 +53,13 @@ params:
     - bonferroni
     - none
     default: holm
-    label: Pairwise comparisons (Friedman)
-    help: A Wilcoxon signed-rank test for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them.
+    label: Pairwise comparisons (Friedman, Cochran's Q)
+    help: A Wilcoxon signed-rank test (after Friedman) or a McNemar test (after Cochran's Q) for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them.
 subtitle: '{test}: {variables}'
 checks:
-- when: test!=mcnemar & yes_codes
+- when: test!=mcnemar & test!=cochran & yes_codes
   severity: warning
-  message: Counts as yes is read only by McNemar — set Test to mcnemar, or clear it.
+  message: Counts as yes is read only by McNemar and Cochran's Q — set Test to mcnemar or cochran, or clear it.
 imports:
 - from siamang.data import paired
 template:
@@ -71,14 +72,18 @@ template:
       {in.data},
       {variables!r},
       test={test!r},
-# Each test is given only what it reads — McNemar its yes codes, the ranked
-# tests how to treat a zero difference, Friedman (and auto, which is Friedman
-# for three or more) its pairwise comparisons — so the inspector asks for
-# nothing the run ignores. The fragments continue the call above.
+# Each test is given only what it reads — McNemar and Cochran's Q their yes
+# codes, the ranked tests how to treat a zero difference, Friedman (and auto,
+# which is Friedman for three or more) and Cochran's Q their pairwise
+# comparisons — so the inspector asks for nothing the run ignores. The
+# fragments continue the call above.
 - when: test=mcnemar
   code: |2
         yes={yes_codes!r},
-- when: test!=mcnemar
+- when: test=cochran
+  code: |2
+        yes={yes_codes!r},
+- when: test!=mcnemar & test!=cochran
   code: |2
         zeros={zeros!r},
 - |2
@@ -87,6 +92,9 @@ template:
   code: |2
         posthoc={posthoc!r},
 - when: test=auto
+  code: |2
+        posthoc={posthoc!r},
+- when: test=cochran
   code: |2
         posthoc={posthoc!r},
 - |

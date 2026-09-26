@@ -11,6 +11,8 @@ shift, and the respondent is their own control.
 - :func:`mcnemar` — McNemar, two yes/no variables;
 - :func:`friedman` — Friedman, three or more ordered variables, with pairwise
   Wilcoxon comparisons adjusted by Holm or Bonferroni;
+- :func:`cochran` — Cochran's Q, three or more yes/no variables, with pairwise
+  McNemar comparisons adjusted by Holm or Bonferroni;
 - :func:`compare` — what the ``analyze.paired`` flow node calls: Wilcoxon for
   two variables and Friedman for more, or the test it is told to run.
 
@@ -64,12 +66,24 @@ offered: the mean rank of two variables depends on which *other* variables are
 in the set, so adding a third concept could change whether the first two
 differ (Benavoli, Corani & Mangili 2016).
 
+**Cochran's Q.** McNemar's test extended to three or more yes/no variables
+(Cochran 1950): each variable becomes yes (the codes in ``yes``) or no, as for
+McNemar. With ``Cⱼ`` the respondents saying yes to variable j, ``Rᵢ`` the yeses
+of respondent i and ``N`` all of them, ``Q = (k − 1) (k ΣCⱼ² − N²) / (k N −
+ΣRᵢ²)`` on ``k − 1`` df — R's ``DescTools::CochranQTest`` and statsmodels'
+``cochrans_q``. A respondent who said yes to all of the variables, or to none,
+adds as much to the numerator as to the denominator and so carries no
+information, as a McNemar concordant pair does. The pairwise comparisons are
+McNemar tests of every pair on the same respondents (exact or chi-square by
+the rule above), their p-values adjusted by Holm (default) or Bonferroni.
+
 None of these tests has a standard weighted form, so they run on the
 respondents as they are and, on weighted data, their statistics carry
 ``Weight: unweighted (the weight 'w' is not applied)``.
 
 The array-level functions — :func:`signed_rank`, :func:`mcnemar_test`,
-:func:`friedman_test` and :func:`adjust` — take plain numbers.
+:func:`friedman_test`, :func:`cochran_test` and :func:`adjust` — take plain
+numbers.
 """
 
 from __future__ import annotations
@@ -96,7 +110,7 @@ if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
     from siamang.reporting.result_table import ResultTable
 
-TESTS = ("auto", "wilcoxon", "mcnemar", "friedman")
+TESTS = ("auto", "wilcoxon", "mcnemar", "friedman", "cochran")
 ZERO_METHODS = ("wilcox", "pratt")
 P_VALUES = ("auto", "exact", "approximate")
 POSTHOC = ("holm", "bonferroni", "none")
@@ -156,6 +170,18 @@ class FriedmanTest:
 
 
 @dataclass(frozen=True, slots=True)
+class CochranTest:
+    """Cochran's Q on ``n`` respondents and ``k`` yes/no variables."""
+
+    n: int
+    k: int
+    statistic: float | None  # None when nobody differs between the variables
+    df: int
+    p: float | None
+    yes: np.ndarray  # the respondents saying yes to each variable
+
+
+@dataclass(frozen=True, slots=True)
 class PairedResult:
     """What a paired test found: a table, the pairwise comparisons, the statistics.
 
@@ -167,7 +193,7 @@ class PairedResult:
     table: ResultTable
     pairs: ResultTable
     stats: dict[str, Any] = field(default_factory=dict)
-    test: SignedRank | McNemarTest | FriedmanTest | None = None
+    test: SignedRank | McNemarTest | FriedmanTest | CochranTest | None = None
 
 
 # ── array level ──────────────────────────────────────────────────────────────
@@ -372,6 +398,37 @@ def friedman_test(matrix: Any) -> FriedmanTest:
     )
 
 
+def cochran_test(matrix: Any) -> CochranTest:
+    """Cochran's Q on ``matrix`` (respondents × variables) of yes (true, 1) and
+    no (false, 0): ``(k − 1) (k ΣCⱼ² − N²) / (k N − ΣRᵢ²)`` on ``k − 1`` df."""
+
+    from scipy.stats import chi2
+
+    x = np.asarray(matrix, dtype=float)
+    if x.ndim != 2 or x.shape[1] < 3:
+        raise ValueError("Cochran's Q needs three or more variables.")
+    if not np.isin(x, (0.0, 1.0)).all():
+        raise ValueError("Cochran's Q takes yes (1) and no (0) answers only.")
+    n, k = x.shape
+    columns = x.sum(axis=0)
+    rows = x.sum(axis=1)
+    total = float(columns.sum())
+    denominator = k * total - float((rows**2).sum())
+    if n == 0 or denominator <= 0:
+        # Everyone said yes to all of them or to none: nobody differs.
+        return CochranTest(n, k, None, k - 1, None, columns)
+    statistic = (k - 1) * (k * float((columns**2).sum()) - total**2) / denominator
+    statistic = max(float(statistic), 0.0)
+    return CochranTest(
+        n=n,
+        k=k,
+        statistic=statistic,
+        df=k - 1,
+        p=float(chi2.sf(statistic, k - 1)),
+        yes=columns,
+    )
+
+
 def adjust(pvalues: Any, method: str = "holm") -> np.ndarray:
     """p-values adjusted for multiple comparisons (``holm``, ``bonferroni`` or
     ``none``); NaN stays NaN and is not counted, as R's ``p.adjust`` does."""
@@ -418,12 +475,23 @@ def count_problem(test: str, count: int) -> str | None:
         )
     if test in {"wilcoxon", "mcnemar"} and count != 2:
         name = "Wilcoxon signed-rank" if test == "wilcoxon" else "McNemar"
-        more = " For three or more, use Friedman." if test == "wilcoxon" else ""
+        more = (
+            " For three or more, use Friedman."
+            if test == "wilcoxon"
+            else " For three or more yes/no variables, use Cochran's Q."
+            if count > 2
+            else ""
+        )
         return f"{name} compares exactly two variables; {given}.{more}"
     if test == "friedman" and count < 3:
         return (
             f"Friedman's test compares three or more variables; {given}. For two, use "
             "Wilcoxon signed-rank (or McNemar for yes/no)."
+        )
+    if test == "cochran" and count < 3:
+        return (
+            f"Cochran's Q compares three or more yes/no variables; {given}. For two, use "
+            "McNemar."
         )
     return None
 
@@ -441,7 +509,8 @@ def compare(
     """Run the paired test ``test`` on ``variables`` — the ``analyze.paired`` node.
 
     ``auto`` is Wilcoxon for two variables and Friedman for three or more;
-    McNemar, for two yes/no variables, is run when asked for.
+    McNemar, for two yes/no variables, and Cochran's Q, for three or more, are
+    run when asked for.
     """
 
     if test not in TESTS:
@@ -456,6 +525,8 @@ def compare(
         if test == "wilcoxon":
             return wilcoxon(data, variables[0], variables[1], zeros=zeros, p_value=p_value)
         return mcnemar(data, variables[0], variables[1], yes=yes, p_value=p_value)
+    if test == "cochran":
+        return cochran(data, variables, yes=yes, posthoc=posthoc, p_value=p_value)
     return friedman(data, variables, posthoc=posthoc, zeros=zeros, p_value=p_value)
 
 
@@ -692,6 +763,167 @@ def _pairwise(
     return result_table(data, frame, footer)
 
 
+def cochran(
+    data: SurveyData,
+    variables: list[str],
+    *,
+    yes: Any = None,
+    posthoc: str = "holm",
+    p_value: str = "auto",
+) -> PairedResult:
+    """Cochran's Q: does the share saying yes differ between three or more
+    ``variables`` answered by the same respondents?
+
+    ``yes`` is the answer code, or a list of codes, that counts as yes, as for
+    :func:`mcnemar` (empty: 1 when every variable holds only 0 and 1).
+    ``posthoc`` adjusts the pairwise McNemar p-values by ``holm`` or
+    ``bonferroni``; ``none`` skips the comparisons. ``p_value`` is that of the
+    pairwise McNemar tests.
+    """
+
+    if posthoc not in POSTHOC:
+        raise ValueError(f"posthoc must be one of {', '.join(POSTHOC)}.")
+    variables = list(variables)
+    problem = count_problem("cochran", len(variables))
+    if problem:
+        raise ValueError(problem)
+    distinct(variables)
+    rows = listwise(data, variables, numeric=False)
+    codes, warning = _yes_codes(data, rows, variables, yes, test="Cochran's Q")
+    said = (
+        np.column_stack([rows.frame[name].isin(codes).to_numpy(dtype=bool) for name in variables])
+        if rows.n
+        else np.zeros((0, len(variables)), dtype=bool)
+    )
+    result = cochran_test(said.astype(float))
+    n = rows.n
+    table = pd.DataFrame(
+        {
+            "Variable": [label_of(data, name) for name in variables],
+            "N": [n] * len(variables),
+            "Yes": [int(value) for value in result.yes],
+            "% yes": [rounded(value / n * 100, 1) if n else None for value in result.yes],
+        }
+    )
+    stats: dict[str, Any] = {
+        "Test": "Cochran's Q",
+        "Counts as yes": _codes_text(data, variables, codes),
+        "Variables": len(variables),
+        "N": n,
+    }
+    if warning:
+        stats["Warning"] = warning
+    if result.statistic is None:
+        stats["Note"] = (
+            "every respondent said yes to all of the variables or to none of them, so "
+            "there is nothing to compare"
+            if n
+            else "no respondent answered all the variables"
+        )
+    else:
+        stats["Q"] = rounded(result.statistic, 3)
+        stats["df"] = result.df
+        stats["p"] = p_rounded(result.p)
+    stats["Pairwise"] = (
+        "none"
+        if posthoc == "none"
+        else f"McNemar, {'Holm' if posthoc == 'holm' else 'Bonferroni'}-adjusted p"
+    )
+    rows.report(stats, "any of the variables")
+    unweighted(stats, data)
+    if posthoc == "none":
+        pairs = _no_mcnemar_pairs(data, "pairwise comparisons were not asked for")
+    else:
+        pairs = _mcnemar_pairs(data, variables, said, posthoc=posthoc, p_value=p_value)
+    return PairedResult(
+        table=result_table(data, table, stats), pairs=pairs, stats=stats, test=result
+    )
+
+
+_MCNEMAR_PAIR_COLUMNS = [
+    "Variable A",
+    "Variable B",
+    "N",
+    "% yes A",
+    "% yes B",
+    "Difference (points)",
+    "Yes only A",
+    "Yes only B",
+    "Chi-square",
+    "p",
+    "p adjusted",
+]
+
+
+def _mcnemar_pairs(
+    data: SurveyData,
+    variables: list[str],
+    said: np.ndarray,
+    *,
+    posthoc: str,
+    p_value: str,
+) -> ResultTable:
+    """A McNemar test for every pair of ``variables`` on the same respondents
+    (``said``: respondents × variables, true for yes), p adjusted by ``posthoc``."""
+
+    n = int(said.shape[0])
+    results = []
+    for i, j in combinations(range(len(variables)), 2):
+        b = int((said[:, i] & ~said[:, j]).sum())
+        c = int((~said[:, i] & said[:, j]).sum())
+        results.append((i, j, mcnemar_test(b, c, p_value=p_value)))
+    raw = [np.nan if result.p is None else result.p for _, _, result in results]
+    adjusted = adjust(raw, posthoc)
+    frame = pd.DataFrame(
+        [
+            {
+                "Variable A": label_of(data, variables[i]),
+                "Variable B": label_of(data, variables[j]),
+                "N": n,
+                "% yes A": rounded(said[:, i].mean() * 100, 1) if n else None,
+                "% yes B": rounded(said[:, j].mean() * 100, 1) if n else None,
+                "Difference (points)": (
+                    rounded((said[:, i].mean() - said[:, j].mean()) * 100, 1) if n else None
+                ),
+                "Yes only A": result.b,
+                "Yes only B": result.c,
+                "Chi-square": rounded(result.statistic, 3),
+                "p": p_rounded(result.p),
+                "p adjusted": p_rounded(None if np.isnan(value) else float(value)),
+            }
+            for (i, j, result), value in zip(results, adjusted, strict=True)
+        ],
+        columns=_MCNEMAR_PAIR_COLUMNS,
+    )
+    tested = int((~np.isnan(np.asarray(raw))).sum())
+    footer: dict[str, Any] = {
+        "Test": "McNemar for each pair",
+        "Difference": "A − B",
+        "Adjustment": f"{'Holm' if posthoc == 'holm' else 'Bonferroni'} ({tested} comparisons)",
+        "N": n,
+    }
+    methods = sorted({result.method for _, _, result in results if result.method != "none"})
+    if methods:
+        footer["p-value"] = " / ".join(methods)
+    untested = [
+        f"{label_of(data, variables[i])} – {label_of(data, variables[j])}"
+        for i, j, result in results
+        if result.p is None
+    ]
+    if untested:
+        footer["Note"] = f"no respondent answered the two differently for {', '.join(untested)}"
+    unweighted(footer, data)
+    return result_table(data, frame, footer)
+
+
+def _no_mcnemar_pairs(data: SurveyData, why: str) -> ResultTable:
+    return result_table(
+        data,
+        pd.DataFrame(columns=_MCNEMAR_PAIR_COLUMNS),
+        {"Note": f"no pairwise comparisons: {why}"},
+    )
+
+
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -776,7 +1008,12 @@ def _ordered(data: SurveyData, variables: list[str], test: str) -> None:
 
 
 def _yes_codes(
-    data: SurveyData, rows: Listwise, variables: list[str], yes: Any
+    data: SurveyData,
+    rows: Listwise,
+    variables: list[str],
+    yes: Any,
+    *,
+    test: str = "McNemar",
 ) -> tuple[list[Any], str | None]:
     """The codes that count as yes, and a warning when no respondent gave any."""
     values: set[Any] = set()
@@ -786,8 +1023,9 @@ def _yes_codes(
         codes = list(yes) if isinstance(yes, list | tuple | set) else [yes]
         if rows.n and not pd.Series(list(values), dtype=object).isin(codes).any():
             shown = ", ".join(map(str, codes))
+            where = "either variable" if len(variables) == 2 else "any of the variables"
             return codes, (
-                f"no respondent gave {shown} to either variable, so every answer counts "
+                f"no respondent gave {shown} to {where}, so every answer counts "
                 "as no; check the code"
             )
         return codes, None
@@ -795,7 +1033,7 @@ def _yes_codes(
         return [1], None
     shown = ", ".join(_code_text(data, variables, value) for value in _sorted(values))
     raise ValueError(
-        f"McNemar needs to know which answer counts as yes: the variables hold {shown}. "
+        f"{test} needs to know which answer counts as yes: the variables hold {shown}. "
         "Name that code (or a list of codes) in Counts as yes — `yes` outside a flow; "
         "every other answer counts as no."
     )
@@ -823,11 +1061,14 @@ def _codes_text(data: SurveyData, variables: list[str], codes: list[Any]) -> str
 __all__ = [
     "EXACT_LIMIT",
     "MCNEMAR_EXACT_BELOW",
+    "CochranTest",
     "FriedmanTest",
     "McNemarTest",
     "PairedResult",
     "SignedRank",
     "adjust",
+    "cochran",
+    "cochran_test",
     "compare",
     "count_problem",
     "friedman",

@@ -315,7 +315,8 @@ def test_a_value_the_node_does_not_read_is_not_checked(questionnaire_doc, survey
         )[1]
     ]
     assert warnings == [
-        "n: Counts as yes is read only by McNemar — set Test to mcnemar, or clear it."
+        "n: Counts as yes is read only by McNemar and Cochran's Q — set Test to mcnemar or "
+        "cochran, or clear it."
     ]
     # And the flow runs, the stale values left out of the code.
     flow = _flow(
@@ -577,7 +578,11 @@ def test_what_the_parameters_settle_is_checked_before_the_run(questionnaire_doc)
 
     three = ["trust_acme", "trust_globex", "satisfaction"]
     assert issues("analyze.paired", {"variables": three, "test": "mcnemar"}) == [
-        ("error", "n: McNemar compares exactly two variables; 3 were given.")
+        (
+            "error",
+            "n: McNemar compares exactly two variables; 3 were given. For three or more"
+            " yes/no variables, use Cochran's Q.",
+        )
     ]
     assert issues("analyze.paired", {"variables": three, "test": "wilcoxon"}) == [
         (

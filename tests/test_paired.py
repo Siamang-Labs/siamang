@@ -419,3 +419,151 @@ def test_mcnemar_names_the_field_and_one_list_column_reads_as_one():
     # "aware_a hold multiple-choice answers" before.
     with pytest.raises(TypeError, match="^aware_a holds multiple-choice answers"):
         paired.mcnemar(listed, "aware_a", "aware_b")
+
+
+# ─── Cochran's Q ─────────────────────────────────────────────────────────────
+
+#: Eighteen respondents × three yes/no questions.
+COCHRAN = np.array(
+    [
+        [1, 1, 0],
+        [1, 1, 1],
+        [0, 1, 0],
+        [0, 0, 0],
+        [1, 1, 0],
+        [1, 1, 1],
+        [0, 1, 1],
+        [1, 1, 0],
+        [0, 0, 1],
+        [1, 1, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+        [1, 1, 1],
+        [0, 1, 0],
+        [1, 1, 0],
+        [0, 0, 0],
+        [1, 1, 0],
+    ]
+)
+
+
+def test_cochran_q_by_hand_and_as_statsmodels_and_r():
+    """Yes per question C = 11, 14, 5 (N = 30 yeses); the respondents' yeses
+    squared sum to ΣR² = 64. Q = (k − 1)(k ΣC² − N²) / (k N − ΣR²) =
+    2 · (3 · 342 − 900) / (90 − 64) = 252 / 26 on 2 df. statsmodels 0.15
+    ``cochrans_q``: Q = 9.692307692307692, p = 0.007858544670151704; R's
+    ``DescTools::CochranQTest``: Q = 9.6923, df = 2, p-value = 0.007859."""
+
+    result = paired.cochran_test(COCHRAN)
+    assert result.statistic == pytest.approx(252 / 26)
+    assert result.statistic == pytest.approx(9.692307692307692)
+    assert result.df == 2 and (result.n, result.k) == (18, 3)
+    assert result.p == pytest.approx(0.007858544670151704)
+    assert list(result.yes) == [11, 14, 5]
+    # A respondent saying yes to all, or to none, adds as much to the numerator
+    # as to the denominator: Q does not move.
+    more = np.vstack([COCHRAN, [[1, 1, 1], [0, 0, 0], [1, 1, 1]]])
+    assert paired.cochran_test(more).statistic == pytest.approx(252 / 26)
+    assert paired.cochran_test(more).n == 21
+    # Nobody differs between the questions: nothing to test, not a division by 0.
+    same = paired.cochran_test([[1, 1, 1], [0, 0, 0]])
+    assert same.statistic is None and same.p is None
+    assert paired.cochran_test(np.zeros((0, 3))).statistic is None
+    with pytest.raises(ValueError, match="three or more"):
+        paired.cochran_test([[1, 0], [0, 1]])
+    with pytest.raises(ValueError, match="yes \\(1\\) and no \\(0\\)"):
+        paired.cochran_test([[1, 2, 0]])
+
+
+def _cochran_survey(weighted: bool = False) -> SurveyData:
+    frame = pd.DataFrame(COCHRAN, columns=["ad_tv", "ad_web", "ad_radio"]).astype(float)
+    # Two more respondents: one with a blank, one who refused the radio question.
+    extra = pd.DataFrame({"ad_tv": [1.0, 0.0], "ad_web": [np.nan, 1.0], "ad_radio": [1.0, 9.0]})
+    frame = pd.concat([frame, extra], ignore_index=True)
+    frame["w"] = np.linspace(0.5, 1.5, len(frame))
+    yes_no = {0: "No", 1: "Yes", 9: "Refused"}
+    refused = (MissingValue(9, "Refused"),)
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("ad_tv", "nominal", label="Saw it on TV", labels=yes_no, missing=refused),
+            Variable("ad_web", "nominal", label="Saw it online", labels=yes_no, missing=refused),
+            Variable(
+                "ad_radio", "nominal", label="Heard it on the radio", labels=yes_no, missing=refused
+            ),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    return data.with_weight("w") if weighted else data
+
+
+def test_cochran_on_survey_data_with_pairwise_mcnemar_holm():
+    """The eighteen complete respondents; the pairs are McNemar tests on them:
+    TV − online b = 1, c = 4 (exact p = 0.375), TV − radio 8 and 2 (0.109375),
+    online − radio 10 and 1 (0.01171875) — the exact binomial p statsmodels'
+    ``mcnemar(exact=True)`` gives. Holm: 0.01171875 · 3 = 0.03515625,
+    0.109375 · 2 = 0.21875, 0.375."""
+
+    variables = ["ad_tv", "ad_web", "ad_radio"]
+    result = paired.cochran(_cochran_survey(), variables)
+    stats = result.stats
+    assert stats["Test"] == "Cochran's Q" and stats["Counts as yes"] == "1 = Yes"
+    assert stats["N"] == 18 and stats["Variables"] == 3 and stats["Excluded"] == 2
+    assert stats["Missing codes"] == "1 answer with a missing code (9 = Refused) left out"
+    assert stats["Q"] == pytest.approx(9.692) and stats["df"] == 2
+    assert stats["p"] == 0.007859  # four significant digits
+    assert stats["Pairwise"] == "McNemar, Holm-adjusted p"
+    table = result.table.to_frame()
+    assert list(table.columns) == ["Variable", "N", "Yes", "% yes"]
+    assert list(table["Variable"]) == ["Saw it on TV", "Saw it online", "Heard it on the radio"]
+    assert list(table["Yes"]) == [11, 14, 5]
+    assert list(table["% yes"]) == [61.1, 77.8, 27.8]
+    pairs = result.pairs.to_frame()
+    assert list(zip(pairs["Yes only A"], pairs["Yes only B"], strict=True)) == [
+        (1, 4),
+        (8, 2),
+        (10, 1),
+    ]
+    assert list(pairs["p"]) == [0.375, 0.1094, 0.01172]
+    assert list(pairs["p adjusted"]) == [0.375, 0.2188, 0.03516]
+    assert list(pairs["Difference (points)"]) == [-16.7, 33.3, 50.0]
+    assert pairs["Chi-square"].isna().all()  # exact below 25 discordant pairs
+    footer = result.pairs.stats
+    assert footer["Adjustment"] == "Holm (3 comparisons)" and footer["p-value"] == "exact binomial"
+    assert footer["Difference"] == "A − B" and footer["N"] == 18
+    assert "nan" not in result.pairs.to_markdown()
+    bonferroni = paired.cochran(_cochran_survey(), variables, posthoc="bonferroni")
+    assert list(bonferroni.pairs.to_frame()["p adjusted"]) == [1.0, 0.3281, 0.03516]
+    approximate = paired.cochran(_cochran_survey(), variables, p_value="approximate")
+    # (|1 − 4| − 1)² / 5 = 0.8, as statsmodels' mcnemar(exact=False).
+    assert approximate.pairs.to_frame()["Chi-square"][0] == 0.8
+    skipped = paired.cochran(_cochran_survey(), variables, posthoc="none")
+    assert skipped.pairs.to_frame().empty and skipped.stats["Pairwise"] == "none"
+    assert "not asked for" in skipped.pairs.stats["Note"]
+
+
+def test_cochran_reads_yes_codes_explains_and_says_it_is_unweighted():
+    data = _cochran_survey(weighted=True)
+    variables = ["ad_tv", "ad_web", "ad_radio"]
+    note = "unweighted (the weight 'w' is not applied)"
+    result = paired.compare(data, variables, test="cochran")
+    assert result.stats["Weight"] == result.pairs.stats["Weight"] == note
+    assert result.stats["Test"] == "Cochran's Q"
+    # "No" as yes gives the mirror image, and the same Q.
+    mirrored = paired.cochran(data, variables, yes=0)
+    assert mirrored.stats["Counts as yes"] == "0 = No"
+    assert mirrored.stats["Q"] == result.stats["Q"]
+    nobody = paired.cochran(data, variables, yes=7)
+    assert "no respondent gave 7 to any of the variables" in nobody.stats["Warning"]
+    assert "nothing to compare" in nobody.stats["Note"] and "p" not in nobody.stats
+    rated = SurveyData(frame=pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 1], "c": [3, 1, 2]}))
+    with pytest.raises(ValueError, match="^Cochran's Q needs to know which answer counts as yes"):
+        paired.cochran(rated, ["a", "b", "c"])
+    assert paired.cochran(rated, ["a", "b", "c"], yes=[2, 3]).stats["Q"] == 0.0
+    with pytest.raises(ValueError, match="Cochran's Q compares three or more yes/no variables; 2"):
+        paired.compare(data, variables[:2], test="cochran")
+    with pytest.raises(ValueError, match="For three or more yes/no variables, use Cochran's Q"):
+        paired.compare(data, variables, test="mcnemar")
+    with pytest.raises(ValueError, match="ad_tv is listed twice"):
+        paired.cochran(data, ["ad_tv", "ad_tv", "ad_web"])
