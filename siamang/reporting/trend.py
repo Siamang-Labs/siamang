@@ -358,7 +358,7 @@ def trend(
         measure=measure,
         title=title,
         ylabel=ylabel,
-        xlabel=_get_label(data, time) + (f" ({period})" if dates else ""),
+        xlabel=_time_label(data, time) + (f" ({period})" if dates else ""),
         group_title=by_label,
         weight=data.weight if weights is not None else None,
         min_base=min_base,
@@ -368,6 +368,17 @@ def trend(
 
 
 # ─── the parts ───────────────────────────────────────────────────────────────
+
+
+def _time_label(data: SurveyData, time: str) -> str:
+    """Time's label: the codebook's, else a response timestamp's name for
+    people ("Response date" for created_at), else the column's name."""
+    from siamang.data.checks import RESPONSE_TIME_LABELS
+
+    label = _get_label(data, time)
+    if label == time and time in RESPONSE_TIME_LABELS:
+        return RESPONSE_TIME_LABELS[time]
+    return label
 
 
 def _weights_of(data: SurveyData, frame: pd.DataFrame) -> np.ndarray | None:

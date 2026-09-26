@@ -482,7 +482,13 @@ preview: table
   answers for its other outputs), `json`. `creates: variable | column` marks a
   parameter whose value is the name of something new for downstream nodes — a
   name, not a prefix: names a node derives from a prefix (Explode's columns,
-  factor scores, MaxDiff scores) are counted by `check_flow` itself.
+  factor scores, MaxDiff scores) are counted by `check_flow` itself. A
+  `variable` parameter may name `extra: {name: label}`: names beyond the
+  codebook's variables a builder's picker should offer, with what to call
+  them — the Trend's Time offers the responses' timestamps (`created_at:
+  Response date (created_at)`, `submitted_at`, `updated_at`, `started_at`),
+  which `check_flow` knows though no codebook declares them. The registry
+  payload carries them as `"extra": [{"name": …, "label": …}]`.
 - Inputs are a type name or `{type, many, optional}`; `type` may be a list.
 - `template`: placeholders `{in.<port>}`, `{out.<port>}` (variable names),
   `{<param>!r}` (the parameter as a Python literal: a condition becomes

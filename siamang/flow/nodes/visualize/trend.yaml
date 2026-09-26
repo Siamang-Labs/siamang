@@ -12,6 +12,11 @@ params:
     kind: variable
     required: true
     label: Time
+    extra:
+      created_at: Response date (created_at)
+      submitted_at: Submission time (submitted_at)
+      updated_at: Last change (updated_at)
+      started_at: Start time (started_at)
     help: A wave code (one point per wave, ordered by code, its labels on the axis) or a date — a date column, or text in ISO 8601 such as the responses' created_at (2026-05-25 09:00:00+00:00). Times with a zone are read in UTC.
   period:
     kind: enum

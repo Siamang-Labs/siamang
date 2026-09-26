@@ -128,6 +128,10 @@ class ParamSpec:
     creates: str | None = None  # "variable" | "column": the value names something new
     minimum: float | None = None
     maximum: float | None = None
+    #: A variable param's names beyond the codebook's variables that a picker
+    #: should offer, with what to call them: ``(name, label)`` pairs (the
+    #: Trend's Time offers the responses' timestamps).
+    extra: tuple[tuple[str, str], ...] = ()
 
     def to_json(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"kind": self.kind}
@@ -149,6 +153,8 @@ class ParamSpec:
             payload["minimum"] = self.minimum
         if self.maximum is not None:
             payload["maximum"] = self.maximum
+        if self.extra:
+            payload["extra"] = [{"name": name, "label": label} for name, label in self.extra]
         return payload
 
 
@@ -458,6 +464,15 @@ def _param_from(node_type: str, name: str, value: Any) -> ParamSpec:
     creates = value.get("creates")
     if creates not in (None, "variable", "column"):
         raise RegistryError(f"{node_type}: param '{name}' creates must be variable or column.")
+    extra = value.get("extra") or {}
+    if extra and (
+        kind != "variable"
+        or not isinstance(extra, dict)
+        or not all(isinstance(key, str) and isinstance(text, str) for key, text in extra.items())
+    ):
+        raise RegistryError(
+            f"{node_type}: param '{name}' extra must map names to labels, on a variable param."
+        )
     return ParamSpec(
         name=name,
         kind=kind,
@@ -470,6 +485,7 @@ def _param_from(node_type: str, name: str, value: Any) -> ParamSpec:
         creates=creates,
         minimum=value.get("minimum"),
         maximum=value.get("maximum"),
+        extra=tuple(extra.items()),
     )
 
 

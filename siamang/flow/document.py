@@ -28,6 +28,7 @@ from functools import cache
 from importlib import resources
 from typing import Any
 
+from siamang.data.checks import RESPONSE_TIME_LABELS
 from siamang.flow.registry import (
     NodeSpec,
     ParamSpec,
@@ -42,7 +43,7 @@ _NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 #: responses table's created_at and updated_at, the runtime's started_at) and
 #: a frame's submitted_at. No codebook declares them, yet a node may name one:
 #: a Trend over dates reads one as its Time.
-RESPONSE_TIMES = ("created_at", "updated_at", "started_at", "submitted_at")
+RESPONSE_TIMES = tuple(RESPONSE_TIME_LABELS)
 
 
 class FlowError(ValueError):
