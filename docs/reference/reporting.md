@@ -586,7 +586,7 @@ To make this reporting API extremely convenient, two accessors are attached dire
 * **`boxplot(column: str, *, by: str, show_points: bool = False, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> BoxPlot`**:
   Creates a `BoxPlot` instance.
 * **`heatmap(columns: list[str], *, by: str | None = None, annot: bool = True, cmap: str = "YlOrRd", vmin: float | None = None, vmax: float | None = None, figsize: tuple[float, float] = (10, 6), title: str | None = None, method: str = "spearman") -> HeatMap`**:
-  Creates a `HeatMap` instance.
+  Creates a `HeatMap` instance. With `by` and a named `cmap` the means are drawn as they always were: over the respondents who answered every item, a missing code counting as an answer. With `cmap="theme"` (`siamang.reporting.correlation_chart.draw_means`) each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted (`Left out as missing: …`), long items numbered (`1. …`) and wrapped so the cells keep the plot, each group's base under its name (`North (n = 97)`), and the base and the weight under the chart.
 * **`scatter(x: str, y: str, *, hue: str | None = None, trendline: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> ScatterPlot`**:
   Creates a `ScatterPlot` instance.
 * **`likert(columns: list[str], *, neutral: str = "split", sort: str = "top2", show_values: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "RdBu", title: str | None = None) -> LikertChart`**:

@@ -563,6 +563,14 @@ class HeatMap(SurveyChart):
 
             draw(self)
             return
+        if self.by is not None and self.cmap == "theme":
+            # In the theme's colours (an opt-in) the means leave the missing
+            # codes out and the layout holds long labels; a named colour map
+            # draws what it always drew.
+            from siamang.reporting.correlation_chart import draw_means
+
+            draw_means(self)
+            return
         from siamang.reporting import chart_theme
 
         chart_theme.set_theme(style="whitegrid")

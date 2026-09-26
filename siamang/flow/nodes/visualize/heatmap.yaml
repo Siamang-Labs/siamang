@@ -17,6 +17,7 @@ params:
     - nominal
     - ordinal
     label: By
+    help: Each item's mean in each group of this variable (weighted when a weight is applied). With a named Colour map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Colour map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name.
   method:
     kind: enum
     values:
