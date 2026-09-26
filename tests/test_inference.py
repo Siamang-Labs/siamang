@@ -343,6 +343,53 @@ def test_games_howell_matches_pingouin():
     assert single.table["p_value"].isna().tolist() == [False, True, True]
 
 
+def test_games_howell_intervals_are_scipy_s_quantiles_and_30_groups_take_seconds(monkeypatch):
+    """Each pair's interval is the studentized range's quantile at its own
+    Welch df. SciPy's ppf root-finds over a double integral for each: 435
+    pairs of 30 groups on 20,000 respondents took 114 s, past a canvas
+    preview's limit. The quantile is now solved by Newton's method from its
+    large-df form, and past 17 distinct df interpolated in 1/df (17 of them
+    solved) — the same numbers, to SciPy's own precision."""
+
+    solved = []
+    original = inference._studentized_quantile.__wrapped__
+
+    def counting(confidence, k, df):
+        solved.append(df)
+        return original(confidence, k, df)
+
+    monkeypatch.setattr(inference, "_studentized_quantile", counting)
+    rng = np.random.default_rng(2)
+    k, n = 30, 20_000
+    codes = rng.integers(0, k, n)
+    values = rng.normal(5 + 0.03 * codes, 1 + 0.02 * codes)
+    groups = [values[codes == code] for code in range(k)]
+    found = inference.posthoc(groups, [f"G{code}" for code in range(k)], "games_howell")
+    table = found.table
+    assert len(table) == 435 and len(solved) == 17  # not one a pair
+    # Against SciPy's ppf, pair by pair, for a sample of the pairs.
+    half = (table["upper"] - table["lower"]) / 2
+    se = table["difference"].abs() / table["statistic"] * math.sqrt(2)
+    for row in range(0, 435, 29):
+        expected = stats.studentized_range.ppf(0.95, k, table["df"][row])
+        assert half[row] * math.sqrt(2) / se[row] == pytest.approx(expected, rel=1e-9)
+
+
+def test_studentized_quantiles_are_solved_where_they_cannot_be_interpolated():
+    """A handful of df (a few groups) or a range reaching down to one or two
+    df is solved df by df; either way the numbers are SciPy's."""
+
+    for confidence, k, dfs in (
+        (0.95, 3, [10.956214, 12.875284, 11.692449]),
+        (0.95, 12, list(np.linspace(1.2, 40, 30))),
+        (0.99, 4, list(np.linspace(30, 3000, 25))),
+        (0.9, 2, [99_999.0, 2.5]),
+    ):
+        found = inference._studentized_quantiles(confidence, k, dfs)
+        expected = [stats.studentized_range.ppf(confidence, k, df) for df in dfs]
+        assert found == pytest.approx(expected, rel=1e-9), (confidence, k)
+
+
 def test_dunn_matches_scikit_posthocs():
     holm = inference.posthoc([A, B, C], ["A", "B", "C"], "dunn", adjust="holm")
     # scikit_posthocs.posthoc_dunn: unadjusted and Holm-adjusted p.
