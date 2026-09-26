@@ -131,7 +131,10 @@ Group means and Crosstab keep their `test` checkbox with the new `method`
 beside it, so `test: true` / `false` keep their meaning. The methods are
 described in `siamang.data.inference` (data reference).
 `analyze.conjoint_shares` has a `stat` output (base, model, weight) beside its
-table.
+table. `analyze.regression`'s **Model** takes `ordinal` beside `auto`, `ols`
+and `logit`: the proportional-odds model of ordered answers
+(`siamang.data.ordinal`), thresholds and coefficients in its `table`, the fit
+in its `stat`; `auto` never picks it.
 
 `analyze.paired` compares answers from the same respondents
 (`siamang.data.paired.compare`): `test` is `auto` (Wilcoxon signed-rank for two

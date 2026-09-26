@@ -470,7 +470,8 @@ class DataAnalysis:
 
     # ── models (siamang.data.models) ──────────────────────────────
     def regression(self, y: str, predictors: list[str], *, kind: str = "auto"):
-        """OLS / WLS (with the weight column) or logit; see :func:`siamang.data.models.regression`."""
+        """OLS / WLS (with the weight column), logit or the ordinal (proportional
+        odds) logit; see :func:`siamang.data.models.regression`."""
         from siamang.data.models import regression
 
         return regression(

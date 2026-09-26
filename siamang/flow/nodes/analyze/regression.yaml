@@ -1,7 +1,7 @@
 type: analyze.regression
 category: analyze
 title: Regression
-description: Linear (OLS, weighted when a weight is applied) or logistic regression with a coefficient table.
+description: Linear (OLS, weighted when a weight is applied), logistic or ordinal logistic regression with a coefficient table.
 inputs:
   data: SurveyData
 outputs:
@@ -12,7 +12,7 @@ params:
     kind: variable
     required: true
     label: Outcome
-    help: Two values → logistic (auto); otherwise linear.
+    help: Two values → logistic (auto); otherwise linear. Ordered answers (dissatisfied … satisfied) → choose ordinal.
   predictors:
     kind: variables
     required: true
@@ -24,8 +24,10 @@ params:
     - auto
     - ols
     - logit
+    - ordinal
     default: auto
     label: Model
+    help: auto fits a logit when Outcome has two values and a linear model otherwise. ordinal is the proportional-odds (cumulative logit) model of three or more ordered answers — thresholds between the answers, one coefficient per predictor with its odds ratio and 95 % Wald interval, McFadden's pseudo-R²; a positive coefficient makes the higher answers more likely, as R's MASS::polr. It leaves the codebook's missing codes out and says how many. All three use the weight when one is applied.
 subtitle: '{y} ~ {predictors}'
 template: |
   _model = {in.data}.analysis.regression({y!r}, {predictors!r}, kind={kind!r})
