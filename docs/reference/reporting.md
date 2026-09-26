@@ -188,7 +188,7 @@ can be set in the same type.
 | `table_width` | `auto` · `full` | |
 | `align_numeric` | bool | numbers right, on tabular figures |
 | `figure_width`, `figure_align` | CSS length, `left`/`center`/`right` | the default for a figure |
-| `figure_dpi` | 72–600 | what figures are written at |
+| `figure_dpi` | 72–600 | what figures are written at (the pixels, not the size a figure is shown at) |
 | `caption_position` | `below` · `above` | |
 | `number_tables`, `number_figures`, `table_label`, `figure_label` | bool, str | `Table 1.` prefixes; off by default |
 | `chart_palette` | 2–12 hex colours | the series of a chart of `palette="theme"`, in order |
@@ -197,6 +197,13 @@ can be set in the same type.
 | `chart_text_color`, `chart_grid_color` | a hex colour | the charts' text (at least 4.5:1 on white) and grid lines |
 | `chart_font` | a font stack | the charts' face: the first of the stack installed where they are drawn |
 | `custom_css` | CSS | appended last, so it wins — and checked by nothing |
+
+**How large a chart's text reads.** A figure is shown at `figure_width` of the
+measure (`100%` of `width`, 720 px), whatever size it was drawn at: a chart
+drawn at its default 10 × 6 in is shown at 72 px an inch, so its 9 pt values and
+notes read at about 9 px on screen and 6 pt on an A4 page. Its text reads at its
+own size when the chart is drawn at the measure's width — `figsize=(7.5, 4.5)`
+for 720 px — or the measure is widened to the chart's (`width="960px"`).
 
 **Chart colours.** The `chart_*` fields colour every chart whose palette is
 `"theme"` (a heatmap's `cmap="theme"`) — and no other, so a chart that names a
