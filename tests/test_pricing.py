@@ -376,3 +376,53 @@ def test_the_nms_and_gabor_granger_charts_have_a_panel_per_measure():
     assert [label.get_text() for label in revenue_ax.get_xticklabels()] == ["5", "10", "15", "20"]
     assert "highest revenue at 10" in [text.get_text() for text in demand_ax.texts]
     assert [text.get_text() for text in revenue_ax.texts] == ["4.50", "7.00", "6.00", "2.00"]
+
+
+def _text_boxes(fig, texts):
+    from matplotlib.text import Text
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    return [Text.get_window_extent(text, renderer) for text in texts]
+
+
+def _touching(boxes) -> list[tuple[int, int]]:
+    return [
+        (i, j)
+        for i in range(len(boxes))
+        for j in range(i + 1, len(boxes))
+        if boxes[i].overlaps(boxes[j])
+    ]
+
+
+def test_the_charts_stay_legible_on_small_figures():
+    """A figure as a Result chart may ask for: the points named at one price
+    (OPP and IPP both at 30) are stacked a text's height apart however short
+    the panel, crowded prices are turned rather than run together, and the
+    legend takes two rows on a narrow figure instead of running off it."""
+
+    nms = pricing.van_westendorp(
+        _two(), **QUESTIONS, likelihood_cheap="lc", likelihood_expensive="le"
+    )
+    for size in ((10, 4), (6, 3)):
+        fig = pricing.plot(nms, figsize=size)
+        top, bottom = fig.axes
+        for ax in (top, bottom):
+            assert _touching(_text_boxes(fig, ax.texts)) == [], (size, ax.get_ylabel())
+    legend = pricing.plot(nms, figsize=(5, 6)).legends[0]
+    assert legend._ncols == 2
+    fig = legend.figure
+    box = legend.get_window_extent(fig.canvas.get_renderer())
+    assert box.x0 >= 0 and box.x1 <= fig.bbox.width
+    assert pricing.plot(nms, figsize=(10, 6)).legends[0]._ncols == 4
+
+    prices = [4.99, 6.99, 8.99, 9.99, 11.99, 14.99, 19.99]
+    rng = np.random.default_rng(12)
+    wtp = rng.lognormal(np.log(10), 0.4, 200)
+    frame = pd.DataFrame({f"p{i}": (wtp >= price).astype(int) for i, price in enumerate(prices)})
+    gg = pricing.gabor_granger(SurveyData(frame=frame), list(frame), prices=prices)
+    narrow = pricing.plot(gg, figsize=(6, 6)).axes[1]
+    assert {label.get_rotation() for label in narrow.get_xticklabels()} == {45.0}
+    wide = pricing.plot(gg, figsize=(10, 6)).axes[1]
+    assert {label.get_rotation() for label in wide.get_xticklabels()} == {0.0}
+    assert _touching(_text_boxes(wide.figure, wide.get_xticklabels())) == []

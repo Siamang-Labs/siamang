@@ -46,7 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   labels wrap, many rows shrink the font and then grow the figure, and value
   labels stay inside the plot. Later analyses add theirs with
   `register(result_type, kinds, fn)` and `register_output(node_type, port,
-  kinds)`.
+  kinds)`. On an odds-ratio axis the minor ticks (1.25, 1.5, 3, …) are named,
+  at the tick labels' size, only while the range is too narrow for three major
+  ones; on a wide range they ran into 0.5, 1, 2.
 
 - **`siamang.data.intervals`** — the intervals behind a chart's error bars:
   Student's t for a mean, the linearization (Taylor series) interval of a
@@ -531,7 +533,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   draws the four curves with the points named and the acceptable range shaded
   (the trial curve in a panel below with NMS), or demand above revenue for
   Gabor-Granger — never two scales on one axis — and returns the matplotlib
-  Figure; the tables (`PriceTable`) carry the result in `analysis`.
+  Figure; the tables (`PriceTable`) carry the result in `analysis`. On a small
+  figure the names stacked at close prices stay a text's height apart,
+  crowded price labels turn 45°, and the legend takes two rows below 6.5
+  inches wide.
 
 ### Fixed
 
