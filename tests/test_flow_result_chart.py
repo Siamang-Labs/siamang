@@ -247,7 +247,7 @@ EXPECTED = {
     "c_tt": ("means", "unweighted (the weight 'weight' is not applied)", "TTestTable"),
     "c_wil": ("means", "unweighted (the weight 'weight' is not applied)", "ResultTable"),
     "c_mcn": ("shares", "unweighted (the weight 'weight' is not applied)", "ResultTable"),
-    "c_ci": ("interval", "weighted by 'weight'", "dict"),
+    "c_ci": ("interval", "weighted by 'weight'", "Proportion"),
     "c_nps": ("stacked", "weighted by 'weight'", "NpsTable"),
     "c_turf": ("reach", "weighted by 'weight'", "TurfTable"),
     "c_pca": ("scree", "weighted by 'weight'", "DataFrame"),

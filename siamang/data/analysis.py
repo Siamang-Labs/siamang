@@ -431,6 +431,26 @@ class DataAnalysis:
         """
         if confidence <= 0 or confidence >= 1:
             raise ValueError("confidence must be in (0, 1)")
+        result = self._proportion(column, value, confidence, weighted)
+        # What the share is of, for a chart's title; the keys are what they were.
+        from siamang.data.intervals import Proportion
+
+        variables = self.variables
+        variable = variables[column] if variables is not None and column in variables else None
+        labels = (variable.labels or {}) if variable is not None else {}
+        answer = labels.get(value) if not isinstance(value, list | dict) else None
+        return Proportion(
+            result,
+            variable=column,
+            value=value,
+            confidence=confidence,
+            variable_label=(variable.label if variable is not None else None) or column,
+            value_label=str(answer) if answer is not None else None,
+        )
+
+    def _proportion(
+        self, column: str, value: object, confidence: float, weighted: bool
+    ) -> dict[str, Any]:
         z = NormalDist().inv_cdf((1 + confidence) / 2)
         if weighted:
             if self.weight_column is None:

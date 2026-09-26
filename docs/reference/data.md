@@ -213,7 +213,7 @@ These two compute with [`siamang.data.inference`](#siamangdatainference) and, un
 ### Confidence Intervals & Sample Size
 
 * **`proportion_ci(column: str, value: Any, confidence: float = 0.95, weighted: bool = False) -> dict[str, Any]`**:
-  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"`, of the respondents who answered `column` (with `weighted=True`, the weighted share and Kish's effective base of those respondents; a missing weight counts as 0). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`.
+  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"`, of the respondents who answered `column` (with `weighted=True`, the weighted share and Kish's effective base of those respondents; a missing weight counts as 0). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`. The result is a `siamang.data.intervals.Proportion`, a `dict` of those keys that also says what the share is of — `variable`, `value`, `confidence`, `variable_label`, `value_label` (attributes, so a Stat prints what it printed) — which the Result chart titles itself with (`Gender: Female`, `90 % confidence interval …`).
 * **`effective_sample_size() -> float`**:
   Calculates Kish's effective sample size (ESS) for weighted datasets: $ESS = \frac{(\sum w)^2}{\sum w^2}$. Raises a `ValueError` if no weight column is set.
 

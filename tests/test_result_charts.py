@@ -326,6 +326,33 @@ def test_a_proportion_is_its_number_and_interval():
     assert on_weighted.weight_note == "unweighted (the weight 'w' is not applied)"
 
 
+def test_a_proportion_says_what_it_is_of_and_its_level():
+    """proportion_ci's result keeps the keys a Stat always held and says what
+    the share is of: the chart is titled by the variable and the answer, and a
+    90 % interval is written as one (it read "confidence interval" whatever
+    the Confidence was)."""
+    data = _groups_data()
+    result = data.analysis.proportion_ci("g", 2, confidence=0.9)
+    assert dict(result) == {
+        "p": pytest.approx(7 / 17),
+        "lower": pytest.approx(7 / 17 - 1.6448536269514722 * (7 / 17 * 10 / 17 / 17) ** 0.5),
+        "upper": pytest.approx(7 / 17 + 1.6448536269514722 * (7 / 17 * 10 / 17 / 17) ** 0.5),
+        "n": 17.0,
+    }
+    assert (result.variable, result.value, result.confidence) == ("g", 2, 0.9)
+    chart = rc.chart(result)
+    assert chart._ax.get_title(loc="left") == f"Group: {GROUPS[2]}"
+    # 7 of 17: 41.2 % ± 1.6449 · √(p(1 − p) / 17) = 21.5 – 60.8 %.
+    notes = [text for text in _texts(chart._ax) if "confidence interval" in text]
+    assert notes == ["90 % confidence interval 21.5 – 60.8 %, base 17 respondents"]
+    default = rc.chart(data.analysis.proportion_ci("g", 1))
+    assert any(text.startswith("95 % confidence interval") for text in _texts(default._ax))
+    # A bare dict of the same keys is still drawn, titled as before.
+    bare = rc.chart({"p": 0.5, "lower": 0.4, "upper": 0.6, "n": 100})
+    assert bare._ax.get_title(loc="left") == "Proportion"
+    assert any(text.startswith("confidence interval 40.0") for text in _texts(bare._ax))
+
+
 def _percent_text(value: float) -> str:
     return f"{value:.1f} %"
 

@@ -540,6 +540,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Proportion CI chart says what the share is of and at what level.**
+  It was titled `Proportion` and wrote `confidence interval 59.2 – 72.1 %`
+  whatever the Confidence, so a 90 % interval read as a 95 % one and a slide
+  with `65.7 %` had no subject. `proportion_ci` returns a `Proportion` — the
+  same keys, so its Stat prints as before — that also carries the variable,
+  the answer and the confidence; the chart is titled `<variable label>:
+  <answer label>` (`Gender: Female`) and writes `90 % confidence interval …`.
+
 - **Excel files write text as text.** openpyxl stores a string beginning with
   `=` as a formula, so an open answer such as `=HYPERLINK("http://…","Click
   me")` shown in a Frequencies table became a live formula in the workbook
