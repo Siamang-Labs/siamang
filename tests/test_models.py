@@ -241,3 +241,17 @@ def test_a_repeated_index_label_is_read_by_position_in_the_models():
     assert unique["described"][0] == round(float(frame.loc[answered, "w"].sum()), 1)
     expected = float(np.average(frame.loc[answered, "y"], weights=frame.loc[answered, "w"]))
     assert unique["mean"] == pytest.approx(expected, rel=1e-12)
+
+
+def test_the_weighted_mean_counts_a_missing_weight_as_0():
+    """Picking the weights by position made them a numpy array, whose sum is
+    NaN when one weight is: an answered row without a weight turned the whole
+    weighted mean into nan (the rule, and grouped_mean, count it 0). A
+    non-numeric weight counts 0 too, where astype(float) raised."""
+
+    frame = pd.DataFrame({"y": [1.0, 2.0, 3.0, 4.0], "w": [1.0, 2.0, np.nan, 1.0]})
+    assert SurveyData(frame=frame).with_weight("w").analysis.mean("y", weighted=True) == 2.25
+    nullable = frame.assign(w=pd.array([1, 2, pd.NA, 1], dtype="Int64"))
+    assert SurveyData(frame=nullable).with_weight("w").analysis.mean("y", weighted=True) == 2.25
+    text = frame.assign(w=["1", "2", "none", "1"])
+    assert SurveyData(frame=text).with_weight("w").analysis.mean("y", weighted=True) == 2.25

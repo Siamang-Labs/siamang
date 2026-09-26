@@ -78,7 +78,13 @@ class DataAnalysis:
             return float(values.mean())
         if self.weight_column is None:
             raise ValueError("weighted=True requires SurveyData.weight to be set.")
-        weights = self.frame[self.weight_column][present].astype(float).to_numpy()
+        # A missing or non-numeric weight counts 0, as everywhere: numpy's sum,
+        # unlike pandas', would make one NaN weight the whole mean.
+        weights = (
+            pd.to_numeric(self.frame[self.weight_column], errors="coerce")
+            .fillna(0.0)
+            .to_numpy(dtype=float)[present]
+        )
         weight_sum = float(weights.sum())
         if weight_sum <= 0:
             return 0.0
