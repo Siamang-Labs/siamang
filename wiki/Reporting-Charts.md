@@ -185,9 +185,13 @@ diverging `RdBu_r` scale centered at 0) — Spearman's by default.
   `missing="listwise"`: the codebook's missing codes are left out and counted
   under the plot with N, Pearson's r is weighted on weighted data (colour bar
   "Weighted Pearson r"), and Kendall says under its title that the weight is
-  not applied. A pair that cannot be computed is a blank cell, and the note
-  says why. Long labels are numbered — the rows read `1. label`, the columns
-  `1`, `2`, … — and the plot is made tall enough for every row's label.
+  not applied. A pair that cannot be computed is a blank cell (an item with the
+  same answer from everyone, its own diagonal too), and the note says why,
+  naming the pair as the chart names its items. Long labels are numbered — the
+  rows read `1. label`, the columns `1`, `2`, … — and the rows' labels get
+  smaller and wider before the plot grows taller for them. The coefficients are
+  written at a size their cells hold (at most 10 pt); below 6 pt they are left
+  to the table, and the note says so.
 
 > `HeatMap` requires **seaborn** specifically; it raises
 > `ImportError: seaborn is required for HeatMap` if seaborn is unavailable.

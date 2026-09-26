@@ -540,6 +540,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Pearson and Kendall heatmap writes its coefficients at a size its
+  cells hold.** It used seaborn's 12-pt annotations whatever the cell: with
+  14 items at 10 × 6 inches every neighbouring coefficient in a row ran
+  together and the white `1.00` spilled out of its cell; at 6 × 4 inches the
+  rows' labels, wrapped to five lines, grew the figure into a 6 × 17-inch
+  strip. The coefficients are now at most 10 pt and fit their cell, or are
+  left to the table below 6 pt (the note says so); the rows' labels get
+  smaller and wider before the figure grows (6 × 4 becomes about 6 × 11,
+  with its notes). An item with the same answer from everyone has a blank
+  diagonal too (it printed `1.00` in an otherwise blank row), the note names
+  a pair as the chart names its items (`Trust × Constant`, `1 × 3` when
+  numbered, not `x × c`), and no theme gridlines cross the blank cells.
+
 - **A crowded Perceptual map numbers its points.** A dense map (24 brands ×
   13 regions) grown to its cap of 1.2 × its width still printed names over
   names (`Umbrella Pharmaceuticals Over-Scotland`), cut others with `…`, and

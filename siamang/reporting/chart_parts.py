@@ -176,6 +176,14 @@ class Footnote:
     def text(self) -> str:
         return "\n".join(self.lines)
 
+    def add(self, note: str) -> None:
+        """Write ``note`` after the others; the next ``apply`` makes room."""
+        self.notes.append(note)
+        width = chars_in(self.fig.get_figwidth() * 72.0 - 14.0, FOOTNOTE_SIZE)
+        self.lines += wrap(note, width).split("\n")
+        if self._text is not None:
+            self._text.set_text(self.text)
+
     def apply(self) -> None:
         if self.axes is not None:
             self._make_room()
