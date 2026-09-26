@@ -485,6 +485,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   t-test read it: a Region of North, South and `missing_values: [9]` has two
   answers, not three.
 
+- **The flow check says what the code generator cannot write, and a
+  parameter of the wrong type is an issue, not an exception.** `check_flow`
+  looked only at the top of a condition, so an `and` with a part that is not
+  an expression passed it and `generate_flow` raised `FlowError` ("Only
+  structured expressions can be used in a flow"), a 500 at Save in Studio.
+  Explode of a list, factor scores of `items: 5` and a variable reference with
+  no name raised `TypeError` or `KeyError` out of the check itself. Each is now
+  `PARAM_INVALID` on its node (`every variable in a condition needs a name.`
+  for the last), and a condition that passes the check generates.
+
 - **Fisher's estimate, the R bundle's labels and Mann-Whitney's df are
   described as they are.** Crosstab's Fisher footer said the estimate was
   "as R's fisher.test": the p-values agree, but the engine solves the exact
