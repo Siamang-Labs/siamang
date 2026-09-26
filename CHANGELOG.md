@@ -164,7 +164,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   letters or intervals on a stack are refused in a sentence; `check_flow` names
   the first two from the questionnaire, Bins that are not auto, a number or
   increasing edges (`PARAM_INVALID`), Top N with By (an error), and warns of
-  parameters a form does not draw. Each new field is written into the node's
+  parameters a form does not draw — of the intervals and the letters on bars
+  only: a histogram or a donut draws neither, and a donut is not told its
+  letters are "not on stacks"; By with Show percent is warned of on bars too,
+  a histogram's and a donut's own rule on By saying the rest. Each new field is written into the node's
   code only when the choices read it, so a stored flow renders the code and the
   picture it did; the warning `Layout applies only when Split by is set.` now
   reads `Stacked layouts apply only when Split by is set.` The Banner table's

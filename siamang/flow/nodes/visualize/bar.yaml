@@ -150,9 +150,14 @@ subtitle:
   text: '{variable} by {split}'
 - '{variable}'
 checks:
+# A histogram and a donut draw no intervals or letters, and a Studio inspector
+# leaves those fields out of them (with a note of what is kept): the rules on
+# the intervals and the letters speak of bars only, so that a donut is not told
+# its letters are "not on stacks" — and By with Show percent too, since each of
+# the two has its own rule on By.
 - when: by & split
   message: By draws the mean of Variable in each group and Split by its answers in each group — clear one of them.
-- when: by & show=percent
+- when: by & show=percent & layout!=histogram & layout!=donut
   severity: warning
   message: By (the mean in each group) is not drawn when Show is percent; to show the answers in each group, use Split by.
 - when: layout!=grouped & layout!=histogram & layout!=donut & split=None
@@ -175,19 +180,19 @@ checks:
 - when: split & layout=donut
   severity: warning
   message: Split by is not drawn in a donut, which shows one variable's answers as the parts of a whole; Layout stacked_100 shows the answers within each group.
-- when: intervals=True & layout!=grouped
+- when: intervals=True & layout!=grouped & layout!=histogram & layout!=donut
   severity: warning
   message: Confidence intervals are drawn on bars side by side (Layout grouped) only.
 - when: intervals=True & show=count & by=None & layout=grouped
   severity: warning
   message: Confidence intervals are drawn for percentages and for means by group; counts have none — set Show to percent.
-- when: letters=True & split=None
+- when: letters=True & split=None & layout!=histogram & layout!=donut
   severity: warning
   message: Significance letters compare the groups of Split by — set Split by.
-- when: letters=True & split & layout!=grouped
+- when: letters=True & split & layout!=grouped & layout!=histogram & layout!=donut
   severity: warning
   message: Significance letters are drawn on bars side by side (Layout grouped), not on stacks.
-- when: letters=True & split & show=count
+- when: letters=True & split & show=count & layout!=histogram & layout!=donut
   severity: warning
   message: Significance letters compare percentages, as the Banner table's do — set Show to percent.
 # The first fragment is the chart this node has always drawn, written as it

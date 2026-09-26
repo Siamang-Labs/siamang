@@ -1098,6 +1098,47 @@ def test_the_node_checks_what_the_newer_forms_refuse(questionnaire_doc):
     }
     for message, params in warnings.items():
         assert issues(params) == [("warning", message)], params
+    # A histogram and a donut draw no intervals or letters: their rules speak of
+    # bars (a donut's letters are not "on stacks"), and what a donut keeps from
+    # the bars is not drawn in it, nothing more.
+    leftovers = {"show": "percent", "letters": True, "intervals": True}
+    assert issues({"variable": "gender", "layout": "donut", "split": "region", **leftovers}) == [
+        (
+            "warning",
+            "n: Split by is not drawn in a donut, which shows one variable's answers as the "
+            "parts of a whole; Layout stacked_100 shows the answers within each group.",
+        )
+    ]
+    assert issues({"variable": "gender", "layout": "donut", **leftovers}) == []
+    assert issues({"variable": "age", "layout": "histogram", "split": "region", **leftovers}) == []
+    assert issues({"variable": "age", "layout": "histogram", "letters": True}) == []
+    # By is not drawn in either: its own rule says so, once, not "when Show is
+    # percent" of a donut, which has no Show.
+    assert issues({"variable": "gender", "layout": "donut", "by": "region", **leftovers}) == [
+        (
+            "warning",
+            "n: By (the mean in each group) is not drawn in a donut, which shows the shares of "
+            "Variable's answers.",
+        )
+    ]
+    assert issues(
+        {"variable": "age", "layout": "histogram", "by": "region", "show": "percent"}
+    ) == [
+        (
+            "warning",
+            "n: By (the mean in each group) is not drawn in a histogram; for a histogram of each "
+            "group, use Split by.",
+        )
+    ]
+    assert issues(
+        {"variable": "gender", "layout": "donut", "split": "region", "letters": True}
+    ) == [
+        (
+            "warning",
+            "n: Split by is not drawn in a donut, which shows one variable's answers as the "
+            "parts of a whole; Layout stacked_100 shows the answers within each group.",
+        )
+    ]
 
 
 # ─── one colour per answer, a number as bars, nothing to draw ────────────────
