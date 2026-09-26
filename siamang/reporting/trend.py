@@ -25,9 +25,10 @@ Live screen and the chart can never disagree.
 **Measure** is the percent choosing one or several answer codes (a top-2 box
 is ``[4, 5]``; for a multiple-choice question, choosing any of them), the mean
 of a numeric variable, or the count of respondents. Weighted data gives
-weighted points and a weighted base per point; the confidence band is the
-proportion's normal approximation that Proportion CI computes, or the mean's
-t interval, on Kish's effective base when weighted.
+weighted points and a weighted base per point; the confidence band is a
+share's Wilson score interval (the Bar chart's, which keeps a width at 0 % and
+100 %), or the mean's t interval, on Kish's effective base when weighted. A
+point below ``min_base`` is drawn without its band, which the table gives.
 
 The codebook's missing codes of Time, the measure and Split by are left out
 and counted, and so are rows without a time or whose text is not a date. A
@@ -41,7 +42,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from statistics import NormalDist
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -279,13 +279,12 @@ def trend(
         for (t, g), part in order.groupby(["t", "g"], sort=False)["row"]:
             cells[(int(t), int(g))] = part.to_numpy()
 
-    z = NormalDist().inv_cdf((1 + confidence) / 2)
     records: list[dict[str, Any]] = []
     for g, (code, label) in enumerate(groups):
         for t, period_label in enumerate(periods):
             index = cells.get((t, g), np.array([], dtype=int))
             point = _point(
-                measure, values[index], None if weights is None else weights[index], z, confidence
+                measure, values[index], None if weights is None else weights[index], confidence
             )
             base = int(len(index))
             records.append(
@@ -324,7 +323,7 @@ def trend(
     stats["Time"] = time_note
     if measure != "count":
         method = (
-            "normal approximation, as Proportion CI computes it"
+            "Wilson score interval, as the Bar chart draws a share's"
             if measure == "percent"
             else "t interval of the mean"
         )
@@ -608,7 +607,7 @@ def _period_label(value: pd.Period, period: str) -> str:
 
 
 def _point(
-    measure: str, values: np.ndarray, weights: np.ndarray | None, z: float, confidence: float
+    measure: str, values: np.ndarray, weights: np.ndarray | None, confidence: float
 ) -> dict[str, float]:
     """One point: its value, interval and bases (NaN where there is nothing)."""
     nan = float("nan")
@@ -641,12 +640,15 @@ def _point(
             return point
         mean = float((values * weights).sum() / total)
     if measure == "percent":
-        margin = z * math.sqrt(mean * (1 - mean) / base) if base > 0 else nan
-        point.update(
-            value=mean * 100,
-            lower=max(0.0, mean - margin) * 100,
-            upper=min(1.0, mean + margin) * 100,
-        )
+        # Wilson's interval, on Kish's effective base when weighted — the Bar
+        # chart's. The normal approximation has no width at 0 % or 100 %
+        # (none of 40 read as certain) and runs below 0 near them.
+        from siamang.data.intervals import share_interval
+
+        share = share_interval(values > 0.5, weights, confidence=confidence)
+        point["value"] = mean * 100
+        if share.lower is not None and share.upper is not None:
+            point.update(lower=share.lower * 100, upper=share.upper * 100)
         return point
     point["value"] = mean
     if weights is None:
@@ -845,7 +847,8 @@ class TrendChart(SurveyChart):
             shown = np.isfinite(value)
             low = rows["low"].to_numpy(dtype=bool)
             full, thin = shown & ~low, shown & low
-            ax.scatter(positions[full], value[full], color=color, s=size, zorder=3)
+            # A point at 0 % or 100 % sits on the frame: drawn whole.
+            ax.scatter(positions[full], value[full], color=color, s=size, zorder=3, clip_on=False)
             ax.scatter(
                 positions[thin],
                 value[thin],
@@ -854,10 +857,15 @@ class TrendChart(SurveyChart):
                 linewidths=1.0 if dense else 1.6,
                 s=size,
                 zorder=3,
+                clip_on=False,
             )
             if banded:
-                lower = rows["lower"].to_numpy(dtype=float)
-                upper = rows["upper"].to_numpy(dtype=float)
+                # A hollow point's interval is too wide to draw — a mean of two
+                # respondents' t interval spans -46 to 56 on a 0-10 scale and
+                # flattens every line — so the band stops at the points that
+                # have their base; the table gives the hollow ones'.
+                lower = np.where(low, np.nan, rows["lower"].to_numpy(dtype=float))
+                upper = np.where(low, np.nan, rows["upper"].to_numpy(dtype=float))
                 if np.isfinite(lower).any():
                     # Several bands overlap: each is lighter, so the lines stay the story.
                     alpha = 0.18 if count == 1 else 0.08
@@ -871,7 +879,7 @@ class TrendChart(SurveyChart):
         ax.set_axisbelow(True)
         ax.set_xticks(positions)
         ax.set_xlim(-0.5, len(positions) - 0.5)
-        self._value_axis(ax, points)
+        self._value_axis(ax, points, banded)
 
         ylabel = {"percent": "% of respondents", "mean": "Mean", "count": "Respondents"}[
             points.measure
@@ -918,14 +926,19 @@ class TrendChart(SurveyChart):
             _fit_titles(ax, title, points.xlabel, ylabel)
             footnote.apply()
 
-    def _value_axis(self, ax: Any, points: TrendPoints) -> None:
+    def _value_axis(self, ax: Any, points: TrendPoints, banded: bool) -> None:
         """The value axis: whole percents from 0, a count from 0 with its
-        thousands separated, a mean on its scale's codes when it keeps to them."""
+        thousands separated, a mean on its scale's codes when it keeps to them,
+        else on its points and bands. Fitted to what is drawn: the points, and
+        the bands of the points that have their base."""
         from matplotlib.ticker import MaxNLocator
 
-        values = np.concatenate(
-            [points.points[column].to_numpy(float) for column in ("value", "lower", "upper")]
-        )
+        frame = points.points
+        solid = ~frame["low"].to_numpy(dtype=bool)
+        parts = [frame["value"].to_numpy(float)]
+        if banded:
+            parts += [frame.loc[solid, column].to_numpy(float) for column in ("lower", "upper")]
+        values = np.concatenate(parts)
         finite = values[np.isfinite(values)]
         if points.measure == "percent":
             top = 100.0 if not finite.size else min(100.0, max(10.0, finite.max() * 1.12))
@@ -939,11 +952,17 @@ class TrendChart(SurveyChart):
                 # As many ticks as the axis holds, on whole respondents.
                 ax.yaxis.set_major_locator(MaxNLocator(nbins="auto", integer=True))
             return
-        if points.scale_codes and finite.size:
+        if not finite.size:
+            return
+        if points.scale_codes:
             low_code, high_code = points.scale_codes[0], points.scale_codes[-1]
             if finite.min() >= low_code and finite.max() <= high_code:
                 pad = (high_code - low_code) * 0.04
                 ax.set_ylim(low_code - pad, high_code + pad)
+                return
+        low, high = float(finite.min()), float(finite.max())
+        pad = (high - low) * 0.08 or max(abs(high) * 0.1, 1.0)
+        ax.set_ylim(low - pad, high + pad)
 
 
 def _notes(points: TrendPoints, count: int, drawn_band: bool, band: bool) -> list[str]:
@@ -973,7 +992,10 @@ def _notes(points: TrendPoints, count: int, drawn_band: bool, band: bool) -> lis
             )
     drawn = frame["low"] & frame["value"].notna()
     if drawn.any():
-        notes.append(f"Hollow points: fewer than {points.min_base} respondents.")
+        hollow = f"Hollow points: fewer than {points.min_base} respondents"
+        if band and points.measure != "count" and count <= MAX_BANDS:
+            hollow += ", drawn without a band (the table gives their intervals)"
+        notes.append(hollow + ".")
     level = f"{points.confidence:.0%}"
     if drawn_band:
         notes.append(

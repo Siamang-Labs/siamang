@@ -24,6 +24,15 @@ from siamang.data.survey_data import SurveyData
 from siamang.reporting.trend import TrendChart, trend
 
 Z95 = 1.959963984540054
+
+
+def _wilson(p: float, n: float) -> tuple[float, float]:
+    """Wilson's score interval of the share p of n, in percent, by hand."""
+    centre = (p + Z95**2 / (2 * n)) / (1 + Z95**2 / n)
+    half = Z95 * math.sqrt(p * (1 - p) / n + Z95**2 / (4 * n**2)) / (1 + Z95**2 / n)
+    return (centre - half) * 100, (centre + half) * 100
+
+
 DOCUMENTS = Path(__file__).resolve().parent / "documents"
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -82,15 +91,14 @@ def test_percent_over_waves_by_hand():
     # Spring: answers 4, 5, 2, 3 (the 9 is "Don't know", out of the base): 2 of 4.
     spring = _row(points, "Spring")
     assert spring["base"] == 4 and spring["value"] == pytest.approx(50.0)
-    margin = Z95 * math.sqrt(0.5 * 0.5 / 4)  # 0.48999…
-    assert spring["lower"] == pytest.approx((0.5 - margin) * 100)
-    assert spring["upper"] == pytest.approx((0.5 + margin) * 100)
+    # Wilson's interval: 15.0 to 85.0 for 2 of 4.
+    assert (spring["lower"], spring["upper"]) == pytest.approx(_wilson(0.5, 4))
+    assert spring["lower"] == pytest.approx(15.0039, abs=1e-4)
     # Summer: 1, 2, 4, 5 -> 2 of 4; Winter: 5, 4, 1 -> 2 of 3.
     assert _row(points, "Summer")["value"] == pytest.approx(50.0)
     winter = _row(points, "Winter")
     assert winter["base"] == 3 and winter["value"] == pytest.approx(200 / 3)
-    upper = min(1.0, 2 / 3 + Z95 * math.sqrt(2 / 9 / 3))
-    assert winter["upper"] == pytest.approx(upper * 100)
+    assert winter["upper"] == pytest.approx(_wilson(2 / 3, 3)[1])
     # Every point is under the minimum base of 30, and says so.
     assert points.points["low"].all()
     assert set(points.table["Note"]) == {"base below 30"}
@@ -98,8 +106,12 @@ def test_percent_over_waves_by_hand():
     assert points.stats["Measure"] == "% choosing 4 = Very good, 5 = Excellent — Satisfaction"
 
 
-def test_the_percent_is_proportion_ci_of_the_same_respondents():
-    """One code, one wave: the point and its interval are Proportion CI's."""
+def test_the_percent_is_proportion_ci_s_and_its_interval_the_bar_chart_s():
+    """One code, one wave: the point is Proportion CI's, and its interval the
+    one the Bar chart draws for the same share (share_interval: Wilson's, on
+    Kish's effective base when weighted)."""
+    from siamang.data.intervals import share_interval
+
     data = _waves()
     for weighted in (False, True):
         source = data.with_weight("w") if weighted else data
@@ -108,10 +120,68 @@ def test_the_percent_is_proportion_ci_of_the_same_respondents():
             source.frame[(source.frame["wave"] == 1) & (source.frame["sat"] != 9)]
         )
         expected = spring.analysis.proportion_ci("sat", 4, weighted=weighted)
+        drawn = share_interval(spring.frame["sat"] == 4, spring.frame["w"] if weighted else None)
         point = _row(points, "Spring")
         assert point["value"] == pytest.approx(expected["p"] * 100)
-        assert point["lower"] == pytest.approx(expected["lower"] * 100)
-        assert point["upper"] == pytest.approx(expected["upper"] * 100)
+        assert point["lower"] == pytest.approx(drawn.lower * 100)
+        assert point["upper"] == pytest.approx(drawn.upper * 100)
+
+
+def test_a_percent_of_0_or_100_keeps_a_band():
+    """The normal approximation gave none of 40 the interval [0, 0] — certainty
+    — and 1 of 40 [0, 7.3]; the Bar chart's Wilson interval, drawn beside it in
+    a report, gave [0, 8.8]. They are one interval now."""
+    frame = pd.DataFrame(
+        {"wave": np.repeat([1, 2, 3], 40), "aware": [2] * 40 + [1] + [2] * 39 + [1, 2] * 20}
+    )
+    data = _data(
+        frame,
+        Variable("wave", "ordinal", label="Wave", labels={1: "W1", 2: "W2", 3: "W3"}),
+        Variable("aware", "nominal", label="Aware", labels={1: "Yes", 2: "No"}),
+    )
+    points = trend(data, "wave", variable="aware", codes=1)
+    none, one = _row(points, "W1"), _row(points, "W2")
+    assert (none["value"], none["lower"]) == (0.0, 0.0)
+    assert none["upper"] == pytest.approx(8.7622, abs=1e-4) == _wilson(0.0, 40)[1]
+    assert (one["lower"], one["upper"]) == pytest.approx(_wilson(1 / 40, 40))
+    assert one["lower"] > 0
+    assert points.stats["Interval"] == "95% Wilson score interval, as the Bar chart draws a share's"
+    # A point at 0 % sits on the frame and is drawn whole.
+    ax = data.plot.trend("wave", variable="aware", codes=1).plot()
+    assert ax.get_ylim()[0] == 0 and all(not c.get_clip_on() for c in ax.collections[:2])
+
+
+def test_a_hollow_point_s_interval_is_in_the_table_not_on_the_axis():
+    """A mean of two respondents has a t interval from -46 to 56 on a 0-10
+    scale: drawn, it set the axis and flattened every line to a strip. The band
+    stops at the points that have their base, and the axis fits what is drawn."""
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(
+        {
+            "wave": np.r_[np.repeat([1, 2, 3, 4], 120), [5, 5]],
+            "score": np.r_[rng.integers(4, 10, 480), [1, 9]],
+        }
+    )
+    data = _data(
+        frame,
+        Variable("wave", "ordinal", label="Wave", labels={i: f"W{i}" for i in range(1, 6)}),
+        Variable("score", "interval", label="Likelihood to recommend (0-10)"),
+    )
+    chart = data.plot.trend("wave", measure="mean", variable="score")
+    last = _row(chart.points, "W5")
+    assert last["low"] and last["lower"] == pytest.approx(-45.8246, abs=1e-3)  # in the table
+    ax = chart.plot()
+    low, high = ax.get_ylim()
+    assert 4 < low < 5 < 7 < high < 8  # the points and the solid points' bands
+    from matplotlib.collections import PolyCollection
+
+    [band] = [c for c in ax.collections if isinstance(c, PolyCollection)]
+    vertices = band.get_paths()[0].vertices
+    assert vertices[:, 0].max() == 3  # W4: no band at the hollow W5
+    assert (
+        "Hollow points: fewer than 30 respondents, drawn without a band (the table gives their "
+        "intervals)." in _notes_of(chart)
+    )
 
 
 def test_weighted_percent_and_bases_by_hand():
@@ -122,9 +192,7 @@ def test_weighted_percent_and_bases_by_hand():
     assert spring["base"] == 4 and spring["weighted_base"] == pytest.approx(7.0)
     effective = 7.0**2 / (1 + 9 + 1 + 4)  # Kish: 49 / 15
     assert spring["effective_base"] == pytest.approx(effective)
-    p = 4 / 7
-    margin = Z95 * math.sqrt(p * (1 - p) / effective)
-    assert spring["lower"] == pytest.approx((p - margin) * 100)
+    assert (spring["lower"], spring["upper"]) == pytest.approx(_wilson(4 / 7, effective))
     # Summer: 1, 2, 4, 5 weighing 1, 1, 2, 0 -> 2 / 4; a weight of 0 is a respondent still.
     summer = _row(points, "Summer")
     assert summer["value"] == pytest.approx(50.0) and summer["base"] == 4
@@ -362,7 +430,8 @@ def test_the_chart_draws_hollow_points_and_hands_over_its_table(tmp_path):
     # points, the bands, the weight and the missing codes left out.
     assert _notes_of(chart) == [
         "Base: 10 respondents who answered (weighted: 13.0); 1 to 3 per point.",
-        "Hollow points: fewer than 2 respondents.",
+        "Hollow points: fewer than 2 respondents, drawn without a band (the table gives their "
+        "intervals).",
         "Bands: 95% confidence intervals.",
         "Weighted by 'w'; the bases count respondents.",
         "Left out as missing: Satisfaction: 1 (9 = Don't know); Segment: 1 (99 = Refused).",
