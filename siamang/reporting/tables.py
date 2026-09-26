@@ -263,9 +263,11 @@ class SurveyTable:
 
     def export_xlsx(self, path: str | Path) -> Path:
         """Export the table to an Excel file."""
+        from siamang.io.excel_text import to_excel
+
         self._ensure_built()
         path = Path(path)
-        self._result.to_excel(path, index=False, sheet_name="Table")
+        to_excel(self._result, path, index=False, sheet_name="Table")
         return path
 
     def _format_stats(self) -> str:

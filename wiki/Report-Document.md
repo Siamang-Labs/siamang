@@ -116,12 +116,16 @@ Writes every table of the report to one Excel workbook (`path` must end in
 it — a Banner keeps its significance letters, Group means with a post-hoc test
 gets a second sheet (`<name> – Post-hoc`) — and a bare DataFrame as the report
 prints it, without its index. The statistics a table prints under itself are
-written under it after an empty row, numbers as numbers. A sheet is named by the
+written under it after an empty row, numbers as numbers — and the post-hoc
+pairs' own (the method, which way a difference runs, that p is adjusted) under
+the pairs. Text stays text: an open answer, a label or a caption that begins
+with `=` is written as a string, never as a formula Excel would run. A sheet is named by the
 table's caption, else by the heading of its section, else by the variable it
 describes, else `Table <n>`; the name is cut to Excel's 31 characters, loses
 `[ ] : * ? / \`, and is made unique (`Age`, `Age (2)`). The first sheet,
 `Contents`, lists every sheet with its section and full caption (or the kind of
-table: `Group means: Age`), each a link. Charts, text and statistics lines are
+table: `Group means: Age`; `Perceptual map: Brand × Region — rows (Brand)` for
+one of a map's three tables), each a link. Charts, text and statistics lines are
 left out; a report without tables gets a Contents sheet that says so.
 
 ```python

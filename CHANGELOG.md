@@ -540,6 +540,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Excel files write text as text.** openpyxl stores a string beginning with
+  `=` as a formula, so an open answer such as `=HYPERLINK("http://…","Click
+  me")` shown in a Frequencies table became a live formula in the workbook
+  Save report ships — as did a caption or a heading — and a table's own
+  `export_xlsx` and the data written to `.xlsx` (Export file, `write_snapshot`)
+  did the same; read back, such an answer was blank. Every cell they write
+  now keeps its text as a string (`siamang.io.excel_text`). The workbook also
+  writes the post-hoc table's statistics under its pairs (the method, which
+  way a difference runs, that p is adjusted already), as the report prints
+  them, and its Contents names the later analyses' tables without a caption:
+  `Perceptual map: Brand × Region — inertia`, `… — rows (Brand)`, `… —
+  columns (Region)`, `Price sensitivity: Gabor-Granger — curves`, `Key
+  drivers: Liking`, `Paired tests: Cochran's Q` (they all read `Table`).
+
 - **The ordinal logit refuses a nominal outcome, and its thresholds no longer
   break a Markdown table.** Regression with Model = ordinal fitted a nominal
   outcome such as a region in code order (`order = Capital < North < South`),

@@ -30,9 +30,11 @@ class BannerTable:
         return output
 
     def export_xlsx(self, path: str | Path, **kwargs: Any) -> Path:
+        from siamang.io.excel_text import to_excel
+
         output = Path(path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        self.frame.to_excel(output, index=False, **kwargs)
+        to_excel(self.frame, output, index=False, **kwargs)
         return output
 
 
