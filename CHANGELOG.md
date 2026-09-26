@@ -724,6 +724,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Bar chart splits by a group with a blank or a missing code.** Codes read
+  back as integers (`read_snapshot`, a platform's data) are nullable `Int64`,
+  where a blank is `<NA>`, and so is a declared missing code once the chart
+  leaves it out. A Split by such a variable — gender with 99, Prefer not to
+  say, declared missing, or any question someone skipped — stopped bars of
+  every layout, and a histogram's panels, with `cannot convert to 'bool'-dtype
+  NumPy array with missing values`; the same codes as floats drew. A blank or
+  a missing code is now in no group, as with floats, and the chart is the one
+  the floats draw.
+
 - **A Save report of many charts fits a small sandbox.** Every chart kept its
   matplotlib figure — its drawing buffer, 7 to 12 MB at 150 dpi — for as long
   as the chart existed, closed or not, and a generated script's globals and

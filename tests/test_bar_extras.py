@@ -641,6 +641,37 @@ def test_a_histogram_split_by_a_group_is_a_panel_each(tmp_path):
     assert min(heights) >= 50 and wide.plot().figure.get_figheight() > 3
 
 
+def test_a_histogram_split_by_nullable_integer_codes_leaves_its_missing_out():
+    # The groups as read_snapshot and Studio's data give codes: Int64, a blank
+    # <NA>, and 9 (Refused, declared missing) <NA> once it is left out.
+    data = _numbers().with_weight("w")
+    data.variables["g"] = Variable(
+        "g",
+        "nominal",
+        label="Region",
+        labels={1: "North", 2: "South", 3: "East", 9: "Refused"},
+        missing_values=(9,),
+        missing_labels={9: "Refused"},
+    )
+    codes = data.frame["g"].astype("Int64")
+    codes[:6] = pd.NA
+    codes[6:10] = 9
+    nullable = data.with_frame(data.frame.assign(g=codes))
+    chart = nullable.plot.bar("income", layout="histogram", split="g", show="percent")
+    panels = [ax for ax in chart.plot().figure.axes if ax.get_visible()]
+    assert len(panels) == 3
+    frame = nullable.frame
+    edges = np.histogram_bin_edges(frame["income"][10:], bins="fd")
+    for ax, code, name in zip(panels, (1, 2, 3), ("North", "South", "East"), strict=True):
+        group = frame[(frame["g"] == code).fillna(False)]
+        counts, _ = np.histogram(group["income"], bins=edges, weights=group["w"])
+        drawn_edges, heights = _histogram(ax)
+        assert np.allclose(drawn_edges, edges)
+        assert np.allclose(heights, counts / group["w"].sum() * 100)
+        assert ax.get_title(loc="left") == f"{name} (n = {len(group)})"
+    assert "Region: 4 (9 = Refused)" in _footnote(chart)
+
+
 @pytest.mark.parametrize(
     ("column", "kwargs", "message"),
     [
