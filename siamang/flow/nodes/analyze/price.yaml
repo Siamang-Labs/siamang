@@ -1,0 +1,137 @@
+type: analyze.price
+category: analyze
+title: Price sensitivity
+description: What respondents would pay — Van Westendorp's price sensitivity meter from four price questions (the optimal and indifference price points and the range of acceptable prices, with Newton-Miller-Smith trial and revenue if asked), or a Gabor-Granger demand and revenue curve from purchase intent at set prices.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  curves: Table
+  stat: Stat
+params:
+  method:
+    kind: enum
+    values:
+    - van_westendorp
+    - gabor_granger
+    default: van_westendorp
+    label: Method
+    help: van_westendorp reads four prices each respondent named and finds where their cumulative curves cross. gabor_granger reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximising price among them.
+  too_cheap:
+    kind: variable
+    scales:
+    - interval
+    - ratio
+    label: Too cheap
+    help: 'Van Westendorp: "At what price would it be so cheap that you would doubt its quality?" A respondent missing any of the four prices, or whose prices are not in the order too cheap ≤ cheap ≤ expensive ≤ too expensive, is left out and counted.'
+  cheap:
+    kind: variable
+    scales:
+    - interval
+    - ratio
+    label: Cheap (a bargain)
+    help: '"At what price would it be a bargain — a great buy for the money?"'
+  expensive:
+    kind: variable
+    scales:
+    - interval
+    - ratio
+    label: Expensive (getting expensive)
+    help: '"At what price would it start to seem expensive, though still worth considering?"'
+  too_expensive:
+    kind: variable
+    scales:
+    - interval
+    - ratio
+    label: Too expensive
+    help: '"At what price would it be so expensive that you would not consider buying it?"'
+  likelihood_cheap:
+    kind: variable
+    label: Likelihood at the cheap price (NMS)
+    help: 'Optional, for the Newton-Miller-Smith extension: how likely the respondent would be to buy at the price they called cheap, on a scale Calibration turns into a probability.'
+  likelihood_expensive:
+    kind: variable
+    label: Likelihood at the expensive price (NMS)
+    help: How likely the respondent would be to buy at the price they called expensive.
+  calibration:
+    kind: json
+    label: Likelihood as probability (NMS)
+    help: 'Each likelihood code with its purchase probability, e.g. {"5": 0.7, "4": 0.5, "3": 0.3, "2": 0.1, "1": 0} — what empty means (definitely would buy … definitely would not).'
+  intent:
+    kind: variables
+    label: Would buy at each price
+    help: 'Gabor-Granger: one question per price — "Would you buy it at 9.99?" — asked of every respondent. A respondent missing any of them is left out; a sequential design that skips prices should fill in the implied answers first.'
+  price_points:
+    kind: json
+    label: Prices
+    help: The price of each question, as a list in the same order, e.g. [4.99, 6.99, 8.99].
+  yes_codes:
+    kind: json
+    label: Counts as would buy
+    help: The answer code, or a list of codes, that means would buy — a top-two box such as [4, 5] on a likelihood scale. Empty works for 0/1 questions.
+subtitle:
+- when: method=gabor_granger
+  text: 'Gabor-Granger: {intent}'
+- 'Van Westendorp: {too_cheap}, {cheap}, {expensive}, {too_expensive}'
+checks:
+- when: method=van_westendorp
+  require: too_cheap
+  message: Van Westendorp needs the too-cheap price — choose it in Too cheap.
+- when: method=van_westendorp
+  require: cheap
+  message: Van Westendorp needs the cheap (bargain) price — choose it in Cheap.
+- when: method=van_westendorp
+  require: expensive
+  message: Van Westendorp needs the getting-expensive price — choose it in Expensive.
+- when: method=van_westendorp
+  require: too_expensive
+  message: Van Westendorp needs the too-expensive price — choose it in Too expensive.
+- when: method=van_westendorp & likelihood_cheap
+  require: likelihood_expensive
+  message: Newton-Miller-Smith needs both likelihood questions — choose the one at the expensive price too, or clear both.
+- when: method=van_westendorp & likelihood_expensive
+  require: likelihood_cheap
+  message: Newton-Miller-Smith needs both likelihood questions — choose the one at the cheap price too, or clear both.
+- when: method=van_westendorp & calibration
+  require: likelihood_cheap
+  severity: warning
+  message: Calibration is read only with the two likelihood questions — choose them, or clear Calibration.
+- when: method=gabor_granger
+  require: intent
+  message: Gabor-Granger needs a purchase-intent question per price — choose them in Would buy at each price.
+- when: method=gabor_granger
+  require: price_points
+  message: Gabor-Granger needs the price of each question — list them in Prices, in the same order.
+imports:
+- from siamang.data import pricing
+template:
+- when: method=van_westendorp
+  code: |
+    # On weighted data every curve and share is of the weights; N stays the
+    # number of respondents.
+    _price = pricing.van_westendorp(
+        {in.data},
+        too_cheap={too_cheap!r},
+        cheap={cheap!r},
+        expensive={expensive!r},
+        too_expensive={too_expensive!r},
+# The Newton-Miller-Smith questions, when asked, continue the call above.
+- when: method=van_westendorp & likelihood_cheap
+  code: |2
+        likelihood_cheap={likelihood_cheap!r},
+        likelihood_expensive={likelihood_expensive!r},
+        calibration={calibration!r},
+- when: method=van_westendorp
+  code: |
+    )
+- when: method=gabor_granger
+  code: |
+    # On weighted data the demand is a share of the weights.
+    _price = pricing.gabor_granger(
+        {in.data}, {intent!r}, prices={price_points!r}, yes={yes_codes!r}
+    )
+- |
+  {out.table} = _price.table
+  {out.curves} = _price.curves
+  {out.stat} = _price.stats
+preview: table

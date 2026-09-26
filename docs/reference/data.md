@@ -599,6 +599,68 @@ the matplotlib `Figure`.
 
 ---
 
+## Price sensitivity: `siamang.data.pricing`
+
+`van_westendorp(data, *, too_cheap, cheap, expensive, too_expensive, likelihood_cheap=None, likelihood_expensive=None, calibration=None) -> PriceSensitivity`
+and `gabor_granger(data, intent, *, prices, yes=None) -> PriceSensitivity` —
+the `analyze.price` node's two methods.
+
+**Van Westendorp.** Respondents who answered all four prices (missing codes
+count as not answered) and gave them in order, too cheap ≤ cheap ≤ expensive ≤
+too expensive; the rest are counted (`Inconsistent`) and left out, as R's
+`pricesensitivitymeter` with `validate = TRUE`. At each price p named by anyone
+the (weighted) shares: *too cheap* (too-cheap price ≥ p), *cheap* (cheap price
+≥ p), *not cheap* (100 − cheap), *expensive* (expensive price ≤ p), *not
+expensive* (100 − expensive), *too expensive* (too-expensive price ≤ p),
+joined by straight lines between the prices. The points are where two of those
+lines meet — PMC: too cheap = not cheap; OPP: too cheap = too expensive; IPP:
+not cheap = not expensive (the price where cheap = expensive); PME: not
+expensive = too expensive — and PMC–PME is the range of acceptable prices. In
+each pair one curve falls and the other rises, so their difference only falls:
+the point is where it is zero, or the middle of the prices where it is zero
+when the lines run together (`intersection(prices, falling, rising)`). Where
+two curves do not meet within the prices named, the point is None and `Note`
+says which lies above. `table`: Point, Price, Share % (the curves' value
+there), Where; `curves`: Price and the six curves in %; stats `Method`, `N`,
+`Inconsistent`, `PMC`, `OPP`, `IPP`, `PME`, `Range of acceptable prices`,
+`Weight`, `Weighted N`, `Excluded`, `Missing codes`, `Note`.
+
+**Newton-Miller-Smith**, with both likelihood questions: each answer becomes a
+probability by `calibration` (`CALIBRATION`: 5 → 0.7, 4 → 0.5, 3 → 0.3, 2 →
+0.1, 1 → 0; keys may be text, as JSON writes them); a respondent's purchase
+probability is 0 at and beyond their too-cheap and too-expensive prices, the
+stated one at their cheap and expensive prices (the mean when they are the
+same price; a stated probability wins over the implied 0 at a shared price),
+and linear between (`trial(...)`). The mean is the trial curve, price × trial
+the revenue per respondent; `table` adds Highest trial (NMS) and Highest
+revenue (NMS), `curves` Trial % and Revenue per respondent, the stats `Highest
+trial (NMS)`, `Trial % at it`, `Highest revenue (NMS)`, `Revenue per
+respondent at it`, `Calibration` — each the best among the prices named.
+
+**Gabor-Granger.** One question per price (`intent`, in the order of `prices`,
+listwise), yes by `yes` (empty: 1 for 0/1; a list for a top-two box). `table`:
+Price (ascending), Question, Would buy %, Revenue per respondent (price ×
+share), Revenue index (highest = 100), Elasticity (arc elasticity from the
+price before). Stats `Method`, `Counts as yes`, `Prices`, `N`,
+`Revenue-maximising price` (among the prices asked), `Would buy % at it`,
+`Revenue per respondent at it`, `Not monotone` (yes at a higher price, no at a
+lower one: counted, kept as answered), `Weight`, `Weighted N`, `Excluded`,
+`Missing codes`. `curves` is the same table.
+
+`PriceSensitivity` holds `table`, `curves` (`PriceTable`s whose `analysis` is
+the result), `stats`, `prices`, `shares` (curve → % per price; `demand` and
+`revenue` for Gabor-Granger; `trial` and `revenue` with NMS) and `points`.
+`price_problem(params)` is the flow check's message. `plot(result, *,
+title=None, figsize=None)` draws the four Van Westendorp curves (cheapness in
+blue, expensiveness in orange, "too" solid and "not" dashed, a legend under the
+figure), marks the four points and names them above the plot at their prices
+(stacked when close), shades the range of acceptable prices, and adds a panel
+of the trial curve with NMS; for Gabor-Granger a demand panel above a revenue
+panel with the best price marked. It never puts two measures on two scales of
+one axis, and returns the matplotlib `Figure`.
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.

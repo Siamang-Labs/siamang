@@ -496,6 +496,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fills; it returns the matplotlib Figure, and the tables (`MapTable`) carry
   the result in `analysis`.
 
+- **Price sensitivity** — `siamang.data.pricing` and the flow node
+  **`analyze.price`**. **Van Westendorp**: the four price questions give the
+  too cheap, cheap / not cheap, expensive / not expensive and too expensive
+  curves (weighted shares at every price named, joined by straight lines) and
+  the PMC, OPP, IPP and PME where they cross — the middle of the stretch where
+  two lines run together, none (with a note) where they do not meet — and the
+  range of acceptable prices; respondents whose prices are not in order are left
+  out and counted (`Inconsistent`). With the two likelihood questions, the
+  **Newton-Miller-Smith** trial and revenue curves (calibration 5 → 0.7 … 1 → 0
+  by default) and the prices of highest trial and revenue. **Gabor-Granger**:
+  purchase intent at set prices gives the demand, revenue per respondent and
+  index, arc elasticities and the revenue-maximising price among those asked;
+  respondents answering yes at a higher price but no at a lower one are counted
+  (`Not monotone`). Weighted shares; missing codes left out and counted.
+  `check_flow` asks for what each method reads and checks the prices against
+  the questions before the run ("Prices lists 3 prices for 4 purchase-intent
+  questions; give one price per question, in the same order."). `pricing.plot`
+  draws the four curves with the points named and the acceptable range shaded
+  (the trial curve in a panel below with NMS), or demand above revenue for
+  Gabor-Granger — never two scales on one axis — and returns the matplotlib
+  Figure; the tables (`PriceTable`) carry the result in `analysis`.
+
 ### Fixed
 
 - **A value a node does not read is not checked.** The t-test's rules "Name

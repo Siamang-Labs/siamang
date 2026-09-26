@@ -84,7 +84,7 @@ The runner and the generator use the same order.
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `quality`, `cell_weights`, `rake_weights`, `apply_weight`, `index`, `derive`, `bands`, `explode`, `text_code`, `maxdiff_scores` |
-| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `drivers`, `correspondence`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
+| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `drivers`, `correspondence`, `price`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
 | visualize | `bar`, `boxplot`, `heatmap`, `likert`, `scatter`, `result_chart` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `choice_data`, `conjoint_data`, `live_tile` |
 
@@ -102,7 +102,8 @@ Crosstab (Fisher's exact test counts respondents), Group means (not N or the
 test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
 Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Key drivers (its tests on Kish's
-effective N), Perceptual map (its chi-square test counts respondents), Correlation and Correlation matrix
+effective N), Perceptual map (its chi-square test counts respondents), Price
+sensitivity, Correlation and Correlation matrix
 with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, and Proportion CI with
 `weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
@@ -177,6 +178,21 @@ excluded rows, missing codes). The tables are `MapTable`s whose `analysis` is
 the result, which `correspondence.plot` draws. `check_flow` says before the
 run that a crosstab needs Columns, an attribute map Attributes (two or more),
 and warns of Counts as yes on a crosstab.
+
+`analyze.price` (Price sensitivity, `siamang.data.pricing`) has two `method`s.
+`van_westendorp` reads `too_cheap`, `cheap`, `expensive` and `too_expensive`
+(the four price questions) and, for the Newton-Miller-Smith extension,
+`likelihood_cheap` and `likelihood_expensive` with a `calibration` (code →
+probability; empty: 5 → 0.7 … 1 → 0); `gabor_granger` reads `intent` (a
+purchase-intent question per price), `price_points` (their prices, same order)
+and `yes_codes`. Outputs: `table` (the price points, or the demand per price),
+`curves` (every curve at every price named; for Gabor-Granger the demand table
+again) and `stat`. Both `table` and `curves` are `PriceTable`s whose `analysis`
+is the result, which `pricing.plot` draws. `check_flow` asks for the four
+questions, both likelihood questions or neither, the questions and prices of
+Gabor-Granger, one price per question (numbers, different, not negative) and
+four different Van Westendorp questions, and warns of a calibration without
+the likelihood questions.
 
 `analyze.factor` runs an exploratory factor analysis
 (`siamang.data.factor.analyze`): `items`, `n_factors` (empty: by `criterion`,
