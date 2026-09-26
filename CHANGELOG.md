@@ -775,8 +775,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bar for each: layout='histogram' draws its distribution (or band it first
   with Bands).` (`Split by Age is … a group for each: band it first (Bands) to
   compare its ranges.`); `check_flow` warns when the codebook's valid range
-  holds more than 30 values (`Age is a number of up to 84 values, and bars
-  draw each value given: Layout histogram draws its distribution.`). The
+  holds more than 30 whole numbers (`Age is a number of up to 84 values, and
+  bars draw each value given: Layout histogram draws its distribution.`) — a
+  range of [0, 29.5] or [0.5, 30.5] holds 30 and is not warned of. The
   classic chart is drawn as it always was.
 
 - **Nothing to draw is said.** Percent bars of a variable nobody answered (every
