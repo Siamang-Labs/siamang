@@ -538,6 +538,48 @@ model.stats["order"], model.stats["pseudo_r_squared"], model.stats["lr_p"]
 
 ---
 
+## Key drivers
+
+Which of the attribute ratings matter most for overall satisfaction? A
+regression's coefficients answer another question — what happens when one
+rating moves and the others stay put — and when the ratings correlate, as
+ratings of one brand do, a coefficient can shrink or even flip sign because a
+neighbour took its share. `siamang.data.drivers.analyze` splits the model's R²
+between the predictors instead, so the shares add up to R² (100 %). The flow
+node is **Key drivers** (`analyze.drivers`).
+
+```python
+from siamang.data import drivers
+
+result = drivers.analyze(data, "overall", ["price", "service", "range", "staff"])
+print(result.table.to_markdown())   # Rank, Driver, r, Beta, Beta p, VIF, weight, % of R²
+result.stats["R²"], result.stats["p"]
+drivers.plot(result).savefig("drivers.png")   # bars of the % of R², largest first
+```
+
+| **Importance** (`method`) | How the share is found |
+|---------------------------|------------------------|
+| `relative_weights` (default) | Johnson's relative weights: the outcome is regressed on the uncorrelated variables closest to the predictors, and each predictor gets back its part of those — as R's `rwa` package |
+| `shapley` | The Shapley value (LMG): a predictor's gain in R² when it joins the model, averaged over every order the predictors could enter in — as R's `relaimpo`. Exact, so at most 15 predictors |
+
+The two agree closely. Beside the importance the table gives each predictor's
+correlation with the outcome (`r`), its standardized coefficient (`Beta`) with
+the regression's p, and its variance inflation factor (`VIF`); the statistics
+give R², adjusted R² and the F-test.
+
+- **Who is analysed.** A respondent missing the outcome or any predictor is
+  left out, the codebook's missing codes counted as missing. A nominal variable
+  with more than two answers is refused — make a 0/1 variable per answer with
+  Explode multiple choice or Derive; a 0/1 variable is used as it is.
+- **Weights** reach every number through the weighted correlation matrix; the
+  tests are taken on Kish's effective N, and the statistics name the weight.
+- **Warnings.** A VIF of 10 or more (the betas of those predictors are
+  unstable; the importance shares their common variance between them), and a
+  suppressor — a predictor whose beta has the other sign than its
+  correlation.
+
+---
+
 ## Weighted statistics
 
 Set a default weight column once with `with_weight(...)`, then pass
@@ -549,7 +591,7 @@ its base is the respondents who answered the question: weights of 1 give the
 unweighted `p` and `n`.
 
 The models read the weight on their own: `regression` fits WLS, a weighted
-logit or a weighted ordinal logit, and `pca` and `reliability` work from the weighted covariance matrix
+logit or a weighted ordinal logit, and `pca`, `reliability` and the key drivers work from the weighted covariance matrix
 (the unbiased estimate for reliability weights, as R's `cov.wt` computes it, so
 equal weights reproduce the unweighted result). Each names the column in
 `stats["weight"]`.
