@@ -361,6 +361,9 @@ adjust_p([0.01, 0.04, 0.03, 0.2], "holm")      # [0.04, 0.09, 0.09, 0.2]
 | **Group means** | **Significance test**, **Test** (`auto` default), **Post-hoc**, **Dunn p adjustment** |
 | **Compare groups** | **Test**, **Post-hoc** (`none` / `dunn`), **Dunn p adjustment** |
 | **Crosstab** | **Significance test**, **Test** (`chi2` default / `fisher`) |
+| **Bar chart** | **Show** (`count` / `percent`), **Split by** (the chart of a crosstab), **Layout** (`grouped` / `stacked` / `stacked_100`), **Sort** (`code` / `value`) |
+| **Heatmap** | **Method** for the correlation matrix: `spearman` (default), `pearson` (weighted), `kendall` |
+| **Likert chart** | **Items** on one scale, **Neutral answer** (`split` / `side`), **Sort items** (`top2` / `listed`) — see [[Reporting Charts\|Reporting-Charts]] |
 
 The flow check refuses a post-hoc test that does not follow its test ("Tukey's
 HSD follows a one-way ANOVA — set Test to anova, or Post-hoc to none.") and

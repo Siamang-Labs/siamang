@@ -369,6 +369,37 @@ corr_chart.show()
 
 ---
 
+### Battery of Items: `LikertChart`
+
+Diverging stacked bars of items that share one ordered scale (`siamang.reporting.likert`): each item's answers below the middle of the scale stack left of a centre line, those above it right; the top-2 and bottom-2 shares (one answer each on a scale of two or three: "Top box") are written at the ends of every bar, under the headers `Bottom-2` and `Top-2`. On weighted data the shares are sums of weights (`weight_note` `"weighted by 'w'"`), `n` counts respondents.
+
+#### Properties
+
+In addition to base properties:
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `columns` | `list[str]` | `[]` | The items. Their scale is the codebook's: the value labels without the missing codes, the same for every item (compared by code and by label, case and spaces aside), else a `ValueError` naming two of them and their scales. An item without labels may give a `valid_range` of 2–11 whole numbers. A multiple-choice item is refused. |
+| `neutral` | `str` | `"split"` | `"split"`: an odd scale's middle answer half on either side of the centre. `"side"`: drawn apart, in a panel at the right titled by its label. An even scale has none; its centre falls between the middle two answers. |
+| `sort` | `str` | `"top2"` | `"top2"`: the largest top-2 share first (ties: the smaller bottom-2, then the order given). `"listed"`: the order of `columns`. |
+| `show_values` | `bool` | `True` | Each answer's share (`23%`) inside its segment where it fits. |
+| `palette` | `str` | `"RdBu"` | A diverging palette; the neutral answer is grey (`#bdbdbd`). |
+| `table` | `pd.DataFrame` | — | Read-only: the numbers drawn, in chart order — `Item`, one column per answer (%), `Top-2`, `Bottom-2` (or `Top box`, `Bottom box`), `N`, and `Weighted N` on weighted data. |
+
+The title, when not given, is the words every item label starts with up to a separator (`: `, ` - `, ` – `, ` — `, `? `), and the rest of each label names its bar; without such a stem it is `"<n> items from <lowest label> to <highest label>"`. The note under the chart gives the base, the answers in the top-2 and bottom-2, the neutral answer's handling (`The neutral answer (3 = Neither) is split around the centre.` / `… is drawn apart, at the right.` / `No neutral answer: the centre falls between 2 = Fair and 3 = Good.`), the weight, `Left out as missing: …` for the codebook's missing codes, `Not on the scale, left out: …` for other values, and `No answer on the scale, not drawn: …` for an item nobody answered.
+
+#### Example
+
+```python
+from siamang.reporting import LikertChart
+
+chart = LikertChart(data, columns=["trust_acme", "trust_globex"], neutral="side")
+chart.save("trust.png")
+chart.table
+```
+
+---
+
 ### Bivariate Relationship: `ScatterPlot`
 
 Plots the relationship between two continuous variables, with optional grouping (color) and a linear trendline. Unweighted — every respondent is one point and the trendline is an unweighted fit; on weighted data the title says so.
@@ -452,6 +483,8 @@ To make this reporting API extremely convenient, two accessors are attached dire
   Creates a `HeatMap` instance.
 * **`scatter(x: str, y: str, *, hue: str | None = None, trendline: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> ScatterPlot`**:
   Creates a `ScatterPlot` instance.
+* **`likert(columns: list[str], *, neutral: str = "split", sort: str = "top2", show_values: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "RdBu", title: str | None = None) -> LikertChart`**:
+  Creates a `LikertChart` instance.
 
 ### Example
 

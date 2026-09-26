@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Likert chart.** `visualize.likert` and `data.plot.likert()`
+  (`siamang.reporting.LikertChart`) draw a battery of items on one ordered scale
+  as diverging stacked bars centred on the neutral answer — split around the
+  centre, or drawn apart at the right — or, on an even scale, between the two
+  middle answers, with each item's top-2 and bottom-2 shares at the ends and
+  the items in order of their top-2 share unless listed. Labels come from the
+  codebook; the missing codes and values off the scale are left out and
+  counted under the chart with each item's base; shares are weighted when a
+  weight is applied. Items with different value labels are refused, naming
+  both scales — by `check_flow` before the run when the questionnaire holds
+  them, and by the chart otherwise. `chart.table` holds the numbers drawn.
+
 - **Heatmap: Pearson and Kendall.** `visualize.heatmap` and
   `data.plot.heatmap()` take a `method` for the correlation matrix drawn without
   By: `spearman` (the default, drawn as it always was), `pearson` or `kendall`.

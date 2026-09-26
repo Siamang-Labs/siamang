@@ -8,6 +8,7 @@ to produce publication-ready outputs with minimal configuration.
 from siamang.reporting.accessors import PlotAccessor, ReportAccessor
 from siamang.reporting.charts import BarChart, BoxPlot, HeatMap, ScatterPlot
 from siamang.reporting.document import Report
+from siamang.reporting.likert import LikertChart
 from siamang.reporting.tables import CrossTable, FreqTable, GroupMeanTable, NpsTable
 from siamang.reporting.theme import ReportTheme, ReportThemeError, sample_report
 
@@ -19,6 +20,7 @@ __all__ = [
     "BarChart",
     "BoxPlot",
     "HeatMap",
+    "LikertChart",
     "ScatterPlot",
     "ReportAccessor",
     "PlotAccessor",

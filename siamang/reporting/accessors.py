@@ -417,6 +417,34 @@ class PlotAccessor:
             method=method,
         )
 
+    def likert(
+        self,
+        columns: list[str],
+        *,
+        neutral: str = "split",
+        sort: str = "top2",
+        show_values: bool = True,
+        figsize: tuple[float, float] = (10, 6),
+        palette: str = "RdBu",
+        title: str | None = None,
+    ) -> Any:
+        """Diverging stacked bars of items on one ordered scale, centred on the
+        neutral answer (``neutral="split"``, or ``"side"`` to draw it apart),
+        top-2 and bottom-2 shares at the ends, the largest top-2 first unless
+        ``sort="listed"``. See :class:`~siamang.reporting.likert.LikertChart`."""
+        from siamang.reporting.likert import LikertChart
+
+        return LikertChart(
+            data=self._data,
+            columns=list(columns),
+            neutral=neutral,
+            sort=sort,
+            show_values=show_values,
+            figsize=figsize,
+            palette=palette,
+            title=title,
+        )
+
     def scatter(
         self,
         x: str,
