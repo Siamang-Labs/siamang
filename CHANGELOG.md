@@ -563,6 +563,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   answer are refused in words. `check_flow` knows the response timestamps
   (`created_at`, `updated_at`, `started_at`, `submitted_at`:
   `siamang.flow.document.RESPONSE_TIMES`) as variables a node may name.
+- **Tab book (Excel)** (`output.tabbook`, `siamang.reporting.tabbook.write_tabbook`)
+  — every chosen question crossed by a banner in one workbook: a *Contents*
+  sheet linking to one sheet per question (named after its variable, at most
+  31 characters, unique as Excel compares), and a *Notes* sheet (weight, test,
+  alpha, Bonferroni, minimum base, missing codes left out, the date). Each
+  sheet has the question's label, Total and every code of each banner
+  variable across, the base (unweighted, and weighted when a weight applies),
+  counts and/or column or row percentages (`0.0%`), the Banner table's letters
+  in their own cells beside the column percentages (a letter compares column
+  percentages, so with row percentages or counts only there are none, and the
+  check warns), the mean and standard deviation of an interval or ratio
+  question, a frozen header and set column widths. The counts are
+  `_banner_pair`'s and the letters `BannerTable`'s own test; missing codes
+  are left out and said, and a column's base is those in it who answered the
+  question. *Questions* empty is every nominal, ordinal and multiple-choice
+  variable of the codebook but the banner, the weight and the response
+  metadata. The `stat` output gives `Sheets written`, `Questions skipped` and
+  why (`not in the data`, an open answer with no labels, …).
 
 ### Fixed
 

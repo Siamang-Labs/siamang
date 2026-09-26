@@ -611,7 +611,7 @@ logit as above.
 
 ---
 
-## 5. Trend
+## 5. Trend and tab book
 
 ### `data.plot.trend(...)` → `TrendChart` (`siamang.reporting.trend`)
 
@@ -635,6 +635,26 @@ logit as above.
   `Missing codes left out`, `Left out` (rows without a time, or whose text is
   not a date, or without a group). **`TrendChart.points`** is the same,
   unrounded (`trend(data, time, …)` computes it without a chart).
+
+### `write_tabbook(...)` (`siamang.reporting.tabbook`)
+
+* **`write_tabbook(data, path, *, banner: list[str], questions: list[str] | None = None, percentages: str = "column", counts: bool = True, letters: bool = True, level: float = 0.05, correction: str = "none", means: bool = True, min_base: int = 30, created: datetime | None = None) -> dict`**:
+  An `.xlsx` workbook: `Contents` (a link per question, and what was not
+  tabulated, with why), one sheet per question — Total and every code of each
+  banner variable across; the base (unweighted, and weighted); counts and
+  column (`"column"`) or row (`"row"`) percentages; the Banner table's letters
+  in their own cells beside the column percentages (with `"row"` or `"none"`
+  there are none: they compare column percentages); the mean and SD of an
+  interval or ratio question — and
+  `Notes` (weight, test, alpha, Bonferroni, minimum base, missing codes left
+  out, `created`). Counts come from `siamang.data.tables._banner_pair` and
+  the letters from `BannerTable`'s test; the codebook's missing codes are left
+  out, and a column's base is those in it who answered. Returns the stat
+  (`Sheets written`, `Questions skipped`, `Skipped`, …).
+* **`tabulate(data, *, banner, …) -> TabBook`** — the same numbers without the
+  workbook: a `QuestionTab` per question (`answers`, `columns`, `base`,
+  `weighted_base`, `effective_base`, `counts`, `column_percent`,
+  `row_percent`, `letters`, `means`, `left_out`) and `skipped`.
 
 ---
 
