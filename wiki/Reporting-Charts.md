@@ -303,4 +303,71 @@ generated PNGs.
 
 ---
 
+## Charts of results: `result_charts`
+
+The charts above draw from the data. `result_charts.chart()` draws what an
+analysis already computed — the table or statistics it returned — so the
+picture beside a table shows that table's own numbers. It is also the flow's
+**Result chart** node (`visualize.result_chart`).
+
+```python
+from siamang.reporting import result_charts
+
+means = data.report.means("autonomy", by="remote_freq", method="anova", posthoc="tukey")
+result_charts.chart(means).save("autonomy_means.png")          # means with 95 % CIs and letters
+
+pca = data.analysis.pca(["autonomy", "satisfaction", "age"])
+result_charts.chart([pca.variance, pca.stats])                 # scree plot, components kept filled
+result_charts.chart(pca, kind="loadings", title="What the components are")
+```
+
+What each result draws (the first kind is what `kind="auto"` draws):
+
+| Result | Kinds |
+| :--- | :--- |
+| Group means, Descriptive statistics, t-test, Paired tests (Wilcoxon, Friedman) | `means` (95 % confidence interval), `means_sd` (± 1 SD) |
+| Paired tests with McNemar | `shares` — the share saying yes to each, with Wilson's interval |
+| Proportion CI | `interval` — the share and its interval on a 0–100 % track |
+| Net Promoter Score | `stacked` — detractors / passives / promoters, the score and its CI |
+| TURF | `reach` (a search: reach by portfolio size), `items` (a fixed portfolio: each option's reach and what only it reaches) |
+| MaxDiff | `utilities` (with 95 % intervals), `scores`, `shares` |
+| Conjoint | `importance`, `partworths` |
+| Share of preference | `shares` |
+| Principal components, Factor analysis | `scree` (from the variance output: Kaiser line, parallel analysis), `loadings` (a heatmap) |
+| Cluster (k-means) | `profile` — each cluster's means down the items |
+| Regression | `coefficients` — a forest without the intercept; odds ratios on a log scale for a logit |
+| Correlation matrix | `heatmap` — the lower triangle with the table's significance marks |
+| Code open answers | `shares`, `sentiment` |
+
+With a post-hoc test, Group means puts the **compact letter display** beside
+each mean: means that share a letter do not differ at p < .05 (Tukey,
+Games-Howell or Dunn, whichever ran). Intervals are Student's t for unweighted
+means, the linearization (survey-package) interval for weighted ones, and
+Wilson's for a share — see `siamang.data.intervals` in the
+[[API Reference|API-Reference-Index]].
+
+**Weight.** A result chart says what its result says: `weighted by 'w'`, or
+`unweighted (the weight 'w' is not applied)`, as the second line of the title
+and in `chart.weight_note`. A regression's, a PCA's, a cluster's or TURF's
+table does not carry the weight itself — pass its statistics beside it
+(`[model.table, model.stats]`), which also gives a regression's interval its
+t distribution.
+
+**Long labels, many categories.** Categories are rows, first at the top; labels
+wrap (three lines, then an ellipsis), the font shrinks from 10 to 7 pt as rows
+multiply, and a chart that still cannot hold them grows taller. Value labels
+never leave the plot.
+
+**In a flow**, connect an analysis's table (and its stat) to a Result chart;
+choose a Kind where the result has several. The flow check says before the run
+when the chart cannot draw what is connected (`RESULT_NOT_DRAWABLE`) or when the
+Kind does not suit it (`RESULT_KIND`), and warns when results of two analyses
+are connected (`RESULT_SOURCES`).
+
+**Your own result.** `result_charts.register(MyResult, ["mykind"], draw)`
+teaches the chart a new result: `draw(result, chart)` draws on
+`chart.rows(labels)` or `chart.figure()` and returns its title.
+
+---
+
 See also: [[Reporting Tables|Reporting-Tables]] · [[Report Document|Report-Document]] · [[Analysis]] · [[Working with Data|Working-with-Data]] · [[Installation]]

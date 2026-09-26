@@ -511,6 +511,86 @@ data.plot.boxplot("autonomy", by="remote_freq", show_points=True).save("autonomy
 
 ---
 
+## 4. Charts of results: `result_charts`
+
+`siamang.reporting.result_charts` draws what an analysis already computed —
+the `visualize.result_chart` node (Result chart) of a flow. `data.plot` draws
+from the data; a result chart draws the result's own numbers, so the picture
+beside a table shows that table.
+
+```python
+from siamang.reporting import result_charts
+
+result_charts.chart(data.report.means("satisfaction", by="region", method="anova", posthoc="tukey"))
+result_charts.chart([pca.variance, pca.stats], kind="scree", title="Scree plot").save("scree.png")
+```
+
+**`chart(results, kind="auto", *, title=None, figsize=(10, 6), palette="muted", dpi=150) -> ResultChart`**
+takes one result or a list of them (what a flow connects to the node's many
+input: a table, and its stat beside it). The first result a renderer draws is
+drawn — with `kind`, the first that can be drawn as it — and the others lend it
+what they say: the weight, a regression's base. The chart is built at once, so a
+result it cannot draw raises `ResultChartError` (a `ValueError`) with what it
+draws instead: `A Result chart cannot draw a FreqTable (Value, Label, N, %, …).
+It draws the results of Group means, Descriptive statistics, t-test, Paired
+tests, Proportion CI, Net Promoter Score, TURF, MaxDiff, Conjoint, Share of
+preference, Principal components, Factor analysis, Cluster (k-means),
+Regression, Correlation matrix, Code open answers — connect the table of one of
+them.`, `Kind 'scree' does not suit this result: Group means draws 'means' or
+'means_sd'.`, `Unknown kind 'pie'; the kinds are auto, means, …`. `ResultChart`
+is a `SurveyChart`: `save()`, `plot()`, `show()`, `weight_note`, and a `Report`
+takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
+
+| Result | Kinds (the first is `auto`) | What is drawn |
+| :--- | :--- | :--- |
+| `GroupMeanTable` (Group means) | `means`, `means_sd` | each group's mean with its 95 % confidence interval (or ± 1 SD); with a post-hoc test, the compact letter display — means sharing a letter do not differ at p < .05 (Piepho's insert-and-absorb, as R's `multcompView`; `letters(groups, different)`) |
+| `DescriptivesTable` | `means`, `means_sd` | each variable's mean, one coloured series per group with `by` |
+| `TTestTable` (t-test) | `means`, `means_sd` | each group's or measurement's mean with its interval at the test's confidence; a one-sample test draws its test value as a line; the test's difference and CI in a note |
+| Paired tests' `table` (Wilcoxon, Friedman) | `means`, `means_sd` | each measurement's mean (the row of differences is the test's) |
+| McNemar's `table` | `shares` | the share saying yes to each, with Wilson's interval |
+| Proportion CI's stat | `interval` | the share as a number over its interval on a 0–100 % track, with the base (the effective base when weighted) |
+| `NpsTable` | `stacked` | detractors, passives and promoters in one 100 % bar, the score and its 95 % CI above it |
+| `TurfTable` of a search | `reach` | reach by portfolio size, each point labelled with its gain, the portfolio under it |
+| `TurfTable` of a fixed portfolio | `items` | each option's reach and what it reaches alone, the portfolio's reach as a line |
+| `MaxDiffTable` | `utilities`, `scores`, `shares` (a counting table: `scores`) | utilities with their 95 % Wald intervals against the reference item (the standard errors are the fit's: `maxdiff.utilities`), the counting scores, or the shares |
+| `ConjointTable` | `importance`, `partworths` | each attribute's importance; every level's part-worth, coloured by attribute |
+| `ShareTable` (Share of preference) | `shares` | each product's share |
+| PCA `variance` / `loadings`, `PcaResult` | `scree` / `loadings` | eigenvalues with the Kaiser line at 1 (the components kept filled, when the stat says how many); a diverging heatmap of the loadings |
+| Factor analysis `variance` / `loadings`, `FactorAnalysis` | `scree` / `loadings` | the same, with parallel analysis's random 95th percentile when it chose the number; loadings hidden in the table are blank |
+| Cluster centroids, `ClusterAssignment`, `ClusterResult` | `profile` | a snake plot: each cluster's means down the items, sized in the legend |
+| Regression `table`, `RegressionResult` | `coefficients` | a forest of the coefficients with 95 % intervals, the intercept left out — t with n − k df when the stat gives n (normal otherwise, and it says so); a logit's odds ratios on a log scale |
+| `CorrelationMatrixTable` | `heatmap` | the lower triangle with the table's significance marks (on the adjusted p when adjusted) |
+| `ThemeTable` (Code open answers) | `shares`, `sentiment` | each theme's share of the coded answers and the coverage; the negative / neutral / positive split |
+
+**Weight.** A chart follows the weight of the result it draws: the note the
+result (or a stat beside it) carries is the second line of the title and
+`weight_note` — `weighted by 'w'` for a weight column, or the result's own
+`unweighted (the weight 'w' is not applied)`. The intervals of weighted means
+are the linearization ones (`siamang.data.intervals`).
+
+**Legibility.** Categories are rows, the first at the top: labels are wrapped at
+a third of the width (three lines at most, then an ellipsis), many rows get a
+smaller font (10 pt down to 7), and a chart with more rows than its height holds
+at 7 pt grows taller; a chart of few rows is shorter than the height it was
+given. Value labels sit beside their bar or whisker and the axis widens until
+they fit; legends sit between the title and the plot. NPS and sentiment keep a
+red–grey–blue of their own and the heatmaps a diverging scale centred on 0; the
+palette colours everything else.
+
+**Registry.** A later analysis adds its result with
+`register(result_type, kinds, fn, *, accepts=None, name=None)` — `fn(result,
+chart)` draws on the figure it asks `chart` for (`chart.figure()`, or
+`chart.rows(labels)` for one row per category, `chart.colors(n)`,
+`chart.legend(ax)`, `chart.make_room(ax, labels)`), reads `chart.drawn` and
+`chart.stats`, and returns the title; `accepts(result)` tells apart results of
+one class (a regression's coefficients and a PCA's loadings are both
+DataFrames); the last registration that accepts a result wins — and with
+`register_output(node_type, port, kinds)` (kinds a tuple, or a function of the
+node's parameters) tells `check_flow` what its output draws. A new kind is also
+a value of the node's `kind` enum.
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.

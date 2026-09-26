@@ -300,6 +300,7 @@ def check_flow(
                         node_id,
                     )
                 )
+    issues.extend(_check_result_charts(nodes, edges, registry))
 
     if not any(issue.severity == "error" for issue in issues):
         try:
@@ -1199,6 +1200,47 @@ def loads(text: str) -> dict[str, Any]:
     if not isinstance(document, dict):
         raise FlowError("Flow must be a JSON object.")
     return document
+
+
+def _check_result_charts(
+    nodes: dict[str, dict[str, Any]], edges: list[Edge], registry: Registry
+) -> list[FlowIssue]:
+    """What a Result chart is given, read before the run: an output it cannot
+    draw, or a Kind that does not suit it, is named on the canvas rather than
+    raised by the run — the node types and parameters upstream say enough
+    (:func:`siamang.reporting.result_charts.check_sources`)."""
+
+    charts = [
+        node_id for node_id, node in nodes.items() if node["type"] == "visualize.result_chart"
+    ]
+    if not charts or "visualize.result_chart" not in registry:
+        return []
+    from siamang.reporting.result_charts import check_sources
+
+    spec = registry.get("visualize.result_chart")
+    issues: list[FlowIssue] = []
+    for node_id in charts:
+        sources = []
+        for edge in edges:
+            if edge.target != node_id or edge.target_port != "result":
+                continue
+            source = registry.get(nodes[edge.source]["type"])
+            sources.append(
+                (
+                    edge.source,
+                    source.type,
+                    source.title,
+                    edge.source_port,
+                    source.outputs[edge.source_port],
+                    resolved_params(source, nodes[edge.source].get("params") or {}),
+                )
+            )
+        if not sources:
+            continue  # INPUT_NOT_CONNECTED says so
+        kind = resolved_params(spec, nodes[node_id].get("params") or {}).get("kind")
+        for severity, code, message in check_sources(str(kind), sources):
+            issues.append(FlowIssue(severity, code, f"{node_id}: {message}", node_id))
+    return issues
 
 
 __all__ = [

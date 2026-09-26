@@ -1,0 +1,80 @@
+type: visualize.result_chart
+category: visualize
+title: Result chart
+description: The chart that suits an analysis's result, drawn from the numbers it computed — group means with their confidence intervals, a scree plot, TURF's reach curve. Connect the analysis's table (the variance or loadings of a factor analysis or PCA); connect its stat too for the weight of a regression, PCA, cluster or TURF and the base of a regression's intervals.
+inputs:
+  result:
+    type:
+    - Table
+    - Stat
+    many: true
+outputs:
+  chart: Chart
+params:
+  kind:
+    kind: enum
+    values:
+    - auto
+    - means
+    - means_sd
+    - interval
+    - stacked
+    - reach
+    - items
+    - utilities
+    - scores
+    - shares
+    - importance
+    - partworths
+    - scree
+    - loadings
+    - profile
+    - coefficients
+    - heatmap
+    - sentiment
+    default: auto
+    label: Kind
+    help: 'Auto draws the chart the result suits. means (the 95 % confidence interval) and means_sd (± 1 SD): Group means, Descriptive statistics, t-test, Paired tests. interval: Proportion CI. stacked: Net Promoter Score. reach (a search) and items (a fixed portfolio): TURF. utilities, scores and shares: MaxDiff (utilities with Estimate both or utilities). importance and partworths: Conjoint. shares: Share of preference, Code open answers, and McNemar''s yes shares. scree and loadings: Principal components and Factor analysis, from their variance and loadings outputs. profile: Cluster. coefficients: Regression. heatmap: Correlation matrix. sentiment: Code open answers with sentiment.'
+  title:
+    kind: string
+    label: Title
+  width:
+    kind: float
+    default: 10
+    minimum: 2
+    maximum: 30
+    label: Figure width (in)
+    help: The figure itself, in inches — the axis labels scale with it. A chart with more rows than its height holds legibly grows taller.
+  height:
+    kind: float
+    default: 6
+    minimum: 2
+    maximum: 30
+    label: Figure height (in)
+  palette:
+    kind: enum
+    values:
+    - muted
+    - deep
+    - pastel
+    - dark
+    - colorblind
+    - Set2
+    - tab10
+    default: muted
+    label: Palette
+    help: The colours of the bars, points and series. Net Promoter Score and sentiment keep their own red–grey–blue, and the heatmaps their diverging scale.
+subtitle: '{kind}'
+imports:
+- from siamang.reporting import result_charts
+template: |
+  # Drawn from the result's own numbers, weighted as the result is: the title
+  # says whether (the note the result carries).
+  {out.chart} = result_charts.chart(
+      {in.result},
+      kind={kind!r},
+      title={title!r},
+      figsize=({width!r}, {height!r}),
+      palette={palette!r},
+  )
+preview: chart
