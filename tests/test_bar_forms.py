@@ -207,6 +207,53 @@ def test_stacked_and_stacked_to_100(tmp_path):
     assert texts == ["Maybe", "No", "Yes"]
 
 
+def test_a_split_by_nullable_integer_codes_leaves_its_missing_out(tmp_path):
+    # Codes read back as integers (read_snapshot, Studio's data) are Int64, where
+    # a blank is <NA>, and so is a declared missing code once it is left out.
+    # Row 1's group is blank and row 7's is 9, Prefer not to say: Left keeps
+    # rows 0, 2, 6 → Yes 2, No 1; Right keeps row 3 → Maybe 1.
+    data = _data()
+    data.variables["g"] = Variable(
+        "g",
+        "nominal",
+        label="Group",
+        labels={1: "Left", 2: "Right", 9: "Prefer not to say"},
+        missing_values=(9,),
+        missing_labels={9: "Prefer not to say"},
+    )
+    frame = data.frame.assign(
+        q=pd.array([1, 1, 2, 3, 9, None, 1, 2], dtype="Int64"),
+        g=pd.array([1, None, 1, 2, 2, 2, 1, 9], dtype="Int64"),
+    )
+    nullable = data.with_frame(frame)
+    chart = nullable.plot.bar("q", split="g", show="percent")
+    _rendered(chart, tmp_path)
+    assert _heights(chart) == [[66.667, 0.0], [33.333, 0.0], [0.0, 100.0]]
+    assert _ticks(chart) == ["Left\n(n = 3)", "Right\n(n = 1)"]
+    note = _footnote(chart)
+    assert "Base: 4 respondents who answered both." in note
+    assert "Group: 1 (9 = Prefer not to say)" in note
+    stacked = nullable.plot.bar("q", split="g", layout="stacked")
+    assert _heights(stacked) == [[2.0, 0.0], [1.0, 0.0], [0.0, 1.0]]
+    # The same codes as floats (NaN for a blank) draw the same bars and words.
+    floats = data.with_frame(frame.astype({"q": float, "g": float}))
+
+    def drawn(chart) -> tuple[list[float], list[str], str]:
+        ax = chart.plot()
+        return [round(p.get_height(), 3) for p in ax.patches], _values(chart), _footnote(chart)
+
+    for kwargs in (
+        {"show": "percent"},
+        {"layout": "stacked"},
+        {"layout": "stacked_100"},
+        {"show": "percent", "intervals": True},
+        {"show": "percent", "letters": True},
+        {"top": 1, "other": True},
+    ):
+        expected = drawn(floats.plot.bar("q", split="g", **kwargs))
+        assert drawn(nullable.plot.bar("q", split="g", **kwargs)) == expected, kwargs
+
+
 def test_sorting_keeps_each_answer_its_colour(tmp_path):
     data = _data()
     by_code = data.plot.bar("q", split="g")

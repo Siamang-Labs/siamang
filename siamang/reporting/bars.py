@@ -439,6 +439,8 @@ def _chose(series: pd.Series, code: Any, is_multi: bool) -> np.ndarray:
     from siamang.data import multi
 
     hits = multi.reach(series, code) if is_multi else series == code
+    # A nullable column (codes read back as Int64) compares <NA> where it is
+    # blank, or where a missing code was left out: not a hit.
     return hits.fillna(False).to_numpy(dtype=bool)
 
 
@@ -649,7 +651,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     sizes, bases = [], np.zeros(len(group_codes))
     members = []
     for row, group in enumerate(group_codes):
-        member = answered & (groups == group).to_numpy(dtype=bool)
+        member = answered & _chose(groups, group, False)
         members.append(member)
         sizes.append(int(member.sum()))
         bases[row] = weight[member].sum()
@@ -1639,7 +1641,7 @@ def _histogram(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None)
         panels.append("")
     else:
         for code in group_codes:
-            member = answered & (groups == code).to_numpy(dtype=bool)
+            member = answered & _chose(groups, code, False)
             heights.append(tally(member))
             panels.append(f"{_name_of(data, str(chart.split), code)} (n = {int(member.sum()):,})")
     weighted = weights is not None
