@@ -178,10 +178,15 @@ def _brand_grid(brands: int = 12, attributes: int = 20) -> correspondence.Percep
 
 def test_a_crowded_map_grows_taller_rather_than_overlap_its_labels():
     grid = _brand_grid()
-    # On a small figure the 32 labels cannot all be placed apart: the map grows
-    # a fifth at a time up to 1.2 times its width, and keeps its width.
+    # On a small figure the 32 labels cannot all be placed apart even when the
+    # map grows a fifth at a time up to 1.2 times its width: its points are
+    # numbered instead, their names listed under it, and it keeps its width.
     small = rc.chart(grid.table, figsize=(4, 3))
-    assert tuple(small._fig.get_size_inches()) == pytest.approx((4.0, 4.8))
+    assert small._fig.get_figwidth() == 4
+    assert [text.get_text() for text in small._ax.texts] == [str(i) for i in range(1, 33)]
+    key = " ".join(text.get_text() for text in small._fig.texts).replace("\n    ", " ")
+    assert "1  Brand A Supermarkets and Groceries" in key
+    assert "13  Attribute number 1 of the image grid" in key
     # On the node's default figure it grows until no two labels overlap.
     chart = rc.chart(grid.table)
     width, height = chart._fig.get_size_inches()
@@ -649,3 +654,47 @@ def test_the_key_drivers_chart_has_no_row_lines_whatever_was_drawn_before():
     assert not any(line.get_visible() for line in own.yaxis.get_gridlines())
     title = flow_chart._ax.get_title(loc="left").splitlines()
     assert title[1].endswith(f", N = {result.n}")
+
+
+def test_a_map_too_crowded_to_name_its_points_numbers_them_and_lists_the_names():
+    """24 brands of long names by 13 regions: at its tallest the map still
+    printed names over names ('Umbrella Pharmaceuticals Over-Scotland'), cut
+    others with '…', and its legend's variable title too."""
+
+    rng = np.random.default_rng(3)
+    brands = [f"Brand {i:02d} with a rather long descriptive product name" for i in range(1, 25)]
+    regions = [f"Region number {i} of the country" for i in range(1, 14)]
+    frame = pd.DataFrame(
+        {
+            "brand": rng.choice(np.arange(1, 25), 1200, p=rng.dirichlet(np.ones(24))).astype(float),
+            "region": rng.integers(1, 14, 1200).astype(float),
+        }
+    )
+    variables = VariableMap()
+    title = "Brand bought most often in the last three months"
+    variables.add(Variable("brand", "nominal", label=title, labels=dict(enumerate(brands, 1))))
+    variables.add(Variable("region", "nominal", label="Region", labels=dict(enumerate(regions, 1))))
+    result = correspondence.analyze(
+        SurveyData(frame=frame, variables=variables), "brand", column="region"
+    )
+    chart = rc.chart(result.table)
+    fig, ax = chart._fig, chart._ax
+    names = [*result.row_labels, *result.column_labels]
+    assert len(names) > 30
+    assert [text.get_text() for text in ax.texts] == [str(i) for i in range(1, len(names) + 1)]
+    assert not labels_overlap(ax)
+    renderer = fig.canvas.get_renderer()
+    key = [text for text in fig.texts if text.get_text()]
+    listed = " ".join(text.get_text() for text in key).replace("\n    ", " ")
+    assert all(f"{i}  {name}" in listed for i, name in enumerate(names, 1))
+    assert set(result.column_labels) == set(regions)
+    legend = ax.get_legend()
+    assert [text.get_text().replace("\n", " ") for text in legend.get_texts()] == [title, "Region"]
+    below = legend.get_window_extent(renderer)
+    assert below.y1 <= ax.xaxis.label.get_window_extent(renderer).y0
+    for text in key:
+        box = text.get_window_extent(renderer)
+        assert box.y0 >= -1 and box.x1 <= fig.bbox.x1 + 1 and box.y1 <= below.y0
+    # Asked for names, the map names its points, crowded or not.
+    named = correspondence.plot(result, numbered=False)
+    assert named.axes[0].texts[0].get_text().startswith("Brand 01")

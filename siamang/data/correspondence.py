@@ -584,6 +584,7 @@ def plot(
     title: str | None = None,
     figsize: tuple[float, float] | None = None,
     ax: Any = None,
+    numbered: bool | None = None,
 ) -> Any:
     """The symmetric map of ``result`` on two of its dimensions (default the
     first two): rows as blue circles, columns as orange triangles, each
@@ -591,7 +592,13 @@ def plot(
     every spot beside it is taken, a little further out with a line back to it.
     The axes keep one scale (a unit is as long across as up), cross at the
     centre (the average profile) and say how much of the inertia each carries.
-    A table of one dimension is drawn on a line. Returns the matplotlib Figure.
+    A table of one dimension is drawn on a line.
+
+    A map too crowded for its names to lie apart (``numbered=None``, the
+    default: when two names would overlap; ``True``: always) numbers its
+    points instead — rows 1, 2, …, then the columns — and lists the numbers
+    with the names under the map, the figure growing taller for the list.
+    Returns the matplotlib Figure.
     """
 
     from matplotlib.figure import Figure
@@ -654,12 +661,12 @@ def plot(
     for side in ax.spines.values():
         side.set_color(_RULE)
     ax.grid(False)
-    ax.legend(
+    legend = ax.legend(
         handles=[
             Line2D([], [], marker="o", linestyle="", color=ROW_COLOUR, markersize=7,
-                   label=_short(result.row_title, 40)),
+                   label=textwrap.fill(str(result.row_title), 40)),
             Line2D([], [], marker="^", linestyle="", color=COLUMN_COLOUR, markersize=8,
-                   label=_short(result.column_title, 40)),
+                   label=textwrap.fill(str(result.column_title), 40)),
         ],
         loc="upper left", bbox_to_anchor=(0.0, -0.1), ncol=2, frameon=False, fontsize=size,
     )  # fmt: skip
@@ -678,13 +685,119 @@ def plot(
         lines.append(f"weighted by '{result.weight}'")
     ax.set_title("\n".join(lines), fontsize=12, color=_INK, loc="left", pad=10)
     fig.tight_layout()
+    _under_the_axis(fig, ax, legend)
     # A long label wraps onto a second line (then ends in an ellipsis), the
     # narrower the figure the shorter the line: less room, narrower labels.
     limit = max(int(width * 3.0), 16)
-    labels = [_lines(name, limit) for name in [*result.row_labels, *result.column_labels]]
+    names = [*result.row_labels, *result.column_labels]
     masses = np.concatenate([solution.row_masses, solution.column_masses])
-    _place_labels(ax, points, labels, masses, size)
+    if not numbered:
+        _place_labels(ax, points, [_lines(name, limit) for name in names], masses, size)
+        if numbered is False or not _crowded(ax):
+            return fig
+        for text in list(ax.texts):
+            text.remove()
+    _key(fig, result, size)
+    numbers = [str(number) for number in range(1, count + 1)]
+    # A number is small: it may go further out, near another point, with a
+    # line back, rather than on another number.
+    _place_labels(ax, points, numbers, masses, max(size - 1, 7), clash=25.0)
     return fig
+
+
+def _under_the_axis(fig: Any, ax: Any, legend: Any) -> None:
+    """Hang the legend under the x axis's numbers and title, a fixed distance
+    in inches below the plot: at a tenth of the plot's height (as it was) it
+    sat on the axis title of a short map."""
+    from matplotlib.transforms import ScaledTranslation
+
+    if not hasattr(fig.canvas, "get_renderer"):
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+        FigureCanvasAgg(fig)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    drop = ax.get_window_extent(renderer).y0 - ax.xaxis.get_tightbbox(renderer).y0
+    shift = ScaledTranslation(0, -(drop / fig.dpi + 4 / 72), fig.dpi_scale_trans)
+    legend.set_bbox_to_anchor((0.0, 0.0), transform=ax.transAxes + shift)
+    fig.tight_layout()
+
+
+def _crowded(ax: Any) -> bool:
+    """Whether two labels on ``ax`` overlap by more than a point across and up
+    (the texts, not their leader lines)."""
+    from matplotlib.text import Text
+
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    boxes = np.array([Text.get_window_extent(text, renderer).extents for text in ax.texts])
+    if len(boxes) < 2:
+        return False
+    across = np.minimum(boxes[:, None, 2], boxes[None, :, 2]) - np.maximum(
+        boxes[:, None, 0], boxes[None, :, 0]
+    )
+    up = np.minimum(boxes[:, None, 3], boxes[None, :, 3]) - np.maximum(
+        boxes[:, None, 1], boxes[None, :, 1]
+    )
+    point = fig.dpi / 72
+    clash = (across > point) & (up > point)
+    np.fill_diagonal(clash, False)
+    return bool(clash.any())
+
+
+def _key(fig: Any, result: PerceptualMap, size: float) -> None:
+    """The numbered points' names, under the legend: each variable's under its
+    title, in as many columns as the figure's width holds, the figure growing
+    taller by the list's height and the map keeping its own."""
+
+    width = fig.get_figwidth() * 72
+    rows, columns = list(result.row_labels), list(result.column_labels)
+    entries = [f"{i}  {name}" for i, name in enumerate([*rows, *columns], 1)]
+    column_pt = min(max(len(entry) for entry in entries) * size * 0.6 + 16, width - 20)
+    if len(entries) > 10:  # a long list in two columns at least, names wrapped
+        column_pt = min(column_pt, (width - 20) / 2)
+    count = max(1, int((width - 20) // column_pt))
+    chars = max(int(column_pt / (size * 0.6)), 12)
+    blocks = []
+    for title, part in (
+        (result.row_title, entries[: len(rows)]),
+        (result.column_title, entries[len(rows) :]),
+    ):
+        per = -(-len(part) // count)
+        cells = [
+            "\n".join(
+                textwrap.fill(entry, chars, subsequent_indent="    ")
+                for entry in part[k * per : (k + 1) * per]
+            )
+            for k in range(count)
+        ]
+        blocks.append((str(title), cells))
+    line = size * 1.3
+    heights = [
+        max(cell.count("\n") + 1 for cell in cells if cell) * line + line * 1.6
+        for _, cells in blocks
+    ]
+    needed = sum(heights) + 8
+    old = fig.get_figheight() * 72
+    fig.set_figheight((old + needed) / 72)
+    total = fig.get_figheight() * 72
+    fig.tight_layout(rect=(0, needed / total, 1, 1))
+    y = needed - 4
+    for (title, cells), height in zip(blocks, heights, strict=True):
+        fig.text(0.012, y / total, title, fontsize=size, color=_INK, weight="bold", va="top")
+        for k, cell in enumerate(cells):
+            fig.text(
+                (10 + k * column_pt) / width,
+                (y - line * 1.4) / total,
+                cell,
+                fontsize=size - 0.5,
+                color=_INK,
+                va="top",
+                linespacing=1.3,
+            )
+        y -= height
+    fig.canvas.draw()
 
 
 def _lines(text: str, width: int, most: int = 2) -> str:
@@ -694,11 +807,6 @@ def _lines(text: str, width: int, most: int = 2) -> str:
         lines = lines[:most]
         lines[-1] = lines[-1][: max(width - 1, 1)].rstrip() + "…"
     return "\n".join(lines)
-
-
-def _short(text: str, limit: int) -> str:
-    text = str(text)
-    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
 #: Where a label may sit around its point, in order of preference — right,
@@ -719,7 +827,12 @@ _OUTSIDE = 4.0
 
 
 def _place_labels(
-    ax: Any, points: np.ndarray, labels: list[str], masses: np.ndarray, size: float
+    ax: Any,
+    points: np.ndarray,
+    labels: list[str],
+    masses: np.ndarray,
+    size: float,
+    clash: float = 1.0,
 ) -> None:
     """Label each point where its text overlaps no other label and no point,
     stays inside the axes, and lies nearer its own point than any other.
@@ -786,7 +899,7 @@ def _place_labels(
     def scores(i: int, placed: np.ndarray) -> np.ndarray:
         boxes = candidates[i]
         h = sizes[i][1]
-        penalty = _overlaps(boxes, placed) + _overlaps(boxes, np.delete(halos, i, axis=0))
+        penalty = clash * _overlaps(boxes, placed) + _overlaps(boxes, np.delete(halos, i, axis=0))
         penalty += (
             np.clip(area.x0 - boxes[:, 0], 0, None) + np.clip(boxes[:, 2] - area.x1, 0, None)
             + np.clip(area.y0 - boxes[:, 1], 0, None) + np.clip(boxes[:, 3] - area.y1, 0, None)
