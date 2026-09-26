@@ -32,7 +32,7 @@ from typing import Any
 
 import numpy as np
 
-__all__ = ["Interval", "mean_interval", "proportion_interval", "t_interval"]
+__all__ = ["Interval", "Proportion", "mean_interval", "proportion_interval", "t_interval"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,3 +164,28 @@ def proportion_interval(successes: Any, n: Any, *, confidence: float = 0.95) -> 
 
 def _one(n: int) -> str:
     return "no answers" if n == 0 else "one answer has no interval"
+
+
+class Proportion(dict):
+    """What ``DataAnalysis.proportion_ci`` returns: the share, its interval and
+    base as the keys a flow's Stat has always held — so a report and a preview
+    print exactly what they printed — and, as attributes, what the share is of,
+    which a chart titles itself with: ``variable`` and ``value`` as asked,
+    their labels, and the ``confidence`` of the interval."""
+
+    def __init__(
+        self,
+        items: dict[str, Any],
+        *,
+        variable: str,
+        value: Any,
+        confidence: float,
+        variable_label: str | None = None,
+        value_label: str | None = None,
+    ) -> None:
+        super().__init__(items)
+        self.variable = variable
+        self.value = value
+        self.confidence = confidence
+        self.variable_label = variable_label or variable
+        self.value_label = value_label if value_label is not None else str(value)

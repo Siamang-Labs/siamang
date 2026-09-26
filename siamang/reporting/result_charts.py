@@ -1169,15 +1169,22 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
     weighted = "weight" in result and not str(result["weight"]).startswith("unweighted")
     base = float(result["n"])
     base_text = f"effective base {base:.1f}" if weighted else f"base {int(round(base))} respondents"
+    # What the share is of and the interval's level: a 90 % interval is not
+    # drawn as a 95 % one (proportion_ci's result says both; a bare dict not).
+    level = getattr(result, "confidence", None)
+    interval = f"{_confidence(level)} confidence interval" if level else "confidence interval"
     ax.text(
         50,
         -0.55,
-        f"confidence interval {low:.1f} – {high:.1f} %, {base_text}",
+        f"{interval} {low:.1f} – {high:.1f} %, {base_text}",
         ha="center",
         va="center",
         fontsize=11,
         color=_MUTED,
     )
+    variable = getattr(result, "variable_label", None)
+    if variable:
+        return f"{variable}: {getattr(result, 'value_label', '')}".rstrip(": ")
     return "Proportion"
 
 
