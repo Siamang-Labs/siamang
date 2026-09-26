@@ -1,0 +1,90 @@
+type: analyze.correspondence
+category: analyze
+title: Perceptual map
+description: Correspondence analysis of a crosstab, or of the attributes ticked for each brand — the dimensions and their share of the inertia, and where each row and column lies on the map, with contributions and quality.
+inputs:
+  data: SurveyData
+outputs:
+  table: Table
+  rows: Table
+  columns: Table
+  stat: Stat
+params:
+  layout:
+    kind: enum
+    values:
+    - crosstab
+    - attributes
+    default: crosstab
+    label: Table
+    help: crosstab counts the respondents in each pair of answers of Rows and Columns (a multiple-choice variable counts each answer chosen). attributes counts, for each answer of Rows — the brand, in data with a row per respondent and brand — the respondents who ticked each of the Attributes.
+  row:
+    kind: variable
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Rows
+    help: The points of one kind on the map — brands, regions, segments. A respondent whose answer is blank or one of the codebook's missing codes is left out.
+  column:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: Columns
+    help: 'Crosstab: the points of the other kind — the answers crossed with Rows.'
+  attributes:
+    kind: variables
+    label: Attributes
+    help: 'Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank is no tick.'
+  yes_codes:
+    kind: json
+    label: Counts as yes (attributes)
+    help: The code, or a list of codes, that counts as ticking an attribute. Empty works for 0/1 variables.
+  dimensions:
+    kind: int
+    default: 2
+    minimum: 1
+    maximum: 10
+    label: Dimensions in the tables
+    help: How many dimensions the rows and columns tables give coordinates, contributions and cos² for; the map shows the first two, and the inertia table lists them all.
+subtitle:
+- when: layout=attributes
+  text: '{row} × {attributes}'
+- '{row} × {column}'
+checks:
+- when: layout=crosstab
+  require: column
+  message: A crosstab map crosses Rows with Columns — choose the Columns variable.
+- when: layout=attributes
+  require: attributes
+  message: An attribute map counts the Attributes ticked for each answer of Rows — choose two or more attribute variables.
+- when: layout=crosstab & yes_codes
+  severity: warning
+  message: Counts as yes is read only with Table = attributes — set it, or clear Counts as yes.
+imports:
+- from siamang.data import correspondence
+template:
+- |
+  # On weighted data a cell is the sum of its respondents' weights; the
+  # chi-square test of a crosstab counts respondents, and says so.
+  _map = correspondence.analyze(
+      {in.data},
+      {row!r},
+# A crosstab reads Columns, an attribute map its Attributes and what counts
+# as a tick: the fragments continue the call above.
+- when: layout=crosstab
+  code: |2
+        column={column!r},
+- when: layout=attributes
+  code: |2
+        attributes={attributes!r},
+        yes={yes_codes!r},
+- |2
+      dimensions={dimensions!r},
+  )
+  {out.table} = _map.table
+  {out.rows} = _map.rows
+  {out.columns} = _map.columns
+  {out.stat} = _map.stats
+preview: table

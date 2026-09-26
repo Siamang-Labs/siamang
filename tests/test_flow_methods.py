@@ -158,3 +158,85 @@ def test_key_drivers_node_checked_generated_and_run_weighted(questionnaire_doc, 
     error = next(run for run in failed.runs if run.state == "error")
     assert error.node == "kd" and "Gender is nominal with 3 answers" in error.error
     assert "Explode multiple choice" in error.error
+
+
+# ─── perceptual map ──────────────────────────────────────────────────────────
+
+
+def test_perceptual_map_node_crosstab_and_attributes(questionnaire_doc, survey, tmp_path):
+    spec = default_registry().get("analyze.correspondence")
+    assert spec.title == "Perceptual map"
+    assert list(spec.outputs) == ["table", "rows", "columns", "stat"]
+    assert not spec.reads("attributes", {"layout": "crosstab"})
+    assert spec.reads("yes_codes", {"layout": "attributes"})
+    nodes = [
+        ("sim", "source.simulated", {"n": 400, "seed": 21}),
+        ("expl", "prepare.explode", {"variable": "aware"}),
+        ("cell", "prepare.cell_weights", {"variable": "gender", "targets": {"1": 0.5, "2": 0.5}}),
+        ("apply", "prepare.apply_weight", {}),
+        ("xt", "analyze.correspondence", {"row": "region", "column": "gender"}),
+        (
+            "at",
+            "analyze.correspondence",
+            {"layout": "attributes", "row": "region", "attributes": ["aware_1", "aware_2",
+                                                                     "aware_3"]},
+        ),
+        ("sec", "output.report_section", {"heading": "Maps"}),
+        ("save", "output.save_report", {"title": "Maps", "path": "outputs/maps.md"}),
+    ]  # fmt: skip
+    edges = [
+        ("sim", "data", "expl", "data"),
+        ("expl", "data", "cell", "data"),
+        ("cell", "data", "apply", "data"),
+        ("apply", "data", "xt", "data"),
+        ("apply", "data", "at", "data"),
+        ("xt", "table", "sec", "items"),
+        ("xt", "rows", "sec", "items"),
+        ("at", "columns", "sec", "items"),
+        ("at", "stat", "sec", "items"),
+        ("sec", "report", "save", "sections"),
+    ]
+    flow = _flow(nodes, edges)
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    code = generate_flow(flow, questionnaire_doc)
+    assert "from siamang.data import correspondence" in code
+    assert 'column="gender"' in code and "yes=None" in code and "dimensions=2" in code
+    assert "# ── Perceptual map: region × aware_1, aware_2, aware_3 " in code
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    stat = result.output("xt", "stat")
+    assert stat["Map"] == "Region × Gender" and stat["Weight"] == "weight"
+    assert stat["Chi-square counts"].startswith("respondents (unweighted)")
+    attributes = result.output("at", "stat")
+    assert attributes["Map"] == "Region × Attributes" and attributes["Counts as yes"] == "1 = Yes"
+    assert list(result.output("at", "columns").to_frame()["Attributes"]) == [
+        "Brands heard of (unaided): Acme",
+        "Brands heard of (unaided): Globex",
+        "Brands heard of (unaided): Initech",
+    ]
+    report = (tmp_path / "outputs" / "maps.md").read_text("utf-8")
+    assert "Principal inertia" in report and "Contribution 1 %" in report
+    assert json.dumps(stat) and json.dumps(attributes)
+    # The check: a crosstab needs Columns, attributes two of them; yes codes
+    # are read with attributes only.
+    flow["nodes"][4]["params"].pop("column")
+    flow["nodes"][5]["params"]["attributes"] = ["aware_1"]
+    flow["nodes"][4]["params"]["yes_codes"] = 1
+    issues = sorted(
+        (i.severity, i.message) for i in check_flow(flow, questionnaire=questionnaire_doc)
+    )
+    assert issues == [
+        (
+            "error",
+            "at: A perceptual map of attributes needs two or more attribute variables; 1 was"
+            " given.",
+        ),
+        ("error", "xt: A crosstab map crosses Rows with Columns — choose the Columns variable."),
+        (
+            "warning",
+            "xt: Counts as yes is read only with Table = attributes — set it, or clear Counts as"
+            " yes.",
+        ),
+    ]
