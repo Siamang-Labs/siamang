@@ -27,6 +27,13 @@ short path; the linked pages have every option and caveat.
   [SPSS / Stata / R](#get-labeled-data-into-spss-stata-or-r) ·
   [weighted table](#a-weighted-table-with-significance-tests) ·
   [banner table](#a-banner-table-for-a-client-deck) ·
+  [correlations](#pearson-or-kendall-correlations-and-a-correlation-matrix) ·
+  [Welch's t-test](#compare-two-groups-with-welchs-t-test) ·
+  [ANOVA with post-hoc](#an-anova-with-post-hoc-comparisons) ·
+  [before and after](#compare-before-and-after-in-the-same-respondents) ·
+  [factor analysis](#exploratory-factor-analysis-with-scores) ·
+  [MaxDiff scores in a crosstab](#maxdiff-scores-per-respondent-in-a-crosstab) ·
+  [export for R](#export-the-cleaned-data-for-r) ·
   [clean once, reuse](#clean-once-and-reuse-the-clean-data-in-several-flows) ·
   [rename or delete a flow](#rename-duplicate-or-delete-a-flow) ·
   [analyze an uploaded file](#analyze-a-file-you-uploaded) ·
@@ -356,7 +363,9 @@ page:
   same way (and **Builder → Test → Simulate** downloads one for simulated
   data).
 - R: read the `.sav` with `haven::read_sav()` (labels kept), or export
-  **Parquet** for a type-faithful table.
+  **Parquet** for a type-faithful table. For the data *after* your flow's
+  cleaning and weighting, with a script that labels it for you, see
+  [Export the cleaned data for R](#export-the-cleaned-data-for-r).
 
 Exports contain every row of the table — all environments, partial
 interviews and screen-outs; filter on `survey_id`, `partial` and `__status`.
@@ -378,16 +387,19 @@ works too: **Rows** `satisfaction`, **Columns** `region`, **Percentages**
 `col`. Its cells are sums of weights, and its chi-square test uses the
 effective base.
 
-> **Note.** After **Apply weight**, **Frequencies**, **Crosstab**, **Group
-> means** (not N or the test), **Banner table**, **Net Promoter Score**,
-> **Regression**, **TURF**, **MaxDiff**, **Conjoint**, **Share of
-> preference**, **Principal components**, **Scale reliability**, the **Bar
-> chart**, a **Heatmap** with **By**, and **Proportion CI** (with
-> **Weighted** ticked) use the weight.
-> **Compare groups**, **Correlation**, **Cluster (k-means)**, **Box plot**,
-> **Scatter plot**, a **Heatmap** without **By**, **Response quality** and
-> **Code open answers** stay unweighted and say so in their output
-> ("unweighted (the weight '…' is not applied)"). See the linked page.
+> **Note.** After **Apply weight**, **Frequencies**, **Crosstab** (not
+> Fisher's exact test), **Group means** (not N or the test),
+> **Descriptive statistics**, **Correlation** and **Correlation matrix** with
+> Pearson, **Banner table**, **Net Promoter Score**, **Regression**,
+> **TURF**, **MaxDiff**, **Conjoint**, **Share of preference**, **Principal
+> components**, **Scale reliability**, the **Bar chart**, a **Heatmap** with
+> **By**, and **Proportion CI** (with **Weighted** ticked) use the weight.
+> **Compare groups**, **Correlation** and **Correlation matrix** with
+> Spearman or Kendall, **t-test**, **Paired tests**, **Factor analysis**,
+> **Cluster (k-means)**, **Box plot**, **Scatter plot**, a **Heatmap**
+> without **By**, **Response quality**, **Code open answers** and **Data
+> check** stay unweighted and say so in their output ("unweighted (the
+> weight '…' is not applied)"). See the linked page.
 
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
@@ -396,6 +408,166 @@ effective base.
 Source → cleaning → **Banner table**: questions down (**Questions**), breakdowns
 across (**Breakdowns**), **Significance letters** on. Connect it to a
 **Report section**; download the report as HTML. → [[Node Reference|Studio-Node-Reference]]
+
+### Pearson or Kendall correlations, and a correlation matrix
+
+One pair — in a flow, after your cleaning steps:
+
+1. Add **Correlation** (Analyze): **X** `age`, **Y** `spend_month`,
+   **Method** `pearson — Pearson r`.
+2. **Run to here**. The statistics give `r`, `p_value`, `n` and the 95 %
+   interval `lower` – `upper`.
+
+For two rating scales, choose **Method** `kendall — Kendall tau-b` (or leave
+the default, Spearman): rank correlations suit answers on a 1–5 scale, and
+tau-b allows for their many ties. Pearson and Kendall leave the codebook's
+missing codes out and say how many (`missing_codes`); the default Spearman
+counts them as answers unless **Missing values** comes first.
+
+Every pair of several variables:
+
+1. Add **Correlation matrix**: tick the **Variables** (`trust_1` …
+   `trust_6`), **Method** `spearman`, **Missing answers** `pairwise`.
+2. With many pairs, set **p adjustment** to `holm` (or `fdr_bh`): the stars
+   then follow the adjusted p, and the footer says "Holm, over 15 pairs".
+3. Connect its `table` to a **Report section**. The **Layout** `matrix`
+   prints the lower triangle with `*` p < .05, `**` p < .01, `***` p < .001;
+   `pairs` gives one row per pair with p and N — the one to read when N
+   differs from pair to pair (the footer's **N** is then a range, `112–194`).
+
+After **Apply weight** a Pearson correlation is weighted, with p on Kish's
+effective base; Spearman and Kendall stay unweighted and say so.
+→ [Correlation](Studio-Node-Reference#correlation) ·
+[Correlation matrix](Studio-Node-Reference#correlation-matrix)
+
+### Compare two groups with Welch's t-test
+
+1. Add **t-test** (Analyze). **Design** is `independent — two groups`.
+2. **Variable** `satisfaction_score`, **Groups** `gender`.
+3. When **Groups** has more than two answers, pick the two in **Group A**
+   (`1 — Male`) and **Group B** (`2 — Female`); with exactly two, leave both
+   empty.
+4. Leave **Variances** at `welch — Welch's t` — it does not assume the two
+   groups vary equally. `student` pools the variances.
+5. **Run to here**. The table gives each group's N, mean, SD and SE; the
+   footer gives t, df, p, the **Mean difference** (Male − Female) with its
+   **95% CI**, **Cohen's d** and **Hedges' g**.
+
+The t-test is unweighted and says so on weighted data. For weighted means
+beside the same test, use **Group means** with **Test** `welch` on a grouping
+with two values (a filter or a recode can make one). Without Group A and
+Group B on a three-group variable the check warns ("Gender has 3 answers (1 =
+Male, 2 = Female, 3 = Other); a t-test compares two — name them in Group A and
+Group B, unless the data this node reads holds only two of them.") and, unless
+a filter upstream leaves two, the run stops with "Gender has 3 groups (1 =
+Male, 2 = Female, 3 = Other); a t-test compares two — name them in Group A and
+Group B."
+→ [t-test](Studio-Node-Reference#t-test)
+
+### An ANOVA with post-hoc comparisons
+
+1. Add **Group means**: **Variable** `spend_month`, **By** `region`.
+2. **Test** `anova — one-way ANOVA`, **Post-hoc** `tukey — Tukey HSD`.
+3. **Run to here**. The footer gives F, df, p and η², and "Post-hoc = Tukey
+   HSD: 1 of 3 pairs differ at p < 0.05"; the table **Post-hoc: Tukey HSD**
+   under the means lists every pair of regions with the difference, its 95 %
+   interval, q and p.
+
+When the groups' spreads differ, use `welch_anova` with `games_howell`. For
+ratings compared as ranks, `kruskal` with `dunn`, whose **Dunn p adjustment**
+is `holm` (or `bonferroni`). A post-hoc test that does not follow its test is
+refused as you choose it: "Tukey's HSD follows a one-way ANOVA — set Test to
+anova, or Post-hoc to none." Connect the node's `table` to a **Report
+section**: the post-hoc table goes into the report with it. Means, SDs and
+medians are weighted after **Apply weight**; the test and the pairs are not.
+→ [Group means](Studio-Node-Reference#group-means)
+
+### Compare before and after in the same respondents
+
+When the same people answered twice — a rating before and after a message,
+the same scale about two brands — compare each respondent with themselves:
+
+- **Means:** **t-test** with **Design** `paired — two variables, same
+  people`, **Variable** `rating_before`, **Second measurement**
+  `rating_after`. The footer gives t, df, p, the mean difference (before −
+  after) with its CI, **Cohen's d (d_z)** and the incomplete pairs left out.
+- **Ratings as ranks:** **Paired tests**, tick **Variables** `rating_before`
+  then `rating_after` (the order you tick them is the order compared: the
+  difference is the first minus the second). **Test** `auto` runs the Wilcoxon
+  signed-rank test: W+, W-, Z, p and the rank-biserial r.
+- **Yes/no answers:** **Paired tests** with **Test** `mcnemar` and **Counts
+  as yes (McNemar)** ticked on the yes answer (tick 4 and 5 for a top-two
+  box): the % yes of each, the change in points, and p.
+- **Three or more** (three concepts rated by everyone): **Paired tests** with
+  three **Variables** runs Friedman's test; its `pairs` output has a Wilcoxon
+  test for every pair, Holm-adjusted.
+
+A respondent who missed either question is left out of both, and the
+codebook's missing codes count as missing; the footer says how many. These
+tests are unweighted and say so.
+→ [Paired tests](Studio-Node-Reference#paired-tests)
+
+### Exploratory factor analysis with scores
+
+1. Add **Factor analysis**: tick the **Items** of your battery (three or
+   more, rated on the same scale).
+2. Leave **Factors** empty and set **Number of factors by** to `parallel`
+   (or type the number you expect in **Factors**).
+3. **Rotation** `promax` when the factors may correlate (they usually do in
+   attitudes), `varimax` when they should not. Tick **Sort items by factor**
+   and set **Hide loadings below** to `0.3` so the structure reads at a
+   glance.
+4. **Run to here**. The preview shows the loadings (with each item's
+   communality and MSA), the **variance** explained and the factor
+   **correlations**; the statistics give **KMO** (below 0.5 comes with a
+   warning), Bartlett's test and **Variance explained %**.
+5. Tick **Add factor scores**: `factor_1`, `factor_2`, … are added to the
+   data. Wire the node's `data` output on — a **Group means** of `factor_1` by
+   `region`, a **Regression** on the scores, an **Export file**.
+
+Before averaging a factor's items into a scale, run **Scale reliability** on
+them and build it with **Index / scale**. Respondents missing any item are
+left out (their scores are blank); the analysis is unweighted and says so.
+→ [Factor analysis](Studio-Node-Reference#factor-analysis)
+
+### MaxDiff scores per respondent in a crosstab
+
+The **MaxDiff** node gives one score per item for everyone together. To break
+preferences down by segment, give each respondent their own scores first:
+
+1. Add **MaxDiff scores** (Prepare) after the source and pick the question in
+   **MaxDiff question**. It adds one variable per item — `q_md_score_1`, … —
+   labeled "MaxDiff score: *item*": best minus worst over the times that
+   respondent saw the item, from −1 to 1, blank if they never saw it.
+2. Mean score by segment: **Group means**, **Variable** `q_md_score_1`,
+   **By** `region` (weighted after **Apply weight**).
+3. As a crosstab: add **Bands** — **Variable** `q_md_score_1`,
+   **Boundaries** `[-1, 0, 1]`, tick **Bands include their upper boundary**,
+   **Band labels** `["Not ahead", "Ahead"]`, **New variable** `price_ahead`
+   — then **Crosstab**, **Rows** `price_ahead`, **Columns** `region`. "Ahead"
+   are the respondents who picked the item as best more often than as worst.
+
+Respondents who never saw the item are blank, so they are in neither band.
+→ [MaxDiff scores](Studio-Node-Reference#maxdiff-scores) ·
+[[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
+
+### Export the cleaned data for R
+
+1. End your cleaning flow with **Export file**, **Path** `outputs/clean.R`.
+2. **Save changes** and **▶ Run** the flow.
+3. The run writes three files, on the run's card and under **Files** as
+   `outputs/<flow>/clean.R`, `clean.csv` and `clean.dictionary.json`.
+   Download all three into one folder.
+4. In R (with the `jsonlite` package installed): `source("clean.R")`. The
+   data frame `survey_data` has the codebook's missing codes as `NA`,
+   labelled codes as factors and each variable's codebook label as the
+   column's `label` attribute.
+
+The export carries what the flow made — recodes, bands, factor scores, the
+weight column. `outputs/codebook.json` writes the codebook alone, and
+`outputs/clean.sav` a labeled SPSS file that R's `haven` reads.
+→ [Export file](Studio-Node-Reference#export-file) ·
+[[Data Exports|Studio-Data-Exports]]
 
 ### Clean once and reuse the clean data in several flows
 

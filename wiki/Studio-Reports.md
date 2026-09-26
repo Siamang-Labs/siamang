@@ -30,7 +30,11 @@ Two files come out of one report, and they divide the work:
   `fig_N.png` file beside it;
 - the **`.html`** (on by default: **Also save HTML**) carries the **look** —
   the report's stylesheet, page size, typefaces and every chart embedded in
-  the one file. Widths, alignment and page breaks exist only here.
+  the one file. Widths, alignment and page breaks exist only here. Its tables
+  print the same numbers as the `.md`: a statistics table as it rounds them,
+  and a table such as a **Regression**'s coefficients, a **Principal
+  components** loading or a **Cluster** centroid with six significant digits
+  (`62.263`, `6.15462e-38`).
 
 Three rules make sure a report arrives:
 
@@ -106,7 +110,7 @@ Each section card:
 | **⋮** | the node id, **Move section up**, **Move section down**, **Show on the canvas**, **Delete section** |
 | text box | "Introductory text (Markdown) — what the reader should take from this section" |
 | **Outputs** | the section's tables, charts and statistics, one per row ("No tables or charts yet." when empty) |
-| **+ Add output** | a dropdown of every table, chart and statistic in the flow not yet in this section, as `node · Title (Type)`; "Every table and chart of the flow is already in this section." when there are none left |
+| **+ Add output** | a dropdown of every table, chart and statistic in the flow not yet in this section, as `node · Title (Type)`; a node with several tables names each by its output — `fa · Factor analysis · variance (Table)`, `fri · Paired tests · pairs (Table)`. "Every table and chart of the flow is already in this section." when there are none left |
 | **Section note** | "Caveats, base sizes, weighting" |
 
 Sections that exist on the canvas but are not wired into **Save report** are
@@ -122,10 +126,25 @@ Each output is one row:
 |---|---|
 | grip (left) | drag to reorder ("Drag to reorder") |
 | type | **Table**, **Chart** or **Stat** |
-| name | the node's kind (**Banner table**); the node id is added when two rows are the same kind |
+| name | the node's kind (**Banner table**); the node id is added when two rows are the same kind, and the output's name (`variance`, `pairs`) when the node has several tables — both (`pca_2.loadings`) when two rows are the same kind and the same output |
 | caption | "Table caption", "Figure caption", or for a statistic "Label before the values" |
 | size | the width it is set to — see [Size and placement](#size-and-placement); a statistic shows "one line" instead |
-| **⋮** | the node id, **Move up**, **Move down**, **Show on the canvas**, **Remove from section** |
+| **⋮** | the node id (with the output, `fa.variance`, for a node with several tables, and whenever two rows of the section would otherwise read the same — a Crosstab's table and its statistic are `xtab.table` and `xtab.stat`; the row's caption, size and **⋮** controls are named the same way for screen readers), **Move up**, **Move down**, **Show on the canvas**, **Remove from section** |
+
+A node's tables are separate rows: a factor analysis's loadings, variance
+and factor correlations, a paired test's main table and its pairs. **Remove
+from section** takes out that one and leaves the others. Each output has its
+own caption and size: they are stored under `fa.variance` rather than `fa`
+once a section holds more than one output of the node, and adding the second
+output — here or by wiring it into the section on the canvas — moves the first
+one's caption and size to its own key, so the new one starts empty. Taking one
+of two out (here or by deleting its wire) moves the other's back under the
+node's key; clearing a caption or a size leaves that output without one, even
+where the node still has one; and deleting a node takes its captions and
+sizes with it, so a node added later under the same id starts without them.
+A section saved before, with one caption for the node, shows it on each of
+the node's outputs until you give one its own — as the report prints it. The post-hoc pairs of a **Group means** are
+not a separate output: they print under its means table.
 
 After a preview, each row also shows a small preview of that output. A
 statistic (**Stat**) is printed in the report as one line, `Caption: key =

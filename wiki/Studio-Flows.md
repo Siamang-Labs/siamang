@@ -309,8 +309,8 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
 │   Data file  │                          └──▶[Group means]        │ Node id                │
 │   Responses  │                                   ↓               │ Rows · Columns · …     │
 │   …          │                            [Report section]       │ Instant (SQL)          │
-│ › Prepare 14 │                                   ↓               │ Preview   ▶ Run to here│
-│ › Analyze 17 │                              [Save report]        │ Connections            │
+│ › Prepare 16 │                                   ↓               │ Preview   ▶ Run to here│
+│ › Analyze 23 │                              [Save report]        │ Connections            │
 │ › Visualize 4│                                                   │ Comments               │
 │ › Output   7 │   [+ − ⤢]                              minimap    │ Checks 0 errors · …    │
 └──────────────┴──────────────────────────────────────────────────┴────────────────────────┘
@@ -350,9 +350,14 @@ The inspector keeps its width (drag the divider) per browser.
 ### The palette
 
 Nodes grouped as **Sources**, **Prepare**, **Analyze**, **Visualize** and
-**Output**, each with a count. Only **Sources** is open at first; the groups
-you open stay open in this browser. The search box **Find node…** matches the
-title, the short name and the description, and opens every group with a match.
+**Output**, each with a count — 4, 16, 23, 4 and 7, 54 nodes in all. Only
+**Sources** is open at first; the groups you open stay open in this browser.
+The search box **Find node…** matches the title, the short name and the
+description, and also the labels of a node's parameters and the choices they
+offer — so "tukey" finds **Group means**, "wilcoxon" **Paired tests** and
+"kendall" **Correlation** and **Correlation matrix** — and opens every group
+with a match. The List view's node picker (`Ctrl/Cmd + K`) searches the same
+way.
 Each item shows the title and a short name (`crosstab`), plus `· platform` for
 nodes that need the project database. Hover an item for its description.
 
@@ -420,7 +425,9 @@ took (`120 ms`, `1.4 s`).
 
 **With a node selected:** its category and title with **Duplicate (⌘D)** and
 **Delete (Del)** icons, its description, its own problems, **Node id**, the
-parameters, the **Instant** counts where available, the **Preview** pane with
+parameters (only those its current choices read — see
+[Parameters and variable pickers](#parameters-and-variable-pickers)), the
+**Instant** counts where available, the **Preview** pane with
 **Run to here**, **Connections** (what feeds it and what it feeds, each with
 **remove**) and **Comments**.
 
@@ -442,18 +449,22 @@ Each parameter has a control that fits its kind (see
 [Reading this page](Studio-Node-Reference#reading-this-page) in the node
 reference). Variable parameters are dropdowns or checklists, shown as
 `name — label` and filtered to the scales the node accepts (the scales are
-the hint under the field). They offer, in this order:
+the hint under the field, unless the field has help text of its own, as a
+t-test's **Groups** does). They offer, in this order:
 
 - the questionnaire's codebook variables;
 - the variables that nodes **upstream** of this one make — a **Recode**,
-  **Derive**, **Index / scale**, **Explode multiple choice**, **Cluster
-  (k-means)**, **Code open answers** (when its **Theme variable** is filled
-  in), **Response quality**, **Speeders & partials** or weighting node
-  earlier in the flow. Their label says so:
+  **Derive**, **Index / scale**, **Bands**, **Explode multiple choice**,
+  **MaxDiff scores**, **Cluster (k-means)**, **Factor analysis** (with **Add
+  factor scores** ticked), **Code open answers** (when its **Theme variable**
+  is filled in), **Response quality**, **Speeders & partials** or weighting
+  node earlier in the flow. Their label says so:
   "*label* · made by *node*", or "made by *node*" when the node gives no
   label (`duration_s` reads "completion time · made by *node*", `partial`
-  "partial response · made by *node*"). A node further down the flow does not
-  offer them: they do not exist yet when it runs;
+  "partial response · made by *node*", `factor_1` "factor 1 score · made by
+  *node*", `q_md_score_3` "MaxDiff score: *item* · made by *node*"). A node
+  further down the flow does not offer them: they do not exist yet when it
+  runs;
 - the variables brought by a table the flow reads (see
   [Tables between flows](#tables-between-flows)), labeled "from table
   *table* · made by *flow*".
@@ -462,8 +473,31 @@ The same list is behind the **Filter rows** condition editor and the
 variable names listed under a formula. A stored name that is in none of
 these shows as "(not in codebook)". In **Filter rows** the value pickers show
 value labels — `Capital region (1)` — so you pick the meaning, not the code.
-Mappings, weighting targets and answer codes are typed as JSON codes
-(`{"1": 0.45, "2": 0.55}`).
+
+Where a node asks for an **answer** of a variable — a **t-test**'s **Group
+A** and **Group B** (answers of **Groups**), **Paired tests**' **Counts as
+yes (McNemar)**, **Proportion CI**'s **Answer code** — the field lists that
+variable's value labels (`1 — Male`), including the bands a **Bands** node
+made. **MaxDiff scores** lists the questionnaire's MaxDiff questions.
+Mappings, weighting targets and other codes are typed as JSON
+(`{"1": 0.45, "2": 0.55}`); an empty JSON box shows the example its help
+gives.
+
+**The inspector follows the node's choices.** A node that runs different
+tests shows only the fields the chosen one reads — a **t-test**'s **Groups**,
+**Group A**, **Group B** and **Variances** with **Design** `independent`, its
+**Second measurement** with `paired`, its **Test value** with `one_sample`. A
+field you filled in that the current choices do not read is named under the
+others, and kept for when they apply: "Not used with these choices, and kept
+for when they apply: **Groups** (with Design = independent)." — with a
+**Clear it** link (**Clear them** for several; focus then moves to the field
+whose choice hid them). A value kept that way is not checked and does not stop
+the flow — the run ignores it, and so does the engine's check at Save. A field
+a choice needs is
+marked required. A choice whose code is shorthand shows its name beside it
+(`welch_anova — Welch's ANOVA`). See
+[Reading this page](Studio-Node-Reference#reading-this-page) in the node
+reference for the full list.
 
 ### Checks
 
@@ -474,9 +508,26 @@ Studio checks a flow twice:
   variables that are neither in the codebook nor made by a node of the flow
   or brought by a table it reads — "variable: \"q99\" is neither in the
   codebook nor made by this flow or a table it reads." These light the nodes
-  and fill the **Checks** block. A variable of the wrong scale is a red error
-  here, as it is for the engine — for example 'y: "brands" is nominal; this
-  node expects ordinal/interval/ratio.'
+  and fill the **Checks** block. A codebook variable of the wrong scale is a
+  red error here, as it is for the engine — for example 'y: "brands" is
+  nominal; this node expects ordinal/interval/ratio.' One that a node of the
+  flow makes is a warning, as in the engine, and the flow still runs:
+  'row: "factor_1" is interval (as fa makes it); this node expects
+  nominal/ordinal.' Its scale is the one the nearest node upstream that makes
+  it gives it — a Recode of a derived variable is ratio like its source,
+  whatever order the nodes were added in — and the variable pickers offer it
+  with that scale. An experimental arm that an **Assign to a condition** script
+  writes counts as a codebook variable, nominal, even when the codebook does not
+  list it. A **Filter rows** condition edited by hand is checked as the engine
+  will write it: "condition: every part of a condition must be a comparison or
+  a variable (built with the editor)." and "condition: every variable in a
+  condition needs a name." are errors. So are choices of one node that do
+  not go together, in the node's own words (`PARAM_CONFLICT`): "Tukey's HSD
+  follows a one-way ANOVA — set Test to anova, or Post-hoc to none." is an
+  error — the node cannot run that way — and "Post-hoc is not run while
+  Significance test is off." a warning, naming a setting the node would
+  ignore. Each node's rules are listed in the
+  [[Node Reference|Studio-Node-Reference]].
 - **With the engine**, when you press **Check**, when you preview and when you
   Save. The banner says "**Engine check: valid.** The engine can generate and
   run this flow." — or lists each problem by node. The engine's verdict is the
@@ -519,6 +570,15 @@ generated script — and only that flow is affected:
   except those that read a table it writes (see [Run all](#run-all)).
 - **Export Python** has nothing to download for it.
 
+A flow the engine itself fails on is such a flow too — a fault of the engine,
+not of your flow, logged on the server for whoever maintains it. Its issue
+reads "The engine failed while checking this flow (*error*); it has no code and
+cannot run until the engine is fixed or the flow is changed", or "The engine
+could not write this flow's code: *reason*" when the code generator refuses
+something the check let through. It is stored like any flow with errors, so it
+does not stop a Save of the questionnaire or of the other flows; **Check** and
+a preview show the same issue.
+
 Fix it, press **Check**, and Save: the next Save gives it a script again.
 
 ### Saving, drafts and the edit lock
@@ -542,9 +602,9 @@ you take over; comments stay open." with **Take over**. See
 | Type | What flows through |
 |---|---|
 | **SurveyData** | the dataset *plus* its codebook and questionnaire — that is why tables come out labeled |
-| **Table** | a frequency table, crosstab, group-means table, banner, coefficient table… |
+| **Table** | a frequency table, crosstab, group-means table, banner, coefficient table, t-test, correlation matrix, factor loadings… |
 | **Chart** | a bar chart, box plot, heatmap or scatter plot |
-| **Stat** | a test result or a set of statistics |
+| **Stat** | a test result or a set of statistics (χ², Fisher, t, Kruskal-Wallis, Wilcoxon, a correlation, a confidence interval) |
 | **Report** | a report section or a whole report |
 | **Any** | accepted only by the **Live tile** input: anything can be shown on Live |
 
@@ -577,9 +637,9 @@ need not be), and the draft must pass the engine's check.
 | Node output | Preview |
 |---|---|
 | data (SurveyData) | "N rows × M columns" and the first 20 rows — handy for counting what each cleaning step removed |
-| table | the table (first 50 rows) |
+| table | the table (first 50 rows), with its statistics under it (a number below 0.0001 keeps four significant digits and its exponent there too, `p = 1.304e-09`). A node with several tables shows them all, the others each under its output's name: Friedman's **pairs** under **Paired tests**, the **variance** and **correlations** tables under **Factor analysis**'s loadings, the **variance** under **Principal components** (an empty one, such as the pairs of a two-variable test, is left out). The post-hoc pairs of **Group means** print under its means table |
 | chart | the rendered chart |
-| stat | the statistics as a list of names and values |
+| stat | the statistics as a list of names and values. A number below 0.0001 is written with four significant digits and its exponent, as the table's footer writes it — a p of `1.132e-24`, not 0. A number below 1 that four significant digits hold is written as it is — a **Paired tests** p of `0.002343`, a **Bartlett p** of `0.00227` — as the footer writes it too |
 | report | the report as rendered, with a **Rendered \| Markdown** switch in the Report view |
 | table write | what a run would do, without doing it: "Not written: a preview never writes project tables. A run writes 812 rows to table 'clean_responses' (if it exists: replace)." |
 | file, tile | "This node has no preview (its output is a file or a table write)." |

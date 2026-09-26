@@ -184,7 +184,10 @@ rules · N credits, R left", with **Close**.
 
 - While reading: "Reading the pipeline…".
 - Findings show a code, a sentence and often "Suggested: …", with the step
-  they concern. There is nothing to apply; change the flow yourself.
+  they concern. The assistant knows each node's choices, so a suggestion can
+  name the one to pick — a **Test** of `kruskal` with **Post-hoc** `dunn`, a
+  **Crosstab** with Fisher's exact test for thin cells. There is nothing to
+  apply; change the flow yourself.
 - "Nothing to flag across N steps.", or "This flow has no steps to read yet."
 - The flow must pass its structural check first. If it does not, the review
   is refused ("fix what the structural check reports first — …") and the panel

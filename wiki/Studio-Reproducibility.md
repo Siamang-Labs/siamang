@@ -232,13 +232,19 @@ which:
 - **From GitHub, at the last merged commit.** The same line at `4050de7`, the
   Siamang-Labs/siamang commit that has Studio's engine changes as far as
   upstream has merged them. Studio runs a newer engine than that, and the
-  README says what differs at that commit: "a Simulated data source or a
-  Share of preference node stops with an error, and after Apply weight the
+  README says what differs at that commit: "a Simulated data source, a Share
+  of preference, t-test, Correlation matrix, Paired tests, Factor analysis,
+  Descriptive statistics, Data check, MaxDiff scores or Bands node, every
+  Export file and Code open answers node, and a test chosen by hand
+  (Correlation with Pearson or Kendall, Group means with a Test other than
+  auto, Compare groups with Dunn's test, Crosstab with Fisher's exact test,
+  TURF's fixed portfolio) stop with an error, and after Apply weight the
   MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal
-  components and scale reliability are computed unweighted; `siamang preview`
-  shows that commit's survey runtime, not Studio's." If a script stops or its
-  numbers differ from Studio's, install a later siamang revision that has
-  those changes.
+  components, scale reliability and TURF's frequency are computed
+  unweighted; `siamang preview` shows that commit's survey runtime, not
+  Studio's." If a script stops or its numbers differ from Studio's, install
+  a later siamang revision that has those changes (the commit after `@` in
+  `environment/requirements.txt`).
 
 The PyPI release (siamang 0.6.0) is **not** enough in any case: it predates
 Studio's engine changes and cannot run these scripts, although its version
@@ -360,13 +366,15 @@ carry a shorter footer — see
 |---|---|
 | The questionnaire as a program (`validate`, `preview`) | **Yes**, with the engine pin described above (`preview` shows the pinned engine's survey runtime) |
 | Simulated data | **Yes** — the seed is in the flow; at a pin that lags behind Studio the node stops with an error |
-| Tables, tests and weights of a flow whose source is **Responses** | **Yes, for the same data file and engine** — at a pin that lags behind Studio, the weighted MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal components and scale reliability come out unweighted |
+| Tables, tests and weights of a flow whose source is **Responses** | **Yes, for the same data file and engine** — at a pin that lags behind Studio, the weighted MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal components, scale reliability and TURF's frequency come out unweighted |
+| **t-test**, **Correlation matrix**, **Paired tests**, **Factor analysis**, **Descriptive statistics**, **Data check**, **MaxDiff scores**, **Bands**, and a test chosen by hand (**Correlation** `pearson` / `kendall`, a **Group means** **Test** other than `auto`, **Compare groups** with Dunn's test, **Crosstab** with Fisher's test, TURF's `fixed` portfolio) | **Yes, with the engine Studio ran** — deterministic, including Fisher's Monte Carlo p and parallel analysis, which draw from fixed seeds. At a pin that lags behind Studio these nodes stop with an error |
+| **Export file** | **Yes** — the same files under `outputs/`, the R bundle (`.R`) and codebook (`.json`) included; at a pin that lags behind Studio every Export file node stops with an error |
 | **Environment** and **Only completed responses** on a Responses node | **Yes** in a bundle with data: each node reads a file already filtered its way. With a file you supply, it is read as it is |
 | Speeders (interview length) and other fieldwork columns | **Yes** in a bundle with data: `duration_s`, `started_at`, `captcha`, `tab_switches`, `hidden_seconds` and `pastes` are in the files |
 | URL parameters (`url_*`) | **Only those a flow names**; the others — and always the invitation token — are left out of the files |
 | A flow that reads a **Project table** written by another flow | **Yes, from a snapshot**: it reads `data/tables/<table>.csv`, the table as it was when the bundle was built, with its variables. Running the writing flow in the bundle does not refresh it |
 | **Write table** | **Skipped** (there is no project database) |
-| **Code open answers** | **Yes** — the codeframe is in the bundle; no model is called |
+| **Code open answers** | **Yes** — the codeframe is in the bundle; no model is called. At a pin that lags behind Studio the node stops with an error |
 | **Data file** nodes | **Yes** — a bundle with data carries the uploads the flows name; otherwise place the file at the path the node names |
 | Charts | **Visually yes**; byte-identical only with the same matplotlib version and fonts |
 | Reports (`.md`, `.html`) | **Yes**, in each flow's own look (the engine's defaults where a flow names none, as in Studio), with the bundle's provenance footer when the footer setting is on |
@@ -391,8 +399,10 @@ applies.
 "nothing is invented; passages marked [...] need you". Sections:
 **Participants** (with the response count when data is included),
 **Instrument**, **Measures**, **Procedure**, **Data handling and analysis**
-(one entry per flow, its steps in order; "This flow also fed a live dashboard
-during fieldwork." for live flows), **Pre-registration**, **Software**, and
+(one entry per flow, its steps in order, each analysis with the test it runs
+— the correlation method, the t-test's design, a post-hoc test and its
+adjustment, the factor extraction and rotation; "This flow also fed a live
+dashboard during fieldwork." for live flows), **Pre-registration**, **Software**, and
 the authors on record. The same text opens from History → a Save → **More ▾ →
 Methods** (**Rendered | Markdown**, **Copy Markdown**, **.md**). See
 [[History and Versions|Studio-History-and-Versions]].
