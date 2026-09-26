@@ -326,6 +326,11 @@ class FreqTable(SurveyTable):
         value_labels = _get_value_labels(self.data, col)
 
         rows = []
+        # A weighted N is shown to one decimal, but the percentages are of the
+        # sums of weights as they are (as a Crosstab's, a bar chart's): of the
+        # rounded sums, weights summing to 1 over 1000 respondents made every
+        # answer 20.0 %.
+        exact: list[float] = []
         for value in sorted(counts.index):
             n = int(counts[value])
             label = value_labels.get(value, str(value))
@@ -334,22 +339,32 @@ class FreqTable(SurveyTable):
                 row["N"] = round(float(weighted.get(value, 0.0)), 1)
                 row["Unweighted N"] = n
             rows.append(row)
+            exact.append(float(weighted.get(value, 0.0)) if weighted is not None else float(n))
 
         columns = ["Value", "Label", "N"] + (["Unweighted N"] if weighted is not None else [])
         if rows:
             df = pd.DataFrame(rows, columns=columns)
         else:
             df = pd.DataFrame(columns=columns)
+        sums = pd.Series(exact, index=df.index, dtype=float)
 
-        if self.sort == "freq" and not df.empty:
-            df = df.sort_values("N", ascending=False).reset_index(drop=True)
-        elif self.sort == "label" and not df.empty:
-            df = df.sort_values("Label").reset_index(drop=True)
+        if self.sort in ("freq", "label") and not df.empty:
+            if self.sort == "label":
+                order = df.sort_values("Label")
+            elif weighted is None:
+                order = df.sort_values("N", ascending=False)
+            else:
+                order = df.assign(_exact=sums).sort_values("_exact", ascending=False)
+            df = order[columns].reset_index(drop=True)
+            sums = sums[order.index].reset_index(drop=True)
 
-        total = float(df["N"].sum()) if not df.empty else 0.0
+        total = float(sums.sum()) if not df.empty else 0.0
         n_valid = int(counts.sum())
-        df["%"] = (df["N"] / total * 100).round(1) if total > 0 else 0.0
-        df["Cumulative %"] = df["%"].cumsum().round(1) if not df.empty else 0.0
+        df["%"] = (sums / total * 100).round(1) if total > 0 else 0.0
+        if weighted is not None and total > 0:
+            df["Cumulative %"] = (sums.cumsum() / total * 100).round(1)
+        else:
+            df["Cumulative %"] = df["%"].cumsum().round(1) if not df.empty else 0.0
 
         # Append total row
         total_entry: dict[str, Any] = {
@@ -683,10 +698,17 @@ class CrossTable(SurveyTable):
             codes=list(labels) or None,
             weight=weight,
         )
-        display = table.drop(columns=["value"]).rename(
-            columns={"label": _get_label(self.data, self.row)}
-        )
         bases = table.base if isinstance(table.base, dict) else {}
+        # The groups are named as the single-answer crosstab names them: by
+        # the labels of the column variable, not its codes ("1.0").
+        col_labels = _get_value_labels(self.data, self.col)
+        names = {group: str(col_labels.get(group, group)) for group in bases}
+        display = table.drop(columns=["value"]).rename(
+            columns={
+                "label": _get_label(self.data, self.row),
+                **{str(group): name for group, name in names.items()},
+            }
+        )
         display.loc[len(display)] = ["Base (respondents answering)", *bases.values()]
         if weight is not None:
             # The weighted base is what the percentages are of; the people
@@ -706,7 +728,7 @@ class CrossTable(SurveyTable):
         self._result = display
         self._stats = {
             "Variable": _get_label(self.data, self.row),
-            "Base": ", ".join(f"{group}: {size}" for group, size in bases.items()),
+            "Base": ", ".join(f"{names[group]}: {size}" for group, size in bases.items()),
             "Note": (
                 "multiple answers allowed; percentages are of each group, and no "
                 f"{test_name} is reported because the categories overlap"

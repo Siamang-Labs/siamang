@@ -272,6 +272,60 @@ def test_freq_table_counts_weights_and_keeps_the_people_beside_them():
     assert weighted.stats == {"Variable": "Answer", "N valid": 4, "Weighted N": 8.0, "Weight": "w"}
 
 
+def test_weighted_freq_percentages_are_of_the_unrounded_sums_of_weights():
+    """The N column shows a weighted count to one decimal; the percentages are
+    of the sums as they are, so they agree with a Crosstab, the Bar chart
+    (show=percent) and the Likert chart of the same data."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import numpy as np
+    import pandas as pd
+
+    from siamang.core.variable import Variable, VariableMap
+    from siamang.data import SurveyData
+
+    variables = VariableMap()
+    variables.add(Variable("q", "ordinal", label="Q", labels={1: "a", 2: "b", 3: "c"}))
+    # Sums of weights 0.04, 0.08 and 0.34 of 0.46: 8.7, 17.4 and 73.9 %. Of the
+    # sums rounded to 0.0, 0.1 and 0.3 they read 0.0, 25.0 and 75.0.
+    frame = pd.DataFrame({"q": [1.0, 2.0, 2.0, 3.0], "w": [0.04, 0.04, 0.04, 0.34]})
+    data = SurveyData(frame=frame, variables=variables).with_weight("w")
+    table = data.report.freq("q")
+    rows = table.to_frame()
+    assert rows["N"].tolist() == [0.0, 0.1, 0.3, 0.5]
+    assert rows["%"].tolist() == [8.7, 17.4, 73.9, 100.0]
+    assert rows["Cumulative %"].tolist() == [8.7, 26.1, 100.0, 100.0]
+    assert table.stats["Weighted N"] == 0.5
+    likert = data.plot.likert(["q"]).table
+    assert [likert.loc[0, name] for name in ("a", "b", "c")] == [8.7, 17.4, 73.9]
+    by_frequency = data.report.freq("q", sort="freq").to_frame()
+    assert by_frequency["Label"].tolist() == ["c", "b", "a", "Total"]
+    assert by_frequency["%"].tolist() == [73.9, 17.4, 8.7, 100.0]
+    assert by_frequency["Cumulative %"].tolist() == [73.9, 91.3, 100.0, 100.0]
+    # Weights normalised to sum to 1 over 1000 respondents: every sum rounds to
+    # 0.2, and the table read 20.0 % for every answer.
+    rng = np.random.default_rng(0)
+    codes = rng.integers(1, 4, 1000).astype(float)
+    weights = rng.uniform(0.5, 2.0, 1000)
+    weights = weights / weights.sum()
+    normalised = SurveyData(
+        frame=pd.DataFrame({"q": codes, "w": weights}), variables=variables
+    ).with_weight("w")
+    shares = [100 * weights[codes == code].sum() for code in (1.0, 2.0, 3.0)]
+    rows = normalised.report.freq("q").to_frame()
+    assert rows["%"].tolist()[:3] == [round(share, 1) for share in shares]
+    assert len(set(rows["%"].tolist()[:3])) == 3
+    ax = normalised.plot.bar("q", show="percent").plot()
+    assert [round(bar.get_height(), 1) for bar in ax.patches] == rows["%"].tolist()[:3]
+    crosstab = (
+        normalised.with_frame(normalised.frame.assign(g=1.0))
+        .report.crosstab("q", "g", pct="col", test=False)
+        .to_frame()
+    )
+    assert crosstab.iloc[:3, 1].tolist() == rows["%"].tolist()[:3]
+
+
 def test_cross_table_percentages_are_of_weights():
     data = _weighted_pair()
     plain = data.report.crosstab("grp", "ans", pct="row", test=False).to_frame()
