@@ -242,3 +242,26 @@ def test_the_accessor_hands_it_the_survey():
     table = data.report.banner(rows=["ans"], columns=["grp"])
     assert isinstance(table, BannerTable)
     assert "Answer" in table.to_frame().columns
+
+
+def test_the_letters_function_is_the_banner_table_s_test():
+    """proportion_letters, which the Tab book and the Bar chart call: 60 % of
+    100 against 40 % of 100 is z = 0.2 / √(0.5 · 0.5 · 0.02) = 2.828, p = 0.0047;
+    a third column of 20 is not tested; Bonferroni over the one pair tested
+    leaves the level as it is, and a level of 0.001 finds nothing."""
+    from siamang.reporting.tables import banner_values, column_letter, proportion_letters
+
+    shares = {"a": 0.6, "b": 0.4, "c": 0.9}
+    bases = {"a": 100.0, "b": 100.0, "c": 20.0}
+    letters = {"a": "A", "b": "B", "c": "C"}
+    assert proportion_letters(shares, bases, letters) == {"a": "B"}
+    assert proportion_letters(shares, bases, letters, correction="bonferroni") == {"a": "B"}
+    assert proportion_letters(shares, bases, letters, level=0.001) == {}
+    assert proportion_letters(shares, bases, letters, min_base=10) == {"a": "B", "c": "AB"}
+    # The same letters the table prints for those columns.
+    table = BannerTable(data=_two_columns(0.6, 100, 0.4, 100), rows=["ans"], columns=["grp"])
+    assert _cell(table, "Yes", 0).endswith(" B")
+    # The columns' order and letters: the codebook's, then the rest by text.
+    series = pd.Series([3, 1, "x", 2, None, 1])
+    assert banner_values(series, {2: "Two", 1: "One", 9: "Nine"}) == [2, 1, 3, "x"]
+    assert [column_letter(i) for i in (0, 25, 26)] == ["A", "Z", "#27"]

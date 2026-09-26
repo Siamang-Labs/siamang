@@ -1494,7 +1494,7 @@ class BannerTable(SurveyTable):
             values = self._values_of(variable)
             block: list[tuple[str, Any, str]] = []
             for value in values:
-                letter = _LETTERS[index] if index < len(_LETTERS) else f"#{index + 1}"
+                letter = column_letter(index)
                 label = _get_value_labels(self.data, variable).get(value, value)
                 header = f"{_get_label(self.data, variable)}: {label} ({letter})"
                 letters[(variable, value)] = letter
@@ -1613,11 +1613,7 @@ class BannerTable(SurveyTable):
 
     def _values_of(self, variable: str) -> list[Any]:
         """The values of a variable, in codebook order where the codebook has one."""
-        present = self.data.frame[variable].dropna().unique().tolist()
-        declared = list(_get_value_labels(self.data, variable))
-        ordered = [value for value in declared if value in present]
-        ordered += [value for value in sorted(present, key=str) if value not in ordered]
-        return ordered
+        return banner_values(self.data.frame[variable], _get_value_labels(self.data, variable))
 
     def _letters_for(
         self,
@@ -1631,37 +1627,85 @@ class BannerTable(SurveyTable):
         """Which columns of this block each column is significantly higher than."""
         if not self.test or len(block) < 2:
             return {}
-        eligible = [
-            (variable, value)
-            for variable, value, _header in block
-            if effective[(variable, value)] >= self.min_base
-        ]
-        if len(eligible) < 2:
-            return {}
-        alpha = self.level
-        if self.correction == "bonferroni":
-            comparisons = len(eligible) * (len(eligible) - 1) / 2
-            alpha = self.level / comparisons if comparisons else self.level
+        keys = [(variable, value) for variable, value, _header in block]
+        return proportion_letters(
+            {key: shares.get((row_value, *key), 0.0) for key in keys},
+            {key: effective[key] for key in keys},
+            {key: letters[key] for key in keys},
+            level=self.level,
+            correction=self.correction,
+            min_base=self.min_base,
+        )
 
-        from scipy import stats as scipy_stats
 
-        beats: dict[tuple[str, Any], list[str]] = {key: [] for key in eligible}
-        for i, left in enumerate(eligible):
-            for right in eligible[i + 1 :]:
-                p1 = shares.get((row_value, *left), 0.0)
-                p2 = shares.get((row_value, *right), 0.0)
-                n1, n2 = effective[left], effective[right]
-                pooled = (p1 * n1 + p2 * n2) / (n1 + n2)
-                variance = pooled * (1 - pooled) * (1 / n1 + 1 / n2)
-                if variance <= 0:
-                    continue
-                z = (p1 - p2) / float(np.sqrt(variance))
-                p_value = 2 * (1 - scipy_stats.norm.cdf(abs(z)))
-                if p_value >= alpha:
-                    continue
-                winner, loser = (left, right) if p1 > p2 else (right, left)
-                beats[winner].append(letters[loser])
-        return {key: "".join(sorted(marks)) for key, marks in beats.items() if marks}
+def banner_values(series: pd.Series, labels: dict[Any, Any]) -> list[Any]:
+    """The values of a banner variable as its columns are ordered: the
+    codebook's labelled ones in its order, then the others by their text.
+
+    The Banner table's and the Tab book's order, which their letters follow
+    (:func:`column_letter`); a Bar chart split by the variable names its groups
+    by the same letters.
+    """
+    present = series.dropna().unique().tolist()
+    ordered = [value for value in labels if value in present]
+    ordered += [value for value in sorted(present, key=str) if value not in ordered]
+    return ordered
+
+
+def column_letter(index: int) -> str:
+    """The letter of the banner's ``index``-th column (from 0): A–Z, then #27 …"""
+    return _LETTERS[index] if index < len(_LETTERS) else f"#{index + 1}"
+
+
+def proportion_letters(
+    shares: dict[Any, float],
+    bases: dict[Any, float],
+    letters: dict[Any, str],
+    *,
+    level: float = 0.05,
+    correction: str = "none",
+    min_base: float = 30,
+) -> dict[Any, str]:
+    """Which columns each column's share is significantly higher than.
+
+    The Banner table's test, shared with the Tab book and the Bar chart's
+    significance letters: a two-sided z-test of two column proportions with
+    the pooled variance, on each column's (effective) base, for every pair of
+    columns of one banner variable. ``shares`` are fractions (0–1) and
+    ``bases`` the bases the test uses — Kish's effective base when weighted —
+    keyed alike, and ``letters`` names each column. A column whose base is
+    below ``min_base`` takes no part; ``correction="bonferroni"`` divides the
+    level by the number of pairs tested. Returns each column's letters, sorted,
+    for the columns that beat another.
+    """
+    import numpy as np
+    from scipy import stats as scipy_stats
+
+    eligible = [key for key in letters if bases[key] >= min_base]
+    if len(eligible) < 2:
+        return {}
+    alpha = level
+    if correction == "bonferroni":
+        comparisons = len(eligible) * (len(eligible) - 1) / 2
+        alpha = level / comparisons if comparisons else level
+
+    beats: dict[Any, list[str]] = {key: [] for key in eligible}
+    for i, left in enumerate(eligible):
+        for right in eligible[i + 1 :]:
+            p1 = shares.get(left, 0.0)
+            p2 = shares.get(right, 0.0)
+            n1, n2 = bases[left], bases[right]
+            pooled = (p1 * n1 + p2 * n2) / (n1 + n2)
+            variance = pooled * (1 - pooled) * (1 / n1 + 1 / n2)
+            if variance <= 0:
+                continue
+            z = (p1 - p2) / float(np.sqrt(variance))
+            p_value = 2 * (1 - scipy_stats.norm.cdf(abs(z)))
+            if p_value >= alpha:
+                continue
+            winner, loser = (left, right) if p1 > p2 else (right, left)
+            beats[winner].append(letters[loser])
+    return {key: "".join(sorted(marks)) for key, marks in beats.items() if marks}
 
 
 def _round_base(value: float) -> int | float:

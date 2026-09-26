@@ -360,9 +360,9 @@ def _sort_key(code: Any) -> tuple[int, float, str]:
 
 def _letter(index: int) -> str:
     """The Banner table's letters: A–Z, then #27 …"""
-    from siamang.reporting.tables import _LETTERS
+    from siamang.reporting.tables import column_letter
 
-    return _LETTERS[index] if index < len(_LETTERS) else f"#{index + 1}"
+    return column_letter(index)
 
 
 def _weights(data: SurveyData, frame: pd.DataFrame) -> np.ndarray | None:

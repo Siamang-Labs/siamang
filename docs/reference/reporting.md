@@ -492,6 +492,14 @@ To make this reporting API extremely convenient, two accessors are attached dire
   `data.tables.banner(...)` returns the same numbers in tidy form — one row per
   pair of values — for feeding to something else.
 
+  The test is `siamang.reporting.tables.proportion_letters(shares, bases,
+  letters, *, level=0.05, correction="none", min_base=30)` — each column's
+  share (0–1) and the base the test uses, keyed alike, and each column's letter;
+  it returns the letters each column beats — with the columns' order
+  `banner_values(series, labels)` (the codebook's labelled values present, then
+  the others by their text) and `column_letter(index)` (A–Z, then `#27` …). The
+  Tab book calls the same functions.
+
 ### `data.plot` Accessor Methods
 
 * **`bar(column: str, *, by: str | None = None, horizontal: bool = False, show_values: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None, show: str = "count", split: str | None = None, layout: str = "grouped", sort: str = "code") -> BarChart`**:
