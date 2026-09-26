@@ -17,7 +17,11 @@ the interval a reader can compare by eye. Three forms, each the textbook one:
 
     **A share** takes Wilson's score interval — R's
     ``prop.test(x, n, correct = FALSE)$conf.int`` — which stays inside 0–1
-    and does not collapse to a point at 0 % or 100 %.
+    and does not collapse to a point at 0 % or 100 %. **A weighted share**
+    (:func:`share_interval`) takes Wilson's interval of the weighted share on
+    Kish's effective base, n = (Σ wᵢ)² / Σ wᵢ² — the base Proportion CI and the
+    Banner table's test put a weighted share on. Equal weights give exactly
+    the unweighted interval.
 
 When there is no interval to give — no answers, one answer, nothing weighted —
 :class:`Interval` carries the estimate (when there is one) and a sentence
@@ -32,7 +36,14 @@ from typing import Any
 
 import numpy as np
 
-__all__ = ["Interval", "Proportion", "mean_interval", "proportion_interval", "t_interval"]
+__all__ = [
+    "Interval",
+    "Proportion",
+    "mean_interval",
+    "proportion_interval",
+    "share_interval",
+    "t_interval",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,22 +154,58 @@ def proportion_interval(successes: Any, n: Any, *, confidence: float = 0.95) -> 
     hits = float(successes)
     if hits < 0 or hits > total:
         raise ValueError("successes must be between 0 and n.")
+    p = hits / total
+    lower, upper = _wilson(p, total, confidence)
+    return Interval(p, lower, upper, total, confidence, method, se=math.sqrt(p * (1 - p) / total))
+
+
+def share_interval(chose: Any, weights: Any = None, *, confidence: float = 0.95) -> Interval:
+    """The share of respondents who ``chose`` (True or False each) with
+    Wilson's interval, weighted by ``weights``.
+
+    Unweighted it is :func:`proportion_interval` of their count. Weighted, the
+    share is the weighted one and the interval Wilson's on Kish's effective
+    base (see the module); an answer weighted 0 (a missing weight counts 0)
+    takes no part, and ``n`` is the answers that carry weight.
+    """
+
+    _check(confidence)
+    hits = np.asarray(chose, dtype=bool)
+    if weights is None:
+        return proportion_interval(int(hits.sum()), int(hits.size), confidence=confidence)
+    w = np.nan_to_num(np.asarray(weights, dtype=float), nan=0.0)
+    if w.shape != hits.shape:
+        raise ValueError("chose and weights must have the same length.")
+    if np.any(w < 0):
+        raise ValueError("weights must not be negative.")
+    method = "Wilson score on Kish's effective base, weighted"
+    carried = w > 0
+    hits, w = hits[carried], w[carried]
+    n = int(hits.size)
+    if n == 0:
+        note = "no answers" if not carried.size else "no answer carries weight"
+        return Interval(float("nan"), None, None, 0, confidence, method, note=note)
+    total = float(w.sum())
+    p = float(w[hits].sum()) / total
+    effective = total**2 / float((w**2).sum())
+    lower, upper = _wilson(p, effective, confidence)
+    return Interval(p, lower, upper, n, confidence, method, se=math.sqrt(p * (1 - p) / effective))
+
+
+def _wilson(p: float, n: float, confidence: float) -> tuple[float, float]:
+    """Wilson's score interval of the share ``p`` of ``n`` (n may be an
+    effective base, not a whole number)."""
+
     from scipy.stats import norm
 
-    p = hits / total
     z = float(norm.ppf((1 + confidence) / 2))
-    denominator = 1 + z**2 / total
-    centre = (p + z**2 / (2 * total)) / denominator
-    half = z * math.sqrt(p * (1 - p) / total + z**2 / (4 * total**2)) / denominator
+    denominator = 1 + z**2 / n
+    centre = (p + z**2 / (2 * n)) / denominator
+    half = z * math.sqrt(p * (1 - p) / n + z**2 / (4 * n**2)) / denominator
     # At 0 % and 100 % one end is the share itself, not a rounding away from it.
-    return Interval(
-        p,
-        0.0 if hits == 0 else max(0.0, centre - half),
-        1.0 if hits == total else min(1.0, centre + half),
-        total,
-        confidence,
-        method,
-        se=math.sqrt(p * (1 - p) / total),
+    return (
+        0.0 if p <= 0 else max(0.0, centre - half),
+        1.0 if p >= 1 else min(1.0, centre + half),
     )
 
 
