@@ -343,6 +343,54 @@ def thousands_axis(axis: Any) -> None:
     )
 
 
+def fit_ticks(ax: Any, which: str = "x", gap: float = 0.5) -> None:
+    """Thin the ticks of ``ax``'s x (or y) axis until no two neighbouring
+    labels come closer than ``gap`` ems: the locator counts ticks, not the
+    width of their labels, so on a narrow plot '0 50,000 100,000150,000'
+    ran together. Ticks set one by one (a histogram's edges) keep every
+    second, third … one; others are asked of matplotlib in fewer bins. The
+    ticks found are then fixed: matplotlib would choose them again when the
+    figure is saved, by the settings in force then — a chart in the theme's
+    colours is saved outside them, and took twice the ticks it was fitted
+    with. Axes that share the axis share the result."""
+
+    from matplotlib.ticker import FixedLocator, MaxNLocator
+
+    axis = ax.xaxis if which == "x" else ax.yaxis
+    fig = ax.figure
+    fixed = axis.get_major_locator()
+    fixed_ticks = list(fixed.locs) if isinstance(fixed, FixedLocator) else None
+    for step in range(1, 12):
+        fig.draw_without_rendering()
+        renderer = fig.canvas.get_renderer()
+        low, high = sorted(ax.get_xlim() if which == "x" else ax.get_ylim())
+        labels = [
+            label
+            for tick, label in zip(
+                axis.get_majorticklocs(), axis.get_majorticklabels(), strict=False
+            )
+            if low <= tick <= high and label.get_visible() and label.get_text()
+        ]
+        boxes = sorted(
+            (label.get_window_extent(renderer) for label in labels),
+            key=lambda box: box.x0 if which == "x" else box.y0,
+        )
+        room = gap * labels[0].get_fontsize() / 72.0 * fig.dpi if labels else 0.0
+        if which == "x":
+            crowded = any(a.x1 + room > b.x0 for a, b in zip(boxes, boxes[1:], strict=False))
+        else:
+            crowded = any(a.y1 + room > b.y0 for a, b in zip(boxes, boxes[1:], strict=False))
+        if not crowded or len(labels) < 3:
+            axis.set_major_locator(FixedLocator(list(axis.get_majorticklocs())))
+            return
+        if fixed_ticks is not None:
+            axis.set_major_locator(FixedLocator(fixed_ticks[:: step + 1]))
+        else:
+            axis.set_major_locator(
+                MaxNLocator(nbins=max(len(labels) - 2, 1), steps=[1, 2, 2.5, 5, 10])
+            )
+
+
 __all__ = [
     "CHAR_WIDTH",
     "FOOTNOTE_SIZE",
@@ -353,6 +401,7 @@ __all__ = [
     "code_order",
     "code_text",
     "count_text",
+    "fit_ticks",
     "thousands_axis",
     "font_size",
     "ink_on",

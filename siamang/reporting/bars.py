@@ -64,6 +64,7 @@ from siamang.reporting.chart_parts import (
     code_order,
     code_text,
     count_text,
+    fit_ticks,
     font_size,
     ink_on,
     left_out_note,
@@ -904,13 +905,21 @@ def value_text(value: float, kind: str) -> str:
     if kind == "percent":
         return f"{value:.1f}%"
     if kind == "mean":
-        return f"{value:.2f}"
+        return f"{value:,.2f}"  # 41,646.65, as a count's thousands are
     return count_text(value)
 
 
 #: A label turned under a vertical bar is at most this many characters a line:
 #: longer ones would take the figure's height, and the bars are drawn across.
 TURNED_WIDTH = 40
+
+
+def _wrap_whole(text: str, width: int) -> str:
+    """``text`` wrapped to ``width``, its "(n = 1,613)" kept on one line: it
+    broke into "(n =" and "1,613)"."""
+
+    held = re.sub(r"\(n = ([^)]*)\)", lambda match: f"(n\u00a0=\u00a0{match.group(1)})", text)
+    return wrap(held, width).replace("\u00a0", " ")
 
 
 def _group_label(text: str, width: int) -> str:
@@ -941,21 +950,79 @@ def _tick_labels(labels: list[str], slot_pt: float) -> tuple[list[str], int, flo
         return None
     flat = [" ".join(text.split("\n")) for text in labels]
     for width in range(16, TURNED_WIDTH + 1):
-        turned = [wrap(text, width) for text in flat]
+        turned = [_wrap_whole(text, width) for text in flat]
         if all(text.count("\n") < lines for text in turned):
             return turned, 45, size
     return None
 
 
-def _crowded(labels: list[Any], renderer: Any, horizontal: bool) -> bool:
-    """Whether two neighbouring tick labels overlap."""
+def _crowded(labels: list[Any], renderer: Any, horizontal: bool, gap_pt: float = 0.0) -> bool:
+    """Whether two neighbouring tick labels overlap, or are closer than
+    ``gap_pt`` points (words of two labels side by side read as one)."""
 
     boxes = [label.get_window_extent(renderer) for label in labels if label.get_text()]
+    gap = gap_pt / 72.0 * labels[0].figure.dpi if boxes else 0.0
     if horizontal:
         boxes.sort(key=lambda box: box.y0)
-        return any(low.y1 > high.y0 + 0.5 for low, high in zip(boxes, boxes[1:], strict=False))
+        return any(
+            low.y1 + gap > high.y0 + 0.5 for low, high in zip(boxes, boxes[1:], strict=False)
+        )
     boxes.sort(key=lambda box: box.x0)
-    return any(left.x1 > right.x0 + 0.5 for left, right in zip(boxes, boxes[1:], strict=False))
+    return any(
+        left.x1 + gap > right.x0 + 0.5 for left, right in zip(boxes, boxes[1:], strict=False)
+    )
+
+
+#: The least room between two labels side by side under the bars, in ems of
+#: their size: closer, "metropolitan" and its neighbour's "(n = 4,249)" on one
+#: line read as one phrase.
+LABEL_GAP = 1.0
+
+
+def _place_under(ax: Any, placed: tuple[list[str], int, float]) -> None:
+    labels, rotation, size = placed
+    ax.set_xticklabels(
+        labels,
+        fontsize=size,
+        rotation=rotation,
+        ha="right" if rotation else "center",
+        rotation_mode="anchor" if rotation else "default",
+    )
+
+
+def _fit_under(
+    ax: Any, footnote: Footnote, labels: list[str], placed: tuple[list[str], int, float]
+) -> bool:
+    """The labels under vertical bars fitted again to the plot as laid out.
+
+    They were fitted to a share of the figure's width; the value axis's title
+    and ticks take their room first, so on a narrow figure the plot is much
+    narrower (229 of 360 pt at 5 in) and turned labels were drawn over one
+    another. Level labels closer than :data:`LABEL_GAP` are made smaller or
+    turned; turned ones get as many lines as their measured spacing holds.
+    False when no placement can be read: the bars are then drawn across."""
+
+    renderer = ax.figure.canvas.get_renderer()
+    shrink = 1.0
+    for _ in range(4):
+        slot = axes_points(ax)[0] / max(len(labels), 1)
+        _, rotation, size = placed
+        if rotation:
+            lines = max(label.get_text().count("\n") + 1 for label in ax.get_xticklabels())
+            fits = lines <= int(slot * 0.7071 / (font_size("xtick.labelsize") * 1.2))
+        else:
+            fits = not _crowded(ax.get_xticklabels(), renderer, False, LABEL_GAP * size)
+        if fits:
+            return True
+        if not rotation:
+            shrink *= 0.85  # the estimate was generous: the words are wider
+        again = _tick_labels(labels, slot * shrink)
+        if again is None:
+            return False
+        placed = again
+        _place_under(ax, placed)
+        footnote.apply()
+    return False
 
 
 def _fit_across(ax: Any, footnote: Footnote, labels: list[str], figure_pt: float) -> None:
@@ -999,8 +1066,9 @@ def _axis_titles(ax: Any, bars: Bars, horizontal: bool, title: str) -> None:
     ax.set_title(wrap(title, chars_in(max(room, width), font_size("axes.titlesize"))))
 
 
-def render(chart: BarChart, bars: Bars) -> None:
-    """Draw ``bars`` on a new figure of ``chart``."""
+def render(chart: BarChart, bars: Bars, *, across: bool = False) -> None:
+    """Draw ``bars`` on a new figure of ``chart`` (``across``: horizontally,
+    whatever the chart asks — its labels could not be read under the bars)."""
 
     import matplotlib.pyplot as plt
 
@@ -1011,7 +1079,7 @@ def render(chart: BarChart, bars: Bars) -> None:
     # Beside the plot when the figure is wide enough, else under it.
     legend_beside = count > 1 and figure_pt >= 7.5 * 72.0
     legend_pt = min(0.3 * figure_pt, 11.0 * 0.6 * 24 + 40.0) if legend_beside else 0.0
-    horizontal = chart.horizontal
+    horizontal = chart.horizontal or across
     placed = None
     if not horizontal:
         placed = _tick_labels(bars.positions, (0.85 * figure_pt - legend_pt) / max(positions, 1))
@@ -1066,6 +1134,8 @@ def render(chart: BarChart, bars: Bars) -> None:
         percent_axis(value_axis)
     elif bars.kind == "count":
         thousands_axis(value_axis)
+    elif bars.kind == "mean" and np.nanmax(np.abs(values), initial=0.0) >= 1000:
+        thousands_axis(value_axis)  # a mean of thousands reads as a count's
     if bars.full:
         (ax.set_xlim if horizontal else ax.set_ylim)(0, 100)
     ax.grid(False)
@@ -1078,14 +1148,7 @@ def render(chart: BarChart, bars: Bars) -> None:
         )
         ax.set_ylim(positions - 0.5, -0.5)  # the first answer on top
     else:
-        labels, rotation, size = placed  # type: ignore[misc]
-        ax.set_xticklabels(
-            labels,
-            fontsize=size,
-            rotation=rotation,
-            ha="right" if rotation else "center",
-            rotation_mode="anchor" if rotation else "default",
-        )
+        _place_under(ax, placed)  # type: ignore[arg-type]
         ax.set_xlim(-0.5, positions - 0.5)
     title = bars.title
     _axis_titles(ax, bars, horizontal, title)
@@ -1125,6 +1188,15 @@ def render(chart: BarChart, bars: Bars) -> None:
     for _ in range(2):  # wrapped to the plot as it is laid out
         _axis_titles(ax, bars, horizontal, title)
         footnote.apply()
+    if not horizontal and not _fit_under(ax, footnote, bars.positions, placed):  # type: ignore[arg-type]
+        # Under the plot as it is laid out (narrower than the figure the
+        # labels were first fitted to), they cannot be read: across.
+        plt.close(fig)
+        chart._fig = chart._ax = None
+        render(chart, bars, across=True)
+        return
+    if horizontal and bars.kind != "percent":
+        fit_ticks(ax, "x")  # counts and means of thousands on a narrow plot
     marked = bars.marks is not None and any(mark for row in bars.marks for mark in row)
     if chart.show_values or marked:
         written = _write_values(
@@ -1666,7 +1738,9 @@ def render_histogram(chart: BarChart, histogram: Histogram) -> None:
         margin = (edges[-1] - edges[0]) * 0.01
         ax.set_xlim(edges[0] - margin, edges[-1] + margin)
         if title:
-            ax.set_title(wrap(title, chars_in(panel_pt - 40.0, 10.0)), loc="left", fontsize=10)
+            ax.set_title(
+                _wrap_whole(title, chars_in(panel_pt - 40.0, 10.0)), loc="left", fontsize=10
+            )
     title_size = font_size("axes.titlesize")
     label_size = font_size("axes.labelsize")
     if panels == 1:
@@ -1674,6 +1748,7 @@ def render_histogram(chart: BarChart, histogram: Histogram) -> None:
         ax.set_ylabel(wrap(histogram.value_label, chars_in(axes_points(ax)[1], label_size)))
         ax.set_title(wrap(histogram.title, chars_in(figure_pt - 60.0, title_size)))
         Footnote(fig, histogram.notes, axes=ax).apply()
+        fit_ticks(ax, "x")
         return
     fig.suptitle(wrap(histogram.title, chars_in(figure_pt - 40.0, title_size)), fontsize=title_size)
     footnote = Footnote(fig, histogram.notes)
@@ -1681,10 +1756,21 @@ def render_histogram(chart: BarChart, histogram: Histogram) -> None:
     for ax in labelled:
         ax.set_ylabel(short)
     footnote.apply()
+    # Each panel at least PANEL_PT tall as laid out: its title wraps to as
+    # many lines as a long group name needs, which a fixed allowance per
+    # panel did not foresee (8 groups at 5 × 4 in left panels 24 pt tall).
+    shown = [ax for ax in axes if ax.get_visible()]
+    for _ in range(3):
+        short_pt = PANEL_PT - min(axes_points(ax)[1] for ax in shown)
+        if short_pt <= 0.5:
+            break
+        fig.set_figheight(fig.get_figheight() + short_pt * rows / 72.0)
+        footnote.apply()
     # The value axis's title in as many lines as each panel's height needs.
     for ax in labelled:
         ax.set_ylabel(wrap(short, chars_in(axes_points(ax)[1], label_size)))
     footnote.apply()
+    fit_ticks(shown[-1], "x")  # shared: every panel's
 
 
 # ─── donut ───────────────────────────────────────────────────────────────────

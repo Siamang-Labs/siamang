@@ -503,6 +503,16 @@ class BoxPlot(SurveyChart):
         ax.set_title(self._unweighted(self._auto_title(col_label, by_label)))
         plt.xticks(rotation=30, ha="right")
         plt.tight_layout()
+        if sns and chart_theme.themed() is not None:
+            # In the theme's colours (an opt-in, so the others draw as they
+            # always did) the value axis's title wraps to the plot's height:
+            # longer, it ran into the chart's title.
+            from siamang.reporting.chart_parts import axes_points, chars_in, font_size, wrap
+
+            for _ in range(2):
+                height = axes_points(ax)[1]
+                ax.set_ylabel(wrap(col_label, chars_in(height, font_size("axes.labelsize"))))
+                plt.tight_layout()
 
 
 # ─── HeatMap ──────────────────────────────────────────────────────────────────
