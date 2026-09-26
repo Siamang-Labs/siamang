@@ -371,7 +371,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   footers and `Report.add` lines print a float with up to four decimals and no
   padding, and one too small for them with its exponent
   (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`); Compare groups'
-  Dunn lines too; and `frame_to_html` writes each number as the Markdown does.
+  Dunn lines too; and a report's HTML writes each number as its Markdown does:
+  a table component's cells, rounded already, with `str`, and a bare
+  DataFrame's floats (a regression's coefficients, a PCA's loadings, a
+  cluster's centroids) as tabulate does, with six significant digits
+  (`62.263`, `6.15462e-38`) rather than the full `62.26300527031391`.
 
 - **An answer weighted 0 no longer changes the weighted SD.** Descriptive
   statistics and Group means scaled the weighted variance by n / (n − 1) with n

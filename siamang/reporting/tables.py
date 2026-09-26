@@ -139,26 +139,57 @@ def stat_text(value: Any) -> str:
     return str(value)
 
 
-def frame_to_html(df: pd.DataFrame, caption: str | None = None) -> str:
+def frame_to_html(df: pd.DataFrame, caption: str | None = None, *, rounded: bool = True) -> str:
     """Convert a DataFrame to a clean HTML table.
 
     Public because a report renders bare DataFrames through the same path as
     its table components, so every table in a document carries the same class
     and the stylesheet has one thing to style.
 
-    A number is written as the Markdown writes it (``str``): pandas' own
-    formatting pads a column to one width and turned a p of ``3.363e-07``
-    into ``0.0`` beside a ``.md`` that said ``3.363e-07``.
+    A number is written as the Markdown beside it writes it. A table
+    component's cells are rounded already, and its Markdown prints each with
+    ``str``, so the HTML does too: pandas' own formatting pads a column to one
+    width and turned a p of ``3.363e-07`` into ``0.0`` beside a ``.md`` that
+    said ``3.363e-07``. A bare DataFrame added to a report as it is
+    (``rounded=False`` — a regression's coefficients, a PCA's loadings) is not
+    rounded, and its Markdown goes through tabulate, which writes a float in a
+    column of numbers with six significant digits (``62.263``,
+    ``6.15462e-38``); so does its HTML, rather than ``62.26300527031391``.
     """
     shown = df.astype(object)
     for position in range(shown.shape[1]):
-        shown.iloc[:, position] = shown.iloc[:, position].map(
-            lambda value: str(value) if isinstance(value, float) and value == value else value
-        )
+        column = shown.iloc[:, position]
+        text = _float_text if rounded or not _numbers_only(column) else _tabulated
+        shown.iloc[:, position] = column.map(text)
     html = shown.to_html(index=False, classes="siamang-table", border=0)
     if caption:
         html = html.replace("<table", f"<caption>{caption}</caption>\n<table", 1)
     return html
+
+
+def _float_text(value: Any) -> Any:
+    """A float as ``str`` writes it (NaN left for pandas to print)."""
+    return str(value) if isinstance(value, float) and value == value else value
+
+
+def _tabulated(value: Any) -> Any:
+    """A number in a column of numbers as tabulate writes it: ``format(value, "g")``."""
+    if isinstance(value, float | np.floating) and value == value:
+        return format(float(value), "g")
+    return value
+
+
+def _numbers_only(column: pd.Series) -> bool:
+    """Whether tabulate reads ``column`` as numbers: every value present is an
+    int or a float (a bool, a text or a date makes it a column of text)."""
+    for value in column:
+        if value is None or (isinstance(value, float) and value != value):
+            continue
+        if isinstance(value, bool | np.bool_) or not isinstance(
+            value, int | float | np.integer | np.floating
+        ):
+            return False
+    return True
 
 
 # Kept under its old private name for anything that reached for it.

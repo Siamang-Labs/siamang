@@ -232,6 +232,37 @@ def test_a_table_is_rendered_by_the_table_layer_not_by_markdown():
     assert "siamang-table" in plain
 
 
+def test_a_bare_frame_prints_its_numbers_in_the_html_as_in_the_markdown():
+    """A bare DataFrame — a regression's coefficients, a PCA's loadings, a
+    cluster's centroids — is not rounded, and its Markdown goes through
+    tabulate, which writes six significant digits. The HTML printed every
+    float's full repr (62.26300527031391, 6.154615641833876e-38, a float32 0.1
+    as 0.10000000149011612) beside a .md that said 62.263 and 6.15462e-38."""
+
+    import numpy as np
+
+    frame = pd.DataFrame(
+        {
+            "term": ["(intercept)", "trust"],
+            "coef": [62.26300527031391, -0.8034630239968417],
+            "p": [6.154615641833876e-38, 0.2020432760780796],
+            "n": [200, 200],
+            "share": np.array([0.1, 35.66666666666667], dtype=np.float32),
+            "mixed": ["a", 0.30655677028563],
+        }
+    )
+    report = Report().add(frame)
+    html, markdown = report.to_html(standalone=True), report.to_markdown()
+    cells = re.findall(r"<td>([^<]*)</td>", html)
+    rows = [line for line in markdown.splitlines() if line.startswith("| ")][1:]
+    written = [cell.strip() for row in rows for cell in row.strip("|").split("|")]
+    assert cells == written
+    assert cells[:6] == ["(intercept)", "62.263", "6.15462e-38", "200", "0.1", "a"]
+    # A column of text keeps str, as tabulate does; a table component's cells
+    # (rounded already) are written with str as before.
+    assert cells[11] == "0.30655677028563"
+
+
 def test_numbering_is_off_until_it_is_asked_for_and_then_it_counts():
     frame = pd.DataFrame({"a": [1]})
     report = Report(title="R").add(frame, caption="One").add(frame, caption="Two")
