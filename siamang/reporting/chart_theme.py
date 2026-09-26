@@ -720,14 +720,16 @@ def in_report(chart: Any, theme: ReportTheme | None) -> Any:
     the report theme's colours: built in them when it has not been drawn yet,
     else — drawn at its node in other colours — a copy drawn from its
     parameters, which is kept on the chart for the report's next rendering
-    (its Markdown, then its HTML). The copy's figure is closed as soon as it is
-    drawn, so a report of many charts does not keep them all open.
+    (its Markdown, then its HTML). The report renders the copy and releases
+    its figure (``SurveyChart.release``), so what is kept is its picture, not
+    an open figure: closing a figure does not free it while something still
+    refers to it.
     """
 
     if not reads_theme(chart):
         return chart
     wanted = theme_colours(theme)
-    if getattr(chart, "_fig", None) is None:
+    if getattr(chart, "_fig", None) is None and getattr(chart, "_drawn_with", None) is None:
         chart._colours = wanted
         chart._ensure_built()
         return chart
@@ -736,12 +738,9 @@ def in_report(chart: Any, theme: ReportTheme | None) -> Any:
     kept = getattr(chart, "_redrawn", None)
     if kept is not None and kept._drawn_with == wanted:
         return kept
-    import matplotlib.pyplot as plt
-
     copy = dataclasses.replace(chart)
     copy._colours = wanted
     copy._ensure_built()
-    plt.close(copy._fig)
     chart._redrawn = copy
     return copy
 

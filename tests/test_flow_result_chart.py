@@ -272,12 +272,16 @@ def test_each_chart_draws_its_result_as_the_result_is_weighted(questionnaire_doc
             note,
             cls,
         ), node
-        assert chart._ax.get_title(loc="left").endswith(f"\n{note}"), node
+        # A run releases each figure once rendered; plot() draws it again.
+        assert chart.plot().get_title(loc="left").endswith(f"\n{note}"), node
     assert (
-        result.output("c_reg")._ax.get_title(loc="left").startswith("What goes with satisfaction")
+        result.output("c_reg")
+        .plot()
+        .get_title(loc="left")
+        .startswith("What goes with satisfaction")
     )
     # TURF's reach curve names its options by their labels, as the fixed one.
-    first = result.output("c_turf")._ax.get_xticklabels()[0].get_text().replace("\n", " ")
+    first = result.output("c_turf").plot().get_xticklabels()[0].get_text().replace("\n", " ")
     assert first.startswith("1 Brands heard of")
     # What each output draws, as the check reads it, is what the run draws.
     for node, kind, params, ports, _ in ANALYSES:
@@ -288,8 +292,8 @@ def test_each_chart_draws_its_result_as_the_result_is_weighted(questionnaire_doc
             if expected is not None:
                 assert rc.kinds_of(result.output(node, port)) == expected, (node, port)
     report = (tmp_path / "outputs" / "charts.md").read_text("utf-8")
-    assert report.count("![](fig_") == len(EXPECTED)
-    assert len(list((tmp_path / "outputs").glob("fig_*.png"))) == len(EXPECTED)
+    assert report.count("![](charts_fig_") == len(EXPECTED)
+    assert len(list((tmp_path / "outputs").glob("charts_fig_*.png"))) == len(EXPECTED)
 
 
 def test_the_generated_script_draws_the_same_charts(questionnaire_doc, survey, tmp_path):
@@ -332,7 +336,7 @@ def test_the_generated_script_draws_the_same_charts(questionnaire_doc, survey, t
     ours = (runner_dir / "outputs" / "charts.md").read_text("utf-8")
     theirs = (script_dir / "outputs" / "charts.md").read_text("utf-8")
     assert ours == theirs
-    for name in sorted(path.name for path in (runner_dir / "outputs").glob("fig_*.png")):
+    for name in sorted(path.name for path in (runner_dir / "outputs").glob("charts_fig_*.png")):
         assert (script_dir / "outputs" / name).stat().st_size > 1000
 
 
@@ -418,7 +422,7 @@ def test_maxdiff_conjoint_and_shares_are_drawn_from_their_tables(tmp_path):
     table = result.output("md", "table").to_frame()
     utilities = result.output("c_md")
     assert utilities.drawn == "utilities"
-    ticks = [label.get_text() for label in utilities._ax.get_yticklabels()]
+    ticks = [label.get_text() for label in utilities.plot().get_yticklabels()]
     assert ticks == list(table["Item"])  # best first, as the table orders them
     points = sorted(
         (float(y), float(x))
@@ -434,7 +438,7 @@ def test_maxdiff_conjoint_and_shares_are_drawn_from_their_tables(tmp_path):
     assert any(text.get_text().endswith("(reference)") for text in utilities._ax.texts)
     assert reference in list(table["Item"])
     scores = result.output("c_scores")
-    widths = [bar.get_width() for bar in scores._ax.patches]
+    widths = [bar.get_width() for bar in scores.plot().patches]
     assert widths == pytest.approx(list(table["Score"]))
     assert result.output("c_counts").drawn == "scores"
     # The counting table has no utilities to draw: said before the run.
@@ -445,11 +449,11 @@ def test_maxdiff_conjoint_and_shares_are_drawn_from_their_tables(tmp_path):
     importance = result.output("c_imp")
     parts = result.output("cbc", "table").to_frame()
     assert importance.drawn == "importance"
-    assert [label.get_text() for label in importance._ax.get_yticklabels()] == list(
+    assert [label.get_text() for label in importance.plot().get_yticklabels()] == list(
         dict.fromkeys(parts["Attribute"])
     )
     worths = result.output("c_pw")
-    assert len(worths._ax.patches) == len(parts)  # one bar per level
+    assert len(worths.plot().patches) == len(parts)  # one bar per level
     # Each attribute's levels in the design's order, whatever their worth.
     ticks = [label.get_text() for label in worths._ax.get_yticklabels()]
     prices = [tick.split(": ")[1] for tick in ticks if tick.startswith("price")]
@@ -461,7 +465,7 @@ def test_maxdiff_conjoint_and_shares_are_drawn_from_their_tables(tmp_path):
     assert len({bar.get_facecolor() for bar in worths._ax.patches}) == 2  # one colour per attribute
     shares = result.output("c_sh")
     frame = result.output("sh", "table").to_frame()
-    assert [bar.get_width() for bar in shares._ax.patches] == list(frame["share"])
+    assert [bar.get_width() for bar in shares.plot().patches] == list(frame["share"])
     assert [label.get_text() for label in shares._ax.get_yticklabels()] == list(frame["product"])
 
 
@@ -513,7 +517,7 @@ def test_themes_are_drawn_and_a_missing_sentiment_is_explained_by_the_run(tmp_pa
     shares = FlowRunner(flow(with_sentiment, False, "auto")).run(
         sources={"src": data}, cwd=tmp_path
     )
-    assert [bar.get_width() for bar in shares.output("c")._ax.patches] == [66.7, 33.3]
+    assert [bar.get_width() for bar in shares.output("c").plot().patches] == [66.7, 33.3]
     # Asked for sentiment without ticking it: the check says so.
     [issue] = check_flow(flow(with_sentiment, False, "sentiment"))
     assert issue.code == "RESULT_KIND" and issue.message.endswith("which draws 'shares'.")

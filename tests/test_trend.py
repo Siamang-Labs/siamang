@@ -716,7 +716,10 @@ def test_the_node_runs_and_its_script_reproduces_it(questionnaire_doc, survey, t
     ours = (runner_dir / "outputs" / "tracking.md").read_text("utf-8")
     theirs = (script_dir / "outputs" / "tracking.md").read_text("utf-8")
     assert ours == theirs
-    assert "| Jan 2026 | Capital |" in ours and (script_dir / "outputs" / "fig_1.png").exists()
+    assert (
+        "| Jan 2026 | Capital |" in ours
+        and (script_dir / "outputs" / "tracking_fig_1.png").exists()
+    )
 
 
 @pytest.mark.parametrize(

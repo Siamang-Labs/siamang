@@ -314,6 +314,10 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
   Displays the plot inline (ideal for Jupyter notebooks).
 * **`save(path: str | Path, dpi: int = 150) -> Path`**:
   Saves the plot to a file (`bbox_inches="tight"`). The destination directory must already exist.
+* **`png(dpi: int | None = None) -> bytes`**:
+  The chart as PNG bytes at `dpi` (default: the chart's `dpi`), the bytes `save` writes to a `.png`.
+* **`release() -> None`**:
+  Closes the figure and lets go of it, keeping the PNGs rendered so far. A figure holds its drawing (megabytes at 150 dpi) for as long as the chart refers to it, closed or not. After `release`, `png` and `save` to a `.png` at a resolution rendered before write those bytes without drawing; `plot`, `show`, another resolution or format draw the chart again from its parameters. A `Report` releases each chart once it has written it (but one whose figure was asked for with `plot()` or `show()`), and `FlowRunner` each chart once its node has rendered it.
 
 ---
 

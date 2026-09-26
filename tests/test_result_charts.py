@@ -667,8 +667,8 @@ def test_a_chart_goes_into_a_report(tmp_path):
     report.add(rc.chart(_groups_data().report.means("y", by="g")), caption="Means")
     report.save(tmp_path / "report.md")
     text = (tmp_path / "report.md").read_text("utf-8")
-    assert "![Means](fig_" in text and "*Means*" in text
-    figures = list(tmp_path.rglob("fig_*.png"))
+    assert "![Means](report_fig_" in text and "*Means*" in text
+    figures = list(tmp_path.rglob("report_fig_*.png"))
     assert len(figures) == 1 and _png_size(figures[0])[0] > 800
     # The HTML embeds the same figure, as the Studio preview shows it.
     assert 'src="data:image/png;base64,' in report.to_html(standalone=True, embed_images=True)

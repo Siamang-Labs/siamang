@@ -528,6 +528,13 @@ paths land; `upto` runs a node and its ancestors only. With
 `raise_on_error=False` the run stops at the first failing node and reports
 it instead of raising.
 
+A chart is drawn at its node, so what it cannot draw fails that node; it is
+rendered to a PNG at its own `dpi` there and its figure released
+(`SurveyChart.release`): the run keeps every node's output, and the figures of
+a thirty-chart report did not fit a 512 MB sandbox. The chart keeps its
+picture — `save("x.png")` and a report at that resolution write it without
+drawing again — and `plot()` draws it again when you want the Axes.
+
 `FlowResult`: `order`, `outputs[node][port]`, `output(node, port=None)`,
 `runs` (`NodeRun(node, state, ms, code, error)` with state `ok | skipped |
 error`), `tiles` (what `output.live_tile` nodes published), `ok`.

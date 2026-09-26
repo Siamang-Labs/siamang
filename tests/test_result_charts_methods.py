@@ -48,7 +48,7 @@ def _ticks(ax) -> list[str]:
 
 
 def _title(chart) -> str:
-    return chart._ax.get_title(loc="left")
+    return chart.plot().get_title(loc="left")  # drawn again when a run released it
 
 
 # ─── Key drivers ─────────────────────────────────────────────────────────────
@@ -501,7 +501,7 @@ def test_the_new_results_are_checked_generated_and_drawn_weighted(
         ), node
         assert _title(chart).endswith(note), node
     assert _title(result.output("c_at")).startswith("Awareness by region\n")
-    assert _ticks(result.output("c_ord")._ax) == ["Trust: Acme", "Age"]  # by label
+    assert _ticks(result.output("c_ord").plot()) == ["Trust: Acme", "Age"]  # by label
     # What each output draws, as the check reads it, is what the run draws.
     for node, kind, params, ports, _ in ANALYSES:
         spec = default_registry().get(kind)
@@ -511,8 +511,8 @@ def test_the_new_results_are_checked_generated_and_drawn_weighted(
             if expected is not None:
                 assert rc.kinds_of(result.output(node, port)) == expected, (node, port)
     report = (tmp_path / "outputs" / "methods.md").read_text("utf-8")
-    assert report.count("![](fig_") == len(EXPECTED)
-    assert len(list((tmp_path / "outputs").glob("fig_*.png"))) == len(EXPECTED)
+    assert report.count("![](methods_fig_") == len(EXPECTED)
+    assert len(list((tmp_path / "outputs").glob("methods_fig_*.png"))) == len(EXPECTED)
 
 
 def test_the_check_says_what_the_new_outputs_draw(questionnaire_doc):
@@ -621,6 +621,7 @@ def test_price_sensitivity_is_drawn_in_a_flow(tmp_path):
     result = FlowRunner(flow).run(sources={"src": data}, cwd=tmp_path)
     assert result.ok
     nms, gabor = result.output("c_nms"), result.output("c_gg")
+    nms.plot(), gabor.plot()  # a run releases each figure once rendered
     assert (nms.drawn, gabor.drawn) == ("curves", "curves")
     assert [len(chart._fig.axes) for chart in (nms, gabor)] == [2, 2]
     assert tuple(gabor._fig.get_size_inches()) == (6.0, 6.0)

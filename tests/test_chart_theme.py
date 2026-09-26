@@ -668,18 +668,20 @@ def test_a_report_draws_its_theme_charts_in_its_colours_and_leaves_the_chart_as_
     assert _hex(chart._ax.containers[0].patches[0].get_facecolor()) == ct.PALETTE[0]
 
     report = Report(title="R", theme=CUSTOM).add(chart, caption="Age")
+    open_before = set(plt.get_fignums())
     report.save(tmp_path / "r.md")
     report.save(tmp_path / "r.html")
     copy = chart._redrawn
     assert copy is not None and copy is not chart
-    assert _hex(copy._ax.containers[0].patches[0].get_facecolor()) == "#7b3294"
+    # Rendered once and let go: its picture is kept, not an open figure.
+    assert copy._fig is None and set(plt.get_fignums()) == open_before
     assert ct.in_report(chart, CUSTOM) is copy  # drawn once, kept
     assert _png(chart) == at_node
-    assert copy._fig.number not in plt.get_fignums()  # closed once drawn
+    assert _hex(copy.plot().containers[0].patches[0].get_facecolor()) == "#7b3294"
 
     # The PNG the Markdown refers to is the report's colours: its first series'
     # colour fills pixels, the default palette's does not.
-    pixels = (plt.imread(tmp_path / "fig_0.png")[..., :3] * 255).round().astype(int)
+    pixels = (plt.imread(tmp_path / "r_fig_0.png")[..., :3] * 255).round().astype(int)
     found = {tuple(p) for p in pixels.reshape(-1, 3)}
     assert (0x7B, 0x32, 0x94) in found and (0x2A, 0x78, 0xD6) not in found
     assert "data:image/png;base64," in (tmp_path / "r.html").read_text("utf-8")
@@ -801,19 +803,20 @@ def test_a_flow_s_charts_take_its_save_report_look(tmp_path):
     assert result.ok
     # At the node, before the Save report: the default theme's colours.
     bar = result.output("bar")
-    assert _hex(bar._ax.containers[0].patches[0].get_facecolor()) == ct.PALETTE[0]
+    assert bar._fig is None  # the run renders each chart and releases its figure
+    assert _hex(bar.plot().containers[0].patches[0].get_facecolor()) == ct.PALETTE[0]
     for node in ("bar", "donut", "hist", "lik", "heat", "box", "rc"):
         chart = result.output(node)
         assert chart._redrawn is not None and chart._redrawn._drawn_with.palette == tuple(
             CUSTOM.chart_palette
         ), node
     # The donut's Other slice is the theme's grey, the histogram's bars its first colour.
-    fills = [_hex(p.get_facecolor()) for p in result.output("donut")._redrawn._ax.patches]
+    fills = [_hex(p.get_facecolor()) for p in result.output("donut")._redrawn.plot().patches]
     assert fills == ["#7b3294", "#008837", ct.NEUTRAL]
-    hist = result.output("hist")._redrawn._fig
+    hist = result.output("hist")._redrawn.plot().figure
     assert {c for ax in hist.axes if ax.get_visible() for c in _facecolours(ax)} == {"#7b3294"}
     ours = (runner_dir / "outputs" / "t.md").read_text("utf-8")
-    first = re.search(r"\((fig_\d+\.png)\)", ours).group(1)  # the Bar chart's
+    first = re.search(r"\((t_fig_\d+\.png)\)", ours).group(1)  # the Bar chart's
     pixels = (plt.imread(runner_dir / "outputs" / first)[..., :3] * 255).round()
     found = {tuple(p) for p in pixels.astype(int).reshape(-1, 3)}
     assert (0x7B, 0x32, 0x94) in found and (0x2A, 0x78, 0xD6) not in found
