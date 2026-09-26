@@ -840,6 +840,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `updated_at`, `started_at`); the axis reads `Response date (month)` unless
   the codebook labels the column (`siamang.data.checks.RESPONSE_TIME_LABELS`).
 
+- **The Trend's Confidence band help names Minimum base.** It said a point
+  with fewer respondents than "Low base" is drawn without its band; the field
+  is *Minimum base* (`min_base`) — "Low base" is the table's statistic.
+
 - **Save report's workbook links a sheet whose name has an apostrophe.** The
   Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
   which Excel cannot follow; a sheet's name in a link is quoted with an

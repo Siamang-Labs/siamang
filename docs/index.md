@@ -35,8 +35,8 @@ public class, dataclass field, and helper exported from the subpackage.
   reporting tables (`FreqTable`, `CrossTable`, `GroupMeanTable`) and charts
   (`BarChart`, `BoxPlot`, `HeatMap`, `LikertChart`, `ScatterPlot`, and
   `TrendChart` over waves or dates), the chart of an analysis's result
-  (`result_charts`), `Report` with its tables in Excel, and the tab book
-  (`tabbook.write_tabbook`).
+  (`result_charts`), `Report` with its tables in Excel and its theme's chart
+  colours (`palette="theme"`), and the tab book (`tabbook.write_tabbook`).
 - **[`siamang.io`](reference/io.md)** — CSV, Excel, SPSS (`.sav`),
   Stata (`.dta`), R script export, and the data dictionary
   reader/writer.

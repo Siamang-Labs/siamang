@@ -104,7 +104,9 @@ Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Key drivers (its tests on Kish's
 effective N), Perceptual map (its chi-square test counts respondents), Price
 sensitivity, Correlation and Correlation matrix
-with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, Proportion CI with
+with Pearson, the Bar chart (counts, percentages and Split by, its histogram
+and donut, its confidence intervals and significance letters on Kish's
+effective base), a Heatmap with `by` or with Pearson, the Likert chart, Proportion CI with
 `weighted` set, the Trend and the Tab book (Excel). Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
 groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,

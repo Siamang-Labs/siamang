@@ -57,7 +57,7 @@ params:
     kind: bool
     default: true
     label: Confidence band
-    help: The 95% interval of each point — a percent's Wilson score interval, as the Bar chart's intervals, or the mean's t interval, on Kish's effective base when weighted. A point with fewer respondents than Low base is drawn without it; the table gives its interval.
+    help: The 95% interval of each point — a percent's Wilson score interval, as the Bar chart's intervals, or the mean's t interval, on Kish's effective base when weighted. A point with fewer respondents than Minimum base is drawn without it; the table gives its interval.
   min_base:
     kind: int
     default: 30
