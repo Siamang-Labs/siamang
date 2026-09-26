@@ -1,7 +1,7 @@
 type: visualize.result_chart
 category: visualize
 title: Result chart
-description: The chart that suits an analysis's result, drawn from the numbers it computed — group means with their confidence intervals, a scree plot, TURF's reach curve, key drivers, a perceptual map, price sensitivity curves. Connect the analysis's table (the variance or loadings of a factor analysis or PCA); connect its stat too for the weight of a regression, PCA, cluster or TURF and the base of a regression's intervals.
+description: The chart that suits an analysis's result, drawn from the numbers it computed — group means with their confidence intervals, a scree plot, TURF's reach curve, key drivers, a perceptual map, price sensitivity curves. Connect the analysis's table (the variance or loadings of a factor analysis or PCA); connect its stat too for the base of a regression's intervals (its table says how the weight was used).
 inputs:
   result:
     type:

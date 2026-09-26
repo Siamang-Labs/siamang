@@ -540,6 +540,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Result chart of a table alone says how the weight was used.** A
+  Regression's, a PCA's, a Cluster's and TURF's chart learnt the weight only
+  from the Stat: with the table alone connected, a chart beside weighted
+  tables had no weight line — and Cluster, whose k-means ignores the weight,
+  did not say `unweighted (the weight 'w' is not applied)`. These tables now
+  carry it themselves (`DataFrame.attrs["weight"]`: the weight column, or the
+  unweighted note of k-means), and the chart reads it.
+
 - **TURF's reach curve shows what each size adds, by label.** Every tick
   held the whole cumulative portfolio of column names, broken mid-word and
   cut after four lines (`streaming_serv / ice_01_subscri / ption, …`), so the

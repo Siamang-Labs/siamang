@@ -534,7 +534,9 @@ result_charts.chart([pca.variance, pca.stats], kind="scree", title="Scree plot")
 takes one result or a list of them (what a flow connects to the node's many
 input: a table, and its stat beside it). The first result a renderer draws is
 drawn — with `kind`, the first that can be drawn as it — and the others lend it
-what they say: the weight, a regression's base. The chart is built at once, so a
+what they say: the weight, a regression's base. A bare DataFrame's weight is read
+from `frame.attrs["weight"]`, which a regression's, a PCA's, a cluster's and
+TURF's tables carry. The chart is built at once, so a
 result it cannot draw raises `ResultChartError` (a `ValueError`) with what it
 draws instead: `A Result chart cannot draw a FreqTable (Value, Label, N, %, …).
 It draws the results of Group means, Descriptive statistics, t-test, Paired

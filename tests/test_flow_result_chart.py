@@ -520,3 +520,52 @@ def test_themes_are_drawn_and_a_missing_sentiment_is_explained_by_the_run(tmp_pa
     )
     with pytest.raises(FlowError, match="Node c \\(visualize.result_chart\\) failed"):
         FlowRunner(flow(without, True, "sentiment")).run(sources={"src": data}, cwd=tmp_path)
+
+
+def test_a_table_connected_alone_still_says_how_the_weight_was_used(
+    questionnaire_doc, survey, tmp_path
+):
+    """Regression, PCA, Cluster and TURF told the chart their weight only in
+    their stat: with the table alone the chart had no weight line at all —
+    and Cluster, whose k-means ignores the weight, did not say so."""
+    nodes = [
+        ("sim", "source.simulated", {"n": 240, "seed": 5}),
+        ("expl", "prepare.explode", {"variable": "aware"}),
+        ("cell", "prepare.cell_weights", {"variable": "gender", "targets": {"1": 0.5, "2": 0.5}}),
+        ("w", "prepare.apply_weight", {}),
+        ("clu", "analyze.cluster", {"items": ["age", "satisfaction"], "k": 3}),
+        ("reg", "analyze.regression", {"y": "satisfaction", "predictors": ["age", "region"]}),
+        ("ord", "analyze.regression",
+         {"y": "satisfaction", "predictors": ["age"], "kind": "ordinal"}),
+        ("pca", "analyze.pca", {"items": ["age", "satisfaction", *TRUST]}),
+        ("turf", "analyze.turf", {"items": ["aware_1", "aware_2", "aware_3"], "max_size": 2}),
+    ]  # fmt: skip
+    edges = [("sim", "data", "expl", "data"), ("expl", "data", "cell", "data")]
+    edges.append(("cell", "data", "w", "data"))
+    ports = {"clu": "table", "reg": "table", "ord": "table", "pca": "loadings", "turf": "table"}
+    for node, port in ports.items():
+        nodes.append((f"c_{node}", "visualize.result_chart", {}))
+        edges += [("w", "data", node, "data"), (node, port, f"c_{node}", "result")]
+    flow = _flow(nodes, edges)
+    assert _issues(flow, questionnaire_doc) == []
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    notes = {node: result.output(f"c_{node}").weight_note for node in ports}
+    assert notes == {
+        "clu": "unweighted (the weight 'weight' is not applied)",
+        "reg": "weighted by 'weight'",
+        "ord": "weighted by 'weight'",
+        "pca": "weighted by 'weight'",
+        "turf": "weighted by 'weight'",
+    }
+    # Unweighted data: no weight line, as before.
+    unweighted = _flow(
+        [nodes[0], nodes[5], ("c_reg", "visualize.result_chart", {})],
+        [("sim", "data", "reg", "data"), ("reg", "table", "c_reg", "result")],
+    )
+    plain = FlowRunner(
+        unweighted, questionnaire=survey, questionnaire_document=questionnaire_doc
+    ).run(cwd=tmp_path)
+    assert plain.output("c_reg").weight_note is None

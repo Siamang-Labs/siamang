@@ -574,6 +574,8 @@ def ordinal_regression(
                 f"frequencies: they sum to {total:,.1f} over {len(data)} respondents, and the "
                 f"standard errors count {total:,.1f}"
             )
+    if weight:
+        table.attrs["weight"] = weight  # a chart of the table alone says it
     return RegressionResult(kind="ordinal", table=table, stats=stats)
 
 

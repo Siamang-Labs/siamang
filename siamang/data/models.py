@@ -189,6 +189,8 @@ def regression(
         result = _ols(x, target, w, names, y, len(data))
     if weight:
         result.stats["weight"] = weight
+        # The table says it too: a chart of it alone must not show it unweighted.
+        result.table.attrs["weight"] = weight
     return result
 
 
@@ -363,6 +365,7 @@ def pca(
     }
     if weight:
         stats["weight"] = weight
+        loadings.attrs["weight"] = variance.attrs["weight"] = weight  # for a chart of either
     return PcaResult(loadings=loadings, variance=variance, stats=stats)
 
 
