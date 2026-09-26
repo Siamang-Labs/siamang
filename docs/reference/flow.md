@@ -253,8 +253,9 @@ builder hides it for percentages. Its `checks`: By with Split by is an error
 (`By draws the mean of Variable in each group and Split by its answers in each
 group — clear one of them.`); By with Show percent (`By (the mean in each
 group) is not drawn when Show is percent; to show the answers in each group,
-use Split by.`) and a stacked Layout without Split by (`Stacked layouts apply
-only when Split by is set.`) are warnings.
+use Split by.` — of bars: a histogram and a donut have their own rule on By)
+and a stacked Layout without Split by (`Stacked layouts apply only when Split
+by is set.`) are warnings.
 
 It also takes **`top`** (*Top N*) and **`other`** (*Combine the rest as
 Other*), **`intervals`** (*Confidence intervals*) with **`confidence`**,
@@ -286,7 +287,9 @@ intervals are drawn for percentages and for means by group; counts have none —
 set Show to percent.`, `Significance letters compare the groups of Split by —
 set Split by.`, `Significance letters are drawn on bars side by side (Layout
 grouped), not on stacks.` and `Significance letters compare percentages, as the
-Banner table's do — set Show to percent.` Bins that are not auto, a whole
+Banner table's do — set Show to percent.` — the last five of bars only: a
+histogram or a donut draws no intervals or letters, and ticked ones left over
+from bars are not warned of there (the fields are not read). Bins that are not auto, a whole
 number from 1 to 100 or increasing edges are `PARAM_INVALID` before the run
 (`Parameter 'bins' of n: The bins' edges must increase from one to the next,
 and 40 is followed by 20.`).
