@@ -27,8 +27,10 @@ renders the same picture — and hands everything else to :func:`draw`:
   the Banner table's two-sided z-test of column proportions
   (:func:`siamang.reporting.tables.proportion_letters`), on the base of the
   group's respondents who answered (Kish's effective base weighted), groups
-  lettered in the Banner table's order: the letters the Tab book prints for
-  the same cells.
+  lettered A, B, … over the split variable's groups in the Banner table's
+  order: the comparisons the Tab book prints for the same cells, under the
+  letters its banner gives these columns (the same letters only when the
+  split variable is the banner's first).
 - ``layout="histogram"``: an interval or ratio variable in ``bins`` — Freedman
   and Diaconis's width (``"auto"``), a number of bins, or their edges — as
   counts or percent, weighted; with a split, one panel per group.
@@ -875,7 +877,7 @@ def _means(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         notes.append(
             f"Error bars: {_level(chart.confidence)} confidence intervals of the mean ("
             + (
-                "weighted: the linearization interval, as the Group means chart draws it)."
+                "weighted: the linearization interval)."
                 if weighted
                 else "Student's t)."
             )
