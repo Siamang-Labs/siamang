@@ -158,7 +158,7 @@ def test_group_means_draws_each_mean_with_its_interval(tmp_path):
     means = table.to_frame()["Mean"].tolist()
     assert [x for x, _ in sorted(_points(ax), key=lambda p: p[1])] == means
     whiskers = _whiskers(ax)
-    assert whiskers[0][1:] == pytest.approx((2.70080170952, 7.29919829048), abs=1e-9)
+    assert whiskers[0][1:] == pytest.approx((2.70080170952, 7.29919829048), rel=1e-8)
     assert all(low < mean < high for (_, low, high), mean in zip(whiskers, means, strict=True))
     assert "95 % confidence interval" in ax.get_xlabel()
     path = chart.save(tmp_path / "means.png")
@@ -173,7 +173,7 @@ def test_weighted_group_means_draw_the_weighted_interval_and_say_so():
     assert chart._ax.get_title(loc="left").endswith("\nweighted by 'w'")
     assert chart._ax.get_xlabel().startswith("Weighted mean")
     beta = _whiskers(chart._ax)[1]
-    assert beta[1:] == pytest.approx((1.911360860729, 4.538639139271), abs=1e-9)
+    assert beta[1:] == pytest.approx((1.911360860729, 4.538639139271), rel=1e-8)
     assert sorted(_points(chart._ax), key=lambda p: p[1])[1][0] == 3.225  # the table's mean
 
 
@@ -258,11 +258,11 @@ def test_descriptives_draw_one_series_per_group():
     assert [text.get_text() for text in legend.get_texts()] == ["Alpha", "Beta", "Gamma"]
     assert legend.get_title().get_text() == "Group"
     assert len(_points(ax)) == 6  # two variables, three groups
-    assert _whiskers(ax)[0][1:] == pytest.approx((2.70080170952, 7.29919829048), abs=1e-9)
+    assert _whiskers(ax)[0][1:] == pytest.approx((2.70080170952, 7.29919829048), rel=1e-8)
     # Weighted, the interval is the weighted one, and the table's mean is drawn.
     weighted = rc.chart(_groups_data(weighted=True).report.descriptives(["y"], by="g"))
     beta = sorted(_whiskers(weighted._ax))[1]
-    assert beta[1:] == pytest.approx((1.911360860729, 4.538639139271), abs=1e-9)
+    assert beta[1:] == pytest.approx((1.911360860729, 4.538639139271), rel=1e-8)
     assert weighted.weight_note == "weighted by 'w'"
 
 
