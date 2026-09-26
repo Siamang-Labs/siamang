@@ -84,7 +84,7 @@ The runner and the generator use the same order.
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `quality`, `cell_weights`, `rake_weights`, `apply_weight`, `index`, `derive`, `bands`, `explode`, `text_code`, `maxdiff_scores` |
-| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `drivers`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
+| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `drivers`, `correspondence`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
 | visualize | `bar`, `boxplot`, `heatmap`, `likert`, `scatter`, `result_chart` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `choice_data`, `conjoint_data`, `live_tile` |
 
@@ -102,7 +102,7 @@ Crosstab (Fisher's exact test counts respondents), Group means (not N or the
 test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
 Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Key drivers (its tests on Kish's
-effective N), Correlation and Correlation matrix
+effective N), Perceptual map (its chi-square test counts respondents), Correlation and Correlation matrix
 with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, and Proportion CI with
 `weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
@@ -161,6 +161,22 @@ predictors). Outputs: `table` (Rank, Driver, r, Beta, Beta p, VIF, the
 importance and its % of R², largest first — a `DriverTable` whose `analysis` is
 the whole result, which `drivers.plot` draws) and `stat`. `check_flow` refuses
 fewer than two predictors, and more than 15 with `shapley`, before the run.
+
+`analyze.correspondence` (Perceptual map, `siamang.data.correspondence.analyze`)
+is a simple correspondence analysis. `layout` `crosstab` (default) crosses
+`row` with `column` (respondents in each pair of answers; a multiple-choice
+variable counts each answer chosen); `attributes` counts, for each answer of
+`row`, the respondents who ticked each of `attributes` (0/1 variables;
+`yes_codes` says what a tick is). `dimensions` (default 2) is how many
+dimensions the point tables show. Outputs: `table` (each dimension's singular
+value, principal inertia, % and cumulative %, the statistics as its footer),
+`rows` and `columns` (mass, quality, inertia %, and per dimension the principal
+coordinate, contribution % and cos²) and `stat` (total inertia, the first two
+dimensions' %, the chi-square test of a crosstab of single answers, weight,
+excluded rows, missing codes). The tables are `MapTable`s whose `analysis` is
+the result, which `correspondence.plot` draws. `check_flow` says before the
+run that a crosstab needs Columns, an attribute map Attributes (two or more),
+and warns of Counts as yes on a crosstab.
 
 `analyze.factor` runs an exploratory factor analysis
 (`siamang.data.factor.analyze`): `items`, `n_factors` (empty: by `criterion`,

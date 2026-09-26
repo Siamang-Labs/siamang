@@ -538,6 +538,67 @@ figure too short for its rows grows. It returns the matplotlib `Figure`.
 
 ---
 
+## Perceptual maps: `siamang.data.correspondence`
+
+`analyze(data, row, *, column=None, attributes=None, yes=None, dimensions=2) -> PerceptualMap`
+— the `analyze.correspondence` node. Give `column` for a crosstab (the
+respondents in each pair of answers; a multiple-choice variable counts each
+answer chosen) or `attributes` for a brand-image grid (per answer of `row`, the
+respondents who ticked each 0/1 attribute; `yes` is the code or codes of a
+tick, empty for 0/1; a blank is no tick). `ca(table) -> CorrespondenceSolution`
+is the analysis of a plain table of counts.
+
+Simple CA as `ca::ca` and FactoMineR's `CA`: the SVD of the standardized
+residuals `D_r^{-½}(P − rcᵀ)D_c^{-½}`. `CorrespondenceSolution` holds the
+counts, the row and column masses, the singular values and principal
+`inertias` (summing to `total_inertia` = χ²/n), `explained` (%), the standard
+and principal coordinates of rows and columns, their `contributions` (shares of
+each dimension's inertia; ca prints them per mil, FactoMineR in %), `cos2`
+(ca's "cor") and `inertia` (shares of the total). **Signs:** each dimension is
+signed so the row contributing most to it lies on its positive side; ca and
+FactoMineR leave the SVD's signs (on `smoke` they mirror each other's second
+dimension), so a map can be a mirror image of theirs with every other number
+equal.
+
+`PerceptualMap` holds `table` (Dimension, Singular value, Principal inertia, %
+of inertia, Cumulative %; the statistics as footer), `rows` and `columns`
+(the category, Mass, Quality — cos² of the dimensions shown —, Inertia %, and
+per dimension `Dim k` (principal coordinate), `Contribution k %`, `cos² k`),
+`stats` (`Map`, `Rows`, `Columns`, `N`, `Counts as yes`, `Total inertia`,
+`Dimensions`, `Dimension 1 %`, `Dimension 2 %`, `Map %`, and when they apply
+`Chi-square`, `df`, `p`, `Chi-square note`, `Chi-square counts`, `Weight`,
+`Weighted N`, `Not in the map`, `Note`, `Excluded`, `Excluded because`,
+`Missing codes`), `solution` and the labels. The three tables are `MapTable`s
+whose `analysis` is the result.
+
+- **Weights:** a cell is the sum of its respondents' weights. The chi-square
+  test of independence (Pearson, uncorrected: n × total inertia) is given for a
+  crosstab of two single-answer variables only, on the respondents' counts;
+  with a multiple-choice variable, or in the attributes layout, a respondent is
+  in several cells and there is no test.
+- **Who is counted:** a blank or a codebook missing code in `row` (or
+  `column`) leaves the respondent out, and the stats count them; an answer
+  nobody gave is not on the map and is named.
+- **Refused:** fewer than two rows or columns with counts, a table whose rows
+  all have the same profile (nothing to map), both or neither of `column` and
+  `attributes`, fewer than two attributes, attribute codes other than 0/1 with
+  no `yes`, a multiple-choice attribute (explode it first).
+
+`plot(result, *, dimensions=(1, 2), title=None, figsize=None, ax=None)` draws
+the symmetric map: rows as blue circles, columns as orange triangles, the axes
+on one scale crossing at the average profile and naming each dimension's share
+of the inertia, the title the map, the share shown and the weight. Labels are in
+ink: each is placed beside its point where it overlaps no other label and no
+point, stays inside the axes and lies nearer its own point than any other — a
+greedy placement, heaviest point first, over 96 spots per label (16 directions
+at 6 distances, the further ones with a thin line back to the point), then
+rounds of moving any label to a better spot. Long labels wrap onto two lines
+(narrower on a narrower figure), and the font shrinks from 10 to 7 pt as the
+labels crowd the plot. A table of one dimension is drawn on a line. It returns
+the matplotlib `Figure`.
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.

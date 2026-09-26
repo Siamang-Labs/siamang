@@ -474,6 +474,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   largest first, a negative beta in a second colour, and returns the matplotlib
   Figure; the table (`DriverTable`) carries the result in `analysis`.
 
+- **Perceptual map** — `siamang.data.correspondence` and the flow node
+  **`analyze.correspondence`**: simple correspondence analysis of a crosstab of
+  two variables (a multiple-choice variable counts each answer) or of a
+  brand-image grid (per answer of **Rows**, the respondents ticking each 0/1
+  **Attribute**; **Counts as yes** for other codes), by the SVD of the
+  standardized residuals as `ca::ca` and FactoMineR's `CA`: principal inertias
+  and their share of the total, row and column principal coordinates, masses,
+  contributions, cos² and quality, in a `table`, `rows` and `columns` output
+  and a `stat`. Each dimension is signed so the row contributing most to it is
+  positive (packages differ: on `smoke`, FactoMineR mirrors ca's second
+  dimension). Weighted counts when a weight applies; the chi-square test of a
+  crosstab of single answers counts respondents; missing codes left out and
+  counted, empty answers named. `check_flow` says a crosstab needs Columns ("A
+  crosstab map crosses Rows with Columns — choose the Columns variable.") and
+  an attribute map two or more Attributes before the run.
+  `correspondence.plot(result)` draws the symmetric map of the first two (or
+  any two) dimensions, one scale on both axes, with labels placed beside their
+  points so that they overlap no label or point and read as their own point's
+  (a thin line back when they had to move out), wrapped and shrunk as the map
+  fills; it returns the matplotlib Figure, and the tables (`MapTable`) carry
+  the result in `analysis`.
+
 ### Fixed
 
 - **A value a node does not read is not checked.** The t-test's rules "Name

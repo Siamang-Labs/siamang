@@ -580,6 +580,55 @@ give R², adjusted R² and the F-test.
 
 ---
 
+## Perceptual maps
+
+Which brands are seen as modern and which as good value? A table of counts says
+it cell by cell; a correspondence analysis draws it as a map, where a brand
+lies towards the attributes it gets more of than the average brand.
+`siamang.data.correspondence.analyze` builds the table and analyses it, and
+`plot` draws the map. The flow node is **Perceptual map**
+(`analyze.correspondence`).
+
+```python
+from siamang.data import correspondence
+
+# A crosstab of two questions
+result = correspondence.analyze(data, "region", column="brand_used")
+
+# A brand-image grid: a row per respondent and brand, one 0/1 column per attribute
+result = correspondence.analyze(
+    stacked, "brand", attributes=["modern", "good_value", "friendly", "premium"]
+)
+result.table.to_frame()     # each dimension's inertia and % of the total
+result.rows.to_frame()      # per brand: mass, quality, coordinates, contributions, cos²
+correspondence.plot(result).savefig("map.png")
+```
+
+| **Table** (`layout`) | Cells |
+|----------------------|-------|
+| `crosstab` | the respondents in each pair of answers of **Rows** and **Columns**; a multiple-choice variable counts each answer chosen |
+| `attributes` | for each answer of **Rows**, the respondents who ticked each of the **Attributes** (0/1 variables; **Counts as yes** for other codes) |
+
+- **Reading the map.** Rows and columns are both in principal coordinates (a
+  symmetric map, as `ca` and FactoMineR draw by default). The axes are the
+  dimensions that carry most of the table's inertia — its departure from
+  independence — and each says its share. A point's **quality** says how well
+  the dimensions shown represent it; its **contribution** how much it shapes a
+  dimension.
+- **Signs** are arbitrary in any correspondence analysis; here each dimension
+  points towards the row that contributes most to it, so a map may be the
+  mirror image of another package's.
+- **Weights** make each cell a sum of weights. A crosstab of two single-answer
+  questions also gets the chi-square test of independence, on the respondents'
+  counts; where a respondent is in several cells there is no test.
+- The codebook's missing codes are left out and counted, and an answer nobody
+  gave is named, not drawn.
+- **The chart.** Labels sit beside their points where they overlap nothing and
+  read as their own point's, further out with a thin line when the space beside
+  is taken; long labels wrap, and the font shrinks as the map fills up.
+
+---
+
 ## Weighted statistics
 
 Set a default weight column once with `with_weight(...)`, then pass
