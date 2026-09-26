@@ -707,13 +707,13 @@ class CorrelationMatrixTable(_BlankUndefined, SurveyTable):
 def export_with_posthoc(table: SurveyTable, posthoc: PostHocTable | None, path: str | Path) -> Path:
     """Write ``table`` to an Excel file, with its post-hoc pairs on a second sheet."""
 
+    from siamang.io.excel_text import to_excel
+
     table._ensure_built()
-    path = Path(path)
-    with pd.ExcelWriter(path) as writer:
-        table._result.to_excel(writer, index=False, sheet_name="Table")
-        if posthoc is not None:
-            posthoc.to_frame().to_excel(writer, index=False, sheet_name="Post-hoc")
-    return path
+    sheets = [("Table", table._result)]
+    if posthoc is not None:
+        sheets.append(("Post-hoc", posthoc.to_frame()))
+    return to_excel(sheets, Path(path), index=False)
 
 
 def render_with_posthoc(markdown_or_html: str, posthoc: PostHocTable | None, *, html: bool) -> str:

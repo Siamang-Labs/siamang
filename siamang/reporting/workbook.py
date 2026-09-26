@@ -10,12 +10,17 @@ table of a :class:`~siamang.reporting.document.Report`:
   their own beside it — so the workbook and a table exported alone can never
   differ; a bare DataFrame is written as the report prints it (no index);
 - the statistics a table prints under itself (χ², p, N, the weight, the
-  missing codes left out) are written under it, after an empty row;
+  missing codes left out) are written under it, after an empty row — and the
+  post-hoc pairs' own (the method, which way a difference runs, that p is
+  adjusted) under the pairs;
 - a sheet is named by the table's caption, else by its section's heading,
   else by the variable it describes, else ``Table <n>`` — cut to Excel's 31
   characters, without the characters Excel refuses, and made unique;
 - the first sheet, ``Contents``, lists every sheet with its section and full
-  caption, each a link to the sheet.
+  caption, each a link to the sheet;
+- text is text: a respondent's answer, a label or a caption that begins with
+  ``=`` is written as a string, never as a formula Excel would run
+  (:mod:`siamang.io.excel_text`).
 
 Charts, text and statistics lines are not tables and are left out.
 """
@@ -47,6 +52,8 @@ def save_tables(report: Report, path: str | Path) -> Path:
     import openpyxl
     from openpyxl.styles import Font
 
+    from siamang.io.excel_text import as_text
+
     path = Path(path)
     if path.suffix.lower() != ".xlsx":
         raise ValueError(f"The tables are written to an .xlsx workbook; got {path.name!r}.")
@@ -71,8 +78,7 @@ def save_tables(report: Report, path: str | Path) -> Path:
             name = names.take(base, suffix=own if index else None)
             target = book.create_sheet(name)
             _copy(sheet, target)
-            if index == 0:
-                _write_stats(target, component)
+            _write_stats(target, _sheet_source(component, index, own))
             _fit_columns(target)
             described = caption or _described(component)
             entries.append(
@@ -96,6 +102,7 @@ def save_tables(report: Report, path: str | Path) -> Path:
     else:
         contents["A4"] = "This report has no tables."
     _fit_columns(contents, first_row=4)
+    as_text(book.worksheets)
     book.save(path)
     return path
 
@@ -145,6 +152,41 @@ def _own_name(component: Any) -> str | None:
     return None
 
 
+def _analysis_name(component: Any) -> str | None:
+    """What a table of the later analyses describes, and which of the
+    analysis's tables it is: ``Region × Gender — rows (Region)`` of a
+    Perceptual map, ``Gabor-Granger — curves`` of Price sensitivity, the
+    outcome of Key drivers, the test of Paired tests."""
+
+    stats = getattr(component, "stats", None)
+    stats = stats if isinstance(stats, dict) else {}
+    analysis = getattr(component, "analysis", None)
+    kind = type(component).__name__
+    if kind == "MapTable" and analysis is not None:
+        title = f"{analysis.row_title} × {analysis.column_title}"
+        part = (
+            "inertia"
+            if component is analysis.table
+            else f"rows ({analysis.row_title})"
+            if component is analysis.rows
+            else f"columns ({analysis.column_title})"
+            if component is analysis.columns
+            else None
+        )
+        return f"{title} — {part}" if part else title
+    if kind == "PriceTable" and analysis is not None:
+        method = str(stats.get("Method") or analysis.method)
+        if component is analysis.curves:
+            return f"{method} — curves"
+        points = "price points" if analysis.method == "van_westendorp" else "demand and revenue"
+        return f"{method} — {points}"
+    if kind == "DriverTable" and isinstance(stats.get("Outcome"), str):
+        return str(stats["Outcome"])
+    if isinstance(stats.get("Test"), str):
+        return str(stats["Test"])
+    return None
+
+
 #: What each table component is, for the contents of a table without a caption.
 _KINDS = {
     "FreqTable": "Frequencies",
@@ -162,15 +204,31 @@ _KINDS = {
     "MaxDiffTable": "MaxDiff",
     "ConjointTable": "Conjoint",
     "ShareTable": "Share of preference",
+    "DriverTable": "Key drivers",
+    "MapTable": "Perceptual map",
+    "PriceTable": "Price sensitivity",
 }
 
 
 def _described(component: Any) -> str:
     """``"Frequencies: Region"``: the kind of table and what it describes."""
 
-    kind = _KINDS.get(type(component).__name__, "Table")
-    own = _own_name(component)
+    name = type(component).__name__
+    own = _own_name(component) or _analysis_name(component)
+    kind = _KINDS.get(name, "Table")
+    if name == "ResultTable" and own and own == getattr(component, "stats", {}).get("Test"):
+        kind = "Paired tests"  # its own name is the test: "Paired tests: Cochran's Q"
     return f"{kind}: {own}" if own else kind
+
+
+def _sheet_source(component: Any, index: int, own: str) -> Any:
+    """The table whose statistics go under sheet ``index`` of ``component``'s
+    export: the table itself on its first sheet, its post-hoc pairs' on theirs."""
+
+    if index == 0:
+        return component
+    posthoc = getattr(component, "posthoc_table", None)
+    return posthoc if own == "Post-hoc" and posthoc is not None else None
 
 
 def _sheets(component: Any) -> list[tuple[str, Any]]:
@@ -225,7 +283,7 @@ def _write_stats(target: Any, component: Any) -> None:
 
     from openpyxl.styles import Font
 
-    stats = getattr(component, "stats", None)
+    stats = getattr(component, "stats", None) if component is not None else None
     if not isinstance(stats, dict) or not stats:
         return
     row = target.max_row + 2

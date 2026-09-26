@@ -18,6 +18,10 @@ class ExcelReader:
 
 class ExcelWriter:
     def write(self, data: SurveyData, path: str | Path, **kwargs) -> Path:
+        from siamang.io.excel_text import to_excel
+
         output = Path(path)
-        scalar_frame(data.frame).to_excel(output, index=False, **kwargs)
+        # An open answer "=1+1" is text: written as a formula it would run in
+        # Excel and read back as no answer at all.
+        to_excel(scalar_frame(data.frame), output, index=False, **kwargs)
         return output

@@ -104,8 +104,18 @@ def test_every_table_gets_its_sheet_as_its_own_export_writes_it(data, tmp_path):
     exported = _own_export(means, tmp_path)
     assert set(exported) == {"Table", "Post-hoc"}
     assert _rows(book["Age"])[: len(exported["Table"])] == exported["Table"]
-    assert _rows(book["Age – Post-hoc"]) == exported["Post-hoc"]
-    assert _rows(book["Age – Post-hoc"])[1][0] == "Capital vs North"
+    pairs = _rows(book["Age – Post-hoc"])
+    assert pairs[: len(exported["Post-hoc"])] == exported["Post-hoc"]
+    assert pairs[1][0] == "Capital vs North"
+    # The pairs' own statistics under them, as the report prints them: which
+    # way a difference runs, and that p is adjusted already.
+    footer = {row[0]: row[1] for row in pairs[len(exported["Post-hoc"]) + 1 :]}
+    assert footer == {
+        key: value if isinstance(value, int | float | str) else str(value)
+        for key, value in means.posthoc_table.stats.items()
+    }
+    assert footer["Method"] == "Tukey HSD" and footer["Difference"].startswith("mean of the first")
+    assert footer["p"].startswith("adjusted for the number of pairs")
     stats = {row[0]: row[1] for row in _rows(book["Age"])[len(exported["Table"]) + 1 :]}
     assert stats["Test"] == "One-way ANOVA" and stats["Post-hoc"].startswith("Tukey HSD")
     assert isinstance(stats["p"], float) and isinstance(stats["N"], int)
@@ -222,3 +232,85 @@ def test_save_report_writes_the_workbook_beside_the_report(questionnaire_doc, su
 
     FlowRunner(_flow({}), questionnaire=survey).run(sources={"src": data}, cwd=tmp_path / "plain")
     assert not list((tmp_path / "plain").rglob("*.xlsx"))
+
+
+def test_text_that_begins_with_an_equals_sign_is_written_as_text(data, tmp_path):
+    """openpyxl stores a string beginning with "=" as a formula: an open answer
+    =HYPERLINK(…) became a live link in the workbook, and read back as nothing."""
+    from siamang.io import read_snapshot, write_snapshot
+
+    frame = data.frame.copy()
+    frame["comment"] = frame["comment"].astype(object)
+    frame.loc[frame.index[:5], "comment"] = '=HYPERLINK("http://evil.example","Click me")'
+    frame.loc[frame.index[5:10], "comment"] = "=1+1"
+    answers = data.with_frame(frame)
+    report = (
+        Report(title="=cmd|' /C calc'!A0")
+        .heading("=SUM(A1:A9)")
+        .add(answers.report.freq("comment"), caption="=1+2")
+        .add(pd.DataFrame({"said": ["=2*3", "fine"]}))
+    )
+    book = openpyxl.load_workbook(report.save_tables(tmp_path / "r.xlsx"))
+    cells = [cell for sheet in book.worksheets for row in sheet.iter_rows() for cell in row]
+    assert not [cell.coordinate for cell in cells if cell.data_type == "f"]
+    texts = {cell.value for cell in cells if isinstance(cell.value, str)}
+    assert {'=HYPERLINK("http://evil.example","Click me")', "=1+1", "=2*3", "=1+2"} <= texts
+    assert book["Contents"]["A1"].value == "=cmd|' /C calc'!A0"
+    assert book["Contents"]["B5"].value == "=SUM(A1:A9)"
+    # A table's own export, and the data written to Excel, keep the text too.
+    own = openpyxl.load_workbook(answers.report.freq("comment").export_xlsx(tmp_path / "t.xlsx"))
+    assert not [c for row in own.active.iter_rows() for c in row if c.data_type == "f"]
+    back = read_snapshot(write_snapshot(answers, tmp_path / "data.xlsx"))
+    assert list(back.frame["comment"][:6]) == list(frame["comment"][:6])
+    assert (back.frame["comment"] == "=1+1").sum() == 5
+
+
+def test_the_contents_name_the_tables_of_the_later_analyses(tmp_path):
+    """Without a caption, a Perceptual map's three tables in one section were
+    'Table', 'Table' and 'Table'; each now says which of the map's it is."""
+    from siamang.core.variable import Variable, VariableMap
+    from siamang.data import correspondence, drivers, paired, pricing
+
+    rng = np.random.default_rng(4)
+    n = 240
+    frame = pd.DataFrame(
+        {
+            "brand": rng.integers(1, 4, n).astype(float),
+            "region": rng.integers(1, 4, n).astype(float),
+            "y": rng.normal(size=n),
+            "a": rng.normal(size=n),
+            "b": rng.normal(size=n),
+            "b1": rng.integers(0, 2, n).astype(float),
+            "b2": rng.integers(0, 2, n).astype(float),
+            "b3": rng.integers(0, 2, n).astype(float),
+            **{f"gg{p}": rng.integers(0, 2, n).astype(float) for p in (5, 10)},
+        }
+    )
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("brand", "nominal", label="Brand", labels={1: "A", 2: "B", 3: "C"}),
+            Variable("region", "nominal", label="Region", labels={1: "N", 2: "S", 3: "W"}),
+            Variable("y", "interval", label="Liking"),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    mapped = correspondence.analyze(data, "brand", column="region")
+    keys = drivers.analyze(data, "y", ["a", "b"])
+    cochran = paired.cochran(data, ["b1", "b2", "b3"])
+    prices = pricing.gabor_granger(data, ["gg5", "gg10"], prices=[5, 10])
+    report = Report(title="Methods").heading("Methods")
+    for table in (mapped.table, mapped.rows, mapped.columns, keys.table, cochran.table):
+        report.add(table)
+    report.add(prices.table).add(prices.curves)
+    book = openpyxl.load_workbook(report.save_tables(tmp_path / "m.xlsx"))
+    described = [row[2] for row in _rows(book["Contents"])[4:]]
+    assert described == [
+        "Perceptual map: Brand × Region — inertia",
+        "Perceptual map: Brand × Region — rows (Brand)",
+        "Perceptual map: Brand × Region — columns (Region)",
+        "Key drivers: Liking",
+        "Paired tests: Cochran's Q",
+        "Price sensitivity: Gabor-Granger — demand and revenue",
+        "Price sensitivity: Gabor-Granger — curves",
+    ]
