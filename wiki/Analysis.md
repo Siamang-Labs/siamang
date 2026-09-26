@@ -309,14 +309,16 @@ noise.
 data.analysis.compare_groups("autonomy", "remote_freq", posthoc="dunn")
 # {'test': 'Kruskal-Wallis H', 'statistic': 2.133..., 'p_value': 0.7112...,
 #  'groups': 5.0, 'n': 200, 'posthoc': "Dunn's test (Holm)",
-#  'Never vs Occasionally': 'z = 0.939, p = 1.0000', …}
+#  'Never vs Occasionally': 'z = 0.939, p = 1.0', …}
 ```
 
 ### Fisher's exact test: `report.crosstab(..., method="fisher")`
 
 For small counts, where the chi-square's approximation is poor. A 2 × 2 table
 gets the two-sided p, the odds ratio (conditional maximum likelihood) and its
-exact 95 % CI, as R's `fisher.test` reports them. A larger table gets the
+exact 95 % CI, as R's `fisher.test` defines them (R's root finder stops sooner,
+so on a sparse table the limits it prints can differ slightly; the p-values
+agree). A larger table gets the
 Fisher–Freeman–Halton test: the p is summed exactly over every table with the
 observed margins when there are at most 200,000 of them, and otherwise estimated
 from 20,000 random tables drawn from a fixed seed — so a rerun gives the same
