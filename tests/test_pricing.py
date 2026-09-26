@@ -166,6 +166,15 @@ def test_newton_miller_smith_by_hand():
         "Highest revenue (NMS)",
     ]
     assert list(result.curves.to_frame()["Trial %"]) == [0.0, 35.0, 40.0, 5.0, 0.0]
+    # One base for the points and the trial: those who answered all six.
+    frame = _two().frame.assign(lc=[5, None, 3, 5])
+    fewer = pricing.van_westendorp(
+        _two().with_frame(frame), **QUESTIONS, likelihood_cheap="lc", likelihood_expensive="le"
+    )
+    assert fewer.stats["N"] == 1 and fewer.stats["Excluded"] == 2
+    assert fewer.stats["Excluded because"] == (
+        "a missing value in any of the price or likelihood questions (listwise)"
+    )
     # A calibration of one's own, keyed as JSON keys are (text).
     own = pricing.van_westendorp(
         _two(), **QUESTIONS, likelihood_cheap="lc", likelihood_expensive="le",
