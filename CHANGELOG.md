@@ -419,6 +419,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     missing codes are taken out, with a `stat` of the count per band and what
     fell outside. **Derive** takes `labels` for a formula that yields codes.
 
+- **Cochran's Q** in Paired tests (`analyze.paired`, Test `cochran`;
+  `siamang.data.paired.cochran`, `cochran_test`): McNemar's question for three
+  or more yes/no variables answered by the same respondents — is the share
+  saying yes the same for all? `Q = (k − 1)(k ΣCⱼ² − N²) / (k N − ΣRᵢ²)` on
+  k − 1 df, as R's `DescTools::CochranQTest` and statsmodels' `cochrans_q`.
+  **Counts as yes** is read as for McNemar (empty for 0/1 variables); the table
+  gives each variable's yes count and `% yes`, the stats `Q`, `df`, `p`, and the
+  `pairs` output a McNemar test of every pair (the two shares, the difference in
+  points, both discordant counts, the exact or chi-square p by McNemar's rule)
+  adjusted by Holm (default) or Bonferroni (**Pairwise comparisons (Friedman,
+  Cochran's Q)**). Listwise, missing codes left out and counted, unweighted and
+  saying so, as the other paired tests. `auto` still picks Wilcoxon or Friedman,
+  so stored flows render the same code. The check refuses Cochran's Q of two
+  variables ("Cochran's Q compares three or more yes/no variables; 2 were given.
+  For two, use McNemar.") and McNemar of three now adds "For three or more
+  yes/no variables, use Cochran's Q."; the warning for an unread Counts as yes
+  reads "Counts as yes is read only by McNemar and Cochran's Q — set Test to
+  mcnemar or cochran, or clear it."
+
 ### Fixed
 
 - **A value a node does not read is not checked.** The t-test's rules "Name

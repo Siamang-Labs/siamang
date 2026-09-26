@@ -413,7 +413,10 @@ def test_turf_and_paired_tests_warn_of_what_they_would_ignore(questionnaire_doc)
     assert issues("analyze.turf", {"items": items, "include": ["aware_2"]})[1] == []
     trust = ["trust_acme", "trust_globex"]
     _, messages = issues("analyze.paired", {"variables": trust, "yes_codes": [4, 5]})
-    assert messages == ["Counts as yes is read only by McNemar — set Test to mcnemar, or clear it."]
+    assert messages == [
+        "Counts as yes is read only by McNemar and Cochran's Q — set Test to mcnemar or "
+        "cochran, or clear it."
+    ]
     mcnemar = {"variables": trust, "test": "mcnemar", "yes_codes": [4, 5]}
     assert issues("analyze.paired", mcnemar)[1] == []
     # A builder reads the variants beside the plain subtitle it always had.

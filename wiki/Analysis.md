@@ -403,6 +403,7 @@ print(result.table.to_markdown())                          # N, mean, SD, median
 | `wilcoxon(data, x, y, *, zeros="wilcox", p_value="auto")` | Wilcoxon signed-rank, two ordered variables | `W+`, `W-`, `Z`, `p`, `r = Z/√n`, `Rank-biserial r`; positive, negative and zero differences |
 | `mcnemar(data, x, y, *, yes=None, p_value="auto")` | McNemar, two yes/no variables | `% yes` of each, the difference in points, both discordant counts, `Chi-square` or the exact binomial `p`, `Cohen's g`, `Odds ratio` |
 | `friedman(data, variables, *, posthoc="holm")` | Friedman, three or more ordered variables | `Chi-square`, `df`, `p`, `Kendall's W`; `pairs`: a Wilcoxon test per pair with Holm- (or Bonferroni-) adjusted p |
+| `cochran(data, variables, *, yes=None, posthoc="holm", p_value="auto")` | Cochran's Q, three or more yes/no variables | per variable the yes count and `% yes`; `Q`, `df`, `p`; `pairs`: a McNemar test per pair (% yes of each, the difference in points, both discordant counts, p) with Holm- (or Bonferroni-) adjusted p |
 | `compare(data, variables, *, test="auto", …)` | what the flow node runs | `auto`: Wilcoxon for two variables, Friedman for more |
 
 - **Who is compared.** A respondent missing any of the variables is left out
@@ -427,8 +428,16 @@ print(result.table.to_markdown())                          # N, mean, SD, median
   correction.
 - **Friedman.** The pairwise comparisons are Wilcoxon tests on the same
   respondents; `posthoc="none"` skips them.
+- **Cochran's Q.** McNemar's question for three or more yes/no variables — is
+  the share saying yes the same for all of them? — with `yes` as for McNemar
+  (0/1 variables, such as the ones Explode multiple choice makes, need none).
+  `Q = (k − 1)(k ΣCⱼ² − N²) / (k N − ΣRᵢ²)` on k − 1 df, as R's
+  `DescTools::CochranQTest` and statsmodels' `cochrans_q`; the pairwise
+  comparisons are McNemar tests on the same respondents, exact or chi-square by
+  McNemar's rule, adjusted by Holm (or Bonferroni). Test **cochran** in the
+  node; **auto** still picks Wilcoxon or Friedman.
 - Wilcoxon and Friedman rank answers, so a nominal variable is refused (use
-  McNemar for yes/no questions). Everyone giving the same answer twice is a
+  McNemar or Cochran's Q for yes/no questions). Everyone giving the same answer twice is a
   result, not an error: `p` is left out and `Note` says why.
 - None of these tests has a weighted form: on weighted data `stats["Weight"]`
   reads `unweighted (the weight 'w' is not applied)`.
