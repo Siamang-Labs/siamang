@@ -124,7 +124,7 @@ non-numeric weight counts 0.
 | `data.paired` (Wilcoxon, McNemar, Friedman), `data.factor` | unweighted: `stats["Weight"]` says the weight is not applied |
 | `report.quality` / `themes` | count responses; `stats["Weight"]` says the weight is not applied |
 | `describe_variables()` | counts rows, adds `weighted_n_valid` |
-| `plot.bar`, `plot.heatmap(by=…)` | weighted counts / means, axis labelled "Weighted …" |
+| `plot.bar`, `plot.heatmap(by=…)` | weighted counts / percentages / means, axis labelled "Weighted …" or "(weighted)" |
 | `plot.boxplot`, `plot.scatter`, `plot.heatmap()` | unweighted; the title's second line says so |
 | `report.descriptives` | mean, SD, median and quartiles weighted beside a `Weighted N` column; `stats` gives Kish's effective N and the design effect; N, Missing, skewness and kurtosis are not weighted |
 | `report.data_check`, `maxdiff.with_scores`, `bands.bands` | count rows (or score each respondent); `stats["Weight"]` says the weight is not applied |

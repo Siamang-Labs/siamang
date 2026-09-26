@@ -1,7 +1,7 @@
 type: visualize.bar
 category: visualize
 title: Bar chart
-description: Distribution of a variable, or its mean by group.
+description: Distribution of a variable as counts or percentages — split by a second variable, grouped or stacked, like the chart of a crosstab — or its mean by group.
 inputs:
   data: SurveyData
 outputs:
@@ -17,6 +17,39 @@ params:
     - nominal
     - ordinal
     label: By
+    help: The mean of Variable in each group of this one. For the answers themselves in each group, use Split by.
+  show:
+    kind: enum
+    values:
+    - count
+    - percent
+    default: count
+    label: Show
+    help: Count, or percent of the respondents who answered — for a multiple-choice question the share who named each option, so the bars add up to more than 100 % (the chart says so). With By the bars are means.
+  split:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: Split by
+    help: The answers within each group of this variable — the chart of a crosstab, with percentages of each group (column percentages), weighted when a weight is applied.
+  layout:
+    kind: enum
+    values:
+    - grouped
+    - stacked
+    - stacked_100
+    default: grouped
+    label: Layout
+    help: 'With Split by: the groups'' bars side by side, stacked, or stacked to 100 % of each group (percentages, whatever Show says). A multiple-choice question''s options overlap and are drawn side by side only.'
+  sort:
+    kind: enum
+    values:
+    - code
+    - value
+    default: code
+    label: Sort
+    help: Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall). Colours follow the answer, not its place.
   horizontal:
     kind: bool
     default: false
@@ -53,7 +86,63 @@ params:
     - tab10
     default: muted
     label: Palette
-subtitle: '{variable}'
-template: |
-  {out.chart} = {in.data}.plot.bar({variable!r}, by={by!r}, horizontal={horizontal!r}, show_values={show_values!r}, title={title!r}, figsize=({width!r}, {height!r}), palette={palette!r})
+subtitle:
+- when: split
+  text: '{variable} by {split}'
+- '{variable}'
+checks:
+- when: by & split
+  message: By draws the mean of Variable in each group and Split by its answers in each group — clear one of them.
+- when: by & show=percent
+  severity: warning
+  message: By (the mean in each group) is not drawn when Show is percent; to show the answers in each group, use Split by.
+- when: layout!=grouped & split=None
+  severity: warning
+  message: Layout applies only when Split by is set.
+# The first fragment is the chart this node has always drawn, written as it
+# always was: a stored flow renders the same code. The newer forms (percent, a
+# split, largest first) leave the codebook's missing codes out and say so under
+# the chart.
+template:
+- when: show=count & split=None & sort=code
+  code: |
+    {out.chart} = {in.data}.plot.bar({variable!r}, by={by!r}, horizontal={horizontal!r}, show_values={show_values!r}, title={title!r}, figsize=({width!r}, {height!r}), palette={palette!r})
+- when: show=count & split=None & sort=value
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        by={by!r},
+        sort="value",
+        horizontal={horizontal!r},
+        show_values={show_values!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+    )
+- when: show=percent & split=None
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        show="percent",
+        sort={sort!r},
+        horizontal={horizontal!r},
+        show_values={show_values!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+    )
+- when: split
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        show={show!r},
+        split={split!r},
+        layout={layout!r},
+        sort={sort!r},
+        horizontal={horizontal!r},
+        show_values={show_values!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+    )
 preview: chart
