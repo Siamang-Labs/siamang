@@ -611,6 +611,33 @@ logit as above.
 
 ---
 
+## 5. Trend
+
+### `data.plot.trend(...)` → `TrendChart` (`siamang.reporting.trend`)
+
+* **`trend(time: str, *, period: str = "month", measure: str = "percent", variable: str | None = None, codes=None, by: str | None = None, band: bool = True, min_base: int = 30, figsize=(10, 6), palette: str = "muted", title: str | None = None) -> TrendChart`**:
+  A measure over waves or dates, one line per group of `by`. `time` is a wave
+  code (one point per code, ordered by code, value labels on the axis) or a
+  date — `datetime64`, or ISO 8601 text such as a platform snapshot's
+  `created_at` — read in UTC and grouped by `period` (`day`, ISO `week`
+  Monday to Sunday labelled `2026-W22`, `month`, `quarter`, `year`), every
+  period between the first and the last on the axis. `measure` is
+  `"percent"` choosing `codes` of `variable` (any of them for a
+  multiple-choice question), its `"mean"`, or the `"count"` of respondents.
+  Weighted data gives weighted points; the band is the 95 % interval
+  (Proportion CI's normal approximation, or the t interval of the mean, on
+  Kish's effective base when weighted). A point with fewer than `min_base`
+  respondents is drawn hollow.
+* **`TrendChart.table`** — a `ResultTable` of period × group: the measure,
+  `Lower 95%`, `Upper 95%`, `Base`, and on weighted data `Weighted base` and
+  `Effective base`, and `Note` (`base below 30`, `no respondents`). Its
+  `stats`: `Measure`, `Base`, `Time`, `Interval`, `Weight`, `Low base`,
+  `Missing codes left out`, `Left out` (rows without a time, or whose text is
+  not a date, or without a group). **`TrendChart.points`** is the same,
+  unrounded (`trend(data, time, …)` computes it without a chart).
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.

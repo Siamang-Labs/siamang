@@ -399,4 +399,54 @@ teaches the chart a new result: `draw(result, chart)` draws on
 
 ---
 
+## `TrendChart` — a measure over waves or dates
+
+A tracking study asks the same question wave after wave, or reads an open
+survey by the month. `data.plot.trend` draws one line per group and hands the
+same points over as a table, each with its base:
+
+```python
+def trend(time, *, period="month", measure="percent", variable=None, codes=None,
+          by=None, band=True, min_base=30, figsize=(10, 6), palette="muted",
+          title=None) -> TrendChart
+```
+
+- **`time`** — a wave code (one point per code, ordered by code, the value
+  labels on the axis; a wave the codebook declares between two that were
+  found is a gap) or a date: a `datetime64` column, or ISO 8601 text as a
+  platform's snapshot writes the responses' `created_at`
+  (`2026-05-25 09:00:00+00:00`, `2026-05-25T09:00:00.000Z`, `2026-05-25`).
+  Times with a zone are read in UTC; text that is not a date is left out and
+  counted.
+- **`period`** — for dates: `day`, `week`, `month`, `quarter` or `year`. A
+  week is an ISO week, Monday to Sunday, labelled by its ISO year and number
+  (`2026-W01` runs from Monday 29 December 2025). Every period between the
+  first and the last is on the axis; an empty one is a gap.
+- **`measure`** — `"percent"` of those who answered `variable` who gave one of
+  `codes` (`[4, 5]` is a top-2 box; for a multiple-choice question, any of
+  them), `"mean"` of `variable`, or `"count"` of respondents.
+- **`by`** — one line per group; a respondent with a missing code is in none.
+- **`band`** — the 95 % interval: Proportion CI's normal approximation, or the
+  mean's t interval, on Kish's effective base when the data is weighted.
+- **`min_base`** — a point with fewer respondents is drawn hollow, noted under
+  the chart and in the table's `Note` column.
+
+On weighted data the points, the band and the count are weighted and the table
+gains `Weighted base` and `Effective base`; the codebook's missing codes are
+left out of every base and named in the table's statistics.
+
+```python
+chart = data.plot.trend("wave", variable="satisfaction", codes=[4, 5], by="segment")
+chart.save("satisfaction_trend.png")
+chart.table.to_frame()     # Period, Segment, Percent, Lower 95%, Upper 95%, Base, Note
+chart.table.stats          # Measure, Base, Time, Interval, Missing codes left out, …
+
+data.plot.trend("created_at", period="week", measure="count").show()
+```
+
+In a flow it is the **Trend** node (`visualize.trend`), with a `chart` and a
+`table` output — the table goes into a report section or a Live tile.
+
+---
+
 See also: [[Reporting Tables|Reporting-Tables]] · [[Report Document|Report-Document]] · [[Analysis]] · [[Working with Data|Working-with-Data]] · [[Installation]]

@@ -104,8 +104,8 @@ Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Key drivers (its tests on Kish's
 effective N), Perceptual map (its chi-square test counts respondents), Price
 sensitivity, Correlation and Correlation matrix
-with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, and Proportion CI with
-`weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
+with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, Proportion CI with
+`weighted` set, and the Trend. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
 groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
 Paired tests, Factor analysis, Cluster, Box plot, Scatter plot, a Heatmap
@@ -357,6 +357,20 @@ version, data snapshot, engine version — whatever ran the flow knows). A
 platform sets it per run; a research bundle's `run.sh` exports its
 `PROVENANCE.md`. Unset, the report is unchanged (`Report.provenance(None)` is
 a no-op).
+
+`visualize.trend` (**Trend**) draws a measure over waves or dates with
+`data.plot.trend` (`siamang.reporting.trend`): `time` (a wave code, or a date
+column or ISO 8601 text, read in UTC), `period` (`day` | `week` — ISO weeks,
+Monday to Sunday, `2026-W22` — | `month` | `quarter` | `year`, default
+`month`; not used for a wave code), `measure` (`percent` | `mean` | `count`),
+`variable` and `codes` (a JSON code or list, read with `percent` only; checked
+by the node's `checks`), `by`, `band` (not read with `count`), `min_base`
+(30), `title`, `width`, `height`, `palette`. Outputs: `chart`, and `table` —
+the chart's `.table`, period × group with the measure, its interval and the
+bases — for a report or a Live tile. `check_flow` knows the response
+timestamps a platform's frame carries (`document.RESPONSE_TIMES`:
+`created_at`, `updated_at`, `started_at`, `submitted_at`) as variables any
+node may name.
 
 ### A node specification
 
