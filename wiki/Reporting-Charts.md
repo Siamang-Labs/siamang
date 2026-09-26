@@ -3,11 +3,12 @@
 siamang's declarative charts mirror the [[Reporting Tables|Reporting-Tables]]
 API: each chart reads variable labels, value labels, and scales from the
 attached metadata and produces a publication-ready figure with minimal
-configuration. The four chart types are `BarChart`, `BoxPlot`, `HeatMap`, and
-`ScatterPlot`, each also reachable through the fluent `data.plot` accessor.
+configuration. The five chart types are `BarChart`, `BoxPlot`, `HeatMap`,
+`LikertChart` and `ScatterPlot`, each also reachable through the fluent
+`data.plot` accessor.
 
 ```python
-from siamang.reporting import BarChart, BoxPlot, HeatMap, ScatterPlot
+from siamang.reporting import BarChart, BoxPlot, HeatMap, LikertChart, ScatterPlot
 ```
 
 > **Requires the `charts` extra.** Charts depend on matplotlib (and seaborn for
@@ -47,7 +48,8 @@ with the weighted tables beside it. `BarChart` draws sums of weights (axis
 "Weighted count"), weighted percentages ("% of respondents (weighted)") or
 weighted means ("Weighted mean …"), and `HeatMap` with `by`
 draws weighted means (colour bar "Weighted mean"). `HeatMap` with `method="pearson"` draws weighted
-coefficients (colour bar "Weighted Pearson r"). `BoxPlot`, `ScatterPlot` and
+coefficients (colour bar "Weighted Pearson r"), and `LikertChart` weighted
+shares ("% of respondents (weighted)"). `BoxPlot`, `ScatterPlot` and
 the Spearman or Kendall correlation `HeatMap` have no standard weighted form, so they draw the
 respondents as they are and add a second title line, `unweighted (the weight
 'w' is not applied)` — under a title you set yourself too. `chart.weight_note`
@@ -196,6 +198,57 @@ data.with_weight("w").plot.heatmap(["autonomy", "satisfaction", "age"], method="
 
 ---
 
+## `LikertChart`
+
+```python
+LikertChart(data, columns=[], neutral="split", sort="top2", show_values=True,
+            figsize=(10, 6), palette="RdBu", title=None)
+```
+
+A battery of items on one ordered scale — agree–disagree statements, ratings —
+as **diverging stacked bars**: each item is a bar whose answers below the
+middle of the scale stack to the left of a centre line and those above it to
+the right, so a battery's lean reads at a glance. The shares of the two
+answers at either end (**top-2** and **bottom-2**; the top and bottom answer
+alone on a scale of two or three) are written at the ends of every bar.
+
+**Extra parameters**
+
+- **`columns`** — the items: one answer per respondent each, all with the same
+  value labels in the codebook (their missing codes aside). Items on different
+  scales are refused, naming both: *The items of a Likert chart must share one
+  scale, and these do not: Trust: Acme has 1 = No trust, …; Overall satisfaction
+  has 1 = Very dissatisfied, …. Draw them in separate charts, or recode them onto
+  one scale first.* Items without labels may give a valid range of whole
+  numbers instead.
+- **`neutral`** — `"split"` (the middle answer of an odd scale half on either
+  side of the centre, the default) or `"side"` (apart, in a panel at the right).
+  An even scale has no neutral answer; its centre falls between the middle two.
+- **`sort`** — `"top2"` (the largest top-2 share first, the default) or
+  `"listed"`.
+- **`show_values`** — each answer's share in its segment where it fits.
+- **`palette`** — a diverging palette (`"RdBu"`, `"BrBG"`, `"PuOr"`, `"RdYlBu"`,
+  `"PiYG"`, `"coolwarm"`); the low answers take its first colour, the neutral
+  answer is grey.
+
+Codes run low to high, left to right: recode a scale written the other way
+(1 = Strongly agree) first. The codebook's missing codes and any value not on
+the scale are left out of the bars and counted under the chart, with each
+item's base beside its name (`n = 552`); on weighted data the shares are sums
+of weights and `n` still counts respondents. When the item labels start with
+the same words up to a separator (`Trust: Acme`, `Trust: Globex`), those words
+are the title and the rest names each bar. `chart.table` holds the numbers
+drawn: each answer's %, top-2, bottom-2, N (and the weighted N).
+
+```python
+data.plot.likert(["trust_acme", "trust_globex", "trust_initech"]).save("trust.png")
+
+# Neutral apart, in questionnaire order
+data.plot.likert(items, neutral="side", sort="listed")
+```
+
+---
+
 ## `ScatterPlot`
 
 ```python
@@ -235,6 +288,8 @@ def heatmap(columns, *, by=None, annot=True, cmap="YlOrRd",
             method="spearman") -> HeatMap
 def scatter(x, y, *, hue=None, trendline=True,
             figsize=(10, 6), palette="muted", title=None) -> ScatterPlot
+def likert(columns, *, neutral="split", sort="top2", show_values=True,
+           figsize=(10, 6), palette="RdBu", title=None) -> LikertChart
 ```
 
 ```python

@@ -1,0 +1,82 @@
+type: visualize.likert
+category: visualize
+title: Likert chart
+description: A battery of items on one ordered scale as diverging stacked bars centred on the neutral answer, with each item's top-2 and bottom-2 shares.
+inputs:
+  data: SurveyData
+outputs:
+  chart: Chart
+params:
+  items:
+    kind: variables
+    required: true
+    scales:
+    - ordinal
+    - interval
+    label: Items
+    help: Items with one answer each on the same scale — the same value labels in the codebook (a battery such as agree–disagree statements). Codes run low to high, left to right; recode a scale that runs the other way first. The codebook's missing codes (a 9 "Don't know") are left out and counted under the chart.
+  neutral:
+    kind: enum
+    values:
+    - split
+    - side
+    default: split
+    label: Neutral answer
+    help: Split draws the middle answer of an odd scale half on either side of the centre; side draws it apart, in a panel at the right. An even scale has no neutral answer, and its centre falls between the two middle answers.
+  sort:
+    kind: enum
+    values:
+    - top2
+    - listed
+    default: top2
+    label: Sort items
+    help: top2 puts the item with the largest share in the top two answers first (the top answer alone on a scale of two or three); listed keeps the order of Items.
+  show_values:
+    kind: bool
+    default: true
+    label: Show values
+    help: Each answer's share in its segment where it fits. The top-2 and bottom-2 shares are always written at the ends.
+  title:
+    kind: string
+    label: Title
+    help: 'Empty takes the words the items'' labels start with ("Trust" of "Trust: Acme" and "Trust: Globex"), the rest of each label naming its bar.'
+  width:
+    kind: float
+    default: 10
+    minimum: 2
+    maximum: 30
+    label: Figure width (in)
+    help: The figure itself, in inches — the axis labels scale with it.
+  height:
+    kind: float
+    default: 6
+    minimum: 2
+    maximum: 30
+    label: Figure height (in)
+    help: A battery whose labels need more room makes the figure taller.
+  palette:
+    kind: enum
+    values:
+    - RdBu
+    - BrBG
+    - PuOr
+    - RdYlBu
+    - PiYG
+    - coolwarm
+    default: RdBu
+    label: Palette
+    help: A diverging palette, the low answers in its first colour; the neutral answer is grey.
+subtitle: '{items}'
+# Weighted when a weight is applied: the shares are sums of weights, n counts
+# respondents.
+template: |
+  {out.chart} = {in.data}.plot.likert(
+      {items!r},
+      neutral={neutral!r},
+      sort={sort!r},
+      show_values={show_values!r},
+      title={title!r},
+      figsize=({width!r}, {height!r}),
+      palette={palette!r},
+  )
+preview: chart

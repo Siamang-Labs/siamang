@@ -116,9 +116,10 @@ Declarative, label-aware tables and charts. Documented in
 | `ResultTable` | `from siamang.reporting.result_table import ResultTable` | A computed frame with its statistics as the footer (the paired tests and factor analysis). | [[Analysis]] |
 | `DescriptivesTable` | `from siamang.reporting.summaries import DescriptivesTable` | Descriptive statistics of several variables, per group if asked. | [[Analysis]] |
 | `DataCheckTable` | `from siamang.reporting.summaries import DataCheckTable` | The data checked against its codebook, one row per problem. | [[Analysis]] |
-| `BarChart` | `from siamang import BarChart` | A bar chart of counts or grouped means. | [[Reporting Charts\|Reporting-Charts]] |
+| `BarChart` | `from siamang import BarChart` | A bar chart of counts, percentages, a crosstab (split) or grouped means. | [[Reporting Charts\|Reporting-Charts]] |
 | `BoxPlot` | `from siamang import BoxPlot` | Distribution comparison by group. | [[Reporting Charts\|Reporting-Charts]] |
 | `HeatMap` | `from siamang import HeatMap` | Group means or a correlation matrix as a heatmap. | [[Reporting Charts\|Reporting-Charts]] |
+| `LikertChart` | `from siamang import LikertChart` | Items on one scale as diverging stacked bars with top-2 / bottom-2. | [[Reporting Charts\|Reporting-Charts]] |
 | `ScatterPlot` | `from siamang import ScatterPlot` | A scatter plot with optional hue. | [[Reporting Charts\|Reporting-Charts]] |
 | `Report` | `from siamang import Report` | A composable document of tables and charts. | [[Report Document\|Report-Document]] |
 

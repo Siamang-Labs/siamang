@@ -85,7 +85,7 @@ The runner and the generator use the same order.
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `quality`, `cell_weights`, `rake_weights`, `apply_weight`, `index`, `derive`, `bands`, `explode`, `text_code`, `maxdiff_scores` |
 | analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
-| visualize | `bar`, `boxplot`, `heatmap`, `scatter` |
+| visualize | `bar`, `boxplot`, `heatmap`, `likert`, `scatter` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `choice_data`, `conjoint_data`, `live_tile` |
 
 \* platform nodes: they need the project database (`db`). A `source.responses`
@@ -102,7 +102,7 @@ Crosstab (Fisher's exact test counts respondents), Group means (not N or the
 test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
 Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Correlation and Correlation matrix
-with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, and Proportion CI with
+with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, and Proportion CI with
 `weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
 groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
@@ -210,6 +210,18 @@ the last two with the codebook's missing codes left out, as Correlation matrix
 leaves them out. With By the heatmap shows means, and a Method other than
 spearman is a warning: `Method applies to the correlation matrix drawn without
 By; with By the heatmap shows means.`
+
+`visualize.likert` (Likert chart) draws a battery of items on one scale as
+diverging stacked bars: `items` (ordinal or interval), `neutral` (`split` |
+`side`), `sort` (`top2` | `listed`), `show_values`, `title`, `width`, `height`
+and a diverging `palette` (`RdBu`, `BrBG`, `PuOr`, `RdYlBu`, `PiYG`,
+`coolwarm`). With the questionnaire, `check_flow` compares the items' value
+labels (missing codes aside) and reports items on different scales as
+`PARAM_CONFLICT` before the run: `n: The items of a Likert chart must share one
+scale, and these do not: Trust: Acme has 1 = No trust, 2 = Low, 3 = Medium,
+4 = High, 5 = Full; Overall satisfaction has 1 = Very dissatisfied, …. Draw
+them in separate charts, or recode them onto one scale first.` Items the
+codebook does not hold (made upstream) are checked when the chart is drawn.
 
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead

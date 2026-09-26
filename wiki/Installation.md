@@ -28,7 +28,7 @@ Extras are declared in `pyproject.toml` and installed with the usual
 
 | Extra | Install | What it adds |
 | :--- | :--- | :--- |
-| `charts` | `pip install "siamang[charts]"` | `matplotlib` + `seaborn` — required for the `data.plot.*` chart accessors (`bar`, `boxplot`, `heatmap`, `scatter`). |
+| `charts` | `pip install "siamang[charts]"` | `matplotlib` + `seaborn` — required for the `data.plot.*` chart accessors (`bar`, `boxplot`, `heatmap`, `likert`, `scatter`). |
 | `gsheets` | `pip install "siamang[gsheets]"` | Google API client libraries for the Google Sheets backend. |
 | `dev` | `pip install "siamang[dev]"` | `ruff`, `mypy`, `pytest`, plus `siamang[charts]` — the full contributor toolchain. |
 

@@ -218,6 +218,8 @@ def check_flow(
         issues.extend(_check_design(node_id, spec, node.get("params") or {}, questionnaire))
         if spec.type == "prepare.maxdiff_scores" and questionnaire is not None:
             issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
+        if spec.type == "visualize.likert" and questionnaire is not None:
+            issues.extend(_check_likert_scale(node_id, node.get("params") or {}, questionnaire))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -1139,6 +1141,53 @@ def _reachable(nodes: dict[str, dict[str, Any]], edges: list[Edge], registry: Re
                 reached.add(edge.target)
                 changed = True
     return reached
+
+
+def _check_likert_scale(
+    node_id: str, params: dict[str, Any], questionnaire: dict[str, Any]
+) -> list[FlowIssue]:
+    """A Likert chart's items share one scale: the same labelled answers in the
+    codebook, missing codes aside (``_answers``), as the chart requires when it
+    runs (``siamang.reporting.likert.likert_scale``). Items the codebook does
+    not hold (made upstream) are the run's to check."""
+
+    items = params.get("items")
+    if not isinstance(items, list):
+        return []
+    variables = questionnaire.get("variables") or {}
+    known = [name for name in items if isinstance(name, str) and name in variables]
+    if len(known) < 2:
+        return []
+
+    def scale(name: str) -> list[tuple[str, str]]:
+        return [
+            (code, " ".join(label.split()).casefold()) for code, label in _answers(variables[name])
+        ]
+
+    def described(name: str) -> str:
+        answers = _answers(variables[name])
+        if not answers:
+            return "no value labels"
+        parts = [f"{code} = {label}" for code, label in answers]
+        return ", ".join([*parts[:3], "…", *parts[-2:]] if len(parts) > 6 else parts)
+
+    first = known[0]
+    for name in known[1:]:
+        if scale(name) != scale(first):
+            label = variables[first].get("label") or first
+            other = variables[name].get("label") or name
+            return [
+                FlowIssue(
+                    "error",
+                    "PARAM_CONFLICT",
+                    f"{node_id}: The items of a Likert chart must share one scale, and "
+                    f"these do not: {label} has {described(first)}; {other} has "
+                    f"{described(name)}. Draw them in separate charts, or recode them "
+                    "onto one scale first.",
+                    node_id,
+                )
+            ]
+    return []
 
 
 def dumps(document: dict[str, Any]) -> str:
