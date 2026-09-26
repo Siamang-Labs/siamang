@@ -367,3 +367,32 @@ def test_price_sensitivity_node_runs_both_methods_weighted(tmp_path):
             "clear Calibration.",
         ),
     ]
+
+
+def test_perceptual_map_reads_a_snapshot_as_the_simulated_data(questionnaire_doc, survey, tmp_path):
+    """Studio runs flows on snapshots and platform data, whose labelled codes
+    come back as nullable Int64 with pd.NA for a skipped answer: the map of the
+    data read from a snapshot is the map of the same responses in memory."""
+    from siamang.io import write_snapshot
+
+    responses = survey.simulate(n=400, seed=11)
+    path = write_snapshot(responses, tmp_path / "responses.csv")
+    nodes = [
+        ("file", "source.file", {"path": str(path)}),
+        ("map", "analyze.correspondence", {"row": "satisfaction", "column": "region"}),
+    ]
+    flow = _flow(nodes, [("file", "data", "map", "data")])
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    from siamang.data import correspondence
+
+    read = result.output("map", "rows").data.frame["satisfaction"]
+    assert str(read.dtype) == "Int64" and read.isna().any()
+    in_memory = correspondence.analyze(responses, "satisfaction", column="region")
+    assert result.output("map", "stat") == in_memory.stats
+    rows = list(result.output("map", "rows").to_frame().iloc[:, 0])
+    assert "<NA>" not in rows and rows == list(in_memory.rows.to_frame().iloc[:, 0])
+    assert result.output("map", "stat")["Excluded"] > 0

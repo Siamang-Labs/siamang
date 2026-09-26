@@ -434,7 +434,9 @@ def _indicators(
         return False
 
     def missing_value(value: Any) -> bool:
-        return value is None or (isinstance(value, float) and np.isnan(value))
+        # Any scalar NA: None, NaN, and the pd.NA of the nullable Int64 columns
+        # a snapshot or the platform's data gives back for a skipped answer.
+        return value is None or (pd.api.types.is_scalar(value) and bool(pd.isna(value)))
 
     if multi.is_multi(series):
         answers = []
