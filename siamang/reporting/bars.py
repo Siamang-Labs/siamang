@@ -876,11 +876,7 @@ def _means(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         lower, upper = array[:, :1], array[:, 1:]
         notes.append(
             f"Error bars: {_level(chart.confidence)} confidence intervals of the mean ("
-            + (
-                "weighted: the linearization interval)."
-                if weighted
-                else "Student's t)."
-            )
+            + ("weighted: the linearization interval)." if weighted else "Student's t).")
         )
         if single:
             notes.append("No interval for a group of one answer: " + ", ".join(single) + ".")

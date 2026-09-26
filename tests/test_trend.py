@@ -857,3 +857,40 @@ def test_past_four_lines_each_line_s_points_take_a_shape_of_their_own():
     four = data.with_frame(frame[frame["seg"] <= 4])
     ax = four.plot.trend("wave", variable="aware", codes=1, by="seg").plot()
     assert len(set(shapes(ax))) == 1
+
+
+def test_a_response_timestamp_is_offered_as_time_and_named_on_the_axis():
+    """check_flow accepted the responses' created_at as Time, but a builder
+    offering only the codebook's variables could not choose it, and the axis
+    read "created_at (day)": Time's parameter names the timestamps a picker
+    should offer, with labels, and the axis calls them by their names."""
+    from siamang.flow import default_registry
+
+    time = default_registry().get("visualize.trend").params["time"]
+    assert time.to_json()["extra"][0] == {
+        "name": "created_at",
+        "label": "Response date (created_at)",
+    }
+    assert {item["name"] for item in time.to_json()["extra"]} == {
+        "created_at",
+        "updated_at",
+        "started_at",
+        "submitted_at",
+    }
+    frame = pd.DataFrame(
+        {
+            "created_at": ["2026-05-25 09:00:00+00:00", "2026-06-02 10:00:00+00:00"] * 20,
+            "aware": [1, 2] * 20,
+        }
+    )
+    data = _data(frame, Variable("aware", "nominal", label="Aware", labels={1: "Yes", 2: "No"}))
+    points = trend(data, "created_at", period="month", variable="aware", codes=1)
+    assert points.xlabel == "Response date (month)"
+    labelled = _data(
+        frame,
+        Variable("aware", "nominal", label="Aware", labels={1: "Yes", 2: "No"}),
+        Variable("created_at", "nominal", label="Interview time"),
+    )
+    assert trend(labelled, "created_at", variable="aware", codes=1).xlabel == (
+        "Interview time (month)"
+    )

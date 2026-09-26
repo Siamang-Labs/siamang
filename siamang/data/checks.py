@@ -59,6 +59,16 @@ _GATHERED = ("MISSING_COLUMN", "EXTRA_COLUMN")
 #: runtime's (``respondent_id``, ``__status``, the timing) and the platform's
 #: behavioural signals, and the ``duration_s`` and ``partial`` that Speeders adds.
 #: With the ``url_*`` link parameters they are not reported as extra columns.
+#: The response timestamps a platform's frame carries beside the answers, and
+#: what a chart calls them: no codebook declares them, so no label is found
+#: there (a Trend's axis read "created_at (day)").
+RESPONSE_TIME_LABELS = {
+    "created_at": "Response date",
+    "updated_at": "Last change",
+    "started_at": "Start time",
+    "submitted_at": "Submission time",
+}
+
 METADATA_COLUMNS = frozenset(
     {
         "id",

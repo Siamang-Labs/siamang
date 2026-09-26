@@ -828,6 +828,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are under the chart. A named colour map draws what it always drew; the By
   help says that missing codes count as answers there.
 
+- **The Trend's Time offers the responses' timestamps, and names them on the
+  axis.** `check_flow` accepted `created_at` as Time and the help named it as
+  the main example, but nothing in the node's spec told a builder it could be
+  chosen (a picker of the codebook's variables does not list it), and the axis
+  read `created_at (day)`. A `variable` parameter may now carry `extra` names
+  with labels, in the registry payload as `"extra": [{"name": "created_at",
+  "label": "Response date (created_at)"}, …]` (and `submitted_at`,
+  `updated_at`, `started_at`); the axis reads `Response date (month)` unless
+  the codebook labels the column (`siamang.data.checks.RESPONSE_TIME_LABELS`).
+
 - **Save report's workbook links a sheet whose name has an apostrophe.** The
   Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
   which Excel cannot follow; a sheet's name in a link is quoted with an
