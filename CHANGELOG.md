@@ -538,6 +538,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   crowded price labels turn 45°, and the legend takes two rows below 6.5
   inches wide.
 
+- **Trend** (`visualize.trend`, `data.plot.trend(...)`,
+  `siamang.reporting.trend`) — a measure over waves or dates for a tracking
+  study, one line per group of *Split by*. *Time* is a wave code (one point
+  per code, ordered by code, the codebook's labels on the axis; a wave the
+  codebook declares between two found ones is a gap) or a date: a `datetime64`
+  column or ISO 8601 text as a platform snapshot writes it
+  (`2026-05-25 09:00:00+00:00`, `2026-05-25T09:00:00.000Z`, `2026-05-25`),
+  read in UTC and grouped by *Period* — `day`, `week` (ISO weeks, Monday to
+  Sunday, labelled `2026-W22`), `month` (`May 2026`), `quarter` (`2026 Q2`)
+  or `year`, every period between the first and the last on the axis. The
+  *Measure* is the percent choosing the *Answer codes* (a list is a top-2
+  box; for a multiple-choice question, any of them), the mean of a
+  variable, or the count of respondents; weighted data gives weighted points
+  and a weighted base per point. The confidence band is Proportion CI's normal
+  approximation or the mean's t interval, on Kish's effective base when
+  weighted. A point under *Minimum base* (30) respondents is drawn hollow and
+  noted (`base below 30`, `no respondents`). Outputs: the `chart`, and a
+  `table` of period × group with the measure, `Lower 95%`, `Upper 95%`,
+  `Base`, `Weighted base`, `Effective base` and `Note`, whose statistics say
+  what was measured, how time was read, the missing codes left out and the
+  rows without a time or whose text is not a date (`Left out`). A mean of a
+  nominal variable, a missing code named as an answer and a code that is no
+  answer are refused in words. `check_flow` knows the response timestamps
+  (`created_at`, `updated_at`, `started_at`, `submitted_at`:
+  `siamang.flow.document.RESPONSE_TIMES`) as variables a node may name.
+
 ### Fixed
 
 - **Large counts read with their thousands separated.** The newer Bar chart

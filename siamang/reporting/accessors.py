@@ -481,3 +481,43 @@ class PlotAccessor:
             palette=palette,
             title=title,
         )
+
+    def trend(
+        self,
+        time: str,
+        *,
+        period: str = "month",
+        measure: str = "percent",
+        variable: str | None = None,
+        codes: Any = None,
+        by: str | None = None,
+        band: bool = True,
+        min_base: int = 30,
+        figsize: tuple[float, float] = (10, 6),
+        palette: str = "muted",
+        title: str | None = None,
+    ) -> Any:
+        """A measure over waves or dates, one line per group of ``by``.
+
+        ``time`` is a wave code (one point per code) or a date, grouped by
+        ``period`` (day, ISO week, month, quarter, year). ``measure`` is
+        ``"percent"`` choosing ``codes`` of ``variable``, its ``"mean"``, or
+        the ``"count"`` of respondents. The chart's ``table`` holds the same
+        points with their bases. See :class:`~siamang.reporting.trend.TrendChart`.
+        """
+        from siamang.reporting.trend import TrendChart
+
+        return TrendChart(
+            data=self._data,
+            time=time,
+            period=period,
+            measure=measure,
+            variable=variable,
+            codes=codes,
+            by=by,
+            band=band,
+            min_base=min_base,
+            figsize=figsize,
+            palette=palette,
+            title=title,
+        )

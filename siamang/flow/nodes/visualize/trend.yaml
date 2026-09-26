@@ -1,0 +1,152 @@
+type: visualize.trend
+category: visualize
+title: Trend
+description: A measure over waves or dates — the percent choosing an answer, a mean, or the count of respondents — with one line per group, its confidence band and the base of every point, as a chart and as a table.
+inputs:
+  data: SurveyData
+outputs:
+  chart: Chart
+  table: Table
+params:
+  time:
+    kind: variable
+    required: true
+    label: Time
+    help: A wave code (one point per wave, ordered by code, its labels on the axis) or a date — a date column, or text in ISO 8601 such as the responses' created_at (2026-05-25 09:00:00+00:00). Times with a zone are read in UTC.
+  period:
+    kind: enum
+    values:
+    - day
+    - week
+    - month
+    - quarter
+    - year
+    default: month
+    label: Period
+    help: How dates are grouped into points. A week is an ISO week, Monday to Sunday, labelled by its ISO year and number (2026-W22). Every period between the first and the last is on the axis, an empty one as a gap. Not used for a wave code.
+  measure:
+    kind: enum
+    values:
+    - percent
+    - mean
+    - count
+    default: percent
+    label: Measure
+    help: 'percent: the share of those who answered that gave one of the Answer codes. mean: the mean of a numeric (or ordinal) variable. count: the number of respondents — the sum of weights when weighted.'
+  variable:
+    kind: variable
+    label: Measure variable
+    help: The question the percent or the mean is of. Its missing codes are left out of every base and counted.
+  codes:
+    kind: json
+    label: Answer codes
+    help: The answer counted, or a list of them counted together (a top-2 box), e.g. [4, 5]. For a multiple-choice question, choosing any of them.
+  by:
+    kind: variable
+    scales:
+    - nominal
+    - ordinal
+    label: Split by
+    help: One line per group. Respondents with a missing code, or no answer, are in no line.
+  band:
+    kind: bool
+    default: true
+    label: Confidence band
+    help: The 95% interval of each point — the proportion's normal approximation as Proportion CI computes it, or the mean's t interval, on Kish's effective base when weighted.
+  min_base:
+    kind: int
+    default: 30
+    minimum: 1
+    label: Minimum base
+    help: A point with fewer respondents than this is drawn hollow and noted in the table.
+  title:
+    kind: string
+    label: Title
+  width:
+    kind: float
+    default: 10
+    minimum: 2
+    maximum: 30
+    label: Figure width (in)
+    help: The figure itself, in inches — the axis labels scale with it.
+  height:
+    kind: float
+    default: 6
+    minimum: 2
+    maximum: 30
+    label: Figure height (in)
+  palette:
+    kind: enum
+    values:
+    - muted
+    - deep
+    - pastel
+    - dark
+    - colorblind
+    - Set2
+    - tab10
+    default: muted
+    label: Palette
+subtitle:
+- when: measure=percent
+  text: '{variable} = {codes} over {time}'
+- when: measure=mean
+  text: mean {variable} over {time}
+- respondents over {time}
+checks:
+- when: measure=percent
+  require: variable
+  message: Name the Measure variable whose answers are counted.
+- when: measure=percent
+  require: codes
+  message: Name the Answer codes whose percent is tracked — one code, or a list such as [4, 5].
+- when: measure=mean
+  require: variable
+  message: Name the Measure variable whose mean is tracked.
+template:
+- when: measure=percent
+  code: |
+    {out.chart} = {in.data}.plot.trend(
+        {time!r},
+        period={period!r},
+        measure="percent",
+        variable={variable!r},
+        codes={codes!r},
+        by={by!r},
+        band={band!r},
+        min_base={min_base!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+    )
+- when: measure=mean
+  code: |
+    {out.chart} = {in.data}.plot.trend(
+        {time!r},
+        period={period!r},
+        measure="mean",
+        variable={variable!r},
+        by={by!r},
+        band={band!r},
+        min_base={min_base!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+    )
+- when: measure=count
+  code: |
+    {out.chart} = {in.data}.plot.trend(
+        {time!r},
+        period={period!r},
+        measure="count",
+        by={by!r},
+        min_base={min_base!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+    )
+- |
+  # The same points as a table — period × group, the measure and its base —
+  # for a report or a Live tile.
+  {out.table} = {out.chart}.table
+preview: chart

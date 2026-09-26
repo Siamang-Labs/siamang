@@ -38,6 +38,11 @@ from siamang.flow.registry import (
 
 FLOW_SCHEMA_VERSION = "1.0"
 _NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+#: The response timestamps a platform's frame carries beside the answers (the
+#: responses table's created_at and updated_at, the runtime's started_at) and
+#: a frame's submitted_at. No codebook declares them, yet a node may name one:
+#: a Trend over dates reads one as its Time.
+RESPONSE_TIMES = ("created_at", "updated_at", "started_at", "submitted_at")
 
 
 class FlowError(ValueError):
@@ -433,6 +438,7 @@ def _known_variables(
         return None
     known = set((questionnaire.get("variables") or {}).keys())
     known.update(_assigned_variables(questionnaire))
+    known.update(RESPONSE_TIMES)
     for node in nodes.values():
         if node["type"] not in registry:
             continue
