@@ -550,24 +550,24 @@ takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 
 | Result | Kinds (the first is `auto`) | What is drawn |
 | :--- | :--- | :--- |
-| `GroupMeanTable` (Group means) | `means`, `means_sd` | each group's mean with its 95 % confidence interval (or ± 1 SD); with a post-hoc test, the compact letter display — means sharing a letter do not differ at p < .05 (Piepho's insert-and-absorb, as R's `multcompView`; `letters(groups, different)`) |
-| `DescriptivesTable` | `means`, `means_sd` | each variable's mean, one coloured series per group with `by` |
-| `TTestTable` (t-test) | `means`, `means_sd` | each group's or measurement's mean with its interval at the test's confidence; a one-sample test draws its test value as a line; the test's difference and CI in a note |
+| `GroupMeanTable` (Group means) | `means`, `means_sd` | each group's mean with its 95 % confidence interval (or ± 1 SD), each row labelled with its base (`North (n = 97)`); with a post-hoc test, the compact letter display — means sharing a letter do not differ at p < .05 (Piepho's insert-and-absorb, as R's `multcompView`; `letters(groups, different)`) |
+| `DescriptivesTable` | `means`, `means_sd` | each variable's mean with its base (`(n = …)`), one coloured series per group with `by`, the legend giving each group's base (`n = 90–97` when the variables' differ) |
+| `TTestTable` (t-test) | `means`, `means_sd` | each group's or measurement's mean with its interval at the test's confidence, its row labelled with its base; a one-sample test draws its test value as a line; the test's difference and CI in a note |
 | Paired tests' `table` (Wilcoxon, Friedman) | `means`, `means_sd` | each measurement's mean (the row of differences is the test's) |
 | McNemar's and Cochran's Q's `table` | `shares` | the share saying yes to each, with Wilson's interval; the test's p in a note |
 | Proportion CI's stat | `interval` | the share as a number over its interval on a 0–100 % track, with the base (the effective base when weighted) |
 | `NpsTable` | `stacked` | detractors, passives and promoters in one 100 % bar, the score and its 95 % CI above it |
 | `TurfTable` of a search | `reach` | reach by portfolio size, each point labelled with its gain, and under it the option that size adds (`+ label`, by the table's `labels`); a best portfolio that is not the one before plus an option reads `a new set` and is listed in full in a note |
 | `TurfTable` of a fixed portfolio | `items` | each option's reach and what it reaches alone, the portfolio's reach as a line |
-| `MaxDiffTable` | `utilities`, `scores`, `shares` (a counting table: `scores`) | utilities with their 95 % Wald intervals against the reference item (the standard errors are the fit's: `maxdiff.utilities`), the counting scores, or the shares |
-| `ConjointTable` | `importance`, `partworths` | each attribute's importance; every level's part-worth, coloured by attribute |
+| `MaxDiffTable` | `utilities`, `scores`, `shares` (a counting table: `scores`) | utilities with their 95 % Wald intervals against the reference item (the standard errors are the fit's: `maxdiff.utilities`), the counting scores, or the shares; the base in a note |
+| `ConjointTable` | `importance`, `partworths` | each attribute's importance; every level's part-worth, coloured by attribute, each attribute's levels in the design's order (the table sorts them by worth); the base in a note |
 | `ShareTable` (Share of preference) | `shares` | each product's share |
 | PCA `variance` / `loadings`, `PcaResult` | `scree` / `loadings` | eigenvalues with the Kaiser line at 1 (the components kept filled, when the stat says how many); a diverging heatmap of the loadings |
 | Factor analysis `variance` / `loadings`, `FactorAnalysis` | `scree` / `loadings` | the same, with parallel analysis's random 95th percentile when it chose the number; loadings hidden in the table are blank |
-| Cluster centroids, `ClusterAssignment`, `ClusterResult` | `profile` | a snake plot: each cluster's means down the items, sized in the legend |
-| Regression `table`, `RegressionResult` | `coefficients` | a forest of the coefficients with 95 % intervals, the intercept left out — t with n − k df when the stat gives n (normal otherwise, and it says so); a logit's odds ratios on a log scale; the ordinal logit's odds ratios with the table's Wald intervals, its thresholds left out and a note saying which way the answers run |
-| `CorrelationMatrixTable` | `heatmap` | the lower triangle with the table's significance marks (on the adjusted p when adjusted) |
-| `ThemeTable` (Code open answers) | `shares`, `sentiment` | each theme's share of the coded answers and the coverage; the negative / neutral / positive split |
+| Cluster centroids, `ClusterAssignment`, `ClusterResult` | `profile` | a snake plot: each cluster's means down the items (by label: the centroids carry `attrs["labels"]`, as a PCA's loadings do), sized in the legend |
+| Regression `table`, `RegressionResult` | `coefficients` | a forest of the coefficients with 95 % intervals, the intercept left out, the terms and the outcome by label (`table.attrs["labels"]`) — t with n − k df when the stat gives n (normal otherwise, and it says so); a note gives N and each nominal predictor's reference level (`compared with Region = North`, from `table.attrs["reference"]`); a logit's odds ratios on a log scale; the ordinal logit's odds ratios with the table's Wald intervals, its thresholds left out and a note saying which way the answers run |
+| `CorrelationMatrixTable` | `heatmap` | the lower triangle with the table's significance marks (on the adjusted p when adjusted), N in a note |
+| `ThemeTable` (Code open answers) | `shares`, `sentiment` | each theme's share of the coded answers and the coverage; the negative / neutral / positive split; titled by the question's label |
 | `DriverTable`, `KeyDrivers` (Key drivers) | `importance` | `drivers.plot`: each driver's share of R², largest first, a negative beta in the second colour |
 | `MapTable` (any of a Perceptual map's tables), `PerceptualMap` | `map` | `correspondence.plot`: the symmetric map of the first two dimensions; a map whose labels would overlap on the figure asked for is drawn taller (a fifth at a time, up to 1.2 × its width), and one still crowded numbers its points and lists their names under it (`numbered=True`) |
 | `PriceTable` (`table` or `curves`), `PriceSensitivity` | `curves` | `pricing.plot`: Van Westendorp's four curves, points and acceptable range (with the NMS trial curve below), or Gabor-Granger's demand over revenue; a chart of two panels is at least 6 inches tall |

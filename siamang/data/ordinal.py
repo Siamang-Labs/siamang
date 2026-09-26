@@ -576,6 +576,9 @@ def ordinal_regression(
             )
     if weight:
         table.attrs["weight"] = weight  # a chart of the table alone says it
+    from siamang.data.models import describe_terms
+
+    describe_terms(table, data, y, predictors, variables)
     return RegressionResult(kind="ordinal", table=table, stats=stats)
 
 

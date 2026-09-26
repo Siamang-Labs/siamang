@@ -540,6 +540,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Result charts say their base and name things by their labels.** Group
+  means (the most harmful: with 24 brands the intervals ran from n = 4 to
+  hundreds, unsaid), Descriptive statistics and the t-test label each row
+  with its base (`North (n = 97)`; by groups, the legend); Regression, the
+  correlation heatmap, MaxDiff and Conjoint say N or the base in a note, and
+  the Perceptual map's title adds `N = …`. The Regression forest read `z1`,
+  `screen_time_hours` and `Regression coefficients: score`: its terms and
+  outcome are named by label and its note says what each nominal predictor
+  is compared with (`compared with Region = North`); a PCA's loadings and a
+  cluster profile of the table alone use labels too (the tables carry
+  `attrs["labels"]`, the regression's `attrs["reference"]`), and Code open
+  answers is titled by the question, not its column. Conjoint's part-worths
+  keep each attribute's levels in the design's order (price 10, 15, 20, 25
+  EUR, not 20, 10, 15, 25).
+
 - **The Likert chart fits a narrow figure and one item.** Every row took the
   height of the tallest label wrapped to 0.3 of the width, so 14 items at 6 ×
   4 inches grew to 6 × 23.75 and 5 items at 5 × 3 to 5 × 12.2; the labels are

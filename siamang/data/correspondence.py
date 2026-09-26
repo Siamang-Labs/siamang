@@ -677,7 +677,8 @@ def plot(
     lines = [
         textwrap.fill(heading, characters),
         textwrap.fill(
-            f"Correspondence analysis, symmetric map — {shown:.1f} % of the inertia shown",
+            f"Correspondence analysis, symmetric map — {shown:.1f} % of the inertia shown"
+            + (f", N = {result.stats['N']}" if result.stats.get("N") else ""),
             characters,
         ),
     ]

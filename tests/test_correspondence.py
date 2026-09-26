@@ -399,7 +399,7 @@ def test_the_map_draws_rows_and_columns_with_labels_that_do_not_collide(tmp_path
     assert ax.get_ylabel() == "Dimension 2 (11.8 % of inertia)"
     assert ax.get_title(loc="left").splitlines() == [
         "Perceptual map: Staff group × Smoking",
-        "Correspondence analysis, symmetric map — 99.5 % of the inertia shown",
+        "Correspondence analysis, symmetric map — 99.5 % of the inertia shown, N = 193",
         "weighted by 'w'",
     ]
     assert [text.get_text() for text in ax.get_legend().get_texts()] == ["Staff group", "Smoking"]

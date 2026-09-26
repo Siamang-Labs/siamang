@@ -900,7 +900,7 @@ def _draw_group_means(table: Any, chart: ResultChart) -> str:
         ]
     ax, size = _dots(
         chart,
-        labels,
+        _with_n(labels, frame["N"]),
         [
             {
                 "estimate": estimate,
@@ -922,6 +922,15 @@ def _draw_group_means(table: Any, chart: ResultChart) -> str:
             size,
         )
     return f"{column} by {by_label}"
+
+
+def _with_n(labels: Sequence[Any], counts: Any) -> list[str]:
+    """Each row's label with its base, ``North (n = 97)``: an interval is read
+    with the number of answers behind it."""
+    return [
+        f"{label} (n = {int(count)})" if count == count and count is not None else str(label)
+        for label, count in zip(labels, counts, strict=True)
+    ]
 
 
 def _posthoc_letters(table: Any, labels: list[str], estimate: list[float]) -> dict[str, str]:
@@ -1028,6 +1037,9 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
     ]
     names = [None] if by_label is None else list(dict.fromkeys(frame[by_label].astype(str)))
     colors = chart.colors(len(names))
+    if by_label is None:  # one series: each row's base beside its label
+        counts = dict(zip(frame["Variable"].astype(str), frame["N"], strict=False))
+        shown = _with_n(shown, [counts.get(name) for name in rows])
     series = []
     for name, color in zip(names, colors, strict=True):
         part = frame if name is None else frame[frame[by_label].astype(str) == name]
@@ -1049,13 +1061,22 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
                 "upper": upper,
                 "text": texts,
                 "color": color,
-                "label": name,
+                "label": name if name is None else f"{name} ({_n_range(part['N'])})",
             }
         )
     ax, _ = _dots(chart, shown, series, legend_title=by_label)
     weighted = data.weight is not None
     ax.set_xlabel(_means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_INK)
     return "Means" if by_label is None else f"Means by {by_label}"
+
+
+def _n_range(counts: Any) -> str:
+    """``n = 97``, or ``n = 90–97`` when the variables' bases differ."""
+    values = [int(value) for value in counts if value == value and value is not None]
+    if not values:
+        return "n = 0"
+    low, high = min(values), max(values)
+    return f"n = {low}" if low == high else f"n = {low}–{high}"
 
 
 def _no_interval() -> Any:
@@ -1084,7 +1105,7 @@ def _draw_ttest(table: Any, chart: ResultChart) -> str:
     stats = table.stats
     ax, size = _dots(
         chart,
-        labels,
+        _with_n(labels, frame["N"]),
         [
             {
                 "estimate": estimate,
@@ -1480,17 +1501,28 @@ def _draw_maxdiff(table: Any, chart: ResultChart) -> str:
             f"against {reference} at 0",
             color=_INK,
         )
+        _base_note(ax, stats, size)
         return f"MaxDiff utilities: {question}"
     if chart.drawn == "shares":
         values = frame["Share %"].to_numpy(dtype=float)
-        ax, _, _ = _bars(chart, labels, values, [_percent(v) for v in values], color=color)
+        ax, _, size = _bars(chart, labels, values, [_percent(v) for v in values], color=color)
         ax.set_xlabel("Share of picks if every item were offered at once (%)", color=_INK)
+        _base_note(ax, stats, size)
         return f"MaxDiff shares: {question}"
     values = frame["Score"].to_numpy(dtype=float)
     digits = _digits(values)
-    ax, _, _ = _bars(chart, labels, values, [_number(v, digits) for v in values], color=color)
+    ax, _, size = _bars(chart, labels, values, [_number(v, digits) for v in values], color=color)
     ax.set_xlabel("Counting score: (best − worst) / shown", color=_INK)
+    _base_note(ax, stats, size)
     return f"MaxDiff scores: {question}"
+
+
+def _base_note(ax: Any, stats: dict[str, Any], size: float, then: str = "") -> None:
+    """``Base: 500 respondents.`` under the axis, and what follows it."""
+    base = stats.get("Base") or (f"{stats['N']} respondents" if stats.get("N") else "")
+    text = " ".join(part for part in (f"Base: {base}." if base else "", then) if part)
+    if text:
+        _mark_note(ax, text, size)
 
 
 def _draw_conjoint(table: Any, chart: ResultChart) -> str:
@@ -1511,12 +1543,29 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
             color=chart.colors(1)[0],
         )
         ax.set_xlabel("Importance: the attribute's share of the decision (%)", color=_INK)
-        _mark_note(ax, "Of the levels tested, not of the attribute in general.", size)
+        _base_note(ax, stats, size, "Of the levels tested, not of the attribute in general.")
         return f"Attribute importance: {question}"
     labels, values, colors = [], [], []
     palette = chart.colors(len(attributes))
+    # Each attribute's levels in the design's order (the table sorts them by
+    # worth): an ordered attribute such as price reads as its curve.
+    designed: dict[str, dict[str, int]] = {}
+    try:
+        from siamang.data import conjoint
+
+        for attribute in conjoint.question_of(table.data, table.question).attributes:
+            designed[str(attribute.label or attribute.name)] = {
+                str(level.label): position for position, level in enumerate(attribute.levels)
+            }
+    except (AttributeError, KeyError, TypeError, ValueError):
+        designed = {}
     for name, color in zip(attributes, palette, strict=True):
         part = frame[frame["Attribute"].astype(str) == name]
+        places = designed.get(name, {})
+        if places:
+            part = part.assign(
+                _place=[places.get(str(level), len(places)) for level in part["Level"]]
+            ).sort_values("_place", kind="stable")
         for level, worth in zip(part["Level"], part["Part-worth"], strict=True):
             labels.append(f"{name}: {level}")
             values.append(float(worth))
@@ -1532,6 +1581,7 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
     _hide_spines(ax)
     chart.make_room(ax, artists)
     ax.set_xlabel("Part-worth, against each attribute's first level at 0", color=_INK)
+    _base_note(ax, stats, size)
     return f"Part-worths: {question}"
 
 
@@ -1718,8 +1768,12 @@ def _draw_pca_variance(frame: pd.DataFrame, chart: ResultChart) -> str:
 
 def _draw_pca_loadings(frame: pd.DataFrame, chart: ResultChart) -> str:
     columns = [str(column) for column in frame.columns[1:]]
+    names = dict(frame.attrs.get("labels") or {})  # the codebook's, as a factor's loadings
     _loadings(
-        chart, [str(item) for item in frame["item"]], columns, frame[columns].to_numpy(dtype=float)
+        chart,
+        [str(names.get(item, item)) for item in frame["item"]],
+        columns,
+        frame[columns].to_numpy(dtype=float),
     )
     return "Principal component loadings"
 
@@ -1784,7 +1838,8 @@ def _draw_profile(
     frame: pd.DataFrame, chart: ResultChart, labels: dict[str, str] | None = None
 ) -> str:
     items = [str(column) for column in frame.columns[3:]]
-    names = [(labels or {}).get(item, item) for item in items]
+    labels = labels or dict(frame.attrs.get("labels") or {})
+    names = [labels.get(item, item) for item in items]
     colors = chart.colors(len(frame))
     series = []
     for (_, row), color in zip(frame.iterrows(), colors, strict=True):
@@ -1835,10 +1890,12 @@ def _is_coefficients(frame: pd.DataFrame) -> bool:
     } <= columns and "share" not in columns
 
 
-def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any]) -> str:
+def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any], note: str = "") -> str:
     from scipy.stats import norm
     from scipy.stats import t as t_dist
 
+    labels = dict(frame.attrs.get("labels") or {})
+    reference = dict(frame.attrs.get("reference") or {})
     terms = frame[frame["term"].astype(str) != "(intercept)"]
     logit = "odds_ratio" in frame.columns or stats.get("model") == "logit"
     estimate = terms["estimate"].to_numpy(dtype=float)
@@ -1862,7 +1919,7 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any]) -> s
     ]
     ax, size = _dots(
         chart,
-        [str(term) for term in terms["term"]],
+        [_term(str(term), labels) for term in terms["term"]],
         [
             {
                 "estimate": estimate,
@@ -1889,8 +1946,32 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any]) -> s
         )
     else:
         ax.set_xlabel(f"Coefficient with its 95 % confidence interval ({basis})", color=_INK)
+    # The base, what each nominal predictor's answers are compared with, and
+    # what the caller adds (the ordinal logit's reading).
+    parts = [f"N = {int(n)} respondents in the model" if isinstance(n, int | np.integer) else ""]
+    if reference:
+        parts.append(
+            "compared with "
+            + ", ".join(f"{labels.get(name, name)} = {level}" for name, level in reference.items())
+        )
+    lines = "; ".join(part for part in parts if part)
+    text = ". ".join(
+        part for part in (lines[:1].upper() + lines[1:] if lines else "", note) if part
+    )
+    if text:
+        _mark_note(ax, text if text.endswith(".") else text + ".", size)
     outcome = stats.get("outcome")
+    outcome = labels.get(str(outcome), outcome) if outcome else outcome
     return f"Regression coefficients{f': {outcome}' if outcome else ''}"
+
+
+def _term(term: str, labels: dict[str, str]) -> str:
+    """A model term by the codebook's label: ``age`` → ``Age in years``,
+    ``region = North`` → ``Region = North``."""
+    if term in labels:
+        return str(labels[term])
+    name, equals, level = term.partition(" = ")
+    return f"{labels[name]} = {level}" if equals and name in labels else term
 
 
 def _minor_label(ax: Any, value: float) -> str:
@@ -1982,6 +2063,9 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
         marks if annotate else "The coefficients and their marks are in the table.",
         color=_MUTED,
     )
+    if stats.get("N"):
+        missing = str(stats.get("Missing") or "").split(":")[0]
+        _mark_note(ax, f"N = {stats['N']}" + (f" ({missing})" if missing else "") + ".", size)
     return str(stats.get("Method", "Correlations"))
 
 
@@ -2010,6 +2094,10 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
     themes = frame[~frame["Theme"].isin(["Coded", "Uncoded"])]
     labels = [str(value) for value in themes["Theme"]]
     variable = stats.get("Variable", "")
+    data = getattr(table, "data", None)
+    known = getattr(data, "variables", None)
+    if known is not None and variable in known and known[variable].label:
+        variable = known[variable].label  # the question, not its column
     if chart.drawn == "sentiment":
         ax, y, size = chart.rows(labels, legend=["Negative", "Neutral", "Positive"])
         start = np.zeros(len(themes))
