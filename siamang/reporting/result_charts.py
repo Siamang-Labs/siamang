@@ -47,7 +47,9 @@ since it has the node's type and parameters rather than its result::
 ``kinds`` is a tuple, or a function of the node's parameters returning one
 (TURF draws its reach curve, or with ``method: fixed`` each option's reach).
 An output not registered, other than a Stat of a node that has one, is named
-before the run as one the chart cannot draw.
+before the run as one the chart cannot draw. The renderers of the analyses that
+came after this module — Key drivers, the Perceptual map, Price sensitivity,
+Cochran's Q, the ordinal logit — are in :mod:`siamang.reporting.method_charts`.
 """
 
 from __future__ import annotations
@@ -97,6 +99,8 @@ KINDS = (
     "coefficients",
     "heatmap",
     "sentiment",
+    "map",
+    "curves",
 )
 
 _INK = "#333333"
@@ -330,6 +334,8 @@ class ResultChart(SurveyChart):
     _size: float = field(init=False, repr=False, default=10.0)
     #: Room between the title and the axes, in points (a legend sits there).
     _title_pad: float = field(init=False, repr=False, default=8.0)
+    #: The figure is an analysis's own, finished as drawn (:meth:`adopt`).
+    _adopted: bool = field(init=False, repr=False, default=False)
 
     # ── building ──
 
@@ -349,12 +355,13 @@ class ResultChart(SurveyChart):
         self.drawn = kind
         if sns is not None:
             sns.set_theme(style="whitegrid", palette=self.palette)
-        self._room, self._size, self._title_pad = [], 10.0, 8.0
+        self._room, self._size, self._title_pad, self._adopted = [], 10.0, 8.0, False
         title = renderer.fn(self.result, self)
         if self._fig is None:
             raise RuntimeError(f"The renderer of {renderer.name} drew no figure.")
         self._weight_note = weight_note(self.result, *self.context)
-        self._finish(title)
+        if not self._adopted:
+            self._finish(title)
 
     def _finish(self, title: str) -> None:
         width = self._fig.get_size_inches()[0]
@@ -419,6 +426,15 @@ class ResultChart(SurveyChart):
         ax.tick_params(axis="x", labelsize=size, colors=_INK)
         ax.grid(axis="y", visible=False)
         return ax, y, size
+
+    def adopt(self, fig: Any) -> None:
+        """Take ``fig`` as the chart's figure: one an analysis's own plot
+        function drew whole — its title with the weight line, its layout, labels
+        placed for that layout. The chart leaves it as drawn; titling and laying
+        it out again would move what was placed."""
+        self._fig = fig
+        self._ax = fig.axes[0]
+        self._adopted = True
 
     def colors(self, n: int) -> list[Any]:
         """``n`` colours of the chart's palette, in its order."""
@@ -2198,3 +2214,14 @@ def _draws_something(node_type: str) -> bool:
 
 
 _register_builtins()
+
+
+def _register_methods() -> None:
+    """The later analyses' renderers (:mod:`siamang.reporting.method_charts`),
+    after the built-in ones so that theirs win where both accept a result."""
+    from siamang.reporting import method_charts
+
+    method_charts.register_all()
+
+
+_register_methods()

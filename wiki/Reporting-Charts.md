@@ -326,7 +326,7 @@ What each result draws (the first kind is what `kind="auto"` draws):
 | Result | Kinds |
 | :--- | :--- |
 | Group means, Descriptive statistics, t-test, Paired tests (Wilcoxon, Friedman) | `means` (95 % confidence interval), `means_sd` (± 1 SD) |
-| Paired tests with McNemar | `shares` — the share saying yes to each, with Wilson's interval |
+| Paired tests with McNemar or Cochran's Q | `shares` — the share saying yes to each, with Wilson's interval |
 | Proportion CI | `interval` — the share and its interval on a 0–100 % track |
 | Net Promoter Score | `stacked` — detractors / passives / promoters, the score and its CI |
 | TURF | `reach` (a search: reach by portfolio size), `items` (a fixed portfolio: each option's reach and what only it reaches) |
@@ -335,9 +335,12 @@ What each result draws (the first kind is what `kind="auto"` draws):
 | Share of preference | `shares` |
 | Principal components, Factor analysis | `scree` (from the variance output: Kaiser line, parallel analysis), `loadings` (a heatmap) |
 | Cluster (k-means) | `profile` — each cluster's means down the items |
-| Regression | `coefficients` — a forest without the intercept; odds ratios on a log scale for a logit |
+| Regression | `coefficients` — a forest without the intercept; odds ratios on a log scale for a logit and an ordinal logit (its thresholds left out) |
 | Correlation matrix | `heatmap` — the lower triangle with the table's significance marks |
 | Code open answers | `shares`, `sentiment` |
+| Key drivers | `importance` — each driver's share of R² (`drivers.plot`) |
+| Perceptual map | `map` — the map, from any of its tables (`correspondence.plot`); drawn taller when its labels would overlap |
+| Price sensitivity | `curves` — Van Westendorp's curves and points (and the NMS trial curve), or Gabor-Granger's demand and revenue (`pricing.plot`) |
 
 With a post-hoc test, Group means puts the **compact letter display** beside
 each mean: means that share a letter do not differ at p < .05 (Tukey,
