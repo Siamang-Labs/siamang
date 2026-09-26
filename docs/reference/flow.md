@@ -84,7 +84,7 @@ The runner and the generator use the same order.
 |----------|-------|
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `quality`, `cell_weights`, `rake_weights`, `apply_weight`, `index`, `derive`, `bands`, `explode`, `text_code`, `maxdiff_scores` |
-| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
+| analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `drivers`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
 | visualize | `bar`, `boxplot`, `heatmap`, `likert`, `scatter`, `result_chart` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `choice_data`, `conjoint_data`, `live_tile` |
 
@@ -101,7 +101,8 @@ standard weighted form and says it is unweighted. Weighted: Frequencies,
 Crosstab (Fisher's exact test counts respondents), Group means (not N or the
 test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
 Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
-Principal components, Scale reliability, Correlation and Correlation matrix
+Principal components, Scale reliability, Key drivers (its tests on Kish's
+effective N), Correlation and Correlation matrix
 with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, and Proportion CI with
 `weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
@@ -152,6 +153,14 @@ comparisons; empty, with a note, for the two-variable tests) and `stat`.
 `check_flow` refuses Cochran's Q of two variables and McNemar of three before
 the run, and warns of a Counts as yes that neither McNemar nor Cochran's Q
 reads.
+
+`analyze.drivers` (Key drivers, `siamang.data.drivers.analyze`) splits the R²
+of `y` on `predictors` between the predictors: `method` `relative_weights`
+(Johnson's, the default) or `shapley` (the LMG decomposition, exact, at most 15
+predictors). Outputs: `table` (Rank, Driver, r, Beta, Beta p, VIF, the
+importance and its % of R², largest first — a `DriverTable` whose `analysis` is
+the whole result, which `drivers.plot` draws) and `stat`. `check_flow` refuses
+fewer than two predictors, and more than 15 with `shapley`, before the run.
 
 `analyze.factor` runs an exploratory factor analysis
 (`siamang.data.factor.analyze`): `items`, `n_factors` (empty: by `criterion`,

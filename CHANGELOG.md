@@ -456,6 +456,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   predictor that separates the answers are warned. `auto` never chooses it, so
   stored flows run as before.
 
+- **Key drivers** — `siamang.data.drivers` and the flow node
+  **`analyze.drivers`** (Key drivers): each predictor's share of the outcome's
+  R², by **Johnson's relative weights** (default; as R's `rwa` and Python's
+  `relativeImp`) or the **Shapley value** decomposition (LMG, exact from all
+  2^p subset regressions, as `relaimpo::calc.relimp(type = "lmg")`; at most 15
+  predictors), shown also as a percentage of R², beside each predictor's
+  correlation with the outcome, standardized beta with `lm`'s t-test p, and VIF;
+  the stats give R², adjusted R² and the F-test. Weighted through the weighted
+  correlation matrix (as `relaimpo` weighs), tests on Kish's effective N;
+  listwise, missing codes left out and counted. A nominal predictor with more
+  than two answers, a constant or collinear predictor and too few respondents
+  are refused with the reason; a VIF of 10 or more and a suppressor are warned.
+  `check_flow` refuses fewer than two drivers and more than 15 with Shapley
+  before the run ("Key drivers splits R² between two or more predictors; 1 was
+  given. …"). `drivers.plot(result)` draws the shares as horizontal bars,
+  largest first, a negative beta in a second colour, and returns the matplotlib
+  Figure; the table (`DriverTable`) carries the result in `analysis`.
+
 ### Fixed
 
 - **A value a node does not read is not checked.** The t-test's rules "Name

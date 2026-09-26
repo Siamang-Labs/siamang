@@ -97,3 +97,64 @@ def test_regression_offers_the_ordinal_model_and_runs_it_weighted(
     assert "Very dissatisfied|Dissatisfied" in report and "odds_ratio_lower" in report
     assert "| nan" not in report  # the thresholds' odds ratio is blank
     assert json.dumps(stat)
+
+
+# ─── key drivers ─────────────────────────────────────────────────────────────
+
+
+def test_key_drivers_node_checked_generated_and_run_weighted(questionnaire_doc, survey, tmp_path):
+    spec = default_registry().get("analyze.drivers")
+    assert spec.title == "Key drivers" and list(spec.outputs) == ["table", "stat"]
+    assert spec.params["method"].values == ("relative_weights", "shapley")
+    nodes, edges = _weighted_source()
+    drivers_params = {"y": "satisfaction", "predictors": ["trust_acme", "trust_globex", "age"]}
+    nodes += [
+        ("kd", "analyze.drivers", drivers_params),
+        ("sh", "analyze.drivers", {**drivers_params, "method": "shapley"}),
+        ("sec", "output.report_section", {"heading": "Drivers"}),
+        ("save", "output.save_report", {"title": "Drivers", "path": "outputs/kd.md"}),
+    ]
+    edges += [
+        ("apply", "data", "kd", "data"),
+        ("apply", "data", "sh", "data"),
+        ("kd", "table", "sec", "items"),
+        ("sh", "table", "sec", "items"),
+        ("sec", "report", "save", "sections"),
+    ]
+    flow = _flow(nodes, edges)
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    code = generate_flow(flow, questionnaire_doc)
+    assert "from siamang.data import drivers" in code
+    assert 'method="relative_weights"' in code and 'method="shapley"' in code
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path
+    )
+    assert result.ok
+    stat = result.output("kd", "stat")
+    assert stat["Method"] == "Johnson's relative weights" and stat["Weight"] == "weight"
+    assert stat["Outcome"] == "Overall satisfaction" and "9 = Refused" in stat["Missing codes"]
+    table = result.output("kd", "table")
+    assert table.analysis.weight == "weight"
+    assert table.to_frame()["% of R²"].sum() == pytest.approx(100, abs=0.2)
+    from siamang.data import drivers
+
+    direct = drivers.analyze(result.output("apply", "data"), **drivers_params)
+    assert direct.stats == stat
+    assert result.output("sh", "stat")["Method"] == "Shapley value decomposition of R² (LMG)"
+    report = (tmp_path / "outputs" / "kd.md").read_text("utf-8")
+    assert "Relative weight" in report and "Shapley value" in report
+    assert json.dumps(stat)
+    # One driver is not a split; a nominal with three answers is refused by the run.
+    flow["nodes"][3]["params"]["predictors"] = ["age"]
+    issues = check_flow(flow, questionnaire=questionnaire_doc)
+    assert [(i.severity, i.code) for i in issues] == [("error", "PARAM_CONFLICT")]
+    assert issues[0].message.startswith(
+        "kd: Key drivers splits R² between two or more predictors; 1 was given."
+    )
+    flow["nodes"][3]["params"]["predictors"] = ["age", "gender"]
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc)
+    failed = runner.run(cwd=tmp_path, raise_on_error=False)
+    error = next(run for run in failed.runs if run.state == "error")
+    assert error.node == "kd" and "Gender is nominal with 3 answers" in error.error
+    assert "Explode multiple choice" in error.error

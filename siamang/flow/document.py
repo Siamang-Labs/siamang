@@ -951,6 +951,9 @@ def _check_design(
             problem = count_problem(str(params.get("test")), len(variables))
             if problem:
                 return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {problem}", node_id)]
+    problem = _method_problem(spec.type, params)
+    if problem:
+        return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {problem}", node_id)]
     if (
         spec.type == "analyze.ttest"
         and questionnaire is not None
@@ -975,6 +978,20 @@ def _check_design(
                 )
             ]
     return []
+
+
+def _method_problem(node_type: str, params: dict[str, Any]) -> str | None:
+    """What the parameters of an analysis node settle before any data, in the
+    words the run would refuse it with: how many drivers Key drivers weighs
+    (two or more, and at most 15 for the Shapley value)."""
+
+    if node_type == "analyze.drivers":
+        from siamang.data.drivers import count_problem
+
+        predictors = params.get("predictors")
+        if isinstance(predictors, list) and predictors:
+            return count_problem(str(params.get("method")), len(predictors))
+    return None
 
 
 def _answers(payload: dict[str, Any]) -> list[tuple[str, str]]:

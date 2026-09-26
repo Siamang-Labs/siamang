@@ -493,6 +493,51 @@ answer, nothing weighted — `lower` and `upper` are `None` and `note` says why
 
 ---
 
+## Key drivers: `siamang.data.drivers`
+
+`analyze(data, y, predictors, *, method="relative_weights") -> KeyDrivers` — the
+`analyze.drivers` node: each predictor's share of the R² of `y`.
+
+| `method` | What it computes |
+|----------|------------------|
+| `relative_weights` (default) | Johnson's (2000) relative weights: with `Rxx = QΛQᵀ` and `Λ½ = QΛ^½Qᵀ`, `β* = Λ½⁻¹ r_xy` and weight j = `Σₖ (Λ½)ⱼₖ² β*ₖ²` — as R's `rwa` and Python's `relativeImp` |
+| `shapley` | The Shapley value (LMG) decomposition: each predictor's gain in R² averaged over every order of entry, exact from all 2^p subset regressions — as `relaimpo::calc.relimp(type = "lmg")`; at most `SHAPLEY_LIMIT` (15) predictors |
+
+`KeyDrivers` holds `table` (a `DriverTable`: Rank, Driver, r, Beta, Beta p, VIF,
+`Relative weight` or `Shapley value`, `% of R²`, largest share first; its
+`analysis` is the result), `stats` (`Method`, `Outcome`, `Drivers`, `N`, `R²`,
+`Adjusted R²`, `F`, `df`, `p`, and when they apply `Weight`, `Effective N`,
+`Tests on`, `Warning`, `Note`, `Excluded`, `Excluded because`, `Missing codes`)
+and the unrounded numbers in the predictors' order: `correlations`, `betas`,
+`importance` (summing to `r_squared`), `percent`, `vif`. `plot(result, *,
+title=None, figsize=None, ax=None)` draws the shares as horizontal bars, largest
+on top, blue for a positive beta and orange for a negative one (a legend when
+both occur), each labelled with its percentage; the title names the outcome,
+the method and R², and a second line the weight. Labels wrap at a third of the
+width (three lines, then an ellipsis), many rows get a smaller font, and a
+figure too short for its rows grows. It returns the matplotlib `Figure`.
+
+- **Rows.** Listwise over the outcome and the predictors, the codebook's missing
+  codes counted as missing. A nominal variable with more than two answers is
+  refused (make a 0/1 variable per answer); one with two is used as it is.
+- **Weights.** Everything comes from the weighted correlation matrix (R's
+  `cov.wt`, as `relaimpo` uses with weights; equal weights give the unweighted
+  result). The F-test, each beta's t-test and adjusted R² are on Kish's
+  effective base `(Σw)² / Σw²`; a missing weight counts 0.
+- **Tests.** A standardized beta's t is its raw coefficient's:
+  `β / √((1 − R²) / (n − p − 1) · [Rxx⁻¹]ⱼⱼ)`, so `lm`'s p-values are
+  reproduced. VIF is the diagonal of `Rxx⁻¹`.
+- **Refused, with the reason:** fewer than two predictors, more than 15 with
+  `shapley`, a variable listed twice, a constant outcome or predictor,
+  predictors that are a combination of each other (named), no more respondents
+  than predictors + 1. **Warned:** a VIF of 10 or more (`VIF_WARNING`), and a
+  suppressor — a beta whose sign is not its correlation's.
+- `relative_weights(r_xx, r_xy)`, `shapley(r_xx, r_xy)` and
+  `subset_r_squared(r_xx, r_xy)` work on plain correlation matrices;
+  `count_problem(method, count)` is the message the flow check gives.
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.
