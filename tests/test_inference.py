@@ -974,7 +974,11 @@ def test_a_footer_prints_the_p_the_statistics_keep():
 
     assert round_p(4.99996e-05) == 5e-05 and stat_text(round_p(4.99996e-05)) == "5e-05"
     assert round_p(9.99e-05) == 9.99e-05 and stat_text(9.99e-05) == "9.99e-05"
-    assert round_p(0.00012) == 0.0001 and stat_text(0.00012) == "0.0001"
+    assert round_p(0.00012) == 0.0001 and stat_text(round_p(0.00012)) == "0.0001"
+    # A value four significant digits hold prints as kept: p_rounded's p of the
+    # paired tests and factor analysis (0.002343, not 0.0023).
+    assert stat_text(0.002343) == "0.002343" and stat_text(0.00012) == "0.00012"
+    assert stat_text(0.000123456) == "0.0001" and stat_text(124.98) == "124.98"
     assert stat_text(7.988e-32) == "7.988e-32"
     for p in (0.5, 0.04999, 0.00015, 0.0001, 9.9996e-05, 5e-05, 4.99996e-05, 1.2345e-09, 7.988e-32):
         kept = round_p(p)

@@ -342,6 +342,18 @@ def test_analyze_leaves_out_missing_codes_and_builds_the_tables():
     assert result.scores == [] and "factor_1" not in result.data.frame  # none asked for
 
 
+def test_the_footer_prints_bartlett_and_fit_p_as_the_statistics_keep():
+    """Bartlett p and Fit p keep four significant digits; the footer printed
+    them with four decimals (0.00227 as 0.0023)."""
+    rng = np.random.default_rng(0)
+    common = rng.normal(size=60)
+    frame = pd.DataFrame({f"i{j}": common * 0.3 + rng.normal(size=60) for j in range(4)})
+    result = factor.analyze(SurveyData(frame=frame), list(frame), n_factors=1, method="ml")
+    assert (result.stats["Bartlett p"], result.stats["Fit p"]) == (0.00227, 0.3537)
+    assert "; Bartlett p = 0.00227;" in result.loadings.to_markdown()
+    assert "; Fit p = 0.3537" in result.loadings.to_markdown()
+
+
 def test_analyze_adds_labeled_scores_missing_for_those_left_out():
     data = _survey()
     result = factor.analyze(data, ITEMS, scores=True, into="f")

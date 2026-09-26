@@ -365,10 +365,30 @@ def test_result_tables_render_blank_cells_and_their_statistics():
     )
     markdown = table.to_markdown()
     assert "| y |  |" in markdown and "nan" not in markdown.lower()
-    assert markdown.endswith("Test = t; p = 0.0123")
+    # A p kept to four significant digits prints as kept (stat_text).
+    assert markdown.endswith("Test = t; p = 0.01234")
     html = table.to_html()
     assert "NaN" not in html and "siamang-stats" in html
     assert np.isnan(table.to_frame().loc[1, "B"])  # the number stays missing
+
+
+def test_a_footer_prints_the_p_the_statistics_keep():
+    """Paired tests keep a p to four significant digits (p_rounded), and their
+    footers went through stat_text's four decimals: stats["p"] = 0.002343 under
+    a footer of "p = 0.0023", 0.008144 under "p = 0.0081". Each footer now
+    prints its statistics' p as kept, as the pairwise table's cells do."""
+    rng = np.random.default_rng(0)
+    x = rng.integers(1, 6, 40).astype(float)
+    y = np.clip(x + rng.integers(-1, 3, 40), 1, 5)
+    z = np.clip(y + rng.integers(-1, 2, 40), 1, 5)
+    data = SurveyData(frame=pd.DataFrame({"x": x, "y": y, "z": z}))
+    wilcoxon = paired.wilcoxon(data, "x", "y")
+    friedman = paired.friedman(data, ["x", "y", "z"])
+    assert (wilcoxon.stats["p"], friedman.stats["p"]) == (0.002343, 0.008144)
+    for result in (wilcoxon, friedman):
+        assert f"; p = {result.stats['p']};" in result.table.to_markdown()
+        assert f"; p = {result.stats['p']};" in result.table.to_html()
+    assert "| 0.002343 | 0.007029 |" in friedman.pairs.to_markdown()
 
 
 def test_wilcoxon_mcnemar_and_the_paired_t_test_take_the_difference_one_way():

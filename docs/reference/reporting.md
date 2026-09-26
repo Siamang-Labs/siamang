@@ -37,10 +37,12 @@ joined by `; ` — and a statistics mapping given to `Report.add` prints the
 same way. A float keeps up to four decimals without padding (`df = 124.98`; a
 whole one keeps its `.0`), and one below 0.0001 keeps four significant digits
 with its exponent (`p = 5.8e-07`, `p = 7.988e-32`), so nothing that is not 0
-reads `0.0000`. A p-value in the `stats` or a table cell of these tables keeps
-four decimals, or below 0.0001 four significant digits (`1.134e-24`), so its
-footer prints the same p; Paired tests and factor analysis keep four significant
-digits throughout (`p = 0.001254`). The
+reads `0.0000`; one below 1 that four significant digits already hold is
+printed as it is (`p = 0.002343`). A p-value in the `stats` or a table cell of
+these tables keeps four decimals, or below 0.0001 four significant digits
+(`1.134e-24`), so its footer prints the same p; Paired tests and factor
+analysis keep four significant digits throughout — statistics, cells and
+footer alike (`p = 0.002343`, `Bartlett p = 0.00227`). The
 HTML writes each number of a table as the Markdown does, so the `.html` and the
 `.md` of a report show the same values: a table component's cells as they are
 kept, and a bare DataFrame given to `Report.add` — not rounded — as tabulate
