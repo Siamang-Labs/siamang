@@ -706,6 +706,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   512 MB memory limit: a 40-chart report went from killed at 19 s to written
   in 29 s at 400 MB (its preview likewise).
 
+- **Reading a snapshot holds one copy of the data, not two.** `read_snapshot`
+  restored a codebook's integer codes in a copy of the whole frame, and a
+  Parquet read left the Arrow table's buffers in Arrow's pool: loading 20,000
+  respondents × 177 columns and raking them peaked at 376 MB, 60 MB of it
+  those leftovers, of the 512 MB a sandbox gives a flow. The codes are now
+  restored in the frame read, a column at a time, and the pool is handed back
+  after a Parquet read: 317 MB for the same frame, value for value.
+
 - **Two Save reports in one folder keep their own figures.** Every report named
   its figures `fig_<n>.png` by the block's place, so `outputs/report.md` and
   `outputs/summary.md` wrote each other's `fig_1.png` and one showed the other's
