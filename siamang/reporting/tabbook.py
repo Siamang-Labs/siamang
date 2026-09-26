@@ -395,6 +395,7 @@ def _questions(
             "columns. Name the Questions, or load the data with its questionnaire."
         )
     chosen = []
+    asked = _question_types(data)
     for name, variable in data.variables.items():
         if (
             name in banner
@@ -410,8 +411,54 @@ def _questions(
         if name not in frame.columns:
             skipped.append((name, "not in the data"))
             continue
+        # Chosen by default, a question must be one whose answers are a
+        # choice: a respondent's own words would go into the client's workbook
+        # word for word (an e-mail address, a phone number), and a ranking
+        # orders every option, so each would read 100 % in every column.
+        # Named in Questions, either is tabulated as asked.
+        if asked.get(name) == "OpenText" or (
+            name not in asked and not listed and _typed_text(variable, frame[name])
+        ):
+            skipped.append((name, OPEN_ANSWER))
+            continue
+        if asked.get(name) == "Ranking":
+            skipped.append((name, RANKING))
+            continue
         chosen.append(name)
     return chosen, skipped
+
+
+#: Why a question is not in a tab book's default selection.
+OPEN_ANSWER = "an open answer: code it first (Code open answers)"
+RANKING = (
+    "a ranking: every respondent orders every option, so each would be 100 % — derive its first "
+    "choice (Derive) and tabulate that"
+)
+
+
+def _question_types(data: SurveyData) -> dict[str, str]:
+    """The type of the question asking each variable, by the variable's name,
+    when the data carries its questionnaire."""
+    from siamang.core.variable import Variable
+
+    questionnaire = getattr(data, "questionnaire", None)
+    if questionnaire is None:
+        return {}
+    types: dict[str, str] = {}
+    for question in questionnaire.all_questions():
+        if isinstance(question.var, Variable):
+            types.setdefault(question.var.name, type(question).__name__)
+    return types
+
+
+def _typed_text(variable: Any, series: pd.Series) -> bool:
+    """A column of words without answer labels: what a respondent typed."""
+    if variable.labels:
+        return False
+    given = series.dropna()
+    if given.empty:
+        return False
+    return bool(pd.to_numeric(given, errors="coerce").isna().any())
 
 
 def _answers(data: SurveyData, series: pd.Series, name: str, multiple: bool) -> list[Any]:

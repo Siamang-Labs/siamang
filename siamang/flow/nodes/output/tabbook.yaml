@@ -10,7 +10,7 @@ params:
   questions:
     kind: variables
     label: Questions
-    help: Empty is every nominal, ordinal and multiple-choice variable of the codebook, except the banner variables, the weight and the response metadata. An interval or ratio question named here shows its mean.
+    help: Empty is every nominal, ordinal and multiple-choice variable of the codebook, except the banner variables, the weight, the response metadata, open answers (an OpenText question, or words without answer labels — they would go into the workbook word for word) and rankings (every option would read 100 %); the Notes sheet says why each is left out. Named here, any question is tabulated as asked, and an interval or ratio one shows its mean.
   banner:
     kind: variables
     required: true

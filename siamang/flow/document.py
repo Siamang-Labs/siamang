@@ -237,6 +237,8 @@ def check_flow(
             )
         if spec.type == "visualize.trend" and questionnaire is not None:
             issues.extend(_check_trend(node_id, spec, node.get("params") or {}, questionnaire))
+        if spec.type == "output.tabbook":
+            issues.extend(_check_tabbook(node_id, spec, node.get("params") or {}, questionnaire))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -1456,6 +1458,91 @@ def _check_bar_answers(
             )
         ]
     return []
+
+
+def _check_tabbook(
+    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any] | None
+) -> list[FlowIssue]:
+    """What a Tab book refuses when it runs (``write_tabbook``) and the flow
+    already settles: a path that is not an .xlsx workbook, a banner variable
+    whose question allows several answers — and, as warnings, a path the
+    platform does not keep (outside outputs/) and a question named that is
+    tabulated as asked but reads badly (a ranking, an open answer)."""
+
+    params = resolved_params(spec, given)
+    issues: list[FlowIssue] = []
+    path = params.get("path")
+    if isinstance(path, str) and path:
+        if not path.lower().endswith(".xlsx"):
+            issues.append(
+                FlowIssue(
+                    "error",
+                    "PARAM_INVALID",
+                    f"Parameter 'path' of {node_id}: A tab book is an Excel workbook: its path "
+                    f"must end in .xlsx (got {path!r}).",
+                    node_id,
+                )
+            )
+        elif not _under_outputs(path):
+            issues.append(
+                FlowIssue(
+                    "warning",
+                    "PARAM_INVALID",
+                    f"Parameter 'path' of {node_id}: {path!r} is not under outputs/, where a run "
+                    "keeps what it writes.",
+                    node_id,
+                )
+            )
+    if questionnaire is None:
+        return issues
+    variables = questionnaire.get("variables") or {}
+    asked = _asked_by(questionnaire)
+
+    def label(name: str) -> str:
+        return str((variables.get(name) or {}).get("label") or name)
+
+    for name in params.get("banner") or []:
+        if isinstance(name, str) and (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS:
+            issues.append(
+                FlowIssue(
+                    "error",
+                    "PARAM_CONFLICT",
+                    f"{node_id}: {label(name)} holds multiple-choice answers, and a banner "
+                    "column is a group of respondents that no one else is in. Explode it first "
+                    "(prepare.explode) and use its columns, or choose another banner variable.",
+                    node_id,
+                )
+            )
+    for name in params.get("questions") or []:
+        kind = (asked.get(name) or {}).get("type") if isinstance(name, str) else None
+        if kind == "Ranking":
+            issues.append(
+                FlowIssue(
+                    "warning",
+                    "PARAM_CONFLICT",
+                    f"{node_id}: {label(name)} is a ranking: every respondent orders every "
+                    "option, so each option would read 100 % in every column — derive its "
+                    "first choice (Derive) and tabulate that.",
+                    node_id,
+                )
+            )
+        elif kind == "OpenText":
+            issues.append(
+                FlowIssue(
+                    "warning",
+                    "PARAM_CONFLICT",
+                    f"{node_id}: {label(name)} is an open answer: its answers would go into the "
+                    "workbook word for word — code it first (Code open answers).",
+                    node_id,
+                )
+            )
+    return issues
+
+
+def _under_outputs(path: str) -> bool:
+    """Whether ``path`` (relative, as a flow names it) is inside outputs/."""
+    parts = [part for part in path.replace("\\", "/").split("/") if part not in ("", ".")]
+    return bool(parts) and parts[0] == "outputs" and ".." not in parts and len(parts) > 1
 
 
 def _range_size(payload: dict[str, Any]) -> str:

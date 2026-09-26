@@ -334,12 +334,17 @@ def test_the_default_questions_and_what_is_left_out():
     book = tabulate(data, banner=["region"])
     assert [tab.variable for tab in book.tabs] == ["sat", "aware"]
     assert book.skipped == [
+        ("comment", "an open answer: code it first (Code open answers)"),
         ("q_gone", "not in the data"),
+    ]
+    # Named, it is tabulated as asked — and past 30 answers says so again.
+    named = tabulate(data, banner=["region"], questions=["comment"])
+    assert named.skipped == [
         (
             "comment",
             "60 different answers and no answer labels — an open answer? Code it first "
             "(Code open answers) or band it (Bands)",
-        ),
+        )
     ]
     # Age is ratio: in the book only when named, then with its mean.
     named = tabulate(data, banner=["region"], questions=["age", "nope"])
@@ -523,6 +528,118 @@ def test_what_a_tab_book_refuses(tmp_path):
 
 
 # ── the node ───────────────────────────────────────────────────────────────
+
+
+def test_the_default_questions_leave_open_answers_and_rankings_out(tmp_path):
+    """An open question of a few respondents (30 or fewer different answers)
+    went into the client's workbook word for word — 'Call me back:
+    person11@example.com' a row each — and a ranking, whose every respondent
+    orders every option, read 100 % for each option in every column. Chosen by
+    default neither is tabulated, and the Notes say why; named in Questions,
+    each is tabulated as asked."""
+    from siamang.core.option import Option
+    from siamang.core.question import OpenText, Ranking, SingleChoice
+    from siamang.core.questionnaire import Questionnaire
+
+    region = Variable("region", "nominal", label="Region", labels={1: "North", 2: "South"})
+    rank = Variable(
+        "rank", "nominal", label="What helps", labels={1: "Walks", 2: "Books", 3: "Sport"}
+    )
+    improve = Variable("improve", "nominal", label="One change")
+    survey = Questionnaire(
+        title="t",
+        blocks=[
+            SingleChoice(text="Region?", var=region),
+            Ranking(
+                text="Rank",
+                var=rank,
+                choices=[Option(1, "Walks"), Option(2, "Books"), Option(3, "Sport")],
+            ),
+            OpenText(text="One change?", var=improve),
+        ],
+    )
+    n = 25
+    frame = pd.DataFrame(
+        {
+            "region": [1, 2] * 12 + [1],
+            "rank": [[1, 2, 3], [3, 1, 2]] * 12 + [[2, 3, 1]],
+            "improve": [
+                f"Call me back: person{i}@example.com" if i % 2 else None for i in range(n)
+            ],
+            "sat": [1, 2, 3, 4, 5] * 5,
+        }
+    )
+    variables = VariableMap()
+    variables.add_many([region, rank, improve, SAT])
+    data = SurveyData(frame=frame, variables=variables, questionnaire=survey)
+    book = tabulate(data, banner=["region"])
+    assert [tab.variable for tab in book.tabs] == ["sat"]
+    assert book.skipped == [
+        (
+            "rank",
+            "a ranking: every respondent orders every option, so each would be 100 % — derive "
+            "its first choice (Derive) and tabulate that",
+        ),
+        ("improve", "an open answer: code it first (Code open answers)"),
+    ]
+    path = tmp_path / "book.xlsx"
+    write_tabbook(data, path, banner=["region"])
+    import openpyxl
+
+    workbook = openpyxl.load_workbook(path)
+    assert "improve" not in workbook.sheetnames and "rank" not in workbook.sheetnames
+    cells = [str(cell) for row in workbook["Notes"].iter_rows(values_only=True) for cell in row]
+    assert not any("example.com" in cell for cell in cells)
+    named = tabulate(data, banner=["region"], questions=["rank", "improve"])
+    assert [tab.variable for tab in named.tabs] == ["rank", "improve"]
+    # Without its questionnaire, words without answer labels are an open answer too.
+    bare = SurveyData(frame=frame, variables=variables)
+    assert ("improve", "an open answer: code it first (Code open answers)") in tabulate(
+        bare, banner=["region"]
+    ).skipped
+
+
+def test_the_check_names_what_the_tab_book_would_refuse(questionnaire_doc):
+    """A multiple-choice banner, and a path that is not a workbook, passed the
+    check and failed the run; a path outside outputs/ is not kept."""
+    from siamang.flow import check_flow
+
+    def issues(params):
+        return [
+            (issue.severity, issue.message)
+            for issue in check_flow(_tabbook_flow(params), questionnaire=questionnaire_doc)
+        ]
+
+    assert issues({"banner": ["aware"]}) == [
+        (
+            "error",
+            "book: Brands heard of (unaided) holds multiple-choice answers, and a banner column "
+            "is a group of respondents that no one else is in. Explode it first "
+            "(prepare.explode) and use its columns, or choose another banner variable.",
+        )
+    ]
+    assert issues({"path": "outputs/tabbook.xls"}) == [
+        (
+            "error",
+            "Parameter 'path' of book: A tab book is an Excel workbook: its path must end in "
+            ".xlsx (got 'outputs/tabbook.xls').",
+        )
+    ]
+    assert issues({"path": "tabs.xlsx"}) == [
+        (
+            "warning",
+            "Parameter 'path' of book: 'tabs.xlsx' is not under outputs/, where a run keeps "
+            "what it writes.",
+        )
+    ]
+    assert issues({"path": "./outputs/q3/tabs.xlsx"}) == []
+    assert issues({"questions": ["comment"]}) == [
+        (
+            "warning",
+            "book: Free comment is an open answer: its answers would go into the workbook word "
+            "for word — code it first (Code open answers).",
+        )
+    ]
 
 
 @pytest.fixture(scope="module")

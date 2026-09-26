@@ -435,7 +435,11 @@ node may name.
 `output.tabbook` (**Tab book (Excel)**) writes every chosen question crossed
 by a banner as a workbook with `siamang.reporting.tabbook.write_tabbook`:
 `questions` (empty: every nominal, ordinal and multiple-choice variable of the
-codebook except the banner, the weight and the response metadata), `banner`,
+codebook except the banner, the weight, the response metadata, open answers —
+an `OpenText` question, or words without answer labels: `an open answer: code
+it first (Code open answers)` — and rankings: `a ranking: every respondent
+orders every option, so each would be 100 % — derive its first choice (Derive)
+and tabulate that`; named, any is tabulated as asked), `banner`,
 `percentages` (`column` | `row` | `none`), `counts`, `letters` with `level`
 and `correction` (read only with the letters), `means`, `path` (default
 `outputs/tabbook.xlsx`). Its `stat` output: `Workbook`, `Sheets written`,

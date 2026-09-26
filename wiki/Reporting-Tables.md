@@ -272,6 +272,7 @@ stat = write_tabbook(
     "outputs/tabbook.xlsx",
     banner=["region", "age_band"],   # the columns: Total, then every code of each
     questions=None,                  # every nominal, ordinal and multiple-choice question
+                                     # but open answers and rankings (name them to include them)
     percentages="column",            # or "row", or "none" (counts only)
     counts=True,
     letters=True, level=0.05, correction="none",   # or "bonferroni"
