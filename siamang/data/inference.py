@@ -20,6 +20,7 @@ built on these tests uses it and says what it left out.
 
 from __future__ import annotations
 
+import functools
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -838,6 +839,74 @@ def _studentized_p(q: float, k: int, df: float) -> float:
     return 0.0 if p < STUDENTIZED_P_FLOOR else p
 
 
+@functools.lru_cache(maxsize=4096)
+def _studentized_quantile(confidence: float, k: int, df: float) -> float:
+    """The studentized range's ``confidence`` quantile for ``k`` groups and
+    ``df`` degrees of freedom, as ``studentized_range.ppf`` gives it (to a
+    relative 1e-11) in about a third of the time.
+
+    SciPy's ppf root-finds from the interval (0, 10) to 1e-14, a double
+    integral (the cdf) at each of about 13 steps: 0.2 s a quantile, and
+    Games-Howell needs one a pair — 66 pairs of 12 groups took 14 s, 435 of 30
+    took 114 s. Here Newton's method starts from the quantile at infinite df
+    (a single integral) moved by its first-order term in 1/df,
+    ``q (1 − q f′(q)/f(q)) / (4 df)`` with ``f`` that limit's density, which
+    is within 1e-6 at a few hundred df, and stops once a step is below 1e-8
+    of the value. When it does not settle (it always has), SciPy's ppf is used.
+    """
+    from scipy.stats import studentized_range
+
+    limit = float(studentized_range.ppf(confidence, k, np.inf))
+    if not math.isfinite(df) or df >= 100_000:  # SciPy's own limit form there
+        return float(studentized_range.ppf(confidence, k, df))
+    step = 1e-4
+    density = float(studentized_range.pdf(limit, k, np.inf))
+    slope = (
+        float(studentized_range.pdf(limit + step, k, np.inf))
+        - float(studentized_range.pdf(limit - step, k, np.inf))
+    ) / (2 * step)
+    q = limit + limit * (1 - limit * slope / density) / (4 * df)
+    for _ in range(10):
+        change = (float(studentized_range.cdf(q, k, df)) - confidence) / float(
+            studentized_range.pdf(q, k, df)
+        )
+        q -= change
+        if not math.isfinite(q) or q <= 0:
+            break
+        if abs(change) < 1e-8 * q:
+            return q
+    return float(studentized_range.ppf(confidence, k, df))
+
+
+def _studentized_quantiles(confidence: float, k: int, dfs: Sequence[float]) -> list[float]:
+    """:func:`_studentized_quantile` at each of ``dfs``.
+
+    Games-Howell's Welch df differ from pair to pair, and past a few distinct
+    ones the quantile is interpolated rather than solved for each: it is a
+    smooth function of 1/df, and a polynomial through its values at the 17
+    Chebyshev–Lobatto points of the range is taken when the one through every
+    other point (9) agrees with it to 1e-7 of the value wherever it is read.
+    Such an interpolation's error falls geometrically with its points, so the
+    17-point one is then within about 1e-12 — below SciPy's own ppf's. Where
+    they disagree (a range reaching down to one or two df), each is solved.
+    """
+
+    distinct = sorted(set(dfs))
+    if len(distinct) <= 17 or not all(math.isfinite(df) and df < 100_000 for df in distinct):
+        solved = {df: _studentized_quantile(confidence, k, df) for df in distinct}
+        return [solved[df] for df in dfs]
+    low, high = 1 / distinct[-1], 1 / distinct[0]
+    nodes = (low + high) / 2 + (high - low) / 2 * np.cos(np.pi * np.arange(17) / 16)
+    values = np.array([_studentized_quantile(confidence, k, 1 / x) for x in nodes])
+    points = 1 / np.asarray(dfs, dtype=float)
+    fine = np.polynomial.Chebyshev.fit(nodes, values, 16, domain=[low, high])(points)
+    coarse = np.polynomial.Chebyshev.fit(nodes[::2], values[::2], 8, domain=[low, high])(points)
+    if np.all(np.abs(fine - coarse) <= 1e-7 * np.abs(fine)):
+        return [float(value) for value in fine]
+    solved = {df: _studentized_quantile(confidence, k, df) for df in distinct}
+    return [solved[df] for df in dfs]
+
+
 def _tukey(
     groups: list[np.ndarray], names: list[str], confidence: float
 ) -> tuple[pd.DataFrame, list[str]]:
@@ -868,10 +937,8 @@ def _tukey(
 def _games_howell(
     groups: list[np.ndarray], names: list[str], confidence: float
 ) -> tuple[pd.DataFrame, list[str]]:
-    from scipy.stats import studentized_range
-
     k = len(groups)
-    rows, notes = [], []
+    rows, notes, tested = [], [], []
     for i, j in _pairs(k):
         a, b = groups[i], groups[j]
         difference = float(a.mean() - b.mean())
@@ -889,10 +956,14 @@ def _games_howell(
         df = (s1 + s2) ** 2 / (s1**2 / (len(a) - 1) + s2**2 / (len(b) - 1))
         q = abs(difference) / se * math.sqrt(2)
         p = _studentized_p(q, k, df)
-        half = float(studentized_range.ppf(confidence, k, df)) / math.sqrt(2) * se
-        rows.append(
-            [names[i], names[j], difference, q, df, p, p, difference - half, difference + half]
-        )
+        rows.append([names[i], names[j], difference, q, df, p, p, np.nan, np.nan])
+        tested.append((len(rows) - 1, se))
+    # Each pair's interval is the quantile at its own Welch df: found for all
+    # of them at once, which is where the time went.
+    quantiles = _studentized_quantiles(confidence, k, [rows[row][4] for row, _ in tested])
+    for (row, se), quantile in zip(tested, quantiles, strict=True):
+        half = quantile / math.sqrt(2) * se
+        rows[row][7:] = [rows[row][2] - half, rows[row][2] + half]
     return pd.DataFrame(rows, columns=_POSTHOC_COLUMNS), notes
 
 

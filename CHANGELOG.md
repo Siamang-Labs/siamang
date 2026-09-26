@@ -706,6 +706,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   512 MB memory limit: a 40-chart report went from killed at 19 s to written
   in 29 s at 400 MB (its preview likewise).
 
+- **Games-Howell on many groups takes seconds, not minutes.** Each pair's
+  interval took SciPy's studentized range quantile at the pair's own Welch df,
+  a root found over a double integral: Group means with Welch's ANOVA and
+  Games-Howell on 20,000 respondents took 14 s for 12 groups, 37 s for 20 and
+  114 s for 30, at a canvas preview's 120 s limit. The quantile is now solved
+  by Newton's method from its large-df form, and past 17 distinct df it is
+  interpolated in 1/df through 17 solved ones (checked against the 9-point
+  interpolation, and solved df by df where they disagree): 2 s, 3 s and 7 s,
+  with every number as before to within 1e-10.
+
 - **Reading a snapshot holds one copy of the data, not two.** `read_snapshot`
   restored a codebook's integer codes in a copy of the whole frame, and a
   Parquet read left the Arrow table's buffers in Arrow's pool: loading 20,000
