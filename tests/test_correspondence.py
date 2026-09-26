@@ -318,6 +318,32 @@ def test_a_multiple_choice_column_counts_each_answer_and_skips_the_test():
     assert result.stats["Chi-square"].startswith("not computed: with a multiple-choice")
 
 
+def test_a_blank_in_a_nullable_integer_column_is_no_answer():
+    """A snapshot and the platform's data hold labelled codes as Int64, a skipped
+    answer as pd.NA: the same respondents are left out as with NaN, and no
+    "<NA>" row or column joins the map."""
+
+    data = _smoke_survey()
+    frame = data.frame.astype({"staff": "Int64", "smoking": "Int64"})
+    assert frame["smoking"].isna().sum() == 1 and frame["smoking"].dtype == "Int64"
+    nullable = correspondence.analyze(data.with_frame(frame), "staff", column="smoking")
+    plain = correspondence.analyze(data, "staff", column="smoking")
+    assert nullable.solution.counts == pytest.approx(SMOKE)
+    assert list(nullable.rows.to_frame()["Staff group"]) == ["SM", "JM", "SE", "JE", "SC"]
+    assert list(nullable.columns.to_frame()["Smoking"]) == ["none", "light", "medium", "heavy"]
+    assert nullable.stats == plain.stats
+    assert nullable.stats["N"] == 193 and nullable.stats["Excluded"] == 3
+    # The attribute layout reads its rows the same way.
+    brands = _brands()
+    grid = correspondence.analyze(
+        brands.with_frame(brands.frame.astype({"brand": "Int64"})),
+        "brand",
+        attributes=["modern", "cheap", "friendly"],
+    )
+    assert list(grid.rows.to_frame()["Brand"]) == ["Acme", "Globex", "Initech"]
+    assert grid.stats["N"] == 12 and grid.stats["Excluded"] == 1
+
+
 def test_empty_answers_are_named_and_a_line_is_a_map():
     data = _smoke_survey()
     # A heavy smoker's answer weighted 0 leaves the column empty: off the map, named.

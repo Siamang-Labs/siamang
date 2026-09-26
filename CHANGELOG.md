@@ -540,6 +540,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Perceptual map no longer maps a blank answer as a category.** On the
+  data Studio runs flows on — a snapshot read by `read_snapshot`, the
+  platform's responses — labelled codes come back as nullable `Int64`, a
+  skipped answer as `pd.NA`, and the map counted it: a `<NA>` row or column,
+  every respondent in N, `Excluded` 0, and a different inertia, chi-square and
+  map than the same responses in memory. Any scalar NA is now no answer.
+
 - **A value a node does not read is not checked.** The t-test's rules "Name
   both groups to compare in Group A and Group B…" had no design condition, and
   the variable checks ran on every parameter: a paired or one-sample t-test
