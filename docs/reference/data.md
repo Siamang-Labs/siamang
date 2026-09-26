@@ -57,7 +57,8 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
 | `plot.bar`, `plot.heatmap(by=…)` | Weighted counts, percentages (also with `split`) and weighted means; the axis (or colour bar) says "Weighted" or "(weighted)". |
-| `plot.boxplot`, `plot.scatter`, `plot.heatmap()` without `by` | Unweighted; the title's second line reads `unweighted (the weight 'w' is not applied)`. |
+| `plot.heatmap(method="pearson")` without `by` | Weighted Pearson coefficients (colour bar "Weighted Pearson r"), as `report.correlation_matrix` weights them. |
+| `plot.boxplot`, `plot.scatter`, `plot.heatmap()` without `by` (Spearman, Kendall) | Unweighted; the title's second line reads `unweighted (the weight 'w' is not applied)`. |
 | The HB exports (`siamang.io.choice`) | The files carry no weight column (the R packages take none); weight the individual utilities when you aggregate them. |
 | `report.descriptives` / `siamang.data.descriptives` | Mean, SD, median and quartiles weighted (the `GroupMeanTable`'s formulas) beside a `Weighted N` column; N, Missing, skewness and kurtosis are not. Stats: `Weight`, `Weighted N`, `Effective N`, `Design effect`, `Note`. |
 | `report.data_check`, `maxdiff.with_scores`, `bands.bands` | Count rows (the scores are per respondent). Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |

@@ -102,12 +102,12 @@ Crosstab (Fisher's exact test counts respondents), Group means (not N or the
 test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
 Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Correlation and Correlation matrix
-with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by`, and Proportion CI with
+with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, and Proportion CI with
 `weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
 groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
 Paired tests, Factor analysis, Cluster, Box plot, Scatter plot, a Heatmap
-without `by`, Response quality, Code open answers, Data check, and the counts
+without `by` with Spearman or Kendall, Response quality, Code open answers, Data check, and the counts
 of MaxDiff scores and Bands. Describe counts rows and adds a
 `weighted_n_valid` column. The HB exports carry no weight. The node's own
 `help` lists the same, so the palette says what the nodes do.
@@ -202,6 +202,14 @@ group — clear one of them.`); By with Show percent (`By (the mean in each
 group) is not drawn when Show is percent; to show the answers in each group,
 use Split by.`) and a Layout other than grouped without Split by (`Layout
 applies only when Split by is set.`) are warnings.
+
+`visualize.heatmap` takes a **`method`** for the correlation matrix drawn
+without By: `spearman` (the default; the old line is its fragment, `when:
+method=spearman`), `pearson` (weighted when a weight is applied) or `kendall`,
+the last two with the codebook's missing codes left out, as Correlation matrix
+leaves them out. With By the heatmap shows means, and a Method other than
+spearman is a warning: `Method applies to the correlation matrix drawn without
+By; with By the heatmap shows means.`
 
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead

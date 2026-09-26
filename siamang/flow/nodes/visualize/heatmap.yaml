@@ -1,7 +1,7 @@
 type: visualize.heatmap
 category: visualize
 title: Heatmap
-description: Correlation matrix of several items, or their means by group.
+description: Correlation matrix of several items (Spearman, Pearson or Kendall), or their means by group.
 inputs:
   data: SurveyData
 outputs:
@@ -17,6 +17,15 @@ params:
     - nominal
     - ordinal
     label: By
+  method:
+    kind: enum
+    values:
+    - pearson
+    - spearman
+    - kendall
+    default: spearman
+    label: Method
+    help: The correlation drawn without By, over the respondents who answered every item. Spearman, the default, reads the answers as it always has (a missing code such as 9 = Refused counts as an answer; run Missing values first to leave it out). Pearson and Kendall leave the codebook's missing codes out and say so, as Correlation matrix does; Pearson is weighted when a weight is applied, Kendall says it is not.
   title:
     kind: string
     label: Title
@@ -38,6 +47,24 @@ params:
     default: YlOrRd
     label: Color map
     help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale.
-template: |
-  {out.chart} = {in.data}.plot.heatmap({items!r}, by={by!r}, title={title!r}, figsize=({width!r}, {height!r}), cmap={cmap!r})
+checks:
+- when: by & method!=spearman
+  severity: warning
+  message: Method applies to the correlation matrix drawn without By; with By the heatmap shows means.
+# The Spearman fragment is the line this node has always written: a stored
+# flow renders the same code.
+template:
+- when: method=spearman
+  code: |
+    {out.chart} = {in.data}.plot.heatmap({items!r}, by={by!r}, title={title!r}, figsize=({width!r}, {height!r}), cmap={cmap!r})
+- when: method!=spearman
+  code: |
+    {out.chart} = {in.data}.plot.heatmap(
+        {items!r},
+        by={by!r},
+        method={method!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        cmap={cmap!r},
+    )
 preview: chart

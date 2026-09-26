@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Heatmap: Pearson and Kendall.** `visualize.heatmap` and
+  `data.plot.heatmap()` take a `method` for the correlation matrix drawn without
+  By: `spearman` (the default, drawn as it always was), `pearson` or `kendall`.
+  The two new ones are the Correlation matrix table's numbers over the
+  respondents who answered every item: the codebook's missing codes left out
+  and counted under the plot with N, Pearson weighted when a weight is applied
+  (colour bar "Weighted Pearson r"), Kendall saying the weight is not applied,
+  a pair that cannot be computed a blank cell with the reason. Long labels are
+  numbered (`1. label` down, `1`, `2`, … across) and every row is as tall as its
+  label. A Method with By is a warning: the heatmap then shows means.
+
 - **Bar chart: percentages, Split by, and largest first.** `visualize.bar` and
   `data.plot.bar()` take `show` (`count` | `percent` of the respondents who
   answered), `split` (Split by: the answers within each group of a second
