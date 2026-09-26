@@ -649,11 +649,13 @@ def test_a_shorthand_codebook_is_read_as_the_questionnaire_reads_it(questionnair
     found = [(i.code, i.node) for i in check_flow(exploded, questionnaire=doc)]
     assert found == [("UNKNOWN_VARIABLE", "fr2")]
 
-    def warned(labels, missing=None):
+    def warned(labels, missing=None, missing_values=None):
         variables = dict(questionnaire_doc["variables"])
         variables["region"] = {"scale": "nominal", "label": "Region", "labels": labels}
         if missing is not None:
             variables["region"]["missing"] = missing
+        if missing_values is not None:
+            variables["region"]["missing_values"] = missing_values
         flow, found = _one(
             "analyze.ttest",
             {"y": "age", "group": "region"},
@@ -672,6 +674,18 @@ def test_a_shorthand_codebook_is_read_as_the_questionnaire_reads_it(questionnair
     assert warned(three, {"3": "Refused"}) == []
     assert warned(three, [{"code": 3, "label": "Refused"}]) == []
     assert warned(three) == ["n: Region has 3 answers (1 = A, 2 = B, 3 = C)"]
+    # missing_values, the schema's list of codes, is a missing code too: the
+    # t-test leaves 3 out, so Region has two answers (it warned "has 3 answers").
+    assert warned(three, missing_values=[3]) == []
+    assert warned(three, missing_values=[3.0]) == []
+    with_values = copy.deepcopy(questionnaire_doc)
+    with_values["variables"]["region"] = {
+        "scale": "nominal",
+        "label": "Region",
+        "labels": three,
+        "missing_values": [3],
+    }
+    assert from_document(with_values).survey.variables["region"].is_missing(3)
 
 
 def test_a_made_variable_of_the_wrong_scale_is_warned(questionnaire_doc):
