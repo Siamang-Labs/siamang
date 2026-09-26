@@ -25,9 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loadings and correlation heatmaps from it too). Each chart node's Palette
   offers `theme`.
   The defaults are a set a reader with protanopia or deuteranopia can tell
-  apart: eight hues whose neighbours, and any two of the first three, are at
-  least 9 apart in OKLab (×100) under Machado's simulation, and blue–red for a
-  scale that diverges. Text written on a fill is white or the theme's text,
+  apart: eight colours (`#2a78d6 #eb6834 #335c00 #e08fff #29c2a3 #8f0a5c
+  #cc4799 #5233a3`) any two of which are at least 9.5 apart in OKLab (×100)
+  under Machado's simulation and 17 with full colour vision, each 2:1 on white,
+  and blue–red for a scale that diverges; a Trend of more than four lines also
+  gives each line's points a shape of its own. An ordered scale's steps are
+  each their own colour, a sequential colour lighter than 2:1 on white (a
+  yellow) included, and past the palette a chart's colours keep 2:1; a palette
+  or sequential colour under 1.3:1 on white is refused (`chart_palette:
+  '#ffe8b2' on the charts' white background has a contrast of 1.2:1; a bar or
+  a line in it needs at least 1.3:1 to be seen.`). Text written on a fill is white or the theme's text,
   whichever reads better, black where neither reaches 4.5:1. The theme is an
   opt-in: a chart that names a palette of its own — every stored flow's — is
   drawn byte for byte as before. A chart is drawn at its node, before the Save

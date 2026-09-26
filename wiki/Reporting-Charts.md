@@ -395,9 +395,12 @@ Report(title="Brands", theme=theme).add(chart).save("out/report.html")
 ```
 
 Without a theme's colours the defaults apply, and they are chosen for readers
-with colour-vision deficiencies: eight hues whose neighbours (and any two of the
-first three) stay apart with protanopia and deuteranopia, blue for magnitude and
-red to blue for a scale that diverges. A value written on a bar is white or the
+with colour-vision deficiencies: eight colours any two of which stay apart with
+protanopia and deuteranopia (a Trend of more than four lines also gives each
+line's points a shape), blue for magnitude and red to blue for a scale that
+diverges. An ordered scale's steps are each their own colour, a light
+sequential colour such as a yellow included; a palette colour under 1.3:1 on
+white is refused. A value written on a bar is white or the
 text colour, whichever reads better (4.5:1 at least). Colours are hex
 (`#2a78d6`); a theme with a bad one is refused, naming it — `chart_palette:
 'purple' is not a hex colour such as '#2a78d6'.`

@@ -55,7 +55,7 @@ params:
     - theme
     default: muted
     label: Palette
-    help: Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default a set colour-blind readers can tell apart), with its text colour, grid and font. The others are seaborn's palettes.
+    help: Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart; a Trend's lines past four also take a shape each), with its text colour, grid and font. The others are seaborn's palettes.
 subtitle: '{y} by {by}'
 template: |
   {out.chart} = {in.data}.plot.boxplot({y!r}, by={by!r}, show_points={show_points!r}, title={title!r}, figsize=({width!r}, {height!r}), palette={palette!r})

@@ -202,17 +202,25 @@ can be set in the same type.
 `"theme"` (a heatmap's `cmap="theme"`) — and no other, so a chart that names a
 palette of its own draws the picture it always drew. Their defaults
 (`siamang.reporting.chart_theme`) are chosen for readers with colour-vision
-deficiencies: eight hues, `#2a78d6 #eb6834 #1baf7a #eda100 #e87ba4 #008300
-#4a3aa7 #e34948`, in an order whose neighbours — and any two of the first three
-— are at least 9 apart in OKLab (×100) with protanopia and deuteranopia
-simulated (Machado, Oliveira & Fernandes 2009) and 19 with full colour vision;
+deficiencies: eight colours, `#2a78d6 #eb6834 #335c00 #e08fff #29c2a3 #8f0a5c
+#cc4799 #5233a3`, any two of which are at least 9.5 apart in OKLab (×100) with
+protanopia and deuteranopia simulated (Machado, Oliveira & Fernandes 2009) and
+17 with full colour vision, each at least 2:1 on white — so a chart of up to
+eight series can put any two side by side — ordered so the first three are
+14.6 apart; a Trend of more than four lines gives each line's points a shape
+of its own too (and its legend entry);
 blue `#2a78d6` for magnitude; red `#e34948` to blue for a scale that diverges;
 text `#1a1a1a` and grid `#e0e0e0`. Colours are hex only (`#rgb` or `#rrggbb`):
 they are drawn by matplotlib, not a browser. A list may be given as one string
-(`"#2a78d6, #eb6834"`). Past the palette a chart takes its colours lighter,
-then darker, then hues spaced round the wheel, never one twice. An ordered
-scale's steps run from a tint of the sequential colour still 2:1 on white to
-the colour at half its lightness; a diverging scale's arms from each end to a
+(`"#2a78d6, #eb6834"`); a palette or sequential colour under 1.3:1 on white
+(`#ffe8b2`) is refused, as a bar or a line in it all but disappears. Past the
+palette a chart takes its colours darker, then lighter as far as they keep 2:1
+on white (a colour already under that, a little darker instead), then hues
+spaced round the wheel, never one twice. An ordered scale's steps run from a
+tint of the sequential colour still 2:1 on white to the colour at half its
+lightness — from the colour darkened to 2:1 when it is lighter than that (a
+yellow, a light blue), and from its tint straight to its half when it is near
+black — each step its own colour; a diverging scale's arms from each end to a
 tint of it 45 % of the way to white, the neutral answer grey (`#bdbdbd`). A
 value written on a bar, a segment or a cell is white or the text colour,
 whichever reads better — black where neither reaches 4.5:1, which one of white

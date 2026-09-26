@@ -66,7 +66,7 @@ params:
     - theme
     default: muted
     label: Palette
-    help: The colours of the bars, points and series. Net Promoter Score and sentiment keep their own red–grey–blue, the heatmaps their diverging scale, and Key drivers, the Perceptual map and Price sensitivity their own colour-blind-safe pairs. Theme takes every colour from the report the chart is saved in — the chart colours of its Save report's Look (by default a set colour-blind readers can tell apart), its series, its diverging pair for the red–grey–blue and the heatmaps, its text colour, grid and font.
+    help: The colours of the bars, points and series. Net Promoter Score and sentiment keep their own red–grey–blue, the heatmaps their diverging scale, and Key drivers, the Perceptual map and Price sensitivity their own colour-blind-safe pairs. Theme takes every colour from the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart; a Trend's lines past four also take a shape each), its series, its diverging pair for the red–grey–blue and the heatmaps, its text colour, grid and font.
 subtitle: '{kind}'
 imports:
 - from siamang.reporting import result_charts

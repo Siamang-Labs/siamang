@@ -21,6 +21,7 @@ from scipy import stats as scipy_stats
 
 from siamang.core.variable import MissingValue, Variable, VariableMap
 from siamang.data.survey_data import SurveyData
+from siamang.reporting import trend as trend_module
 from siamang.reporting.trend import TrendChart, trend
 
 Z95 = 1.959963984540054
@@ -816,3 +817,43 @@ def test_every_measure_runs_weighted(questionnaire_doc, survey, params, column, 
     frame = result.output("trend", "table").to_frame()
     assert column in frame.columns and "Weighted base" in frame.columns
     assert result.output("trend", "chart").weight_note == "weighted by 'w'"
+
+
+def test_past_four_lines_each_line_s_points_take_a_shape_of_their_own():
+    """Colour alone does not keep six or more lines apart for every reader,
+    and past the palette two lines are two shades of one hue: past four lines
+    (where the bands stop) each line's points, and its legend entry, take a
+    shape of their own. Up to four, circles as before."""
+    rng = np.random.default_rng(3)
+    frame = pd.DataFrame(
+        {
+            "wave": np.tile([1, 2, 3], 300),
+            "seg": np.repeat(np.arange(1, 7), 150),
+            "aware": rng.integers(1, 3, 900),
+        }
+    )
+    data = _data(
+        frame,
+        Variable("wave", "ordinal", label="Wave", labels={1: "W1", 2: "W2", 3: "W3"}),
+        Variable("seg", "nominal", label="Segment", labels={i: f"S{i}" for i in range(1, 7)}),
+        Variable("aware", "nominal", label="Aware", labels={1: "Yes", 2: "No"}),
+    )
+
+    from matplotlib.collections import PathCollection
+
+    def shapes(ax):  # the points' marker paths, line by line
+        return [
+            collection.get_paths()[0].vertices.round(3).tobytes()
+            for collection in ax.collections
+            if isinstance(collection, PathCollection) and len(collection.get_offsets())
+        ]
+
+    six = data.plot.trend("wave", variable="aware", codes=1, by="seg").plot()
+    drawn = shapes(six)
+    assert len(drawn) == 6 and len(set(drawn)) == 6
+    assert [line.get_marker() for line in six.get_legend().get_lines()] == list(
+        trend_module.MARKERS[:6]
+    )
+    four = data.with_frame(frame[frame["seg"] <= 4])
+    ax = four.plot.trend("wave", variable="aware", codes=1, by="seg").plot()
+    assert len(set(shapes(ax))) == 1

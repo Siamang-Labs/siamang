@@ -337,7 +337,8 @@ text colour, grid and face of the Look of the Save report the chart is saved
 through (`ReportTheme`'s `chart_*` fields, reporting reference §1b), which the
 report draws the chart in when it is rendered — the chart was drawn at its node
 before the Look was known, in the look `SIAMANG_REPORT_THEME` names, else the
-colour-blind-safe defaults. A named palette is drawn as it always was. These size the
+defaults, eight colours any two of which readers with protanopia or
+deuteranopia can tell apart. A named palette is drawn as it always was. These size the
 matplotlib figure itself rather than the picture of it, so the axis labels keep
 their proportion. Resolution is a field on the chart (`SurveyChart.dpi`,
 default 150) which `save()` uses unless a caller passes `dpi=` explicitly.
