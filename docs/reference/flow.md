@@ -365,9 +365,15 @@ Monday to Sunday, `2026-W22` — | `month` | `quarter` | `year`, default
 `month`; not used for a wave code), `measure` (`percent` | `mean` | `count`),
 `variable` and `codes` (a JSON code or list, read with `percent` only; checked
 by the node's `checks`), `by`, `band` (not read with `count`), `min_base`
-(30), `title`, `width`, `height`, `palette`. Outputs: `chart`, and `table` —
+(30; not read with `count`, a count being its own base), `title`, `width`,
+`height`, `palette`. `check_flow` says what the questionnaire settles and the
+run refuses, in the run's words (`PARAM_CONFLICT`): the mean of a nominal or a
+multiple-choice question, a multiple-choice question as `time` or `by`, a
+missing code among `codes`. Outputs: `chart`, and `table` —
 the chart's `.table`, period × group with the measure, its interval and the
-bases — for a report or a Live tile. `check_flow` knows the response
+bases — for a report or a Live tile; the Trend draws its own chart, so the
+table is not a Result chart's result (`RESULT_NOT_DRAWABLE`). `check_flow`
+knows the response
 timestamps a platform's frame carries (`document.RESPONSE_TIMES`:
 `created_at`, `updated_at`, `started_at`, `submitted_at`) as variables any
 node may name.

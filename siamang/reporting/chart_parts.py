@@ -245,6 +245,28 @@ def row_major(items: list[Any], columns: int) -> list[Any]:
     return [items[index] for index in order if index < len(items)]
 
 
+def legend_below(
+    fig: Any, handles: list[Any], names: list[str], title: str, figure_pt: float
+) -> Any:
+    """A figure legend between the plot and the notes, in as many columns as
+    the figure's width holds, read row by row (:class:`Footnote` makes room
+    for it when it is given as ``legend``)."""
+
+    names = [wrap(name, 18) for name in names]
+    entry_pt = max(text_width(name, 9.0) for name in names) + 30.0
+    columns = max(1, min(len(names), int((figure_pt - 20.0) // entry_pt)))
+    return fig.legend(
+        row_major(handles, columns),
+        row_major(names, columns),
+        title=wrap(title, chars_in(figure_pt - 20.0, 9.0)),
+        loc="lower center",
+        ncol=columns,
+        frameon=False,
+        fontsize=9,
+        title_fontsize=9,
+    )
+
+
 def left_out_note(left_out: dict[str, list[tuple[Any, int]]], variables: Any) -> str | None:
     """``"Left out as missing: Trust: Acme: 12 (9 = Refused)"``, or None."""
 
@@ -311,6 +333,7 @@ __all__ = [
     "font_size",
     "ink_on",
     "left_out_note",
+    "legend_below",
     "percent_axis",
     "row_major",
     "series_colours",

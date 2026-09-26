@@ -626,11 +626,30 @@ logit as above.
   multiple-choice question), its `"mean"`, or the `"count"` of respondents.
   Weighted data gives weighted points; the band is the 95 % interval
   (Proportion CI's normal approximation, or the t interval of the mean, on
-  Kish's effective base when weighted). A point with fewer than `min_base`
-  respondents is drawn hollow.
+  Kish's effective base when weighted), drawn for up to `MAX_BANDS` (4) lines
+  — past that the notes say the table gives each point's interval. A percent
+  or a mean with fewer than `min_base` respondents is drawn hollow; a count is
+  its own base. A multiple-choice question as `time` or `by` is refused
+  (`ValueError`, in a sentence), as are a mean of a nominal or multiple-choice
+  variable and a missing code among `codes`.
+
+  The chart follows `siamang.reporting.chart_parts` as the Bar chart's newer
+  forms do: `series_colours` (no two lines alike), `percent_axis` (whole
+  percents) or `thousands_axis` (a count or a mean), period labels level —
+  wrapped to the measured room between two ticks — or slanted at 40° in as
+  many lines as fit (every n-th period named only when they must be thinned),
+  the title and axis titles wrapped to the plot, the legend beside the plot
+  or under it (`legend_below`) on a figure narrower than 7.5 inches or when it
+  is taller than the plot, and a `Footnote` under it: `Base: … respondents who
+  answered (weighted: …); … to … per point.`, `Gaps: …`, `Hollow points: fewer
+  than 30 respondents.`, `Band(s): 95% confidence interval(s).` or `No bands:
+  …`, `Not drawn: … whose respondents' weights sum to 0.`, `Weighted by 'w';
+  the bases count respondents.`, `Left out as missing: …`, `Left out: …`. A
+  figure too small for its labels grows taller.
 * **`TrendChart.table`** — a `ResultTable` of period × group: the measure,
   `Lower 95%`, `Upper 95%`, `Base`, and on weighted data `Weighted base` and
-  `Effective base`, and `Note` (`base below 30`, `no respondents`). Its
+  `Effective base`, and — for a percent or a mean — `Note` (`base below 30`,
+  `no respondents`, `their weights sum to 0`). Its
   `stats`: `Measure`, `Base`, `Time`, `Interval`, `Weight`, `Low base`,
   `Missing codes left out`, `Left out` (rows without a time, or whose text is
   not a date, or without a group). **`TrendChart.points`** is the same,

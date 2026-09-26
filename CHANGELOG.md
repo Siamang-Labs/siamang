@@ -553,16 +553,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   variable, or the count of respondents; weighted data gives weighted points
   and a weighted base per point. The confidence band is Proportion CI's normal
   approximation or the mean's t interval, on Kish's effective base when
-  weighted. A point under *Minimum base* (30) respondents is drawn hollow and
-  noted (`base below 30`, `no respondents`). Outputs: the `chart`, and a
-  `table` of period × group with the measure, `Lower 95%`, `Upper 95%`,
+  weighted. A percent or a mean under *Minimum base* (30) respondents is drawn
+  hollow and noted (`base below 30`, `no respondents`, `their weights sum to
+  0`); a count is its own base, so *Minimum base* is not read with it (nor
+  written into its code) and its table has no `Note`. Outputs: the `chart`,
+  and a `table` of period × group with the measure, `Lower 95%`, `Upper 95%`,
   `Base`, `Weighted base`, `Effective base` and `Note`, whose statistics say
   what was measured, how time was read, the missing codes left out and the
-  rows without a time or whose text is not a date (`Left out`). A mean of a
-  nominal variable, a missing code named as an answer and a code that is no
-  answer are refused in words. `check_flow` knows the response timestamps
+  rows without a time or whose text is not a date (`Left out`). The chart is
+  drawn as the newer charts are: a colour of its own for every line however
+  many (past the palette's ten, lighter and darker ones), the bands of up to
+  four lines (more would hide one another and the lines: "No bands: the 95%
+  intervals of 13 lines would hide one another; the table gives each
+  point's."), ticks on whole percents, thousands separated on a count or a
+  mean axis, the period labels level — wrapped to the room between two ticks
+  as measured — or slanted in as many lines as fit and thinned only when they
+  must be, the title and axis titles wrapped to the plot, the legend beside
+  it (under it on a figure narrower than 7.5 inches, or when it is taller
+  than the plot: `chart_parts.legend_below`, the Bar chart's, now shared), and
+  under it the base and what was left out ("Base: 3,790 respondents who
+  answered (weighted: 4,646.0); 157 to 201 per point.", "Gaps: no
+  respondents in 3 of 39 points.", "Hollow points: fewer than 30
+  respondents.", "Bands: 95% confidence intervals.", "Not drawn: 1 point
+  whose respondents' weights sum to 0.", "Weighted by 'w'; the bases count
+  respondents.", "Left out as missing: …", "Left out: …"); a small figure
+  grows taller rather than squeeze its plot. A mean of a nominal or a
+  multiple-choice variable, a multiple-choice question as *Time* or *Split
+  by*, a missing code named as an answer and a code that is no answer are
+  refused in words, and `check_flow` says all but the last before the run
+  (the questionnaire settles them), in the same words (`PARAM_CONFLICT`: "Split by needs one answer per
+  respondent, and Brands heard of (unaided) allows several: split by one of
+  its options after Explode multiple choice, or choose another variable.").
+  The Trend draws its own chart, so its table is not a Result chart's result
+  (`RESULT_NOT_DRAWABLE`). `check_flow` knows the response timestamps
   (`created_at`, `updated_at`, `started_at`, `submitted_at`:
   `siamang.flow.document.RESPONSE_TIMES`) as variables a node may name.
+
 - **Tab book (Excel)** (`output.tabbook`, `siamang.reporting.tabbook.write_tabbook`)
   — every chosen question crossed by a banner in one workbook: a *Contents*
   sheet linking to one sheet per question (named after its variable, at most
