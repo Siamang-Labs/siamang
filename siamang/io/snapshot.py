@@ -66,6 +66,7 @@ def read_snapshot(
     embedded: VariableMap | None = None
     if suffix == ".parquet":
         frame = _lists_back(pd.read_parquet(source, **read_kwargs))
+        _release_arrow_memory()
     elif suffix == ".csv":
         frame = pd.read_csv(source, **read_kwargs)
     elif suffix in {".xlsx", ".xls"}:
@@ -94,7 +95,8 @@ def read_snapshot(
     if questionnaire is not None and suffix != ".parquet":
         frame = list_frame(frame, _list_columns(questionnaire))
     if variables is not None:
-        frame = _restore_integer_codes(frame, variables)
+        # The frame is this function's own (just read): restored in place.
+        _restore_integer_codes(frame, variables)
 
     data = SurveyData(frame=frame, variables=variables, questionnaire=questionnaire)
     if weight is not None:
@@ -216,8 +218,26 @@ def _list_columns(questionnaire: Questionnaire) -> list[str]:
     return columns
 
 
+def _release_arrow_memory() -> None:
+    """Hand back to the system what reading Parquet left in Arrow's pool.
+
+    The pool keeps the buffers of the table pandas was built from once they
+    are freed, for the next read: 30 MB for a 20,000 x 177 file, a sixth of
+    what a 512 MB sandbox leaves a flow once its imports are loaded."""
+
+    try:
+        import pyarrow
+    except ImportError:  # read by another engine
+        return
+    pyarrow.default_memory_pool().release_unused()
+
+
 def _restore_integer_codes(frame: pd.DataFrame, variables: VariableMap) -> pd.DataFrame:
-    """Turn float columns back into ``Int64`` where the codebook says codes are integers."""
+    """Turn float columns back into ``Int64`` where the codebook says codes are
+    integers — in ``frame`` itself, a column at a time, which is returned.
+
+    Copying the frame first held two of it at once (and the copy was not
+    returned to the system): only a frame the caller owns is passed here."""
 
     restored = frame
     for name, variable in variables.items():
@@ -234,8 +254,6 @@ def _restore_integer_codes(frame: pd.DataFrame, variables: VariableMap) -> pd.Da
         values = series.dropna()
         if not values.empty and not bool((values % 1 == 0).all()):
             continue
-        if restored is frame:
-            restored = frame.copy()
         restored[name] = series.round().astype("Int64")
     return restored
 

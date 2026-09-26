@@ -268,3 +268,47 @@ def test_a_parquet_snapshot_gives_back_lists_that_explode(tmp_path):
     assert multi.is_multi(back.frame["aware"])
     exploded = back.explode_multi("aware").frame
     assert exploded["aware_1"].tolist()[:2] == [1, 0] and exploded["aware_3"].tolist()[0] == 1
+
+
+def test_integer_codes_are_restored_in_the_frame_read_not_in_a_copy(tmp_path, monkeypatch):
+    """Copying the frame to restore its codes held two frames at once (56 MB
+    more for 20,000 x 177): the frame read is the snapshot's own, restored a
+    column at a time."""
+    from siamang.io import snapshot
+
+    data = _data()
+    target = write_snapshot(data, tmp_path / "responses.csv")
+    read = []
+    original = pd.read_csv
+
+    def reading(*args, **kwargs):
+        read.append(original(*args, **kwargs))
+        return read[-1]
+
+    monkeypatch.setattr(pd, "read_csv", reading)
+    loaded = read_snapshot(target)
+    assert loaded.frame is read[0]
+    assert str(loaded.frame["region"].dtype) == "Int64"
+    assert loaded.frame["trust"].tolist()[:3] == [1, 9, 2]
+    frame = pd.DataFrame({"region": [1.0, 2.0, None]})
+    assert snapshot._restore_integer_codes(frame, data.variables) is frame
+
+
+@pytest.mark.skipif(not HAS_PARQUET, reason="pyarrow")
+def test_reading_parquet_hands_arrow_s_pool_back(tmp_path, monkeypatch):
+    """Arrow keeps the buffers pandas was built from in its pool (30 MB for
+    20,000 x 177) unless asked to give them back."""
+    import pyarrow
+
+    target = write_snapshot(_data(), tmp_path / "responses.parquet")
+    pool = pyarrow.default_memory_pool()
+    released = []
+
+    class Pool:
+        def release_unused(self):
+            released.append(True)
+            pool.release_unused()
+
+    monkeypatch.setattr(pyarrow, "default_memory_pool", lambda: Pool())
+    assert len(read_snapshot(target).frame) == 4
+    assert released == [True]
