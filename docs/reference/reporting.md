@@ -40,7 +40,9 @@ significant digits with its exponent (`p = 5.8e-07`), so nothing that is not 0
 reads `0.0000`. A p-value in `stats` or in a table cell keeps four decimals, or
 four significant digits where four decimals would make it 0 (`1.134e-24`). The
 HTML writes each number of a table as the Markdown does, so the `.html` and the
-`.md` of a report show the same values.
+`.md` of a report show the same values: a table component's cells as they are
+kept, and a bare DataFrame given to `Report.add` — not rounded — as tabulate
+prints it, a float with six significant digits (`62.263`, `6.15462e-38`).
 
 #### Weighted data
 

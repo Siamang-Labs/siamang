@@ -407,11 +407,13 @@ class Report:
                 # Both paths go through the table layer, so every table in the
                 # document carries `siamang-table` and none of them arrives with
                 # the inline `text-align` python-markdown writes into a pipe
-                # table — which would override the theme's own alignment.
+                # table — which would override the theme's own alignment. A bare
+                # DataFrame is not rounded: its numbers are printed as tabulate
+                # prints them in the Markdown (`rounded=False`).
                 inner = (
                     component.to_html()
                     if isinstance(component, SurveyTable)
-                    else frame_to_html(component)
+                    else frame_to_html(component, rounded=False)
                 )
                 out.append(_figure(inner, caption, label, layout, theme))
             elif kind == "chart":
