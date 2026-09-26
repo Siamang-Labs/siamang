@@ -678,7 +678,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The Trend draws its own chart, so its table is not a Result chart's result
   (`RESULT_NOT_DRAWABLE`). `check_flow` knows the response timestamps
   (`created_at`, `updated_at`, `started_at`, `submitted_at`:
-  `siamang.flow.document.RESPONSE_TIMES`) as variables a node may name.
+  `siamang.flow.document.RESPONSE_TIMES`) as variables a node may name — or
+  those a platform's data carries, `check_flow(…, response_times=("created_at",
+  "updated_at", "started_at"))`, so that a timestamp its responses do not have
+  is an unknown variable at the check, not a failed run.
 
 - **Tab book (Excel)** (`output.tabbook`, `siamang.reporting.tabbook.write_tabbook`)
   — every chosen question crossed by a banner in one workbook: a *Contents*
