@@ -127,13 +127,23 @@ class Footnote:
     #: The least height of the plot, in points, and as a share of the figure.
     MIN_PLOT = (110.0, 0.4)
 
-    def __init__(self, fig: Any, notes: list[str], legend: Any = None, axes: Any = None) -> None:
+    def __init__(
+        self,
+        fig: Any,
+        notes: list[str],
+        legend: Any = None,
+        axes: Any = None,
+        least: float | None = None,
+    ) -> None:
         self.fig = fig
         self.notes = [note for note in notes if note]
         self.legend = legend
         self.axes = axes
         self._text: Any = None
         self._asked = fig.get_figheight() * 72.0
+        #: The plot's least height in points: MIN_PLOT, or more when its rows
+        #: need it (a heatmap's wrapped labels, a Likert chart's items).
+        self.least = max(self.MIN_PLOT[0], self.MIN_PLOT[1] * self._asked, least or 0.0)
         width = chars_in(fig.get_figwidth() * 72.0 - 14.0, FOOTNOTE_SIZE)
         self.lines = [line for note in self.notes for line in wrap(note, width).split("\n")]
 
@@ -148,8 +158,7 @@ class Footnote:
         if self.axes is not None:
             # The labels measured before the layout may take a little more
             # after it: a second, exact step.
-            least = max(self.MIN_PLOT[0], self.MIN_PLOT[1] * self._asked)
-            short = least - axes_points(self.axes)[1]
+            short = self.least - axes_points(self.axes)[1]
             if short > 0.5:
                 self.fig.set_figheight(self.fig.get_figheight() + short / 72.0)
                 self._layout()
@@ -180,8 +189,7 @@ class Footnote:
         scale = 72.0 / self.fig.dpi
         tight = self.axes.get_tightbbox(renderer).height * scale
         plot = self.axes.get_window_extent(renderer).height * scale
-        least = max(self.MIN_PLOT[0], self.MIN_PLOT[1] * self._asked)
-        required = self._below() + (tight - plot) + least + 16.0
+        required = self._below() + (tight - plot) + self.least + 16.0
         if required > self.fig.get_figheight() * 72.0:
             self.fig.set_figheight(required / 72.0)
 

@@ -387,6 +387,7 @@ class PlotAccessor:
         vmax: float | None = None,
         figsize: tuple[float, float] = (10, 6),
         title: str | None = None,
+        method: str = "spearman",
     ) -> HeatMap:
         """Create a heatmap.
 
@@ -396,6 +397,10 @@ class PlotAccessor:
             Variables to include.
         by : str | None
             If specified, plots grouped means. Otherwise, correlation matrix.
+        method : str
+            The correlation without ``by``: ``"spearman"`` (the default, as it
+            always was), ``"pearson"`` (weighted on weighted data) or
+            ``"kendall"``; those two leave the codebook's missing codes out.
         """
         from siamang.reporting.charts import HeatMap
 
@@ -409,6 +414,7 @@ class PlotAccessor:
             vmax=vmax,
             figsize=figsize,
             title=title,
+            method=method,
         )
 
     def scatter(

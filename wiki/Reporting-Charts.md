@@ -46,8 +46,9 @@ figure is built lazily on first use.
 with the weighted tables beside it. `BarChart` draws sums of weights (axis
 "Weighted count"), weighted percentages ("% of respondents (weighted)") or
 weighted means ("Weighted mean …"), and `HeatMap` with `by`
-draws weighted means (colour bar "Weighted mean"). `BoxPlot`, `ScatterPlot` and
-the correlation `HeatMap` have no standard weighted form, so they draw the
+draws weighted means (colour bar "Weighted mean"). `HeatMap` with `method="pearson"` draws weighted
+coefficients (colour bar "Weighted Pearson r"). `BoxPlot`, `ScatterPlot` and
+the Spearman or Kendall correlation `HeatMap` have no standard weighted form, so they draw the
 respondents as they are and add a second title line, `unweighted (the weight
 'w' is not applied)` — under a title you set yourself too. `chart.weight_note`
 returns that line (or `"weighted by 'w'"`, or `None` on unweighted data).
@@ -152,12 +153,13 @@ data.plot.boxplot("autonomy", by="remote_freq", show_points=True).show()
 
 ```python
 HeatMap(data, columns=[], by=None, annot=True, cmap="YlOrRd",
-        vmin=None, vmax=None, figsize=(10, 6), title=None)
+        vmin=None, vmax=None, method="spearman", figsize=(10, 6), title=None)
 ```
 
 With `by` set, plots a matrix of **group means** (each of `columns` averaged
-within categories of `by`). With `by=None`, plots a **Spearman correlation
-matrix** of `columns` (using a diverging `RdBu_r` scale centered at 0).
+within categories of `by`). With `by=None`, plots a **correlation matrix** of
+`columns` over the respondents who answered every one of them (using a
+diverging `RdBu_r` scale centered at 0) — Spearman's by default.
 
 **Extra parameters**
 
@@ -167,6 +169,16 @@ matrix** of `columns` (using a diverging `RdBu_r` scale centered at 0).
 - **`cmap`** — colormap name (default `"YlOrRd"`; ignored for the correlation
   matrix).
 - **`vmin`/`vmax`** — color-scale anchors.
+- **`method`** — the correlation drawn without `by`: `"spearman"` (the default,
+  drawn as it always was — the answers read as they are, so a missing code
+  such as 9 = Refused counts as an answer), `"pearson"` or `"kendall"` (tau-b).
+  Pearson and Kendall are the Correlation matrix table's numbers with
+  `missing="listwise"`: the codebook's missing codes are left out and counted
+  under the plot with N, Pearson's r is weighted on weighted data (colour bar
+  "Weighted Pearson r"), and Kendall says under its title that the weight is
+  not applied. A pair that cannot be computed is a blank cell, and the note
+  says why. Long labels are numbered — the rows read `1. label`, the columns
+  `1`, `2`, … — and the plot is made tall enough for every row's label.
 
 > `HeatMap` requires **seaborn** specifically; it raises
 > `ImportError: seaborn is required for HeatMap` if seaborn is unavailable.
@@ -177,6 +189,9 @@ data.plot.heatmap(["autonomy", "age"], by="remote_freq", cmap="Blues").show()
 
 # Spearman correlation matrix of continuous measures
 data.plot.heatmap(["age", "autonomy"]).show()
+
+# Pearson, weighted like the Correlation matrix table, missing codes left out
+data.with_weight("w").plot.heatmap(["autonomy", "satisfaction", "age"], method="pearson")
 ```
 
 ---
@@ -216,7 +231,8 @@ def bar(column, *, by=None, horizontal=False, show_values=True,
 def boxplot(column, *, by, show_points=False,
             figsize=(10, 6), palette="muted", title=None) -> BoxPlot
 def heatmap(columns, *, by=None, annot=True, cmap="YlOrRd",
-            vmin=None, vmax=None, figsize=(10, 6), title=None) -> HeatMap
+            vmin=None, vmax=None, figsize=(10, 6), title=None,
+            method="spearman") -> HeatMap
 def scatter(x, y, *, hue=None, trendline=True,
             figsize=(10, 6), palette="muted", title=None) -> ScatterPlot
 ```

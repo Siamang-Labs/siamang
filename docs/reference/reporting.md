@@ -325,7 +325,7 @@ chart.show()
 
 ### Matrix / Correlation: `HeatMap`
 
-Plots a correlation matrix of continuous variables or a mean matrix of a set of Likert items grouped by a category [1] [3]. On weighted data the means are weighted; the Spearman correlation matrix is not, and its title says so.
+Plots a correlation matrix of continuous variables or a mean matrix of a set of Likert items grouped by a category [1] [3]. On weighted data the means are weighted, and so is the Pearson correlation matrix; the Spearman and Kendall matrices are not, and their title says so.
 
 #### Properties
 
@@ -334,11 +334,12 @@ In addition to base properties:
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `columns` | `list[str]` | `[]` | List of variables to include in the matrix. |
-| `by` | `str \| None` | `None` | If specified, plots grouped means of `columns` across categories of `by`. If `None`, plots a Spearman rank correlation matrix of `columns`. |
+| `by` | `str \| None` | `None` | If specified, plots grouped means of `columns` across categories of `by`. If `None`, plots a correlation matrix of `columns` by `method`, over the respondents who answered every one of them. |
 | `annot` | `bool` | `True` | If `True`, writes the data value in each cell. |
 | `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name (grouped-means mode only). |
 | `vmin` | `float \| None` | `None` | Minimum value anchor for the colormap (grouped-means mode only). |
 | `vmax` | `float \| None` | `None` | Maximum value anchor for the colormap (grouped-means mode only). |
+| `method` | `str` | `"spearman"` | The correlation without `by`. `"spearman"` is drawn as it always was: unweighted, the answers read as they are (a missing code counts as an answer). `"pearson"` and `"kendall"` (tau-b) are drawn by `siamang.reporting.correlation_chart` from `inference.correlation_matrix(..., missing="listwise")` — the Correlation matrix table's numbers: the codebook's missing codes are left out, and the note under the plot gives N, the weight and the missing codes left out. Pearson is weighted on weighted data (colour bar `Weighted Pearson r`, `weight_note` `"weighted by 'w'"`); Kendall adds the unweighted line to its title. A pair that cannot be computed is a blank cell, named under the plot (`Not computed (a blank cell): x × c: …`). Labels longer than 14 characters are numbered: rows `1. label`, columns `1`, `2`, …; the plot is made tall enough for every row's wrapped label. Any other value is a `ValueError`. |
 
 > **Note:** In correlation mode (`by=None`) the matrix is always drawn on a diverging `RdBu_r` scale centered at 0 over the range `[-1, 1]`; the `cmap`, `vmin`, and `vmax` properties are ignored. To restyle a correlation heatmap, work with the `matplotlib` Axes returned by `plot()`.
 
@@ -447,7 +448,7 @@ To make this reporting API extremely convenient, two accessors are attached dire
   Creates a `BarChart` instance.
 * **`boxplot(column: str, *, by: str, show_points: bool = False, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> BoxPlot`**:
   Creates a `BoxPlot` instance.
-* **`heatmap(columns: list[str], *, by: str | None = None, annot: bool = True, cmap: str = "YlOrRd", vmin: float | None = None, vmax: float | None = None, figsize: tuple[float, float] = (10, 6), title: str | None = None) -> HeatMap`**:
+* **`heatmap(columns: list[str], *, by: str | None = None, annot: bool = True, cmap: str = "YlOrRd", vmin: float | None = None, vmax: float | None = None, figsize: tuple[float, float] = (10, 6), title: str | None = None, method: str = "spearman") -> HeatMap`**:
   Creates a `HeatMap` instance.
 * **`scatter(x: str, y: str, *, hue: str | None = None, trendline: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> ScatterPlot`**:
   Creates a `ScatterPlot` instance.

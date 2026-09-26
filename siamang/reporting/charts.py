@@ -440,10 +440,19 @@ class HeatMap(SurveyChart):
     cmap: str = "YlOrRd"
     vmin: float | None = None
     vmax: float | None = None
+    #: The correlation drawn without ``by``: "spearman" (as it always was),
+    #: "pearson" (weighted on weighted data) or "kendall"; the last two leave
+    #: the missing codes out (siamang.reporting.correlation_chart).
+    method: str = "spearman"
 
     def _build(self) -> None:
         if sns is None:
             raise ImportError("seaborn is required for HeatMap. Install with: pip install seaborn")
+        if self.by is None and self.method != "spearman":
+            from siamang.reporting.correlation_chart import draw
+
+            draw(self)
+            return
 
         sns.set_theme(style="whitegrid")
 
