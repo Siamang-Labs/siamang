@@ -53,7 +53,10 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `analysis.pca`, `analysis.reliability` | The weighted covariance (or correlation) matrix; stats `weight`. |
 | `analysis.proportion_ci` | Weighted only with `weighted=True` (then `weight`: the column); otherwise `weight`: `unweighted (the weight 'w' is not applied)`. |
 | `analysis.kruskal`, `analysis.mannwhitney`, `analysis.spearman`, `analysis.compare_groups`, `analysis.correlation` / `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | Unweighted — rank tests, t-tests and k-means have no standard weighted form. Their result has `weight` (the tables: `Weight`): `unweighted (the weight 'w' is not applied)`. |
-| `siamang.data.paired` (Wilcoxon, McNemar, Friedman), `siamang.data.factor` | Unweighted — no standard weighted form. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
+| `siamang.data.paired` (Wilcoxon, McNemar, Friedman, Cochran's Q), `siamang.data.factor` | Unweighted — no standard weighted form. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
+| `siamang.data.drivers` | The weighted correlation matrix (`cov.wt`, as `relaimpo` with weights) gives the betas, R² and the relative weights or Shapley values; the F- and t-tests and adjusted R² on Kish's effective base. Stats: `Weight`, `Effective N`, `Tests on`. |
+| `siamang.data.correspondence` | Each cell is a sum of weights; the chi-square test of a crosstab of single answers counts respondents. Stats: `Weight`, `Weighted N`, `Chi-square counts`. |
+| `siamang.data.pricing` | Every Van Westendorp curve, NMS trial and Gabor-Granger demand is a share of the weights; N counts respondents. Stats: `Weight`, `Weighted N`. |
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
 | `plot.bar`, `plot.heatmap(by=…)` | Weighted counts, percentages (also with `split`) and weighted means; the axis (or colour bar) says "Weighted" or "(weighted)". |

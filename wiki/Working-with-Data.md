@@ -121,7 +121,10 @@ non-numeric weight counts 0.
 | `analysis.pca` / `reliability` | weighted covariance matrix; `stats["weight"]` |
 | `analysis.proportion_ci` | weighted with `weighted=True`, otherwise says it is not |
 | `analysis.kruskal` / `mannwhitney` / `spearman` / `compare_groups`, `correlation` and `report.correlation_matrix` with Spearman or Kendall, `report.ttest`, `cluster()` | unweighted: `"weight": "unweighted (the weight 'w' is not applied)"` (the tables: `Weight`) |
-| `data.paired` (Wilcoxon, McNemar, Friedman), `data.factor` | unweighted: `stats["Weight"]` says the weight is not applied |
+| `data.paired` (Wilcoxon, McNemar, Friedman, Cochran's Q), `data.factor` | unweighted: `stats["Weight"]` says the weight is not applied |
+| `data.drivers` (Key drivers) | the weighted correlation matrix gives the betas, R² and the shares; the tests are on Kish's effective base; `stats["Weight"]` |
+| `data.correspondence` (Perceptual map) | each cell a sum of weights; the chi-square test of a crosstab counts respondents and says so |
+| `data.pricing` (Price sensitivity) | every curve, share and demand a share of the weights; N counts respondents |
 | `report.quality` / `themes` | count responses; `stats["Weight"]` says the weight is not applied |
 | `describe_variables()` | counts rows, adds `weighted_n_valid` |
 | `plot.bar`, `plot.heatmap(by=…)`, `plot.heatmap(method="pearson")`, `plot.likert` | weighted counts / percentages / means / coefficients, axis or colour bar labelled "Weighted …" or "(weighted)" |
