@@ -1211,6 +1211,33 @@ def test_a_number_of_many_values_is_not_drawn_a_bar_each():
     )
     assert len(data.plot.bar("age").plot().patches) == values  # the classic chart
     data.plot.bar("age", layout="histogram", split="g").plot()
+    # Top N draws the N values given most, and Other one bar more: N is what
+    # counts, up to MAX_VALUES.
+    for top in (5, bars.MAX_VALUES):
+        drawn = data.plot.bar("age", top=top, other=True).plot()
+        assert [label.get_text() for label in drawn.get_xticklabels()][-1] == "Other"
+        assert len(drawn.get_xticklabels()) == top + 1
+    donut = data.plot.bar("age", layout="donut", top=5, min_slice=0).plot()
+    assert len(donut.patches) == 6
+    # The five ages take five steps of the scale among themselves, light to
+    # dark in code order: among all 74, neighbours would read as one colour.
+    from matplotlib.colors import to_rgb
+
+    lightness = [sum(to_rgb(patch.get_facecolor())) for patch in donut.patches[:5]]
+    names = [patch.get_label() for patch in donut.patches[:5]]
+    assert [lightness[names.index(name)] for name in sorted(names, key=int)] == sorted(
+        lightness, reverse=True
+    )
+    assert min(a - b for a, b in zip(sorted(lightness)[1:], sorted(lightness), strict=False)) > 0.2
+    with pytest.raises(ValueError) as refused:
+        data.plot.bar("age", show="percent", top=bars.MAX_VALUES + 1).plot()
+    assert str(refused.value) == (
+        f"Age is a number with {values} different values given, and top=31 draws a bar for "
+        "each of the 31 given most: give top=30 or fewer, or layout='histogram' draws its "
+        "distribution (or band it first with Bands)."
+    )
+    with pytest.raises(ValueError, match="top=40 draws a slice for each of the 40 given most"):
+        data.plot.bar("age", layout="donut", top=40).plot()
     data.plot.bar("age", by="g", intervals=True).plot()  # its mean in each group
     few = data.with_frame(frame.assign(age=frame["age"] % 10))
     few.plot.bar("age", show="percent", split="g").plot()  # ten values: bars
@@ -1235,7 +1262,38 @@ def test_the_check_names_a_split_by_the_variable_and_a_number_of_many_values(
         "Layout histogram draws its distribution.",
     )
     assert _issues({"variable": "age", "show": "percent"}, document) == [number]
-    assert _issues({"variable": "age"}, document) == [number]
+    assert _issues({"variable": "age", "sort": "value"}, document) == [number]
+    assert _issues({"variable": "age", "layout": "donut"}, document) == [
+        (
+            "warning",
+            f"n: {label} is a number of up to 84 values, and a donut draws a slice for each "
+            "value given: Layout histogram draws its distribution.",
+        )
+    ]
+    assert _issues({"variable": "age", "intervals": True}, document)[-1] == number
+    # The classic chart draws every value, as it always did.
+    assert _issues({"variable": "age"}, document) == []
+    assert _issues({"variable": "age", "horizontal": True, "layout": "stacked"}, document) == [
+        ("warning", "n: Stacked layouts apply only when Split by is set.")
+    ]
+    # Top N draws the N values given most.
+    assert _issues({"variable": "age", "top": 5}, document) == []
+    assert _issues({"variable": "age", "top": 30, "show": "percent"}, document) == []
+    assert _issues({"variable": "age", "top": 31}, document) == [
+        (
+            "warning",
+            f"n: {label} is a number of up to 84 values, and Top N draws a bar for each of the "
+            "31 given most: set Top N to 30 or fewer, or Layout histogram draws its distribution.",
+        )
+    ]
+    assert _issues({"variable": "age", "top": 40, "layout": "donut"}, document) == [
+        (
+            "warning",
+            f"n: {label} is a number of up to 84 values, and Top N draws a slice for each of "
+            "the 40 given most: set Top N to 30 or fewer, or Layout histogram draws its "
+            "distribution.",
+        )
+    ]
     assert _issues({"variable": "age", "layout": "histogram"}, document) == []
     assert _issues({"variable": "age", "by": "region", "intervals": True}, document) == []
     # Without a range the codebook cannot tell: the run does.

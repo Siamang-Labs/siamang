@@ -66,7 +66,7 @@ params:
     minimum: 1
     maximum: 100
     label: Top N
-    help: Only the N answers given most — with Split by, given most overall; for a multiple-choice question, the options named most. Empty draws every answer. In a donut the rest are combined as Other.
+    help: Only the N answers given most — with Split by, given most overall; for a multiple-choice question, the options named most; for a number of many values, its N values given most (up to 30). Empty draws every answer. In a donut the rest are combined as Other.
   other:
     kind: bool
     default: false

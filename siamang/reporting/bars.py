@@ -319,8 +319,9 @@ def _check(chart: BarChart) -> None:
 
 def _few_values(chart: BarChart, frame: pd.DataFrame) -> None:
     """Refuse a number (interval or ratio, no value labels) with more than
-    :data:`MAX_VALUES` values given drawn a bar, a slice, a series or a group
-    per value — the answer the histogram gives, or Bands does for a group."""
+    :data:`MAX_VALUES` values drawn a bar, a slice, a series or a group per
+    value — the answer the histogram gives, or Bands does for a group. With
+    ``top`` only the N values given most are drawn, so N is what counts."""
 
     data = chart.data
     # A histogram draws the number's distribution, and By its mean per group.
@@ -333,11 +334,19 @@ def _few_values(chart: BarChart, frame: pd.DataFrame) -> None:
         if _answer_labels(data, name):
             continue
         count = len(pd.unique(frame[name].dropna()))
-        if count <= MAX_VALUES:
+        top = chart.top if role is None else None
+        if min(count, top or count) <= MAX_VALUES:
             continue
         label = _label(data, name)
         if role is None:
             what = "a slice" if chart.layout == "donut" else "a bar"
+            if top is not None:
+                raise ValueError(
+                    f"{label} is a number with {count:,} different values given, and top={top} "
+                    f"draws {what} for each of the {top} given most: give top={MAX_VALUES} or "
+                    "fewer, or layout='histogram' draws its distribution (or band it first with "
+                    "Bands)."
+                )
             raise ValueError(
                 f"{label} is a number with {count:,} different values given, and this chart "
                 f"draws {what} for each: layout='histogram' draws its distribution (or band "
@@ -347,6 +356,21 @@ def _few_values(chart: BarChart, frame: pd.DataFrame) -> None:
             f"{role} {label} is a number with {count:,} different values given, a group for "
             "each: band it first (Bands) to compare its ranges."
         )
+
+
+def _palette_places(drawn: list[int], answers: int, ordered: bool) -> dict[str, Any]:
+    """``colour_index`` and ``palette_size`` of answers ``drawn`` (their places
+    in code order among all ``answers`` given): an answer's colour is its place
+    among all of them, so that it keeps its colour whatever Top N or a donut's
+    Other leaves out. A number of more than :data:`MAX_VALUES` values, drawn
+    with Top N, is the exception: its steps light to dark would be too close
+    to tell apart (five ages among 74 read as one blue), so the answers drawn
+    take the steps among themselves, in code order."""
+
+    if not ordered or answers <= MAX_VALUES:
+        return {"colour_index": list(drawn), "palette_size": answers}
+    place = {index: step for step, index in enumerate(sorted(set(drawn)))}
+    return {"colour_index": [place[index] for index in drawn], "palette_size": len(place)}
 
 
 def _weights(data: SurveyData) -> np.ndarray | None:
@@ -716,8 +740,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         stacked=chart.layout != "grouped",
         full=chart.layout == "stacked_100",
         ordered=_is_scale(data, name),
-        colour_index=[kept[i] for i in order],
-        palette_size=len(codes),
+        **_palette_places([kept[i] for i in order], len(codes), _is_scale(data, name)),
         notes=notes,
         short_value_label=short,
         lower=None if lower is None else lower[groups_order][:, series_order],
@@ -1876,8 +1899,7 @@ def _donut(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         title=chart.title or label,
         legend_title=label,
         ordered=_is_scale(data, name),
-        colour_index=order,
-        palette_size=len(codes),
+        **_palette_places(order, len(codes), _is_scale(data, name)),
         other=other,
         respondents=int(answered.sum()),
         weighted_base=base if weights is not None else None,
