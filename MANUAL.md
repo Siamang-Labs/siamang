@@ -507,6 +507,13 @@ result_charts.chart(means).save("age_means.png")   # means, 95 % CIs, post-hoc l
 report = sg.Report(title="Trust").add(means, caption="Age by party")
 report.save("report.md")
 report.save_tables("report.xlsx")
+
+# Top-2 trust by month (the platform's responses carry created_at), one line per
+# party, each point with its base; and a tab book of every question by a banner
+data.plot.trend("created_at", period="month", variable="trust", codes=[4, 5], by="party")
+from siamang.reporting.tabbook import write_tabbook
+
+write_tabbook(data, "tabbook.xlsx", banner=["party", "gender"])
 ```
 
 ### Low-Level Statistical Methods
@@ -565,10 +572,11 @@ weights, the Shapley value), `siamang.data.correspondence` (a perceptual map)
 and `siamang.data.pricing` (Van Westendorp with Newton-Miller-Smith,
 Gabor-Granger). See
 [`wiki/Analysis.md`](wiki/Analysis.md#choosing-the-test-yourself). The charts
-— the bar chart's percentages, split and sort, the Likert chart, and
-`result_charts.chart()` for the chart of a result — are in
+— the bar chart's percentages, split and sort, the Likert chart, the Trend,
+and `result_charts.chart()` for the chart of a result — are in
 [`wiki/Reporting-Charts.md`](wiki/Reporting-Charts.md); `Report.save_tables()`
-in [`wiki/Report-Document.md`](wiki/Report-Document.md#save_tables).
+in [`wiki/Report-Document.md`](wiki/Report-Document.md#save_tables), and the
+tab book in [`wiki/Reporting-Tables.md`](wiki/Reporting-Tables.md#tab-book-excel).
 
 ---
 

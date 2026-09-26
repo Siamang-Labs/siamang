@@ -125,8 +125,10 @@ Declarative, label-aware tables and charts. Documented in
 | `HeatMap` | `from siamang import HeatMap` | Group means or a correlation matrix as a heatmap. | [[Reporting Charts\|Reporting-Charts]] |
 | `LikertChart` | `from siamang import LikertChart` | Items on one scale as diverging stacked bars with top-2 / bottom-2. | [[Reporting Charts\|Reporting-Charts]] |
 | `ScatterPlot` | `from siamang import ScatterPlot` | A scatter plot with optional hue. | [[Reporting Charts\|Reporting-Charts]] |
+| `TrendChart` | `from siamang.reporting.trend import TrendChart` | A measure over waves or dates, one line per group, with each point's base (`data.plot.trend`). | [[Reporting Charts\|Reporting-Charts]] |
 | `result_charts` | `from siamang.reporting import result_charts` | `chart()` draws the chart an analysis's result suits, from the numbers it computed. | [[Reporting Charts\|Reporting-Charts]] |
 | `Report` | `from siamang import Report` | A composable document of tables and charts; `save_tables()` writes its tables to one Excel workbook. | [[Report Document\|Report-Document]] |
+| `tabbook` | `from siamang.reporting.tabbook import write_tabbook` | A tab book: every question crossed by a banner, one Excel sheet each, with the Banner table's letters. | [[Reporting Tables\|Reporting-Tables]] |
 
 These objects are usually produced via the `data.report.*` and `data.plot.*`
 accessors rather than constructed directly.
