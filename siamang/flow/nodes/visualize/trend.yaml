@@ -85,8 +85,10 @@ params:
     - colorblind
     - Set2
     - tab10
+    - theme
     default: muted
     label: Palette
+    help: Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default a set colour-blind readers can tell apart), with its text colour, grid and font. The others are seaborn's palettes.
 subtitle:
 - when: measure=percent
   text: '{variable} = {codes} over {time}'

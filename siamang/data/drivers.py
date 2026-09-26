@@ -463,6 +463,13 @@ def plot(
     from matplotlib.figure import Figure
     from matplotlib.patches import Patch
 
+    from siamang.reporting import chart_theme
+
+    # The report theme's first two colours, text and grid in a Result chart
+    # of palette "theme"; these otherwise.
+    up, down = chart_theme.series(POSITIVE, 0), chart_theme.series(NEGATIVE, 1)
+    ink, rule = chart_theme.text(_INK), chart_theme.grid("#e6e6e6")
+
     count = len(result.labels)
     order = np.argsort(-result.importance, kind="stable")
     percent = result.percent[order]
@@ -481,11 +488,11 @@ def plot(
     else:
         fig = ax.figure
     negative = result.betas[order] < 0
-    colours = [NEGATIVE if flag else POSITIVE for flag in negative]
+    colours = [down if flag else up for flag in negative]
     y = np.arange(count)
     ax.barh(y, percent, height=0.62, color=colours, edgecolor="white", linewidth=1.5)
     ax.set_yticks(y)
-    ax.set_yticklabels(labels, fontsize=size, color=_INK)
+    ax.set_yticklabels(labels, fontsize=size, color=ink)
     ax.set_ylim(count - 0.5, -0.5)
     top = float(percent.max()) if count else 1.0
     ax.set_xlim(0, max(top * 1.18, 1.0))
@@ -497,24 +504,24 @@ def plot(
             va="center",
             ha="left",
             fontsize=size,
-            color=_INK,
+            color=ink,
         )
-    ax.set_xlabel("Share of R² (%)", fontsize=size + 1, color=_INK)
-    ax.tick_params(axis="x", labelsize=size, colors=_INK)
+    ax.set_xlabel("Share of R² (%)", fontsize=size + 1, color=ink)
+    ax.tick_params(axis="x", labelsize=size, colors=ink)
     ax.tick_params(axis="y", length=0)
     # Only the value axis has lines: a theme's row lines (seaborn's whitegrid,
     # which a chart drawn before may have set) would strike through the bars.
     ax.grid(False)
-    ax.grid(axis="x", color="#e6e6e6", linewidth=0.8)
+    ax.grid(axis="x", color=rule, linewidth=0.8)
     ax.set_axisbelow(True)
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
-    ax.spines["bottom"].set_color("#bdbdbd")
+    ax.spines["bottom"].set_color(chart_theme.grid("#bdbdbd"))
     if negative.any() and not negative.all():
         ax.legend(
             handles=[
-                Patch(color=POSITIVE, label="positive beta"),
-                Patch(color=NEGATIVE, label="negative beta"),
+                Patch(color=up, label="positive beta"),
+                Patch(color=down, label="negative beta"),
             ],
             loc="lower right",
             frameon=False,
@@ -529,7 +536,7 @@ def plot(
         ax.set_title(
             "\n".join([text, detail] + ([note] if note else [])),
             fontsize=12,
-            color=_INK,
+            color=ink,
             loc="left",
             pad=10,
         )

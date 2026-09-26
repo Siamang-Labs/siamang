@@ -806,10 +806,11 @@ class TrendChart(SurveyChart):
     def _build(self) -> None:
         _require_matplotlib()
         import matplotlib.pyplot as plt
-        import seaborn as sns
+
+        from siamang.reporting import chart_theme
 
         points = self.points
-        sns.set_theme(style="whitegrid", palette=self.palette)
+        chart_theme.set_theme(style="whitegrid", palette=self.palette)
         fig, ax = plt.subplots(figsize=self.figsize)
         self._fig, self._ax = fig, ax
         figure_pt = self.figsize[0] * 72.0
@@ -866,7 +867,7 @@ class TrendChart(SurveyChart):
                     drawn_band = True
 
         ax.grid(False)
-        ax.grid(True, color="0.9", linewidth=0.8)
+        ax.grid(True, color=chart_theme.grid("0.9"), linewidth=0.8)
         ax.set_axisbelow(True)
         ax.set_xticks(positions)
         ax.set_xlim(-0.5, len(positions) - 0.5)

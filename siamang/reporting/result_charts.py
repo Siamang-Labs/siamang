@@ -63,6 +63,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from siamang.reporting import chart_theme
 from siamang.reporting.charts import SurveyChart, _require_matplotlib, plt, sns
 
 __all__ = [
@@ -110,6 +111,34 @@ _TRACK = "#e6e6e6"
 # colour blindness): detractors, passives and promoters; negative, neutral and
 # positive sentiment.
 _NEGATIVE, _NEUTRAL, _POSITIVE = "#d6604d", "#bababa", "#4393c3"
+
+
+# The colours above, or — while a chart of palette "theme" is drawn — the
+# report theme's text, secondary text, grid and diverging pair.
+def _ink() -> str:
+    return chart_theme.text(_INK)
+
+
+def _muted() -> str:
+    return chart_theme.muted(_MUTED)
+
+
+def _track() -> str:
+    return chart_theme.grid(_TRACK)
+
+
+def _negative() -> str:
+    return chart_theme.low(_NEGATIVE)
+
+
+def _neutral() -> str:
+    return chart_theme.neutral(_NEUTRAL)
+
+
+def _positive() -> str:
+    return chart_theme.high(_POSITIVE)
+
+
 # What the title, the axis labels and the tick labels take of a figure's height.
 _CHROME = 1.3
 # The most a row of a row chart takes, and the shortest such chart, in inches.
@@ -354,7 +383,7 @@ class ResultChart(SurveyChart):
             )
         self.drawn = kind
         if sns is not None:
-            sns.set_theme(style="whitegrid", palette=self.palette)
+            chart_theme.set_theme(style="whitegrid", palette=self.palette)
         self._room, self._size, self._title_pad, self._adopted = [], 10.0, 8.0, False
         title = renderer.fn(self.result, self)
         if self._fig is None:
@@ -367,13 +396,13 @@ class ResultChart(SurveyChart):
         width = self._fig.get_size_inches()[0]
         text = self._title_text(self.title or title, width * 72)
         if self._suptitle:
-            self._fig.suptitle(text, fontsize=12, color=_INK)
+            self._fig.suptitle(text, fontsize=12, color=_ink())
         else:
-            self._ax.set_title(text, fontsize=12, color=_INK, loc="left", pad=self._title_pad)
+            self._ax.set_title(text, fontsize=12, color=_ink(), loc="left", pad=self._title_pad)
         for ax in self._fig.axes:
             for label in (ax.xaxis.label, ax.yaxis.label):
                 label.set_fontsize(self._size + 1)
-                label.set_color(_INK)
+                label.set_color(_ink())
         self._fig.tight_layout()
         self._fit_text(self.title or title)
         if self._room:
@@ -399,7 +428,7 @@ class ResultChart(SurveyChart):
             self._ax.set_title(
                 self._title_text(title, width - left - 8),
                 fontsize=12,
-                color=_INK,
+                color=_ink(),
                 loc="left",
                 pad=self._title_pad,
             )
@@ -461,9 +490,9 @@ class ResultChart(SurveyChart):
         self._size = size
         y = np.arange(len(labels), dtype=float)
         ax.set_yticks(y)
-        ax.set_yticklabels(wrapped, fontsize=size, color=_INK)
+        ax.set_yticklabels(wrapped, fontsize=size, color=_ink())
         ax.set_ylim(len(labels) - 0.5, -0.5)
-        ax.tick_params(axis="x", labelsize=size, colors=_INK)
+        ax.tick_params(axis="x", labelsize=size, colors=_ink())
         ax.grid(axis="y", visible=False)
         return ax, y, size
 
@@ -666,7 +695,7 @@ def _label(
         ha="right" if left else "left",
         va="center",
         fontsize=size - 0.5,
-        color=_INK,
+        color=_ink(),
         **kwargs,
     )
 
@@ -745,7 +774,7 @@ def _dots(
             end = top if top == top else value
             artists.append(_label(ax, end, row, text, size if count == 1 else size - 1))
     if reference is not None:
-        ax.axvline(reference, color=_MUTED, linewidth=1, zorder=1)
+        ax.axvline(reference, color=_muted(), linewidth=1, zorder=1)
     if count > 1:
         chart.legend(ax, title=legend_title)
     _hide_spines(ax)
@@ -773,7 +802,7 @@ def _bars(
         if value == value
     ]
     if reference is not None:
-        ax.axvline(reference, color=_MUTED, linewidth=1, zorder=1)
+        ax.axvline(reference, color=_muted(), linewidth=1, zorder=1)
     _hide_spines(ax)
     chart.make_room(ax, artists)
     return ax, y, size
@@ -792,7 +821,7 @@ def _mark_note(ax: Any, text: str, size: float) -> None:
         ha="left",
         va="top",
         fontsize=size - 1,
-        color=_MUTED,
+        color=_muted(),
     )
     note._siamang_note = text  # rewrapped to the laid-out plot (ResultChart._fit_text)
 
@@ -913,7 +942,7 @@ def _draw_group_means(table: Any, chart: ResultChart) -> str:
     )
     column = _get_label(table.data, table.column)
     weighted = table.data.weight is not None
-    ax.set_xlabel(_means_axis(chart, f"{'Weighted mean' if weighted else 'Mean'}"), color=_INK)
+    ax.set_xlabel(_means_axis(chart, f"{'Weighted mean' if weighted else 'Mean'}"), color=_ink())
     if marks:
         posthoc = table.posthoc_table.result
         _mark_note(
@@ -1066,7 +1095,7 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
         )
     ax, _ = _dots(chart, shown, series, legend_title=by_label)
     weighted = data.weight is not None
-    ax.set_xlabel(_means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_INK)
+    ax.set_xlabel(_means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_ink())
     return "Means" if by_label is None else f"Means by {by_label}"
 
 
@@ -1117,7 +1146,7 @@ def _draw_ttest(table: Any, chart: ResultChart) -> str:
         ],
         reference=float(table.mu) if table.kind == "one_sample" else None,
     )
-    ax.set_xlabel(_means_axis(chart, "Mean", confidence), color=_INK)
+    ax.set_xlabel(_means_axis(chart, "Mean", confidence), color=_ink())
     ci = f"{confidence * 100:g}% CI"
     if stats.get("Mean difference") is not None and stats.get(ci):
         note = (
@@ -1174,7 +1203,7 @@ def _draw_paired(table: Any, chart: ResultChart) -> str:
             }
         ],
     )
-    ax.set_xlabel(_means_axis(chart, "Mean"), color=_INK)
+    ax.set_xlabel(_means_axis(chart, "Mean"), color=_ink())
     stats = table.stats
     n = stats.get("N")
     _mark_note(
@@ -1222,7 +1251,7 @@ def _draw_mcnemar(table: Any, chart: ResultChart) -> str:
         ],
     )
     ax.set_xlim(0, 100)
-    ax.set_xlabel("Share saying yes (%) with its 95 % confidence interval (Wilson)", color=_INK)
+    ax.set_xlabel("Share saying yes (%) with its 95 % confidence interval (Wilson)", color=_ink())
     stats = table.stats
     _mark_note(
         ax,
@@ -1244,7 +1273,7 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
     fig, ax = chart.figure()
     share, low, high = (float(result[key]) * 100 for key in ("p", "lower", "upper"))
     color = chart.colors(1)[0]
-    ax.hlines(0, 0, 100, color=_TRACK, linewidth=10, zorder=1)
+    ax.hlines(0, 0, 100, color=_track(), linewidth=10, zorder=1)
     ax.hlines(0, low, high, color=color, linewidth=10, alpha=0.45, zorder=2)
     ax.plot([share], [0], "o", color=color, markersize=14, markeredgecolor="white", zorder=3)
     ax.set_xlim(-2, 102)
@@ -1254,8 +1283,8 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
     ax.set_xticks(range(0, 101, 10))
-    ax.set_xticklabels([f"{tick} %" for tick in range(0, 101, 10)], color=_INK)
-    ax.text(50, 0.7, _percent(share), ha="center", va="center", fontsize=30, color=_INK)
+    ax.set_xticklabels([f"{tick} %" for tick in range(0, 101, 10)], color=_ink())
+    ax.text(50, 0.7, _percent(share), ha="center", va="center", fontsize=30, color=_ink())
     weighted = "weight" in result and not str(result["weight"]).startswith("unweighted")
     base = float(result["n"])
     base_text = f"effective base {base:.1f}" if weighted else f"base {int(round(base))} respondents"
@@ -1270,7 +1299,7 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
         ha="center",
         va="center",
         fontsize=11,
-        color=_MUTED,
+        color=_muted(),
     )
     variable = getattr(result, "variable_label", None)
     if variable:
@@ -1282,7 +1311,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
     frame = table.to_frame().set_index("Group")
     stats = table.stats
     fig, ax = chart.figure()
-    colors = {"Detractors": _NEGATIVE, "Passives": _NEUTRAL, "Promoters": _POSITIVE}
+    colors = {"Detractors": _negative(), "Passives": _neutral(), "Promoters": _positive()}
     start = 0.0
     for group, color in colors.items():
         share = float(frame.loc[group, "%"])
@@ -1304,7 +1333,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
                 ha="center",
                 va="center",
                 fontsize=11,
-                color="white" if group != "Passives" else _INK,
+                color=chart_theme.ink_on(color, "white" if group != "Passives" else _INK),
             )
         start += share
     ax.set_xlim(0, 100)
@@ -1314,7 +1343,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
     ax.set_xticks(range(0, 101, 20))
-    ax.set_xticklabels([f"{tick} %" for tick in range(0, 101, 20)], color=_INK)
+    ax.set_xticklabels([f"{tick} %" for tick in range(0, 101, 20)], color=_ink())
     score = stats.get("NPS")
     if score is not None:
         low, high = stats.get("CI95 low"), stats.get("CI95 high")
@@ -1326,7 +1355,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
             ha="center",
             va="center",
             fontsize=18,
-            color=_INK,
+            color=_ink(),
         )
     ax.legend(
         loc="upper center",
@@ -1335,7 +1364,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
         frameon=False,
         fontsize=10,
     )
-    ax.set_xlabel(f"Share of the {stats.get('N valid', '')} respondents who answered", color=_INK)
+    ax.set_xlabel(f"Share of the {stats.get('N valid', '')} respondents who answered", color=_ink())
     return f"Net Promoter Score: {stats.get('Variable', table.column)}"
 
 
@@ -1380,7 +1409,7 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
                 f"{int(size)}: " + ", ".join(str(names.get(item, item)) for item in portfolio)
             )
     ax.set_xticks(x)
-    ax.set_xticklabels(ticks, fontsize=9 if count <= 6 else 8, color=_INK)
+    ax.set_xticklabels(ticks, fontsize=9 if count <= 6 else 8, color=_ink())
     artists = []
     for position, value, gain, first in zip(x, reach, added, range(count), strict=True):
         text = _percent(value) + ("" if first == 0 else f"\n(+{gain:.1f})")
@@ -1393,19 +1422,19 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
                 ha="center",
                 va="bottom",
                 fontsize=9,
-                color=_INK,
+                color=_ink(),
             )
         )
     ax.set_ylim(0, 100)
     ax.set_yticks(range(0, 101, 20))
-    ax.set_yticklabels([f"{tick} %" for tick in range(0, 101, 20)], color=_INK)
+    ax.set_yticklabels([f"{tick} %" for tick in range(0, 101, 20)], color=_ink())
     ax.set_xlim(-0.5, count - 0.5)
     ax.grid(axis="x", visible=False)
-    ax.set_ylabel("Reach: respondents who chose at least one", color=_INK)
+    ax.set_ylabel("Reach: respondents who chose at least one", color=_ink())
     ax.set_xlabel(
         f"Portfolio size and the option the {'best' if table.method == 'best' else 'greedy'} "
         f"portfolio of that size adds (base {table.base} respondents)",
-        color=_INK,
+        color=_ink(),
     )
     if listed:
         _mark_note(ax, "The best portfolios of " + "; ".join(listed) + ".", 10.0)
@@ -1432,7 +1461,7 @@ def _draw_turf_items(table: Any, chart: ResultChart) -> str:
     ax, y, size = chart.rows(
         labels, legend=["Reach", "Reached by this option only", "All together"]
     )
-    light, dark = _TRACK, chart.colors(1)[0]
+    light, dark = _track(), chart.colors(1)[0]
     reach = options["reach_percent"].to_numpy(dtype=float)
     unique = options["unique_percent"].to_numpy(dtype=float)
     ax.barh(y, reach, height=0.66, color=light, zorder=2, label="Reach")
@@ -1445,13 +1474,13 @@ def _draw_turf_items(table: Any, chart: ResultChart) -> str:
         total = float(whole["reach_percent"].iloc[0])
         ax.axvline(
             total,
-            color=_INK,
+            color=_ink(),
             linewidth=1.2,
             zorder=4,
             label=f"{whole['label'].iloc[0]}: {total:.1f} %",
         )
     ax.set_xlim(0, 100)
-    ax.set_xlabel(f"Reach (%) of the {table.base} respondents who answered", color=_INK)
+    ax.set_xlabel(f"Reach (%) of the {table.base} respondents who answered", color=_ink())
     chart.legend(ax)
     _hide_spines(ax)
     chart.make_room(ax, artists)
@@ -1499,20 +1528,20 @@ def _draw_maxdiff(table: Any, chart: ResultChart) -> str:
         ax.set_xlabel(
             f"Utility (conditional logit) with its 95 % confidence interval, "
             f"against {reference} at 0",
-            color=_INK,
+            color=_ink(),
         )
         _base_note(ax, stats, size)
         return f"MaxDiff utilities: {question}"
     if chart.drawn == "shares":
         values = frame["Share %"].to_numpy(dtype=float)
         ax, _, size = _bars(chart, labels, values, [_percent(v) for v in values], color=color)
-        ax.set_xlabel("Share of picks if every item were offered at once (%)", color=_INK)
+        ax.set_xlabel("Share of picks if every item were offered at once (%)", color=_ink())
         _base_note(ax, stats, size)
         return f"MaxDiff shares: {question}"
     values = frame["Score"].to_numpy(dtype=float)
     digits = _digits(values)
     ax, _, size = _bars(chart, labels, values, [_number(v, digits) for v in values], color=color)
-    ax.set_xlabel("Counting score: (best − worst) / shown", color=_INK)
+    ax.set_xlabel("Counting score: (best − worst) / shown", color=_ink())
     _base_note(ax, stats, size)
     return f"MaxDiff scores: {question}"
 
@@ -1542,7 +1571,7 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
             [_percent(value) for value in importance],
             color=chart.colors(1)[0],
         )
-        ax.set_xlabel("Importance: the attribute's share of the decision (%)", color=_INK)
+        ax.set_xlabel("Importance: the attribute's share of the decision (%)", color=_ink())
         _base_note(ax, stats, size, "Of the levels tested, not of the attribute in general.")
         return f"Attribute importance: {question}"
     labels, values, colors = [], [], []
@@ -1577,10 +1606,10 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
         _label(ax, value, row, _number(value, digits), size, left=value < 0)
         for row, value in zip(y, values, strict=True)
     ]
-    ax.axvline(0, color=_MUTED, linewidth=1, zorder=1)
+    ax.axvline(0, color=_muted(), linewidth=1, zorder=1)
     _hide_spines(ax)
     chart.make_room(ax, artists)
-    ax.set_xlabel("Part-worth, against each attribute's first level at 0", color=_INK)
+    ax.set_xlabel("Part-worth, against each attribute's first level at 0", color=_ink())
     _base_note(ax, stats, size)
     return f"Part-worths: {question}"
 
@@ -1595,7 +1624,7 @@ def _draw_shares(table: Any, chart: ResultChart) -> str:
         [_percent(value) for value in values],
         color=chart.colors(1)[0],
     )
-    ax.set_xlabel("Share of preference (%)", color=_INK)
+    ax.set_xlabel("Share of preference (%)", color=_ink())
     _mark_note(ax, str(table.stats.get("Note", "")).capitalize() + ".", size)
     return "Share of preference"
 
@@ -1663,7 +1692,7 @@ def _scree(
     ax.plot([], [], "-o", color=color, label=label)
     ax.axhline(
         1.0,
-        color=_INK,
+        color=_ink(),
         linewidth=1,
         linestyle=(0, (4, 3)),
         zorder=1,
@@ -1674,7 +1703,7 @@ def _scree(
             x,
             random,
             "-",
-            color=_MUTED,
+            color=_muted(),
             linewidth=1.5,
             zorder=2,
             label="Random data, 95th percentile (parallel analysis)",
@@ -1687,7 +1716,7 @@ def _scree(
             xytext=(6, 4),
             textcoords="offset points",
             fontsize=9,
-            color=_INK,
+            color=_ink(),
         )
         for i in shown
     ]
@@ -1699,8 +1728,8 @@ def _scree(
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.set_xlim(0.5, count + 0.5)
     ax.set_ylim(0, max(float(np.nanmax(eigenvalues)), 1.0) * 1.12)
-    ax.set_xlabel(name, color=_INK)
-    ax.set_ylabel("Eigenvalue", color=_INK)
+    ax.set_xlabel(name, color=_ink())
+    ax.set_ylabel("Eigenvalue", color=_ink())
     ax.grid(axis="x", visible=False)
     ax.legend(frameon=False, fontsize=9, loc="upper right")
     _hide_spines(ax)
@@ -1715,11 +1744,12 @@ def _loadings(chart: ResultChart, items: list[str], columns: list[str], values: 
     fig, ax = chart.figure(height=height)
     limit = max(1.0, float(np.nanmax(np.abs(values))) if np.isfinite(values).any() else 1.0)
     masked = np.ma.masked_invalid(values)
-    cmap = plt.get_cmap("RdBu_r").with_extremes(bad="#f4f4f4")
+    cmap = plt.get_cmap(chart_theme.cmap("RdBu_r")).with_extremes(bad="#f4f4f4")
+    norm = TwoSlopeNorm(0.0, -limit, limit)
     image = ax.imshow(
         masked,
         cmap=cmap,
-        norm=TwoSlopeNorm(0.0, -limit, limit),
+        norm=norm,
         aspect="auto",
         interpolation="nearest",
     )
@@ -1739,21 +1769,23 @@ def _loadings(chart: ResultChart, items: list[str], columns: list[str], values: 
                     ha="center",
                     va="center",
                     fontsize=min(size, 9),
-                    color="white" if abs(value) > 0.6 * limit else _INK,
+                    color=chart_theme.ink_on(
+                        cmap(norm(value)), "white" if abs(value) > 0.6 * limit else _INK
+                    ),
                 )
     ax.set_yticks(range(rows))
-    ax.set_yticklabels(wrapped, fontsize=size, color=_INK)
+    ax.set_yticklabels(wrapped, fontsize=size, color=_ink())
     ax.set_xticks(range(cols))
-    ax.set_xticklabels(columns, fontsize=size, color=_INK)
+    ax.set_xticklabels(columns, fontsize=size, color=_ink())
     ax.xaxis.tick_top()
     ax.grid(False)
     for spine in ax.spines.values():
         spine.set_visible(False)
     bar = fig.colorbar(image, ax=ax, fraction=0.04, pad=0.02)
-    bar.set_label("Loading", color=_INK)
+    bar.set_label("Loading", color=_ink())
     bar.outline.set_visible(False)
     if not annotate:
-        ax.set_xlabel("The values are in the table.", color=_MUTED)
+        ax.set_xlabel("The values are in the table.", color=_muted())
     return "Loadings"
 
 
@@ -1861,7 +1893,7 @@ def _draw_profile(
         ax.plot(
             item["estimate"], range(len(items)), "-", color=item["color"], linewidth=1.6, zorder=2
         )
-    ax.set_xlabel("Mean of the cluster's members on each item", color=_INK)
+    ax.set_xlabel("Mean of the cluster's members on each item", color=_ink())
     return "Cluster profiles"
 
 
@@ -1940,12 +1972,12 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any], note
         ax.xaxis.set_minor_locator(LogLocator(base=10, subs=(1.25, 1.5, 3.0, 4.0, 7.0)))
         ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
         ax.xaxis.set_minor_formatter(FuncFormatter(lambda value, _: _minor_label(ax, value)))
-        ax.tick_params(axis="x", which="minor", labelsize=size, colors=_INK)
+        ax.tick_params(axis="x", which="minor", labelsize=size, colors=_ink())
         ax.set_xlabel(
-            f"Odds ratio with its 95 % confidence interval ({basis}), log scale", color=_INK
+            f"Odds ratio with its 95 % confidence interval ({basis}), log scale", color=_ink()
         )
     else:
-        ax.set_xlabel(f"Coefficient with its 95 % confidence interval ({basis})", color=_INK)
+        ax.set_xlabel(f"Coefficient with its 95 % confidence interval ({basis})", color=_ink())
     # The base, what each nominal predictor's answers are compared with, and
     # what the caller adds (the ordinal logit's reading).
     parts = [f"N = {int(n)} respondents in the model" if isinstance(n, int | np.integer) else ""]
@@ -2015,10 +2047,9 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
     short = max((len(label) for label in labels), default=0) <= 14
     wrapped, size, height = fit_rows(chart.figsize, labels if short else numbered)
     fig, ax = chart.figure(height=height)
-    cmap = plt.get_cmap("RdBu_r").with_extremes(bad="white")
-    image = ax.imshow(
-        np.ma.masked_invalid(shown), cmap=cmap, norm=TwoSlopeNorm(0.0, -1.0, 1.0), aspect="auto"
-    )
+    cmap = plt.get_cmap(chart_theme.cmap("RdBu_r")).with_extremes(bad="white")
+    norm = TwoSlopeNorm(0.0, -1.0, 1.0)
+    image = ax.imshow(np.ma.masked_invalid(shown), cmap=cmap, norm=norm, aspect="auto")
     # "-.65***" has to fit its cell (a coefficient without its leading zero, as
     # APA writes one): the font follows the cell, and below 6 pt the numbers are
     # left to the table.
@@ -2029,7 +2060,7 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
     for i in range(count):
         for j in range(count):
             if j == i:
-                ax.text(j, i, "—", ha="center", va="center", fontsize=min(size, 9), color=_MUTED)
+                ax.text(j, i, "—", ha="center", va="center", fontsize=min(size, 9), color=_muted())
             elif j < i and annotate:
                 value = values[i, j]
                 text = "n/a" if value != value else f"{_coefficient(value)}{_marks(p[i, j])}"
@@ -2040,20 +2071,23 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
                     ha="center",
                     va="center",
                     fontsize=font,
-                    color="white" if value == value and abs(value) > 0.6 else _INK,
+                    color=chart_theme.ink_on(
+                        cmap(norm(value)),
+                        "white" if value == value and abs(value) > 0.6 else _INK,
+                    ),
                 )
     ax.set_yticks(range(count))
-    ax.set_yticklabels(wrapped, fontsize=size, color=_INK)
+    ax.set_yticklabels(wrapped, fontsize=size, color=_ink())
     ax.set_xticks(range(count))
     if short:
-        ax.set_xticklabels(wrapped, fontsize=size, color=_INK, rotation=45, ha="right")
+        ax.set_xticklabels(wrapped, fontsize=size, color=_ink(), rotation=45, ha="right")
     else:
-        ax.set_xticklabels([str(i + 1) for i in range(count)], fontsize=size, color=_INK)
+        ax.set_xticklabels([str(i + 1) for i in range(count)], fontsize=size, color=_ink())
     ax.grid(False)
     for spine in ax.spines.values():
         spine.set_visible(False)
     bar = fig.colorbar(image, ax=ax, fraction=0.04, pad=0.02)
-    bar.set_label("Coefficient", color=_INK)
+    bar.set_label("Coefficient", color=_ink())
     bar.outline.set_visible(False)
     stats = table.stats
     marks = stats.get("Marks") or "* p < .05, ** p < .01, *** p < .001" + (
@@ -2061,7 +2095,7 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
     )
     ax.set_xlabel(
         marks if annotate else "The coefficients and their marks are in the table.",
-        color=_MUTED,
+        color=_muted(),
     )
     if stats.get("N"):
         missing = str(stats.get("Missing") or "").split(":")[0]
@@ -2101,7 +2135,11 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
     if chart.drawn == "sentiment":
         ax, y, size = chart.rows(labels, legend=["Negative", "Neutral", "Positive"])
         start = np.zeros(len(themes))
-        parts = (("Negative %", _NEGATIVE), ("Neutral %", _NEUTRAL), ("Positive %", _POSITIVE))
+        parts = (
+            ("Negative %", _negative()),
+            ("Neutral %", _neutral()),
+            ("Positive %", _positive()),
+        )
         for column, color in parts:
             share = themes[column].to_numpy(dtype=float)
             ax.barh(
@@ -2124,7 +2162,7 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
                         ha="center",
                         va="center",
                         fontsize=size - 1,
-                        color="white" if color != _NEUTRAL else _INK,
+                        color=chart_theme.ink_on(color, "white" if column != "Neutral %" else _INK),
                     )
             start = start + np.nan_to_num(share)
         for row, total in zip(y, start, strict=True):
@@ -2135,10 +2173,10 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
                     "no answer here has a sentiment",
                     va="center",
                     fontsize=size - 1,
-                    color=_MUTED,
+                    color=_muted(),
                 )
         ax.set_xlim(0, 100)
-        ax.set_xlabel("Sentiment of the theme's answers (%)", color=_INK)
+        ax.set_xlabel("Sentiment of the theme's answers (%)", color=_ink())
         chart.legend(ax)
         _hide_spines(ax)
         return f"Sentiment by theme: {variable}"
@@ -2151,7 +2189,7 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
         [f"{value:.1f} % ({int(n)})" for value, n in zip(values, counts, strict=True)],
         color=chart.colors(1)[0],
     )
-    ax.set_xlabel("Share of the coded answers (%), with the number of answers", color=_INK)
+    ax.set_xlabel("Share of the coded answers (%), with the number of answers", color=_ink())
     coverage = stats.get("Coverage")
     if coverage:
         _mark_note(ax, f"Coverage: {coverage}.", size)

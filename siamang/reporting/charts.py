@@ -108,7 +108,8 @@ class SurveyChart:
     figsize : tuple[float, float]
         Figure size in inches (width, height).
     palette : str
-        Seaborn/matplotlib color palette name.
+        Seaborn/matplotlib color palette name, or ``"theme"``: the colours of
+        the report theme the chart is shown in (:mod:`siamang.reporting.chart_theme`).
     title : str | None
         Override the auto-generated title.
     dpi : int
@@ -124,6 +125,12 @@ class SurveyChart:
     _fig: Any = field(init=False, repr=False, default=None)
     _ax: Any = field(init=False, repr=False, default=None)
     _weight_note: str | None = field(init=False, repr=False, default=None)
+    #: With ``palette="theme"``: the chart colours to draw in, which a report
+    #: sets (``chart_theme.in_report``); the colours the chart was drawn in;
+    #: and the copy a report drew in its own when those differ.
+    _colours: Any = field(init=False, repr=False, default=None)
+    _drawn_with: Any = field(init=False, repr=False, default=None)
+    _redrawn: Any = field(init=False, repr=False, default=None)
 
     def _build(self) -> None:
         """Build the chart. Subclasses must implement this."""
@@ -132,7 +139,10 @@ class SurveyChart:
     def _ensure_built(self) -> None:
         if self._fig is None:
             _require_matplotlib()
-            self._build()
+            from siamang.reporting import chart_theme
+
+            with chart_theme.drawing(self):
+                self._build()
 
     def plot(self):
         """Build and return the matplotlib Axes object."""
@@ -245,13 +255,13 @@ class BarChart(SurveyChart):
     min_slice: float = 3.0
 
     def _build(self) -> None:
-        from siamang.reporting import bars
+        from siamang.reporting import bars, chart_theme
 
         if not bars.is_classic(self):
             bars.draw(self)
             return
         if sns:
-            sns.set_theme(style="whitegrid", palette=self.palette)
+            chart_theme.set_theme(style="whitegrid", palette=self.palette)
 
         fig, ax = plt.subplots(figsize=self.figsize)
         self._fig = fig
@@ -279,13 +289,17 @@ class BarChart(SurveyChart):
 
             if self.horizontal:
                 ax.barh(
-                    labels, counts.values, color=sns.color_palette(self.palette) if sns else None
+                    labels,
+                    counts.values,
+                    color=chart_theme.color_palette(self.palette) if sns else None,
                 )
                 ax.set_xlabel(axis)
                 ax.set_ylabel(col_label)
             else:
                 ax.bar(
-                    labels, counts.values, color=sns.color_palette(self.palette) if sns else None
+                    labels,
+                    counts.values,
+                    color=chart_theme.color_palette(self.palette) if sns else None,
                 )
                 ax.set_ylabel(axis)
                 ax.set_xlabel(col_label)
@@ -371,8 +385,10 @@ class BoxPlot(SurveyChart):
     show_points: bool = False
 
     def _build(self) -> None:
+        from siamang.reporting import chart_theme
+
         if sns:
-            sns.set_theme(style="whitegrid", palette=self.palette)
+            chart_theme.set_theme(style="whitegrid", palette=self.palette)
 
         fig, ax = plt.subplots(figsize=self.figsize)
         self._fig = fig
@@ -392,15 +408,20 @@ class BoxPlot(SurveyChart):
             order = None
 
         if sns:
+            # In the theme's colours the groups take the palette in the order
+            # they are drawn, undimmed; any other palette as it always did.
+            themed = chart_theme.themed() is not None
+            levels = order or list(pd.unique(frame["_group"]))
             sns.boxplot(
                 data=frame,
                 x="_group",
                 y=self.column,
                 hue="_group",
                 ax=ax,
-                palette=self.palette,
+                palette=chart_theme.palette_for(self.palette, levels),
                 order=order,
                 legend=False,
+                **({"hue_order": levels, "saturation": 1.0} if themed else {}),
             )
             if self.show_points:
                 sns.stripplot(
@@ -408,7 +429,7 @@ class BoxPlot(SurveyChart):
                     x="_group",
                     y=self.column,
                     ax=ax,
-                    color="0.3",
+                    color=chart_theme.text("0.3"),
                     alpha=0.4,
                     size=3,
                     order=order,
@@ -472,8 +493,9 @@ class HeatMap(SurveyChart):
 
             draw(self)
             return
+        from siamang.reporting import chart_theme
 
-        sns.set_theme(style="whitegrid")
+        chart_theme.set_theme(style="whitegrid")
 
         fig, ax = plt.subplots(figsize=self.figsize)
         self._fig = fig
@@ -505,7 +527,7 @@ class HeatMap(SurveyChart):
                 matrix,
                 annot=self.annot,
                 fmt=".2f",
-                cmap=self.cmap,
+                cmap=chart_theme.cmap(self.cmap, "sequential"),
                 vmin=self.vmin,
                 vmax=self.vmax,
                 ax=ax,
@@ -513,6 +535,7 @@ class HeatMap(SurveyChart):
                 # Unweighted, the colour bar stays unlabelled as it always was.
                 cbar_kws={"label": "Weighted mean"} if weights is not None else None,
             )
+            chart_theme.label_cells(ax)
             ax.set_title(self._auto_title("Mean Values", by_label))
             ax.set_xlabel(by_label)
 
@@ -527,13 +550,14 @@ class HeatMap(SurveyChart):
                 corr,
                 annot=self.annot,
                 fmt=".2f",
-                cmap="RdBu_r",
+                cmap=chart_theme.cmap("RdBu_r", "diverging"),
                 vmin=-1,
                 vmax=1,
                 ax=ax,
                 linewidths=0.5,
                 center=0,
             )
+            chart_theme.label_cells(ax)
             ax.set_title(self._unweighted(self._auto_title("Spearman Correlation Matrix")))
 
         plt.tight_layout()
@@ -569,8 +593,10 @@ class ScatterPlot(SurveyChart):
     def _build(self) -> None:
         if sns is None:
             raise ImportError("seaborn is required for ScatterPlot.")
+        from siamang.reporting import chart_theme
+        from siamang.reporting.chart_parts import code_order
 
-        sns.set_theme(style="whitegrid", palette=self.palette)
+        chart_theme.set_theme(style="whitegrid", palette=self.palette)
 
         fig, ax = plt.subplots(figsize=self.figsize)
         self._fig = fig
@@ -596,10 +622,19 @@ class ScatterPlot(SurveyChart):
                 hue_col = self.hue
 
         scatter_kwargs = dict(data=frame, x=self.x, y=self.y, ax=ax, alpha=0.7)
+        themed = chart_theme.themed() is not None
         if hue_col:
+            # In the theme's colours the groups take the palette in the
+            # codebook's order, and the legend is titled by the variable.
+            codes = sorted(frame[self.hue].unique(), key=code_order)
+            levels = [frame.loc[frame[self.hue] == code, hue_col].iloc[0] for code in codes]
             scatter_kwargs["hue"] = hue_col
-            scatter_kwargs["palette"] = self.palette
+            scatter_kwargs["palette"] = chart_theme.palette_for(self.palette, levels)
+            if themed:
+                scatter_kwargs["hue_order"] = levels
         sns.scatterplot(**scatter_kwargs)
+        if hue_col and themed and ax.get_legend() is not None:
+            ax.get_legend().set_title(_get_label(self.data, self.hue))
 
         if self.trendline and self.hue is None:
             sns.regplot(
@@ -608,7 +643,8 @@ class ScatterPlot(SurveyChart):
                 y=self.y,
                 ax=ax,
                 scatter=False,
-                color="red",
+                # With the theme's colours, its second: the first is the points'.
+                color=chart_theme.series("red", 1),
                 line_kws={"linewidth": 1.5},
             )
 

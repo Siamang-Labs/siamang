@@ -96,9 +96,22 @@ def test_the_report_and_the_questionnaire_agree_on_what_a_preset_is():
 
 # ─── the stylesheet ──────────────────────────────────────────────────────────
 
-# Fields that change the document rather than the stylesheet. Everything else
-# must move at least one byte of CSS, or it is a control that does nothing.
-_NOT_IN_CSS = {"figure_dpi", "number_tables", "number_figures", "table_label", "figure_label"}
+# Fields that change the document rather than the stylesheet — the chart
+# colours change the figures (test_chart_theme.py holds them to that). Everything
+# else must move at least one byte of CSS, or it is a control that does nothing.
+_NOT_IN_CSS = {
+    "figure_dpi",
+    "number_tables",
+    "number_figures",
+    "table_label",
+    "figure_label",
+    "chart_palette",
+    "chart_sequential",
+    "chart_diverging",
+    "chart_text_color",
+    "chart_grid_color",
+    "chart_font",
+}
 
 _ALTERNATIVE = {
     "font_preset": "modern",

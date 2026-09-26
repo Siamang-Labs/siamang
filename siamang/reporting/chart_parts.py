@@ -65,9 +65,17 @@ def axes_points(ax: Any) -> tuple[float, float]:
 
 
 def ink_on(colour: Any) -> str:
-    """Text colour that reads on a fill of ``colour``: white on dark, ink on light."""
+    """Text colour that reads on a fill of ``colour``: white on dark, ink on light
+    (in a chart of the theme's colours, whichever of white and its text reads
+    better — :meth:`~siamang.reporting.chart_theme.ChartColours.ink_on`)."""
 
     from matplotlib.colors import to_rgb
+
+    from siamang.reporting import chart_theme
+
+    themed = chart_theme.themed()
+    if themed is not None:
+        return themed.ink_on(colour)
 
     def linear(channel: float) -> float:
         return channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
@@ -89,11 +97,19 @@ def series_colours(palette: str, count: int, *, ordered: bool = False) -> list[A
     near neighbours (and its first and last colour) are not — and past three
     times the palette, hues spaced over the wheel without closing it, their
     lightness alternating.
+
+    ``palette="theme"`` takes the report theme's colours
+    (:meth:`~siamang.reporting.chart_theme.ChartColours.series`): its palette,
+    and for the steps of a scale its sequential colour.
     """
 
     import seaborn as sns
     from matplotlib.colors import to_rgb
 
+    from siamang.reporting import chart_theme
+
+    if palette == chart_theme.THEME:
+        return [to_rgb(colour) for colour in chart_theme.current().series(count, ordered=ordered)]
     base = list(sns.color_palette(palette))
     if ordered and count > 1:
         first = to_rgb(base[0])
@@ -197,8 +213,16 @@ class Footnote:
                 self._layout()
         height = self.fig.get_figheight() * 72.0
         if self.lines and self._text is None:
+            from siamang.reporting import chart_theme
+
             self._text = self.fig.text(
-                0.012, 0.0, self.text, ha="left", va="bottom", fontsize=FOOTNOTE_SIZE, color="0.3"
+                0.012,
+                0.0,
+                self.text,
+                ha="left",
+                va="bottom",
+                fontsize=FOOTNOTE_SIZE,
+                color=chart_theme.muted("0.3"),
             )
         if self._text is not None:
             self._text.set_y(5.0 / height)

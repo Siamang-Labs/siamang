@@ -110,7 +110,8 @@ class LikertChart(SurveyChart):
 
     def _build(self) -> None:
         import matplotlib.pyplot as plt
-        import seaborn as sns
+
+        from siamang.reporting import chart_theme
 
         if self.neutral not in NEUTRALS:
             raise ValueError(f"neutral must be one of {', '.join(NEUTRALS)}; got {self.neutral!r}.")
@@ -133,7 +134,7 @@ class LikertChart(SurveyChart):
         names = dict(zip(columns, rests, strict=True))
         self._table = _table(rows, scale, names, weighted=self.data.weight is not None)
 
-        sns.set_theme(style="whitegrid")
+        chart_theme.set_theme(style="whitegrid")
         side = self.neutral == "side" and scale.neutral is not None
         if side:
             fig, (ax, aside) = plt.subplots(
@@ -201,9 +202,9 @@ class LikertChart(SurveyChart):
         ax.set_xticks(ticks)
         ax.set_xticklabels([f"{abs(value):.0f}%" for value in ticks])
         # Over the bars, under the values: the neutral answer's value sits on it.
-        ax.axvline(0.0, color="0.25", linewidth=0.9, zorder=2.5)
+        ax.axvline(0.0, color=chart_theme.text("0.25"), linewidth=0.9, zorder=2.5)
         ax.grid(False)
-        ax.grid(True, axis="x", color="0.88", linewidth=0.8)
+        ax.grid(True, axis="x", color=chart_theme.grid("0.88"), linewidth=0.8)
         ax.set_axisbelow(True)
         # One item's label is the title; its row says only its base.
         shown = [names[row["name"]] if len(columns) > 1 else "" for row in rows]
@@ -223,7 +224,7 @@ class LikertChart(SurveyChart):
         ax.set_title(title, pad=18)
         if aside is not None:
             aside.grid(False)
-            aside.grid(True, axis="x", color="0.88", linewidth=0.8)
+            aside.grid(True, axis="x", color=chart_theme.grid("0.88"), linewidth=0.8)
             aside.set_axisbelow(True)
             top = float(np.max(shares[:, position[scale.neutral]]))
             aside.set_xlim(0, max(10.0, np.ceil(top * 1.35 / 10.0) * 10.0))
@@ -270,6 +271,8 @@ class LikertChart(SurveyChart):
 
         from matplotlib.transforms import blended_transform_factory
 
+        from siamang.reporting import chart_theme
+
         size = VALUE_SIZE
         width_pt = axes_points(ax)[0]
         room_pt = text_width("100%", size) + 10.0
@@ -281,7 +284,14 @@ class LikertChart(SurveyChart):
         header = blended_transform_factory(ax.transData, ax.transAxes)
         for x, text, align in ((-limit - pad, low_box, "left"), (limit + pad, box, "right")):
             ax.text(
-                x, 1.005, text, transform=header, ha=align, va="bottom", fontsize=size, color="0.25"
+                x,
+                1.005,
+                text,
+                transform=header,
+                ha=align,
+                va="bottom",
+                fontsize=size,
+                color=chart_theme.text("0.25"),
             )
         for index, row in enumerate(rows):
             ax.text(
@@ -291,7 +301,7 @@ class LikertChart(SurveyChart):
                 ha="left",
                 va="center",
                 fontsize=size,
-                color="0.15",
+                color=chart_theme.text("0.15"),
             )
             ax.text(
                 limit + pad * 0.9,
@@ -300,7 +310,7 @@ class LikertChart(SurveyChart):
                 ha="right",
                 va="center",
                 fontsize=size,
-                color="0.15",
+                color=chart_theme.text("0.15"),
             )
         if not self.show_values:
             return
@@ -500,22 +510,23 @@ def _fallback_title(columns: list[str], scale: Scale) -> str:
 
 
 def _colours(palette: str, scale: Scale) -> dict[Any, Any]:
-    """A diverging palette over the scale, its neutral answer grey."""
+    """A diverging palette over the scale, its neutral answer grey (``"theme"``:
+    the report theme's diverging pair)."""
 
-    import seaborn as sns
+    from siamang.reporting import chart_theme
 
     count = len(scale.codes)
     if scale.neutral is None and count >= 4:
         # An even scale has no middle colour: the two middle ones of a palette
         # of as many are nearly white, and "Agree" vanished. Sampled two wider
         # with the two middle ones dropped, the inner answers keep a colour.
-        wide = list(sns.color_palette(palette, count + 2))
+        wide = chart_theme.diverging_palette(palette, count + 2)
         colours = wide[: count // 2] + wide[count // 2 + 2 :]
     else:
-        colours = list(sns.color_palette(palette, count))
+        colours = chart_theme.diverging_palette(palette, count)
     by_code = dict(zip(scale.codes, colours, strict=True))
     if scale.neutral is not None:
-        by_code[scale.neutral] = NEUTRAL_GREY
+        by_code[scale.neutral] = chart_theme.neutral(NEUTRAL_GREY)
     return by_code
 
 

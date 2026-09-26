@@ -53,6 +53,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.reporting import chart_theme
 from siamang.reporting.chart_parts import (
     CHAR_WIDTH,
     FOOTNOTE_SIZE,
@@ -95,6 +96,23 @@ MAX_PANELS = 12
 OTHER_COLOUR = (0.72, 0.72, 0.72)
 #: The colour of error bars and of the letters over the bars.
 INK = "0.2"
+#: The text beside a donut — its base, the percentages of its thin slices —
+#: and the lines that join those percentages to their slices.
+DONUT_INK = "0.15"
+LEADER = "0.55"
+
+
+# The colours above, or — while a chart of palette "theme" is drawn — the
+# report theme's (chart_theme): Other in its neutral grey, as the Likert
+# chart's neutral answer and the NPS's passives are; the whiskers, the letters
+# and the text beside a donut in its text colour; a leader line in its
+# secondary text colour.
+def _other() -> Any:
+    return chart_theme.neutral(OTHER_COLOUR)
+
+
+def _ink(default: Any = INK) -> Any:
+    return chart_theme.text(default)
 
 
 @dataclass
@@ -939,9 +957,8 @@ def render(chart: BarChart, bars: Bars) -> None:
     """Draw ``bars`` on a new figure of ``chart``."""
 
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
-    sns.set_theme(style="whitegrid", palette=chart.palette)
+    chart_theme.set_theme(style="whitegrid", palette=chart.palette)
     values = bars.values
     positions, count = values.shape
     figure_pt = chart.figsize[0] * 72.0
@@ -961,8 +978,9 @@ def render(chart: BarChart, bars: Bars) -> None:
     plain = count - (bars.other_series is not None)
     palette = series_colours(chart.palette, plain, ordered=bars.ordered)
     colours = [palette[index] for index in (bars.colour_index or range(plain))]
+    other = _other()
     if bars.other_series is not None:
-        colours.insert(bars.other_series, OTHER_COLOUR)
+        colours.insert(bars.other_series, other)
     at = np.arange(positions, dtype=float)
     if bars.stacked or count == 1:
         thickness, offsets = 0.7, [0.0] * count
@@ -975,7 +993,7 @@ def render(chart: BarChart, bars: Bars) -> None:
         colour: Any = colours[index]
         if count == 1 and bars.other_position is not None:
             colour = [
-                OTHER_COLOUR if position == bars.other_position else colour
+                other if position == bars.other_position else colour
                 for position in range(positions)
             ]
         style = {
@@ -1005,7 +1023,7 @@ def render(chart: BarChart, bars: Bars) -> None:
     if bars.full:
         (ax.set_xlim if horizontal else ax.set_ylim)(0, 100)
     ax.grid(False)
-    ax.grid(True, axis="x" if horizontal else "y", color="0.88", linewidth=0.8)
+    ax.grid(True, axis="x" if horizontal else "y", color=chart_theme.grid("0.88"), linewidth=0.8)
     ax.set_axisbelow(True)
     position_axis.set_ticks(at)
     if horizontal:
@@ -1112,7 +1130,7 @@ def _error_bars(ax: Any, bars: Bars, offsets: list[float], horizontal: bool, *, 
         spread = np.vstack([middle[keep] - low[keep], high[keep] - middle[keep]]).clip(min=0.0)
         style = {
             "fmt": "none",
-            "ecolor": INK,
+            "ecolor": _ink(),
             "elinewidth": 1.0,
             "capsize": cap,
             "capthick": 1.0,
@@ -1221,6 +1239,7 @@ def _write_values(
             return None
         rotation = 90
     written: list[Any] = []
+    renderer = ax.figure.canvas.get_renderer()
     stacked_marks = not horizontal and not rotation and any(marks) and any(kind_values)
     extent_pt = (
         widest if horizontal or rotation else size * (2.25 if stacked_marks else 1.0)
@@ -1254,6 +1273,14 @@ def _write_values(
                     **common,
                 )
             )
+            if mark and (horizontal or rotation):
+                # After the value as drawn, not as estimated: a theme's face
+                # is narrower or wider than the estimate, and the letters keep
+                # their gap in any.
+                box = written[-1].get_window_extent(renderer)
+                drawn = (box.width if horizontal else box.height) * 72.0 / ax.figure.dpi
+                push = (3 + drawn + gap) * sign
+                shifts[1] = (push, 0) if horizontal else (0, push)
         if mark:
             written.append(
                 ax.annotate(
@@ -1263,7 +1290,7 @@ def _write_values(
                     textcoords="offset points",
                     fontsize=size,
                     fontweight="bold",
-                    color=INK,
+                    color=_ink(),
                     **common,
                 )
             )
@@ -1535,9 +1562,8 @@ def render_histogram(chart: BarChart, histogram: Histogram) -> None:
     (two columns past four groups)."""
 
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
-    sns.set_theme(style="whitegrid", palette=chart.palette)
+    chart_theme.set_theme(style="whitegrid", palette=chart.palette)
     panels = len(histogram.heights)
     colour = series_colours(chart.palette, 1)[0]
     edges = histogram.edges
@@ -1582,7 +1608,7 @@ def render_histogram(chart: BarChart, histogram: Histogram) -> None:
             linewidth=0.6 if len(widths) <= 60 else 0.0,
         )
         ax.grid(False)
-        ax.grid(True, axis="y", color="0.88", linewidth=0.8)
+        ax.grid(True, axis="y", color=chart_theme.grid("0.88"), linewidth=0.8)
         ax.set_axisbelow(True)
         if histogram.kind == "percent":
             percent_axis(ax.yaxis)
@@ -1723,9 +1749,8 @@ def render_donut(chart: BarChart, donut: Donut) -> None:
     the base in the middle, the answers in a legend."""
 
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
-    sns.set_theme(style="white", palette=chart.palette)
+    chart_theme.set_theme(style="white", palette=chart.palette)
     fig, ax = plt.subplots(figsize=chart.figsize)
     chart._fig, chart._ax = fig, ax
     count = len(donut.shares)
@@ -1733,7 +1758,7 @@ def render_donut(chart: BarChart, donut: Donut) -> None:
     palette = series_colours(chart.palette, plain, ordered=donut.ordered)
     colours = [palette[index] for index in donut.colour_index]
     if donut.other is not None:
-        colours.insert(donut.other, OTHER_COLOUR)
+        colours.insert(donut.other, _other())
     wedges, _ = ax.pie(
         donut.shares,
         colors=colours,
@@ -1846,7 +1871,7 @@ def _centre(ax: Any, donut: Donut, scale: float) -> None:
             va="center",
             fontsize=line_size,
             fontweight=weight,
-            color="0.15",
+            color=_ink(DONUT_INK),
         )
         y -= line_size * 1.2 / 2.0
 
@@ -1907,7 +1932,7 @@ def _slice_labels(
             ax.plot(
                 [out[0], bend[0], x],
                 [out[1], bend[1], y],
-                color="0.55",
+                color=chart_theme.muted(LEADER),
                 linewidth=0.7,
                 solid_capstyle="round",
             )
@@ -1918,7 +1943,7 @@ def _slice_labels(
                 ha="left" if right else "right",
                 va="center",
                 fontsize=size,
-                color="0.15",
+                color=_ink(DONUT_INK),
             )
 
 

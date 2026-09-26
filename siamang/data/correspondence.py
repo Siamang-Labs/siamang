@@ -69,6 +69,7 @@ import pandas as pd
 
 from siamang.data import multi
 from siamang.data.listwise import distinct, label_of, p_rounded, rounded
+from siamang.reporting import chart_theme
 from siamang.reporting.result_table import ResultTable
 
 if TYPE_CHECKING:
@@ -82,6 +83,28 @@ MAX_DIMENSIONS = 10
 #: common colour-vision deficiency; the labels are in ink.
 ROW_COLOUR, COLUMN_COLOUR = "#2a78d6", "#eb6834"
 _INK, _MUTED, _RULE = "#333333", "#767676", "#bdbdbd"
+
+
+# These colours, or — in a Result chart of palette "theme" — the report
+# theme's first two, its text, secondary text and grid.
+def _rows() -> str:
+    return chart_theme.series(ROW_COLOUR, 0)
+
+
+def _columns() -> str:
+    return chart_theme.series(COLUMN_COLOUR, 1)
+
+
+def _ink() -> str:
+    return chart_theme.text(_INK)
+
+
+def _muted() -> str:
+    return chart_theme.muted(_MUTED)
+
+
+def _rule() -> str:
+    return chart_theme.grid(_RULE)
 
 
 @dataclass
@@ -634,14 +657,14 @@ def plot(
     # The labels' size follows how many share each square inch of the figure.
     density = count / (width * height)
     size = 10.0 if density <= 0.45 else 9.0 if density <= 0.65 else 8.0 if density <= 1.0 else 7.0
-    ax.axhline(0, color=_RULE, linewidth=0.8, zorder=1)
-    ax.axvline(0, color=_RULE, linewidth=0.8, zorder=1)
+    ax.axhline(0, color=_rule(), linewidth=0.8, zorder=1)
+    ax.axvline(0, color=_rule(), linewidth=0.8, zorder=1)
     ax.scatter(
-        rows_xy[:, 0], rows_xy[:, 1], s=46, marker="o", color=ROW_COLOUR,
+        rows_xy[:, 0], rows_xy[:, 1], s=46, marker="o", color=_rows(),
         edgecolor="white", linewidth=1.2, zorder=3,
     )  # fmt: skip
     ax.scatter(
-        columns_xy[:, 0], columns_xy[:, 1], s=56, marker="^", color=COLUMN_COLOUR,
+        columns_xy[:, 0], columns_xy[:, 1], s=56, marker="^", color=_columns(),
         edgecolor="white", linewidth=1.2, zorder=3,
     )  # fmt: skip
     points = np.vstack([rows_xy, columns_xy])
@@ -655,17 +678,17 @@ def plot(
             return f"Dimension {k} (none: the table has {top})"
         return f"Dimension {k} ({solution.explained[k - 1]:.1f} % of inertia)"
 
-    ax.set_xlabel(axis_title(first), fontsize=size + 1, color=_INK)
-    ax.set_ylabel(axis_title(second), fontsize=size + 1, color=_INK)
-    ax.tick_params(labelsize=size - 1, colors=_MUTED)
+    ax.set_xlabel(axis_title(first), fontsize=size + 1, color=_ink())
+    ax.set_ylabel(axis_title(second), fontsize=size + 1, color=_ink())
+    ax.tick_params(labelsize=size - 1, colors=_muted())
     for side in ax.spines.values():
-        side.set_color(_RULE)
+        side.set_color(_rule())
     ax.grid(False)
     legend = ax.legend(
         handles=[
-            Line2D([], [], marker="o", linestyle="", color=ROW_COLOUR, markersize=7,
+            Line2D([], [], marker="o", linestyle="", color=_rows(), markersize=7,
                    label=textwrap.fill(str(result.row_title), 40)),
-            Line2D([], [], marker="^", linestyle="", color=COLUMN_COLOUR, markersize=8,
+            Line2D([], [], marker="^", linestyle="", color=_columns(), markersize=8,
                    label=textwrap.fill(str(result.column_title), 40)),
         ],
         loc="upper left", bbox_to_anchor=(0.0, -0.1), ncol=2, frameon=False, fontsize=size,
@@ -684,7 +707,7 @@ def plot(
     ]
     if result.weight:
         lines.append(f"weighted by '{result.weight}'")
-    ax.set_title("\n".join(lines), fontsize=12, color=_INK, loc="left", pad=10)
+    ax.set_title("\n".join(lines), fontsize=12, color=_ink(), loc="left", pad=10)
     fig.tight_layout()
     _under_the_axis(fig, ax, legend)
     # A long label wraps onto a second line (then ends in an ellipsis), the
@@ -786,14 +809,14 @@ def _key(fig: Any, result: PerceptualMap, size: float) -> None:
     fig.tight_layout(rect=(0, needed / total, 1, 1))
     y = needed - 4
     for (title, cells), height in zip(blocks, heights, strict=True):
-        fig.text(0.012, y / total, title, fontsize=size, color=_INK, weight="bold", va="top")
+        fig.text(0.012, y / total, title, fontsize=size, color=_ink(), weight="bold", va="top")
         for k, cell in enumerate(cells):
             fig.text(
                 (10 + k * column_pt) / width,
                 (y - line * 1.4) / total,
                 cell,
                 fontsize=size - 0.5,
-                color=_INK,
+                color=_ink(),
                 va="top",
                 linespacing=1.3,
             )
@@ -943,10 +966,10 @@ def _place_labels(
             ha="left",
             va="bottom",
             fontsize=size,
-            color=_INK,
+            color=_ink(),
             zorder=4,
             arrowprops=(
-                {"arrowstyle": "-", "color": _MUTED, "linewidth": 0.6, "shrinkA": 0, "shrinkB": 4}
+                {"arrowstyle": "-", "color": _muted(), "linewidth": 0.6, "shrinkA": 0, "shrinkB": 4}
                 if reaches[i][chosen[i]] > 1
                 else None
             ),

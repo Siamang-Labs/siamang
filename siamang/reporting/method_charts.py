@@ -44,10 +44,10 @@ import numpy as np
 import pandas as pd
 
 from siamang.reporting.result_charts import (
-    _INK,
     ResultChart,
     _dots,
     _forest,
+    _ink,
     _mark_note,
     _percent,
     _test_line,
@@ -201,7 +201,7 @@ def _draw_cochran(table: Any, chart: ResultChart) -> str:
         ],
     )
     ax.set_xlim(0, 100)
-    ax.set_xlabel("Share saying yes (%) with its 95 % confidence interval (Wilson)", color=_INK)
+    ax.set_xlabel("Share saying yes (%) with its 95 % confidence interval (Wilson)", color=_ink())
     _mark_note(
         ax,
         f"The same {n} respondents answered each; counts as yes: "

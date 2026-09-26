@@ -73,6 +73,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.data.listwise import distinct, label_of, listwise, rounded
+from siamang.reporting import chart_theme
 from siamang.reporting.result_table import ResultTable
 
 if TYPE_CHECKING:
@@ -110,6 +111,28 @@ CURVE_NAMES = {
 #: "not" dashed.
 CHEAP_COLOUR, EXPENSIVE_COLOUR = "#2a78d6", "#eb6834"
 _INK, _MUTED, _RULE, _BAND = "#333333", "#767676", "#bdbdbd", "#efefef"
+
+
+# These colours, or — in a Result chart of palette "theme" — the report
+# theme's first two, its text, secondary text and grid.
+def _cheap() -> str:
+    return chart_theme.series(CHEAP_COLOUR, 0)
+
+
+def _expensive() -> str:
+    return chart_theme.series(EXPENSIVE_COLOUR, 1)
+
+
+def _ink() -> str:
+    return chart_theme.text(_INK)
+
+
+def _muted() -> str:
+    return chart_theme.muted(_MUTED)
+
+
+def _rule() -> str:
+    return chart_theme.grid(_RULE)
 
 
 @dataclass
@@ -698,7 +721,7 @@ def plot(
     lines.append(f"N = {result.n}")
     if result.weight:
         lines[-1] += f", weighted by '{result.weight}'"
-    axes[0].set_title("\n".join(lines), fontsize=12, color=_INK, loc="left", pad=12)
+    axes[0].set_title("\n".join(lines), fontsize=12, color=_ink(), loc="left", pad=12)
     # The legend's rows under the whole figure, where no curve runs: the four
     # curves in one row, or two on a figure too narrow for one.
     rows = (1 if width >= 6.5 else 2) if legend else 0
@@ -775,14 +798,14 @@ def _renderer(fig: Any) -> Any:
 
 
 def _style(ax: Any) -> None:
-    ax.grid(axis="y", color="#e6e6e6", linewidth=0.8)
+    ax.grid(axis="y", color=chart_theme.grid("#e6e6e6"), linewidth=0.8)
     ax.grid(axis="x", visible=False)
     ax.set_axisbelow(True)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
-        ax.spines[side].set_color(_RULE)
-    ax.tick_params(labelsize=9, colors=_INK)
+        ax.spines[side].set_color(_rule())
+    ax.tick_params(labelsize=9, colors=_ink())
 
 
 _LINES = (
@@ -797,25 +820,27 @@ def _draw_van_westendorp(result: PriceSensitivity, ax: Any, fig: Any) -> None:
     prices = result.prices
     low, high = result.points.get("PMC"), result.points.get("PME")
     if low is not None and high is not None:
-        ax.axvspan(low, high, color=_BAND, zorder=0, linewidth=0)
+        band = chart_theme.tint(_BAND, chart_theme.grid(_BAND), 0.5)
+        ax.axvspan(low, high, color=band, zorder=0, linewidth=0)
+    colours = {CHEAP_COLOUR: _cheap(), EXPENSIVE_COLOUR: _expensive()}
     for key, colour, style in _LINES:
         ax.plot(
-            prices, result.shares[key], color=colour, linestyle=style, linewidth=2,
+            prices, result.shares[key], color=colours[colour], linestyle=style, linewidth=2,
             label=CURVE_NAMES[key], zorder=2,
         )  # fmt: skip
     ax.set_ylim(0, 108)
     span = float(prices.max() - prices.min()) or 1.0
     ax.set_xlim(float(prices.min()) - 0.02 * span, float(prices.max()) + 0.02 * span)
-    ax.set_ylabel("% of respondents", fontsize=10, color=_INK)
-    ax.set_xlabel("Price", fontsize=10, color=_INK)
+    ax.set_ylabel("% of respondents", fontsize=10, color=_ink())
+    ax.set_xlabel("Price", fontsize=10, color=_ink())
     for key, _, _ in POINTS:
         price = result.points.get(key)
         if price is None:
             continue
         falling = _CURVES_OF[key][0]
         value = float(np.interp(price, prices, result.shares[falling]))
-        ax.plot([price, price], [0, value], color=_MUTED, linewidth=0.8, zorder=1)
-        ax.scatter([price], [value], s=36, color=_INK, zorder=4, edgecolor="white", linewidth=1)
+        ax.plot([price, price], [0, value], color=_muted(), linewidth=0.8, zorder=1)
+        ax.scatter([price], [value], s=36, color=_ink(), zorder=4, edgecolor="white", linewidth=1)
 
 
 def _label_points(result: PriceSensitivity, axes: list[Any], fig: Any) -> None:
@@ -871,7 +896,7 @@ def _stacked(
     inverse = ax.transData.inverted()
     placed: list[Any] = []
     for price, text in items:
-        label = ax.text(price, y, text, fontsize=9, color=_INK, ha="center", va="center")
+        label = ax.text(price, y, text, fontsize=9, color=_ink(), ha="center", va="center")
         label.set_bbox({"facecolor": "white", "edgecolor": "none", "pad": 1.5})
         extent = label.get_window_extent(renderer)
         step = max(step, (extent.height + 5 * fig.dpi / 72) * per_pixel)
@@ -895,7 +920,7 @@ def _stacked(
 def _draw_trial(result: PriceSensitivity, ax: Any) -> None:
     prices = result.prices
     trial_curve = result.shares["trial"]
-    ax.plot(prices, trial_curve, color=_INK, linewidth=2, label="Trial (NMS)")
+    ax.plot(prices, trial_curve, color=_ink(), linewidth=2, label="Trial (NMS)")
     top = max(float(trial_curve.max()) if len(prices) else 1.0, 1.0)
     ax.set_ylim(0, top * 1.4)
     for key, marker in (("trial", "o"), ("revenue", "D")):
@@ -903,10 +928,10 @@ def _draw_trial(result: PriceSensitivity, ax: Any) -> None:
         if price is None:
             continue
         value = float(np.interp(price, prices, trial_curve))
-        ax.plot([price, price], [value, top * 1.3], color=_MUTED, linewidth=0.8, zorder=1)
-        ax.scatter([price], [value], s=40, marker=marker, color=_INK, zorder=4)
-    ax.set_ylabel("Trial (% would buy)", fontsize=10, color=_INK)
-    ax.set_xlabel("Price", fontsize=10, color=_INK)
+        ax.plot([price, price], [value, top * 1.3], color=_muted(), linewidth=0.8, zorder=1)
+        ax.scatter([price], [value], s=40, marker=marker, color=_ink(), zorder=4)
+    ax.set_ylabel("Trial (% would buy)", fontsize=10, color=_ink())
+    ax.set_xlabel("Price", fontsize=10, color=_ink())
 
 
 def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> tuple[Any, ...]:
@@ -916,20 +941,21 @@ def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> tuple[Any,
     demand, revenue = result.shares["demand"], result.shares["revenue"]
     best = result.points["revenue"]
     top_ax, bottom_ax = axes
-    top_ax.plot(prices, demand, color=CHEAP_COLOUR, linewidth=2, marker="o", markersize=6)
+    top_ax.plot(prices, demand, color=_cheap(), linewidth=2, marker="o", markersize=6)
     demand_labels = []
     for price, value in zip(prices, demand, strict=True):
         label = top_ax.annotate(
             f"{value:.0f} %", (price, value), xytext=(0, 8), textcoords="offset points",
-            ha="center", fontsize=9, color=_INK, zorder=3,
+            ha="center", fontsize=9, color=_ink(), zorder=3,
         )  # fmt: skip
         if price == best:  # the best price's line runs behind its label, not through it
             label.set_bbox({"facecolor": "white", "edgecolor": "none", "pad": 1.0})
         demand_labels.append(label)
     top_ax.set_ylim(0, max(float(demand.max()) * 1.2, 10.0))
-    top_ax.set_ylabel("Would buy (%)", fontsize=10, color=_INK)
+    top_ax.set_ylabel("Would buy (%)", fontsize=10, color=_ink())
     step = float(np.min(np.diff(prices))) if len(prices) > 1 else 1.0
-    colours = [EXPENSIVE_COLOUR if price == best else "#f5b48f" for price in prices]
+    lighter = chart_theme.tint("#f5b48f", _expensive(), 0.5)
+    colours = [_expensive() if price == best else lighter for price in prices]
     bottom_ax.bar(prices, revenue, width=step * 0.6, color=colours, edgecolor="white")
     revenue_labels = [
         bottom_ax.annotate(
@@ -939,19 +965,19 @@ def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> tuple[Any,
             textcoords="offset points",
             ha="center",
             fontsize=9,
-            color=_INK,
+            color=_ink(),
         )  # fmt: skip
         for price, value in zip(prices, revenue, strict=True)
     ]
     bottom_ax.set_ylim(0, max(float(revenue.max()) * 1.25, 1e-9))
-    bottom_ax.set_ylabel("Revenue per respondent", fontsize=10, color=_INK)
-    bottom_ax.set_xlabel("Price", fontsize=10, color=_INK)
+    bottom_ax.set_ylabel("Revenue per respondent", fontsize=10, color=_ink())
+    bottom_ax.set_xlabel("Price", fontsize=10, color=_ink())
     bottom_ax.set_xticks(prices)
     bottom_ax.set_xticklabels([_price(p) for p in prices])
-    top_ax.axvline(best, color=_MUTED, linewidth=0.8, zorder=0)
+    top_ax.axvline(best, color=_muted(), linewidth=0.8, zorder=0)
     note = top_ax.annotate(
         f"highest revenue at {_price(best)}", (best, 0), xytext=(4, 4),
-        textcoords="offset points", fontsize=9, color=_INK,
+        textcoords="offset points", fontsize=9, color=_ink(),
     )  # fmt: skip
     place = int(np.flatnonzero(prices == best)[0]) if np.any(prices == best) else 0
     return demand_labels, revenue_labels, place, note
