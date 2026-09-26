@@ -477,7 +477,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   object's order and as written (`3 = East, 1 = North`, `01 = One`) and kept a
   missing code written `3.0` as the answer 3. Both now read the labels as the
   questionnaire does (`1 = North, 2 = South, 3 = East`; `1 = One`) and match a
-  missing code by its text (`3.0` is 3).
+  missing code by its text (`3.0` is 3). A code the codebook lists in
+  `missing_values` is a missing code there too, as the questionnaire and the
+  t-test read it: a Region of North, South and `missing_values: [9]` has two
+  answers, not three.
 
 - **Fisher's estimate, the R bundle's labels and Mann-Whitney's df are
   described as they are.** Crosstab's Fisher footer said the estimate was

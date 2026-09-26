@@ -973,8 +973,11 @@ def _answers(payload: dict[str, Any]) -> list[tuple[str, str]]:
     """A codebook variable's labelled answers as ``(code, label)``, its missing
     codes left out, in the order the questionnaire reads them (:func:`_labelled`).
     A missing code matches an answer by its text as the codebook writes it, so
-    a missing 3.0 is the answer 3 (missing codes as a list of codes, of
-    ``{code, label}``, or a mapping keyed by code)."""
+    a missing 3.0 is the answer 3. The missing codes are the questionnaire's:
+    ``missing``, a list of ``{code, label, kind}``, and ``missing_values``, a
+    list of codes, which ``Variable`` counts as missing too (and the t-test
+    leaves out); a bare code or a mapping keyed by code in ``missing`` is read
+    as well."""
 
     from siamang.model.document import _parse_code_key
 
@@ -985,6 +988,9 @@ def _answers(payload: dict[str, Any]) -> list[tuple[str, str]]:
         missing = [item.get("code") if isinstance(item, dict) else item for item in raw]
     else:
         missing = []
+    values = payload.get("missing_values")
+    if isinstance(values, list):
+        missing += values
     left_out = {_code_text(code) for code in missing}
     return [
         (_code_text(code), label)
