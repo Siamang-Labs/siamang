@@ -125,7 +125,10 @@ def test_every_template_placeholder_is_declared():
                 elif kind == "out":
                     assert port in spec.outputs, (spec.type, port)
                 else:
-                    assert param in spec.params or param == "node", (spec.type, param)
+                    assert param in spec.params or param in ("node", "read_after"), (
+                        spec.type,
+                        param,
+                    )
 
 
 def test_spec_validation_rejects_bad_specifications():

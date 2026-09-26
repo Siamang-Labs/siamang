@@ -452,6 +452,7 @@ scored.report.means("factor_1", by="it_role")
 | `rotation` | `"varimax"` (default, uncorrelated factors), `"promax"`, `"oblimin"` (correlated factors), `"none"` |
 | `sort`, `hide_below` | group the items by their main factor; blank the small loadings in the table |
 | `scores`, `into` | add regression-method scores `factor_1`, `factor_2`, … to the data |
+| `read_later` | score names a later step will read: when a rule chose the number of factors, each one it did not keep is added empty, labelled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)`, and named in `stats["Scores"]` — a flow passes the names its later nodes use |
 
 The items are analysed through their correlations (standardised). A respondent
 missing any item is left out, the codebook's missing codes counted as missing.

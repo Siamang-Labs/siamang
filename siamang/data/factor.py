@@ -78,6 +78,7 @@ is a copy or a total of others), and as many factors as items.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -209,6 +210,7 @@ def analyze(
     scores: bool = False,
     into: str = "factor_",
     seed: int = 42,
+    read_later: Iterable[str] = (),
 ) -> FactorAnalysis:
     """Exploratory factor analysis of ``items`` — the ``analyze.factor`` node.
 
@@ -218,6 +220,13 @@ def analyze(
     ``hide_below`` blanks loadings smaller in absolute value in the table.
     ``scores`` adds ``<into>1`` … ``<into>m`` to the data (``into`` empty:
     ``factor_``): regression-method scores, missing for respondents left out.
+
+    ``read_later`` names the score variables a later step reads — a flow
+    passes the ones the nodes downstream name. With the number of factors
+    chosen by a rule, one of those the rule did not keep is added empty and
+    labelled why (``Factor 3 score (not made: the Kaiser criterion kept 2
+    factors)``), so the step finds a variable that says what happened rather
+    than a KeyError; no other score is added.
     """
 
     items = list(items or [])
@@ -283,14 +292,19 @@ def analyze(
         if n_factors is None:
             # Chosen by a rule, the number of factors is known only after the
             # run, so check_flow lets a later node name every score the analysis
-            # could make (one fewer than the items). Those it did not keep are
-            # made too, empty, and say why — a node reading factor_2 after the
-            # rule kept one finds an empty variable labelled so, not a KeyError.
+            # could make (one fewer than the items). One of those a later node
+            # reads that the rule did not keep is made too, empty, and says why
+            # — a node reading factor_2 after the rule kept one finds an empty
+            # variable labelled so, not a KeyError. Only those: every other
+            # would be an empty column in the data, its exports and its tables.
             rule = "the Kaiser criterion" if solution.criterion == "kaiser" else "parallel analysis"
             kept = f"{rule} kept {m} {'factor' if m == 1 else 'factors'}"
+            wanted = set(read_later)
             empty = []
             for j in range(m + 1, len(items)):
                 name = f"{into}{j}"
+                if name not in wanted:
+                    continue
                 result_data = result_data.with_derived(
                     name,
                     pd.Series(np.nan, index=data.frame.index, dtype=float),

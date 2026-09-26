@@ -425,11 +425,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Factors empty and Add factor scores on, `check_flow` lets a later node name
   `factor_1` … one fewer than the items, since the number is known only after
   the run; when the rule kept fewer, the node reading `factor_2` failed with
-  `KeyError: "['factor_2'] not in index"`. The run now makes every one of those
-  names — the ones not kept empty, labelled `Factor 2 score (not made: the
-  Kaiser criterion kept 1 factor)` and listed in `Scores` (`…; factor_2,
-  factor_3 empty: the Kaiser criterion kept 1 factor`) — so a t-test of one
-  reads "not run" beside that label.
+  `KeyError: "['factor_2'] not in index"`. The run now makes the ones a node
+  downstream names (`factor.analyze(..., read_later=…)`, which the flow
+  template fills with `{read_after!r}`), empty, labelled `Factor 2 score (not
+  made: the Kaiser criterion kept 1 factor)` and listed in `Scores` (`…;
+  factor_2 empty: the Kaiser criterion kept 1 factor`) — so a t-test of one
+  reads "not run" beside that label — and no other: the data, its exports and
+  its tables gain no empty column nobody reads.
 
 - **A report section captions each output of a node on its own.** Captions and
   layout were keyed by the source node, so a factor analysis's loadings, its
