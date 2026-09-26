@@ -1242,3 +1242,36 @@ def test_the_check_names_a_split_by_the_variable_and_a_number_of_many_values(
     unranged = copy.deepcopy(questionnaire_doc)
     del unranged["variables"]["age"]["valid_range"]
     assert _issues({"variable": "age", "show": "percent"}, unranged) == []
+
+
+def test_the_check_counts_the_whole_values_a_valid_range_holds(questionnaire_doc):
+    """A number's values are whole numbers, and the check counts those in its
+    valid range: [0, 29.5] holds 30 (0 to 29), which the chart draws, and was
+    warned of as "a number of up to 30 values" (29.5 - 0 + 1 = 30.5 > 30);
+    [0.5, 30.5] holds 30 (1 to 30) too."""
+    import copy
+
+    def warned(span):
+        document = copy.deepcopy(questionnaire_doc)
+        document["variables"]["age"]["valid_range"] = span
+        return _issues({"variable": "age", "show": "percent"}, document)
+
+    label = questionnaire_doc["variables"]["age"].get("label") or "age"
+
+    def number(values):
+        return (
+            "warning",
+            f"n: {label} is a number of up to {values} values, and bars draw each value given: "
+            "Layout histogram draws its distribution.",
+        )
+
+    assert warned([0, 29.5]) == []
+    assert warned([0.5, 30.5]) == []
+    assert warned([1, 30]) == []
+    assert warned([0.5, 31]) == [number(31)]
+    assert warned([0, 30]) == [number(31)]
+    assert warned([0, 1_000_000]) == [number("1,000,001")]
+    assert warned(["0", "40"]) == [number(41)]
+    # Nothing the codebook says as a range of numbers: the run decides.
+    for span in ([0, float("inf")], [0, None], [False, True], ["a", 40], [40, 0]):
+        assert warned(span) == []

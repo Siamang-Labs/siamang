@@ -21,6 +21,7 @@ generator use.
 from __future__ import annotations
 
 import json
+import math
 import re
 from contextlib import suppress
 from dataclasses import dataclass, field
@@ -1434,27 +1435,20 @@ def _check_bar_answers(
     # codebook's valid range can say so before.
     from siamang.reporting.bars import MAX_VALUES
 
-    def many_values(name: Any) -> bool:
-        payload = variables.get(name) or {} if isinstance(name, str) else {}
-        span = payload.get("valid_range")
-        if payload.get("scale") not in ("interval", "ratio") or payload.get("labels"):
-            return False
-        if not (isinstance(span, list | tuple) and len(span) == 2):
-            return False
-        try:
-            return float(span[1]) - float(span[0]) + 1 > MAX_VALUES
-        except (TypeError, ValueError):
-            return False
-
+    values = _whole_values(variables.get(drawn) or {}) if isinstance(drawn, str) else None
     # (Split by takes a nominal or ordinal variable only: its parameter says so.)
-    if many_values(drawn) and layout != "histogram" and unset(params.get("by")):
+    if (
+        values is not None
+        and values > MAX_VALUES
+        and layout != "histogram"
+        and unset(params.get("by"))
+    ):
         return [
             FlowIssue(
                 "warning",
                 "PARAM_CONFLICT",
-                f"{node_id}: {label(drawn)} is a number of up to "
-                f"{_range_size(variables.get(drawn) or {})} values, and bars draw each value "
-                "given: Layout histogram draws its distribution.",
+                f"{node_id}: {label(drawn)} is a number of up to {values:,} values, and bars "
+                "draw each value given: Layout histogram draws its distribution.",
                 node_id,
             )
         ]
@@ -1546,9 +1540,26 @@ def _under_outputs(path: str) -> bool:
     return bool(parts) and parts[0] == "outputs" and ".." not in parts and len(parts) > 1
 
 
-def _range_size(payload: dict[str, Any]) -> str:
-    low, high = payload["valid_range"]
-    return f"{int(float(high) - float(low) + 1):,}"
+def _whole_values(payload: dict[str, Any]) -> int | None:
+    """How many whole numbers the valid range of an unlabelled interval or
+    ratio variable holds — what a Bar chart would draw a bar each for — or
+    None when the codebook does not say. The ends count when they are whole:
+    [0, 29.5] holds 30 (0 to 29), [0.5, 30.5] holds 30 (1 to 30)."""
+
+    span = payload.get("valid_range")
+    if payload.get("scale") not in ("interval", "ratio") or payload.get("labels"):
+        return None
+    if not (isinstance(span, list | tuple) and len(span) == 2):
+        return None
+    if any(isinstance(end, bool) for end in span):
+        return None
+    try:
+        low, high = float(span[0]), float(span[1])
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(low) and math.isfinite(high)):
+        return None
+    return max(0, math.floor(high) - math.ceil(low) + 1)
 
 
 def _check_trend(
