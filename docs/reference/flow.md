@@ -40,8 +40,15 @@ The JSON Schema is `siamang/schemas/flow-1.0.json`; `validate_flow` checks it,
 
 ### Checks (`check_flow`)
 
-`check_flow(flow, *, registry=None, questionnaire=None) -> list[FlowIssue]`
-returns errors and warnings with a code and the node concerned:
+`check_flow(flow, *, registry=None, questionnaire=None, response_times=None) -> list[FlowIssue]`
+returns errors and warnings with a code and the node concerned.
+`response_times` are the timestamps the platform's data carries beside the
+answers, which a node may name though no codebook declares them (a Trend's
+Time): `None` is every one `document.RESPONSE_TIMES` lists, and a platform
+whose responses carry fewer names those — Siamang Studio's carry `created_at`,
+`updated_at` and `started_at`, no `submitted_at` — so that Time =
+`submitted_at` is `UNKNOWN_VARIABLE` at the check rather than `The data has no
+column 'submitted_at' to read Time from.` at the run:
 
 | Code | Meaning |
 |------|---------|
@@ -434,8 +441,8 @@ bases — for a report or a Live tile; the Trend draws its own chart, so the
 table is not a Result chart's result (`RESULT_NOT_DRAWABLE`). `check_flow`
 knows the response
 timestamps a platform's frame carries (`document.RESPONSE_TIMES`:
-`created_at`, `updated_at`, `started_at`, `submitted_at`) as variables any
-node may name.
+`created_at`, `updated_at`, `started_at`, `submitted_at`, or the
+`response_times` a platform passes) as variables any node may name.
 
 `output.tabbook` (**Tab book (Excel)**) writes every chosen question crossed
 by a banner as a workbook with `siamang.reporting.tabbook.write_tabbook`:

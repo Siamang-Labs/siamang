@@ -667,6 +667,40 @@ def test_check_flow_knows_the_response_timestamps_and_the_rules(questionnaire_do
     ]
 
 
+def test_a_platform_names_the_response_timestamps_its_data_carries(questionnaire_doc):
+    """RESPONSE_TIMES lists the timestamps any platform's frame may carry; a
+    platform whose responses carry fewer (Studio's have no submitted_at) names
+    them, so that Time = submitted_at is an unknown variable at the check
+    rather than "The data has no column 'submitted_at'" at the run."""
+    from siamang.flow import check_flow
+    from siamang.flow.document import RESPONSE_TIMES
+
+    carried = ("created_at", "updated_at", "started_at")
+    for name in RESPONSE_TIMES:
+        flow = _trend_flow({"time": name})
+        assert check_flow(flow, questionnaire=questionnaire_doc) == []
+        issues = check_flow(flow, questionnaire=questionnaire_doc, response_times=carried)
+        if name in carried:
+            assert issues == []
+        else:
+            assert [(i.severity, i.code, i.message) for i in issues] == [
+                (
+                    "error",
+                    "UNKNOWN_VARIABLE",
+                    f"Parameter 'time' of trend names unknown variable {name!r}.",
+                )
+            ]
+    # None of them: data that carries none (a file, simulated answers).
+    issues = check_flow(_trend_flow(), questionnaire=questionnaire_doc, response_times=())
+    assert [i.code for i in issues] == ["UNKNOWN_VARIABLE"]
+    issues = check_flow(
+        _trend_flow({"time": "updated_at"}),
+        questionnaire=questionnaire_doc,
+        response_times="updated_at",
+    )
+    assert issues == []
+
+
 @pytest.mark.parametrize(
     ("params", "message"),
     [

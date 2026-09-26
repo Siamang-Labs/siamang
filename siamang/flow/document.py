@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import math
 import re
+from collections.abc import Iterable
 from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import cache
@@ -166,11 +167,17 @@ def check_flow(
     *,
     registry: Registry | None = None,
     questionnaire: dict[str, Any] | None = None,
+    response_times: Iterable[str] | None = None,
 ) -> list[FlowIssue]:
     """Every problem of the graph: unknown nodes, bad params, wrong edges, cycles.
 
     ``questionnaire`` is the questionnaire *document* (``siamang.model``); with
     it, variable parameters are checked against the codebook and its scales.
+    ``response_times`` are the timestamps the platform's data carries beside
+    the answers, which a node may name though no codebook declares them (a
+    Trend's Time); ``None`` means every one :data:`RESPONSE_TIMES` lists, and a
+    platform whose responses carry fewer names those, so that one it does not
+    have is an unknown variable here rather than a failed run.
     Errors make the flow unusable; warnings are worth showing. Returns the
     list — :func:`resolve_flow` raises on the first error instead.
     """
@@ -194,7 +201,9 @@ def check_flow(
                 )
             )
 
-    known_variables = _known_variables(document, nodes, registry, questionnaire)
+    known_variables = _known_variables(
+        document, nodes, registry, questionnaire, response_times=response_times
+    )
     scales = {
         name: payload.get("scale")
         for name, payload in ((questionnaire or {}).get("variables") or {}).items()
@@ -437,14 +446,19 @@ def _known_variables(
     nodes: dict[str, dict[str, Any]],
     registry: Registry,
     questionnaire: dict[str, Any] | None,
+    *,
+    response_times: Iterable[str] | None = None,
 ) -> set[str] | None:
-    """Variables a node may name, or ``None`` when there is no codebook to check against."""
+    """Variables a node may name, or ``None`` when there is no codebook to check
+    against; ``response_times`` as :func:`check_flow` takes them."""
 
     if questionnaire is None:
         return None
     known = set((questionnaire.get("variables") or {}).keys())
     known.update(_assigned_variables(questionnaire))
-    known.update(RESPONSE_TIMES)
+    if isinstance(response_times, str):
+        response_times = (response_times,)
+    known.update(RESPONSE_TIMES if response_times is None else response_times)
     for node in nodes.values():
         if node["type"] not in registry:
             continue
