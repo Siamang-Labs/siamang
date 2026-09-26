@@ -372,7 +372,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and one below 0.0001 with four significant digits and its exponent
   (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`), so a footer prints
   the p the statistics keep (`7.988e-32`, and `5e-05` rather than `0.0001`);
-  Compare groups'
+  Tukey's and Games-Howell's p below 1e-07 — past which SciPy's studentized
+  range is its integration's noise, `1.144e-14` for every strong pair of three
+  groups at 297 df — reads `< 1e-07`; Compare groups'
   Dunn lines too; and a report's HTML writes each number as its Markdown does:
   a table component's cells, rounded already, with `str`, and a bare
   DataFrame's floats (a regression's coefficients, a PCA's loadings, a

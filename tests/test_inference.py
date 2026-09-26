@@ -876,13 +876,13 @@ def test_a_tiny_p_is_never_printed_as_zero():
     means = data.report.means("y", by="g", method="anova", posthoc="tukey")
     anova = stats.f_oneway(*[frame.loc[frame["g"] == k, "y"] for k in (1, 2, 3)]).pvalue
     assert means.stats["p"] == pytest.approx(anova, rel=1e-3) and anova < 1e-100
-    # Tukey's p for groups 2 SD apart is below what floating point can tell from 0:
-    # printed 0, as it is. One 1 SD apart is not.
+    # Tukey's p for groups 2 SD apart is below what SciPy computes the studentized
+    # range to: printed as that bound, "< 1e-07", in the Markdown and the HTML.
     pairs = means.posthoc_table.to_frame()["p"].tolist()
-    assert all(p is not None for p in pairs)
+    assert all(p is not None for p in pairs) and "< 1e-07" in pairs
     markdown, html = means.posthoc_table.to_markdown(), means.posthoc_table.to_html()
     for p in pairs:
-        assert f"| {p} |" in markdown and f"<td>{p}</td>" in html
+        assert f"| {p} |" in markdown and f"<td>{str(p).replace('<', '&lt;')}</td>" in html
 
     crosstab = data.report.crosstab("a", "g")
     chi2 = stats.chi2_contingency(pd.crosstab(frame["a"], frame["g"]).to_numpy()).pvalue
@@ -908,6 +908,60 @@ def test_a_tiny_p_is_never_printed_as_zero():
     assert stat_text(5.8e-07) == "5.8e-07" and stat_text(0.0123) == "0.0123"
     report = Report().add({"p_value": 2.17e-30, "df": 124.98}).to_markdown()
     assert "p_value = 2.17e-30; df = 124.98" in report
+
+
+def test_a_studentized_range_p_below_what_scipy_computes_is_printed_as_a_bound():
+    """SciPy's studentized_range.sf is 1 − cdf, the cdf integrated to an absolute
+    error of 1e-11: past q ≈ 12 it gives the integration's noise, not a p. Every
+    strong pair of three groups at 297 df read 1.144e-14, and in Games-Howell a
+    larger q got a larger p (19.386 → 0.0, 37.479 → 2.776e-14). Below 1e-07 the
+    p is 0.0 and printed "< 1e-07"; above it Tukey's p for two groups is the
+    Student t-test's, as it must be (q = √2·|t| on the pooled variance)."""
+    from siamang.data import inference
+
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(
+        {
+            "y": np.r_[rng.normal(0, 1, 100), rng.normal(2, 1, 100), rng.normal(6, 1, 100)],
+            "g": [1] * 100 + [2] * 100 + [3] * 100,
+        }
+    )
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("y", "interval", label="Y"),
+            Variable("g", "nominal", label="G", labels={1: "One", 2: "Two", 3: "Three"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    for method, posthoc in (("anova", "tukey"), ("welch_anova", "games_howell")):
+        table = data.report.means("y", by="g", method=method, posthoc=posthoc).posthoc_table
+        assert table.to_frame()["p"].tolist() == ["< 1e-07"] * 3, posthoc
+        assert "| < 1e-07 |" in table.to_markdown() and "e-14" not in table.to_markdown()
+        assert "< 1e-07 where it is smaller than SciPy computes" in table.stats["p"]
+        assert (
+            "3 of 3 pairs differ"
+            in data.report.means("y", by="g", method=method, posthoc=posthoc).stats["Post-hoc"]
+        )
+    # q past 15 at 297 df and at 1998 df alike.
+    strong = [rng.normal(mean, 1, 667) for mean in (0, 1, 2)]
+    result = inference.posthoc(strong, ["a", "b", "c"], "tukey")
+    assert (result.table["statistic"] > 15).all() and (result.table["p_adjusted"] == 0).all()
+
+    # Two groups: Tukey's p is Student's, to the digits printed, above the floor.
+    rng = np.random.default_rng(3)
+    for shift, reference in ((0.5, 0.11535866027415248), (1.3, 5.361739564669448e-07)):
+        a, b = rng.normal(0, 1, 40), rng.normal(shift, 1, 40)
+        assert stats.ttest_ind(a, b).pvalue == pytest.approx(reference, rel=1e-12)
+        p = inference.posthoc([a, b], ["A", "B"], "tukey").table["p_adjusted"][0]
+        assert p == pytest.approx(reference, rel=1e-6)
+    # The first pair of a table has no bound where its p is above the floor.
+    moderate = data.with_frame(
+        frame.assign(y=np.r_[rng.normal(0, 1, 200), rng.normal(0.4, 1, 100)])
+    )
+    pairs = moderate.report.means("y", by="g", method="anova", posthoc="tukey").posthoc_table
+    assert all(isinstance(p, float) for p in pairs.to_frame()["p"])
+    assert "< 1e-07" not in pairs.stats["p"]
 
 
 def test_a_footer_prints_the_p_the_statistics_keep():
