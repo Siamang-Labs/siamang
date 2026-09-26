@@ -577,10 +577,14 @@ result (or a stat beside it) carries is the second line of the title and
 are the linearization ones (`siamang.data.intervals`).
 
 **Legibility.** Categories are rows, the first at the top: labels are wrapped at
-a third of the width (three lines at most, then an ellipsis), many rows get a
-smaller font (10 pt down to 7), and a chart with more rows than its height holds
-at 7 pt grows taller; a chart of few rows is shorter than the height it was
-given. Value labels sit beside their bar or whisker and the axis widens until
+a third of the width, whole, and many rows get a smaller font (10 pt down to 7,
+three lines, four at 8 pt); a chart whose rows its height cannot hold so grows
+taller at 9 or 8 pt rather than cut a label. Only a label longer than four lines
+of 8 pt is cut, with an ellipsis, and never so that two labels read alike. A
+chart of few rows is shorter than the height it was given. The title (from the
+plot's left edge), the axis titles and the notes under the plot are wrapped to
+the plot as it is laid out, so nothing runs past the figure and the PNG is the
+width asked for. Value labels sit beside their bar or whisker and the axis widens until
 they fit; legends sit between the title and the plot. NPS and sentiment keep a
 red–grey–blue of their own and the heatmaps a diverging scale centred on 0; the
 palette colours everything else.

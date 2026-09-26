@@ -365,9 +365,7 @@ class ResultChart(SurveyChart):
 
     def _finish(self, title: str) -> None:
         width = self._fig.get_size_inches()[0]
-        text = textwrap.fill(self.title or title, max(int(width * 72 / (12 * 0.55)), 30))
-        if self._weight_note:
-            text = f"{text}\n{self._weight_note}"
+        text = self._title_text(self.title or title, width * 72)
         if self._suptitle:
             self._fig.suptitle(text, fontsize=12, color=_INK)
         else:
@@ -377,10 +375,52 @@ class ResultChart(SurveyChart):
                 label.set_fontsize(self._size + 1)
                 label.set_color(_INK)
         self._fig.tight_layout()
+        self._fit_text(self.title or title)
         if self._room:
             for ax, artists, axis in self._room:
                 _make_room(ax, artists, axis)
             self._fig.tight_layout()
+
+    def _title_text(self, title: str, room_pt: float) -> str:
+        """``title`` wrapped to ``room_pt`` points, the weight line under it."""
+        text = textwrap.fill(" ".join(str(title).split()), max(int(room_pt / (12 * 0.55)), 20))
+        return f"{text}\n{self._weight_note}" if self._weight_note else text
+
+    def _fit_text(self, title: str) -> None:
+        """The title, the axis titles and the notes wrapped to the plot as it is
+        laid out: the title starts at the plot's left edge, which long row
+        labels put at a third of the figure, and the figure's width is not
+        all its room (a title wrapped to it ran past the edge, and the PNG was
+        saved wider than asked)."""
+        fig = self._fig
+        width, height = (value * 72 for value in fig.get_size_inches())
+        if not self._suptitle:
+            left = self._ax.get_position().x0 * width
+            self._ax.set_title(
+                self._title_text(title, width - left - 8),
+                fontsize=12,
+                color=_INK,
+                loc="left",
+                pad=self._title_pad,
+            )
+        for ax in fig.axes:
+            box = ax.get_position()
+            for label, length in (
+                (ax.xaxis.label, box.width * width),
+                (ax.yaxis.label, box.height * height),
+            ):
+                text = label.get_text()
+                chars = max(int(length / (label.get_fontsize() * 0.55)), 12)
+                if text and max(len(line) for line in text.split("\n")) > chars:
+                    label.set_text(textwrap.fill(" ".join(text.split()), chars))
+            for note in ax.texts:
+                raw = getattr(note, "_siamang_note", None)
+                if raw is not None:
+                    room = width - box.x0 * width - 8
+                    note.set_text(
+                        textwrap.fill(raw, max(int(room / ((note.get_fontsize()) * 0.55)), 30))
+                    )
+        fig.tight_layout()
 
     # ── what a renderer asks for ──
 
@@ -534,26 +574,48 @@ def fit_rows(
     reserve: float = 0.0,
 ) -> tuple[list[str], float, float]:
     """Wrapped labels, their font size and the figure height for one row per
-    label: the largest font (10 pt down to 7) and the most lines (3 down to 1)
-    that fit the figure's height, else the figure grows. ``reserve`` is height
-    taken by something else, a legend, in inches."""
+    label: the largest font (10 pt down to 7) and the most lines (3, or 4 at
+    8 pt) at which every label is whole and the rows fit the figure's height;
+    when none does, the figure grows at 9 or 8 pt rather than cut a label. A
+    label is cut with an ellipsis only past four lines of 8 pt, and never so
+    that two different labels read alike. ``reserve`` is height taken by
+    something else, a legend, in inches."""
     width, height = float(figsize[0]), float(figsize[1])
     chrome = _CHROME + reserve
     count = max(len(labels), 1)
     extra = 0.12 * max(series - 1, 0)
-    need = 0.0
-    wrapped: list[str] = []
-    for size, lines in ((10, 3), (9, 3), (8, 3), (8, 2), (7, 2), (7, 1)):
+
+    def layout(size: float, lines: int) -> tuple[list[str], float, bool]:
         chars = int(0.34 * width * 72 / (size * 0.55))
         wrapped = [wrap(label, chars, lines) for label in labels]
+        whole = [wrap(label, chars, 1000) for label in labels]
+        cut = wrapped != whole
+        if cut:
+            # Two labels that differ only past the cut would read alike: those
+            # keep every line.
+            seen: dict[str, int] = {}
+            for text in wrapped:
+                seen[text] = seen.get(text, 0) + 1
+            wrapped = [
+                full if seen[text] > 1 else text for text, full in zip(wrapped, whole, strict=True)
+            ]
         tallest = max((label.count("\n") + 1 for label in wrapped), default=1)
         need = count * (tallest * size * 1.25 / 72 + 0.06 + extra)
-        if need <= height - chrome:
+        return wrapped, need, cut
+
+    for size, lines in ((10, 3), (9, 3), (8, 3), (8, 4), (7, 2), (7, 1)):
+        wrapped, need, cut = layout(size, lines)
+        if not cut and need <= height - chrome:
             # Few rows do not stretch across a tall figure: a row is at most
             # _PITCH high (more with several series in it).
             most = count * (_PITCH + 2 * extra) + chrome
             return wrapped, size, max(min(height, most), min(height, _SHORTEST))
-    return wrapped, 7, need + chrome
+    for size, lines in ((9, 3), (8, 3), (8, 4)):
+        wrapped, need, cut = layout(size, lines)
+        if not cut:
+            return wrapped, size, max(height, need + chrome)
+    wrapped, need, _ = layout(8, 4)
+    return wrapped, 8, max(height, need + chrome)
 
 
 def _make_room(ax: Any, artists: list[Any], axis: str) -> None:
@@ -718,7 +780,7 @@ def _mark_note(ax: Any, text: str, size: float) -> None:
     """A note under the axis label (what the letters mean, what a base is),
     wrapped to the width of the axes."""
     width = ax.figure.get_size_inches()[0] * 0.62 * 72
-    ax.annotate(
+    note = ax.annotate(
         textwrap.fill(text, max(int(width / ((size - 1) * 0.52)), 40)),
         (0, 0),
         xycoords=("axes fraction", ax.xaxis.label),
@@ -729,6 +791,7 @@ def _mark_note(ax: Any, text: str, size: float) -> None:
         fontsize=size - 1,
         color=_MUTED,
     )
+    note._siamang_note = text  # rewrapped to the laid-out plot (ResultChart._fit_text)
 
 
 # ─── Means: Group means, Descriptive statistics, t-test, Paired tests ────────

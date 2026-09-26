@@ -777,3 +777,80 @@ def test_more_series_than_the_palette_holds_never_share_a_colour():
     assert [to_hex(c) for c in chart.colors(3)] == [
         to_hex(c) for c in __import__("seaborn").color_palette("muted", 3)
     ]
+
+
+# ─── rows, titles and notes that fit ─────────────────────────────────────────
+
+
+def test_long_labels_grow_the_figure_and_are_never_cut_alike():
+    """fit_rows accepted one line of 7 pt, cut with an ellipsis, before it
+    would grow: sixteen labels that differ only at the end all read "The
+    customer service representative resolved…"."""
+    labels = [
+        f"The customer service representative resolved my issue, variant {i}" for i in range(16)
+    ]
+    wrapped, size, height = rc.fit_rows((10, 6), labels)
+    assert len(set(wrapped)) == 16 and not any("…" in text for text in wrapped)
+    assert size >= 8 and height > 6  # grown rather than cut
+    # Past four lines of 8 pt a label is cut, but two are never cut alike.
+    endless = ["word " * 80 + f"end {i}" for i in range(4)]
+    wrapped, _, _ = rc.fit_rows((10, 6), endless)
+    assert len(set(wrapped)) == 4
+    # Short labels on a roomy figure are as they were.
+    assert rc.fit_rows((10, 6), ["A", "B", "C"]) == (["A", "B", "C"], 10, pytest.approx(3.4))
+
+
+def test_a_long_row_chart_keeps_its_labels_whole_and_distinct(tmp_path):
+    statements = [
+        "The customer service representative resolved my issue quickly and politely",
+        "The website made it easy to find the product information I was looking for",
+    ]
+    labels = {i + 1: f"{statements[i % 2]} (variant {i})" for i in range(16)}
+    rng = np.random.default_rng(5)
+    frame = pd.DataFrame({"g": np.repeat(np.arange(1, 17), 6), "y": rng.normal(size=96)})
+    variables = VariableMap()
+    variables.add(Variable("g", "nominal", label="Statement", labels=labels))
+    variables.add(Variable("y", "interval", label="Score"))
+    chart = rc.chart(SurveyData(frame=frame, variables=variables).report.means("y", by="g"))
+    shown = _ticks(chart._ax)
+    assert len(set(shown)) == 16
+    assert all("…" not in text for text in shown)
+    assert all(text.startswith(label) for text, label in zip(shown, labels.values(), strict=True))
+    boxes = [
+        t.get_window_extent(chart._fig.canvas.get_renderer()) for t in chart._ax.get_yticklabels()
+    ]
+    boxes.sort(key=lambda box: box.y0)
+    assert all(low.y1 <= high.y0 + 0.5 for low, high in zip(boxes, boxes[1:], strict=False))
+
+
+def test_the_title_and_axis_title_fit_the_figure_asked_for(tmp_path):
+    """On a 6-inch Group means chart of long row labels the title, wrapped to
+    the whole figure but drawn from the plot's left edge at a third of it,
+    ended at 772 px of 600 and the PNG was saved 773 px wide."""
+    rng = np.random.default_rng(3)
+    names = [
+        "Acme Consolidated Household Products and Cleaning Supplies Ltd",
+        "Globex International Frozen Foods & Ready Meals Division",
+        "Initech Premium Organic Breakfast Cereals (family size)",
+        "Umbrella Pharmaceuticals Over-the-counter Cold & Flu Remedies",
+    ]
+    frame = pd.DataFrame({"b": rng.integers(1, 5, 200).astype(float), "y": rng.normal(50, 10, 200)})
+    variables = VariableMap()
+    variables.add(
+        Variable(
+            "b",
+            "nominal",
+            label="Brand bought most often in the last three months",
+            labels=dict(enumerate(names, 1)),
+        )
+    )
+    variables.add(Variable("y", "interval", label="Brand health index (0-100), a long label"))
+    table = SurveyData(frame=frame, variables=variables).report.means("y", by="b")
+    chart = rc.chart(table, figsize=(6, 4))
+    renderer = chart._fig.canvas.get_renderer()
+    title = chart._ax._left_title
+    assert chart._ax.get_title() == "" and title.get_text().startswith("Brand health index")
+    assert title.get_window_extent(renderer).x1 <= chart._fig.bbox.x1
+    assert chart._ax.xaxis.label.get_window_extent(renderer).x1 <= chart._fig.bbox.x1
+    width, _ = _png_size(chart.save(tmp_path / "means.png", dpi=100))
+    assert width <= 601

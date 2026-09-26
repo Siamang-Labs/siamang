@@ -540,6 +540,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Result chart keeps its labels whole and its titles inside the figure.**
+  With 16 or more long labels the rows took one line of 7 pt, cut with an
+  ellipsis, rather than grow — so MaxDiff items that differ only at the end
+  read alike (`The customer service representative resolved my issue…` twice,
+  for different items), and Descriptive statistics, Group means and themes
+  were cut the same way. Labels are now whole (three lines, four at 8 pt);
+  a chart whose rows its height cannot hold grows taller at 9 or 8 pt; only a
+  label past four lines is cut, never so that two read alike. The title was
+  wrapped to the whole figure but drawn from the plot's left edge, which long
+  labels put at a third of the width: on a 6-inch chart it ended at 772 px
+  of 600 and the PNG was saved 773 px wide. The title, the axis titles (the
+  MaxDiff utilities' `… against <reference item> at 0`) and the notes under
+  the plot are wrapped to the plot as it is laid out.
+
 - **Many series get as many colours.** A Result chart took `n` colours of its
   palette, which cycles past its ten: Descriptive statistics by 13 regions
   drew Wales in North East's colour, and by 24 groups ten colours for 24
