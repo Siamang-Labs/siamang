@@ -27,12 +27,24 @@ short path; the linked pages have every option and caveat.
   [SPSS / Stata / R](#get-labeled-data-into-spss-stata-or-r) ·
   [weighted table](#a-weighted-table-with-significance-tests) ·
   [banner table](#a-banner-table-for-a-client-deck) ·
+  [tab book](#a-tab-book-for-the-client) ·
   [correlations](#pearson-or-kendall-correlations-and-a-correlation-matrix) ·
   [Welch's t-test](#compare-two-groups-with-welchs-t-test) ·
   [ANOVA with post-hoc](#an-anova-with-post-hoc-comparisons) ·
   [before and after](#compare-before-and-after-in-the-same-respondents) ·
   [factor analysis](#exploratory-factor-analysis-with-scores) ·
   [MaxDiff scores in a crosstab](#maxdiff-scores-per-respondent-in-a-crosstab) ·
+  [100 % stacked bars by segment](#a-100--stacked-bar-of-a-question-by-segment) ·
+  [Likert battery chart](#a-likert-battery-chart) ·
+  [significance letters on a bar chart](#a-bar-chart-with-significance-letters) ·
+  [histogram](#a-histogram) ·
+  [monthly trend by segment](#a-monthly-tracking-trend-by-segment) ·
+  [brand colors in charts](#brand-colors-in-charts) ·
+  [chart a MaxDiff or TURF result](#chart-a-maxdiff-or-turf-result) ·
+  [key drivers](#a-key-driver-analysis) ·
+  [perceptual map](#a-perceptual-map) ·
+  [Van Westendorp](#a-van-westendorp-study) ·
+  [ordinal regression](#an-ordinal-regression) ·
   [export for R](#export-the-cleaned-data-for-r) ·
   [clean once, reuse](#clean-once-and-reuse-the-clean-data-in-several-flows) ·
   [rename or delete a flow](#rename-duplicate-or-delete-a-flow) ·
@@ -392,14 +404,18 @@ effective base.
 > **Descriptive statistics**, **Correlation** and **Correlation matrix** with
 > Pearson, **Banner table**, **Net Promoter Score**, **Regression**,
 > **TURF**, **MaxDiff**, **Conjoint**, **Share of preference**, **Principal
-> components**, **Scale reliability**, the **Bar chart**, a **Heatmap** with
-> **By**, and **Proportion CI** (with **Weighted** ticked) use the weight.
+> components**, **Scale reliability**, **Key drivers**, **Perceptual map**
+> (not its chi-square test), **Price sensitivity**, the **Bar chart**, a
+> **Heatmap** with **By** or with Pearson, the **Likert chart**, the
+> **Trend**, the **Tab book (Excel)** and **Proportion CI** (with
+> **Weighted** ticked) use the weight.
 > **Compare groups**, **Correlation** and **Correlation matrix** with
 > Spearman or Kendall, **t-test**, **Paired tests**, **Factor analysis**,
-> **Cluster (k-means)**, **Box plot**, **Scatter plot**, a **Heatmap**
-> without **By**, **Response quality**, **Code open answers** and **Data
-> check** stay unweighted and say so in their output ("unweighted (the
-> weight '…' is not applied)"). See the linked page.
+> **Cluster (k-means)**, **Box plot**, **Scatter plot**, a Spearman or
+> Kendall **Heatmap**, **Response quality**, **Code open answers** and
+> **Data check** stay unweighted and say so in their output ("unweighted (the
+> weight '…' is not applied)"); a **Result chart** says whichever its result
+> is. See the linked page.
 
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
@@ -407,7 +423,35 @@ effective base.
 
 Source → cleaning → **Banner table**: questions down (**Questions**), breakdowns
 across (**Breakdowns**), **Significance letters** on. Connect it to a
-**Report section**; download the report as HTML. → [[Node Reference|Studio-Node-Reference]]
+**Report section**; download the report as HTML. For every question of the
+study in Excel, use a tab book ([below](#a-tab-book-for-the-client)).
+→ [[Node Reference|Studio-Node-Reference]]
+
+### A tab book for the client
+
+Every question of the study by the client's segments, in one Excel file.
+
+1. In a flow, after your cleaning and weighting steps, add **Tab book
+   (Excel)** (Output) and connect the data to it.
+2. **Banner**: tick the segments — `gender`, `region`, `age_band` (age cut
+   into ranges by **Bands**: a banner takes nominal and ordinal variables).
+3. **Questions**: leave empty for every nominal, ordinal and multiple-choice
+   question (open answers and rankings are left out, with the reason on the
+   Contents sheet), or tick the ones the client asked for — a number you
+   tick shows its mean.
+4. Keep **Percentages** `column`, **Counts** and **Significance letters**
+   on; **Path** `outputs/tabbook.xlsx`, or a name of your own
+   (`outputs/client_q3.xlsx`).
+5. **Save** and **Run**. The preview shows what it would write; the run
+   keeps the workbook.
+6. On **Reports**, pick **Tab book** and press **Excel** (or download it from
+   **Files**).
+
+The workbook opens on a **Contents** sheet linking to a sheet per question;
+the **Notes** sheet says how it was computed — the weight, the test, the
+minimum base, the missing codes left out. A question with several answers
+cannot be a banner variable: **Explode multiple choice** first and use its
+0/1 columns. → [Tab book (Excel)](Studio-Node-Reference#tab-book-excel)
 
 ### Pearson or Kendall correlations, and a correlation matrix
 
@@ -551,6 +595,278 @@ Respondents who never saw the item are blank, so they are in neither band.
 → [MaxDiff scores](Studio-Node-Reference#maxdiff-scores) ·
 [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
 
+### A 100 % stacked bar of a question by segment
+
+The chart of a crosstab's column percentages: one bar per segment, each
+stacked to 100 %.
+
+1. After your cleaning steps (and **Apply weight**, if the data is weighted),
+   add **Bar chart** (Visualize): **Variable** `satisfaction`, **Split by**
+   `region`.
+2. **Layout** `stacked_100 — stacked to 100 %`. (`grouped` puts each
+   region's bars side by side; with **Show** `percent` they are % of the
+   region too.)
+3. Optional: **Sort** `value` puts the regions with the largest share of the
+   top answer first — the answers keep the scale's order — and **Horizontal**
+   suits many or long segment names.
+4. **Run to here**. Each region's `n` is under its name; under the plot:
+   "Base: 385 respondents who answered both. Each group's n is under its
+   name." and "Percentages are of each group of Region.", plus the missing
+   codes left out ("Left out as missing: …").
+
+On weighted data the percentages are weighted, as the Crosstab's column
+percentages are, and the axis reads "% within Region (weighted)".
+**Split by** needs one answer per respondent: a multiple-choice question is
+refused before the run ("Split by needs one answer per respondent, and …
+allows several: draw it as the Variable, or split by one of its options after
+Explode multiple choice."). A multiple-choice **Variable** can be split, side
+by side only.
+→ [Bar chart](Studio-Node-Reference#bar-chart)
+
+### A Likert battery chart
+
+1. Add **Likert chart** (Visualize) and tick the **Items**: statements rated
+   on the same scale, such as `trust_acme`, `trust_globex`, `trust_initech`
+   (1 = No trust … 5 = Full).
+2. Leave **Neutral answer** `split — half on either side`, or choose `side —
+   in a panel at the right` to keep the middle answer apart. **Sort items**
+   `top2` puts the item with the largest top-2 share first; `listed` keeps
+   the order of **Items**.
+3. **Run to here**. Each item is a bar centred on the neutral answer, with
+   its bottom-2 and top-2 shares at the ends. The title is what the labels
+   share ("Trust"), each bar the rest with its base ("Acme (n = 485)"), and
+   the notes under the chart say which answers make the top-2 and bottom-2
+   and which missing codes were left out.
+
+Items on different scales are refused before the run — "The items of a
+Likert chart must share one scale, and these do not: …" — so chart each
+scale on its own, or recode the items onto one. Codes run low to high, left
+to right: recode a scale written the other way (1 = Strongly agree) first.
+After **Apply weight** the shares are weighted.
+→ [Likert chart](Studio-Node-Reference#likert-chart)
+
+### A bar chart with significance letters
+
+Which regions are more satisfied than others, marked on the chart the way a
+banner table marks it.
+
+1. After your cleaning steps (and **Apply weight**), add **Bar chart**:
+   **Variable** `satisfaction`, **Split by** `region`, **Show** `percent`,
+   **Layout** `grouped`.
+2. Tick **Significance letters**. Leave **Level** at `0.05`; with many
+   groups, set **Multiple comparisons** `bonferroni`.
+3. Optional: tick **Confidence intervals** for each bar's margin of error.
+4. **Run to here**. The regions are lettered under their names —
+   `Capital (A)`, `North (B)`, `South (C)` — and a letter over a bar names a
+   region whose share of that answer is significantly lower. The note under
+   the chart names the test; "No group's share of any answer is significantly
+   higher than another's." when nothing differs, and "Not tested, fewer than
+   30 respondents who answered: …" for a small group.
+
+The letters are the **Banner table**'s two-sided z-test of column
+proportions, on each group's respondents who answered (Kish's effective base
+when weighted). A **Tab book** shows the same comparisons, with the letters
+its banner gives the columns.
+→ [Bar chart](Studio-Node-Reference#bar-chart)
+
+### A histogram
+
+How a number spreads — ages, amounts, minutes.
+
+1. Add **Bar chart**: **Variable** `age` (an interval or ratio variable),
+   **Layout** `histogram — histogram of a number, in Bins`.
+2. **Bins**: leave `auto` (Freedman and Diaconis's width; whole-number
+   answers get a whole width), type a number of bins (`10`), or type the
+   edges you report in (`18, 25, 35, 50, 65, 100`).
+3. **Show** `percent` for % of those who answered; **Split by** `gender` for
+   a panel per group on the same bins.
+4. **Run to here**. The note under the chart says how the bins were made
+   ("Bins: 11 of width 8 (Freedman–Diaconis), each holding 8 whole
+   numbers.").
+
+A histogram of a nominal or ordinal question is refused before the run — draw
+its answers as bars. Edges that do not increase are named on the field:
+"bins: The bins' edges must increase from one to the next, and 5 is followed
+by 3."
+→ [Bar chart](Studio-Node-Reference#bar-chart)
+
+### A monthly tracking trend by segment
+
+Satisfaction month by month since launch, a line per segment.
+
+1. After your cleaning steps (and **Apply weight**), add **Trend**
+   (Visualize).
+2. **Time**: `created_at — Response date (created_at)`, under **Beside the
+   answers** (or your wave variable, for a wave-by-wave tracker). **Period**
+   `month` (`week` for an ISO week, Monday to Sunday).
+3. **Measure** `percent`, **Measure variable** `satisfaction`, **Answer
+   codes** `4` and `5` ticked — a top-2 box. (`mean` tracks the average;
+   `count` the respondents.)
+4. **Split by** `segment`. Keep **Confidence band** on and **Minimum base**
+   `30`.
+5. **Run to here**. The preview shows the chart and, under it, the table of
+   points — each month's percent, its 95 % interval and its base.
+
+Every month from the first to the last is on the axis; a month without
+respondents is a gap, and a point under 30 respondents is hollow, without a
+band. With more than four segments the bands give way to marker shapes (the
+table keeps the intervals). To put it in the report, add the `chart` (and
+the `table`, for the numbers) to a **Report section**; for a live dashboard,
+connect the `chart` to a **Live tile** (**Kind** `chart`).
+→ [Trend](Studio-Node-Reference#trend)
+
+### Brand colors in charts
+
+Draw a report's charts in your brand's colors and typeface.
+
+1. In the flow's **Report** view, open **Look → Chart colors**.
+2. **Series**: paste your palette, in order — `#003f5c, #ffa600, #bc5090,
+   #58508d` — or pick each swatch. Set **Magnitude** (the hue of an ordered
+   scale, light to dark), the two **Diverging** ends (a Likert chart's
+   disagree and agree sides), **Chart text** and **Chart typeface**
+   (`Inter, sans-serif`) as you like.
+3. On each chart node, set **Palette** to `theme — the report's chart colors
+   (Save report's Look)` (a **Heatmap**'s **Color map** to `theme`).
+4. **Preview report**. The charts are drawn in your colors, in the `.md`'s
+   figures and the `.html` alike, and their node previews and Live tiles
+   follow.
+
+A color too faint on white, text under 4.5:1 or a color given twice is
+refused on the node with the reason. To use the same colors in every flow,
+set them in **Settings → Reports → House style** and **Apply to every flow**.
+→ [Chart colors](Studio-Reports#chart-colors)
+
+### Chart a MaxDiff or TURF result
+
+A **Result chart** draws an analysis's own table, so the chart in the report
+shows the same numbers as the table beside it.
+
+**MaxDiff:**
+
+1. Add **MaxDiff** (Analyze) with your **MaxDiff question**.
+2. Add **Result chart** (Visualize) and connect the MaxDiff node's `table` to
+   its **result** input.
+3. **Kind** `auto` draws the utilities with their 95 % intervals, against
+   the reference item at 0. Choose `scores` for the counting scores or
+   `shares` for the shares. With **Estimate** `counts` the chart draws the
+   scores.
+
+**TURF:**
+
+1. Add **TURF** with the 0/1 **Options** (from **Explode multiple choice**),
+   **Largest portfolio** `3`, **Search** `best`.
+2. Connect its `table` to a **Result chart**: the reach curve, each portfolio
+   size named by the option it adds, with its reach and gain.
+3. With **Search** `fixed` and a **Portfolio**, the chart draws each option's
+   reach beside what only it reaches, and the whole portfolio's reach.
+
+Put the table and the chart in one report section, at **Half** each to sit
+side by side. Under the Result chart's **Kind** the inspector lists what the
+connected result suits.
+→ [Result chart](Studio-Node-Reference#result-chart) ·
+[[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
+
+### A key-driver analysis
+
+Which attribute ratings matter most for overall satisfaction?
+
+1. Add **Key drivers** (Analyze): **Outcome** `overall_sat`, **Drivers** the
+   attribute ratings (`rate_price`, `rate_service`, `rate_range`,
+   `rate_staff`).
+2. Leave **Importance** at `relative_weights — Johnson's relative weights`,
+   or choose `shapley — Shapley value (LMG)` (at most 15 drivers); the two
+   agree closely.
+3. **Run to here**. The table ranks the drivers by **% of R²** — together the
+   100 % of what the model explains — beside each one's correlation (**r**),
+   standardized **Beta** with its p, and **VIF**; the footer gives R²,
+   adjusted R², F and p.
+4. Connect the `table` to a **Result chart** for the bars, largest first.
+
+Read **Warning** when it appears: a VIF of 10 or more (drivers that overlap
+share their importance between them) or a suppressor (a beta whose sign
+differs from its correlation). A driver with more than two unordered answers
+is refused — make a 0/1 variable per answer with **Explode multiple choice**
+or **Derive**. Respondents missing the outcome or any driver are left out
+(**Excluded**).
+→ [Key drivers](Studio-Node-Reference#key-drivers)
+
+### A perceptual map
+
+Which regions (or segments) go with which brands?
+
+1. Add **Perceptual map** (Analyze): **Table** `crosstab — Rows by Columns`,
+   **Rows** `region`, **Columns** `brand_used`.
+2. **Run to here**. The first table gives each dimension's share of the
+   inertia; the **rows** and **columns** tables give each point's
+   coordinates, contribution and quality; the statistics give the chi-square
+   test.
+3. Connect any of its tables to a **Result chart**: the map. Points that lie
+   near each other go together more than chance would have it; each axis
+   says how much of the table it shows, and the title how much the map shows
+   in all.
+
+For a brand-image grid — which brands are seen as modern, as good value — use
+**Table** `attributes`: **Rows** the brand and **Attributes** the 0/1
+attribute columns, in data with one row per respondent and brand (bring such
+a file in with a **Data file** node); set **Counts as yes (attributes)** when
+the attributes are coded other than 0/1. With a question about the respondent
+as **Rows** and an exploded multiple-choice question as **Attributes**, the
+map shows which regions tick which options.
+→ [Perceptual map](Studio-Node-Reference#perceptual-map)
+
+### A Van Westendorp study
+
+1. In the questionnaire, ask four prices as numbers (interval or ratio
+   scale): so cheap you would doubt the quality, a bargain, getting
+   expensive, too expensive. For the Newton-Miller-Smith extension, also ask
+   how likely the respondent would be to buy at their bargain price and at
+   their getting-expensive price (1–5, 5 = definitely).
+2. In a flow, add **Price sensitivity** (Analyze), **Method**
+   `van_westendorp — four price questions`, and choose **Too cheap**,
+   **Cheap (a bargain)**, **Expensive (getting expensive)** and **Too
+   expensive**. For NMS, choose the two likelihood questions as well; leave
+   **Likelihood as probability (NMS)** empty for 5 → 0.7, 4 → 0.5, 3 → 0.3,
+   2 → 0.1, 1 → 0.
+3. **Run to here**. The table lists the price points — PMC, OPP, IPP, PME,
+   and with NMS the prices of the highest trial and revenue — and the
+   statistics the **Range of acceptable prices** ("6.4 – 14.34"); the
+   **curves** are under it.
+4. Connect the `table` to a **Result chart**: the four curves with the
+   points named and the acceptable range shaded (with NMS, the trial curve
+   below).
+
+Respondents whose four prices are not in order are left out and counted in
+**Inconsistent** — many of them suggest a question was misread. For
+**Gabor-Granger** (buy or not at set prices), set **Method**
+`gabor_granger`, tick one question per price in **Would buy at each price**,
+list the prices in the same order in **Prices** (`[4.99, 6.99, 8.99]`) and,
+on a likelihood scale, tick the answers that mean would buy in **Counts as
+would buy** (4 and 5 for a top-two box).
+→ [Price sensitivity](Studio-Node-Reference#price-sensitivity)
+
+### An ordinal regression
+
+For an outcome of ordered answers — very dissatisfied to very satisfied:
+
+1. Add **Regression** (Analyze): **Outcome** `satisfaction` (an ordinal
+   variable), **Predictors** `age`, `region`, `trust_acme`.
+2. **Model** `ordinal — ordinal logit, ordered answers`.
+3. **Run to here**. The table lists each coefficient with its standard
+   error, z, p, odds ratio and 95 % interval, then the thresholds between
+   neighbouring answers (`Very dissatisfied / Dissatisfied`); the statistics
+   give the answers' `order`, `n`, McFadden's `pseudo_r_squared`, the
+   likelihood-ratio test (`lr_p`) and `aic`.
+4. Connect the `table` to a **Result chart**: the odds ratios with their
+   intervals on a log scale, the thresholds left out.
+
+A positive coefficient — an odds ratio above 1 — makes the higher answers
+more likely, as in R's `MASS::polr`. The outcome must be ordered: a nominal
+one such as a region is refused before the run ("Region is nominal: its
+answers (Capital, North, South) have no order, …"); with two answers, use
+the logit. The codebook's missing codes are left out and counted
+(`missing_codes`), and the model is weighted after **Apply weight**.
+→ [Regression](Studio-Node-Reference#regression)
+
 ### Export the cleaned data for R
 
 1. End your cleaning flow with **Export file**, **Path** `outputs/clean.R`.
@@ -644,9 +960,10 @@ instead. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 ### A live dashboard for a client
 
 *(Plus and above.)* Add **Live tile** nodes to a flow (a respondent count with
-**Show** `rows`, a crosstab, a chart), tick **Live: recompute on new
-responses** in the flow settings, **Save** and **Run** once. On **Live**, press
-**Create public link** and send it. **Revoke** it when the engagement ends.
+**Show** `rows`, a crosstab, a chart, a **Trend** of completes per week), tick
+**Live: recompute on new responses** in the flow settings, **Save** and
+**Run** once. On **Live**, press **Create public link** and send it.
+**Revoke** it when the engagement ends.
 → [[Live Monitoring|Studio-Live-Monitoring]]
 
 ### Keep a Google Sheet in sync

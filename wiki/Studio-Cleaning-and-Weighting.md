@@ -172,10 +172,19 @@ codes are declared in the Builder; see
 [[Codebook and Variables|Studio-Codebook-and-Variables]].
 
 The newer analyses leave missing codes out on their own and say how many:
-the **t-test**, **Correlation matrix**, **Paired tests**, **Factor
-analysis**, **Bands**, and any test you choose by hand (**Correlation**
-`pearson` or `kendall`, a **Group means** **Test** other than `auto`,
-**Compare groups** with Dunn's test, **Crosstab** with Fisher's test).
+the **t-test**, **Correlation matrix**, **Paired tests** (Cochran's Q too),
+**Factor analysis**, **Key drivers**, **Perceptual map**, **Price
+sensitivity**, **Regression** with **Model** `ordinal`, **Bands**, and any
+test you choose by hand (**Correlation** `pearson` or `kendall`, a **Group
+means** **Test** other than `auto`, **Compare groups** with Dunn's test,
+**Crosstab** with Fisher's test). So do the newer charts: the **Likert
+chart**, the **Trend**, a **Heatmap** with **Method** `pearson` or `kendall`
+or with **By** and **Color map** `theme`, and a **Bar chart** with **Show**
+`percent`, **Split by**, **Sort** `value`, **Top N**, **Confidence
+intervals**, or **Layout** `histogram` or `donut` — each names what it left
+out under the plot ("Left out as missing: Trust: Acme: 108 (9 = Refused)").
+The **Tab book (Excel)** leaves them out of every sheet and lists them on its
+Notes sheet.
 **Descriptive statistics** leaves them out too but counts them in its
 **Missing** column, with the blanks, and names the codes rather than counting
 them ("Missing codes = trust_acme: 9"). The defaults that were there before — **Correlation**
@@ -183,7 +192,11 @@ them ("Missing codes = trust_acme: 9"). The defaults that were there before — 
 the **Crosstab** chi-square — still count a code as an answer, so that a
 stored flow keeps its numbers, and now say so: "Missing codes counted as
 answers = Trust: Acme: 44 (9 = Refused); run Missing values first to leave
-them out". **Missing values** before them settles it for every node.
+them out". The classic **Bar chart** (**Show** `count`, no **Split by**,
+**Sort** `code`, no **Top N** or intervals), the Spearman **Heatmap** and a
+**Heatmap** of means with a named **Color map** also draw such a code as an
+answer, as they always have. **Missing values** before them settles it for
+every node.
 
 Codes the survey adds for you arrive in the data like any other answer:
 
@@ -354,9 +367,11 @@ column beside it. For a share with its confidence interval, use a
 `region`, **Answer code** `1` — which should give 0.45 (its base is the
 respondents who answered `region`, and its `n` is their effective base). A
 **Bar chart** of `region` draws the weighted counts ("Weighted count" on the
-axis), and a **Banner table** with the weighting variables as questions also
-shows weighted percentages. Large caps, or targets far from the sample, are
-the usual reasons for a miss.
+axis) — with **Show** `percent`, the weighted percentages ("% of respondents
+(weighted)"), which should read 45 % for code `1` — and a **Banner table**
+with the weighting variables as questions also shows weighted percentages.
+Large caps, or targets far from the sample, are the usual reasons for a
+miss.
 
 ### Making tables and tests use the weight
 
@@ -379,24 +394,42 @@ unweighted." From there on:
 - **Correlation** and **Correlation matrix** with **Method** `pearson` — the
   weighted coefficient, with p (and the CI) on Kish's effective base.
 - **Banner table** (tests on Kish's effective base), **Net Promoter Score**,
-  **Regression** and **TURF** (reach and frequency).
+  **Regression** (linear, logistic and ordinal) and **TURF** (reach and
+  frequency).
 - **MaxDiff** — every column, **Utility** and **Share %** included;
   **Conjoint** part-worths and importances; **Share of preference**.
 - **Principal components** and **Scale reliability**.
-- **Bar chart** (weighted counts, or weighted means with **By**) and
-  **Heatmap** with **By** (weighted means) — so a chart matches the weighted
-  table beside it.
+- **Key drivers** — the correlations, betas, R² and shares, with the tests
+  on Kish's effective N.
+- **Perceptual map** — every cell of the table it maps is a sum of weights
+  (its chi-square test counts respondents, and says so).
+- **Price sensitivity** — every curve and share; **N** stays the
+  respondents.
+- **Bar chart** (weighted counts, weighted percentages — split into groups
+  too, in a histogram and a donut too — or weighted means with **By**; its
+  confidence intervals and significance letters on Kish's effective base),
+  **Heatmap** with **By** (weighted means) or with **Method** `pearson`
+  (weighted coefficients), the **Likert chart** (weighted shares) and the
+  **Trend** (weighted percents, means and counts, its band on Kish's
+  effective base) — so a chart matches the weighted table beside it.
+- **Tab book (Excel)** — every sheet's counts are sums of weights, beside
+  the unweighted base, its percentages are of those sums, and its letters
+  test on Kish's effective base.
+- **Result chart** — as the result it draws; its title's second line says
+  which.
 - **Proportion CI**, when its **Weighted** box is ticked.
 
 These have no weighted form and say so — "unweighted (the weight 'weight' is
 not applied)" in their statistics, table or chart title: **Compare groups**,
 **Correlation** and **Correlation matrix** with `spearman` or `kendall`,
-**t-test**, **Paired tests**, **Factor analysis**, **Cluster (k-means)**,
-**Box plot**, **Scatter plot**, **Heatmap** without **By**, **Proportion
-CI** unticked, the tables of **Response quality**, **Code open answers** and
-**Data check**, and the counts of **MaxDiff scores** and **Bands** (the
-variables they make are weighted like any other in the tables after them).
-**Describe** counts rows and adds a `weighted_n_valid` column. Say in the section's note which results are
+**t-test**, **Paired tests** (Cochran's Q among them), **Factor analysis**,
+**Cluster (k-means)**, **Box plot**, **Scatter plot**, **Heatmap** without
+**By** with **Method** `spearman` or `kendall`, **Proportion CI** unticked,
+the tables of **Response quality**, **Code open answers** and **Data check**,
+and the counts of **MaxDiff scores** and **Bands** (the variables they make
+are weighted like any other in the tables after them). A **Result chart** of
+one of these results says so in its title too. **Describe** counts rows and
+adds a `weighted_n_valid` column. Say in the section's note which results are
 weighted where a reader could miss it. The details per node are in
 [Apply weight](Studio-Node-Reference#apply-weight).
 
@@ -466,10 +499,11 @@ get the numbers into your report and onto Live:
 - The Methods draft (History → a Save → **More ▾ → Methods**) lists every step
   of every flow with its parameters. For **Apply weight** it writes
   "estimates that support weights were weighted by `weight` (rank tests,
-  k-means clustering, box and scatter plots and correlation heatmaps stay
-  unweighted, as do t-tests, the tests of group means (ANOVA, Welch's ANOVA)
-  and their post-hoc comparisons, paired tests, Fisher's exact test, rank
-  correlations and factor analysis)".
+  k-means clustering, box and scatter plots and Spearman and Kendall
+  correlation heatmaps stay unweighted, as do t-tests, the tests of group
+  means (ANOVA, Welch's ANOVA) and their post-hoc comparisons, paired tests
+  (Cochran's Q among them), Fisher's exact test, a perceptual map's
+  chi-square test, rank correlations and factor analysis)".
 - **Data check**'s table, for "the data were screened for out-of-range
   values and undeclared codes".
 

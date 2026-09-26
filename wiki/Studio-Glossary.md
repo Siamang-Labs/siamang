@@ -43,8 +43,9 @@ ordinal variable, by the **Bands** node; missing codes are taken out first and
 values outside every band stay blank. → [Bands](Studio-Node-Reference#bands)
 
 **Banner table** — a cross-break: several questions down the page against
-several breakdowns across it, with significance letters.
-→ [[Node Reference|Studio-Node-Reference]]
+several breakdowns across it, with significance letters. For every question
+of a study in Excel, see **Tab book**.
+→ [Banner table](Studio-Node-Reference#banner-table)
 
 **Block** — a group of questions inside a page, shown, hidden or shuffled
 together. → [[The Builder|Studio-Builder-Overview]]
@@ -57,11 +58,22 @@ next. A rule without a condition never fires.
 **Build log** — the log of turning a Save into a published survey, on the
 environment's card in Distribute.
 
+**Chart colors** — the colors, text color, grid and typeface a report gives
+its charts: part of a **Save report** node's **Look**. A chart takes them
+when its **Palette** is `theme`; empty, they are eight colors that readers
+with protanopia or deuteranopia can tell apart.
+→ [Chart colors](Studio-Reports#chart-colors)
+
 **Closing date** — when an environment stops accepting responses: the
 questionnaire's deadline or the environment's `closes_at` (the earlier wins),
 or a date set with the **Closing date** chip on its card, which applies at
 once without a rebuild. Past it, the card reads **○ Closed** and offers
 **Extend**. → [Deadlines](Studio-Publishing-and-Environments#deadlines)
+
+**Cochran's Q** — McNemar's test for three or more yes/no questions put to
+the same respondents (brands heard of, channels seen): is the share saying
+yes the same for all of them? Followed by a McNemar test of every pair.
+→ [Paired tests](Studio-Node-Reference#paired-tests)
 
 **Codebook** — all variables with their scales, labels, value labels, valid
 ranges and missing codes; built alongside the questions and exported with the
@@ -152,6 +164,11 @@ run until fixed; the rest of the project is not affected.
 **Frozen workspace** — an organization that support has made read-only. Not
 the same as the end of a trial, which moves the organization to the Free plan.
 
+**Gabor-Granger** — a pricing method that asks at each of a set of prices
+whether the respondent would buy, and gives the demand, the revenue and the
+revenue-maximising price among those asked.
+→ [Price sensitivity](Studio-Node-Reference#price-sensitivity)
+
 **House style** — an organization's default survey look (Organization
 settings → **Branding**), stamped into each new project; and, separately, a
 project's default report look (Project settings → **Reports**).
@@ -167,6 +184,21 @@ Other text, an assigned arm).
 
 **Insights** — instant frequencies and crosstabs computed by the server from a
 table in **Data**, without a flow. → [[Responses and the Data Tab|Studio-Responses-and-Data]]
+
+**ISO week** — the week of the international standard (ISO 8601): Monday to
+Sunday, numbered within its ISO year, week 1 being the week that holds the
+year's first Thursday. A **Trend** by **Period** `week` groups the responses
+so and labels each point `2026-W22`; the days around New Year can belong to
+the neighboring year's week. → [Trend](Studio-Node-Reference#trend)
+
+**Key drivers** — how much of an overall rating each attribute explains: its
+share of R² by Johnson's relative weights or the Shapley value, which a
+regression's coefficients cannot give when the attributes correlate.
+→ [Key drivers](Studio-Node-Reference#key-drivers)
+
+**Likert chart** — a battery of statements on one scale as diverging bars
+centred on the neutral answer, each with its top-2 and bottom-2 shares.
+→ [Likert chart](Studio-Node-Reference#likert-chart)
 
 **Live tile** — a flow output published to the **Live** screen and, if you
 choose, to a public read-only page. → [[Live Monitoring|Studio-Live-Monitoring]]
@@ -202,6 +234,11 @@ browser that has already answered sees "You have already taken part" instead
 of the questionnaire. Checked in the browser only; it does not identify
 people. → [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
 
+**Ordinal regression** — a regression of an outcome of ordered answers
+(dissatisfied … satisfied): the proportional-odds (cumulative logit) model,
+with odds ratios above 1 making the higher answers more likely. **Regression**
+with **Model** `ordinal`. → [Regression](Studio-Node-Reference#regression)
+
 **Organization** — a workspace owning projects, members, the plan and the
 bill. → [[Organizations and Team|Studio-Organizations-and-Team]]
 
@@ -222,8 +259,8 @@ significant ones). → [Correlation matrix](Studio-Node-Reference#correlation-ma
 
 **Paired test** — a test of answers from the same respondents (before and
 after, two brands on one scale): the paired t-test, Wilcoxon signed-rank,
-McNemar for yes/no, Friedman for three or more. Each respondent is compared
-with themselves. → [Paired tests](Studio-Node-Reference#paired-tests)
+McNemar for yes/no, Friedman for three or more, Cochran's Q for three or more
+yes/no. Each respondent is compared with themselves. → [Paired tests](Studio-Node-Reference#paired-tests)
 
 **Panel provider** — a sample company (Prolific, Cint, Dynata, …) that sends
 respondents with an id in the link and expects them back on a return URL.
@@ -232,6 +269,11 @@ respondents with an id in the link and expects them back on a return URL.
 **Partial** — an interview that was started but not submitted. Stored in the
 data (from surveys built with the current runtime); not counted toward caps
 or quotas.
+
+**Perceptual map** — a correspondence analysis drawn as a map: brands (or
+regions, segments) and attributes (or answers) as points, near each other when
+they go together more than chance would have it.
+→ [Perceptual map](Studio-Node-Reference#perceptual-map)
 
 **Piping** — inserting an earlier answer into text: `{answer:var}`,
 `{label:var}` (or `{var:var}`). → [[Logic and Branching|Studio-Logic-and-Branching]]
@@ -254,6 +296,12 @@ CES, Attention check, Date, Email, Phone, Rating).
 Answers are never stored, and quotas are not checked.
 → [[Testing Your Survey|Studio-Testing-Your-Survey]]
 
+**Price sensitivity meter (Van Westendorp)** — four price questions (too
+cheap, a bargain, getting expensive, too expensive) whose cumulative curves
+cross at the price points; the range of acceptable prices lies between the
+points of marginal cheapness and marginal expensiveness.
+→ [Price sensitivity](Studio-Node-Reference#price-sensitivity)
+
 **Project** — one study: questionnaire, flows, settings, database,
 deployments and history. → [[Projects|Studio-Projects]]
 
@@ -273,7 +321,8 @@ interest" / "We have already reached our target sample for participants like
 you.", reworded in **Theme → Wording**. The interview is not submitted.
 
 **Report section / Save report** — the flow nodes that assemble a document
-from tables, charts and your text. → [[Reports|Studio-Reports]]
+from tables, charts and your text; **Save report** can also write the
+report's tables to an Excel workbook. → [[Reports|Studio-Reports]]
 
 **Research bundle** — a zip of one Save: generated code, documents, codebook,
 Methods draft, citation file, provenance, environment pin and optionally the
@@ -287,6 +336,11 @@ its own cap, counted in that environment (new projects: `pilot` 50, `main`
 1,200), and on Free the plan's 1,000 per project, counted over all
 environments together — the tighter wins. Screen-outs and partials do not
 count. → [Response caps](Studio-Publishing-and-Environments#response-caps)
+
+**Result chart** — the chart of an analysis's own result (means with their
+intervals, a scree plot, a reach curve, odds ratios, a map, price curves),
+drawn from the numbers the analysis computed, so it never disagrees with the
+table beside it. → [Result chart](Studio-Node-Reference#result-chart)
 
 **Run** — one execution of a flow (or of all flows) in the sandbox, with a log
 and output files. → [[Analysis Flows|Studio-Flows]]
@@ -325,6 +379,15 @@ and deposits. → [[Project Settings|Studio-Project-Settings]]
 **Share preview** — a public link to the questionnaire valid for 24 hours;
 answers are not stored.
 
+**Significance letters** — letters that mark which columns of a table differ:
+each column (or each group of a **Bar chart**'s **Split by**) gets a letter,
+and a letter beside a percentage names a column whose share of that answer is
+significantly lower, by a two-sided z-test of column proportions. Only
+columns of the same banner variable are compared, a column under 30
+respondents is not tested, and weighted data is tested on Kish's effective
+base. The **Banner table**, the **Tab book (Excel)** and the **Bar chart**
+use the same test. → [Banner table](Studio-Node-Reference#banner-table)
+
 **Simulated data** — synthetic respondents generated from the questionnaire,
 for building and testing the analysis before fieldwork. They follow its
 conditions and routing, the arm of **Assign to a condition** and **Randomize
@@ -345,12 +408,29 @@ which does not assume they vary equally, or Student's), of two answers of the
 same respondents (paired), or of one mean against a value (one-sample).
 → [t-test](Studio-Node-Reference#t-test)
 
+**Tab book** — the whole study in one Excel workbook: every question crossed
+by a banner of segments (Total, then each gender, each region, …), one sheet
+per question with its bases, counts, column percentages and significance
+letters, a Contents sheet and a Notes sheet on how it was computed. Written
+by the **Tab book (Excel)** node and listed on the **Reports** screen.
+→ [Tab book (Excel)](Studio-Node-Reference#tab-book-excel)
+
 **Template** — a complete questionnaire a new project can start from; Studio
 ships twelve, and your organization can save its own.
 → [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]]
 
 **Theme** — the survey's look and fixed wording, set in **Builder → Theme**.
 → [[Theme and Branding|Studio-Theme-and-Branding]]
+
+**Top-2 box** — the share of respondents giving the two highest answers of a
+scale (bottom-2: the two lowest); the Likert chart writes both at the ends of
+each item's bar, and a **Trend** tracks it when both answers are ticked in its
+**Answer codes**. → [Likert chart](Studio-Node-Reference#likert-chart)
+
+**Trend** — a measure over time: the percent choosing an answer, a mean or
+the number of respondents, wave by wave or by day, week, month, quarter or
+year, a line per group, with each point's confidence band and base.
+→ [Trend](Studio-Node-Reference#trend)
 
 **Validation** — the engine's check of a document at every Save. A
 questionnaire that fails validation makes the Save `errors`, which blocks
@@ -376,11 +456,13 @@ weight** then makes the nodes after it use the weight — the tables,
 **Descriptive statistics**, a Pearson **Correlation** or **Correlation
 matrix**, **Net Promoter Score**, **Regression**, **TURF**, **MaxDiff**,
 **Conjoint**, **Share of preference**, **Principal components**, **Scale
-reliability**, the **Bar chart** and a **Heatmap** with **By**. **Compare
-groups**, Spearman and Kendall correlations, the **t-test**, **Paired
-tests**, Fisher's exact test, **Factor analysis**, **Cluster (k-means)**,
-**Box plot**, **Scatter plot** and a **Heatmap** without **By** stay
-unweighted and say so in their output.
+reliability**, **Key drivers**, **Perceptual map**, **Price sensitivity**, the
+**Bar chart**, the **Likert chart**, the **Trend**, the **Tab book (Excel)**
+and a **Heatmap** with **By** or with Pearson. **Compare groups**, Spearman and Kendall correlations, the
+**t-test**, **Paired tests**, Fisher's exact test, **Factor analysis**,
+**Cluster (k-means)**, **Box plot**, **Scatter plot** and a Spearman or
+Kendall **Heatmap** stay unweighted and say so in their output; a **Result
+chart** follows the result it draws.
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
 ## See also

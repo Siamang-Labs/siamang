@@ -133,7 +133,7 @@ the member role or higher.
 | `GET /projects/{id}/runs?limit=50&type=…&path=…` | run history, newest first; `type` is `analysis`, `analysis_all` or `connector` |
 | `GET /projects/{id}/runs/{run_id}/outputs/download?path=…` | a link (valid 5 minutes) to one output file of a run |
 | `GET /projects/{id}/reports` | stored reports; `combined` is `true` on Run all's combined report (the path set under **Settings → Reports**) |
-| `GET /projects/{id}/reports/{path}/markdown` | a Markdown report ready to open elsewhere, `{path}` being its path from the list (for example `outputs/tables/tables.md`): a zip with the `.md` and the figures it refers to in one folder (`tables.zip` → `tables/tables.md`, `tables/fig_1.png`), or the `.md` itself when it shows no figure. Errors: 400 "not a Markdown report", 404 "the stored report could not be read", 503 "object storage is not configured" |
+| `GET /projects/{id}/reports/{path}/markdown` | a Markdown report ready to open elsewhere, `{path}` being its path from the list (for example `outputs/tables/tables.md`): a zip with the `.md` and the figures it refers to in one folder (`tables.zip` → `tables/tables.md`, `tables/tables_fig_1.png`), or the `.md` itself when it shows no figure. Errors: 400 "not a Markdown report", 404 "the stored report could not be read", 503 "object storage is not configured" |
 
 ### Connectors, schedules, secrets, files
 

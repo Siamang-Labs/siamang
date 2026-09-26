@@ -223,6 +223,54 @@ and run `Rscript clean.R`, or `source("clean.R")` from R — the script finds
 its files beside itself. See
 [Export the cleaned data for R](Studio-Recipes#export-the-cleaned-data-for-r).
 
+An `.xlsx` a flow writes keeps text as text: an open answer such as
+`=HYPERLINK(…)` stays the string it is, never a formula Excel would run —
+as in the Data tab's Excel export.
+
+### From a flow: a report's tables in Excel
+
+Where the data exports above give the answers, a report's tables give the
+results. Tick **Also save tables to Excel** on a flow's **Save report** node
+(**Also Excel** in the Report view) and each run writes, beside the report,
+`outputs/<flow>/<report>.xlsx`:
+
+- a **Contents** sheet with the report's title and one linked row per table
+  (**Sheet**, **Section**, **Table**);
+- one sheet per table of the report — frequencies, crosstabs, banners with
+  their significance letters, group means (their post-hoc pairs on a sheet of
+  their own), test and model tables — named by the table's caption, each with
+  its statistics under it; numbers are numbers, text is text;
+- no charts, and no statistics wired into a section as a line of their own.
+
+Download it from **Reports** (**Excel**), from **Files** or from the run's
+card; a **Run all** keeps it too. See
+[Tables in Excel](Studio-Reports#tables-in-excel).
+
+### From a flow: a tab book
+
+A **Tab book (Excel)** node writes every question of the study crossed by a
+banner of segments into one workbook — the file a client asks for after
+fieldwork. With **Banner** `gender, region` and **Questions** left empty, a
+run writes `outputs/<flow>/tabbook.xlsx`:
+
+- a **Contents** sheet: one linked row per question (**#**, **Question**,
+  **Variable**, **Base**, **Sheet**) and the questions it did not tabulate,
+  with why (an open answer, a ranking, a question nobody answered);
+- one sheet per question, named after its variable: **Total**, then a column
+  per answer of each banner variable, lettered (`Male (A)`, `Female (B)`, …,
+  `Capital (D)`, …); the **Base** of each column; each answer's count and
+  column percentage with its significance letters in the cell beside it; the
+  mean and standard deviation of a number you named; footnotes;
+- a **Notes** sheet on the weight, the test, the level, the correction, the
+  minimum base, the missing codes left out and the date.
+
+The codebook's missing codes are left out and counted, a weighted run shows
+both bases, numbers are numbers and text stays text (an answer that begins
+with `=` is never a formula). Download it from **Reports** (the **Tab book**
+entry), from **Files** or from the run's card; **Run all** keeps it too. See
+[Tab book (Excel)](Studio-Node-Reference#tab-book-excel) and
+[Tab books](Studio-Reports#tab-books).
+
 ---
 
 ## Size limit
@@ -245,6 +293,8 @@ includes the responses are limited to 100,000 rows as well.
 |---|---|---|
 | Flow **Export file** node | `.csv`, `.xlsx`, `.sav`, `.dta` or `.parquet` of the data at that point of the flow — cleaned, weighted, with `url_*` and timing columns — plus its data dictionary; or an R bundle (`.R`), or the codebook alone (`.json`) — see [From a flow: R and the codebook](#from-a-flow-r-and-the-codebook) | [[Analysis Flows\|Studio-Flows]], [[Node Reference\|Studio-Node-Reference]] |
 | Flow **Write table** node | a new project table, which you can export from Data | [[Analysis Flows\|Studio-Flows]] |
+| Flow **Save report** node, **Also save tables to Excel** | every table of the report in one `.xlsx` beside it, a sheet per table with its statistics, and a Contents sheet — see [From a flow: a report's tables in Excel](#from-a-flow-a-reports-tables-in-excel) | [[Reports\|Studio-Reports]] |
+| Flow **Tab book (Excel)** node | every question by a banner of segments in one `.xlsx` — a sheet per question with bases, counts, percentages and significance letters, a Contents and a Notes sheet — see [From a flow: a tab book](#from-a-flow-a-tab-book) | [[Reports\|Studio-Reports]] |
 | Connectors *(Plus; some targets Pro)* | a table pushed to Google Sheets, Excel 365, Supabase, Airtable, Dropbox, HubSpot *(Plus)*, or S3, GCS, Azure, BigQuery, Snowflake, your own database, SFTP, REDCap, Salesforce, HTTP *(Pro)* | [[Connectors\|Studio-Connectors]] |
 | Research bundle | data, questionnaire, code, codebook and a provenance file in one zip — the export for a co-author or a paper. Its data files keep the fieldwork columns but only the `url_*` parameters a flow reads, and never the invitation token | [[Reproducibility\|Studio-Reproducibility]] |
 | API | the same exports for a script, with an API key | [[API and API Keys\|Studio-API-and-API-Keys]] |

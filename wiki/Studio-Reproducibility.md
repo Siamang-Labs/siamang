@@ -234,15 +234,17 @@ which:
   upstream has merged them. Studio runs a newer engine than that, and the
   README says what differs at that commit: "a Simulated data source, a Share
   of preference, t-test, Correlation matrix, Paired tests, Factor analysis,
-  Descriptive statistics, Data check, MaxDiff scores or Bands node, every
-  Export file and Code open answers node, and a test chosen by hand
-  (Correlation with Pearson or Kendall, Group means with a Test other than
-  auto, Compare groups with Dunn's test, Crosstab with Fisher's exact test,
-  TURF's fixed portfolio) stop with an error, and after Apply weight the
+  Descriptive statistics, Data check, MaxDiff scores, Bands, Key drivers,
+  Perceptual map, Price sensitivity, Likert chart or Result chart node, every
+  Export file, Code open answers and TURF node, a Bar chart with Show
+  percent, Split by or Sort value, a Heatmap with Pearson or Kendall,
+  Regression's ordinal model, Save report's tables in Excel, and a test
+  chosen by hand (Correlation with Pearson or Kendall, Group means with a
+  Test other than auto, Compare groups with Dunn's test, Crosstab with
+  Fisher's exact test) stop with an error, and after Apply weight the
   MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal
-  components, scale reliability and TURF's frequency are computed
-  unweighted; `siamang preview` shows that commit's survey runtime, not
-  Studio's." If a script stops or its numbers differ from Studio's, install
+  components and scale reliability are computed unweighted; `siamang
+  preview` shows that commit's survey runtime, not Studio's." If a script stops or its numbers differ from Studio's, install
   a later siamang revision that has those changes (the commit after `@` in
   `environment/requirements.txt`).
 
@@ -367,7 +369,8 @@ carry a shorter footer — see
 | The questionnaire as a program (`validate`, `preview`) | **Yes**, with the engine pin described above (`preview` shows the pinned engine's survey runtime) |
 | Simulated data | **Yes** — the seed is in the flow; at a pin that lags behind Studio the node stops with an error |
 | Tables, tests and weights of a flow whose source is **Responses** | **Yes, for the same data file and engine** — at a pin that lags behind Studio, the weighted MaxDiff and conjoint estimates, bar charts, heatmaps of means, principal components, scale reliability and TURF's frequency come out unweighted |
-| **t-test**, **Correlation matrix**, **Paired tests**, **Factor analysis**, **Descriptive statistics**, **Data check**, **MaxDiff scores**, **Bands**, and a test chosen by hand (**Correlation** `pearson` / `kendall`, a **Group means** **Test** other than `auto`, **Compare groups** with Dunn's test, **Crosstab** with Fisher's test, TURF's `fixed` portfolio) | **Yes, with the engine Studio ran** — deterministic, including Fisher's Monte Carlo p and parallel analysis, which draw from fixed seeds. At a pin that lags behind Studio these nodes stop with an error |
+| **t-test**, **Correlation matrix**, **Paired tests**, **Factor analysis**, **Descriptive statistics**, **Data check**, **MaxDiff scores**, **Bands**, **Key drivers**, **Perceptual map**, **Price sensitivity**, **TURF**, Regression's `ordinal` model, and a test chosen by hand (**Correlation** `pearson` / `kendall`, a **Group means** **Test** other than `auto`, **Compare groups** with Dunn's test, **Crosstab** with Fisher's test) | **Yes, with the engine Studio ran** — deterministic, including Fisher's Monte Carlo p and parallel analysis, which draw from fixed seeds. At a pin that lags behind Studio these nodes stop with an error |
+| **Likert chart**, **Result chart**, **Trend**, **Tab book (Excel)**, a **Bar chart** with **Show** `percent`, **Split by**, **Sort** `value`, **Top N**, **Confidence intervals** or **Layout** `histogram` or `donut`, a **Heatmap** with Pearson or Kendall, a chart of **Palette** `theme` and a **Look**'s chart colors, **Save report**'s tables in Excel | **Yes, with the engine Studio ran** (charts visually, as below; a Trend over `created_at` reads the timestamps the bundle's data files carry). At a pin that lags behind Studio these stop with an error |
 | **Export file** | **Yes** — the same files under `outputs/`, the R bundle (`.R`) and codebook (`.json`) included; at a pin that lags behind Studio every Export file node stops with an error |
 | **Environment** and **Only completed responses** on a Responses node | **Yes** in a bundle with data: each node reads a file already filtered its way. With a file you supply, it is read as it is |
 | Speeders (interview length) and other fieldwork columns | **Yes** in a bundle with data: `duration_s`, `started_at`, `captcha`, `tab_switches`, `hidden_seconds` and `pastes` are in the files |

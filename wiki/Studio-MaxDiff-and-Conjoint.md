@@ -293,6 +293,12 @@ choices. The summary adds "Weight: *column*", and the base reads
 "247 respondents (231.4 weighted)". See
 [Apply weight](Studio-Node-Reference#apply-weight).
 
+To chart it, connect the node's `table` to a **Result chart**: the utilities
+with their 95 % intervals against the reference item at 0 (`utilities`, what
+`auto` draws), the counting scores (`scores`) or the shares (`shares`); with
+**Estimate** `counts`, the scores. See
+[Chart a MaxDiff or TURF result](Studio-Recipes#chart-a-maxdiff-or-turf-result).
+
 ### MaxDiff scores (per respondent)
 
 The **MaxDiff** node describes everyone together. To break preferences down
@@ -349,7 +355,9 @@ levels tested, not of the attribute in general": price from £10 to £12 will
 look unimportant beside price from £10 to £100. After **Apply weight** the
 part-worths, and so the **Importance %**, are fitted on the weighted choices;
 the summary adds "Weight: *column*" and gives the weighted base beside the
-respondents ("247 respondents (231.4 weighted)").
+respondents ("247 respondents (231.4 weighted)"). A **Result chart** of its
+`table` draws each attribute's importance (`importance`) or the part-worths
+of its levels, in the design's order (`partworths`).
 
 ### Share of preference
 
@@ -369,7 +377,7 @@ A summary goes with it: **Question**, **Base** ("247 respondents"), **Method**
 of these"**: "shares of the products listed and of choosing none, not market
 shares"). After **Apply weight** the shares come from the weighted
 part-worths, the base adds the weighted total, and the summary names the
-**Weight**.
+**Weight**. A **Result chart** of its `table` draws each product's share.
 
 ### Conjoint data for HB
 
