@@ -749,3 +749,35 @@ def test_the_check_names_a_split_or_stack_of_several_answers(questionnaire_doc):
         )
     ]
     assert issues({"variable": "aware", "split": "region", "show": "percent"}) == []
+
+
+def test_sorting_a_split_by_a_scale_keeps_the_scale_and_sorts_the_groups(tmp_path):
+    """Largest first stacked Satisfied, Very satisfied, Neither, … from the
+    bottom: the colour ramp of the scale scrambled and its top box with it.
+    The answers keep the scale's order; the groups go largest first."""
+    data = _data()
+    variables = VariableMap()
+    variables.add_many(list(data.variables.values()))
+    labels = {1: "Poor", 2: "Fair", 3: "Good"}
+    variables.add(Variable("rating", "ordinal", label="Rating", labels=labels))
+    # Left (rows 0, 1, 2, 6): Good, Poor, Poor, Fair; Right (3, 4, 5, 7): Good,
+    # Good, Good, Fair — Good is the most given overall.
+    rated = SurveyData(
+        frame=data.frame.assign(rating=[3, 1, 1, 3, 3, 3, 2, 2]), variables=variables
+    )
+    for layout in ("stacked_100", "stacked", "grouped"):
+        chart = rated.plot.bar("rating", split="g", layout=layout, sort="value", show="percent")
+        chart.save(tmp_path / "sorted.png")
+        ax = chart.plot()
+        legend = ax.get_legend() or ax.figure.legends[0]
+        names = [text.get_text() for text in legend.get_texts()]
+        assert sorted(names, key=list(labels.values()).index) in (names, names[::-1])
+        # Right has the larger share of Good, the top answer: first.
+        assert [label.get_text().split("\n")[0] for label in ax.get_xticklabels()] == [
+            "Right",
+            "Left",
+        ]
+        assert "Groups in order of their share of Good" in _footnote(chart)
+    # A nominal split still orders its answers by how often they were given.
+    plain = data.plot.bar("q", split="g", sort="value")
+    assert [t.get_text() for t in plain.plot().get_legend().get_texts()][0] == "Yes"

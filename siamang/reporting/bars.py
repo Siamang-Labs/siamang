@@ -331,7 +331,17 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     if percent:
         with np.errstate(divide="ignore", invalid="ignore"):
             values = np.where(bases[:, None] > 0, counts / bases[:, None] * 100.0, 0.0)
-    order = _order(counts.sum(axis=0), chart.sort)
+    ordered = _is_scale(data, name) and not is_multi
+    groups_order = list(range(len(group_codes)))
+    if ordered and chart.sort == "value":
+        # The steps of a scale stay in their order — sorted by frequency, a
+        # stack's colour ramp and its top box scramble — and the groups go
+        # largest first instead: by the top answer's share, or a stack's height.
+        order = list(range(len(codes)))
+        key = values[:, -1] if percent else counts.sum(axis=1)
+        groups_order = _order(key, "value")
+    else:
+        order = _order(counts.sum(axis=0), chart.sort)
     weighted = weights is not None
     if percent:
         axis = f"% within {by_label}" + (" (weighted)" if weighted else "")
@@ -352,11 +362,18 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         )
     elif percent:
         notes.append(f"Percentages are of each group of {by_label}.")
+    if ordered and chart.sort == "value":
+        top = _name_of(data, name, codes[-1])
+        notes.append(
+            f"Groups in order of their share of {top}; the answers keep the scale's order."
+            if percent
+            else "Groups largest first; the answers keep the scale's order."
+        )
     return Bars(
-        values=values[:, order],
+        values=values[groups_order][:, order],
         positions=[
-            f"{_name_of(data, by, group)}\n(n = {size})"
-            for group, size in zip(group_codes, sizes, strict=True)
+            f"{_name_of(data, by, group_codes[index])}\n(n = {sizes[index]})"
+            for index in groups_order
         ],
         series=[_name_of(data, name, codes[i]) for i in order],
         kind="percent" if percent else "count",

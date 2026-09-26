@@ -91,7 +91,12 @@ chart of a crosstab.
 - **`sort`** — `"code"` (the codebook's order, the default) or `"value"` (the
   largest bar first; with `split`, the answer given most overall; with `by`,
   the highest mean). A colour belongs to its answer, not to its place, so a
-  sorted chart and an unsorted one colour the same answer alike.
+  sorted chart and an unsorted one colour the same answer alike. When the
+  answers split into groups are a scale (ordinal and up), they keep its order
+  and the groups go largest first instead: by their share of the top answer
+  (by their total, for counts), as the note under the chart says. Any value
+  but the defaults of `show`, `split` and `sort` draws the newer chart below,
+  so changing only `sort` also changes the look (colours, labels, notes).
 
 At the defaults (`show="count"`, no `split`, `sort="code"`) the chart is the one
 it has always been, picture for picture. The newer forms also:
