@@ -22,7 +22,7 @@ from siamang.core.variable import VariableMap
 
 @dataclass(frozen=True, slots=True)
 class RegressionResult:
-    kind: str  # ols | logit
+    kind: str  # ols | logit | ordinal
     table: pd.DataFrame  # term, estimate, std_error, statistic, p_value, (odds_ratio)
     stats: dict[str, float | int | str] = field(default_factory=dict)
 
@@ -155,13 +155,19 @@ def regression(
 
     ``kind="auto"`` fits a logit when ``y`` takes exactly two values (coded
     as 0/1 by their order), OLS otherwise. Rows with a missing value in any
-    column are dropped.
+    column are dropped. ``kind="ordinal"`` fits the proportional-odds model of
+    ordered answers (:func:`siamang.data.ordinal.ordinal_regression`), which
+    also leaves the codebook's missing codes out and says how many.
     """
 
     if not predictors:
         raise ValueError("regression needs at least one predictor.")
-    if kind not in ("auto", "ols", "logit"):
-        raise ValueError("kind must be 'auto', 'ols' or 'logit'.")
+    if kind not in ("auto", "ols", "logit", "ordinal"):
+        raise ValueError("kind must be 'auto', 'ols', 'logit' or 'ordinal'.")
+    if kind == "ordinal":
+        from siamang.data.ordinal import ordinal_regression
+
+        return ordinal_regression(frame, y, predictors, weight=weight, variables=variables)
     data = _complete(frame, [y, *predictors], weight)
     if data.empty:
         raise ValueError("regression: no complete rows.")

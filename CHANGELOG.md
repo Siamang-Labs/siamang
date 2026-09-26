@@ -438,6 +438,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reads "Counts as yes is read only by McNemar and Cochran's Q — set Test to
   mcnemar or cochran, or clear it."
 
+- **Ordinal logistic regression** — Regression's **Model** `ordinal`
+  (`data.analysis.regression(..., kind="ordinal")`, `siamang.data.ordinal`):
+  the proportional-odds (cumulative logit) model of three to 20 ordered
+  answers, `logit P(y ≤ j) = θⱼ − xβ` as R's `MASS::polr` (a positive
+  coefficient makes the higher answers more likely). Maximum likelihood by
+  SciPy's BFGS on the exact gradient, polished by Newton steps on the exact
+  Hessian; the table lists each coefficient with its SE, z, p, odds ratio and
+  95 % Wald interval, then the thresholds (`Low|Medium`); the stats give the
+  answers' order, N, the log-likelihood, McFadden's pseudo-R², the
+  likelihood-ratio test, AIC and convergence. It reproduces `polr` and
+  `ordinal::clm` on `MASS::housing` (with its frequencies as weights) and
+  `wine`. The codebook's missing codes are left out and counted; weights enter
+  the likelihood as the logit's do, and the stats say what they sum to when they
+  do not average about 1. Too few or too many answers, text codes, constant or
+  collinear predictors are refused with the reason; non-convergence and a
+  predictor that separates the answers are warned. `auto` never chooses it, so
+  stored flows run as before.
+
 ### Fixed
 
 - **A value a node does not read is not checked.** The t-test's rules "Name

@@ -491,6 +491,53 @@ factors. It is unweighted, and says so on weighted data.
 
 ---
 
+## Ordinal regression
+
+An outcome of ordered answers — very dissatisfied to very satisfied — is not a
+number an ordinary regression may average, nor a yes/no for a logit.
+`regression(..., kind="ordinal")` fits the proportional-odds (cumulative logit)
+model: one threshold between each pair of neighbouring answers and one
+coefficient per predictor, the same at every cut. In a flow it is the
+**Regression** node with **Model** `ordinal`.
+
+```python
+model = data.analysis.regression("satisfaction", ["trust", "region", "age"], kind="ordinal")
+model.table        # term, type, estimate, std_error, statistic (z), p_value,
+                   # odds_ratio, odds_ratio_lower, odds_ratio_upper
+model.stats["order"], model.stats["pseudo_r_squared"], model.stats["lr_p"]
+```
+
+- **Sign.** `logit P(y ≤ j) = θⱼ − xβ`, as R's `MASS::polr` and `ordinal::clm`,
+  Stata's `ologit` and statsmodels' `OrderedModel`: a positive coefficient
+  makes the higher answers more likely, and `odds_ratio = exp(β)` is the odds
+  of answering above any cut rather than at or below it. The table lists the
+  coefficients (`type` `coefficient`), then the thresholds (`threshold`, named
+  `Low|Medium` as polr names them), whose odds-ratio cells are blank.
+- **Numbers.** Maximum likelihood (SciPy's BFGS on the exact gradient, then
+  Newton steps on the exact Hessian), the standard errors from the observed
+  information, z and its normal p, and the odds ratio's 95 % Wald interval —
+  R's `exp(confint.default(fit))`. The stats give the answers' `order`, `n`,
+  the log-likelihood, McFadden's `pseudo_r_squared`, the likelihood-ratio test
+  against the thresholds-only model (`lr_chi_square`, `lr_df`, `lr_p`) and
+  `aic`. On `MASS::housing` they reproduce `polr` and `clm`.
+- **Who is modelled.** The codebook's missing codes are left out and counted
+  (`missing_codes`); a labelled answer nobody in the model gave is not a
+  category, and `note` says so. A nominal predictor is dummy-coded against its
+  first category, as in the other models.
+- **Weights** multiply each respondent's log-likelihood, as the node's logit
+  and `polr(weights = …)` take them (frequency weights). Survey weights that
+  average 1 keep the sample size; when they sum to something else, `weights`
+  says so, because the standard errors count that sum.
+- **Refused, with the reason:** fewer than three answers (then it is the
+  logit), more than 20, text that is not a code, a predictor that does not
+  vary, predictors that are a combination of each other. **Warned** in
+  `warning`: a fit that did not converge, and a predictor that separates the
+  answers — its estimate runs off towards infinity and cannot be read.
+- `kind="auto"` never picks the ordinal model, so an existing flow runs as it
+  did. The proportional-odds assumption itself is not tested.
+
+---
+
 ## Weighted statistics
 
 Set a default weight column once with `with_weight(...)`, then pass
@@ -501,8 +548,8 @@ applied)"` when called without `weighted=True` on weighted data. Weighted or not
 its base is the respondents who answered the question: weights of 1 give the
 unweighted `p` and `n`.
 
-The models read the weight on their own: `regression` fits WLS or a weighted
-logit, and `pca` and `reliability` work from the weighted covariance matrix
+The models read the weight on their own: `regression` fits WLS, a weighted
+logit or a weighted ordinal logit, and `pca` and `reliability` work from the weighted covariance matrix
 (the unbiased estimate for reliability weights, as R's `cov.wt` computes it, so
 equal weights reproduce the unweighted result). Each names the column in
 `stats["weight"]`.
