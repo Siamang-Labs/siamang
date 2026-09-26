@@ -25,6 +25,14 @@ A multiple-choice question (lists of codes) is one table of every option, its
 base the respondents who chose at least one; its percentages add to more than
 100. An interval or ratio question adds its mean and standard deviation per
 column when ``means`` is on (not tested).
+
+On weighted data the cells hold the sums of weights as they are, and the
+percentages are of those sums — as the Frequencies and Crosstab tables compute
+them, never of sums rounded for show; the weighted counts and bases are shown
+to one decimal, as those tables show them. The workbook is written as the
+engine's other workbooks are (:mod:`siamang.io.excel_text`): a label, an
+answer or a banner name that begins with ``=`` stays text, never a formula
+Excel would run, and a link to a sheet quotes its name.
 """
 
 from __future__ import annotations
@@ -59,6 +67,11 @@ PERCENTAGES = ("column", "row", "none")
 MAX_UNLABELLED = 30
 #: Excel's limit on a sheet name.
 SHEET_NAME_LENGTH = 31
+#: A weighted count or base is shown to one decimal, as the Frequencies and
+#: Crosstab tables show it: whole, weights summing to 1 over a thousand
+#: respondents would read 0 and 1 beside their percentages. The cell holds the
+#: sum of weights as it is, and the percentages are of those sums.
+WEIGHTED_FORMAT = "#,##0.0"
 
 _TOTAL = "__tabbook_total__"
 _ILLEGAL_SHEET = re.compile(r"[\[\]:*?/\\]")
@@ -664,6 +677,8 @@ class _Writer:
     def save(self, path: Path) -> None:
         from openpyxl import Workbook
 
+        from siamang.io.excel_text import as_text
+
         workbook = Workbook()
         contents = workbook.active
         contents.title = "Contents"
@@ -673,6 +688,9 @@ class _Writer:
         notes = workbook.create_sheet("Notes")
         self._contents(contents, names)
         self._notes(notes)
+        # A label, an answer or a banner name that begins with "=" is text,
+        # never a formula Excel would run (as every workbook the engine writes).
+        as_text(workbook.worksheets)
         workbook.save(path)
 
     # ── cells ──
@@ -684,8 +702,6 @@ class _Writer:
         if isinstance(value, str):
             value = _text(value)
         cell = sheet.cell(row=row, column=column, value=value)
-        if isinstance(value, str) and value.startswith("="):
-            cell.data_type = "s"  # a label, never a formula
         for key, setting in style.items():
             if setting is not None:
                 setattr(cell, key, setting)
@@ -694,9 +710,12 @@ class _Writer:
     def _link(self, sheet: Worksheet, row: int, column: int, text: str, target: str) -> None:
         from openpyxl.worksheet.hyperlink import Hyperlink
 
+        from siamang.io.excel_text import sheet_link
+
         cell = self._put(sheet, row, column, text, font=self.link)
-        location = "'" + target.replace("'", "''") + "'!A1"
-        cell.hyperlink = Hyperlink(ref=cell.coordinate, location=location, display=_text(text))
+        cell.hyperlink = Hyperlink(
+            ref=cell.coordinate, location=sheet_link(target), display=_text(text)
+        )
 
     # ── Contents ──
     def _contents(self, sheet: Worksheet, names: list[str]) -> None:
@@ -834,7 +853,7 @@ class _Writer:
                     row,
                     value_at,
                     value,
-                    number_format="#,##0",
+                    number_format=WEIGHTED_FORMAT,
                     font=self.bold,
                     fill=self.base_fill,
                 )
@@ -845,7 +864,7 @@ class _Writer:
         for position, (_code, label) in enumerate(tab.answers):
             lines: list[tuple[list[float], str]] = []
             if book.counts:
-                lines.append((tab.counts[position], "#,##0"))
+                lines.append((tab.counts[position], WEIGHTED_FORMAT if weighted else "#,##0"))
             if percent is not None:
                 lines.append((percent[position], "0.0%"))
             # The letters compare column percentages: beside them.
@@ -1042,12 +1061,13 @@ def _sheet_names(variables: list[str]) -> list[str]:
     names = []
     for variable in variables:
         stem = _ILLEGAL_SHEET.sub("_", _text(variable)).strip("'") or "Question"
-        stem = stem[:SHEET_NAME_LENGTH]
+        # Excel refuses a name that begins or ends with an apostrophe, as a cut may leave it.
+        stem = stem[:SHEET_NAME_LENGTH].rstrip("'")
         name, number = stem, 1
         while name.lower() in taken:
             number += 1
             suffix = f"~{number}"
-            name = stem[: SHEET_NAME_LENGTH - len(suffix)] + suffix
+            name = stem[: SHEET_NAME_LENGTH - len(suffix)].rstrip("'") + suffix
         taken.add(name.lower())
         names.append(name)
     return names

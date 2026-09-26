@@ -7,7 +7,8 @@ openpyxl stores any string that begins with ``=`` as a formula, and pandas'
 and reading the file back gives no value for it at all (a formula has no
 cached result until Excel computes one). Respondent text and names are data,
 as Studio's own exports treat them: every cell :func:`to_excel` writes and
-:func:`as_text` passes over keeps its text as a string.
+:func:`as_text` passes over keeps its text as a string. A link from one sheet
+to another names the sheet as :func:`sheet_link` quotes it.
 """
 
 from __future__ import annotations
@@ -48,4 +49,13 @@ def to_excel(
     return path
 
 
-__all__ = ["as_text", "to_excel"]
+def sheet_link(name: str) -> str:
+    """The place a link inside a workbook points to: the top of sheet
+    ``name``, quoted and with an apostrophe in the name doubled, as Excel
+    writes a sheet in a formula — ``'Brand''s image'!A1``. Unquoted, or with
+    the apostrophe single, the link leads nowhere."""
+
+    return "'" + name.replace("'", "''") + "'!A1"
+
+
+__all__ = ["as_text", "sheet_link", "to_excel"]

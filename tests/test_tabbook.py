@@ -378,6 +378,11 @@ def test_sheet_names_are_unique_short_and_legal(tmp_path):
         for cell in row
     ]
     assert links[1] == (f"Question {long.upper()}", f"'{long.upper()[:29]}~2'!A1")
+    # Excel refuses a name ending in an apostrophe, as cutting to 31 may leave one.
+    from siamang.reporting.tabbook import _sheet_names
+
+    cut = "b" * 30 + "'s"
+    assert _sheet_names([cut, cut]) == ["b" * 30, "b" * 29 + "~2"]
 
 
 def test_the_workbook_contents_notes_and_formats(tmp_path):
@@ -415,7 +420,9 @@ def test_the_workbook_contents_notes_and_formats(tmp_path):
     assert sheet["B5"].value == "Total" and sheet["C5"].value == "Region"
     assert "C5:H5" in {str(merged) for merged in sheet.merged_cells.ranges}
     assert sheet["A7"].value == "Base (unweighted)" and sheet["A8"].value == "Base (weighted)"
-    assert sheet["B9"].number_format == "#,##0" and sheet["B10"].number_format == "0.0%"
+    # A weighted count to one decimal, as the Crosstab shows it; the bases too.
+    assert sheet["B9"].number_format == "#,##0.0" and sheet["B10"].number_format == "0.0%"
+    assert sheet["B7"].number_format == "#,##0" and sheet["B8"].number_format == "#,##0.0"
     assert sheet.column_dimensions["D"].width == 5  # a letters column
     notes = {row[0]: row[1] for row in workbook["Notes"].iter_rows(values_only=True) if row[0]}
     assert notes["Created"] == "2026-09-01 08:30 UTC"
@@ -425,6 +432,78 @@ def test_the_workbook_contents_notes_and_formats(tmp_path):
     assert notes["Bonferroni"].startswith("yes")
     assert notes["Minimum base for a test"] == "30 respondents (Kish's effective base)"
     assert notes["Missing codes left out"] == "none met"
+
+
+def test_weighted_cells_are_the_crosstabs_of_the_sums_of_weights(tmp_path):
+    """The percentages are of the sums of weights as they are, as the fixed
+    Frequencies and Crosstab tables compute them: weights 0.04, 0.04, 0.04 and
+    0.34 give 8.7 / 17.4 / 73.9 %, not the 0.0 / 25.0 / 75.0 % of sums rounded
+    to one decimal; and a group of a multiple-choice question weighing 1.3 whose
+    respondents all chose an option is at 100 %, not 130 % of a base of 1. The
+    weighted counts and bases show one decimal, as those tables show them."""
+    q = Variable("q", "ordinal", label="Q", labels={1: "a", 2: "b", 3: "c"})
+    one = Variable("g", "nominal", label="G", labels={1: "One"})
+    frame = pd.DataFrame(
+        {"q": [1.0, 2.0, 2.0, 3.0], "g": [1, 1, 1, 1], "w": [0.04, 0.04, 0.04, 0.34]}
+    )
+    data = _data(frame, q, one).with_weight("w")
+    tab = tabulate(data, banner=["g"], questions=["q"]).tabs[0]
+    shares = [[round(share * 100, 1) for share in row] for row in tab.column_percent]
+    assert shares == [[8.7, 8.7], [17.4, 17.4], [73.9, 73.9]]
+    crosstab = CrossTable(data=data, row="q", col="g", pct="col", test=False).to_frame()
+    assert [row[1] for row in shares] == list(crosstab["One"][:3])
+    assert [row[0] for row in shares] == list(data.report.freq("q").to_frame()["%"][:3])
+    path = tmp_path / "small.xlsx"
+    write_tabbook(data, path, banner=["g"], questions=["q"], created=CREATED)
+    sheet = load_workbook(path)["q"]
+    rows = {row[0].value: row for row in sheet.iter_rows() if row[0].value}
+    weighted_base = rows["Base (weighted)"][1]
+    assert weighted_base.value == pytest.approx(0.46) and weighted_base.number_format == "#,##0.0"
+    count = rows["a"][1]
+    assert count.value == pytest.approx(0.04) and count.number_format == "#,##0.0"
+    assert rows["Base (unweighted)"][1].number_format == "#,##0"
+
+    used = Variable("m", "nominal", label="Used", labels={1: "Opt one", 2: "Opt two"})
+    group = Variable("g", "nominal", label="Group", labels={1: "A", 2: "B"})
+    frame = pd.DataFrame(
+        {"m": [[1], [1, 2], [2], [1]], "g": [1, 1, 2, 2], "w": [0.6, 0.7, 1.4, 0.2]}
+    )
+    data = _data(frame, used, group).with_weight("w")
+    tab = tabulate(data, banner=["g"], questions=["m"]).tabs[0]
+    shares = [[round(share * 100, 1) for share in row[1:]] for row in tab.column_percent]
+    crosstab = data.report.crosstab("m", "g", pct="col").to_frame()
+    assert shares == [[100.0, 12.5], [53.8, 87.5]]
+    assert shares == [list(crosstab.loc[i, ["A", "B"]]) for i in (0, 1)]
+    assert tab.weighted_base[1:] == [pytest.approx(1.3), pytest.approx(1.6)]
+
+
+def test_text_that_looks_like_a_formula_stays_text_and_links_are_quoted(tmp_path):
+    """A label, an answer or a banner name that begins with "=" is written as
+    text, never as a formula Excel would run; a sheet named with an apostrophe
+    is linked to with the apostrophe doubled, as Excel names it."""
+    question = Variable(
+        "q'x",
+        "nominal",
+        label='=HYPERLINK("http://evil.example","Click me")',
+        labels={1: "=1+1", 2: "Fine"},
+    )
+    grp = Variable("grp", "nominal", label="=cmd|' /C calc'!A0", labels={1: "=SUM(A1)", 2: "B"})
+    frame = pd.DataFrame({"q'x": [1, 2, 1, 2], "grp": [1, 1, 2, 2]})
+    path = tmp_path / "formulas.xlsx"
+    write_tabbook(_data(frame, question, grp), path, banner=["grp"], created=CREATED)
+    book = load_workbook(path)
+    cells = [cell for sheet in book.worksheets for row in sheet.iter_rows() for cell in row]
+    assert not [cell.coordinate for cell in cells if cell.data_type == "f"]
+    texts = {cell.value for cell in cells if isinstance(cell.value, str)}
+    assert {
+        '=HYPERLINK("http://evil.example","Click me")',
+        "=1+1",
+        "=SUM(A1) (A)",
+        "=cmd|' /C calc'!A0",
+    } <= texts
+    assert book.sheetnames == ["Contents", "q'x", "Notes"]
+    assert book["Contents"]["B5"].hyperlink.location == "'q''x'!A1"
+    assert book["Contents"]["E5"].hyperlink.location == "'q''x'!A1"
 
 
 def test_what_a_tab_book_refuses(tmp_path):

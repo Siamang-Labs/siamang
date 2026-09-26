@@ -125,8 +125,10 @@ describes, else `Table <n>`; the name is cut to Excel's 31 characters, loses
 `[ ] : * ? / \`, and is made unique (`Age`, `Age (2)`). The first sheet,
 `Contents`, lists every sheet with its section and full caption (or the kind of
 table: `Group means: Age`; `Perceptual map: Brand × Region — rows (Brand)` for
-one of a map's three tables), each a link. Charts, text and statistics lines are
-left out; a report without tables gets a Contents sheet that says so.
+one of a map's three tables), each a link — to a sheet named `Brand's image`
+as Excel names it in a reference, `'Brand''s image'!A1`, the apostrophe
+doubled. Charts, text and statistics lines are left out; a report without
+tables gets a Contents sheet that says so.
 
 ```python
 report.save("out/report.md")

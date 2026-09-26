@@ -606,9 +606,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   question. *Questions* empty is every nominal, ordinal and multiple-choice
   variable of the codebook but the banner, the weight and the response
   metadata. The `stat` output gives `Sheets written`, `Questions skipped` and
-  why (`not in the data`, an open answer with no labels, …).
+  why (`not in the data`, an open answer with no labels, …). On weighted data
+  the cells hold the sums of weights as they are and the percentages are of
+  those sums, as the Frequencies and Crosstab tables compute them; the
+  weighted counts and bases are shown to one decimal (`#,##0.0`), as those
+  tables show them. The workbook keeps text as text as Save report's does
+  (`siamang.io.excel_text`): a label, an answer or a banner name that begins
+  with `=` is never a formula, and its links quote a sheet's name.
 
 ### Fixed
+
+- **Save report's workbook links a sheet whose name has an apostrophe.** The
+  Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
+  which Excel cannot follow; a sheet's name in a link is quoted with an
+  apostrophe inside doubled, `'Brand''s image'!A1`
+  (`siamang.io.excel_text.sheet_link`, which the Tab book uses too).
 
 - **Large counts read with their thousands separated.** The newer Bar chart
   wrote bases as `n = 182128`, weighted counts on bars as `18848.4` and count
