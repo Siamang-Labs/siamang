@@ -859,7 +859,10 @@ class GroupMeanTable(_BlankUndefined, SurveyTable):
 
         weights = _weights_of(self.data, frame.index)
         if weights is None:
-            grouped = frame.groupby(self.by)[self.column]
+            # In float64: a float32 column (a Stata "float", Parquet from other
+            # tools) aggregates to float32, which round(3) cannot hold, and the
+            # cells printed 3.444000005722046.
+            grouped = frame[self.column].astype(float).groupby(frame[self.by])
             agg = grouped.agg(["mean", "std", "median", "count"])
         else:
             # Weighted mean, SD and median per group; N stays the people counted.

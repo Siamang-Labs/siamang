@@ -263,6 +263,38 @@ def test_a_bare_frame_prints_its_numbers_in_the_html_as_in_the_markdown():
     assert cells[11] == "0.30655677028563"
 
 
+def test_group_means_of_a_float32_column_print_their_rounded_numbers():
+    """A table component's cells are printed with str, as they are kept. Group
+    means aggregated a float32 column (a Stata "float", Parquet from other
+    tools) in float32, which round(3) cannot hold: Mean, SD and Median read
+    3.444000005722046 in both the .md and the .html. The weighted path, in
+    float64, printed 3.514."""
+
+    import numpy as np
+
+    from siamang.data import SurveyData
+
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(
+        {
+            "y": rng.normal(3, 1, 50).astype(np.float32),
+            "g": rng.integers(1, 3, 50),
+            "w": rng.uniform(0.5, 2, 50).astype(np.float32),
+        }
+    )
+    table = SurveyData(frame=frame).report.means("y", by="g")
+    assert "| 1 | 3.444 | 0.787 | 3.264 | 23 |" in table.to_markdown()
+    assert re.findall(r"<td>([^<]*)</td>", table.to_html())[:5] == [
+        "1",
+        "3.444",
+        "0.787",
+        "3.264",
+        "23",
+    ]
+    weighted = SurveyData(frame=frame).with_weight("w").report.means("y", by="g")
+    assert "| 1 | 3.514 | 0.759 | 3.352 | 23 |" in weighted.to_markdown()
+
+
 def test_numbering_is_off_until_it_is_asked_for_and_then_it_counts():
     frame = pd.DataFrame({"a": [1]})
     report = Report(title="R").add(frame, caption="One").add(frame, caption="Two")
