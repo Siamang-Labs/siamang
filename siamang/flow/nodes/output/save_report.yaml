@@ -1,7 +1,7 @@
 type: output.save_report
 category: output
 title: Save report
-description: Combine sections into one report and save it as Markdown (and HTML).
+description: Combine sections into one report and save it as Markdown (and HTML, and its tables in Excel).
   Markdown carries the content; HTML carries the look the theme describes.
 inputs:
   sections:
@@ -26,6 +26,11 @@ params:
     kind: bool
     default: false
     label: Table of contents
+  xlsx:
+    kind: bool
+    default: false
+    label: Also save tables to Excel
+    help: Every table of the report in one workbook beside it (Path with .xlsx) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out.
   theme:
     kind: theme
     label: Look
@@ -45,4 +50,7 @@ template:
 - when: html
   code: |
     {out.report}.save(Path({path!r}).with_suffix(".html"))
+- when: xlsx
+  code: |
+    {out.report}.save_tables(Path({path!r}).with_suffix(".xlsx"))
 preview: report

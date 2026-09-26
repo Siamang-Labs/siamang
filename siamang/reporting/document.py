@@ -499,3 +499,13 @@ class Report:
                 merged._blocks.append(("md", f"*{r.description}*"))
             merged._blocks.extend(r._blocks)
         return merged
+
+    # ── tables to Excel ───────────────────────────────────────────
+    def save_tables(self, path: str | Path) -> Path:
+        """Every table of the report in one Excel workbook (``.xlsx``): a sheet
+        per table as its own ``export_xlsx`` writes it, named by its caption or
+        its section's heading, its statistics under it, and a Contents sheet
+        first. Charts are left out. See :mod:`siamang.reporting.workbook`."""
+        from siamang.reporting.workbook import save_tables
+
+        return save_tables(self, path)
