@@ -1010,6 +1010,82 @@ def test_a_count_axis_on_a_small_figure_is_thinned_and_a_mean_separates_thousand
     assert bars.value_text(3.456, "mean") == "3.46"
 
 
+def _value_tick_gaps(ax) -> list[float]:
+    """The room between neighbouring value-axis labels of horizontal bars,
+    in pixels, as drawn."""
+
+    fig = ax.figure
+    fig.draw_without_rendering()
+    renderer = fig.canvas.get_renderer()
+    low, high = ax.get_xlim()
+    boxes = sorted(
+        (
+            label.get_window_extent(renderer)
+            for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=False)
+            if low <= tick <= high and label.get_text()
+        ),
+        key=lambda box: box.x0,
+    )
+    return [b.x0 - a.x1 for a, b in zip(boxes, boxes[1:], strict=False)]
+
+
+@pytest.mark.parametrize("split", [None, "gender"])
+def test_value_ticks_are_fitted_after_the_values_widen_the_axis(tmp_path, split):
+    """The values written past the bars widen the value axis. The ticks were
+    fitted before that, and the same ticks on the longer axis ran into one
+    another again: '20,00040,00060,000' at 5 x 4 in, gaps of -2 to -7 px."""
+
+    counts = [20_058, 53_703, 87_533, 35_273, 25_006]
+    region = np.repeat(np.arange(1, 6), counts)
+    frame = pd.DataFrame({"region": region, "gender": np.arange(region.size) % 2 + 1})
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(
+                "region",
+                "nominal",
+                label="Region of residence",
+                labels={code: REGIONS[code] for code in range(1, 6)},
+            ),
+            Variable("gender", "nominal", label="Gender", labels={1: "Man", 2: "Woman"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    chart = data.plot.bar("region", split=split, horizontal=True, sort="value", figsize=(5, 4))
+    chart.save(tmp_path / "count.png")
+    ax = chart.plot()
+    assert sum(1 for text in ax.texts if text.get_text()) == 5 * (2 if split else 1)
+    gaps = _value_tick_gaps(ax)
+    room = 0.5 * ax.xaxis.get_majorticklabels()[0].get_fontsize() / 72 * ax.figure.dpi
+    assert len(gaps) >= 2, gaps  # three ticks at least
+    assert min(gaps) >= room, gaps  # half an em apart, as fitted
+
+
+def test_ticks_are_thinned_a_bin_at_a_time():
+    """0 20,000 40,000 60,000 that run together on a 2.4 in axis become
+    0 25,000 50,000, not 0 50,000 alone."""
+
+    import matplotlib.pyplot as plt
+
+    from siamang.reporting.chart_parts import fit_ticks, thousands_axis
+
+    fig, ax = plt.subplots(figsize=(2.4, 1), dpi=100)
+    try:
+        ax.set_xlim(0, 68_383)
+        thousands_axis(ax.xaxis)
+        assert [tick for tick in ax.get_xticks() if 0 <= tick <= 68_383] == [
+            0,
+            20_000,
+            40_000,
+            60_000,
+        ]
+        fit_ticks(ax, "x")
+        assert [tick for tick in ax.get_xticks() if 0 <= tick <= 68_383] == [0, 25_000, 50_000]
+        assert all(gap >= 0 for gap in _value_tick_gaps(ax))
+    finally:
+        plt.close(fig)
+
+
 def test_a_box_plot_in_the_theme_s_colours_keeps_its_value_title_clear_of_the_title(tmp_path):
     """A 40-character value label longer than the plot ran into the chart's
     title; in the theme's colours it wraps to the plot's height (a named

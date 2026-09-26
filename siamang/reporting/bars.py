@@ -1193,8 +1193,6 @@ def render(chart: BarChart, bars: Bars, *, across: bool = False) -> None:
         chart._fig = chart._ax = None
         render(chart, bars, across=True)
         return
-    if horizontal and bars.kind != "percent":
-        fit_ticks(ax, "x")  # counts and means of thousands on a narrow plot
     marked = bars.marks is not None and any(mark for row in bars.marks for mark in row)
     if chart.show_values or marked:
         written = _write_values(
@@ -1209,6 +1207,10 @@ def render(chart: BarChart, bars: Bars, *, across: bool = False) -> None:
         if marked and written:
             _keep_inside(ax, written, horizontal)
             footnote.apply()
+    if horizontal and bars.kind != "percent":
+        # Counts and means of thousands on a narrow plot, once the value axis
+        # has its final length.
+        fit_ticks(ax, "x")
 
 
 def _keep_inside(ax: Any, texts: list[Any], horizontal: bool) -> None:
