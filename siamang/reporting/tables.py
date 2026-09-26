@@ -128,13 +128,18 @@ def stat_text(value: Any) -> str:
     significant digits with its exponent (``p = 5.8e-07``, ``p = 7.988e-32``),
     so nothing that is not 0 is printed as ``0.0000``. That is
     :func:`~siamang.data.listwise.round_p`'s rule, so the footer and the
-    statistics give the same p: ``5e-05``, not ``0.0001`` beside it.
+    statistics give the same p: ``5e-05``, not ``0.0001`` beside it. A value
+    below 1 that four significant digits already hold prints as it is kept —
+    the p of Paired tests and factor analysis
+    (:func:`~siamang.data.listwise.p_rounded`: ``p = 0.002343``, not ``0.0023``).
     """
     if isinstance(value, float) and not isinstance(value, bool):
         if not np.isfinite(value):
             return str(value)
         if value != 0 and abs(value) < 1e-4:
             return f"{value:.4g}"
+        if value != 0 and abs(value) < 1 and float(f"{value:.4g}") == value:
+            return str(float(value))  # float(): a numpy float's str is its repr
         text = f"{value:.4f}".rstrip("0")
         text = text + "0" if text.endswith(".") else text
         return "0.0" if text == "-0.0" else text

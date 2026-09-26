@@ -372,6 +372,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and one below 0.0001 with four significant digits and its exponent
   (`siamang.reporting.tables.stat_text`: `p = 5.8e-07`), so a footer prints
   the p the statistics keep (`7.988e-32`, and `5e-05` rather than `0.0001`);
+  a float below 1 that four significant digits hold prints as it is, so the
+  footers of Paired tests and factor analysis, whose p keeps four significant
+  digits, print it (`p = 0.002343`, `Bartlett p = 0.00227`, not `0.0023`);
   Tukey's and Games-Howell's p below 1e-07 — past which SciPy's studentized
   range is its integration's noise, `1.144e-14` for every strong pair of three
   groups at 297 df — reads `< 1e-07`; Compare groups'
