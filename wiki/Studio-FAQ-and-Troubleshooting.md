@@ -530,6 +530,72 @@ says "Not written: a preview never writes project tables. A run writes N rows
 to table '*name*' …", and the Live tiles are not touched. Only a run of the
 flow — **Run**, **Run all**, a schedule — writes the table.
 
+**Is there a t-test? Which test does Group means run?**
+Yes. The **t-test** node compares two groups (Welch's by default, or
+Student's), two answers of the same respondents (**Design** `paired`) or one
+mean against a value (`one_sample`), with t, df, p, the mean difference and
+its CI, and Cohen's d. **Group means** chooses a test for you with **Test**
+`auto` — Student's t-test or a one-way ANOVA for interval data, Mann-Whitney
+or Kruskal-Wallis for ordinal — or runs the one you name: `student`,
+`welch`, `anova`, `welch_anova`, `mannwhitney`, `kruskal` — and after
+`anova`, `welch_anova` or `kruskal`, a post-hoc comparison of every pair. Rank tests are
+also in **Compare groups** (with Dunn's test), paired ones in **Paired tests**
+(Wilcoxon, McNemar, Friedman), Fisher's exact test in **Crosstab**, and
+Pearson, Spearman or Kendall in **Correlation** and **Correlation matrix**.
+→ [Which test](Studio-Node-Reference#analyze)
+
+**"Tukey's HSD follows a one-way ANOVA — set Test to anova, or Post-hoc to none."**
+A post-hoc test belongs to one test: Tukey's HSD to `anova`, Games-Howell to
+`welch_anova`, Dunn's test to `kruskal` (in **Compare groups**, to `kruskal`
+or `auto`). Change **Test** or **Post-hoc** as the message says. It is an
+error: the flow cannot run until you do. A warning such as "Post-hoc is not
+run while Significance test is off." only names a setting the node would
+ignore. → [Rules between parameters](Studio-Node-Reference#reading-this-page)
+
+**A field I filled in disappeared from the inspector.**
+The node does not read it with its current choices — a t-test's **Groups**
+once **Design** is `paired`, TURF's **Portfolio** unless **Search** is
+`fixed`. It is kept, and named under the other fields: "Not used with these
+choices, and kept for when they apply: …", with **Clear it**. It is not
+checked while it is not read, so a stale value there never stops the flow.
+Switch the choice back and it is used again. → [Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers)
+
+**Group means with Test auto and with kruskal give different Kruskal-Wallis results.**
+The codebook's missing codes. A test you choose by hand leaves them out
+("Missing codes left out = …"); `auto` counts them as answers, as it always
+has, so that stored flows keep their numbers — and says so: "Missing codes
+counted as answers = Trust: Acme: 44 (9 = Refused); run Missing values first
+to leave them out". Put **Missing values** before the node and both agree.
+The same holds for **Compare groups** with and without Dunn's test, and for
+**Correlation** with `spearman` and with the other methods.
+
+**The test line reads "Test = not run: …".**
+The data cannot carry the test, and the rest of the line says why and what to
+choose instead — for example "Welch's t-test (unequal variances) compares two
+groups and Region has 3 — choose anova or welch_anova". A group of one, or
+answers without any spread, give such a line too, rather than a number.
+
+**"Gender has 3 answers (…); a t-test compares two — name them in Group A and Group B, unless the data this node reads holds only two of them." / "Gender has 3 groups (…); a t-test compares two — name them in Group A and Group B."**
+The first is a warning of the **Checks** block, before any run: **Groups**
+has more than two answers in the codebook and neither **Group A** nor **Group
+B** is named — "Gender has 3 answers (1 = Male, 2 = Female, 3 = Other); a
+t-test compares two — name them in Group A and Group B, unless the data this
+node reads holds only two of them." It does not stop the flow, since a filter
+upstream may leave two. If none does, the run then stops with the second,
+"Gender has 3 groups (1 = Male, 2 = Female, 3 = Other); a t-test compares two
+— name them in Group A and Group B." A t-test compares two groups. Pick them in **Group A** and **Group B** (the
+dropdowns list the answers of **Groups**), or use **Group means** with
+`anova` or `welch_anova` for all three. A multiple-choice **Groups** is
+refused because its groups overlap: run **Explode multiple choice** and
+compare by one option's 0/1 column.
+
+**My research bundle stops at a t-test (or Export file) node.**
+The bundle's engine pin may lag behind Studio: at the last merged upstream
+commit, the new statistics nodes, every **Export file** and **Code open
+answers** node, and a test chosen by hand stop with an error. The bundle's
+README says so; install the engine revision it names.
+→ [Installing the engine](Studio-Reproducibility#installing-the-engine)
+
 **The report is empty or missing.**
 A report needs a **Report section** connected to a **Save report** node, and the
 flow must have run. Output paths must be under `outputs/`.

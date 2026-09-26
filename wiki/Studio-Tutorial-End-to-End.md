@@ -312,20 +312,24 @@ Response quality `table` (counts per quality flag) to the Report section's
 `items` input in the order they should appear.
 
 > **Which outputs are weighted?** After **Apply weight**, the node's **Weight
-> column** help lists them: **Frequencies**, **Crosstab**, **Group means**
-> (not N or the test), **Banner table**, **Net Promoter Score**,
-> **Regression**, **TURF**, **MaxDiff**, **Conjoint**, **Share of
-> preference**, **Principal components**, **Scale reliability**, **Bar
-> chart**, **Heatmap** with **By**, and **Proportion CI** with **Weighted**
-> ticked. A Banner table is used here for its significance letters; a
+> column** help lists them: **Frequencies**, **Crosstab** (Fisher's exact
+> test counts respondents), **Group means** (not N or the test),
+> **Descriptive statistics** (not N, skewness or kurtosis), **Banner
+> table**, **Net Promoter Score**, **Regression**, **TURF**, **MaxDiff**,
+> **Conjoint**, **Share of preference**, **Principal components**, **Scale
+> reliability**, **Correlation** and **Correlation matrix** with Pearson,
+> **Bar chart**, **Heatmap** with **By**, and **Proportion CI** with
+> **Weighted** ticked. A Banner table is used here for its significance letters; a
 > **Crosstab** (**Rows** `satisfaction`, **Columns** `region`, **Percentages**
 > `col`) would also give weighted column percentages, with a chi-square test
 > on the effective base instead of letters. The **Bar chart** here, with
 > **By** `region`, shows weighted mean satisfaction per region (its axis
-> reads "Weighted mean …"). **Compare groups**, **Correlation**, **Cluster
-> (k-means)**, **Box plot**, **Scatter plot**, a **Heatmap** without **By**,
-> **Response quality** and **Code open answers** stay unweighted and say so
-> in their output. See
+> reads "Weighted mean …"). **Compare groups**, **Correlation** and
+> **Correlation matrix** with Spearman or Kendall, **t-test**, **Paired
+> tests**, **Factor analysis**, **Cluster (k-means)**, **Box plot**,
+> **Scatter plot**, a **Heatmap** without **By**, **Response quality**,
+> **Code open answers**, **Data check**, and the counts of **MaxDiff scores**
+> and **Bands** stay unweighted and say so in their output. See
 > [Making tables and tests use the weight](Studio-Cleaning-and-Weighting#making-tables-and-tests-use-the-weight).
 
 ### Preview and check

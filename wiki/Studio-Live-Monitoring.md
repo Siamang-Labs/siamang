@@ -186,6 +186,9 @@ The flow then appears under **Live tiles** with its tiles.
 | **chart** | the connected chart as an image |
 | **text** | the value as text |
 
+Numbers show up to three decimals; a number smaller than 0.001 — a p-value,
+say — is written with its exponent (`2.35e-5`) rather than rounded to 0.
+
 By default every tile takes one grid cell. Larger tiles can be set only in
 the flow's document; there is no drag-to-resize on the Live tab.
 

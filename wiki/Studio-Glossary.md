@@ -38,6 +38,10 @@ arm of an experiment. → [[Scripts|Studio-Scripts]]
 Builder so the analysis can flag respondents who fail it.
 → [[Data Quality|Studio-Data-Quality]]
 
+**Bands** — a number cut into labelled ranges ("18 to under 30", …) as a new
+ordinal variable, by the **Bands** node; missing codes are taken out first and
+values outside every band stay blank. → [Bands](Studio-Node-Reference#bands)
+
 **Banner table** — a cross-break: several questions down the page against
 several breakdowns across it, with significance letters.
 → [[Node Reference|Studio-Node-Reference]]
@@ -115,11 +119,29 @@ Save, except that colleagues following your edit lock see it live.
 **Edit lock** — the right to edit one document. One person holds it; others
 follow live and can **Take over**. → [[Working Together|Studio-Collaboration]]
 
+**Effect size** — how large a difference or relationship is, beside whether
+it is significant: Cohen's d and Hedges' g for two means, η² for an ANOVA,
+ε² for Kruskal-Wallis, the rank-biserial r for rank tests, Kendall's W for
+Friedman's test, Cramér's V for a crosstab.
+→ [Node Reference](Studio-Node-Reference#analyze)
+
 **Environment** — a named publishing target (`pilot`, `main`) with its own
 permanent link and response cap. → [[Publishing and Environments|Studio-Publishing-and-Environments]]
 
 **Export Python** — downloading the Python the engine generated for the
 questionnaire or a flow at a given Save. → [[Reproducibility|Studio-Reproducibility]]
+
+**Factor analysis** — an exploratory analysis of which items of a battery
+move together (factors), how strongly each loads on each, and whether the
+items share enough to be factored at all (KMO, Bartlett's test). Its
+**factor scores** — one variable per factor, `factor_1`, `factor_2`, … — can
+be used by later nodes. → [Factor analysis](Studio-Node-Reference#factor-analysis)
+
+**Fisher's exact test** — a test of a crosstab that sums the exact
+probabilities instead of the chi-square approximation, for small counts; for
+2 × 2 it also gives the odds ratio, for larger tables it is the
+Fisher-Freeman-Halton test. A **Crosstab** choice (**Test** `fisher`).
+→ [Crosstab](Studio-Node-Reference#crosstab)
 
 **Flow** — an analysis drawn as connected nodes; saved as a document and
 generated into a Python script. It can be renamed, duplicated and deleted,
@@ -156,12 +178,20 @@ each with a personal link. → [[Email Invitations|Studio-Email-Invitations]]
 and asks for the best and the worst.
 → [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
 
+**MaxDiff score** — a respondent's own counting score for one MaxDiff item:
+best minus worst over the times they were shown it, from −1 to 1; made by the
+**MaxDiff scores** node as one variable per item (`q_md_score_1`, …).
+→ [MaxDiff scores](Studio-Node-Reference#maxdiff-scores)
+
 **Methods draft** — a Methods section Studio writes from a Save's documents,
 with `[...]` where you must fill in. → [[History and Versions|Studio-History-and-Versions]]
 
 **Missing code** — a value that means "no valid answer" (`98 = Don't know`),
 declared with its label in the Codebook and exported as a declared missing
-value to SPSS and Stata.
+value to SPSS and Stata. The tests you choose by hand leave missing codes out
+and say how many; a few older defaults count them as answers and say so
+("Missing codes counted as answers", or `missing_codes_counted` in
+Correlation and Compare groups) until **Missing values** clears them.
 → [Missing codes](Studio-Codebook-and-Variables#missing-codes)
 
 **Node** — one box in a flow: a source, a preparation step, an analysis, a
@@ -181,8 +211,19 @@ unless that code is taken) in the question's column, and the typed text in a
 column of its own, `<variable>_other`.
 → [Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na)
 
+**p adjustment** — correcting p-values for the number of comparisons made at
+once, so that testing many pairs does not turn up "significant" ones by
+chance: Holm and Bonferroni (the chance of any false finding) or
+Benjamini-Hochberg, `fdr_bh` (the share of false findings among the
+significant ones). → [Correlation matrix](Studio-Node-Reference#correlation-matrix)
+
 **Page kind** — what a page does: an ordinary **Content** page, a **Final**
 (thank-you) page, a **Screen-out** page or a **Redirect** page.
+
+**Paired test** — a test of answers from the same respondents (before and
+after, two brands on one scale): the paired t-test, Wilcoxon signed-rank,
+McNemar for yes/no, Friedman for three or more. Each respondent is compared
+with themselves. → [Paired tests](Studio-Node-Reference#paired-tests)
 
 **Panel provider** — a sample company (Prolific, Cint, Dynata, …) that sends
 respondents with an id in the link and expects them back on a return URL.
@@ -194,6 +235,10 @@ or quotas.
 
 **Piping** — inserting an earlier answer into text: `{answer:var}`,
 `{label:var}` (or `{var:var}`). → [[Logic and Branching|Studio-Logic-and-Branching]]
+
+**Post-hoc test** — after a test of three or more groups, the comparison of
+every pair of groups: Tukey's HSD after an ANOVA, Games-Howell after Welch's
+ANOVA, Dunn's test after Kruskal-Wallis. → [Group means](Studio-Node-Reference#group-means)
 
 **Pre-registration** — a tag on one Save marking it as the registered
 questionnaire and analysis plan; later Methods drafts and bundles report what
@@ -295,6 +340,11 @@ published surveys.
 **SurveyData** — the data type that flows between preparation and analysis
 nodes: the dataset together with its codebook and questionnaire.
 
+**t-test** — a test of whether two means differ: of two groups (Welch's,
+which does not assume they vary equally, or Student's), of two answers of the
+same respondents (paired), or of one mean against a value (one-sample).
+→ [t-test](Studio-Node-Reference#t-test)
+
 **Template** — a complete questionnaire a new project can start from; Studio
 ships twelve, and your organization can save its own.
 → [[Question Bank, Templates and Library|Studio-Question-Bank-and-Library]]
@@ -323,11 +373,14 @@ to Slack. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 **Weighting** — adjusting respondents to known population shares: **Cell
 weights** for one variable, **Rake weights** for several margins. **Apply
 weight** then makes the nodes after it use the weight — the tables,
-**Net Promoter Score**, **Regression**, **TURF**, **MaxDiff**, **Conjoint**,
-**Share of preference**, **Principal components**, **Scale reliability**,
-the **Bar chart** and a **Heatmap** with **By**. **Compare groups**,
-**Correlation**, **Cluster (k-means)**, **Box plot**, **Scatter plot** and a
-**Heatmap** without **By** stay unweighted and say so in their output.
+**Descriptive statistics**, a Pearson **Correlation** or **Correlation
+matrix**, **Net Promoter Score**, **Regression**, **TURF**, **MaxDiff**,
+**Conjoint**, **Share of preference**, **Principal components**, **Scale
+reliability**, the **Bar chart** and a **Heatmap** with **By**. **Compare
+groups**, Spearman and Kendall correlations, the **t-test**, **Paired
+tests**, Fisher's exact test, **Factor analysis**, **Cluster (k-means)**,
+**Box plot**, **Scatter plot** and a **Heatmap** without **By** stay
+unweighted and say so in their output.
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
 ## See also

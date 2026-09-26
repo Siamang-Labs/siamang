@@ -16,11 +16,12 @@ what was done to the data.
 
 ```
 Responses (or Simulated data)
+  ├→ Data check              (values against the codebook — a table, not a filter)
   → Dedup respondents
   → Speeders & partials
   → Response quality          (flag, or drop)
   → Missing values            (codebook missing codes → blanks)
-  → Recode / Derive / Index / Explode multiple choice
+  → Recode / Derive / Bands / Index / Explode multiple choice
   → Cell weights  or  Rake weights
   → Apply weight
   → analysis, charts, report, Write table
@@ -43,15 +44,33 @@ Prepare node starts with "N rows × M columns", so you can see how many
 respondents each step removed. A preview never writes a project table, so
 previewing up to a **Write table** node is safe.
 
-Variables you create in a flow — with **Recode**, **Derive**, **Index /
-scale**, **Explode multiple choice**, **Response quality**, **Speeders &
-partials** — are offered by the variable dropdowns and checklists of the
+Variables you create in a flow — with **Recode**, **Derive**, **Bands**,
+**Index / scale**, **Explode multiple choice**, **MaxDiff scores**,
+**Response quality**, **Speeders & partials**, and the scores of a **Factor
+analysis** — are offered by the variable dropdowns and checklists of the
 nodes after them, labeled "*label* · made by *node*": a recoded variable can
 go straight into a **Crosstab**, a quality score into a **Filter rows**, a
 derived measure into **Group means**. See
 [Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers).
 
 ---
+
+## Checking the data against the codebook
+
+Before you clean, look at what is in the data. **Data check** (Analyze),
+wired to the source, lists the values outside a variable's valid range, codes
+the codebook has no label for, duplicate IDs and columns the codebook does
+not declare — one row per problem, errors first, each with how many rows have
+it and examples (`17 (1), 999 (1)`). It reads the codebook's
+missing codes as what they are, so a declared 999 "Refused" is not flagged as
+out of range, and it expects the weight column and the response metadata
+(`respondent_id`, `duration_s`, the `url_*` parameters, …). With nothing
+wrong it reads "no problems found".
+
+It changes nothing: fix a wrong code with **Recode**, leave impossible values
+out with **Filter rows**, or correct the codebook in the Builder. Wire its
+table into your report's methods section. See
+[Data check](Studio-Node-Reference#data-check).
 
 ## Completed interviews only
 
@@ -152,6 +171,20 @@ missing in** — use it for the few variables every analysis needs. Missing
 codes are declared in the Builder; see
 [[Codebook and Variables|Studio-Codebook-and-Variables]].
 
+The newer analyses leave missing codes out on their own and say how many:
+the **t-test**, **Correlation matrix**, **Paired tests**, **Factor
+analysis**, **Bands**, and any test you choose by hand (**Correlation**
+`pearson` or `kendall`, a **Group means** **Test** other than `auto`,
+**Compare groups** with Dunn's test, **Crosstab** with Fisher's test).
+**Descriptive statistics** leaves them out too but counts them in its
+**Missing** column, with the blanks, and names the codes rather than counting
+them ("Missing codes = trust_acme: 9"). The defaults that were there before — **Correlation**
+`spearman`, **Group means** `auto`, **Compare groups** without Dunn's test,
+the **Crosstab** chi-square — still count a code as an answer, so that a
+stored flow keeps its numbers, and now say so: "Missing codes counted as
+answers = Trust: Acme: 44 (9 = Refused); run Missing values first to leave
+them out". **Missing values** before them settles it for every node.
+
 Codes the survey adds for you arrive in the data like any other answer:
 
 - "Not applicable" on a Likert or matrix question is the code the Builder
@@ -193,7 +226,9 @@ Two rules to remember:
   unchanged codes too.
 - **The new variable's value labels are its codes** — Recode has no field for
   value labels, so the recoded variable shows `1`, `2`, `3`. Put the meaning in
-  **Label** (as above).
+  **Label** (as above). Where the labels matter in the table, make the
+  variable with **Derive** and its **Value labels** instead, or cut a number
+  with **Bands**, which labels its bands.
 - Later nodes offer the recoded variable in their lists — "Satisfaction (1 =
   low, 2 = neutral, 3 = high) · made by recode" — so it goes straight into a
   **Crosstab** or **Banner table**, as well as into formulas, weighting
@@ -216,16 +251,38 @@ Two rules to remember:
 | Goal | New variable | Formula | Scale |
 |---|---|---|---|
 | Monthly spend from yearly | `spend_month` | `round(spend_year / 12, 2)` | `ratio` |
-| Age band | `age_band` | `if age < 30 then 1 else if age < 50 then 2 else 3` | `ordinal` |
+| Age band | `age_band` | `if age < 30 then 1 else if age < 50 then 2 else 3`, **Value labels** `{"1": "Under 30", "2": "30–49", "3": "50 or over"}` | `ordinal` |
 | Difference of two ratings | `gap` | `rating_after - rating_before` | `interval` |
 | Treat "no children" blanks as zero | `kids` | `coalesce(children, 0)` | `ratio` |
 
 A blank stays blank — a respondent who skipped either rating has no `gap` —
 and dividing by zero gives a blank, not infinity. The **Label** defaults to the
 formula itself. A typo is reported when you press **Check** or Save, pointing
-at the character.
+at the character. **Value labels** (code → label, as JSON) name the codes of
+a formula that yields codes, so tables of it print "Under 30" rather than
+`1`.
+
+### Bands
+
+For the age band above, **Bands** does it in one step and labels the bands
+itself: **Variable** `age`, **Boundaries** `[18, 30, 50, 100]`, **New
+variable** `age_band` gives an ordinal variable with the bands "18 to under
+30", "30 to under 50" and "50 to under 100" (or your own **Band labels**,
+`["18–29", "30–49", "50+"]`). A band includes its lower boundary and runs up
+to, not including, the next; tick **Bands include their upper boundary** for
+the other way round. Its advantages over a formula: the variable's missing
+codes are taken out first, so a 999 "Refused" never lands in the top band,
+and its statistics count each band and whatever fell outside every band —
+which stays blank rather than being forced into the nearest one. See
+[Bands](Studio-Node-Reference#bands).
 
 ## Scales: reliability, then an index
+
+Whether a set of items measures one thing or several is a question for
+**Factor analysis**: its loadings show which items move together, and KMO and
+Bartlett's test whether the items share enough to be factored at all (see
+[Exploratory factor analysis with scores](Studio-Recipes#exploratory-factor-analysis-with-scores)).
+For each scale it finds:
 
 1. Add **Scale reliability** with the scale's items and preview it: Cronbach's
    alpha, and per item the item–total correlation and "alpha if deleted".
@@ -310,12 +367,19 @@ unweighted." From there on:
 
 - **Frequencies** and **Crosstab** — counts and percentages are sums of
   weights. A frequency table shows the unweighted N in a column beside them, a
-  crosstab in its statistics (with the chi-square test on), and the
-  crosstab's chi-square test uses Kish's effective base.
-- **Group means** — weighted means, SDs and medians; N and the significance
-  test stay unweighted, and the table says so.
+  crosstab in its statistics (with **Significance test** on), and the
+  crosstab's chi-square test uses Kish's effective base. Fisher's exact test
+  needs whole counts, so it counts respondents and says so.
+- **Group means** — weighted means, SDs and medians; N, the significance
+  test and the post-hoc pairs stay unweighted, and the table says so.
+- **Descriptive statistics** — weighted mean, SD, median and quartiles
+  beside a **Weighted N** column, with Kish's effective N and the design
+  effect in its statistics; N, Missing, skewness and kurtosis are not
+  weighted.
+- **Correlation** and **Correlation matrix** with **Method** `pearson` — the
+  weighted coefficient, with p (and the CI) on Kish's effective base.
 - **Banner table** (tests on Kish's effective base), **Net Promoter Score**,
-  **Regression** and **TURF**.
+  **Regression** and **TURF** (reach and frequency).
 - **MaxDiff** — every column, **Utility** and **Share %** included;
   **Conjoint** part-worths and importances; **Share of preference**.
 - **Principal components** and **Scale reliability**.
@@ -326,18 +390,22 @@ unweighted." From there on:
 
 These have no weighted form and say so — "unweighted (the weight 'weight' is
 not applied)" in their statistics, table or chart title: **Compare groups**,
-**Correlation**, **Cluster (k-means)**, **Box plot**, **Scatter plot**,
-**Heatmap** without **By**, **Proportion CI** unticked, and the tables of
-**Response quality** and **Code open answers**. **Describe** counts rows and
-adds a `weighted_n_valid` column. Say in the section's note which results are
+**Correlation** and **Correlation matrix** with `spearman` or `kendall`,
+**t-test**, **Paired tests**, **Factor analysis**, **Cluster (k-means)**,
+**Box plot**, **Scatter plot**, **Heatmap** without **By**, **Proportion
+CI** unticked, the tables of **Response quality**, **Code open answers** and
+**Data check**, and the counts of **MaxDiff scores** and **Bands** (the
+variables they make are weighted like any other in the tables after them).
+**Describe** counts rows and adds a `weighted_n_valid` column. Say in the section's note which results are
 weighted where a reader could miss it. The details per node are in
 [Apply weight](Studio-Node-Reference#apply-weight).
 
 > **Note.** MaxDiff utilities and shares, Conjoint, Share of preference,
 > Principal components, Scale reliability, the Bar chart and the Heatmap of
 > means used to ignore the weight, and a weighted Proportion CI counted
-> non-respondents in its base. A weighted flow run again gives the corrected
-> numbers; reports from earlier runs keep the old ones.
+> non-respondents in its base; TURF's frequency was unweighted. A weighted
+> flow run again gives the corrected numbers; reports from earlier runs keep
+> the old ones.
 
 ## Writing the cleaned data to a table
 
@@ -399,7 +467,11 @@ get the numbers into your report and onto Live:
   of every flow with its parameters. For **Apply weight** it writes
   "estimates that support weights were weighted by `weight` (rank tests,
   k-means clustering, box and scatter plots and correlation heatmaps stay
-  unweighted)".
+  unweighted, as do t-tests, the tests of group means (ANOVA, Welch's ANOVA)
+  and their post-hoc comparisons, paired tests, Fisher's exact test, rank
+  correlations and factor analysis)".
+- **Data check**'s table, for "the data were screened for out-of-range
+  values and undeclared codes".
 
 ## See also
 

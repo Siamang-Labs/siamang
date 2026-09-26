@@ -199,6 +199,30 @@ flow. (The **Simulate** mode of **Builder → Test** downloads *simulated*
 responses as CSV, Excel, SPSS, Stata or Parquet — useful for preparing your
 analysis before fieldwork, but it is not your data.)
 
+### From a flow: R and the codebook
+
+The Data tab exports the table as it is stored. A flow's **Export file** node
+writes the data as it is at that point of the flow — after cleaning,
+recoding and weighting, with the variables the flow made — and the extension
+of its **Path** decides what it writes:
+
+| Path | Files written (under **Files**, `outputs/<flow>/`) |
+|---|---|
+| `outputs/clean.csv`, `.xlsx`, `.parquet` | the data and `clean.dictionary.json` |
+| `outputs/clean.sav`, `.dta` | labeled SPSS or Stata data and `clean.dictionary.json` |
+| `outputs/clean.R` | an **R bundle**: `clean.csv`, `clean.dictionary.json` and the script `clean.R` |
+| `outputs/codebook.json` | the codebook alone, no data |
+
+`clean.R` reads `clean.csv` (UTF-8) and its dictionary with the `jsonlite`
+package into a data frame `survey_data`: the codebook's missing codes become
+`NA`, labelled codes become factors (a code without a label keeps a level of
+its own), each column's `label` attribute is the variable's label from the
+codebook (not the question's text), and
+multiple-choice columns (`1;3`) stay text. Put the three files in one folder
+and run `Rscript clean.R`, or `source("clean.R")` from R — the script finds
+its files beside itself. See
+[Export the cleaned data for R](Studio-Recipes#export-the-cleaned-data-for-r).
+
 ---
 
 ## Size limit
@@ -219,7 +243,7 @@ includes the responses are limited to 100,000 rows as well.
 
 | Route | What you get | Page |
 |---|---|---|
-| Flow **Export file** node | `.csv`, `.xlsx`, `.sav`, `.dta` or `.parquet` of the data at that point of the flow — cleaned, weighted, with `url_*` and timing columns — plus its data dictionary | [[Analysis Flows\|Studio-Flows]], [[Node Reference\|Studio-Node-Reference]] |
+| Flow **Export file** node | `.csv`, `.xlsx`, `.sav`, `.dta` or `.parquet` of the data at that point of the flow — cleaned, weighted, with `url_*` and timing columns — plus its data dictionary; or an R bundle (`.R`), or the codebook alone (`.json`) — see [From a flow: R and the codebook](#from-a-flow-r-and-the-codebook) | [[Analysis Flows\|Studio-Flows]], [[Node Reference\|Studio-Node-Reference]] |
 | Flow **Write table** node | a new project table, which you can export from Data | [[Analysis Flows\|Studio-Flows]] |
 | Connectors *(Plus; some targets Pro)* | a table pushed to Google Sheets, Excel 365, Supabase, Airtable, Dropbox, HubSpot *(Plus)*, or S3, GCS, Azure, BigQuery, Snowflake, your own database, SFTP, REDCap, Salesforce, HTTP *(Pro)* | [[Connectors\|Studio-Connectors]] |
 | Research bundle | data, questionnaire, code, codebook and a provenance file in one zip — the export for a co-author or a paper. Its data files keep the fieldwork columns but only the `url_*` parameters a flow reads, and never the invitation token | [[Reproducibility\|Studio-Reproducibility]] |

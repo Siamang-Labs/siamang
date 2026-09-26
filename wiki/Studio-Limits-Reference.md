@@ -133,6 +133,22 @@ pre-registration and deposits, comments and edit locks, API keys.
 | Flow and connector names | lower-case letters, digits, `_`; start with a letter; up to 63 characters; not `survey` |
 | Report custom CSS | anything except the sequence `</` |
 
+## Statistics in flows
+
+The methods themselves cap a few computations; each result says which way it
+went.
+
+| Item | Limit |
+|---|---|
+| Fisher's exact test, tables larger than 2 × 2 | summed exactly over at most 200,000 tables with the observed margins; beyond that, 20,000 random tables from a fixed seed (the same p on every run) |
+| Wilcoxon signed-rank exact p (**p-value** `auto`) | up to 50 pairs with no ties or zeros, up to 13 with them; the normal approximation above |
+| Wilcoxon exact p on request (**p-value** `exact`) | up to 1,000 pairs; above, the normal approximation, and the result says so |
+| McNemar exact binomial p (**p-value** `auto`) | fewer than 25 respondents who answered the two questions differently; the chi-square approximation from 25 |
+| Correlation | at least three complete pairs |
+| Factor analysis | at least 3 items and more respondents than items; parallel analysis draws 100 random data sets (95th percentile); maximum likelihood is started from 14 fixed points |
+| Data check | up to 5 example values per problem, then "… (N more)" |
+| TURF exhaustive search (**Search** `best`) | up to 200,000 combinations; beyond, the run stops and suggests a smaller portfolio, fewer options or `greedy` |
+
 ## Open-answer coding with AI
 
 | Item | Limit |

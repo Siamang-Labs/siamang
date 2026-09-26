@@ -34,7 +34,7 @@ Studio is trapped in Studio.
 | **Field** | Environments (`pilot`, `main`), permanent links, QR codes, embeds, access codes, captcha, one response per browser, panel-provider returns, email invitations with reminders, closing dates you can move without a rebuild | [[Publishing and Environments\|Studio-Publishing-and-Environments]] |
 | **Monitor** | Completed interviews against caps, quota cells that close when full, drop-off by page, data quality while the field is open, live tiles from your analysis | [[Live Monitoring\|Studio-Live-Monitoring]] |
 | **Data** | The response database, instant insights, exports to CSV, Excel, SPSS, Stata, Parquet and SQLite, deletion for erasure requests | [[Responses and the Data Tab\|Studio-Responses-and-Data]] |
-| **Analyze** | A canvas of engine nodes: cleaning, weighting, crosstabs, banner tables, tests, regression, MaxDiff, conjoint, TURF, charts | [[Analysis Flows\|Studio-Flows]] |
+| **Analyze** | A canvas of engine nodes: cleaning, weighting, crosstabs, banner tables, tests you choose (t-tests, ANOVA with post-hoc, paired and exact tests, correlations), factor analysis, regression, MaxDiff, conjoint, TURF, charts | [[Analysis Flows\|Studio-Flows]] |
 | **Report** | Documents built from the flow with your own text, a report theme, HTML and print-to-PDF, public live dashboards | [[Reports\|Studio-Reports]] |
 | **Keep** | Numbered versions of the whole project, diffs, restore, pre-registration, Zenodo / OSF deposits, research bundles | [[History and Versions\|Studio-History-and-Versions]] |
 

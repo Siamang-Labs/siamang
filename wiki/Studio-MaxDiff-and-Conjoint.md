@@ -293,6 +293,31 @@ choices. The summary adds "Weight: *column*", and the base reads
 "247 respondents (231.4 weighted)". See
 [Apply weight](Studio-Node-Reference#apply-weight).
 
+### MaxDiff scores (per respondent)
+
+The **MaxDiff** node describes everyone together. To break preferences down
+by segment — a crosstab by region, a cluster, a regression — the **MaxDiff
+scores** node (Prepare) gives each respondent their own counting score for
+every item: "One counting-score variable per MaxDiff item, per respondent —
+best minus worst over the times it was shown — so the preferences can go into
+a crosstab, a cluster or a regression."
+
+| Parameter | Values |
+|---|---|
+| **MaxDiff question** | a dropdown of the questionnaire's MaxDiff questions |
+| **Variable prefix** | "Each item's score is <prefix><item code>. Defaults to the question and _score_, so item 3 of q_md becomes q_md_score_3." |
+
+Each variable, labeled "MaxDiff score: *item*", runs from −1 (picked worst
+every time the respondent saw it) to 1 (picked best every time); a
+respondent who never saw an item has a blank for it, not a 0. With a few
+tasks per person the scores are coarse, but they are what each respondent
+actually chose — no model is involved. They are counts per person, so no
+weight enters them; a **Group means** of a score after **Apply weight** is
+weighted as usual. A question name the questionnaire does not have is named
+at **Check** and at Save ("… no MaxDiff question named 'q_mdx'; this
+questionnaire has: q_md."). See
+[MaxDiff scores per respondent in a crosstab](Studio-Recipes#maxdiff-scores-per-respondent-in-a-crosstab).
+
 ### Choice data for HB (MaxDiff)
 
 For individual-level utilities, **Choice data for HB** writes "A MaxDiff's

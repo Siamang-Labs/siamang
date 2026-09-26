@@ -333,6 +333,10 @@ What happens:
 - A **new** Save is created on top of history with the message "Restore version
   #12"; the toast says "Restored version #12 as #20". Nothing is overwritten —
   #13 to #19 stay in History.
+- The restored documents are checked as any Save's. A restore that check
+  refuses says "Restore failed." followed by the reason, as a refused Save
+  does; "Restore failed. Snapshot #*N* not found." means that Save does not
+  exist.
 - The documents become exactly those of #12. **Flows and codeframes that did not
   exist in #12 are removed** in the new Save (they remain in the older Saves,
   so restoring one of those brings them back). The schedules of a flow the
@@ -407,7 +411,16 @@ The draft has these sections:
 - **Procedure** — how the questionnaire was administered, consent, closing
   pages;
 - **Data handling and analysis** — every node of every flow in execution
-  order, in words;
+  order, in words, naming the test each analysis runs: "mean Age was
+  compared by Region with a one-way ANOVA, followed by Tukey's HSD for every
+  pair of groups", "mean Age was compared between two groups of Gender with
+  Welch's t-test (unequal variances), reporting the mean difference with its
+  95% confidence interval and Cohen's d", "Age was cross-tabulated against
+  Region with Fisher's exact test (Fisher-Freeman-Halton beyond 2 × 2, its p
+  estimated from 20,000 random tables with the same margins when there are too
+  many to enumerate), counting respondents", "an exploratory factor analysis of 8 items was run
+  (minimum residual extraction, promax rotation), retaining factors with an
+  eigenvalue above 1";
 - **Pre-registration** — which Save was registered and what changed since;
 - **Software** — engine and Studio versions;
 - a closing line naming the authors from

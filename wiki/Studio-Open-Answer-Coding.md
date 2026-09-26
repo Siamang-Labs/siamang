@@ -151,19 +151,34 @@ Add **Code open answers** (Prepare) after your source and cleaning steps:
 | **Theme variable** | leave empty for the codeframe's own name, `<variable>_theme` |
 | **Also add sentiment** | tick only if the codeframe was built with sentiment |
 
-The node has two outputs:
+The node has three outputs:
 
 - **`data`** — the dataset plus the theme variable, labeled `Theme:
   <variable>`, whose value labels are your theme labels; with sentiment, also
   `<theme variable>_sentiment`, coded −1 / 0 / 1 = Negative / Neutral /
   Positive.
-- **`table`** — one row per theme with N and % of the coded answers (largest
-  first), then **Coded** and **Uncoded** rows; the statistics name the
-  variable, how many people answered, the number of themes and which model
-  built the codeframe, when. Wire it into a **Report section** — it is the
-  table most reports need. It counts answers, not weights: after **Apply
+- **`table`** — one row per theme with N and % (largest first), then
+  **Coded** and **Uncoded** rows. A theme's % is of the **coded** answers;
+  **Coded** and **Uncoded** are shares of **everyone who answered**, so the
+  table says how much of the answers the themes describe. With **Also add
+  sentiment** and a codeframe built with it, each row adds **Negative %**,
+  **Neutral %** and **Positive %**. Wire it into a **Report section** — it is
+  the table most reports need. It counts answers, not weights: after **Apply
   weight** it stays unweighted and says so ("Weight: unweighted (the weight
   'weight' is not applied)").
+- **`stat`** — the table's statistics: the variable, how many people
+  answered, the number of themes, the **Coverage** ("75.0 % of the answers
+  have a theme"), the **Distinct uncoded answers** — how many different
+  answers a new coding job would have to read — and which model built the
+  codeframe, when; with sentiment, the overall **Sentiment** ("negative 66.7
+  %, neutral 0.0 %, positive 33.3 % of 3 answers") and the **Net sentiment**.
+  Sentiment asked of a codeframe built without it reads "not in this
+  codeframe". Connect it to a **Live tile** to watch the coverage as new
+  answers arrive.
+
+> **Note.** The **Uncoded** share used to be taken of the coded answers — one
+> uncoded answer in four read 33.3 %. It is now a share of everyone who
+> answered (25 %); run a flow again for the corrected table.
 
 Answers are matched by their text (normalized for spacing and case), so the
 same answer is coded the same way wherever it appears. An answer the
