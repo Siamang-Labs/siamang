@@ -251,8 +251,43 @@ builder hides it for percentages. Its `checks`: By with Split by is an error
 (`By draws the mean of Variable in each group and Split by its answers in each
 group — clear one of them.`); By with Show percent (`By (the mean in each
 group) is not drawn when Show is percent; to show the answers in each group,
-use Split by.`) and a Layout other than grouped without Split by (`Layout
-applies only when Split by is set.`) are warnings.
+use Split by.`) and a stacked Layout without Split by (`Stacked layouts apply
+only when Split by is set.`) are warnings.
+
+It also takes **`top`** (*Top N*) and **`other`** (*Combine the rest as
+Other*), **`intervals`** (*Confidence intervals*) with **`confidence`**,
+**`letters`** (*Significance letters*) with **`level`** and **`correction`**
+(*Multiple comparisons*), and two more Layouts: **`histogram`** with **`bins`**
+(`auto`, a number, or edges separated by commas) and **`donut`** with
+**`min_slice`** (*Other below (%)*, default 3). Each is written into the code
+only when the choices read it — the call of each form is two fragments, its
+head and its closing parenthesis, with a line for each of these between them
+(`top=`, `other=True`, `intervals=True, confidence=`, `letters=True, level=,
+correction=`) — so a stored flow, which sets none, renders the code it always
+did, and a builder shows each field only where it applies: Top N except in a
+histogram, Other except in a histogram or a donut, Confidence with the
+intervals on grouped bars, Significance letters with Show percent and Layout
+grouped (their Level and Multiple comparisons once they are ticked), Bins in a
+histogram, Other below (%) in a donut; a histogram reads no By, Sort,
+Horizontal or Show values, a donut no By, Show, Split by or Horizontal. The
+checks: Top N with By is an error (`Top N keeps the answers given most, and with
+By the bars are means of groups — clear one of them.`); warnings name what a
+form does not draw: `Combine the rest as Other applies with Top N — set Top
+N.`, `Top N keeps the answers given most; a histogram draws bins of a number, so
+it is not applied.`, `By (the mean in each group) is not drawn in a histogram;
+for a histogram of each group, use Split by.`, `By (the mean in each group) is
+not drawn in a donut, which shows the shares of Variable's answers.`, `Split by
+is not drawn in a donut, which shows one variable's answers as the parts of a
+whole; Layout stacked_100 shows the answers within each group.`, `Confidence
+intervals are drawn on bars side by side (Layout grouped) only.`, `Confidence
+intervals are drawn for percentages and for means by group; counts have none —
+set Show to percent.`, `Significance letters compare the groups of Split by —
+set Split by.`, `Significance letters are drawn on bars side by side (Layout
+grouped), not on stacks.` and `Significance letters compare percentages, as the
+Banner table's do — set Show to percent.` Bins that are not auto, a whole
+number from 1 to 100 or increasing edges are `PARAM_INVALID` before the run
+(`Parameter 'bins' of n: The bins' edges must increase from one to the next,
+and 40 is followed by 20.`).
 
 `visualize.heatmap` takes a **`method`** for the correlation matrix drawn
 without By: `spearman` (the default; the old line is its fragment, `when:
@@ -282,7 +317,14 @@ by that allows several answers (`n: Split by needs one answer per respondent,
 and <label> allows several: draw it as the Variable, or split by one of its
 options after Explode multiple choice.`) and a stacked layout of a
 multiple-choice variable (`n: <label> allows several answers, so its options
-overlap and cannot be stacked: draw them side by side (Layout = grouped).`).
+overlap and cannot be stacked: draw them side by side (Layout = grouped).`),
+a histogram of a nominal or ordinal variable (`n: A histogram draws the
+distribution of a number, and Region is nominal: draw its answers as bars
+(Layout = grouped).`) or of a multiple-choice one (`n: <label> allows several
+answers; a histogram draws one number per respondent.`), and a donut of a
+multiple-choice variable (`n: <label> allows several answers, so its shares add
+up to more than 100 % and are not the parts of a whole: draw them as bars
+(Layout = grouped).`).
 Items the codebook does not hold (made upstream) are checked when the chart is
 drawn — and the runner draws every chart as its node runs, so what a chart
 cannot draw fails that node, not the Save report or the preview after it.

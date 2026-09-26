@@ -59,7 +59,7 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `siamang.data.pricing` | Every Van Westendorp curve, NMS trial and Gabor-Granger demand is a share of the weights; N counts respondents. Stats: `Weight`, `Weighted N`. |
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
-| `plot.bar`, `plot.heatmap(by=…)` | Weighted counts, percentages (also with `split`) and weighted means; the axis (or colour bar) says "Weighted" or "(weighted)". |
+| `plot.bar`, `plot.heatmap(by=…)` | Weighted counts, percentages (also with `split`) and weighted means; the axis (or colour bar) says "Weighted" or "(weighted)". The Bar chart's histogram is weighted counts or percentages (its automatic bin width from the answers as they are), its donut weighted shares with the weighted base in the middle, its error bars Wilson's on Kish's effective base (percentages) and the linearization interval (means), its significance letters on Kish's effective base. |
 | `plot.heatmap(method="pearson")` without `by` | Weighted Pearson coefficients (colour bar "Weighted Pearson r"), as `report.correlation_matrix` weights them. |
 | `plot.likert` | Weighted shares of each answer ("% of respondents (weighted)"); `n` counts respondents. |
 | `plot.boxplot`, `plot.scatter`, `plot.heatmap()` without `by` (Spearman, Kendall) | Unweighted; the title's second line reads `unweighted (the weight 'w' is not applied)`. |
@@ -475,7 +475,8 @@ factors than the data carry: compare a solution with fewer").
 
 ## `siamang.data.intervals`
 
-The intervals a chart's error bars show (`siamang.reporting.result_charts`).
+The intervals a chart's error bars show (`siamang.reporting.result_charts`, and
+the Bar chart's `intervals=True`).
 Each returns an **`Interval`** (`estimate`, `lower`, `upper`, `n`, `confidence`,
 `method`, `se`, `note`, `defined`); when there is no interval — no answers, one
 answer, nothing weighted — `lower` and `upper` are `None` and `note` says why

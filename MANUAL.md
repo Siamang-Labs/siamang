@@ -494,6 +494,12 @@ data.plot.scatter("age", "income").save("age_income_scatter.png")
 # Pearson correlations; a battery on one scale as diverging bars
 data.plot.bar("party", show="percent", sort="value")
 data.plot.bar("trust", split="party", layout="stacked_100")
+# The five parties named most (the rest as Other) with 95 % intervals; the
+# Banner table's significance letters; a histogram per group; a donut
+data.plot.bar("party", show="percent", top=5, other=True, intervals=True)
+data.plot.bar("trust", split="party", show="percent", letters=True)
+data.plot.bar("age", layout="histogram", split="gender")
+data.plot.bar("party", layout="donut")
 data.plot.heatmap(["trust_govt", "trust_courts", "trust_media"], method="pearson")
 data.plot.likert(["trust_govt", "trust_courts", "trust_media"]).save("trust_likert.png")
 

@@ -300,7 +300,10 @@ def test_the_defaults_draw_the_chart_they_always_drew():
         ({"by": "g", "split": "g"}, "give one of them"),
         ({"by": "g", "show": "percent"}, "use split= instead of by="),
         ({"show": "share"}, "show must be one of count, percent"),
-        ({"split": "g", "layout": "pie"}, "layout must be one of grouped, stacked, stacked_100"),
+        (
+            {"split": "g", "layout": "pie"},
+            "layout must be one of grouped, stacked, stacked_100, histogram, donut",
+        ),
         ({"sort": "label"}, "sort must be one of code, value"),
         ({"split": "q"}, "split must name another variable"),
         ({"split": "nope"}, "No variable 'nope' in the data."),
@@ -425,8 +428,10 @@ def test_the_bar_node_checks_its_combinations(questionnaire_doc):
         )
     ]
     assert issues({"layout": "stacked"}) == [
-        ("warning", "n: Layout applies only when Split by is set.")
+        ("warning", "n: Stacked layouts apply only when Split by is set.")
     ]
+    # A histogram and a donut are layouts of their own, without Split by.
+    assert issues({"layout": "donut"}) == []
     assert issues({"split": "age"})[0][0] == "error"  # a ratio variable is no group
 
 
@@ -465,7 +470,13 @@ def test_the_bar_node_says_what_its_new_fields_do():
     spec = default_registry().get("visualize.bar")
     payload = json.loads(json.dumps(spec.to_json()))
     assert payload["params"]["show"]["values"] == ["count", "percent"]
-    assert payload["params"]["layout"]["values"] == ["grouped", "stacked", "stacked_100"]
+    assert payload["params"]["layout"]["values"] == [
+        "grouped",
+        "stacked",
+        "stacked_100",
+        "histogram",
+        "donut",
+    ]
     assert payload["params"]["sort"]["values"] == ["code", "value"]
     assert payload["params"]["split"]["label"] == "Split by"
     # By is not read when Show is percent, so a builder hides it.

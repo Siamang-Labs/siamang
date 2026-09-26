@@ -62,13 +62,17 @@ returns that line (or `"weighted by 'w'"`, or `None` on unweighted data).
 ```python
 BarChart(data, column="", by=None, horizontal=False, show_values=True,
          show="count", split=None, layout="grouped", sort="code",
+         top=None, other=False, intervals=False, confidence=0.95,
+         letters=False, level=0.05, correction="none",
+         bins="auto", min_slice=3.0,
          figsize=(10, 6), palette="muted", title=None)
 ```
 
 With only `column`, plots the **distribution** of a categorical variable. With
 `by` set, plots the **mean** of `column` within each category of `by`. With
 `split` set, plots the **answers within each group** of a second variable — the
-chart of a crosstab.
+chart of a crosstab. `layout="histogram"` draws a **histogram** of a number,
+`layout="donut"` one variable's answers as a **donut**.
 
 **Extra parameters**
 
@@ -87,7 +91,33 @@ chart of a crosstab.
 - **`layout`** — with `split`: `"grouped"` (bars side by side, the default),
   `"stacked"`, or `"stacked_100"` (each group's bar at 100 %, percentages
   whatever `show` says). A multiple-choice question's options overlap, so they
-  are drawn side by side only; stacking them is refused.
+  are drawn side by side only; stacking them is refused. `"histogram"` and
+  `"donut"` are forms of their own, below.
+- **`top`** — only the N answers given most (with `split`, given most overall;
+  for a multiple-choice question, the options named most). Two answers given
+  as often: the first in code order is kept. The note under the chart says how
+  many of how many are drawn. Not with `by`.
+- **`other`** — with `top`: one more bar, grey and last whatever the sort, for
+  the rest — for a multiple-choice question the share of respondents who named
+  **any** of them, not the sum of their shares. Off (the default), the rest are
+  left out.
+- **`intervals`**, **`confidence`** — error bars at `confidence` (0.95): on a
+  percentage, Wilson's score interval of the share (weighted: of the weighted
+  share, on Kish's effective base — the share and base Proportion CI gives); on
+  a mean by group, the interval the Group means chart draws (Student's t;
+  weighted, the linearization interval). With `split` each group's own base.
+  The value is written past the whisker. On bars side by side only: stacked
+  layouts refuse them; counts have none (the note says so).
+- **`letters`**, **`level`**, **`correction`** — with `split`,
+  `show="percent"` and `layout="grouped"`: each group gets the letter the Banner
+  table gives its column (A, B, … in the codebook's order, under its name), and
+  each bar carries, in bold after its value, the letters of the groups whose
+  share of that answer is significantly **lower** — the Banner table's
+  two-sided z-test of column proportions at `level` (0.05), `correction`
+  `"none"` or `"bonferroni"`, on the base of each group's respondents who
+  answered (Kish's effective base when weighted). A group with fewer than 30 is
+  not tested, and the note names it. These are the letters the Tab book prints
+  for the same cells (and the Banner table's, when everyone answered).
 - **`sort`** — `"code"` (the codebook's order, the default) or `"value"` (the
   largest bar first; with `split`, the answer given most overall; with `by`,
   the highest mean). A colour belongs to its answer, not to its place, so a
@@ -98,7 +128,8 @@ chart of a crosstab.
   but the defaults of `show`, `split` and `sort` draws the newer chart below,
   so changing only `sort` also changes the look (colours, labels, notes).
 
-At the defaults (`show="count"`, no `split`, `sort="code"`) the chart is the one
+At the defaults (`show="count"`, no `split`, `sort="code"`, and none of `top`,
+`other`, `intervals`, `letters`, a histogram or a donut) the chart is the one
 it has always been, picture for picture. The newer forms also:
 
 - leave the codebook's missing codes out of the bars (a 99 "Don't know" is not
@@ -122,6 +153,36 @@ it has always been, picture for picture. The newer forms also:
 A multiple-choice question is drawn by these forms whatever the parameters (the
 older chart could not draw one).
 
+**Histogram** (`layout="histogram"`) — an interval or ratio variable (a nominal
+or ordinal one is refused, as is text that is not a number) in **`bins`**:
+`"auto"` (Freedman and Diaconis's width, 2 · IQR / ∛n, as
+`numpy.histogram_bin_edges(x, "fd")`; Sturges' number when the middle half of
+the answers is one value; answers that are all whole numbers get a whole width,
+the edges halfway between two numbers, so no bin holds more possible answers
+than another), a number of bins of equal width, or the edges (`"0, 18, 25, 35,
+50, 65"` or a list) — at most 100 bins. The bars are counts or, with
+`show="percent"`, percent of the respondents who answered; weighted when a
+weight is applied (the automatic width comes from the answers as they are). The
+note gives the bins' rule, the answers outside given edges (left out of the
+bars, kept in a percentage's base) and bins of unequal width (a bar's height is
+its count, not its density). With `split`, one panel per group (at most 12),
+sharing the bins and the value scale, one above another — two columns past four
+groups — each titled by its group and `n`; the figure grows so each panel is
+readable. Small multiples rather than outlines over one another: groups of
+different shapes and sizes stay apart, and more than three stay legible.
+
+**Donut** (`layout="donut"`) — one variable's answers as the parts of a whole,
+clockwise from the top in the order `sort` gives, each slice's percentage on it
+or, when the slice is too thin to hold it, beside the ring in a column joined to
+its slice by a line (the labels of a side a line apart), the base in the middle
+("1,200 respondents", and the weighted base). Slices under **`min_slice`** %
+(3) are combined as a grey Other when there are two or more of them (0 keeps
+every slice); with `top`, the answers after the top N are always combined as
+Other — a donut's slices make a whole. The answers are named in a legend beside
+the donut, or under it on a narrow figure or when it is taller than the plot. A
+donut with `split` or `by`, of a multiple-choice question (its shares add up to
+more than 100 %), or with intervals or letters, is refused.
+
 ```python
 # Frequency of IT roles
 data.plot.bar("it_role").show()
@@ -134,6 +195,16 @@ data.plot.bar("satisfaction", split="region", layout="stacked_100")
 
 # Mean autonomy by remote frequency, saved to disk
 data.plot.bar("autonomy", by="remote_freq", palette="pastel").save("autonomy_means.png")
+
+# The ten roles named most, the rest as Other, with 95 % intervals
+data.plot.bar("it_role", show="percent", top=10, other=True, intervals=True)
+
+# Satisfaction by region with the Banner table's letters
+data.plot.bar("satisfaction", split="region", show="percent", letters=True)
+
+# A histogram of age per region, and a donut of the roles
+data.plot.bar("age", layout="histogram", bins="18, 25, 35, 50, 65, 100", split="region")
+data.plot.bar("it_role", layout="donut")
 ```
 
 `by` and `split` do different things — a mean in each group, the answers in
@@ -303,7 +374,10 @@ The accessor returns the same chart objects, so you can chain `show()`/`save()`:
 ```python
 def bar(column, *, by=None, horizontal=False, show_values=True,
         figsize=(10, 6), palette="muted", title=None,
-        show="count", split=None, layout="grouped", sort="code") -> BarChart
+        show="count", split=None, layout="grouped", sort="code",
+        top=None, other=False, intervals=False, confidence=0.95,
+        letters=False, level=0.05, correction="none",
+        bins="auto", min_slice=3.0) -> BarChart
 def boxplot(column, *, by, show_points=False,
             figsize=(10, 6), palette="muted", title=None) -> BoxPlot
 def heatmap(columns, *, by=None, annot=True, cmap="YlOrRd",

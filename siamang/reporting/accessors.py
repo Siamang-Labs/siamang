@@ -302,6 +302,15 @@ class PlotAccessor:
         split: str | None = None,
         layout: str = "grouped",
         sort: str = "code",
+        top: int | None = None,
+        other: bool = False,
+        intervals: bool = False,
+        confidence: float = 0.95,
+        letters: bool = False,
+        level: float = 0.05,
+        correction: str = "none",
+        bins: Any = "auto",
+        min_slice: float = 3.0,
     ) -> BarChart:
         """Create a bar chart.
 
@@ -325,6 +334,28 @@ class PlotAccessor:
             ``"grouped"``, ``"stacked"`` or ``"stacked_100"``.
         sort : str
             ``"code"`` (the codebook's order) or ``"value"`` (largest first).
+        layout : str
+            Also ``"histogram"`` (an interval or ratio variable in ``bins``,
+            one panel per group of ``split``) and ``"donut"`` (one variable's
+            answers as the parts of a whole, the base in the middle).
+        top, other : int | None, bool
+            Only the ``top`` answers given most (overall with ``split``); the
+            rest combined as Other when ``other`` is set, else left out.
+        intervals, confidence : bool, float
+            Error bars on percentages (Wilson's interval, on Kish's effective
+            base when weighted) and on means by group (``mean_interval``); on
+            bars side by side only.
+        letters, level, correction : bool, float, str
+            With ``split``, ``layout="grouped"`` and ``show="percent"``: over
+            each bar the letters of the groups it is significantly higher
+            than — the Banner table's column-proportion z-test
+            (``correction`` ``"none"`` or ``"bonferroni"``).
+        bins : str | int | list[float]
+            With ``layout="histogram"``: ``"auto"`` (Freedman–Diaconis), a
+            number of bins, or their edges.
+        min_slice : float
+            With ``layout="donut"``: slices below this percentage are
+            combined as Other.
         """
         from siamang.reporting.charts import BarChart
 
@@ -341,6 +372,15 @@ class PlotAccessor:
             split=split,
             layout=layout,
             sort=sort,
+            top=top,
+            other=other,
+            intervals=intervals,
+            confidence=confidence,
+            letters=letters,
+            level=level,
+            correction=correction,
+            bins=bins,
+            min_slice=min_slice,
         )
 
     def boxplot(

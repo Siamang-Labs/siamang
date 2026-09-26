@@ -1,7 +1,7 @@
 type: visualize.bar
 category: visualize
 title: Bar chart
-description: Distribution of a variable as counts or percentages — split by a second variable, grouped or stacked, like the chart of a crosstab — or its mean by group.
+description: Distribution of a variable as counts or percentages — split by a second variable, grouped or stacked, like the chart of a crosstab — or its mean by group; a histogram of a number, or a donut.
 inputs:
   data: SurveyData
 outputs:
@@ -39,9 +39,11 @@ params:
     - grouped
     - stacked
     - stacked_100
+    - histogram
+    - donut
     default: grouped
     label: Layout
-    help: 'With Split by: the groups'' bars side by side, stacked, or stacked to 100 % of each group (percentages, whatever Show says). A multiple-choice question''s options overlap and are drawn side by side only.'
+    help: 'With Split by: the groups'' bars side by side, stacked, or stacked to 100 % of each group (percentages, whatever Show says); a multiple-choice question''s options overlap and are drawn side by side only. histogram: an interval or ratio variable in Bins, as counts or percent — with Split by, a panel per group. donut: one variable''s answers as the parts of a whole, their percentages on the slices and the base in the middle (not with Split by, By or a multiple-choice question).'
   sort:
     kind: enum
     values:
@@ -49,7 +51,7 @@ params:
     - value
     default: code
     label: Sort
-    help: Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colours follow the answer, not its place. Any setting but the defaults (Show count, no Split by, Sort code) draws the newer chart, with its base and notes under the plot.
+    help: Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colours follow the answer, not its place. Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot.
   horizontal:
     kind: bool
     default: false
@@ -59,6 +61,58 @@ params:
     kind: bool
     default: true
     label: Show values
+  top:
+    kind: int
+    minimum: 1
+    maximum: 100
+    label: Top N
+    help: Only the N answers given most — with Split by, given most overall; for a multiple-choice question, the options named most. Empty draws every answer. In a donut the rest are combined as Other.
+  other:
+    kind: bool
+    default: false
+    label: Combine the rest as Other
+    help: With Top N, one more bar for the answers after the top N — for a multiple-choice question, the respondents who named any of them — drawn grey and last. Off, the rest are left out; the note under the chart says how many.
+  intervals:
+    kind: bool
+    default: false
+    label: Confidence intervals
+    help: An error bar on each percentage (Wilson's interval, on Kish's effective base when weighted — each group's own base with Split by) and on each mean by group (the interval the Group means chart draws). Drawn on bars side by side (Layout grouped) only; counts have none.
+  confidence:
+    kind: float
+    default: 0.95
+    minimum: 0.5
+    maximum: 0.999
+    label: Confidence
+  letters:
+    kind: bool
+    default: false
+    label: Significance letters
+    help: With Split by, Show percent and Layout grouped. Each group is lettered (A, B, …, under its name) as the Banner table letters its columns, and a bar carries the letters of the groups whose share of that answer is significantly lower — the Banner table's two-sided z-test of column proportions, on the group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The letters the Tab book prints for the same cells.
+  level:
+    kind: float
+    default: 0.05
+    minimum: 0.001
+    maximum: 0.2
+    label: Level
+  correction:
+    kind: enum
+    values:
+    - none
+    - bonferroni
+    default: none
+    label: Multiple comparisons
+  bins:
+    kind: string
+    default: auto
+    label: Bins
+    help: 'auto: Freedman and Diaconis''s width (whole-number answers take a whole width); a number: that many bins of equal width; two numbers or more: the bins'' edges, increasing, separated by commas (0, 18, 25, 35, 50, 65). At most 100 bins.'
+  min_slice:
+    kind: float
+    default: 3
+    minimum: 0
+    maximum: 50
+    label: Other below (%)
+    help: Slices smaller than this percentage are combined as Other (two or more of them); 0 keeps every slice.
   title:
     kind: string
     label: Title
@@ -88,6 +142,8 @@ params:
     default: muted
     label: Palette
 subtitle:
+- when: layout=donut
+  text: '{variable}'
 - when: split
   text: '{variable} by {split}'
 - '{variable}'
@@ -97,18 +153,73 @@ checks:
 - when: by & show=percent
   severity: warning
   message: By (the mean in each group) is not drawn when Show is percent; to show the answers in each group, use Split by.
-- when: layout!=grouped & split=None
+- when: layout!=grouped & layout!=histogram & layout!=donut & split=None
   severity: warning
-  message: Layout applies only when Split by is set.
+  message: Stacked layouts apply only when Split by is set.
+- when: by & top
+  message: Top N keeps the answers given most, and with By the bars are means of groups — clear one of them.
+- when: other=True & top=None
+  severity: warning
+  message: Combine the rest as Other applies with Top N — set Top N.
+- when: top & layout=histogram
+  severity: warning
+  message: Top N keeps the answers given most; a histogram draws bins of a number, so it is not applied.
+- when: by & layout=histogram
+  severity: warning
+  message: By (the mean in each group) is not drawn in a histogram; for a histogram of each group, use Split by.
+- when: by & layout=donut
+  severity: warning
+  message: By (the mean in each group) is not drawn in a donut, which shows the shares of Variable's answers.
+- when: split & layout=donut
+  severity: warning
+  message: Split by is not drawn in a donut, which shows one variable's answers as the parts of a whole; Layout stacked_100 shows the answers within each group.
+- when: intervals=True & layout!=grouped
+  severity: warning
+  message: Confidence intervals are drawn on bars side by side (Layout grouped) only.
+- when: intervals=True & show=count & by=None & layout=grouped
+  severity: warning
+  message: Confidence intervals are drawn for percentages and for means by group; counts have none — set Show to percent.
+- when: letters=True & split=None
+  severity: warning
+  message: Significance letters compare the groups of Split by — set Split by.
+- when: letters=True & split & layout!=grouped
+  severity: warning
+  message: Significance letters are drawn on bars side by side (Layout grouped), not on stacks.
+- when: letters=True & split & show=count
+  severity: warning
+  message: Significance letters compare percentages, as the Banner table's do — set Show to percent.
 # The first fragment is the chart this node has always drawn, written as it
 # always was: a stored flow renders the same code. The newer forms (percent, a
 # split, largest first) leave the codebook's missing codes out and say so under
-# the chart.
+# the chart. Each form's call is written in two fragments, its head and its
+# closing parenthesis, so the arguments of Top N, the intervals and the letters
+# can go between them only when they are set: a stored flow, which sets none,
+# renders its code unchanged.
 template:
-- when: show=count & split=None & sort=code
+- when: show=count & split=None & sort=code & layout!=histogram & layout!=donut & top=None & intervals=False
   code: |
     {out.chart} = {in.data}.plot.bar({variable!r}, by={by!r}, horizontal={horizontal!r}, show_values={show_values!r}, title={title!r}, figsize=({width!r}, {height!r}), palette={palette!r})
-- when: show=count & split=None & sort=value
+- when: show=count & split=None & sort=code & layout!=histogram & layout!=donut & top
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        by={by!r},
+        horizontal={horizontal!r},
+        show_values={show_values!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+- when: show=count & split=None & sort=code & layout!=histogram & layout!=donut & top=None & intervals=True
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        by={by!r},
+        horizontal={horizontal!r},
+        show_values={show_values!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+- when: show=count & split=None & sort=value & layout!=histogram & layout!=donut
   code: |
     {out.chart} = {in.data}.plot.bar(
         {variable!r},
@@ -119,8 +230,7 @@ template:
         title={title!r},
         figsize=({width!r}, {height!r}),
         palette={palette!r},
-    )
-- when: show=percent & split=None
+- when: show=percent & split=None & layout!=histogram & layout!=donut
   code: |
     {out.chart} = {in.data}.plot.bar(
         {variable!r},
@@ -131,8 +241,7 @@ template:
         title={title!r},
         figsize=({width!r}, {height!r}),
         palette={palette!r},
-    )
-- when: split
+- when: split & layout!=histogram & layout!=donut
   code: |
     {out.chart} = {in.data}.plot.bar(
         {variable!r},
@@ -145,5 +254,48 @@ template:
         title={title!r},
         figsize=({width!r}, {height!r}),
         palette={palette!r},
-    )
+- when: layout=histogram
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        layout="histogram",
+        bins={bins!r},
+        show={show!r},
+        split={split!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+- when: layout=donut
+  code: |
+    {out.chart} = {in.data}.plot.bar(
+        {variable!r},
+        layout="donut",
+        min_slice={min_slice!r},
+        sort={sort!r},
+        show_values={show_values!r},
+        title={title!r},
+        figsize=({width!r}, {height!r}),
+        palette={palette!r},
+- when: top & layout!=histogram
+  code: '    top={top!r},'
+- when: top & other=True & layout!=histogram & layout!=donut
+  code: '    other=True,'
+- when: intervals=True & layout=grouped
+  code: "    intervals=True,\n    confidence={confidence!r},"
+- when: split & letters=True & show=percent & layout=grouped
+  code: "    letters=True,\n    level={level!r},\n    correction={correction!r},"
+- when: show=count & split=None & sort=code & layout!=histogram & layout!=donut & top
+  code: ')'
+- when: show=count & split=None & sort=code & layout!=histogram & layout!=donut & top=None & intervals=True
+  code: ')'
+- when: show=count & split=None & sort=value & layout!=histogram & layout!=donut
+  code: ')'
+- when: show=percent & split=None & layout!=histogram & layout!=donut
+  code: ')'
+- when: split & layout!=histogram & layout!=donut
+  code: ')'
+- when: layout=histogram
+  code: ')'
+- when: layout=donut
+  code: ')'
 preview: chart
