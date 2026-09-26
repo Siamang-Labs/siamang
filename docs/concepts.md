@@ -122,7 +122,7 @@ Accessors:
 | Accessor | Purpose |
 |----------|---------|
 | `data.report` (`ReportAccessor`) | Declarative, SPSS-like tables (`freq`, `crosstab`, `means`, `ttest`, `correlation_matrix`, `descriptives`, `data_check`, …) with auto-labels and statistical tests. |
-| `data.plot` (`PlotAccessor`) | Declarative, SPSS-like charts (`bar`, `boxplot`, `heatmap`, `scatter`) with auto-labels and layout. |
+| `data.plot` (`PlotAccessor`) | Declarative, SPSS-like charts (`bar`, `boxplot`, `heatmap`, `likert`, `scatter`, `trend`) with auto-labels and layout. |
 | `data.analysis` (`DataAnalysis`) | Low-level statistical methods (frequencies, crosstabs, correlations, rank tests with Dunn's post-hoc test, proportion CIs, scale alpha, ESS, etc.). |
 | `data.processing` (`DataProcessing`) | Value-level transforms (recode, derive). |
 | `data.tables` (`SurveyTables`) | Banner / multi-cell tables for export. |
