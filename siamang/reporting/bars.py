@@ -92,6 +92,11 @@ MIN_TESTED = 30
 MAX_BINS = 100
 #: The most groups a histogram draws, one panel each.
 MAX_PANELS = 12
+#: The most values of a number (interval or ratio, without value labels)
+#: drawn as bars or as the series or groups of a split: past it each value is
+#: a bar or a legend entry nobody reads (84 ages made a legend wider than the
+#: figure), and a histogram is what draws the distribution.
+MAX_VALUES = 30
 #: The colour of the answers combined as Other: none of the answers' own.
 OTHER_COLOUR = (0.72, 0.72, 0.72)
 #: The colour of error bars and of the letters over the bars.
@@ -132,9 +137,12 @@ class Bars:
     full: bool = False
     #: The series are the steps of a scale (ordinal and up), not categories.
     ordered: bool = False
-    #: Each series' place in code order: its colour follows the answer, not the
-    #: rank a sort gave it.
+    #: Each series' place in code order among all ``palette_size`` answers
+    #: drawn from (Top N's left out included): its colour follows the answer,
+    #: not the rank a sort or Top N gave it, so an answer has one colour in
+    #: every chart of a report.
     colour_index: list[int] = field(default_factory=list)
+    palette_size: int = 0
     notes: list[str] = field(default_factory=list)
     #: The value axis's title when ``value_label`` would not fit on one line
     #: along it (a split by a question: its notes name the variable).
@@ -181,6 +189,7 @@ def draw(chart: BarChart) -> None:
     names = [chart.column, *(name for name in (chart.split, chart.by) if name)]
     frame, left_out = without_missing_codes(data.frame, names, data.variables)
     frame = frame.reset_index(drop=True)
+    _few_values(chart, frame)
     weights = _weights(data)
     figure: Bars | Histogram | Donut
     if chart.layout == "histogram":
@@ -303,6 +312,38 @@ def _check(chart: BarChart) -> None:
                 "Significance letters compare percentages, as the Banner table's do: "
                 "give show='percent'."
             )
+
+
+def _few_values(chart: BarChart, frame: pd.DataFrame) -> None:
+    """Refuse a number (interval or ratio, no value labels) with more than
+    :data:`MAX_VALUES` values given drawn a bar, a slice, a series or a group
+    per value — the answer the histogram gives, or Bands does for a group."""
+
+    data = chart.data
+    # A histogram draws the number's distribution, and By its mean per group.
+    roles = [] if chart.layout == "histogram" or chart.by else [(chart.column, None)]
+    roles += [(name, role) for name, role in ((chart.split, "Split by"), (chart.by, "By")) if name]
+    for name, role in roles:
+        variable = _variable(data, name)
+        if variable is None or variable.scale not in ("interval", "ratio"):
+            continue
+        if _answer_labels(data, name):
+            continue
+        count = len(pd.unique(frame[name].dropna()))
+        if count <= MAX_VALUES:
+            continue
+        label = _label(data, name)
+        if role is None:
+            what = "a slice" if chart.layout == "donut" else "a bar"
+            raise ValueError(
+                f"{label} is a number with {count:,} different values given, and this chart "
+                f"draws {what} for each: layout='histogram' draws its distribution (or band "
+                "it first with Bands)."
+            )
+        raise ValueError(
+            f"{role} {label} is a number with {count:,} different values given, a group for "
+            "each: band it first (Bands) to compare its ranges."
+        )
 
 
 def _weights(data: SurveyData) -> np.ndarray | None:
@@ -473,6 +514,10 @@ def _distribution(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | No
     label = _label(data, name)
     is_multi = multi.is_multi(series)
     answered = _answered(series, is_multi)
+    if not answered.any():
+        # Every answer a missing code (or none at all): an empty axis ticked
+        # "−0 %" said nothing; the split and the donut say this.
+        raise ValueError(f"No respondent answered {label}.")
     codes = (
         _multi_codes(data, name, series)
         if is_multi
@@ -668,7 +713,8 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         stacked=chart.layout != "grouped",
         full=chart.layout == "stacked_100",
         ordered=_is_scale(data, name),
-        colour_index=order,
+        colour_index=[kept[i] for i in order],
+        palette_size=len(codes),
         notes=notes,
         short_value_label=short,
         lower=None if lower is None else lower[groups_order][:, series_order],
@@ -976,7 +1022,7 @@ def render(chart: BarChart, bars: Bars) -> None:
     chart._fig, chart._ax = fig, ax
     # Other is grey, and the answers' colours are the palette's without it.
     plain = count - (bars.other_series is not None)
-    palette = series_colours(chart.palette, plain, ordered=bars.ordered)
+    palette = series_colours(chart.palette, max(plain, bars.palette_size), ordered=bars.ordered)
     colours = [palette[index] for index in (bars.colour_index or range(plain))]
     other = _other()
     if bars.other_series is not None:
@@ -1657,7 +1703,11 @@ class Donut:
     title: str
     legend_title: str
     ordered: bool
+    #: Each slice's answer's place among the ``palette_size`` answers, as a
+    #: split of the same question colours it (Top N's and the small ones
+    #: combined as Other included).
     colour_index: list[int]
+    palette_size: int
     #: The slice that combines answers as Other, drawn grey.
     other: int | None
     respondents: int
@@ -1702,6 +1752,13 @@ def _donut(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     if not rest and len(small) < 2:
         small = []
     kept = [i for i in given if i not in small]
+    if not kept:
+        # Every answer under min_slice: Other would be the whole ring.
+        raise ValueError(
+            f"Each of the {len(given)} answers to {label} drawn is under {chart.min_slice:g} % "
+            "of the respondents who answered, so Other would fill the whole ring: draw them "
+            "as bars (layout='grouped'), or lower min_slice."
+        )
     order = [kept[i] for i in _order(shares[kept], chart.sort)]
     names = [_name_of(data, name, codes[i]) for i in order]
     values = [shares[i] for i in order]
@@ -1727,15 +1784,14 @@ def _donut(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         notes.append(
             "Nobody answered " + _names_list([_name_of(data, name, codes[i]) for i in nobody]) + "."
         )
-    # Colours in code order of the answers with a slice of their own.
-    ranks = {index: rank for rank, index in enumerate(sorted(order))}
     return Donut(
         shares=np.array(values, dtype=float),
         names=names,
         title=chart.title or label,
         legend_title=label,
         ordered=_is_scale(data, name),
-        colour_index=[ranks[index] for index in order],
+        colour_index=order,
+        palette_size=len(codes),
         other=other,
         respondents=int(answered.sum()),
         weighted_base=base if weights is not None else None,
@@ -1755,7 +1811,7 @@ def render_donut(chart: BarChart, donut: Donut) -> None:
     chart._fig, chart._ax = fig, ax
     count = len(donut.shares)
     plain = count - (donut.other is not None)
-    palette = series_colours(chart.palette, plain, ordered=donut.ordered)
+    palette = series_colours(chart.palette, max(plain, donut.palette_size), ordered=donut.ordered)
     colours = [palette[index] for index in donut.colour_index]
     if donut.other is not None:
         colours.insert(donut.other, _other())

@@ -973,6 +973,20 @@ def _check_design(
     problem = _method_problem(spec.type, params)
     if problem:
         return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {problem}", node_id)]
+    if (
+        spec.type == "visualize.bar"
+        and isinstance(params.get("split"), str)
+        and params.get("split") == params.get("variable")
+        and params.get("layout") not in ("histogram", "donut")
+    ):
+        return [
+            FlowIssue(
+                "error",
+                "PARAM_CONFLICT",
+                f"{node_id}: Split by must be another variable than Variable.",
+                node_id,
+            )
+        ]
     if spec.type == "visualize.bar" and params.get("layout") == "histogram":
         from siamang.reporting.bars import parse_bins
 
@@ -1410,9 +1424,43 @@ def _check_bar_answers(
             f"{label(drawn)} allows several answers, so its options overlap and cannot be "
             "stacked: draw them side by side (Layout = grouped)."
         )
-    return (
-        [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)] if message else []
-    )
+    if message:
+        return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)]
+    # A number drawn as bars, a bar (or a series) for each value: the run
+    # refuses more than bars.MAX_VALUES values, which the data tells; the
+    # codebook's valid range can say so before.
+    from siamang.reporting.bars import MAX_VALUES
+
+    def many_values(name: Any) -> bool:
+        payload = variables.get(name) or {} if isinstance(name, str) else {}
+        span = payload.get("valid_range")
+        if payload.get("scale") not in ("interval", "ratio") or payload.get("labels"):
+            return False
+        if not (isinstance(span, list | tuple) and len(span) == 2):
+            return False
+        try:
+            return float(span[1]) - float(span[0]) + 1 > MAX_VALUES
+        except (TypeError, ValueError):
+            return False
+
+    # (Split by takes a nominal or ordinal variable only: its parameter says so.)
+    if many_values(drawn) and layout != "histogram" and unset(params.get("by")):
+        return [
+            FlowIssue(
+                "warning",
+                "PARAM_CONFLICT",
+                f"{node_id}: {label(drawn)} is a number of up to "
+                f"{_range_size(variables.get(drawn) or {})} values, and bars draw each value "
+                "given: Layout histogram draws its distribution.",
+                node_id,
+            )
+        ]
+    return []
+
+
+def _range_size(payload: dict[str, Any]) -> str:
+    low, high = payload["valid_range"]
+    return f"{int(float(high) - float(low) + 1):,}"
 
 
 def _check_trend(

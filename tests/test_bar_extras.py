@@ -1093,3 +1093,147 @@ def test_the_node_checks_what_the_newer_forms_refuse(questionnaire_doc):
     }
     for message, params in warnings.items():
         assert issues(params) == [("warning", message)], params
+
+
+# ─── one colour per answer, a number as bars, nothing to draw ────────────────
+
+
+def test_an_answer_keeps_its_colour_in_top_n_and_in_the_donut():
+    """Colours were given by the place among the answers drawn: with Top N or
+    a donut's small slices left out, every later answer moved to another
+    colour, so one brand was orange in one chart of a report and magenta in
+    the next. An answer's colour is its place among all the answers given."""
+    from matplotlib.colors import to_hex
+
+    from siamang.reporting import chart_theme as ct
+
+    data = _ranked()
+
+    def legend(chart):
+        ax = chart.plot()
+        legend = ax.get_legend() or ax.figure.legends[0]
+        handles = legend.legend_handles
+        return {
+            text.get_text(): to_hex(handle.get_facecolor())
+            for text, handle in zip(legend.get_texts(), handles, strict=True)
+        }
+
+    everything = legend(data.plot.bar("q", show="percent", split="g", palette="theme"))
+    top = legend(data.plot.bar("q", show="percent", split="g", top=3, palette="theme"))
+    donut = legend(data.plot.bar("q", layout="donut", top=3, other=True, palette="theme"))
+    # A–F were given (G never): each takes the palette's colour of its code's place.
+    expected = dict(zip("ABCDEF", ct.PALETTE, strict=False))
+    assert everything == expected
+    assert top == {name: expected[name] for name in ("B", "C", "D")}
+    assert {name: colour for name, colour in donut.items() if name != "Other"} == top
+    assert donut["Other"] == to_hex(ct.NEUTRAL)
+
+
+def test_percent_bars_of_no_answer_say_so():
+    """Every answer a missing code: an empty axis ticked -0 % said nothing;
+    as the split and the donut do, the chart says who did not answer."""
+    frame = pd.DataFrame({"x": [9] * 10})
+    variables = VariableMap()
+    variables.add(
+        Variable("x", "nominal", label="X", labels={1: "Yes", 9: "Don't know"}, missing_values=[9])
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    for kwargs in ({"show": "percent"}, {"sort": "value"}):
+        with pytest.raises(ValueError, match=r"^No respondent answered X\.$"):
+            data.plot.bar("x", **kwargs).plot()
+
+
+def test_a_donut_every_answer_of_which_is_under_min_slice_is_refused():
+    """40 answers of 2.5 % each were combined into one grey ring called
+    Other; a donut whose every slice would be Other says so."""
+    frame = pd.DataFrame({"x": np.arange(1, 41)})
+    variables = VariableMap()
+    variables.add(
+        Variable("x", "nominal", label="Forty", labels={i: f"Answer {i}" for i in range(1, 41)})
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    with pytest.raises(ValueError) as refused:
+        data.plot.bar("x", layout="donut").plot()
+    assert str(refused.value) == (
+        "Each of the 40 answers to Forty drawn is under 3 % of the respondents who answered, "
+        "so Other would fill the whole ring: draw them as bars (layout='grouped'), or lower "
+        "min_slice."
+    )
+    assert len(_wedges(data.plot.bar("x", layout="donut", min_slice=2).plot())) == 40
+    # One large answer and the rest small: two slices, as before.
+    assert [
+        name for name, _ in _wedges(_channels((60, 1, 1, 1)).plot.bar("c", layout="donut").plot())
+    ] == [
+        "Online",
+        "Other",
+    ]
+
+
+def test_a_number_of_many_values_is_not_drawn_a_bar_each():
+    """An age (16–99) drawn as percent bars, or split by, made a bar or a
+    legend entry per value — 84 of them, the legend wider than the figure.
+    Past MAX_VALUES values the chart says what draws it; the classic chart is
+    drawn as it always was, and a histogram of it as before."""
+    from siamang.reporting import bars
+
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame({"age": rng.integers(16, 100, 600), "g": rng.integers(1, 4, 600)})
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("age", "ratio", label="Age"),
+            Variable("g", "nominal", label="Region", labels={1: "A", 2: "B", 3: "C"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    values = frame["age"].nunique()
+    assert values > bars.MAX_VALUES
+    number = (
+        f"Age is a number with {values} different values given, and this chart draws a bar "
+        "for each: layout='histogram' draws its distribution (or band it first with Bands)."
+    )
+    for kwargs in ({"show": "percent", "split": "g"}, {"show": "percent"}, {"sort": "value"}):
+        with pytest.raises(ValueError) as refused:
+            data.plot.bar("age", **kwargs).plot()
+        assert str(refused.value) == number
+    with pytest.raises(ValueError, match="draws a slice for each"):
+        data.plot.bar("age", layout="donut").plot()
+    with pytest.raises(ValueError) as refused:
+        data.plot.bar("g", show="percent", split="age").plot()
+    assert str(refused.value) == (
+        f"Split by Age is a number with {values} different values given, a group for each: "
+        "band it first (Bands) to compare its ranges."
+    )
+    assert len(data.plot.bar("age").plot().patches) == values  # the classic chart
+    data.plot.bar("age", layout="histogram", split="g").plot()
+    data.plot.bar("age", by="g", intervals=True).plot()  # its mean in each group
+    few = data.with_frame(frame.assign(age=frame["age"] % 10))
+    few.plot.bar("age", show="percent", split="g").plot()  # ten values: bars
+
+
+def test_the_check_names_a_split_by_the_variable_and_a_number_of_many_values(
+    questionnaire_doc,
+):
+    """Split by = Variable passed the check and failed the run; a number whose
+    codebook range holds more than MAX_VALUES values drawn as bars is warned."""
+    import copy
+
+    assert _issues(
+        {"variable": "region", "split": "region", "show": "percent"}, questionnaire_doc
+    ) == [("error", "n: Split by must be another variable than Variable.")]
+    document = questionnaire_doc  # age: ratio, valid 16 to 99
+    assert document["variables"]["age"]["valid_range"] == [16, 99]
+    label = document["variables"]["age"].get("label") or "age"
+    number = (
+        "warning",
+        f"n: {label} is a number of up to 84 values, and bars draw each value given: "
+        "Layout histogram draws its distribution.",
+    )
+    assert _issues({"variable": "age", "show": "percent"}, document) == [number]
+    assert _issues({"variable": "age"}, document) == [number]
+    assert _issues({"variable": "age", "layout": "histogram"}, document) == []
+    assert _issues({"variable": "age", "by": "region", "intervals": True}, document) == []
+    # Without a range the codebook cannot tell: the run does.
+    unranged = copy.deepcopy(questionnaire_doc)
+    del unranged["variables"]["age"]["valid_range"]
+    assert _issues({"variable": "age", "show": "percent"}, unranged) == []

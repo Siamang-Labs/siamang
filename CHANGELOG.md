@@ -743,6 +743,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `summary_fig_1.png` (characters other than letters, digits, `.`, `_` and `-`
   become `-`). `to_markdown` takes the `prefix` it uses (default none).
 
+- **An answer has one colour in every chart of a report.** The Bar chart's
+  split and donut coloured an answer by its place among the answers drawn,
+  so with Top N, or a donut's small slices combined as Other, every later
+  answer moved to another colour: one brand was orange in one chart and
+  magenta in the next. The colour is the answer's place among all the
+  answers given. A split without Top N is coloured as it was.
+
+- **A number is not drawn a bar per value.** An age (16–99) drawn as percent
+  bars, split by, or as a donut made a bar, a legend entry or a slice for each
+  of its 84 values (a legend wider than the figure). The newer forms refuse a
+  number (interval or ratio, no value labels) with more than 30 values given:
+  `Age is a number with 84 different values given, and this chart draws a
+  bar for each: layout='histogram' draws its distribution (or band it first
+  with Bands).` (`Split by Age is … a group for each: band it first (Bands) to
+  compare its ranges.`); `check_flow` warns when the codebook's valid range
+  holds more than 30 values (`Age is a number of up to 84 values, and bars
+  draw each value given: Layout histogram draws its distribution.`). The
+  classic chart is drawn as it always was.
+
+- **Nothing to draw is said.** Percent bars of a variable nobody answered (every
+  answer a missing code) drew an empty axis ticked `−0%`; they say `No
+  respondent answered X.`, as the split and the donut do. A donut every answer
+  of which is under `min_slice` was one grey ring called Other; it says `Each
+  of the 40 answers to Forty drawn is under 3 % of the respondents who
+  answered, so Other would fill the whole ring: draw them as bars
+  (layout='grouped'), or lower min_slice.`
+
+- **`check_flow` names a Bar chart split by its own Variable.** It passed the
+  check and failed the run; the check says `Split by must be another variable
+  than Variable.`
+
 - **Save report's workbook links a sheet whose name has an apostrophe.** The
   Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
   which Excel cannot follow; a sheet's name in a link is quoted with an
