@@ -800,6 +800,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a scale of their own, a row per group named with its base (`Means by
   Region, each variable on its own scale`).
 
+- **A Heatmap of means by group in the theme's colours leaves the missing
+  codes out and keeps its cells.** With `cmap="theme"`, By drew the classic
+  form: twelve items of 60 characters made `tight_layout` fail and the
+  heatmap a strip with its values on top of one another, and a 1–5 item's
+  mean took 99 = Not applicable in (42.00, 23.40). Each cell is now the mean
+  of the group's respondents who answered the item, as Group means gives it,
+  the missing codes left out and counted; long items are numbered and
+  wrapped, each group's base is under its name, and the base and the weight
+  are under the chart. A named colour map draws what it always drew; the By
+  help says that missing codes count as answers there.
+
 - **Save report's workbook links a sheet whose name has an apostrophe.** The
   Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
   which Excel cannot follow; a sheet's name in a link is quoted with an

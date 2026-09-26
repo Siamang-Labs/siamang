@@ -302,3 +302,109 @@ def test_the_heatmap_node_checks_generates_and_runs(questionnaire_doc, tmp_path)
             "heatmap shows means.",
         )
     ]
+
+
+# ─── means by group in the theme's colours ───────────────────────────────────
+
+AGREEMENT = {1: "Strongly disagree", 2: "Disagree", 3: "Neutral", 4: "Agree", 5: "Strongly agree"}
+
+
+def _rated(weighted: bool = False) -> SurveyData:
+    frame = pd.DataFrame(
+        {
+            "q1": [1, 2, 3, 4, 5, 99, 4, 5, 3, 99],
+            "q2": [5, 4, 4, 99, 5, 3, 2, 1, 2, 3],
+            "g": [1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+            "w": [1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0],
+        }
+    )
+    labels = {**AGREEMENT, 99: "Not applicable"}
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(
+                "q1", "ordinal", label="Staff were helpful", labels=labels, missing_values=[99]
+            ),
+            Variable("q2", "ordinal", label="Prices are fair", labels=labels, missing_values=[99]),
+            Variable("g", "nominal", label="Group", labels={1: "A", 2: "B"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    return data.with_weight("w") if weighted else data
+
+
+def _mean_cells(ax) -> dict[tuple[str, str], str]:
+    rows = [label.get_text() for label in ax.get_yticklabels()]
+    columns = [label.get_text().split("\n")[0] for label in ax.get_xticklabels()]
+    return {
+        (rows[int(text.get_position()[1])], columns[int(text.get_position()[0])]): text.get_text()
+        for text in ax.texts
+    }
+
+
+def test_means_by_group_in_the_theme_s_colours_leave_the_missing_codes_out():
+    """The classic form averaged 99 = Not applicable into a 1–5 item's mean
+    (42.00, 23.40); in the theme's colours each cell is the mean of the
+    group's respondents who answered the item — Group means' numbers."""
+    data = _rated()
+    ax = data.plot.heatmap(["q1", "q2"], by="g", cmap="theme").plot()
+    assert _mean_cells(ax) == {
+        ("1. Staff were helpful", "A"): "3.00",  # 1..5
+        ("1. Staff were helpful", "B"): "4.00",  # 4, 5, 3
+        ("2. Prices are fair", "A"): "4.50",  # 5, 4, 4, 5
+        ("2. Prices are fair", "B"): "2.20",  # 3, 2, 1, 2, 3
+    }
+    for column, group in (("q1", 2), ("q2", 1)):
+        own = data.with_frame(data.frame[data.frame[column] != 99])
+        mean = own.report.means(column, by="g", method="welch_anova").to_frame()["Mean"]
+        assert f"{mean.iloc[group - 1]:.2f}" in _mean_cells(ax).values()
+    notes = " ".join(text.get_text() for text in ax.figure.texts).replace("\n", " ")
+    assert "Left out as missing: Staff were helpful: 2 (99); Prices are fair: 1 (99)." in notes
+    assert [label.get_text() for label in ax.get_xticklabels()] == ["A\n(n = 5)", "B\n(n = 5)"]
+    # Weighted: each item's weighted mean (q1 in A: (1 + 4 + 3 + 4 + 5) / 6).
+    weighted = data.with_weight("w").plot.heatmap(["q1"], by="g", cmap="theme").plot()
+    assert _mean_cells(weighted)[("1. Staff were helpful", "A")] == f"{(1 + 4 + 3 + 4 + 5) / 6:.2f}"
+    # A named colour map draws what it always drew: 99 counted.
+    classic = data.plot.heatmap(["q1", "q2"], by="g").plot()
+    assert "42.00" in {text.get_text() for text in classic.texts}
+
+
+def test_many_long_items_by_many_groups_keep_their_mean_cells():
+    """Twelve items of about 60 characters by eight groups made tight_layout
+    give up and the heatmap a strip whose values lay on top of one another:
+    the items are numbered and wrapped, and the cells keep their values apart."""
+    rng = np.random.default_rng(2)
+    items = [f"q{i}" for i in range(1, 13)]
+    frame = pd.DataFrame({name: rng.integers(1, 6, 400) for name in items})
+    frame["g"] = rng.integers(1, 9, 400)
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(
+                name,
+                "ordinal",
+                label=f"Statement {i}: the service was good in way {i} of many",
+                labels=AGREEMENT,
+            )
+            for i, name in enumerate(items, 1)
+        ]
+        + [
+            Variable(
+                "g",
+                "nominal",
+                label="Region",
+                labels={i: f"Region number {i} of the country" for i in range(1, 9)},
+            )
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    ax = data.plot.heatmap(items, by="g", cmap="theme").plot()
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    assert ax.get_yticklabels()[0].get_text().startswith("1. Statement 1")
+    height = ax.get_window_extent(renderer).height * 72 / fig.dpi
+    assert height >= 12 * 14  # a row of at least 14 pt an item
+    boxes = [text.get_window_extent(renderer) for text in ax.texts]
+    assert len(boxes) == 96
+    assert not any(a.overlaps(b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])

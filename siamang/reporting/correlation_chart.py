@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from siamang.reporting.chart_parts import Footnote, chars_in, left_out_note, wrap
+from siamang.reporting.chart_parts import Footnote, axes_points, chars_in, left_out_note, wrap
 
 if TYPE_CHECKING:
     from siamang.reporting.charts import HeatMap
@@ -138,6 +138,138 @@ def draw(chart: HeatMap) -> None:
         footnote.apply()
 
 
+def draw_means(chart: HeatMap) -> None:
+    """Build ``chart``'s mean of each item in each group of ``by`` in the
+    theme's colours: the classic form's numbers but for the codebook's missing
+    codes, which are left out and counted (the classic form averaged a 99 = Not
+    applicable into a 1–5 scale's mean), long item labels numbered and wrapped
+    so the cells keep the plot, each group's base under its name, and the base,
+    the weight and what was left out under the chart."""
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    from siamang.data import inference
+    from siamang.reporting import chart_theme
+    from siamang.reporting.charts import _get_label, _get_value_labels, _weighted_means
+
+    data = chart.data
+    columns = list(dict.fromkeys(chart.columns))
+    by = str(chart.by)
+    unknown = [name for name in [*columns, by] if name not in data.frame.columns]
+    if unknown:
+        raise ValueError(f"No variable {unknown[0]!r} in the data.")
+    source, left_out = inference.without_missing_codes(data.frame, [*columns, by], data.variables)
+    frame = source[[*columns, by]][source[by].notna()].copy()
+    for name in columns:
+        numbers = pd.to_numeric(frame[name], errors="coerce")
+        if numbers.notna().sum() < frame[name].notna().sum():
+            raise ValueError(
+                f"{_label(chart, name)} holds answers that are not numbers, so it has no mean."
+            )
+        frame[name] = numbers.astype(float)
+    answered = frame[columns].notna().any(axis=1)
+    frame = frame[answered]
+    if frame.empty:
+        raise ValueError(
+            f"No respondent answered an item and {_get_label(data, by)}: there is no mean to draw."
+        )
+    weighted = data.weight is not None
+    weights = None
+    if weighted:
+        if data.weight not in data.frame.columns:
+            raise ValueError(f"Weight column '{data.weight}' not found in frame.")
+        weights = (
+            pd.to_numeric(data.frame.loc[frame.index, data.weight], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
+        chart._weighted()
+    # Each item's mean of those who answered it, as Group means computes it.
+    means = {}
+    for name in columns:
+        part = frame[[name, by]].dropna()
+        if weights is None:
+            means[name] = part.groupby(by)[name].mean()
+        else:
+            means[name] = _weighted_means(part, [name], by, weights.loc[part.index])[name]
+    grouped = pd.DataFrame(means)
+    sizes = frame.groupby(by).size()
+    by_labels = _get_value_labels(data, by)
+    from siamang.reporting.chart_parts import code_order, code_text
+
+    order = sorted(grouped.index, key=code_order)
+    grouped = grouped.loc[order]
+
+    labels = [_label(chart, name) for name in columns]
+    labels = [
+        f"{label} ({name})" if labels.count(label) > 1 else label
+        for label, name in zip(labels, columns, strict=True)
+    ]
+    numbered = max(len(label) for label in labels) > 14
+    texts = [f"{index}. {label}" if numbered else label for index, label in enumerate(labels, 1)]
+    size, rows = _row_labels(texts, chart.figsize)
+    groups = [
+        f"{by_labels.get(code, code_text(code))}\n(n = {int(sizes[code]):,})" for code in order
+    ]
+    matrix = grouped.T.copy()
+    matrix.index = rows
+    matrix.columns = groups
+    lines = max(row.count("\n") + 1 for row in rows)
+
+    chart_theme.set_theme(style="whitegrid")
+    fig, ax = plt.subplots(figsize=chart.figsize)
+    chart._fig, chart._ax = fig, ax
+    sns.heatmap(
+        matrix,
+        annot=False,
+        cmap=chart_theme.cmap(chart.cmap, "sequential"),
+        vmin=chart.vmin,
+        vmax=chart.vmax,
+        ax=ax,
+        linewidths=0.5,
+        cbar_kws={"label": "Weighted mean" if weighted else "Mean"},
+    )
+    ax.grid(False)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=size)
+    by_label = _get_label(data, by)
+    ax.set_xlabel(by_label)
+    title = chart.title or f"Mean values by {by_label}"
+    ax.set_title(wrap(title, chars_in(chart.figsize[0] * 72.0 * 0.8, 12.0)))
+
+    notes = [
+        f"Base: {len(frame):,} {'respondent' if len(frame) == 1 else 'respondents'} who answered "
+        f"{by_label} and an item; each group's n is under its name. Each cell is the mean of "
+        "the group's respondents who answered the item, as Group means gives it."
+    ]
+    if weighted:
+        notes.append(f"Weighted by '{data.weight}': the means are weighted; n counts respondents.")
+    note = left_out_note(left_out, data.variables)
+    if note:
+        notes.append(note)
+    footnote = Footnote(fig, notes, axes=ax, least=len(rows) * (lines * size * 1.2 + 4.0))
+    footnote.apply()
+    # The groups' names under their columns as the Bar chart places its
+    # labels: level when they fit, else turned in as many lines as fit.
+    from siamang.reporting.bars import _tick_labels
+
+    placed = _tick_labels(groups, axes_points(ax)[0] / max(len(groups), 1))
+    names, rotation, name_size = (
+        placed if placed is not None else ([g.replace("\n", " ") for g in groups], 45, 8.0)
+    )
+    ax.set_xticklabels(
+        names,
+        rotation=rotation,
+        ha="right" if rotation else "center",
+        rotation_mode="anchor" if rotation else "default",
+        fontsize=min(size, name_size),
+    )
+    footnote.apply()
+    if chart.annot and not _annotate(ax, matrix.to_numpy(dtype=float), mean=True):
+        footnote.add("The cells are too small to hold their means: see the Group means table.")
+        footnote.apply()
+
+
 def _row_labels(texts: list[str], figsize: tuple[float, float]) -> tuple[float, list[str]]:
     """The row labels' size and wrapped text: the largest size and narrowest
     column (10 pt in a third of the width, down to 8 pt in a half) at which
@@ -167,29 +299,31 @@ def _pair_note(note: str, shown: dict[str, str]) -> str:
     return note
 
 
-def _annotate(ax: Any, values: np.ndarray) -> bool:
-    """Each coefficient in its cell, at a size its cell holds ("-0.03" in it):
-    at most 10 pt, and none below 6 pt, where they would run together.
-    Returns whether they were written."""
+def _annotate(ax: Any, values: np.ndarray, *, mean: bool = False) -> bool:
+    """Each coefficient (or ``mean``) in its cell, at a size its cell holds
+    ("-0.03" in it; a mean's own width): at most 10 pt, and none below 6 pt,
+    where they would run together. Returns whether they were written."""
 
-    from siamang.reporting.chart_parts import CHAR_WIDTH, axes_points, ink_on
+    from siamang.reporting.chart_parts import CHAR_WIDTH, ink_on
 
-    count = len(values)
+    count, across = values.shape
     width, height = axes_points(ax)
-    cell_w, cell_h = width / max(count, 1), height / max(count, 1)
-    size = min(10.0, cell_w * 0.9 / (5 * CHAR_WIDTH), cell_h / 1.4)
+    cell_w, cell_h = width / max(across, 1), height / max(count, 1)
+    finite = values[np.isfinite(values)]
+    digits = max((len(f"{value:,.2f}") for value in finite), default=5) if mean else 5
+    size = min(10.0, cell_w * 0.9 / (digits * CHAR_WIDTH), cell_h / 1.4)
     if size < 6:
         return False
     cmap, norm = ax.collections[0].cmap, ax.collections[0].norm
     for i in range(count):
-        for j in range(count):
+        for j in range(across):
             value = values[i, j]
             if value != value:
                 continue
             ax.text(
                 j + 0.5,
                 i + 0.5,
-                f"{value:.2f}",
+                f"{value:,.2f}" if mean else f"{value:.2f}",
                 ha="center",
                 va="center",
                 fontsize=size,
@@ -205,4 +339,4 @@ def _label(chart: HeatMap, name: str) -> str:
     return name
 
 
-__all__ = ["draw"]
+__all__ = ["draw", "draw_means"]
