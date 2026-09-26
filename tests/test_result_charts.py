@@ -691,3 +691,33 @@ def test_empty_and_one_sided_results_draw():
     themes = rc.chart(uncoded.report.themes(_codeframe()))
     assert [bar.get_width() for bar in themes._ax.patches] == [0.0, 0.0]
     assert any("Coverage: 0.0 %" in text for text in _texts(themes._ax))
+
+
+def test_odds_ratio_axes_name_minor_ticks_only_when_the_range_is_narrow():
+    """On a wide range of odds ratios (0.2 to 10) the minor ticks 0.3, 0.4, 0.7,
+    1.25, 1.5, 3, … would run into the major labels 0.2, 0.5, 1, 2, 5, 10; on a
+    narrow one (1 to 2) they are the axis's only numbers besides 1. Both kinds
+    are the tick labels' size."""
+    rng = np.random.default_rng(8)
+    frame = pd.DataFrame({"x1": rng.normal(size=400), "x2": rng.normal(size=400)})
+    frame["buy"] = (
+        rng.random(400) < 1 / (1 + np.exp(-(2.2 * frame["x1"] - 1.8 * frame["x2"])))
+    ).astype(int)
+    wide = rc.chart(SurveyData(frame=frame).analysis.regression("buy", ["x1", "x2"]))
+    ax = wide._ax
+    wide._fig.canvas.draw()
+    low, high = ax.get_xlim()
+    assert low < 0.3 and high > 5  # odds ratios of about exp(-1.8) and exp(2.2)
+    shown = [label.get_text() for label in ax.get_xticklabels(minor=True) if label.get_text()]
+    assert shown == []
+    frame["buy"] = (
+        rng.random(400) < 1 / (1 + np.exp(-(0.3 * frame["x1"] + 0.2 * frame["x2"])))
+    ).astype(int)
+    narrow = rc.chart(SurveyData(frame=frame).analysis.regression("buy", ["x1", "x2"]))
+    ax = narrow._ax
+    narrow._fig.canvas.draw()
+    minor = [label for label in ax.get_xticklabels(minor=True) if label.get_text()]
+    major = [label for label in ax.get_xticklabels() if label.get_text()]
+    assert minor and {label.get_fontsize() for label in minor} == {
+        label.get_fontsize() for label in major
+    }

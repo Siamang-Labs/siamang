@@ -660,7 +660,9 @@ figure), marks the four points and names them above the plot at their prices
 (stacked when close), shades the range of acceptable prices, and adds a panel
 of the trial curve with NMS; for Gabor-Granger a demand panel above a revenue
 panel with the best price marked. It never puts two measures on two scales of
-one axis, and returns the matplotlib `Figure`.
+one axis, and returns the matplotlib `Figure`. On a small figure the stacked
+names stay a text's height apart, price labels that would touch turn 45°, and
+the legend takes two rows when the figure is narrower than 6.5 inches.
 
 ---
 

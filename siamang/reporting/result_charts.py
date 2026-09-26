@@ -1759,7 +1759,7 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any]) -> s
         f"{_number(value)} ({_number(low)} – {_number(high)})"
         for value, low, high in zip(estimate, lower, upper, strict=True)
     ]
-    ax, _ = _dots(
+    ax, size = _dots(
         chart,
         [str(term) for term in terms["term"]],
         [
@@ -1781,7 +1781,8 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any]) -> s
         ax.xaxis.set_major_locator(LogLocator(base=10, subs=(1.0, 2.0, 5.0)))
         ax.xaxis.set_minor_locator(LogLocator(base=10, subs=(1.25, 1.5, 3.0, 4.0, 7.0)))
         ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
-        ax.xaxis.set_minor_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+        ax.xaxis.set_minor_formatter(FuncFormatter(lambda value, _: _minor_label(ax, value)))
+        ax.tick_params(axis="x", which="minor", labelsize=size, colors=_INK)
         ax.set_xlabel(
             f"Odds ratio with its 95 % confidence interval ({basis}), log scale", color=_INK
         )
@@ -1789,6 +1790,16 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any]) -> s
         ax.set_xlabel(f"Coefficient with its 95 % confidence interval ({basis})", color=_INK)
     outcome = stats.get("outcome")
     return f"Regression coefficients{f': {outcome}' if outcome else ''}"
+
+
+def _minor_label(ax: Any, value: float) -> str:
+    """A minor tick's label on a log axis of odds ratios: named only while
+    fewer than three major ticks (0.5, 1, 2, …) fall within the axis — a narrow
+    range needs 1.25 and 1.5 to be read, and on a wide one they would run into
+    the major labels."""
+    low, high = sorted(ax.get_xlim())
+    majors = [tick for tick in ax.xaxis.get_majorticklocs() if low <= tick <= high]
+    return f"{value:g}" if len(majors) < 3 else ""
 
 
 def _draw_coefficients(frame: pd.DataFrame, chart: ResultChart) -> str:

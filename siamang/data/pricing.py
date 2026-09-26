@@ -663,7 +663,10 @@ def plot(
     with its highest trial and highest revenue; for Gabor-Granger the demand
     curve above the revenue per respondent, the best price marked on both. Two
     measures are never drawn on two scales of one axis: each gets its panel,
-    sharing the price axis. Returns the matplotlib Figure."""
+    sharing the price axis. On a small figure the names stacked at close
+    prices stay a text's height apart, price labels that would touch turn 45°,
+    and the legend takes two rows below 6.5 inches wide. Returns the
+    matplotlib Figure."""
 
     from matplotlib.figure import Figure
 
@@ -695,16 +698,51 @@ def plot(
     if result.weight:
         lines[-1] += f", weighted by '{result.weight}'"
     axes[0].set_title("\n".join(lines), fontsize=12, color=_INK, loc="left", pad=12)
+    # The legend's rows under the whole figure, where no curve runs: the four
+    # curves in one row, or two on a figure too narrow for one.
+    rows = (1 if width >= 6.5 else 2) if legend else 0
     if legend:
-        # Under the whole figure, where no curve runs.
         fig.legend(
             *axes[0].get_legend_handles_labels(),
-            loc="lower center", ncol=4, frameon=False, fontsize=9,
+            loc="lower center", ncol=4 // rows, frameon=False, fontsize=9,
         )  # fmt: skip
-    fig.tight_layout(rect=(0, 0.05 if legend else 0, 1, 1))
+    fig.tight_layout(rect=(0, min((rows * 0.24 + 0.1) / height, 0.3) if legend else 0, 1, 1))
+    if not legend and _turn_crowded_ticks(axes[-1], fig):
+        fig.tight_layout()
     if legend:
         _label_points(result, axes, fig)
     return fig
+
+
+def _turn_crowded_ticks(ax: Any, fig: Any) -> bool:
+    """Turn the price labels under ``ax`` 45° when two of them would touch —
+    prices close together on a narrow figure, such as 8.99 and 9.99 six inches
+    wide. Returns whether they were turned."""
+
+    renderer = _renderer(fig)
+    boxes = sorted(
+        (label.get_window_extent(renderer) for label in ax.get_xticklabels() if label.get_text()),
+        key=lambda box: box.x0,
+    )
+    gap = 3 * fig.dpi / 72
+    if not any(right.x0 < left.x1 + gap for left, right in zip(boxes, boxes[1:], strict=False)):
+        return False
+    for label in ax.get_xticklabels():
+        label.set_rotation(45)
+        label.set_horizontalalignment("right")
+        label.set_rotation_mode("anchor")
+    return True
+
+
+def _renderer(fig: Any) -> Any:
+    """The figure's renderer, after a draw, so that texts measure as drawn."""
+
+    if not hasattr(fig.canvas, "get_renderer"):
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+        FigureCanvasAgg(fig)
+    fig.canvas.draw()
+    return fig.canvas.get_renderer()
 
 
 def _style(ax: Any) -> None:
@@ -773,18 +811,19 @@ def _label_points(result: PriceSensitivity, axes: list[Any], fig: Any) -> None:
 
 def _stacked(ax: Any, fig: Any, items: list[tuple[float, str]], y: float, step: float) -> None:
     """Write each text centred at its price at height ``y``, one ``step`` lower
-    for each text it would otherwise touch."""
+    for each text it would otherwise touch — or, on a panel too short for that,
+    one text's height lower (with its white box), so that stacked names never
+    run into each other."""
 
-    if not hasattr(fig.canvas, "get_renderer"):
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
-
-        FigureCanvasAgg(fig)
-    renderer = fig.canvas.get_renderer()
-    fig.canvas.draw()
+    renderer = _renderer(fig)
+    low, high = ax.get_ylim()
+    per_pixel = (high - low) / max(ax.get_window_extent(renderer).height, 1.0)
     placed: list[tuple[float, float, int]] = []
     for price, text in items:
         label = ax.text(price, y, text, fontsize=9, color=_INK, ha="center", va="center")
-        width = label.get_window_extent(renderer).width
+        extent = label.get_window_extent(renderer)
+        width = extent.width
+        step = max(step, (extent.height + 5 * fig.dpi / 72) * per_pixel)
         centre = float(ax.transData.transform((price, 0))[0])
         level = 0
         while any(
