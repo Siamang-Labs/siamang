@@ -16,15 +16,17 @@ from siamang.data.intervals import mean_interval, proportion_interval, t_interva
 def test_the_mean_interval_is_students_t_as_r_gives_it():
     # R: t.test(c(2, 4, 4, 5, 7, 8))$conf.int -> 2.70080170952 7.29919829048;
     # conf.level = 0.9 -> 3.19768594371 6.80231405629.
+    # The ends go through t.ppf, which SciPy 1.11 gives about 1e-9 off R's
+    # (2.5705818366 for t(0.975, 5) against 2.5705818356): relative 1e-8.
     interval = mean_interval([2, 4, 4, 5, 7, 8])
     assert interval.estimate == 5.0 and interval.n == 6
-    assert interval.lower == pytest.approx(2.70080170952, abs=1e-10)
-    assert interval.upper == pytest.approx(7.29919829048, abs=1e-10)
+    assert interval.lower == pytest.approx(2.70080170952, rel=1e-8)
+    assert interval.upper == pytest.approx(7.29919829048, rel=1e-8)
     ninety = mean_interval([2, 4, 4, 5, 7, 8], confidence=0.9)
-    assert (ninety.lower, ninety.upper) == pytest.approx((3.19768594371, 6.80231405629), abs=1e-10)
+    assert (ninety.lower, ninety.upper) == pytest.approx((3.19768594371, 6.80231405629), rel=1e-8)
     # From a table's numbers: the SD of those six is 2.19089023002.
     table = t_interval(5.0, 2.19089023002, 6)
-    assert (table.lower, table.upper) == pytest.approx((2.70080170952, 7.29919829048), abs=1e-9)
+    assert (table.lower, table.upper) == pytest.approx((2.70080170952, 7.29919829048), rel=1e-8)
 
 
 def test_the_weighted_mean_interval_is_the_linearization_one():
@@ -40,8 +42,9 @@ def test_the_weighted_mean_interval_is_the_linearization_one():
     interval = mean_interval(y, w)
     assert interval.estimate == pytest.approx(3.225)
     assert interval.se == pytest.approx(0.536855930734, abs=1e-11)
+    # The ends use t.ppf: relative 1e-8, which SciPy 1.11's quantile meets.
     assert (interval.lower, interval.upper) == pytest.approx(
-        (1.911360860729, 4.538639139271), abs=1e-11
+        (1.911360860729, 4.538639139271), rel=1e-8
     )
     # Equal weights are the unweighted interval, whatever their size.
     plain = mean_interval(y)
