@@ -540,6 +540,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Large counts read with their thousands separated.** The newer Bar chart
+  wrote bases as `n = 182128`, weighted counts on bars as `18848.4` and count
+  ticks as `20000`: counts now separate thousands (`n = 182,128`, `Base:
+  30,000 respondents …`, ticks `20,000`), and a weighted count from 100 on is
+  written whole (`18,848`; below 100 to one decimal, as before). The Likert
+  chart's and the Result charts' `(n = …)` separate thousands too.
+
 - **Sorting a Bar chart split by a scale keeps the scale in order.** With
   Sort = value the answers of an ordinal scale were ordered by how often they
   were given — a 100 % stack read Satisfied, Very satisfied, Neither, … from

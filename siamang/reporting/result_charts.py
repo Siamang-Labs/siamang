@@ -928,7 +928,7 @@ def _with_n(labels: Sequence[Any], counts: Any) -> list[str]:
     """Each row's label with its base, ``North (n = 97)``: an interval is read
     with the number of answers behind it."""
     return [
-        f"{label} (n = {int(count)})" if count == count and count is not None else str(label)
+        f"{label} (n = {int(count):,})" if count == count and count is not None else str(label)
         for label, count in zip(labels, counts, strict=True)
     ]
 
@@ -1076,7 +1076,7 @@ def _n_range(counts: Any) -> str:
     if not values:
         return "n = 0"
     low, high = min(values), max(values)
-    return f"n = {low}" if low == high else f"n = {low}–{high}"
+    return f"n = {low:,}" if low == high else f"n = {low:,}–{high:,}"
 
 
 def _no_interval() -> Any:

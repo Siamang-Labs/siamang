@@ -46,6 +46,7 @@ from siamang.reporting.chart_parts import (
     row_major,
     series_colours,
     text_width,
+    thousands_axis,
     wrap,
 )
 
@@ -227,8 +228,8 @@ def _answered(series: pd.Series, is_multi: bool) -> np.ndarray:
 
 
 def _base(n: int, weighted: float | None, whom: str) -> str:
-    text = f"Base: {n} {'respondent' if n == 1 else 'respondents'} {whom}"
-    return text + (f" (weighted: {weighted:.1f})." if weighted is not None else ".")
+    text = f"Base: {n:,} {'respondent' if n == 1 else 'respondents'} {whom}"
+    return text + (f" (weighted: {weighted:,.1f})." if weighted is not None else ".")
 
 
 def _order(values: np.ndarray, sort: str) -> list[int]:
@@ -372,7 +373,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     return Bars(
         values=values[groups_order][:, order],
         positions=[
-            f"{_name_of(data, by, group_codes[index])}\n(n = {sizes[index]})"
+            f"{_name_of(data, by, group_codes[index])}\n(n = {sizes[index]:,})"
             for index in groups_order
         ],
         series=[_name_of(data, name, codes[i]) for i in order],
@@ -420,7 +421,7 @@ def _means(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         means.append(
             float((weight[member] * values[member]).sum() / total) if total > 0 else np.nan
         )
-        names.append(f"{_name_of(data, by, code)}\n(n = {int(member.sum())})")
+        names.append(f"{_name_of(data, by, code)}\n(n = {int(member.sum()):,})")
     if not names:
         raise ValueError(f"No respondent has both {label} and {by_label}.")
     means_array = np.array(means)
@@ -605,6 +606,8 @@ def render(chart: BarChart, bars: Bars) -> None:
     value_axis, position_axis = (ax.xaxis, ax.yaxis) if horizontal else (ax.yaxis, ax.xaxis)
     if bars.kind == "percent":
         percent_axis(value_axis)
+    elif bars.kind == "count":
+        thousands_axis(value_axis)
     if bars.full:
         (ax.set_xlim if horizontal else ax.set_ylim)(0, 100)
     ax.grid(False)
