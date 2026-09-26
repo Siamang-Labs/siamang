@@ -717,3 +717,35 @@ def test_series_past_the_palette_are_all_different_and_the_wheel_does_not_close(
     ax = chart.plot()
     faces = {to_hex(container.patches[0].get_facecolor()) for container in ax.containers}
     assert len(faces) == 24
+
+
+def test_the_check_names_a_split_or_stack_of_several_answers(questionnaire_doc):
+    """Split by a multiple-choice question, and a stack of one's options, were
+    refused only when the Save report built the chart; the questionnaire says
+    it before the run."""
+    from siamang.flow import check_flow
+
+    def issues(params):
+        return [
+            (issue.severity, issue.message)
+            for issue in check_flow(_flow(params), questionnaire=questionnaire_doc)
+        ]
+
+    split = issues({"variable": "region", "split": "aware", "show": "percent"})
+    assert split == [
+        (
+            "error",
+            "n: Split by needs one answer per respondent, and Brands heard of (unaided) allows "
+            "several: draw it as the Variable, or split by one of its options after Explode "
+            "multiple choice.",
+        )
+    ]
+    stacked = issues({"variable": "aware", "split": "region", "layout": "stacked"})
+    assert stacked == [
+        (
+            "error",
+            "n: Brands heard of (unaided) allows several answers, so its options overlap and "
+            "cannot be stacked: draw them side by side (Layout = grouped).",
+        )
+    ]
+    assert issues({"variable": "aware", "split": "region", "show": "percent"}) == []

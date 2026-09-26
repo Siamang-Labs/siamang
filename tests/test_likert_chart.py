@@ -380,3 +380,63 @@ def test_the_neutral_panel_labels_every_tick_with_its_own_value():
         boxes = [label.get_window_extent(renderer) for label in aside.get_xticklabels()]
         boxes = [box for box in boxes if box.width > 0]
         assert all(a.x1 <= b.x0 for a, b in zip(boxes, boxes[1:], strict=False))
+
+
+def test_the_check_and_the_run_read_a_likert_scale_question(questionnaire_doc, tmp_path):
+    """An item with no value labels nor valid range failed at Save report ("…
+    none of the items has value labels …") with an empty flow check; a Likert
+    scale question says what its scale is (its points, its end labels), and an
+    item with no scale at all is named before the run."""
+    import copy
+
+    from siamang.flow import FlowRunner, check_flow
+    from siamang.model import from_document
+
+    document = copy.deepcopy(questionnaire_doc)
+    document["variables"]["satisfaction"].pop("labels")
+    flow = _flow({"items": ["satisfaction"]}, weight=False)
+    assert check_flow(flow, questionnaire=document) == []
+    survey = from_document(document).survey
+    data = survey.simulate(n=120, seed=3)
+    chart = FlowRunner(flow, questionnaire=survey).run(sources={"src": data}).output("n")
+    names = [text.get_text() for text in chart._fig.legends[0].get_texts()]
+    assert names == ["Very dissatisfied", "2", "3", "4", "Very satisfied"]
+    # No scale anywhere: the check says what the run would.
+    issues = check_flow(_flow({"items": ["age"]}, weight=False), questionnaire=document)
+    messages = [issue.message for issue in issues if issue.code == "PARAM_CONFLICT"]
+    assert messages == [
+        "n: A Likert chart draws the answers of a scale, and none of the items has value "
+        "labels (or a valid range of whole numbers) in the codebook, or a Likert scale "
+        "question, to say what the scale is."
+    ]
+    several = check_flow(_flow({"items": ["aware"]}, weight=False), questionnaire=document)
+    assert any("allows several answers; a Likert chart draws items" in i.message for i in several)
+
+
+def test_what_a_chart_cannot_draw_fails_the_chart_node(questionnaire_doc, tmp_path):
+    """A chart is built lazily, so an item the check cannot see (made upstream)
+    failed the Save report node after it; the runner builds each chart as its
+    node runs."""
+    from siamang.flow import FlowRunner, check_flow
+    from siamang.model import from_document
+
+    nodes = [
+        {"id": "src", "type": "source.simulated", "params": {"n": 50, "seed": 2}},
+        {"id": "d", "type": "prepare.derive",
+         "params": {"name": "score2", "formula": "age * 2", "scale": "ordinal"}},
+        {"id": "n", "type": "visualize.likert", "params": {"items": ["score2"]}},
+        {"id": "sec", "type": "output.report_section", "params": {"heading": "H"}},
+        {"id": "save", "type": "output.save_report", "params": {"title": "T", "path": "r.md"}},
+    ]  # fmt: skip
+    pairs = [("src", "data", "d", "data"), ("d", "data", "n", "data"), ("n", "chart", "sec", "items"),
+             ("sec", "report", "save", "sections")]  # fmt: skip
+    edges = [{"from": {"node": a, "port": p}, "to": {"node": b, "port": q}} for a, p, b, q in pairs]
+    flow = {"schema_version": "1.0", "name": "t", "nodes": nodes, "edges": edges}
+    assert [i.severity for i in check_flow(flow, questionnaire=questionnaire_doc)] == []
+    survey = from_document(questionnaire_doc).survey
+    result = FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc).run(
+        cwd=tmp_path, raise_on_error=False
+    )
+    failed = [run for run in result.runs if run.state == "error"]
+    assert [run.node for run in failed] == ["n"]
+    assert "none of the items has value labels" in failed[0].error

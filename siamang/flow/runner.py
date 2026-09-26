@@ -134,6 +134,12 @@ class FlowRunner:
                         continue
                     else:
                         exec(code, namespace)  # noqa: S102 - the registry's own template
+                    for name in names.values():
+                        # A chart is built lazily; built here, what it cannot
+                        # draw fails its own node, not the Save report after it.
+                        chart = namespace.get(name)
+                        if callable(getattr(chart, "_ensure_built", None)):
+                            chart._ensure_built()
                 except Exception as exc:  # noqa: BLE001 - reported per node
                     ms = int((time.perf_counter() - started) * 1000)
                     runs.append(NodeRun(node_id, "error", ms, code, f"{type(exc).__name__}: {exc}"))

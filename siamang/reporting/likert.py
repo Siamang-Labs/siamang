@@ -329,8 +329,8 @@ def likert_scale(data: Any, columns: list[str]) -> Scale:
     if not any(scales.values()):
         raise ValueError(
             "A Likert chart draws the answers of a scale, and none of the items has "
-            "value labels (or a valid range of whole numbers) in the codebook to say "
-            "what the scale is."
+            "value labels (or a valid range of whole numbers) in the codebook, or a "
+            "Likert scale question, to say what the scale is."
         )
     first = columns[0]
     for name in columns[1:]:
@@ -356,7 +356,8 @@ def likert_scale(data: Any, columns: list[str]) -> Scale:
 
 def _answers(data: Any, name: str) -> dict[Any, str]:
     """An item's labelled answers without its missing codes, else the whole
-    numbers of its valid range."""
+    numbers of its valid range, else the points of the Likert scale question
+    that asks it (``Not at all``, ``2``, … ``6``, ``Completely``)."""
 
     variables = data.variables
     variable = variables[name] if variables and name in variables else None
@@ -373,7 +374,30 @@ def _answers(data: Any, name: str) -> dict[Any, str]:
         low, high = (int(bound) for bound in bounds)
         if 2 <= high - low + 1 <= 11:
             return {code: str(code) for code in range(low, high + 1) if code not in missing}
+    question = _scale_question(data, name)
+    if question is not None:
+        points = [code for code in question.values if code not in missing]
+        named = {code: str(code) for code in points}
+        if points and question.left_label:
+            named[points[0]] = str(question.left_label)
+        if points and question.right_label:
+            named[points[-1]] = str(question.right_label)
+        return named
     return {}
+
+
+def _scale_question(data: Any, name: str) -> Any:
+    """The LikertScale question of the data's questionnaire that asks ``name``."""
+
+    from siamang.core.question import LikertScale
+
+    questionnaire = getattr(data, "questionnaire", None)
+    if questionnaire is None:
+        return None
+    for question in questionnaire.all_questions():
+        if isinstance(question, LikertScale) and question.var.name == name:
+            return question
+    return None
 
 
 def _key(labels: dict[Any, str]) -> list[tuple[str, str]]:

@@ -271,8 +271,21 @@ labels (missing codes aside) and reports items on different scales as
 `PARAM_CONFLICT` before the run: `n: The items of a Likert chart must share one
 scale, and these do not: Trust: Acme has 1 = No trust, 2 = Low, 3 = Medium,
 4 = High, 5 = Full; Overall satisfaction has 1 = Very dissatisfied, …. Draw
-them in separate charts, or recode them onto one scale first.` Items the
-codebook does not hold (made upstream) are checked when the chart is drawn.
+them in separate charts, or recode them onto one scale first.` An item's scale is
+its value labels, else a valid range of 2–11 whole numbers, else the points of
+the Likert scale question that asks it (its left and right labels at the ends);
+items with none of these (`n: A Likert chart draws the answers of a scale, and
+none of the items has value labels (or a valid range of whole numbers) in the
+codebook, or a Likert scale question, to say what the scale is.`) and a
+multiple-choice item are errors too. For `visualize.bar` the check names a Split
+by that allows several answers (`n: Split by needs one answer per respondent,
+and <label> allows several: draw it as the Variable, or split by one of its
+options after Explode multiple choice.`) and a stacked layout of a
+multiple-choice variable (`n: <label> allows several answers, so its options
+overlap and cannot be stacked: draw them side by side (Layout = grouped).`).
+Items the codebook does not hold (made upstream) are checked when the chart is
+drawn — and the runner draws every chart as its node runs, so what a chart
+cannot draw fails that node, not the Save report or the preview after it.
 
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead
