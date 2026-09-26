@@ -485,7 +485,7 @@ def _item_labels(
 def _with_base(label: str, n: int, width: int) -> str:
     """``label`` wrapped, its "(n = …)" kept whole on the last line or the next."""
 
-    base = f"(n = {n})"
+    base = f"(n = {n:,})"
     if not label:
         return base
     text = wrap(label, width)

@@ -781,3 +781,36 @@ def test_sorting_a_split_by_a_scale_keeps_the_scale_and_sorts_the_groups(tmp_pat
     # A nominal split still orders its answers by how often they were given.
     plain = data.plot.bar("q", split="g", sort="value")
     assert [t.get_text() for t in plain.plot().get_legend().get_texts()][0] == "Yes"
+
+
+def test_large_counts_read_with_their_thousands_separated():
+    """ "n = 182128", bars of "18848.4" and ticks of "20000": counts from 100 on
+    are whole and every count has its thousands separated."""
+    rng = np.random.default_rng(1)
+    frame = pd.DataFrame(
+        {"a": rng.integers(1, 4, 30000).astype(float), "g": rng.integers(1, 3, 30000).astype(float)}
+    )
+    frame["w"] = rng.uniform(0.5, 1.5, 30000)
+    variables = VariableMap()
+    variables.add(Variable("a", "ordinal", label="A", labels={1: "Low", 2: "Mid", 3: "High"}))
+    variables.add(Variable("g", "nominal", label="G", labels={1: "One", 2: "Two"}))
+    data = SurveyData(frame=frame, variables=variables).with_weight("w")
+    chart = data.plot.bar("a", split="g", sort="value")
+    ax = chart.plot()
+    ax.figure.canvas.draw()
+    values = [text.get_text() for text in ax.texts]
+    assert values and all("," in value and "." not in value for value in values)
+    ticks = [label.get_text() for label in ax.get_yticklabels() if label.get_text()]
+    assert any("," in tick for tick in ticks) and all("." not in tick for tick in ticks)
+    names = [label.get_text() for label in ax.get_xticklabels()]
+    assert all("(n = 1" in name and "," in name for name in names)
+    assert "Base: 30,000 respondents who answered both (weighted: " in _footnote(chart)
+    from siamang.reporting.chart_parts import count_text
+
+    assert [count_text(v) for v in (3.0, 12.34, 100.4, 18848.4, 2000.0)] == [
+        "3",
+        "12.3",
+        "100",
+        "18,848",
+        "2,000",
+    ]

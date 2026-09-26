@@ -276,9 +276,25 @@ def code_text(code: Any) -> str:
 
 
 def count_text(value: float) -> str:
-    """A count: whole numbers as integers, weighted ones to one decimal."""
+    """A count: whole numbers as integers, weighted ones to one decimal — or,
+    from 100 on, whole too, as ``18,848`` reads and ``18848.4`` does not; the
+    thousands separated."""
 
-    return str(int(round(value))) if abs(value - round(value)) < 1e-9 else f"{value:.1f}"
+    if abs(value - round(value)) < 1e-9 or abs(value) >= 100:
+        return f"{int(round(value)):,}"
+    return f"{value:.1f}"
+
+
+def thousands_axis(axis: Any) -> None:
+    """Label a count axis with its thousands separated: 20,000, not 20000."""
+
+    from matplotlib.ticker import FuncFormatter
+
+    axis.set_major_formatter(
+        FuncFormatter(
+            lambda value, _: f"{value:,.0f}" if float(value).is_integer() else f"{value:,g}"
+        )
+    )
 
 
 __all__ = [
@@ -291,6 +307,7 @@ __all__ = [
     "code_order",
     "code_text",
     "count_text",
+    "thousands_axis",
     "font_size",
     "ink_on",
     "left_out_note",
