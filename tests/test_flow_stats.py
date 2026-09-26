@@ -623,6 +623,57 @@ def test_what_the_parameters_settle_is_checked_before_the_run(questionnaire_doc)
     )
 
 
+def test_a_shorthand_codebook_is_read_as_the_questionnaire_reads_it(questionnaire_doc):
+    """The {code: label} shorthand is a valid codebook, but the check read value
+    labels as a list: Explode of such a variable raised AttributeError ('str'
+    object has no attribute 'get') out of check_flow — a 500 at Save in Studio —
+    and the t-test's "has N answers" listed the codes in the object's order, as
+    written ("01"), and kept a missing 3.0 as the answer 3."""
+    import copy
+
+    doc = copy.deepcopy(questionnaire_doc)
+    doc["variables"]["gender"]["labels"] = {"2": "Female", "1": "Male", "3": "Other"}
+    exploded = _flow(
+        [
+            ("src", "source.responses", {}),
+            ("ex", "prepare.explode", {"variable": "gender"}),
+            ("fr", "analyze.freq", {"variable": "gender_1"}),
+            ("fr2", "analyze.freq", {"variable": "gender_01"}),
+        ],
+        [
+            ("src", "data", "ex", "data"),
+            ("ex", "data", "fr", "data"),
+            ("ex", "data", "fr2", "data"),
+        ],
+    )
+    found = [(i.code, i.node) for i in check_flow(exploded, questionnaire=doc)]
+    assert found == [("UNKNOWN_VARIABLE", "fr2")]
+
+    def warned(labels, missing=None):
+        variables = dict(questionnaire_doc["variables"])
+        variables["region"] = {"scale": "nominal", "label": "Region", "labels": labels}
+        if missing is not None:
+            variables["region"]["missing"] = missing
+        flow, found = _one(
+            "analyze.ttest",
+            {"y": "age", "group": "region"},
+            {**questionnaire_doc, "variables": variables},
+        )
+        return [i.message.split(";")[0] for i in found if i.code == "PARAM_CONFLICT"]
+
+    assert warned({"3": "East", "1": "North", "2": "South"}, [9]) == [
+        "n: Region has 3 answers (1 = North, 2 = South, 3 = East)"
+    ]
+    assert warned({"01": "One", "02": "Two", "10": "Ten"}) == [
+        "n: Region has 3 answers (1 = One, 2 = Two, 10 = Ten)"
+    ]
+    three = [{"code": c, "label": t} for c, t in ((1, "A"), (2, "B"), (3, "C"))]
+    assert warned(three, [3.0]) == []
+    assert warned(three, {"3": "Refused"}) == []
+    assert warned(three, [{"code": 3, "label": "Refused"}]) == []
+    assert warned(three) == ["n: Region has 3 answers (1 = A, 2 = B, 3 = C)"]
+
+
 def test_a_made_variable_of_the_wrong_scale_is_warned(questionnaire_doc):
     """A Crosstab of a factor score (interval) ran with one row per distinct
     float and nothing said so: made variables' scales were not checked, only the

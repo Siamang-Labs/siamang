@@ -457,6 +457,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   edges: a Recode of a derived variable is ratio like its source even when the
   document lists the Recode first.
 
+- **The flow check reads a `{code: label}` codebook as the questionnaire
+  does.** The shorthand is a valid codebook, but `check_flow` iterated value
+  labels as a list: Explode of such a variable raised `AttributeError: 'str'
+  object has no attribute 'get'` out of the check (a Save in Studio answered
+  500), and the t-test's "has 3 answers" warning listed the codes in the
+  object's order and as written (`3 = East, 1 = North`, `01 = One`) and kept a
+  missing code written `3.0` as the answer 3. Both now read the labels as the
+  questionnaire does (`1 = North, 2 = South, 3 = East`; `1 = One`) and match a
+  missing code by its text (`3.0` is 3).
+
 - **Fisher's estimate, the R bundle's labels and Mann-Whitney's df are
   described as they are.** Crosstab's Fisher footer said the estimate was
   "as R's fisher.test": the p-values agree, but the engine solves the exact
