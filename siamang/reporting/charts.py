@@ -218,12 +218,31 @@ class BarChart(SurveyChart):
     show_values: bool = True
     #: The newer forms (siamang.reporting.bars): "count" or "percent" of the
     #: respondents who answered; a variable splitting the answers into groups,
-    #: drawn "grouped", "stacked" or "stacked_100"; bars in "code" order or
-    #: largest first ("value"). At their defaults the chart is the one it was.
+    #: drawn "grouped", "stacked" or "stacked_100"; a "histogram" or a "donut";
+    #: bars in "code" order or largest first ("value"). At their defaults the
+    #: chart is the one it was.
     show: str = "count"
     split: str | None = None
     layout: str = "grouped"
     sort: str = "code"
+    #: Only the ``top`` answers given most (overall, with ``split``), the rest
+    #: combined as Other when ``other`` is set, else left out.
+    top: int | None = None
+    other: bool = False
+    #: Error bars on percentages (Wilson) and on means by group, at
+    #: ``confidence``; on bars side by side only.
+    intervals: bool = False
+    confidence: float = 0.95
+    #: With ``split``, grouped, in percent: the Banner table's significance
+    #: letters over the bars, at ``level``, ``correction`` "none" or "bonferroni".
+    letters: bool = False
+    level: float = 0.05
+    correction: str = "none"
+    #: ``layout="histogram"``: "auto" (Freedman–Diaconis), a number of bins
+    #: or their edges.
+    bins: Any = "auto"
+    #: ``layout="donut"``: slices below this percentage are combined as Other.
+    min_slice: float = 3.0
 
     def _build(self) -> None:
         from siamang.reporting import bars

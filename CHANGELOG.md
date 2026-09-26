@@ -88,6 +88,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   numbered (`1. label` down, `1`, `2`, … across) and every row is as tall as its
   label. A Method with By is a warning: the heatmap then shows means.
 
+- **Bar chart: Top N, confidence intervals, significance letters, a histogram
+  and a donut.** `visualize.bar` and `data.plot.bar()` take `top` (*Top N*: only
+  the N answers given most — with Split by, given most overall; for a
+  multiple-choice question, the options named most) and `other` (*Combine the
+  rest as Other*: one grey bar, last, for the rest — for a multiple-choice
+  question the respondents who named any of them, not their sum); `intervals`
+  and `confidence` (error bars: Wilson's interval on each percentage — Kish's
+  effective base when weighted, the new `siamang.data.intervals.share_interval`
+  — and the Group means chart's interval on each mean by group, on bars side by
+  side only); `letters`, `level` and `correction` (with Split by, Show percent
+  and Layout grouped: each group lettered as the Banner table letters its
+  columns, and over each bar the letters of the groups whose share of that
+  answer is significantly lower — the Banner table's column-proportion z-test,
+  Bonferroni optional, on the base of those who answered, a group under 30 not
+  tested: the letters the Tab book prints for the same cells). Layout takes
+  `histogram` (an interval or ratio variable in `bins`: `auto`, Freedman and
+  Diaconis's width — whole-number answers a whole width, the edges halfway
+  between the numbers — a number of bins, or the edges; counts or percent,
+  weighted; with Split by, a panel per group sharing bins and scale, at most 12)
+  and `donut` (one variable's answers clockwise from the top, each percentage on
+  its slice or beside it in a column joined by a line, slices under `min_slice`
+  % — 3 by default — combined as Other when there are two or more, the base in
+  the middle; with Top N the rest are always Other). The notes under the chart
+  say what was left out or combined, the interval's method and level, the
+  letters' test, the groups not tested, the bins' rule, answers outside the bins
+  given and bins of unequal width. A histogram of a nominal or ordinal
+  variable, a donut of a multiple-choice question or with Split by or By, and
+  letters or intervals on a stack are refused in a sentence; `check_flow` names
+  the first two from the questionnaire, Bins that are not auto, a number or
+  increasing edges (`PARAM_INVALID`), Top N with By (an error), and warns of
+  parameters a form does not draw. Each new field is written into the node's
+  code only when the choices read it, so a stored flow renders the code and the
+  picture it did; the warning `Layout applies only when Split by is set.` now
+  reads `Stacked layouts apply only when Split by is set.` The Banner table's
+  test is `siamang.reporting.tables.proportion_letters` (with `banner_values`
+  and `column_letter`), shared by the Banner table, the Tab book and the chart.
+
 - **Bar chart: percentages, Split by, and largest first.** `visualize.bar` and
   `data.plot.bar()` take `show` (`count` | `percent` of the respondents who
   answered), `split` (Split by: the answers within each group of a second

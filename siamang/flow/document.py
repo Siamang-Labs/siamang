@@ -956,9 +956,10 @@ def _check_design(
 ) -> list[FlowIssue]:
     """What a node's parameters settle before any data, beyond the rules its
     grammar can say: how many variables a paired test compares (an error — the
-    run would refuse it), and a t-test of two groups whose Groups has more than
-    two answers in the codebook with none named (a warning: a filter upstream
-    may leave two in the data)."""
+    run would refuse it), a Bar chart's Bins that are not auto, a number or
+    increasing edges (an error), and a t-test of two groups whose Groups has
+    more than two answers in the codebook with none named (a warning: a filter
+    upstream may leave two in the data)."""
 
     params = resolved_params(spec, given)
     if spec.type == "analyze.paired":
@@ -972,6 +973,17 @@ def _check_design(
     problem = _method_problem(spec.type, params)
     if problem:
         return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {problem}", node_id)]
+    if spec.type == "visualize.bar" and params.get("layout") == "histogram":
+        from siamang.reporting.bars import parse_bins
+
+        try:
+            parse_bins(params.get("bins"))
+        except ValueError as exc:
+            return [
+                FlowIssue(
+                    "error", "PARAM_INVALID", f"Parameter 'bins' of {node_id}: {exc}", node_id
+                )
+            ]
     if (
         spec.type == "analyze.ttest"
         and questionnaire is not None
@@ -1355,8 +1367,9 @@ def _check_bar_answers(
     node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any]
 ) -> list[FlowIssue]:
     """A Bar chart split by a question that allows several answers, or a stack
-    of one's options — refused by the run (``siamang.reporting.bars``), and
-    knowable from the questionnaire."""
+    of one's options; a histogram of a nominal, ordinal or multiple-choice
+    question, and a donut of a multiple-choice one — refused by the run
+    (``siamang.reporting.bars``), and knowable from the questionnaire."""
 
     params = resolved_params(spec, given)
     variables = questionnaire.get("variables") or {}
@@ -1368,9 +1381,25 @@ def _check_bar_answers(
     def label(name: str) -> str:
         return str((variables.get(name) or {}).get("label") or name)
 
-    split, drawn = params.get("split"), params.get("variable")
+    split, drawn, layout = params.get("split"), params.get("variable"), params.get("layout")
+    scale = (variables.get(drawn) or {}).get("scale") if isinstance(drawn, str) else None
     message = None
-    if several(split):
+    if layout == "histogram" and several(drawn):
+        message = (
+            f"{label(drawn)} allows several answers; a histogram draws one number per respondent."
+        )
+    elif layout == "histogram" and scale in ("nominal", "ordinal"):
+        message = (
+            f"A histogram draws the distribution of a number, and {label(drawn)} is {scale}: "
+            "draw its answers as bars (Layout = grouped)."
+        )
+    elif layout == "donut":
+        if several(drawn):
+            message = (
+                f"{label(drawn)} allows several answers, so its shares add up to more than "
+                "100 % and are not the parts of a whole: draw them as bars (Layout = grouped)."
+            )
+    elif several(split):
         message = (
             f"Split by needs one answer per respondent, and {label(split)} allows several: "
             "draw it as the Variable, or split by one of its options after Explode multiple "
