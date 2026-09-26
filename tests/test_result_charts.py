@@ -854,3 +854,44 @@ def test_the_title_and_axis_title_fit_the_figure_asked_for(tmp_path):
     assert chart._ax.xaxis.label.get_window_extent(renderer).x1 <= chart._fig.bbox.x1
     width, _ = _png_size(chart.save(tmp_path / "means.png", dpi=100))
     assert width <= 601
+
+
+def test_the_reach_curve_names_what_each_size_adds_by_its_label():
+    """From size 3 up every tick read the whole cumulative portfolio of column
+    names broken mid-word ("streaming_serv / ice_01_subscri…"): the chart could
+    not show which option each step adds."""
+    names = [f"streaming_service_{i:02d}_subscription" for i in range(1, 7)]
+    rng = np.random.default_rng(5)
+    frame = pd.DataFrame(
+        {
+            name: (rng.random(400) < p).astype(float)
+            for name, p in zip(names, np.linspace(0.5, 0.1, 6), strict=True)
+        }
+    )
+    labels = {name: f"Streaming service {i}" for i, name in enumerate(names, 1)}
+    search = turf.turf(frame, names, max_size=4, method="greedy", labels=labels)
+    assert search.labels == labels and search["items"][0] == names[0]  # the table keeps names
+    ticks = [label.get_text() for label in rc.chart(search)._ax.get_xticklabels()]
+    firsts = [portfolio.split(", ") for portfolio in search["items"]]
+    added = [labels[firsts[0][0]]] + [
+        labels[next(item for item in now if item not in before)]
+        for before, now in zip(firsts, firsts[1:], strict=False)
+    ]
+    assert [tick.replace("\n", " ") for tick in ticks] == [
+        f"{size} {'+ ' if size > 1 else ''}{text}"
+        for size, text in zip(range(1, 5), added, strict=True)
+    ]
+    # A best portfolio that is not the one before plus an option is listed.
+    # a and b each reach four, c four others: the best pair is b + c, not a + …
+    frame = pd.DataFrame(
+        {
+            "a": [1, 1, 1, 1, 0, 0, 0, 0],
+            "b": [1, 1, 0, 0, 1, 1, 0, 0],
+            "c": [0, 0, 1, 1, 0, 0, 1, 1],
+        }
+    )
+    best = turf.turf(frame, ["a", "b", "c"], max_size=2)
+    assert list(best["items"]) == ["a", "b, c"]
+    chart = rc.chart(best)
+    assert [tick.replace("\n", " ") for tick in _ticks(chart._ax, "x")] == ["1 a", "2 a new set"]
+    assert any("The best portfolios of 2: b, c." in text for text in _texts(chart._ax))

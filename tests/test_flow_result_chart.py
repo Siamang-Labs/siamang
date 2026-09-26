@@ -276,6 +276,9 @@ def test_each_chart_draws_its_result_as_the_result_is_weighted(questionnaire_doc
     assert (
         result.output("c_reg")._ax.get_title(loc="left").startswith("What goes with satisfaction")
     )
+    # TURF's reach curve names its options by their labels, as the fixed one.
+    first = result.output("c_turf")._ax.get_xticklabels()[0].get_text().replace("\n", " ")
+    assert first.startswith("1 Brands heard of")
     # What each output draws, as the check reads it, is what the run draws.
     for node, kind, params, ports, _ in ANALYSES:
         spec = default_registry().get(kind)
