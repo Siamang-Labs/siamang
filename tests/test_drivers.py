@@ -385,7 +385,7 @@ def test_the_chart_draws_every_driver_largest_first(tmp_path):
     title = ax.get_title(loc="left")
     assert title.splitlines() == [
         "Key drivers of Fertility",
-        "Johnson's relative weights, R² = 0.694",
+        "Johnson's relative weights, R² = 0.694, N = 47",
         "weighted by 'w'",
     ]
     values = [text.get_text() for text in ax.texts]

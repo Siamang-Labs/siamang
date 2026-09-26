@@ -502,6 +502,9 @@ def plot(
     ax.set_xlabel("Share of R² (%)", fontsize=size + 1, color=_INK)
     ax.tick_params(axis="x", labelsize=size, colors=_INK)
     ax.tick_params(axis="y", length=0)
+    # Only the value axis has lines: a theme's row lines (seaborn's whitegrid,
+    # which a chart drawn before may have set) would strike through the bars.
+    ax.grid(False)
     ax.grid(axis="x", color="#e6e6e6", linewidth=0.8)
     ax.set_axisbelow(True)
     for side in ("top", "right", "left"):
@@ -518,16 +521,24 @@ def plot(
             fontsize=size,
         )
     heading = title or f"Key drivers of {result.outcome}"
-    detail = f"{METHOD_NAMES[result.method]}, R² = {result.r_squared:.3f}"
+    detail = f"{METHOD_NAMES[result.method]}, R² = {result.r_squared:.3f}, N = {result.n}"
     note = f"weighted by '{result.weight}'" if result.weight else None
-    text = _wrapped(heading, max(int(width * 72 / (12 * 0.55)), 30))
-    ax.set_title(
-        "\n".join([text, detail] + ([note] if note else [])),
-        fontsize=12,
-        color=_INK,
-        loc="left",
-        pad=10,
-    )
+
+    def titled(room: float) -> None:
+        text = _wrapped(heading, max(int(room / (12 * 0.55)), 20))
+        ax.set_title(
+            "\n".join([text, detail] + ([note] if note else [])),
+            fontsize=12,
+            color=_INK,
+            loc="left",
+            pad=10,
+        )
+
+    titled(width * 72)
+    fig.tight_layout()
+    # The title starts at the plot's left edge, which the labels put a third
+    # in: wrapped to the room from there, it stays inside the figure.
+    titled(width * 72 * (1 - ax.get_position().x0) - 8)
     fig.tight_layout()
     return fig
 

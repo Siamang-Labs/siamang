@@ -680,13 +680,14 @@ def plot(
     else:
         axes = list(fig.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": (3, 2)}))
     legend = result.method == "van_westendorp"
+    values: tuple[Any, ...] = ()
     if legend:
         _draw_van_westendorp(result, axes[0], fig)
         heading = title or "Price sensitivity (Van Westendorp)"
         if nms:
             _draw_trial(result, axes[1])
     else:
-        _draw_gabor_granger(result, axes)
+        values = _draw_gabor_granger(result, axes)
         heading = title or "Price sensitivity (Gabor-Granger)"
     for ax in axes:
         _style(ax)
@@ -711,7 +712,35 @@ def plot(
         fig.tight_layout()
     if legend:
         _label_points(result, axes, fig)
+    else:
+        _fit_values(fig, axes, *values)
     return fig
+
+
+def _fit_values(
+    fig: Any, axes: list[Any], demand: list[Any], revenue: list[Any], best: int, note: Any
+) -> None:
+    """Gabor-Granger's value labels where they fit: of many prices on a small
+    figure, each panel keeps the best price's label and those that do not
+    touch a label kept (the table has every number), and "highest revenue at …"
+    stays inside its panel."""
+
+    renderer = _renderer(fig)
+    gap = 2 * fig.dpi / 72
+    for texts in (demand, revenue):
+        boxes = [text.get_window_extent(renderer).padded(gap) for text in texts]
+        if not any(a.overlaps(b) for a, b in zip(boxes, boxes[1:], strict=False)):
+            continue
+        kept = [best]
+        for index in range(len(texts)):
+            if index != best and not any(boxes[index].overlaps(boxes[k]) for k in kept):
+                kept.append(index)
+        for index, text in enumerate(texts):
+            text.set_visible(index in kept)
+    right = axes[0].get_window_extent(renderer).x1
+    if note.get_window_extent(renderer).x1 > right:
+        note.set_horizontalalignment("right")
+        note.set_position((-4, 4))
 
 
 def _turn_crowded_ticks(ax: Any, fig: Any) -> bool:
@@ -798,42 +827,69 @@ def _label_points(result: PriceSensitivity, axes: list[Any], fig: Any) -> None:
         for key, _, _ in POINTS
         if (price := result.points.get(key)) is not None
     ]
-    _stacked(axes[0], fig, items, 104, 6)
+    marks = [
+        (price, float(np.interp(price, result.prices, result.shares[_CURVES_OF[key][0]])))
+        for key, _, _ in POINTS
+        if (price := result.points.get(key)) is not None
+    ]
+    _stacked(axes[0], fig, items, 104, 6, marks)
     if len(axes) > 1 and "trial" in result.shares:
         top = axes[1].get_ylim()[1]
-        items = [
-            (price, f"{name} {_price(price)}")
+        points = [
+            (price, name)
             for key, name in (("trial", "highest trial"), ("revenue", "highest revenue"))
             if (price := result.points.get(key)) is not None
         ]
-        _stacked(axes[1], fig, items, top * 0.93, top * 0.1)
+        items = [(price, f"{name} {_price(price)}") for price, name in points]
+        marks = [
+            (price, float(np.interp(price, result.prices, result.shares["trial"])))
+            for price, _ in points
+        ]
+        _stacked(axes[1], fig, items, top * 0.93, top * 0.1, marks)
 
 
-def _stacked(ax: Any, fig: Any, items: list[tuple[float, str]], y: float, step: float) -> None:
+def _stacked(
+    ax: Any,
+    fig: Any,
+    items: list[tuple[float, str]],
+    y: float,
+    step: float,
+    marks: Sequence[tuple[float, float]] = (),
+) -> None:
     """Write each text centred at its price at height ``y``, one ``step`` lower
     for each text it would otherwise touch — or, on a panel too short for that,
     one text's height lower (with its white box), so that stacked names never
-    run into each other."""
+    run into each other, nor cover a point marked (``marks``, in data), nor
+    reach past the plot's side into the axis's numbers."""
 
     renderer = _renderer(fig)
     low, high = ax.get_ylim()
-    per_pixel = (high - low) / max(ax.get_window_extent(renderer).height, 1.0)
-    placed: list[tuple[float, float, int]] = []
+    frame = ax.get_window_extent(renderer)
+    per_pixel = (high - low) / max(frame.height, 1.0)
+    margin = 4 * fig.dpi / 72
+    points = [ax.transData.transform(mark) for mark in marks]
+    inverse = ax.transData.inverted()
+    placed: list[Any] = []
     for price, text in items:
         label = ax.text(price, y, text, fontsize=9, color=_INK, ha="center", va="center")
-        extent = label.get_window_extent(renderer)
-        width = extent.width
-        step = max(step, (extent.height + 5 * fig.dpi / 72) * per_pixel)
-        centre = float(ax.transData.transform((price, 0))[0])
-        level = 0
-        while any(
-            level == other_level and abs(centre - other) < (width + other_width) / 2 + 6
-            for other, other_width, other_level in placed
-        ):
-            level += 1
-        placed.append((centre, width, level))
-        label.set_y(y - step * level)
         label.set_bbox({"facecolor": "white", "edgecolor": "none", "pad": 1.5})
+        extent = label.get_window_extent(renderer)
+        step = max(step, (extent.height + 5 * fig.dpi / 72) * per_pixel)
+        if extent.x0 < frame.x0 + margin:
+            label.set_horizontalalignment("left")
+            label.set_x(float(inverse.transform((frame.x0 + margin, 0))[0]))
+        elif extent.x1 > frame.x1 - margin:
+            label.set_horizontalalignment("right")
+            label.set_x(float(inverse.transform((frame.x1 - margin, 0))[0]))
+        level = 0
+        while True:
+            label.set_y(y - step * level)
+            box = label.get_window_extent(renderer).padded(margin)
+            covers = any(box.contains(*point) for point in points)
+            if level >= 12 or not (covers or any(box.overlaps(other) for other in placed)):
+                break
+            level += 1
+        placed.append(label.get_window_extent(renderer))
 
 
 def _draw_trial(result: PriceSensitivity, ax: Any) -> None:
@@ -853,37 +909,52 @@ def _draw_trial(result: PriceSensitivity, ax: Any) -> None:
     ax.set_xlabel("Price", fontsize=10, color=_INK)
 
 
-def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> None:
+def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> tuple[Any, ...]:
+    """Draw the demand over the revenue; returns the value labels of each
+    panel, the best price's place and its note, for :func:`_fit_values`."""
     prices = result.prices
     demand, revenue = result.shares["demand"], result.shares["revenue"]
     best = result.points["revenue"]
     top_ax, bottom_ax = axes
     top_ax.plot(prices, demand, color=CHEAP_COLOUR, linewidth=2, marker="o", markersize=6)
+    demand_labels = []
     for price, value in zip(prices, demand, strict=True):
-        top_ax.annotate(
+        label = top_ax.annotate(
             f"{value:.0f} %", (price, value), xytext=(0, 8), textcoords="offset points",
-            ha="center", fontsize=9, color=_INK,
+            ha="center", fontsize=9, color=_INK, zorder=3,
         )  # fmt: skip
+        if price == best:  # the best price's line runs behind its label, not through it
+            label.set_bbox({"facecolor": "white", "edgecolor": "none", "pad": 1.0})
+        demand_labels.append(label)
     top_ax.set_ylim(0, max(float(demand.max()) * 1.2, 10.0))
     top_ax.set_ylabel("Would buy (%)", fontsize=10, color=_INK)
     step = float(np.min(np.diff(prices))) if len(prices) > 1 else 1.0
     colours = [EXPENSIVE_COLOUR if price == best else "#f5b48f" for price in prices]
     bottom_ax.bar(prices, revenue, width=step * 0.6, color=colours, edgecolor="white")
-    for price, value in zip(prices, revenue, strict=True):
+    revenue_labels = [
         bottom_ax.annotate(
-            f"{value:.2f}", (price, value), xytext=(0, 4), textcoords="offset points",
-            ha="center", fontsize=9, color=_INK,
+            f"{value:.2f}",
+            (price, value),
+            xytext=(0, 4),
+            textcoords="offset points",
+            ha="center",
+            fontsize=9,
+            color=_INK,
         )  # fmt: skip
+        for price, value in zip(prices, revenue, strict=True)
+    ]
     bottom_ax.set_ylim(0, max(float(revenue.max()) * 1.25, 1e-9))
     bottom_ax.set_ylabel("Revenue per respondent", fontsize=10, color=_INK)
     bottom_ax.set_xlabel("Price", fontsize=10, color=_INK)
     bottom_ax.set_xticks(prices)
     bottom_ax.set_xticklabels([_price(p) for p in prices])
     top_ax.axvline(best, color=_MUTED, linewidth=0.8, zorder=0)
-    top_ax.annotate(
+    note = top_ax.annotate(
         f"highest revenue at {_price(best)}", (best, 0), xytext=(4, 4),
         textcoords="offset points", fontsize=9, color=_INK,
     )  # fmt: skip
+    place = int(np.flatnonzero(prices == best)[0]) if np.any(prices == best) else 0
+    return demand_labels, revenue_labels, place, note
 
 
 __all__ = [
