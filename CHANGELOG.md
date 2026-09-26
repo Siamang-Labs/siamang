@@ -540,6 +540,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Bar chart's labels, axis titles and legend no longer print over each
+  other.** With many categories or long labels (24 brands of 60 characters,
+  13 regions) the turned labels under vertical bars ran into each other, and
+  beside horizontal bars two- and three-line labels overlapped in a figure
+  that never grew (23 of 24 neighbours overlapped); the title could sit on
+  the first label. Labels beside horizontal bars now get a row each —
+  smaller (to 8 pt) and wider first, else the figure grows to a row per
+  label; vertical bars whose labels cannot be read under them, even turned,
+  are drawn horizontally. The axis titles were never wrapped: `% within
+  <a whole question> (weighted)` was taller than the figure and ran over the
+  Base note. They wrap to the plot's length, and a split's value axis reads
+  `% within each group (weighted)` when the Split by label will not fit (the
+  note under the plot names the variable). A legend beside the plot that is
+  taller than the plot (20 options of three lines) ran off the figure and
+  over the notes; it is placed under the plot instead. Turned values of
+  neighbouring bars that would touch are left to the axis.
+
 - **A percent axis labels its ticks with their own values.** The Bar chart's
   percent axis (Show = percent, or a stacked split) printed its ticks without
   decimals, and when matplotlib chose steps of 2.5 the axis read 0, 2, 5, 8,

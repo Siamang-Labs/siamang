@@ -104,8 +104,15 @@ it has always been, picture for picture. The newer forms also:
 - draw one colour for a single series, and the steps of an ordered scale
   (ordinal and up) in one hue, light to dark;
 - wrap long labels, put the legend under the plot when the figure is too narrow
-  for it beside, and let a small figure grow taller rather than squash the
-  plot to nothing.
+  for it beside (or it is taller than the plot), and let a small figure grow
+  taller rather than squash the plot to nothing;
+- give every label beside horizontal bars a row of its own: smaller (to 8 pt)
+  and wider first, else the figure grows taller, so no two labels print over
+  each other; vertical bars whose labels cannot be read under them, even
+  wrapped or turned 45°, are drawn horizontally instead;
+- wrap the axis titles to the plot's own length, and write `% within each
+  group` on the value axis when `% within <the Split by question>` would not
+  fit (the note under the plot names the variable).
 
 A multiple-choice question is drawn by these forms whatever the parameters (the
 older chart could not draw one).

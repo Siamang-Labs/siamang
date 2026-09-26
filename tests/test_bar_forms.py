@@ -540,3 +540,158 @@ def test_a_percent_axis_labels_every_tick_with_its_own_value():
         assert len(ticks) >= 3
         for value, text in ticks:
             assert text == f"{value:.0f}%" and value == int(value), ticks
+
+
+# ─── long labels, many categories ────────────────────────────────────────────
+
+LONG = [
+    f"Brand number {i:02d} with a rather long descriptive product name (family size)"
+    for i in range(1, 25)
+]
+
+
+def _brands(weighted: bool = False) -> SurveyData:
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(
+        {
+            "b": rng.integers(1, 25, 1200).astype(float),
+            "g": rng.integers(1, 4, 1200).astype(float),
+            "m": [
+                sorted(rng.choice(np.arange(1, 21), 3, replace=False).tolist()) for _ in range(1200)
+            ],
+            "y": rng.normal(50, 10, 1200),
+            "h": rng.integers(1, 5, 1200).astype(float),
+            "w": rng.uniform(0.5, 2.0, 1200),
+        }
+    )
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(
+                "b", "nominal", label="Brand bought", labels={i + 1: t for i, t in enumerate(LONG)}
+            ),
+            Variable(
+                "g",
+                "nominal",
+                label="Overall satisfaction with the service received during the last visit "
+                "to the store",
+                labels={1: "Low", 2: "Middle", 3: "High"},
+            ),
+            Variable(
+                "m",
+                "nominal",
+                label="Services used",
+                labels={i: f"Service option number {i}: {LONG[i][13:60]}" for i in range(1, 21)},
+            ),
+            Variable("y", "interval", label="Score"),
+            Variable("h", "ordinal", label="Grade", labels={1: "A", 2: "B", 3: "C", 4: "D"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    return data.with_weight("w") if weighted else data
+
+
+def _boxes(chart, axis: str):
+    ax = chart.plot()
+    ax.figure.canvas.draw()
+    renderer = ax.figure.canvas.get_renderer()
+    labels = ax.get_yticklabels() if axis == "y" else ax.get_xticklabels()
+    return [label.get_window_extent(renderer) for label in labels if label.get_text()]
+
+
+def _overlaps(boxes) -> int:
+    return sum(
+        1
+        for i, a in enumerate(boxes)
+        for b in boxes[i + 1 :]
+        if min(a.x1, b.x1) - max(a.x0, b.x0) > 0.5 and min(a.y1, b.y1) - max(a.y0, b.y0) > 0.5
+    )
+
+
+@pytest.mark.parametrize(
+    ("column", "kwargs"),
+    [
+        ("b", {"show": "percent"}),
+        ("b", {"show": "percent", "sort": "value"}),
+        ("b", {"show": "percent", "figsize": (4, 3)}),
+        ("g", {"show": "count", "split": "b", "layout": "stacked"}),
+    ],
+)
+def test_many_long_labels_never_print_over_each_other(column, kwargs, tmp_path):
+    """24 brands of 73 characters: across, the labels get the room of a row
+    each (smaller, wider, else a taller figure); under vertical bars they
+    cannot be read even turned, so the bars are drawn across."""
+
+    data = _brands()
+    for horizontal in (True, False):
+        chart = data.plot.bar(column, horizontal=horizontal, **kwargs)
+        chart.save(tmp_path / "brands.png")
+        boxes = _boxes(chart, "y")
+        assert len(boxes) == 24  # beside the bars, one per brand
+        assert _overlaps(boxes) == 0, (kwargs, horizontal)
+        ax = chart.plot()
+        figure = ax.figure.bbox
+        title = ax.title.get_window_extent(ax.figure.canvas.get_renderer())
+        assert title.x0 >= -1 and title.x1 <= figure.x1 + 1
+        assert title.y0 >= max(box.y1 for box in boxes) - 1  # over the first label, not on it
+
+
+def test_means_by_many_long_groups_give_each_label_its_row(tmp_path):
+    data = _brands(weighted=True)
+    chart = data.plot.bar("y", by="b", sort="value")
+    chart.save(tmp_path / "means.png")
+    boxes = _boxes(chart, "y")
+    assert len(boxes) == 24 and _overlaps(boxes) == 0
+    assert all("(n = " in label.get_text() for label in chart.plot().get_yticklabels())
+
+
+def test_a_long_axis_title_is_wrapped_inside_the_figure_and_clear_of_the_notes(tmp_path):
+    """The value axis read "% within <a whole question> (weighted)", taller
+    than the figure and over the Base note: the plot's own length holds it,
+    in short when the question will not fit."""
+
+    data = _brands(weighted=True)
+    for horizontal in (False, True):
+        chart = data.plot.bar(
+            "h", split="g", show="percent", layout="stacked_100", horizontal=horizontal
+        )
+        chart.save(tmp_path / "axis.png")
+        ax = chart.plot()
+        fig = ax.figure
+        renderer = fig.canvas.get_renderer()
+        for label in (ax.xaxis.label, ax.yaxis.label):
+            if not label.get_text():
+                continue
+            box = label.get_window_extent(renderer)
+            assert box.x0 >= -1 and box.y0 >= -1, label.get_text()
+            assert box.x1 <= fig.bbox.x1 + 1 and box.y1 <= fig.bbox.y1 + 1, label.get_text()
+            for note in fig.texts:
+                assert not box.overlaps(note.get_window_extent(renderer)), label.get_text()
+
+
+def test_the_value_axis_says_within_each_group_when_the_question_is_too_long():
+    chart = _brands(weighted=True).plot.bar("b", split="g", show="percent", horizontal=True)
+    assert chart.plot().get_xlabel() == "% within each group (weighted)"
+    assert "Percentages are of each group of Overall satisfaction" in _footnote(chart)
+    short = _data().plot.bar("q", split="g", show="percent")
+    assert short.plot().get_ylabel() == "% within Group"
+
+
+def test_a_legend_taller_than_the_plot_goes_under_it(tmp_path):
+    """Twenty options of three lines each beside the plot ran off the figure
+    and over the notes: such a legend is placed under the plot, above them."""
+
+    chart = _brands().plot.bar("m", show="percent", split="g")
+    chart.save(tmp_path / "legend.png")
+    ax = chart.plot()
+    fig = ax.figure
+    renderer = fig.canvas.get_renderer()
+    assert ax.get_legend() is None and len(fig.legends) == 1
+    legend = fig.legends[0].get_window_extent(renderer)
+    assert legend.y0 >= -1 and legend.x0 >= -1 and legend.x1 <= fig.bbox.x1 + 1
+    for note in fig.texts:
+        assert not legend.overlaps(note.get_window_extent(renderer))
+    assert ax.get_window_extent(renderer).y0 > legend.y1
+    # A legend that fits beside the plot stays there.
+    beside = _data().plot.bar("q", split="g", show="percent")
+    assert beside.plot().get_legend() is not None

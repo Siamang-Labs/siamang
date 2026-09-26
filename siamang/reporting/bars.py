@@ -79,6 +79,9 @@ class Bars:
     #: rank a sort gave it.
     colour_index: list[int] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    #: The value axis's title when ``value_label`` would not fit on one line
+    #: along it (a split by a question: its notes name the variable).
+    short_value_label: str = ""
 
 
 def is_classic(chart: BarChart) -> bool:
@@ -334,6 +337,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         axis = f"% within {by_label}" + (" (weighted)" if weighted else "")
     else:
         axis = "Weighted count" if weighted else "Count"
+    short = "% within each group" + (" (weighted)" if weighted else "") if percent else ""
     total = float(weight[answered].sum())
     notes = [
         _base(int(answered.sum()), total if weighted else None, "who answered both")
@@ -365,6 +369,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         ordered=_is_scale(data, name),
         colour_index=order,
         notes=notes,
+        short_value_label=short,
     )
 
 
@@ -442,29 +447,95 @@ def value_text(value: float, kind: str) -> str:
     return count_text(value)
 
 
-def _tick_labels(
-    labels: list[str], slot_pt: float, horizontal: bool
-) -> tuple[list[str], int, float]:
-    """Position labels wrapped to the room each has, their rotation when even
-    wrapped they cannot sit side by side, and their size: smaller (to 8 pt)
-    when a word is longer than the room, since a word is never broken."""
+#: A label turned under a vertical bar is at most this many characters a line:
+#: longer ones would take the figure's height, and the bars are drawn across.
+TURNED_WIDTH = 40
+
+
+def _group_label(text: str, width: int) -> str:
+    """``text`` wrapped to ``width``, a group's "(n = …)" on a line of its own."""
+
+    head, _, tail = text.partition("\n(n = ")
+    return wrap(head, width) + (f"\n(n = {tail}" if tail else "")
+
+
+def _tick_labels(labels: list[str], slot_pt: float) -> tuple[list[str], int, float] | None:
+    """Labels under vertical bars ``slot_pt`` apart: wrapped to the room each
+    has (smaller, to 8 pt, when a word is longer than it — a word is never
+    broken), else turned 45° in as many lines as the slot holds between two
+    turned labels. None when neither can be read: the bars are then drawn
+    across, their labels beside them (:func:`_fit_across`)."""
 
     size = font_size("xtick.labelsize")
-
-    def wrapped(text: str, width: int) -> str:
-        # A group's "(n = …)" stays on a line of its own.
-        head, _, tail = text.partition("\n(n = ")
-        return wrap(head, width) + (f"\n(n = {tail}" if tail else "")
-
-    if horizontal:
-        return [wrapped(text, chars_in(slot_pt, size)) for text in labels], 0, size
     room = slot_pt * 0.95
     longest = max((len(word) for text in labels for word in text.split()), default=1)
-    size = max(8.0, min(size, room / (longest * CHAR_WIDTH)))
-    width = chars_in(room, size)
-    if width >= 5 and longest * size * CHAR_WIDTH <= room:
-        return [wrapped(text, width) for text in labels], 0, size
-    return [wrapped(text, 24) for text in labels], 45, font_size("xtick.labelsize")
+    upright = max(8.0, min(size, room / (longest * CHAR_WIDTH)))
+    width = chars_in(room, upright)
+    if width >= 5 and longest * upright * CHAR_WIDTH <= room:
+        return [_group_label(text, width) for text in labels], 0, upright
+    # Turned 45°, two neighbouring labels are slot · sin 45° apart across
+    # their lines: that many lines fit, each of at most TURNED_WIDTH characters.
+    lines = int(slot_pt * 0.7071 / (size * 1.2))
+    if lines < 1:
+        return None
+    flat = [" ".join(text.split("\n")) for text in labels]
+    for width in range(16, TURNED_WIDTH + 1):
+        turned = [wrap(text, width) for text in flat]
+        if all(text.count("\n") < lines for text in turned):
+            return turned, 45, size
+    return None
+
+
+def _crowded(labels: list[Any], renderer: Any, horizontal: bool) -> bool:
+    """Whether two neighbouring tick labels overlap."""
+
+    boxes = [label.get_window_extent(renderer) for label in labels if label.get_text()]
+    if horizontal:
+        boxes.sort(key=lambda box: box.y0)
+        return any(low.y1 > high.y0 + 0.5 for low, high in zip(boxes, boxes[1:], strict=False))
+    boxes.sort(key=lambda box: box.x0)
+    return any(left.x1 > right.x0 + 0.5 for left, right in zip(boxes, boxes[1:], strict=False))
+
+
+def _fit_across(ax: Any, footnote: Footnote, labels: list[str], figure_pt: float) -> None:
+    """The labels beside horizontal bars: the largest size and the narrowest
+    column (a share of the figure's width) at which no two of them overlap,
+    else the smallest, with the figure grown to a row per label's height."""
+
+    base = font_size("ytick.labelsize")
+    tries = ((base, 0.28), (base - 1, 0.28), (base - 1, 0.36), (8.0, 0.36), (8.0, 0.45))
+    renderer = ax.figure.canvas.get_renderer()
+    for size, share in tries:
+        width = chars_in(share * figure_pt, size)
+        ax.set_yticklabels([_group_label(text, width) for text in labels], fontsize=size)
+        footnote.apply()
+        if not _crowded(ax.get_yticklabels(), renderer, True):
+            return
+    scale = 72.0 / ax.figure.dpi
+    tallest = max(label.get_window_extent(renderer).height for label in ax.get_yticklabels())
+    footnote.least = max(footnote.least, len(labels) * (tallest * scale + 5.0))
+    footnote.apply()
+
+
+def _axis_titles(ax: Any, bars: Bars, horizontal: bool, title: str) -> None:
+    """The axis titles and the title wrapped to the plot they label: a
+    question as a Split by label is longer than a plot is tall."""
+
+    width, height = axes_points(ax)
+    size = font_size("axes.labelsize")
+    across = bars.value_label
+    if bars.short_value_label and len(across) > chars_in(width if horizontal else height, size):
+        across = bars.short_value_label
+    along = bars.position_label
+    x_text, y_text = (across, along) if horizontal else (along, across)
+    ax.set_xlabel(wrap(x_text, chars_in(width, size)) if x_text else "")
+    ax.set_ylabel(wrap(y_text, chars_in(height, size)) if y_text else "")
+    # Centred over the plot, the title may reach as far to either side of its
+    # centre as the figure goes on the nearer one.
+    box = ax.get_position()
+    centre = (box.x0 + box.x1) / 2.0
+    room = 2.0 * min(centre, 1.0 - centre) * ax.figure.get_figwidth() * 72.0 - 8.0
+    ax.set_title(wrap(title, chars_in(max(room, width), font_size("axes.titlesize"))))
 
 
 def render(chart: BarChart, bars: Bars) -> None:
@@ -474,11 +545,21 @@ def render(chart: BarChart, bars: Bars) -> None:
     import seaborn as sns
 
     sns.set_theme(style="whitegrid", palette=chart.palette)
-    fig, ax = plt.subplots(figsize=chart.figsize)
-    chart._fig, chart._ax = fig, ax
-    horizontal = chart.horizontal
     values = bars.values
     positions, count = values.shape
+    figure_pt = chart.figsize[0] * 72.0
+    # Beside the plot when the figure is wide enough, else under it.
+    legend_beside = count > 1 and figure_pt >= 7.5 * 72.0
+    legend_pt = min(0.3 * figure_pt, 11.0 * 0.6 * 24 + 40.0) if legend_beside else 0.0
+    horizontal = chart.horizontal
+    placed = None
+    if not horizontal:
+        placed = _tick_labels(bars.positions, (0.85 * figure_pt - legend_pt) / max(positions, 1))
+        # Labels that cannot be read under the bars go beside them.
+        horizontal = placed is None
+
+    fig, ax = plt.subplots(figsize=chart.figsize)
+    chart._fig, chart._ax = fig, ax
     palette = series_colours(chart.palette, count, ordered=bars.ordered)
     colours = [palette[index] for index in (bars.colour_index or range(count))]
     at = np.arange(positions, dtype=float)
@@ -512,23 +593,14 @@ def render(chart: BarChart, bars: Bars) -> None:
     ax.grid(False)
     ax.grid(True, axis="x" if horizontal else "y", color="0.88", linewidth=0.8)
     ax.set_axisbelow(True)
-    (ax.set_xlabel if horizontal else ax.set_ylabel)(bars.value_label)
-    (ax.set_ylabel if horizontal else ax.set_xlabel)(bars.position_label)
-
-    figure_pt = chart.figsize[0] * 72.0
-    # Beside the plot when the figure is wide enough, else under it.
-    legend_beside = count > 1 and figure_pt >= 7.5 * 72.0
-    legend_pt = min(0.3 * figure_pt, 11.0 * 0.6 * 24 + 40.0) if legend_beside else 0.0
-    if horizontal:
-        slot = 0.28 * figure_pt
-    else:
-        slot = (0.85 * figure_pt - legend_pt) / max(positions, 1)
-    labels, rotation, size = _tick_labels(bars.positions, slot, horizontal)
     position_axis.set_ticks(at)
     if horizontal:
-        ax.set_yticklabels(labels)
+        ax.set_yticklabels(
+            [_group_label(text, chars_in(0.28 * figure_pt, 11.0)) for text in bars.positions]
+        )
         ax.set_ylim(positions - 0.5, -0.5)  # the first answer on top
     else:
+        labels, rotation, size = placed  # type: ignore[misc]
         ax.set_xticklabels(
             labels,
             fontsize=size,
@@ -537,7 +609,8 @@ def render(chart: BarChart, bars: Bars) -> None:
             rotation_mode="anchor" if rotation else "default",
         )
         ax.set_xlim(-0.5, positions - 0.5)
-    ax.set_title(wrap(bars.title, chars_in(figure_pt * 0.9, font_size("axes.titlesize"))))
+    title = bars.title
+    _axis_titles(ax, bars, horizontal, title)
 
     below = None
     if count > 1:
@@ -556,25 +629,48 @@ def render(chart: BarChart, bars: Bars) -> None:
                 title_fontsize=10,
             )
         else:
-            names = [wrap(name, 18) for name in names]
-            entry_pt = max(text_width(name, 9.0) for name in names) + 30.0
-            columns = max(1, min(count, int((figure_pt - 20.0) // entry_pt)))
-            below = fig.legend(
-                row_major(handles, columns),
-                row_major(names, columns),
-                title=wrap(bars.legend_title, chars_in(figure_pt - 20.0, 9.0)),
-                loc="lower center",
-                ncol=columns,
-                frameon=False,
-                fontsize=9,
-                title_fontsize=9,
-            )
+            below = _legend_below(fig, handles, names, bars.legend_title, figure_pt)
 
     footnote = Footnote(fig, bars.notes, legend=below, axes=ax)
     footnote.apply()
+    side = ax.get_legend()
+    if side is not None:
+        renderer = fig.canvas.get_renderer()
+        if side.get_window_extent(renderer).height > ax.get_window_extent(renderer).height + 1:
+            # Taller than the plot, it would run over the notes: under the plot.
+            handles, names = ax.get_legend_handles_labels()
+            side.remove()
+            footnote.legend = _legend_below(fig, handles, names, bars.legend_title, figure_pt)
+            footnote.apply()
+    if horizontal:
+        _fit_across(ax, footnote, bars.positions, figure_pt)
+    for _ in range(2):  # wrapped to the plot as it is laid out
+        _axis_titles(ax, bars, horizontal, title)
+        footnote.apply()
     if chart.show_values:
         _write_values(ax, bars, colours, thickness, offsets, horizontal)
         footnote.apply()
+
+
+def _legend_below(
+    fig: Any, handles: list[Any], names: list[str], title: str, figure_pt: float
+) -> Any:
+    """A figure legend between the plot and the notes, in as many columns as
+    the figure's width holds, read row by row."""
+
+    names = [wrap(name, 18) for name in names]
+    entry_pt = max(text_width(name, 9.0) for name in names) + 30.0
+    columns = max(1, min(len(names), int((figure_pt - 20.0) // entry_pt)))
+    return fig.legend(
+        row_major(handles, columns),
+        row_major(names, columns),
+        title=wrap(title, chars_in(figure_pt - 20.0, 9.0)),
+        loc="lower center",
+        ncol=columns,
+        frameon=False,
+        fontsize=9,
+        title_fontsize=9,
+    )
 
 
 def _write_values(
@@ -645,7 +741,7 @@ def _write_values(
         if band_pt < size * 0.9:
             return
     elif band_pt < widest + 2:
-        if band_pt < size * 0.9:
+        if band_pt < size * 1.15:  # turned values of neighbouring bars would touch
             return
         rotation = 90
     extent_pt = (widest if horizontal or rotation else size) + 6.0
