@@ -540,6 +540,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Many series get as many colours.** A Result chart took `n` colours of its
+  palette, which cycles past its ten: Descriptive statistics by 13 regions
+  drew Wales in North East's colour, and by 24 groups ten colours for 24
+  series. The Bar chart switched to husl's wheel past the palette, whose
+  first and last colours (and neighbours) look alike, so the bottom and top
+  segments of a 13-group stack could not be told apart. Both now take the
+  palette's own colours, then the same lighter, then darker (up to three
+  times the palette), and past that hues spaced over the wheel without
+  closing it, their lightness alternating.
+
 - **The Bar chart's labels, axis titles and legend no longer print over each
   other.** With many categories or long labels (24 brands of 60 characters,
   13 regions) the turned labels under vertical bars ran into each other, and

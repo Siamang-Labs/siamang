@@ -84,8 +84,11 @@ def series_colours(palette: str, count: int, *, ordered: bool = False) -> list[A
     first, light to dark: the order is in the colour, and neighbouring answers
     look like neighbours. Categories that have no order take the palette's
     colours in turn; a qualitative palette has eight or ten, and past them it
-    would start over, so more categories than that take hues spaced around the
-    wheel instead of two answers sharing one.
+    would start over. More categories than that take the palette's colours
+    again, lighter, then darker — each unlike its neighbours, as a hue wheel's
+    near neighbours (and its first and last colour) are not — and past three
+    times the palette, hues spaced over the wheel without closing it, their
+    lightness alternating.
     """
 
     import seaborn as sns
@@ -99,7 +102,24 @@ def series_colours(palette: str, count: int, *, ordered: bool = False) -> list[A
         return list(sns.blend_palette([light, first, dark], count))
     if count <= len(base):
         return base[:count]
-    return list(sns.color_palette("husl", count))
+    if count <= 3 * len(base):
+        white, black = (1.0, 1.0, 1.0), (0.0, 0.0, 0.0)
+        lighter = [_mix(colour, white, 0.5) for colour in base]
+        darker = [_mix(colour, black, 0.4) for colour in base]
+        return [to_rgb(colour) for colour in base] + (lighter + darker)[: count - len(base)]
+    hues = list(sns.color_palette("husl", count + 1))[:count]  # not back to the first
+    return [
+        _mix(colour, (0.0, 0.0, 0.0), 0.3) if index % 2 else colour
+        for index, colour in enumerate(hues)
+    ]
+
+
+def _mix(colour: Any, other: tuple[float, float, float], share: float) -> tuple[float, ...]:
+    """``colour`` moved ``share`` of the way to ``other``."""
+
+    from matplotlib.colors import to_rgb
+
+    return tuple(a + (b - a) * share for a, b in zip(to_rgb(colour), other, strict=True))
 
 
 def percent_axis(axis: Any) -> None:
