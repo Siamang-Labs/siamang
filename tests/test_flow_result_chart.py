@@ -273,7 +273,11 @@ def test_each_chart_draws_its_result_as_the_result_is_weighted(questionnaire_doc
             cls,
         ), node
         # A run releases each figure once rendered; plot() draws it again.
-        assert chart.plot().get_title(loc="left").endswith(f"\n{note}"), node
+        # (Panels — Descriptives of an age and a 1–5 scale — carry the title
+        # over them all.)
+        figure = chart.plot().figure
+        title = figure._suptitle.get_text() if figure._suptitle else chart.plot().get_title("left")
+        assert title.endswith(f"\n{note}"), node
     assert (
         result.output("c_reg")
         .plot()

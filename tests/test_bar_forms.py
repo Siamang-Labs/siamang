@@ -17,6 +17,8 @@ import pytest
 
 from siamang.core.variable import Variable, VariableMap
 from siamang.data import SurveyData
+from siamang.reporting import bars
+from siamang.reporting.chart_parts import axes_points
 
 matplotlib.use("Agg")
 
@@ -825,3 +827,209 @@ def test_large_counts_read_with_their_thousands_separated():
         "18,848",
         "2,000",
     ]
+
+
+# ─── labels and ticks fitted to the plot as laid out ─────────────────────────
+
+REGIONS = {
+    1: "Greater Metropolitan Capital Region including the Suburbs",
+    2: "North-West Coastal Provinces and the Offshore Islands",
+    3: "Central Agricultural Heartland",
+    4: "South",
+    5: "Eastern Industrial Corridor along the River Valley",
+    6: "Mountain",
+    7: "Far North Remote and Sparsely Populated Territories",
+    8: "Border districts (special administrative status since 2019)",
+}
+
+
+def _regions(n: int = 1500, seed: int = 1) -> SurveyData:
+    rng = np.random.default_rng(seed)
+    frame = pd.DataFrame(
+        {
+            "region": rng.integers(1, 9, n),
+            "income": np.round(rng.lognormal(10.3, 0.7, n), -2),
+            "sat": rng.integers(1, 6, n),
+        }
+    )
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("region", "nominal", label="Region of residence", labels=REGIONS),
+            Variable("income", "ratio", label="Monthly income"),
+            Variable(
+                "sat",
+                "ordinal",
+                label="Satisfaction",
+                labels={i: f"Level {i}" for i in range(1, 6)},
+            ),
+        ]
+    )
+    return SurveyData(frame=frame, variables=variables)
+
+
+def _turned_apart(ax) -> bool:
+    """Whether no two labels turned 45° overlap: in the frame turned with them
+    each is an upright box hanging from its tick, one line below the next."""
+    renderer = ax.figure.canvas.get_renderer()
+    labels = [label for label in ax.get_xticklabels() if label.get_text()]
+    spacing = abs(ax.transData.transform((1, 0))[0] - ax.transData.transform((0, 0))[0])
+    for label in labels:
+        label.set_rotation(0)
+    heights = [label.get_window_extent(renderer).height for label in labels]
+    for label in labels:
+        label.set_rotation(45)
+    return max(heights) <= spacing * 0.7071 + 0.5
+
+
+def test_labels_under_bars_on_a_narrow_figure_are_turned_apart_or_drawn_across(tmp_path):
+    """At 5 in the value axis's title and ticks leave the plot 229 of 360 pt,
+    and labels fitted to the figure's width were drawn over one another: they
+    are fitted again to the plot as laid out, and drawn across when even that
+    cannot be read."""
+    data = _regions()
+    for chart in (
+        data.plot.bar("region", show="percent", figsize=(5, 4.5)),
+        data.plot.bar("income", by="region", intervals=True, figsize=(5, 4.5)),
+    ):
+        chart.save(tmp_path / "narrow.png")
+        ax = chart.plot()
+        renderer = ax.figure.canvas.get_renderer()
+        if ax.get_ylim()[0] > ax.get_ylim()[1]:  # across: a row each
+            names = [label.get_text().replace("\n", " ") for label in ax.get_yticklabels()]
+            assert names[0].startswith("Greater Metropolitan")
+            assert not bars._crowded(ax.get_yticklabels(), renderer, True)
+        elif ax.get_xticklabels()[0].get_rotation():
+            assert _turned_apart(ax)
+        else:
+            assert not bars._crowded(ax.get_xticklabels(), renderer, False, 8.0)
+
+
+def test_level_labels_keep_an_em_apart_and_a_base_on_one_line(tmp_path):
+    """'metropolitan' and its neighbour's '(n = 4,249)' on one line, 4.5 pt
+    apart, read as one phrase; and turned labels broke '(n =' from '490)'.
+    Labels side by side keep an em apart, and a group's base stays whole."""
+    rng = np.random.default_rng(3)
+    regions = {
+        1: "Capital and the metropolitan area around it",
+        2: "North-west",
+        3: "North-east",
+        4: "South",
+        5: "Islands and overseas",
+    }
+    frame = pd.DataFrame({"q": rng.integers(1, 7, 19000), "region": rng.integers(1, 6, 19000)})
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(
+                "q", "nominal", label="Answer", labels={i: f"Answer {i}" for i in range(1, 7)}
+            ),
+            Variable("region", "nominal", label="Region of residence", labels=regions),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables)
+    for size in ((5, 4), (7, 4), (10, 6)):
+        chart = data.plot.bar("q", show="percent", split="region", letters=True, figsize=size)
+        chart.save(tmp_path / "letters.png")
+        ax = chart.plot()
+        renderer = ax.figure.canvas.get_renderer()
+        labels = ax.get_xticklabels()
+        if labels[0].get_rotation():
+            assert _turned_apart(ax)
+        else:
+            size_pt = labels[0].get_fontsize()
+            assert not bars._crowded(labels, renderer, False, size_pt - 0.01), size
+        for label in labels:
+            for line in label.get_text().split("\n"):
+                if "(n" in line:
+                    assert line.find(")", line.index("(n")) > 0, line  # "(n = 4,249)" whole
+
+
+def test_a_histogram_s_panels_keep_their_height_and_their_ticks_apart(tmp_path):
+    """Eight groups of an income: the bottom panels ran '0 50,000
+    100,000150,000…' into one another at 10 in, and at 5 × 4 in each panel was
+    24 pt tall under its wrapped title. The ticks are thinned to fit and the
+    figure grows until every panel is PANEL_PT tall."""
+    data = _regions()
+    for size in ((10, 6), (5, 4)):
+        chart = data.plot.bar("income", layout="histogram", split="region", figsize=size)
+        chart.save(tmp_path / "hist.png")
+        fig = chart.plot().figure
+        shown = [ax for ax in fig.axes if ax.get_visible()]
+        assert min(axes_points(ax)[1] for ax in shown) >= bars.PANEL_PT - 0.5, size
+        fig.draw_without_rendering()
+        renderer = fig.canvas.get_renderer()
+        for ax in shown[-2:]:
+            low, high = ax.get_xlim()
+            labels = [
+                label
+                for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=False)
+                if low <= tick <= high and label.get_text()
+            ]
+            assert len(labels) >= 2
+            room = 0.5 * labels[0].get_fontsize() / 72 * fig.dpi
+            boxes = sorted(
+                (label.get_window_extent(renderer) for label in labels), key=lambda b: b.x0
+            )
+            assert all(a.x1 + room <= b.x0 for a, b in zip(boxes, boxes[1:], strict=False)), size
+        for ax in shown:
+            for line in ax.get_title(loc="left").split("\n"):
+                if "(n" in line:
+                    assert line.find(")", line.index("(n")) > 0, line
+
+
+def test_a_count_axis_on_a_small_figure_is_thinned_and_a_mean_separates_thousands(tmp_path):
+    """'0 25,00050,00075,000' on a 4 in count axis; a mean income read
+    '41646.65' beside '75,306'."""
+    big = _regions(n=200_000)
+    chart = big.plot.bar("region", horizontal=True, sort="value", figsize=(4, 3))
+    chart.save(tmp_path / "count.png")
+    ax = chart.plot()
+    fig = ax.figure
+    fig.draw_without_rendering()
+    renderer = fig.canvas.get_renderer()
+    low, high = ax.get_xlim()
+    labels = [
+        label
+        for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=False)
+        if low <= tick <= high and label.get_text()
+    ]
+    boxes = sorted((label.get_window_extent(renderer) for label in labels), key=lambda b: b.x0)
+    assert all(a.x1 < b.x0 for a, b in zip(boxes, boxes[1:], strict=False))
+    assert all("," in label.get_text() for label in labels if label.get_text() != "0")
+
+    means = _regions().plot.bar("income", by="region", intervals=True)
+    ax = means.plot()
+    written = {text.get_text() for text in ax.texts}
+    assert any(
+        len(text) > 8 and "," in text and text.endswith(tuple("0123456789")) for text in written
+    )
+    ticks = [label.get_text() for label in ax.get_yticklabels() if label.get_text()]
+    assert "40,000" in ticks or "20,000" in ticks
+    assert bars.value_text(41646.654, "mean") == "41,646.65"
+    assert bars.value_text(3.456, "mean") == "3.46"
+
+
+def test_a_box_plot_in_the_theme_s_colours_keeps_its_value_title_clear_of_the_title(tmp_path):
+    """A 40-character value label longer than the plot ran into the chart's
+    title; in the theme's colours it wraps to the plot's height (a named
+    palette draws as it always did)."""
+    from siamang.reporting import chart_theme as ct
+
+    base = _regions()
+    variables = VariableMap()
+    variables.add_many(
+        [
+            base.variables["region"],
+            Variable("income", "ratio", label="Monthly household income after tax (EUR)"),
+        ]
+    )
+    data = SurveyData(frame=base.frame, variables=variables)
+    chart = ct.in_report(data.plot.boxplot("income", by="region", palette="theme"), None)
+    ax = chart.plot()
+    renderer = ax.figure.canvas.get_renderer()
+    assert "\n" in ax.get_ylabel()
+    label, title = ax.yaxis.label.get_window_extent(renderer), ax.title.get_window_extent(renderer)
+    assert label.y1 <= title.y0
+    plain = data.plot.boxplot("income", by="region").plot()
+    assert plain.get_ylabel() == "Monthly household income after tax (EUR)"

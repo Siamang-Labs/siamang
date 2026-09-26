@@ -55,6 +55,7 @@ Cochran's Q, the ordinal logit — are in :mod:`siamang.reporting.method_charts`
 from __future__ import annotations
 
 import math
+import re
 import textwrap
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -700,11 +701,20 @@ def _label(
     )
 
 
-def _number(value: Any, digits: int = 2) -> str:
+def _number(value: Any, digits: int = 2, *, thousands: bool = False) -> str:
     if value is None or value != value:
         return ""
-    text = f"{float(value):.{digits}f}"
-    return text[1:] if text.startswith("-") and float(text) == 0 else text
+    text = f"{float(value):,.{digits}f}" if thousands else f"{float(value):.{digits}f}"
+    return text[1:] if text.startswith("-") and float(text.replace(",", "")) == 0 else text
+
+
+def _mean_axis_thousands(ax: Any) -> None:
+    """A means axis of thousands (a mean income) separates them, as the Bar
+    chart's counts do: 40,000, not 40000."""
+    if max(abs(value) for value in ax.get_xlim()) >= 1000:
+        from siamang.reporting.chart_parts import thousands_axis
+
+        thousands_axis(ax.xaxis)
 
 
 def _digits(values: Any) -> int:
@@ -848,13 +858,14 @@ def _means_series(
             lower.append(value - spread)
             upper.append(value + spread)
             texts.append(
-                _number(value, digits) + ("" if spread == spread else " (one answer: no SD)")
+                _number(value, digits, thousands=True)
+                + ("" if spread == spread else " (one answer: no SD)")
             )
         else:
             lower.append(interval.lower if interval.defined else float("nan"))
             upper.append(interval.upper if interval.defined else float("nan"))
             note = "" if interval.defined or value != value else f" ({interval.note})"
-            texts.append(_number(value, digits) + note)
+            texts.append(_number(value, digits, thousands=True) + note)
     return estimate, lower, upper, texts
 
 
@@ -943,6 +954,7 @@ def _draw_group_means(table: Any, chart: ResultChart) -> str:
     column = _get_label(table.data, table.column)
     weighted = table.data.weight is not None
     ax.set_xlabel(_means_axis(chart, f"{'Weighted mean' if weighted else 'Mean'}"), color=_ink())
+    _mean_axis_thousands(ax)
     if marks:
         posthoc = table.posthoc_table.result
         _mark_note(
@@ -1066,6 +1078,8 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
     ]
     names = [None] if by_label is None else list(dict.fromkeys(frame[by_label].astype(str)))
     colors = chart.colors(len(names))
+    if _separate_scales(frame, rows):
+        return _descriptives_panels(chart, frame, rows, shown, names, colors, by_label, data)
     if by_label is None:  # one series: each row's base beside its label
         counts = dict(zip(frame["Variable"].astype(str), frame["N"], strict=False))
         shown = _with_n(shown, [counts.get(name) for name in rows])
@@ -1096,7 +1110,149 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
     ax, _ = _dots(chart, shown, series, legend_title=by_label)
     weighted = data.weight is not None
     ax.set_xlabel(_means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_ink())
+    _mean_axis_thousands(ax)
     return "Means" if by_label is None else f"Means by {by_label}"
+
+
+#: Variables whose means reach further than this many times one another are
+#: drawn each on a scale of its own: an income and an age on one axis put the
+#: ages at 0, their intervals and value labels on top of one another.
+SCALE_RATIO = 5.0
+
+
+def _separate_scales(frame: pd.DataFrame, rows: list[str]) -> bool:
+    """Whether the variables of a Descriptive statistics table need a panel
+    each: two or more, the furthest reach of one's means and intervals more
+    than :data:`SCALE_RATIO` times another's."""
+    if len(rows) < 2:
+        return False
+    reach = []
+    for name in rows:
+        part = frame[frame["Variable"].astype(str) == name]
+        ends = [abs(float(value)) for value in part["Mean"] if value == value and value is not None]
+        ends += [
+            abs(float(end))
+            for interval in part["_interval"]
+            if interval.defined
+            for end in (interval.lower, interval.upper)
+        ]
+        if ends:
+            reach.append(max(ends))
+    positive = [value for value in reach if value > 0]
+    return len(positive) >= 2 and max(positive) > SCALE_RATIO * min(positive)
+
+
+def _descriptives_panels(
+    chart: ResultChart,
+    frame: pd.DataFrame,
+    rows: list[str],
+    shown: list[str],
+    names: list[Any],
+    colors: list[Any],
+    by_label: str | None,
+    data: Any,
+) -> str:
+    """A panel per variable, one above the other, each on its own scale; in a
+    panel a row per group (named with its base), in the group's colour."""
+    from siamang.reporting.chart_parts import wrap as wrap_words
+
+    per_panel = [
+        [
+            # Without By the panel's title names the variable: its row, the base.
+            (f"n = {int(n):,}" if by_label is None else f"{name} (n = {int(n):,})")
+            if n == n and n is not None
+            else str(name)
+            for name, n in _panel_bases(frame, row, names, by_label)
+        ]
+        for row in rows
+    ]
+    labels = [label for panel in per_panel for label in panel]
+    wrapped, size, _ = fit_rows(chart.figsize, labels, series=1)
+    lines = max(text.count("\n") + 1 for text in wrapped)
+    row_in = lines * size * 1.25 / 72 + 0.12
+    heights = [len(panel) * row_in + 0.5 for panel in per_panel]
+    height = max(chart.figsize[1], sum(heights) + _CHROME)
+    fig, axes = chart.figure(
+        height=height,
+        nrows=len(rows),
+        ncols=1,
+        squeeze=False,
+        gridspec_kw={"height_ratios": [len(panel) for panel in per_panel]},
+    )
+    chart._size = size
+    chars = int(0.34 * chart.figsize[0] * 72 / (size * 0.55))
+    weighted = data.weight is not None
+    for index, (row, title, panel) in enumerate(zip(rows, shown, per_panel, strict=True)):
+        ax = axes[index][0]
+        part = frame[frame["Variable"].astype(str) == row]
+        by_group = (
+            {None: part.iloc[0]}
+            if by_label is None
+            else {
+                str(group): record
+                for group, (_, record) in zip(part[by_label], part.iterrows(), strict=True)
+            }
+        )
+        y = np.arange(len(names), dtype=float)
+        ax.set_yticks(y)
+        ax.set_yticklabels(
+            [_wrap_with_base(label, chars, wrap_words) for label in panel],
+            fontsize=size,
+            color=_ink(),
+        )
+        ax.set_ylim(len(names) - 0.5, -0.5)
+        ax.tick_params(axis="x", labelsize=size, colors=_ink())
+        ax.grid(axis="y", visible=False)
+        artists = []
+        for position, (name, color) in enumerate(zip(names, colors, strict=True)):
+            record = by_group.get(name if name is None else str(name))
+            if record is None:
+                continue
+            estimate, lower, upper, texts = _means_series(
+                chart, [record["_interval"]], [record["SD"]], [record["Mean"]]
+            )
+            if lower[0] == lower[0] and upper[0] == upper[0]:
+                ax.hlines(position, lower[0], upper[0], color=color, linewidth=2, zorder=2)
+            ax.plot(
+                estimate,
+                [position],
+                "o",
+                color=color,
+                markersize=7,
+                markeredgecolor="white",
+                markeredgewidth=1,
+                zorder=3,
+                linestyle="none",
+            )
+            end = upper[0] if upper[0] == upper[0] else estimate[0]
+            artists.append(_label(ax, end, position, texts[0], size))
+        ax.set_title(title, loc="left", fontsize=size + 1, color=_ink())
+        _hide_spines(ax)
+        chart.make_room(ax, artists)
+        _mean_axis_thousands(ax)
+    axes[-1][0].set_xlabel(
+        _means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_ink()
+    )
+    what = "Means" if by_label is None else f"Means by {by_label}"
+    return f"{what}, each variable on its own scale"
+
+
+def _wrap_with_base(label: str, chars: int, wrap_words: Any) -> str:
+    """``label`` wrapped, its "(n = 67)" kept on one line."""
+    held = re.sub(r"\(n = ([^)]*)\)", lambda match: f"(n\u00a0=\u00a0{match.group(1)})", label)
+    return wrap_words(held, chars).replace("\u00a0", " ")
+
+
+def _panel_bases(
+    frame: pd.DataFrame, row: str, names: list[Any], by_label: str | None
+) -> list[tuple[Any, Any]]:
+    """Each group's name (the variable's, without By) and its base, for one
+    variable's panel."""
+    part = frame[frame["Variable"].astype(str) == row]
+    if by_label is None:
+        return [(part["Label"].iloc[0], part["N"].iloc[0])]
+    counts = dict(zip(part[by_label].astype(str), part["N"], strict=False))
+    return [(name, counts.get(str(name))) for name in names]
 
 
 def _n_range(counts: Any) -> str:
@@ -1147,6 +1303,7 @@ def _draw_ttest(table: Any, chart: ResultChart) -> str:
         reference=float(table.mu) if table.kind == "one_sample" else None,
     )
     ax.set_xlabel(_means_axis(chart, "Mean", confidence), color=_ink())
+    _mean_axis_thousands(ax)
     ci = f"{confidence * 100:g}% CI"
     if stats.get("Mean difference") is not None and stats.get(ci):
         note = (
@@ -1204,6 +1361,7 @@ def _draw_paired(table: Any, chart: ResultChart) -> str:
         ],
     )
     ax.set_xlabel(_means_axis(chart, "Mean"), color=_ink())
+    _mean_axis_thousands(ax)
     stats = table.stats
     n = stats.get("N")
     _mark_note(

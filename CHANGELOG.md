@@ -774,6 +774,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   check and failed the run; the check says `Split by must be another variable
   than Variable.`
 
+- **Labels and ticks fit the plot as it is laid out.** The Bar chart's
+  newer forms fitted the labels under vertical bars to 0.85 of the figure's
+  width, but the value axis's title and ticks take their room first (229 of
+  360 pt at 5 in): turned labels were drawn over one another, and level ones
+  ran together ("metropolitan (n = 4,249)" of two neighbours read as one
+  phrase). They are fitted again to the plot as laid out — level ones an em
+  apart, turned ones in as many lines as their measured spacing holds — and
+  the bars are drawn across when neither can be read. A group's `(n = …)` is
+  never broken over two lines, under the bars nor over a histogram's panel.
+  A histogram's shared x axis ('0 50,000 100,000150,000…' in two columns at
+  10 in) and a count axis at 4 in are thinned until their labels keep half an
+  em apart, and the ticks found are kept when the figure is saved (matplotlib
+  chose them again then, by other settings). A histogram split into 8 groups
+  at 5 × 4 in had panels 24 pt tall under their wrapped titles: the figure
+  grows until each is 72 pt. A mean of thousands reads `41,646.65` on the
+  Bar chart and the Result charts' means (Group means, Descriptive
+  statistics, t-tests), its axis `40,000`. In the theme's colours the Box
+  plot's value title wraps to the plot's height (it ran into the title).
+
+- **Descriptive statistics of an income and an age take a panel each.** Their
+  Result chart put both on one axis from 0 to 40,000: the ages sat at 0,
+  their intervals invisible and their labels on top of one another. Variables
+  whose means reach more than 5 times one another's are drawn a panel each, on
+  a scale of their own, a row per group named with its base (`Means by
+  Region, each variable on its own scale`).
+
 - **Save report's workbook links a sheet whose name has an apostrophe.** The
   Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
   which Excel cannot follow; a sheet's name in a link is quoted with an

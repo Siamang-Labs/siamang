@@ -954,3 +954,73 @@ def test_charts_of_choice_and_correlation_say_their_base():
         frame=pd.DataFrame({"why": ["slow", "dear", "slow"]}), variables=variables
     ).report.themes(_codeframe())
     assert rc.chart(themes)._ax.get_title(loc="left") == "Themes: Why did you choose us?"
+
+
+# ─── Descriptive statistics on scales of their own, thousands separated ──────
+
+
+def _income_and_age() -> SurveyData:
+    rng = np.random.default_rng(0)
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("income", "ratio", label="Monthly income (EUR)"),
+            Variable("age", "ratio", label="Age"),
+            Variable("t1", "ordinal", label="Trust: Acme", labels={i: str(i) for i in range(1, 6)}),
+            Variable(
+                "t2", "ordinal", label="Trust: Globex", labels={i: str(i) for i in range(1, 6)}
+            ),
+            Variable(
+                "g", "nominal", label="Region", labels={i: f"Region {i}" for i in range(1, 9)}
+            ),
+        ]
+    )
+    frame = pd.DataFrame(
+        {
+            "income": rng.lognormal(10.3, 0.5, 900),
+            "age": rng.integers(18, 90, 900),
+            "t1": rng.integers(1, 6, 900),
+            "t2": rng.integers(1, 6, 900),
+            "g": rng.integers(1, 9, 900),
+        }
+    )
+    return SurveyData(frame=frame, variables=variables)
+
+
+def test_descriptives_of_an_income_and_an_age_take_a_panel_each():
+    """On one axis from 0 to 40,000 the ages sat at 0, their intervals
+    invisible and their labels on top of one another: variables whose means
+    differ more than SCALE_RATIO times take a panel each, a row per group."""
+    data = _income_and_age()
+    chart = rc.chart(data.report.descriptives(["income", "age"], by="g"))
+    fig = chart.plot().figure
+    panels = [ax for ax in fig.axes if ax.get_visible()]
+    assert [ax.get_title(loc="left") for ax in panels] == ["Monthly income (EUR)", "Age"]
+    income, age = panels
+    assert income.get_xlim()[0] > 1000 and 10 < age.get_xlim()[0] < age.get_xlim()[1] < 100
+    rows = [label.get_text() for label in age.get_yticklabels()]
+    assert len(rows) == 8 and rows[0].startswith("Region 1 (n = ")
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    for ax in panels:
+        boxes = [text.get_window_extent(renderer) for text in ax.texts if text.get_text()]
+        assert len(boxes) == 8
+        assert not any(a.overlaps(b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
+    # Its value labels and its axis separate thousands.
+    assert all("," in text.get_text() for text in income.texts if text.get_text())
+    assert any("," in label.get_text() for label in income.get_xticklabels())
+    assert fig.texts[0].get_text().startswith("Means by Region, each variable on its own scale")
+    # Items on one scale share one axis, as before.
+    same = rc.chart(data.report.descriptives(["t1", "t2"], by="g")).plot().figure
+    assert len([ax for ax in same.axes if ax.get_visible()]) == 1
+
+
+def test_group_means_of_thousands_read_with_their_thousands_separated():
+    data = _income_and_age()
+    ax = rc.chart(data.report.means("income", by="g")).plot()
+    written = [text.get_text() for text in ax.texts if text.get_text()[:1].isdigit()]
+    assert written and all("," in text for text in written)
+    ticks = {label.get_text() for label in ax.get_xticklabels()}
+    assert any("," in tick for tick in ticks)
+    small = rc.chart(data.report.means("age", by="g")).plot()
+    assert not any("," in text.get_text() for text in small.texts)
