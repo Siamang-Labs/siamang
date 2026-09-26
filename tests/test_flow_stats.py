@@ -688,6 +688,55 @@ def test_a_shorthand_codebook_is_read_as_the_questionnaire_reads_it(questionnair
     assert from_document(with_values).survey.variables["region"].is_missing(3)
 
 
+def test_the_check_reports_what_the_code_generator_cannot_write(questionnaire_doc):
+    """check_flow only looked at a condition's top: an and/or with a part that
+    is not an expression passed the check, and generate_flow then raised
+    FlowError (a 500 at Save and preview in Studio). A parameter of the wrong
+    type is PARAM_INVALID, but the names a node makes were still computed from
+    it, and the check itself raised: Explode of ["gender"] (unhashable list),
+    factor scores of items 5 (len of an int), a variable reference without a
+    name (KeyError). Each is now an issue of the node, and what passes the
+    check generates."""
+
+    def problems(node_type, params):
+        _flow_, found = _one(node_type, params, questionnaire_doc)
+        return [(i.code, i.message) for i in found if i.severity == "error"]
+
+    gender = {"type": "var", "name": "gender"}
+    weird = {"type": "expression", "op": "and", "left": gender, "right": {"type": "weird"}}
+    assert problems("prepare.filter", {"condition": weird}) == [
+        (
+            "PARAM_INVALID",
+            "Parameter 'condition' of n: Only structured expressions can be used in a flow "
+            "(no raw strings).",
+        )
+    ]
+    nameless = {"type": "expression", "op": "=", "left": {"type": "var"}, "right": 1}
+    for condition in ({"type": "var"}, nameless, {**nameless, "left": {**gender, "name": ["x"]}}):
+        assert problems("prepare.filter", {"condition": condition}) == [
+            (
+                "PARAM_INVALID",
+                "Parameter 'condition' of n: every variable in a condition needs a name.",
+            )
+        ]
+    assert problems("prepare.explode", {"variable": ["gender"]}) == [
+        ("PARAM_INVALID", "Parameter 'variable' of n: expected a string, got list.")
+    ]
+    assert problems("analyze.factor", {"items": 5, "scores": True}) == [
+        ("PARAM_INVALID", "Parameter 'items' of n: expected a list of variable names.")
+    ]
+    # A nested condition of expressions checks and generates as before.
+    both = {
+        "type": "expression",
+        "op": "or",
+        "left": {"type": "expression", "op": "=", "left": gender, "right": 1},
+        "right": {"type": "expression", "op": "not", "left": gender},
+    }
+    flow, found = _one("prepare.filter", {"condition": both}, questionnaire_doc)
+    assert not [i for i in found if i.severity == "error"]
+    assert "sg.OR(" in generate_flow(flow, questionnaire_doc)
+
+
 def test_a_made_variable_of_the_wrong_scale_is_warned(questionnaire_doc):
     """A Crosstab of a factor score (interval) ran with one row per distinct
     float and nothing said so: made variables' scales were not checked, only the

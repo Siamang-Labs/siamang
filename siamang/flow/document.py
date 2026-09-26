@@ -611,6 +611,8 @@ def _exploded_names(questionnaire: dict[str, Any], params: dict[str, Any]) -> se
     """
 
     variable = params["variable"]
+    if not isinstance(variable, str):
+        return set()  # PARAM_INVALID: "expected a string"; it raised TypeError here
     payload = (questionnaire.get("variables") or {}).get(variable) or {}
     prefix = params.get("prefix") or f"{variable}_"
     return {f"{prefix}{code}" for code, _label in _labelled(payload.get("labels"))}
@@ -658,7 +660,10 @@ def _factor_score_names(spec: NodeSpec, params: dict[str, Any]) -> set[str]:
 
     prefix = params.get("into") or spec.params["into"].default
     fixed = params.get("n_factors")
-    count = fixed if isinstance(fixed, int) and fixed > 0 else len(params.get("items") or []) - 1
+    items = params.get("items")
+    # Items that are not a list are PARAM_INVALID; len() of them raised here.
+    listed = len(items) if isinstance(items, list) else 0
+    count = fixed if isinstance(fixed, int) and fixed > 0 else listed - 1
     return {f"{prefix}{index}" for index in range(1, count + 1)}
 
 
@@ -1024,6 +1029,17 @@ def _param_problem(param: ParamSpec, value: Any) -> str | None:
             return "expected an expression (raw string conditions cannot be evaluated on data)."
         if _has_raw(value):
             return "raw string conditions cannot be evaluated on data."
+        if not _names_given(value):
+            return "every variable in a condition needs a name."
+        # What the code generator cannot write is this check's to say: a part
+        # of an and/or that is not an expression passed here and failed at
+        # generate_flow, after the check had called the flow fine.
+        from siamang.flow.template import render_condition
+
+        try:
+            render_condition(value)
+        except FlowError as exc:
+            return str(exc)
     elif kind == "formula":
         if not isinstance(value, str):
             return f"expected a formula, got {type(value).__name__}."
@@ -1083,10 +1099,23 @@ def _has_raw(node: Any) -> bool:
     return False
 
 
+def _names_given(node: Any) -> bool:
+    """Whether every variable reference in a condition names its variable."""
+    if isinstance(node, dict):
+        if node.get("type") == "var":
+            return isinstance(node.get("name"), str) and bool(node["name"])
+        return _names_given(node.get("left")) and _names_given(node.get("right"))
+    if isinstance(node, list):
+        return all(_names_given(item) for item in node)
+    return True
+
+
 def _condition_variables(node: Any) -> set[str]:
     if isinstance(node, dict):
         if node.get("type") == "var":
-            return {node["name"]}
+            # A reference without a name is PARAM_INVALID (_names_given).
+            name = node.get("name")
+            return {name} if isinstance(name, str) and name else set()
         return _condition_variables(node.get("left")) | _condition_variables(node.get("right"))
     if isinstance(node, list):
         names: set[str] = set()
