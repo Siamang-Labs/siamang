@@ -230,6 +230,8 @@ def turf(
     out.base = int(round(base))
     out.method = method
     out.labels = dict(labels or {})
+    if weight:
+        out.attrs["weight"] = weight  # a chart of the table alone says it
     return out
 
 
@@ -374,6 +376,8 @@ def evaluate(
     )
     out.base = int(round(base))
     out.method = "fixed"
+    if weight:
+        out.attrs["weight"] = weight  # a chart of the table alone says it
     return out
 
 

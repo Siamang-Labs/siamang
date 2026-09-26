@@ -591,6 +591,9 @@ class SurveyData:
             from siamang.data.analysis import unweighted_note
 
             stats["weight"] = unweighted_note(self.weight)
+            # The centroids say it too: k-means ignores the weight, and a chart
+            # of them beside weighted tables must say so without the stat.
+            result.centroids.attrs["weight"] = stats["weight"]
         return ClusterAssignment(data=data, centroids=result.centroids, stats=stats)
 
     def _numeric_items_frame(self, items: list[str]) -> pd.DataFrame:

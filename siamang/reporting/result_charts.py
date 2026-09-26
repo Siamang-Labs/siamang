@@ -539,7 +539,10 @@ def _stats_of(item: Any) -> dict[str, Any]:
     if isinstance(item, dict):
         return item
     if isinstance(item, pd.DataFrame):
-        return {}
+        # A table an analysis returns bare (a regression's, a PCA's, a
+        # cluster's, TURF's) carries its weight in attrs, as its stat does.
+        weight = item.attrs.get("weight")
+        return {"Weight": weight} if isinstance(weight, str) and weight else {}
     try:
         stats = getattr(item, "stats", None)
     except Exception:  # noqa: BLE001 - a table that cannot build has nothing to say

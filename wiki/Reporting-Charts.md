@@ -363,9 +363,10 @@ Wilson's for a share — see `siamang.data.intervals` in the
 **Weight.** A result chart says what its result says: `weighted by 'w'`, or
 `unweighted (the weight 'w' is not applied)`, as the second line of the title
 and in `chart.weight_note`. A regression's, a PCA's, a cluster's or TURF's
-table does not carry the weight itself — pass its statistics beside it
-(`[model.table, model.stats]`), which also gives a regression's interval its
-t distribution.
+table carries it in `table.attrs["weight"]` (a cluster's: that k-means does not
+apply it), so the table alone is enough; pass its statistics beside it
+(`[model.table, model.stats]`) to give a regression's interval its t
+distribution.
 
 **Long labels, many categories.** Categories are rows, first at the top; labels
 wrap and stay whole, the font shrinks from 10 to 7 pt as rows multiply, and a
