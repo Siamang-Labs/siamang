@@ -689,8 +689,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `_banner_pair`'s and the letters `BannerTable`'s own test; missing codes
   are left out and said, and a column's base is those in it who answered the
   question. *Questions* empty is every nominal, ordinal and multiple-choice
-  variable of the codebook but the banner, the weight and the response
-  metadata. The `stat` output gives `Sheets written`, `Questions skipped` and
+  variable of the codebook but the banner, the weight, the response
+  metadata, open answers and rankings: an `OpenText` question (or words
+  without answer labels) went into the client's workbook word for word when
+  30 or fewer respondents had typed it — e-mail addresses and phone numbers
+  a row each — and a Ranking read 100 % for every option in every column
+  (`an open answer: code it first (Code open answers)`, `a ranking: every
+  respondent orders every option, so each would be 100 % — derive its first
+  choice (Derive) and tabulate that`); named in *Questions*, each is
+  tabulated as asked, and `check_flow` warns. `check_flow` also names what
+  the run refuses and the flow settles: a multiple-choice or ranking *Banner*
+  variable (`… holds multiple-choice answers, and a banner column is a group
+  of respondents that no one else is in. Explode it first …`), a *Path* not
+  ending in `.xlsx` (`A tab book is an Excel workbook: its path must end in
+  .xlsx (got 'outputs/tabbook.xls').`), and warns of one outside `outputs/`
+  (`'tabs.xlsx' is not under outputs/, where a run keeps what it writes.`).
+  The `stat` output gives `Sheets written`, `Questions skipped` and
   why (`not in the data`, an open answer with no labels, …). On weighted data
   the cells hold the sums of weights as they are and the percentages are of
   those sums, as the Frequencies and Crosstab tables compute them; the
