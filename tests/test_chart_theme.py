@@ -532,7 +532,9 @@ def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
     split = drawn(
         data.plot.bar("region", split="age", show="percent", top=2, other=True, palette="theme")
     )
-    assert series(split._ax) == [*colours.palette[:2], ct.NEUTRAL]
+    # Each kept answer in the colour of its code's place, as without Top N.
+    kept = sorted(data.frame["region"].value_counts().index[:2])
+    assert series(split._ax) == [*(colours.series(5)[code - 1] for code in kept), ct.NEUTRAL]
     assert ct.NEUTRAL not in colours.series(12)
     plain = data.plot.bar("region", show="percent", top=3, other=True)
     assert plain.plot().patches[3].get_facecolor()[:3] == pytest.approx(bars.OTHER_COLOUR)
