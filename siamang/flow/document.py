@@ -553,7 +553,39 @@ def _exploded_names(questionnaire: dict[str, Any], params: dict[str, Any]) -> se
     variable = params["variable"]
     payload = (questionnaire.get("variables") or {}).get(variable) or {}
     prefix = params.get("prefix") or f"{variable}_"
-    return {f"{prefix}{item.get('code')}" for item in payload.get("labels") or []}
+    return {f"{prefix}{code}" for code, _label in _labelled(payload.get("labels"))}
+
+
+def _labelled(raw: Any) -> list[tuple[Any, str]]:
+    """A codebook's value labels as ``(code, label)`` pairs, in either form a
+    document writes them: a list of ``{code, label}`` in the author's order, or
+    the ``{code: label}`` shorthand read as the questionnaire reads it
+    (``_codebook_from_doc``: codes parsed, "01" is 1, 0 and up ascending, then
+    the negative ones, then text). A shorthand iterated as a list gave its keys,
+    strings, and ``item.get`` raised AttributeError — a 500 at Save."""
+
+    from siamang.model.document import DocumentError, _codebook_from_doc
+
+    if isinstance(raw, dict):
+        try:
+            return list(_codebook_from_doc(raw, "labels").items())
+        except DocumentError:
+            return []  # a broken codebook is the questionnaire check's to report
+    if isinstance(raw, list):
+        return [
+            (item.get("code"), str(item.get("label", item.get("code"))))
+            for item in raw
+            if isinstance(item, dict) and "code" in item
+        ]
+    return []
+
+
+def _code_text(code: Any) -> str:
+    """A code as the codebook writes it: 3, not the 3.0 a JSON number may hold."""
+
+    if isinstance(code, float) and code.is_integer():
+        return str(int(code))
+    return str(code)
 
 
 def _factor_score_names(spec: NodeSpec, params: dict[str, Any]) -> set[str]:
@@ -877,27 +909,27 @@ def _check_design(
     return []
 
 
-def _answers(payload: dict[str, Any]) -> list[tuple[Any, str]]:
-    """A codebook variable's labelled answers, its missing codes left out
-    (value labels and missing codes as a list of ``{code, label}`` or a mapping)."""
+def _answers(payload: dict[str, Any]) -> list[tuple[str, str]]:
+    """A codebook variable's labelled answers as ``(code, label)``, its missing
+    codes left out, in the order the questionnaire reads them (:func:`_labelled`).
+    A missing code matches an answer by its text as the codebook writes it, so
+    a missing 3.0 is the answer 3 (missing codes as a list of codes, of
+    ``{code, label}``, or a mapping keyed by code)."""
 
-    def pairs(raw: Any) -> list[tuple[Any, str]]:
-        if isinstance(raw, dict):
-            return [(code, str(label)) for code, label in raw.items()]
-        if isinstance(raw, list):
-            return [
-                (item.get("code"), str(item.get("label", item.get("code"))))
-                for item in raw
-                if isinstance(item, dict) and "code" in item
-            ]
-        return []
+    from siamang.model.document import _parse_code_key
 
-    missing = {str(code) for code, _label in pairs(payload.get("missing"))}
-    missing |= {
-        str(item) for item in payload.get("missing") or [] if isinstance(item, int | float | str)
-    }
+    raw = payload.get("missing")
+    if isinstance(raw, dict):
+        missing = [_parse_code_key(code) for code in raw]
+    elif isinstance(raw, list):
+        missing = [item.get("code") if isinstance(item, dict) else item for item in raw]
+    else:
+        missing = []
+    left_out = {_code_text(code) for code in missing}
     return [
-        (code, label) for code, label in pairs(payload.get("labels")) if str(code) not in missing
+        (_code_text(code), label)
+        for code, label in _labelled(payload.get("labels"))
+        if _code_text(code) not in left_out
     ]
 
 
