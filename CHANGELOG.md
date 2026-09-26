@@ -540,6 +540,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **What a Likert or Bar chart cannot draw fails its own node, and the flow
+  check says it first.** The charts are built lazily, so a chart node
+  "succeeded" and the error surfaced on Save report (`Node save
+  (output.save_report) failed: A Likert chart draws the answers of a scale
+  …`) or in the preview; the runner now builds each chart as its node runs.
+  `check_flow` also names, before the run: Likert items with no scale at all
+  and a multiple-choice Likert item, a Bar chart split by a question that
+  allows several answers, and a stacked layout of one. The Likert chart
+  reads a Likert scale question's points when the codebook has no labels or
+  valid range — the example project's own 7-point `life_satisfaction` is
+  drawn, its ends named `Not at all` and `Completely`.
+
 - **A Result chart of a table alone says how the weight was used.** A
   Regression's, a PCA's, a Cluster's and TURF's chart learnt the weight only
   from the Stat: with the table alone connected, a chart beside weighted

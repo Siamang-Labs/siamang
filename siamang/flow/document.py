@@ -226,6 +226,10 @@ def check_flow(
             issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
         if spec.type == "visualize.likert" and questionnaire is not None:
             issues.extend(_check_likert_scale(node_id, node.get("params") or {}, questionnaire))
+        if spec.type == "visualize.bar" and questionnaire is not None:
+            issues.extend(
+                _check_bar_answers(node_id, spec, node.get("params") or {}, questionnaire)
+            )
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -1213,47 +1217,152 @@ def _check_likert_scale(
     node_id: str, params: dict[str, Any], questionnaire: dict[str, Any]
 ) -> list[FlowIssue]:
     """A Likert chart's items share one scale: the same labelled answers in the
-    codebook, missing codes aside (``_answers``), as the chart requires when it
-    runs (``siamang.reporting.likert.likert_scale``). Items the codebook does
-    not hold (made upstream) are the run's to check."""
+    codebook, missing codes aside (``_answers``) — else the whole numbers of a
+    valid range, else the points of the Likert scale question asking it — as
+    the chart requires when it runs (``siamang.reporting.likert.likert_scale``),
+    and each has one answer. Items the codebook does not hold (made upstream)
+    are the run's to check."""
 
     items = params.get("items")
     if not isinstance(items, list):
         return []
     variables = questionnaire.get("variables") or {}
     known = [name for name in items if isinstance(name, str) and name in variables]
-    if len(known) < 2:
-        return []
+    asked = _asked_by(questionnaire)
+
+    def problem(message: str) -> list[FlowIssue]:
+        return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)]
+
+    for name in known:
+        if (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS:
+            label = variables[name].get("label") or name
+            return problem(
+                f"{label} allows several answers; a Likert chart draws items with one answer "
+                "each on a scale."
+            )
 
     def scale(name: str) -> list[tuple[str, str]]:
         return [
-            (code, " ".join(label.split()).casefold()) for code, label in _answers(variables[name])
+            (code, " ".join(label.split()).casefold())
+            for code, label in _likert_answers(variables[name], asked.get(name))
         ]
 
     def described(name: str) -> str:
-        answers = _answers(variables[name])
+        answers = _likert_answers(variables[name], asked.get(name))
         if not answers:
             return "no value labels"
         parts = [f"{code} = {label}" for code, label in answers]
         return ", ".join([*parts[:3], "…", *parts[-2:]] if len(parts) > 6 else parts)
 
+    if known and len(known) == len(items) and not any(scale(name) for name in known):
+        return problem(
+            "A Likert chart draws the answers of a scale, and none of the items has value "
+            "labels (or a valid range of whole numbers) in the codebook, or a Likert scale "
+            "question, to say what the scale is."
+        )
+    if len(known) < 2:
+        return []
     first = known[0]
     for name in known[1:]:
         if scale(name) != scale(first):
             label = variables[first].get("label") or first
             other = variables[name].get("label") or name
-            return [
-                FlowIssue(
-                    "error",
-                    "PARAM_CONFLICT",
-                    f"{node_id}: The items of a Likert chart must share one scale, and "
-                    f"these do not: {label} has {described(first)}; {other} has "
-                    f"{described(name)}. Draw them in separate charts, or recode them "
-                    "onto one scale first.",
-                    node_id,
-                )
-            ]
+            return problem(
+                f"The items of a Likert chart must share one scale, and these do not: {label} "
+                f"has {described(first)}; {other} has {described(name)}. Draw them in "
+                "separate charts, or recode them onto one scale first."
+            )
     return []
+
+
+#: The question types whose variable holds a list of answers.
+_SEVERAL_ANSWERS = ("MultiChoice", "Ranking")
+
+
+def _asked_by(questionnaire: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Each variable's question in the document, by the variable it asks."""
+
+    found: dict[str, dict[str, Any]] = {}
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            name = node.get("var")
+            if isinstance(name, str) and isinstance(node.get("type"), str):
+                found.setdefault(name, node)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(questionnaire.get("pages") or [])
+    walk(questionnaire.get("blocks") or [])
+    return found
+
+
+def _likert_answers(
+    payload: dict[str, Any], question: dict[str, Any] | None
+) -> list[tuple[str, str]]:
+    """What a Likert chart reads as a variable's scale, as the run reads it
+    (``likert._answers``): its labelled answers, else the whole numbers of its
+    valid range (2 to 11 of them), else its Likert scale question's points."""
+
+    answers = _answers(payload)
+    if answers:
+        return answers
+    bounds = payload.get("valid_range")
+    if isinstance(bounds, list) and len(bounds) == 2:
+        try:
+            low, high = (float(bound) for bound in bounds)
+        except (TypeError, ValueError):
+            low = high = 0.5
+        if low.is_integer() and high.is_integer() and 2 <= high - low + 1 <= 11:
+            return [(str(code), str(code)) for code in range(int(low), int(high) + 1)]
+    if question and question.get("type") == "LikertScale":
+        start = int(question.get("start") or 1)
+        points = [start + index for index in range(int(question.get("points") or 5))]
+        named = [(str(code), str(code)) for code in points]
+        if points and question.get("left_label"):
+            named[0] = (str(points[0]), str(question["left_label"]))
+        if points and question.get("right_label"):
+            named[-1] = (str(points[-1]), str(question["right_label"]))
+        return named
+    return []
+
+
+def _check_bar_answers(
+    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any]
+) -> list[FlowIssue]:
+    """A Bar chart split by a question that allows several answers, or a stack
+    of one's options — refused by the run (``siamang.reporting.bars``), and
+    knowable from the questionnaire."""
+
+    params = resolved_params(spec, given)
+    variables = questionnaire.get("variables") or {}
+    asked = _asked_by(questionnaire)
+
+    def several(name: Any) -> bool:
+        return isinstance(name, str) and (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS
+
+    def label(name: str) -> str:
+        return str((variables.get(name) or {}).get("label") or name)
+
+    split, drawn = params.get("split"), params.get("variable")
+    message = None
+    if several(split):
+        message = (
+            f"Split by needs one answer per respondent, and {label(split)} allows several: "
+            "draw it as the Variable, or split by one of its options after Explode multiple "
+            "choice."
+        )
+    elif not unset(split) and several(drawn) and params.get("layout") != "grouped":
+        message = (
+            f"{label(drawn)} allows several answers, so its options overlap and cannot be "
+            "stacked: draw them side by side (Layout = grouped)."
+        )
+    return (
+        [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)] if message else []
+    )
 
 
 def dumps(document: dict[str, Any]) -> str:

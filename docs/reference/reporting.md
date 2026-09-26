@@ -397,7 +397,7 @@ In addition to base properties:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `columns` | `list[str]` | `[]` | The items. Their scale is the codebook's: the value labels without the missing codes, the same for every item (compared by code and by label, case and spaces aside), else a `ValueError` naming two of them and their scales. An item without labels may give a `valid_range` of 2–11 whole numbers. A multiple-choice item is refused. |
+| `columns` | `list[str]` | `[]` | The items. Their scale is the codebook's: the value labels without the missing codes, the same for every item (compared by code and by label, case and spaces aside), else a `ValueError` naming two of them and their scales. An item without labels may give a `valid_range` of 2–11 whole numbers, or be asked by a `LikertScale` question of the data's questionnaire (its points, the ends named by its left and right labels). A multiple-choice item is refused. |
 | `neutral` | `str` | `"split"` | `"split"`: an odd scale's middle answer half on either side of the centre. `"side"`: drawn apart, in a panel at the right titled by its label. An even scale has none; its centre falls between the middle two answers. |
 | `sort` | `str` | `"top2"` | `"top2"`: the largest top-2 share first (ties: the smaller bottom-2, then the order given). `"listed"`: the order of `columns`. |
 | `show_values` | `bool` | `True` | Each answer's share (`23%`) inside its segment where it fits. |
