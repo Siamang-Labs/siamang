@@ -511,3 +511,32 @@ def test_tick_labels_never_run_into_each_other(tmp_path):
             )
         else:  # turned: each label's anchor is further right than the last one's
             assert all(left.x1 < right.x1 for left, right in zip(boxes, boxes[1:], strict=False))
+
+
+def _tick_values(axis) -> list[tuple[float, str]]:
+    """Each major tick shown on ``axis``, with its label."""
+    low, high = sorted(axis.get_view_interval())
+    return [
+        (float(tick), label.get_text())
+        for tick, label in zip(axis.get_majorticklocs(), axis.get_ticklabels(), strict=True)
+        if low - 1e-9 <= tick <= high + 1e-9
+    ]
+
+
+def test_a_percent_axis_labels_every_tick_with_its_own_value():
+    """matplotlib's 2.5-point steps printed without decimals read 0, 2, 5, 8,
+    10 %: the ticks fall on whole percents, and each says its own value."""
+
+    codes = list(range(1, 7))
+    frame = pd.DataFrame({"q": np.repeat(codes, [18, 17, 17, 16, 16, 16])})
+    variables = VariableMap()
+    variables.add(Variable("q", "nominal", label="Brand", labels={c: f"Brand {c}" for c in codes}))
+    data = SurveyData(frame=frame, variables=variables)
+    for horizontal in (False, True):
+        chart = data.plot.bar("q", show="percent", horizontal=horizontal)
+        ax = chart.plot()
+        ax.figure.canvas.draw()
+        ticks = _tick_values(ax.xaxis if horizontal else ax.yaxis)
+        assert len(ticks) >= 3
+        for value, text in ticks:
+            assert text == f"{value:.0f}%" and value == int(value), ticks

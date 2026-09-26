@@ -540,6 +540,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A percent axis labels its ticks with their own values.** The Bar chart's
+  percent axis (Show = percent, or a stacked split) printed its ticks without
+  decimals, and when matplotlib chose steps of 2.5 the axis read 0, 2, 5, 8,
+  10, 12, 15, 18, 20 % under evenly spaced gridlines; the Likert chart's
+  panel of the neutral answer did the same. Their ticks now fall on whole
+  percents (steps of 1, 2, 5 or 10).
+
 - **The Proportion CI chart says what the share is of and at what level.**
   It was titled `Proportion` and wrote `confidence interval 59.2 – 72.1 %`
   whatever the Confidence, so a 90 % interval read as a 95 % one and a slide

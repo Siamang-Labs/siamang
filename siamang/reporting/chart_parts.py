@@ -103,10 +103,15 @@ def series_colours(palette: str, count: int, *, ordered: bool = False) -> list[A
 
 
 def percent_axis(axis: Any) -> None:
-    """Label a value axis of percentages 0 %, 20 %, …"""
+    """Label a value axis of percentages 0 %, 20 %, …
 
-    from matplotlib.ticker import PercentFormatter
+    The ticks fall on whole percents (steps of 1, 2, 5 or 10 and their tens):
+    labels without decimals on the 2.5-point steps matplotlib would choose
+    otherwise read 0, 2, 5, 8, 10 % under evenly spaced gridlines."""
 
+    from matplotlib.ticker import MaxNLocator, PercentFormatter
+
+    axis.set_major_locator(MaxNLocator(nbins="auto", steps=[1, 2, 5, 10], integer=True))
     axis.set_major_formatter(PercentFormatter(xmax=100, decimals=0))
 
 
