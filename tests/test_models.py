@@ -189,3 +189,55 @@ def test_the_analysis_accessor_weights_pca_reliability_and_regression():
     assert data.analysis.reliability(["a1", "a2", "a3"]).stats["weight"] == "w"
     assert data.analysis.regression("satisfaction", ["age"]).stats["weight"] == "w"
     assert data.analysis.regression("recommend", ["age"]).stats["weight"] == "w"
+
+
+def test_a_repeated_index_label_is_read_by_position_in_the_models():
+    """0145 moved Descriptive statistics, the tables and factor scores to
+    positions, but the same label lookup stayed in k-means (placing the labels
+    raised "cannot set using a list-like indexer with a different length than
+    the value"), in the weights of PCA and reliability (a matmul of 12 weights
+    against 6 rows), in the weighted mean and in describe_variables, which
+    counted each weight twice (weighted_n_valid 14.0 for 7.0) — silently. On two
+    waves concatenated without ignore_index every result now equals the
+    result on the same rows numbered 0 … n − 1."""
+
+    rng = np.random.default_rng(1)
+    frame = pd.DataFrame(
+        {
+            "y": [1.0, 2, None, 4, 5, 6, 2, 3, 5, 1, 4, 6],
+            "w": rng.uniform(0.5, 2, 12),
+            "a": rng.integers(1, 6, 12).astype(float),
+            "b": rng.integers(1, 6, 12).astype(float),
+            "c": rng.integers(1, 6, 12).astype(float),
+        }
+    )
+    frame.loc[3, "a"] = np.nan
+    variables = VariableMap()
+    variables.add_many(
+        [Variable(name, "interval", label=name.upper()) for name in ("y", "w", "a", "b", "c")]
+    )
+
+    def results(index):
+        data = SurveyData(frame=frame.set_axis(index), variables=variables)
+        weighted = data.with_weight("w")
+        return {
+            "cluster": data.cluster(["a", "b", "c"], k=2, seed=1).data.frame["cluster"].tolist(),
+            "centroids": data.cluster(["a", "b", "c"], k=2, seed=1).centroids.round(6),
+            "pca": weighted.analysis.pca(["a", "b", "c"]).loadings.round(6),
+            "alpha": weighted.analysis.reliability(["a", "b", "c"]).stats["alpha"],
+            "mean": weighted.analysis.mean("y", weighted=True),
+            "described": weighted.describe_variables()["weighted_n_valid"].tolist(),
+        }
+
+    unique, repeated = results(list(range(12))), results([i // 2 for i in range(12)])
+    assert repeated["cluster"] == unique["cluster"] and pd.isna(unique["cluster"][3])
+    assert repeated["centroids"].equals(unique["centroids"])
+    assert repeated["pca"].equals(unique["pca"])
+    assert repeated["alpha"] == unique["alpha"]
+    assert repeated["mean"] == unique["mean"]
+    assert repeated["described"] == unique["described"]
+    # The weighted base of y is the weights of its 11 answers, each counted once.
+    answered = frame["y"].notna()
+    assert unique["described"][0] == round(float(frame.loc[answered, "w"].sum()), 1)
+    expected = float(np.average(frame.loc[answered, "y"], weights=frame.loc[answered, "w"]))
+    assert unique["mean"] == pytest.approx(expected, rel=1e-12)

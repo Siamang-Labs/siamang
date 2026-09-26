@@ -409,7 +409,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scores "cannot set using a list-like indexer". `describe` and every
   `SurveyTable` now work on the rows numbered by position (a table carries no
   index; the data keeps its own), and the scores are placed by position
-  (`Listwise.mask`).
+  (`Listwise.mask`). So are k-means' clusters (the same error), the weights of
+  weighted PCA and reliability (a matmul of 12 weights against 6 rows), the
+  weighted `analysis.mean` and `describe_variables()`' `weighted_n_valid`, which
+  counted each weight once per row sharing its label.
 
 - **A Parquet snapshot gives back its multiple-choice lists.** pandas reads a
   list stored in Parquet as a numpy array, and `read_snapshot` passed it on as
