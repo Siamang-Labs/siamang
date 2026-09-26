@@ -130,10 +130,74 @@ def test_a_pair_that_cannot_be_computed_is_a_blank_cell_said_under_the_plot():
     chart = _data().plot.heatmap(["x", "c"], method="pearson")
     cells = _cells(chart)
     assert cells[0, 0] == 1.0 and np.isnan(cells[0, 1])
+    # The constant item correlates with nothing, itself included: no "1.00"
+    # in a blank row, and the pair is named as the chart names its items.
+    assert np.isnan(cells[1, 1])
+    assert [t.get_text() for t in chart.plot().texts] == ["1.00"]
     assert (
-        "Not computed (a blank cell): x × c: a variable has the same value for everyone, "
-        "so it correlates with nothing." in _footnote(chart)
+        "Not computed (a blank cell): Trust × Constant: a variable has the same value for "
+        "everyone, so it correlates with nothing." in _footnote(chart)
     )
+    assert not any(line.get_visible() for line in chart.plot().get_xgridlines())
+    assert not any(line.get_visible() for line in chart.plot().get_ygridlines())
+
+
+def _items(count: int) -> SurveyData:
+    rng = np.random.default_rng(4)
+    base = rng.normal(size=300)
+    frame = pd.DataFrame(
+        {f"s{i}": np.clip(np.round(3 + base * (i % 3) / 2 + rng.normal(size=300)), 1, 5)
+         for i in range(1, count + 1)}
+    )  # fmt: skip
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(
+                f"s{i}", "ordinal",
+                label=f"Agreement: statement number {i} about the service in the store",
+            )
+            for i in range(1, count + 1)
+        ]
+    )  # fmt: skip
+    return SurveyData(frame=frame, variables=variables)
+
+
+def test_the_coefficients_fit_their_cells_or_are_left_to_the_table(tmp_path):
+    """14 items at 10 × 6 in wrote 12-pt coefficients into 48-pt cells, 13 of
+    13 neighbours running together; the size now follows the cell."""
+    chart = _items(14).plot.heatmap([f"s{i}" for i in range(1, 15)], method="pearson")
+    chart.save(tmp_path / "fourteen.png")
+    ax = chart.plot()
+    renderer = ax.figure.canvas.get_renderer()
+    texts = list(ax.texts)
+    assert len(texts) == 14 * 14 and 6 <= texts[0].get_fontsize() < 12
+    boxes = [text.get_window_extent(renderer) for text in texts]
+    for row in range(14):
+        line = sorted(boxes[row * 14 : (row + 1) * 14], key=lambda box: box.x0)
+        assert all(a.x1 <= b.x0 for a, b in zip(line, line[1:], strict=False)), row
+    # Too small a cell: no numbers, and the note says where they are.
+    small = _items(14).plot.heatmap(
+        [f"s{i}" for i in range(1, 15)], method="pearson", figsize=(4, 3)
+    )
+    small.save(tmp_path / "small.png")
+    assert len(small.plot().texts) == 0
+    assert "too small to hold their coefficients: see the table" in _footnote(small)
+
+
+def test_a_small_figure_is_not_stretched_into_a_strip(tmp_path):
+    """figsize=(6, 4) with 14 long labels grew to 6 × 17 inches: the rows'
+    labels get smaller and wider first."""
+    chart = _items(14).plot.heatmap(
+        [f"s{i}" for i in range(1, 15)], method="kendall", figsize=(6, 4)
+    )
+    chart.save(tmp_path / "strip.png")
+    ax = chart.plot()
+    assert chart._fig.get_figwidth() == 6 and chart._fig.get_figheight() <= 8
+    renderer = ax.figure.canvas.get_renderer()
+    boxes = sorted(
+        (t.get_window_extent(renderer) for t in ax.get_yticklabels()), key=lambda b: b.y0
+    )
+    assert all(low.y1 <= high.y0 + 0.5 for low, high in zip(boxes, boxes[1:], strict=False))
 
 
 def test_long_labels_are_numbered_and_every_row_holds_its_label(tmp_path):
