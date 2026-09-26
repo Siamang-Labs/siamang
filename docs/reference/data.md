@@ -458,6 +458,30 @@ factors than the data carry: compare a solution with fewer").
 
 ---
 
+## `siamang.data.intervals`
+
+The intervals a chart's error bars show (`siamang.reporting.result_charts`).
+Each returns an **`Interval`** (`estimate`, `lower`, `upper`, `n`, `confidence`,
+`method`, `se`, `note`, `defined`); when there is no interval — no answers, one
+answer, nothing weighted — `lower` and `upper` are `None` and `note` says why
+(`"no answers"`, `"one answer has no interval"`, `"no answer carries weight"`).
+
+* **`mean_interval(values, weights=None, *, confidence=0.95)`**: unweighted,
+  Student's t, mean ± t(n − 1) · SD / √n (R's `t.test`). Weighted, the
+  linearization (Taylor series) standard error of a ratio mean under
+  with-replacement sampling of the respondents, SE² = n / (n − 1) · Σ wᵢ² (yᵢ −
+  ȳ)² / (Σ wᵢ)² — `survey::svymean` with `svydesign(ids = ~1, weights = ~w)` —
+  with t(n − 1), as `confint(…, df = degf(design))`; an answer weighted 0 (a
+  missing weight counts 0) takes no part, and equal weights give exactly the
+  unweighted interval. A negative weight is refused.
+* **`t_interval(mean, sd, n, *, confidence=0.95)`**: the same t interval from a
+  table's own numbers.
+* **`proportion_interval(successes, n, *, confidence=0.95)`**: Wilson's score
+  interval (R's `prop.test(x, n, correct = FALSE)`), 0 and 1 exactly at 0 % and
+  100 %.
+
+---
+
 ## References
 
 1. Agresti, Alan. *An Introduction to Categorical Data Analysis*. Wiley, 3rd edition, 2018.

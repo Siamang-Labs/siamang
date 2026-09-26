@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`siamang.data.intervals`** — the intervals behind a chart's error bars:
+  Student's t for a mean, the linearization (Taylor series) interval of a
+  weighted mean as `survey::svymean` gives it for `ids = ~1`, and Wilson's
+  interval for a share; each says in words when there is no interval to give.
+
 - **Save report: tables to Excel.** `output.save_report` takes `xlsx` (*Also
   save tables to Excel*): every table of the report in `<path>.xlsx` beside it,
   written by the new `Report.save_tables(path)`. Each table gets the sheets its
