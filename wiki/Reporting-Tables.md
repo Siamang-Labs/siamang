@@ -306,6 +306,16 @@ table of every option on the base of those who chose at least one, so its
 percentages add up to more than 100. `siamang.reporting.tabbook.tabulate`
 returns the numbers without writing the workbook.
 
+On weighted data a cell holds the sum of weights as it is, and a percentage is
+of those sums — as the Frequencies and Crosstab tables compute it, never of
+sums rounded for show: weights of 0.04, 0.04, 0.04 and 0.34 give 8.7, 17.4 and
+73.9 %. The weighted counts and the weighted base are shown to one decimal
+(`#,##0.0`), as those tables show them; the unweighted base is a whole number.
+The workbook keeps text as text as Save report's does: a label, an answer or a
+banner name that begins with `=` is written as a string, never as a formula
+Excel would run, and a link names its sheet quoted (`'q''x'!A1` for a sheet
+`q'x`).
+
 ---
 
 See also: [[Reporting Charts|Reporting-Charts]] · [[Report Document|Report-Document]] · [[Banner Tables|Banner-Tables]] · [[Analysis]] · [[Working with Data|Working-with-Data]]

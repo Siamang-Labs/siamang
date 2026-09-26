@@ -52,7 +52,7 @@ def save_tables(report: Report, path: str | Path) -> Path:
     import openpyxl
     from openpyxl.styles import Font
 
-    from siamang.io.excel_text import as_text
+    from siamang.io.excel_text import as_text, sheet_link
 
     path = Path(path)
     if path.suffix.lower() != ".xlsx":
@@ -95,7 +95,7 @@ def save_tables(report: Report, path: str | Path) -> Path:
             contents.cell(row=4, column=column, value=title).font = Font(bold=True)
         for row, (name, section, described) in enumerate(entries, 5):
             link = contents.cell(row=row, column=1, value=name)
-            link.hyperlink = f"#'{name}'!A1"
+            link.hyperlink = f"#{sheet_link(name)}"
             link.style = "Hyperlink"
             contents.cell(row=row, column=2, value=section or None)
             contents.cell(row=row, column=3, value=described)

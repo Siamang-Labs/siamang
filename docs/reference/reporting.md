@@ -225,10 +225,11 @@ caption, else section heading, else `stats["Variable"]`, else `Table <n>`: at mo
 31 characters, without `[ ] : * ? / \` or an apostrophe at either end, unique
 regardless of case (`(2)`, `(3)`…), never `History`. A `Contents` sheet comes first:
 the report's title, a line saying charts are not included, and one linked row per
-sheet with its section and caption (`Frequencies: Region` for a table without
-one; `Perceptual map: Brand × Region — rows (Brand)`, `Price sensitivity:
-Gabor-Granger — curves`, `Key drivers: Liking`, `Paired tests: Cochran's Q` for the
-later analyses). Charts, text and statistics mappings are not tables and are skipped.
+sheet (the link quoting the sheet's name with an apostrophe inside doubled,
+`#'Brand''s image'!A1`: `siamang.io.excel_text.sheet_link`) with its section and
+caption (`Frequencies: Region` for a table without one; `Perceptual map: Brand ×
+Region — rows (Brand)`, `Price sensitivity: Gabor-Granger — curves`, `Key drivers:
+Liking`, `Paired tests: Cochran's Q` for the later analyses). Charts, text and statistics mappings are not tables and are skipped.
 
 `Report.add()` and `Report.image()` take a **`width`** (a CSS length), an
 **`align`** and a **`break_before`**, checked where they are written rather than
@@ -668,8 +669,13 @@ logit as above.
   `Notes` (weight, test, alpha, Bonferroni, minimum base, missing codes left
   out, `created`). Counts come from `siamang.data.tables._banner_pair` and
   the letters from `BannerTable`'s test; the codebook's missing codes are left
-  out, and a column's base is those in it who answered. Returns the stat
-  (`Sheets written`, `Questions skipped`, `Skipped`, …).
+  out, and a column's base is those in it who answered. On weighted data a
+  cell holds the sum of weights and a percentage is of those sums, as
+  `FreqTable` and `CrossTable` compute it; weighted counts and bases are
+  formatted `#,##0.0` (`WEIGHTED_FORMAT`), the unweighted base `#,##0`. Text
+  that begins with `=` stays text (`siamang.io.excel_text.as_text`) and the
+  links quote their sheet (`siamang.io.excel_text.sheet_link`). Returns the
+  stat (`Sheets written`, `Questions skipped`, `Skipped`, …).
 * **`tabulate(data, *, banner, …) -> TabBook`** — the same numbers without the
   workbook: a `QuestionTab` per question (`answers`, `columns`, `base`,
   `weighted_base`, `effective_base`, `counts`, `column_percent`,

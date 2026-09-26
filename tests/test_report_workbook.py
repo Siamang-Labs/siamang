@@ -265,6 +265,20 @@ def test_text_that_begins_with_an_equals_sign_is_written_as_text(data, tmp_path)
     assert (back.frame["comment"] == "=1+1").sum() == 5
 
 
+def test_a_link_to_a_sheet_whose_name_has_an_apostrophe_leads_to_it(data, tmp_path):
+    """Excel names a sheet in a reference quoted, an apostrophe inside doubled:
+    'Brand's image'!A1 leads nowhere, 'Brand''s image'!A1 to the sheet."""
+    from siamang.io.excel_text import sheet_link
+
+    assert sheet_link("Brand's image") == "'Brand''s image'!A1"
+    report = Report(title="Brands").add(data.report.freq("region"), caption="Brand's image")
+    book = openpyxl.load_workbook(report.save_tables(tmp_path / "r.xlsx"))
+    assert book.sheetnames == ["Contents", "Brand's image"]
+    link = book["Contents"]["A5"]
+    assert link.value == "Brand's image"
+    assert link.hyperlink.target == "#'Brand''s image'!A1"
+
+
 def test_the_contents_name_the_tables_of_the_later_analyses(tmp_path):
     """Without a caption, a Perceptual map's three tables in one section were
     'Table', 'Table' and 'Table'; each now says which of the map's it is."""
