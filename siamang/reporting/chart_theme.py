@@ -51,22 +51,26 @@ THEME = "theme"
 
 # ─── the default colours ─────────────────────────────────────────────────────
 
-#: Eight hues in an order whose neighbours stay apart for a reader with
-#: protanopia or deuteranopia (OKLab ΔE ≥ 9 between each pair of neighbours, and
-#: between any two of the first three, simulated as :func:`distance` does) and
-#: with full colour vision (ΔE ≥ 19): series are assigned in this order, so
-#: bars, stacks and lines side by side take neighbours. Blue and orange are the
+#: Eight colours any two of which stay apart for a reader with protanopia or
+#: deuteranopia — OKLab ΔE ≥ 9.5, simulated as :func:`distance` does — and with
+#: full colour vision (ΔE ≥ 17), each at least 2:1 on white: a chart of up to
+#: eight series can put any two side by side, a Trend's lines cross, a donut's
+#: slices meet out of order. They were searched for over the sRGB cube (a grid
+#: of 26 steps a channel, OKLab lightness 0.42–0.78 and chroma 0.06–0.19),
+#: maximising the least of those distances with the first two fixed, and are
+#: ordered so that each prefix keeps its colours as far apart as it can (the
+#: first three ≥ 14.6 apart under both deficiencies). Blue and orange are the
 #: pair the engine's own analyses already draw with (Key drivers, the
 #: Perceptual map, Price sensitivity).
 PALETTE = (
     "#2a78d6",  # blue
     "#eb6834",  # orange
-    "#1baf7a",  # aqua
-    "#eda100",  # yellow
-    "#e87ba4",  # magenta
-    "#008300",  # green
-    "#4a3aa7",  # violet
-    "#e34948",  # red
+    "#335c00",  # olive green
+    "#e08fff",  # lilac
+    "#29c2a3",  # teal
+    "#8f0a5c",  # wine
+    "#cc4799",  # pink
+    "#5233a3",  # indigo
 )
 #: One hue for magnitude and for the steps of an ordered scale, light to dark.
 SEQUENTIAL = "#2a78d6"
@@ -89,8 +93,16 @@ BACKGROUND = "#ffffff"
 INNER_TINT = 0.45
 #: The least WCAG contrast of text against what it is written on (AA, normal text).
 MIN_TEXT_CONTRAST = 4.5
-#: The least contrast of the lightest step of an ordered scale against the background.
+#: The least contrast of the lightest step of an ordered scale against the
+#: background, and of a colour a chart makes past its palette.
 MIN_STEP_CONTRAST = 2.0
+#: The least contrast of a theme's series or sequential colour against the
+#: charts' white: below it a bar or a line all but disappears (a pale cream,
+#: #ffe8b2, is 1.2:1; a brand yellow, #ffd166, 1.4:1, is kept).
+MIN_SERIES_CONTRAST = 1.3
+#: How far apart (OKLab ΔE × 100) the stops of an ordered scale's ramp must be
+#: to count as two.
+MIN_STEP_DISTANCE = 3.0
 #: The most colours a categorical palette may name: past a dozen, no two can
 #: be told apart reliably, and a chart past its palette makes lighter and
 #: darker ones of its own.
@@ -274,8 +286,14 @@ def problem(
     for index, item in enumerate(normal):
         if item in normal[:index]:
             return f"chart_palette: {palette[index]!r} is given twice; two series would look alike."
+    faint = _too_faint("chart_palette", palette)
+    if faint:
+        return faint
     if not is_hex(sequential):
         return not_hex("chart_sequential", sequential)
+    faint = _too_faint("chart_sequential", (sequential,))
+    if faint:
+        return faint
     if (
         not isinstance(diverging, tuple)
         or len(diverging) != 2
@@ -305,6 +323,20 @@ def problem(
             return "chart_font: expected font names separated by commas, e.g. 'Inter, sans-serif'."
         if _FONT_FORBIDDEN.search(font) or len(font) > 200:
             return "chart_font: a list of font names separated by commas, without ; { } < >."
+    return None
+
+
+def _too_faint(name: str, colours: Sequence[str]) -> str | None:
+    """Why one of ``colours`` would all but disappear on the charts' white."""
+
+    for colour in colours:
+        ratio = contrast(colour, BACKGROUND)
+        if ratio < MIN_SERIES_CONTRAST:
+            return (
+                f"{name}: {colour!r} on the charts' white background has a contrast of "
+                f"{ratio:.1f}:1; a bar or a line in it needs at least {MIN_SERIES_CONTRAST}:1 "
+                "to be seen."
+            )
     return None
 
 
@@ -411,26 +443,55 @@ class ChartColours:
         return best
 
     def ordinal(self, count: int) -> list[str]:
-        """``count`` steps of the sequential colour, light to dark: the
-        lightest still :data:`MIN_STEP_CONTRAST` against the background, the
-        darkest the colour at half its lightness."""
+        """``count`` steps of the sequential colour, light to dark, each its
+        own: the lightest still :data:`MIN_STEP_CONTRAST` against the
+        background, the darkest the colour at half its lightness.
 
-        light = self.sequential
-        for share in (step / 100.0 for step in range(95, -1, -1)):
-            candidate = mix(self.sequential, BACKGROUND, share)
-            if contrast(candidate, BACKGROUND) >= MIN_STEP_CONTRAST:
-                light = candidate
-                break
-        dark = mix(self.sequential, "#000000", 0.5)
+        A colour lighter than that itself — a yellow, a light blue, under 2:1 —
+        cannot be the light end, nor stand between it and the dark one: the
+        scale then runs from the colour darkened just enough to the colour at
+        half its lightness. (It used to keep the colour for both light steps, so
+        three answers of five came out the same yellow.) A near-black colour,
+        whose half is next to it, runs from its tint to its half."""
+
         if count == 1:
             return [self.sequential]
-        return _blend([light, self.sequential, dark], count)
+        colour = self.sequential
+        stops: list[str]
+        if contrast(colour, BACKGROUND) >= MIN_STEP_CONTRAST:
+            light = colour
+            for share in (step / 100.0 for step in range(95, -1, -1)):
+                candidate = mix(colour, BACKGROUND, share)
+                if contrast(candidate, BACKGROUND) >= MIN_STEP_CONTRAST:
+                    light = candidate
+                    break
+            stops = [light, colour, mix(colour, "#000000", 0.5)]
+        else:
+            light = colour
+            for share in (step / 100.0 for step in range(1, 100)):
+                light = mix(colour, "#000000", share)
+                if contrast(light, BACKGROUND) >= MIN_STEP_CONTRAST:
+                    break
+            stops = [light, mix(colour, "#000000", 0.5)]
+        if len(stops) == 3:
+            # The colour between its tint and its shade, unless one of the two
+            # stretches is short (a near-black colour's shade): steps there
+            # would be all but the same colour.
+            first, second = distance(stops[0], stops[1]), distance(stops[1], stops[2])
+            if min(first, second) < max(MIN_STEP_DISTANCE, (first + second) / 4):
+                stops = [stops[0], stops[2]]
+        if distance(stops[0], stops[-1]) < MIN_STEP_DISTANCE:
+            stops = [mix(colour, BACKGROUND, 0.6), colour]
+        return _blend(stops, count)
 
     def series(self, count: int, *, ordered: bool = False) -> list[str]:
         """``count`` colours, one per series, none repeated — the palette in
         its order; the steps of an ordered scale from :meth:`ordinal`. Past
-        the palette, its colours lighter, then darker, then hues spaced round
-        the wheel (as :func:`~siamang.reporting.chart_parts.series_colours`)."""
+        the palette, its colours darker, then lighter — only as far as they
+        keep :data:`MIN_STEP_CONTRAST` on white (half-way to white left a
+        light palette's lines at 1.2:1, all but invisible), a colour too light
+        for any tint darker by a little instead — then hues spaced round the
+        wheel (as :func:`~siamang.reporting.chart_parts.series_colours`)."""
 
         if ordered and count > 1:
             return self.ordinal(count)
@@ -438,9 +499,9 @@ class ChartColours:
         if count <= len(base):
             return base[:count]
         if count <= 3 * len(base):
-            lighter = [mix(colour, "#ffffff", 0.5) for colour in base]
             darker = [mix(colour, "#000000", 0.4) for colour in base]
-            return base + (lighter + darker)[: count - len(base)]
+            lighter = [_lighter(colour) for colour in base]
+            return base + (darker + lighter)[: count - len(base)]
         import seaborn as sns
 
         hues = [to_hex(colour) for colour in sns.color_palette("husl", count + 1)[:count]]
@@ -485,6 +546,20 @@ class ChartColours:
                 mix(high, "#000000", 0.35),
             ]
         return LinearSegmentedColormap.from_list(f"theme_{kind}", stops)
+
+
+def _lighter(colour: str) -> str:
+    """``colour`` up to half-way to white, as far as it keeps
+    :data:`MIN_STEP_CONTRAST` on white; one already under that a little
+    darker, so it is still another colour."""
+
+    if contrast(colour, BACKGROUND) < MIN_STEP_CONTRAST + 0.2:
+        return mix(colour, "#000000", 0.2)
+    for share in (step / 100.0 for step in range(50, 0, -1)):
+        candidate = mix(colour, BACKGROUND, share)
+        if contrast(candidate, BACKGROUND) >= MIN_STEP_CONTRAST:
+            return candidate
+    return mix(colour, "#000000", 0.2)
 
 
 def _blend(stops: list[str], count: int) -> list[str]:

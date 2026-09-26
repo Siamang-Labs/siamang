@@ -82,6 +82,10 @@ MAX_POINTS = 500
 #: The most lines drawn with their confidence bands: more bands hide one
 #: another and the lines, and the table gives each point's interval.
 MAX_BANDS = 4
+#: Past ``MAX_BANDS`` lines each line's points also take a shape of their own
+#: (in the legend too): colour alone does not keep six or more lines apart for
+#: every reader, and past the palette two lines are two shades of one hue.
+MARKERS = ("o", "s", "^", "D", "v", "P", "X", "*", "p", "h", "<", ">")
 
 _FREQUENCIES = {"day": "D", "week": "W-SUN", "month": "M", "quarter": "Q", "year": "Y"}
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -836,6 +840,7 @@ class TrendChart(SurveyChart):
             ].sort_values("position")
             value = rows["value"].to_numpy(dtype=float)
             color = colours[index]
+            shape = MARKERS[index % len(MARKERS)] if count > MAX_BANDS else "o"
             ax.plot(
                 positions,
                 value,
@@ -843,12 +848,24 @@ class TrendChart(SurveyChart):
                 linewidth=1.4 if dense else 2,
                 label=label or None,
                 zorder=2,
+                # The shape is shown in the legend only: the points draw it.
+                **(
+                    {"marker": shape, "markevery": [], "markersize": 6} if count > MAX_BANDS else {}
+                ),
             )
             shown = np.isfinite(value)
             low = rows["low"].to_numpy(dtype=bool)
             full, thin = shown & ~low, shown & low
             # A point at 0 % or 100 % sits on the frame: drawn whole.
-            ax.scatter(positions[full], value[full], color=color, s=size, zorder=3, clip_on=False)
+            ax.scatter(
+                positions[full],
+                value[full],
+                color=color,
+                s=size,
+                marker=shape,
+                zorder=3,
+                clip_on=False,
+            )
             ax.scatter(
                 positions[thin],
                 value[thin],
@@ -856,6 +873,7 @@ class TrendChart(SurveyChart):
                 edgecolors=[color],
                 linewidths=1.0 if dense else 1.6,
                 s=size,
+                marker=shape,
                 zorder=3,
                 clip_on=False,
             )

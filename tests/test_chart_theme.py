@@ -15,6 +15,7 @@ report's Look, run and generated.
 from __future__ import annotations
 
 import io
+import itertools
 import json
 import os
 import re
@@ -86,10 +87,8 @@ def test_the_simulation_is_machado_2009_in_oklab():
     assert ct.seen("#ffffff") == pytest.approx((1.0, 0.0, 0.0), abs=1e-4)
     expected = ct._oklab([0.152286, 0.114503, 0.0])
     assert ct.seen("#ff0000", "protan") == pytest.approx(expected)
-    # The distances the data-viz palette validator reports for the default
-    # palette (validate_palette.js, OKLab ΔE × 100): the closest neighbours
-    # under protanopia and with full colour vision, and of the first three
-    # under deuteranopia.
+    # The distances the data-viz palette validator reports (validate_palette.js,
+    # OKLab ΔE × 100) for four pairs of the palette the theme first had.
     assert ct.distance("#eda100", "#1baf7a", "protan") == pytest.approx(9.1, abs=0.05)
     assert ct.distance("#e87ba4", "#eda100") == pytest.approx(19.6, abs=0.05)
     assert ct.distance("#1baf7a", "#eb6834", "deutan") == pytest.approx(9.2, abs=0.05)
@@ -105,31 +104,78 @@ CVD_TARGET, NORMAL_FLOOR = 8.0, 15.0
 
 
 def test_the_default_palette_is_safe_for_colour_blind_readers():
-    """Series take the palette in order, so bars, stacks and lines side by side
-    take neighbours: every pair of neighbours stays apart under protanopia and
-    deuteranopia (and with full colour vision), and so do any two of the first
-    three — a chart of up to three series can put any two side by side."""
+    """Any two of the eight colours stay apart under protanopia and
+    deuteranopia (and with full colour vision), not only neighbours: a Trend's
+    lines cross, a donut's slices and a split's bars meet in any order. The
+    palette used to hold only for neighbours and the first three — orange and
+    green were 3.2 apart for a colour-blind reader, orange and red 7.1 for
+    anyone. Each colour is at least 2:1 on white, and the first three, which
+    most charts use, are the furthest apart."""
 
     palette = ReportTheme().chart_palette
     assert palette == ct.PALETTE and len(palette) == 8
-    for vision in ct.VISIONS:
-        for first, second in zip(palette, palette[1:], strict=False):
-            assert ct.distance(first, second, vision) >= CVD_TARGET, (first, second, vision)
-        for i in range(3):
-            for j in range(i + 1, 3):
-                assert ct.distance(palette[i], palette[j], vision) >= CVD_TARGET
-    for first, second in zip(palette, palette[1:], strict=False):
-        assert ct.distance(first, second) >= NORMAL_FLOOR
-    worst = min(
-        ct.distance(a, b, vision)
-        for vision in ct.VISIONS
-        for a, b in zip(palette, palette[1:], strict=False)
-    )
-    assert worst == pytest.approx(9.1, abs=0.05)
+    pairs = list(itertools.combinations(palette, 2))
+    worst = min(ct.distance(a, b, vision) for vision in ct.VISIONS for a, b in pairs)
+    assert worst >= 9.5 > CVD_TARGET
+    assert min(ct.distance(a, b) for a, b in pairs) >= 17 > NORMAL_FLOOR
+    assert all(ct.contrast(colour, ct.BACKGROUND) >= 2.0 for colour in palette)
+    first = list(itertools.combinations(palette[:3], 2))
+    assert min(ct.distance(a, b, v) for v in ct.VISIONS for a, b in first) >= 14.5
+    # Blue and orange first: the pair the analyses' own charts draw with.
+    assert palette[:2] == ("#2a78d6", "#eb6834")
     # The diverging pair: the two sides of a scale read as two sides.
     low, high = ct.DIVERGING
     for vision in (None, *ct.VISIONS):
         assert ct.distance(low, high, vision) >= 20
+
+
+def test_a_light_sequential_colour_still_gives_every_step_its_own_colour():
+    """A yellow or a light blue is under 2:1 on white itself, so no tint of it
+    could be the light end and the colour stood for the two lightest steps: a
+    5-point scale in brand gold #ffb703 had three answers in one colour. The
+    scale runs from the colour darkened to 2:1 to its half now, and a
+    near-black colour from its tint to its half."""
+
+    for sequential in ("#ffb703", "#ffd166", "#8ecae6", "#2a78d6", "#111111", "#000000"):
+        colours = ct.ChartColours(sequential=sequential)
+        for count in (2, 3, 5, 7, 11):
+            steps = colours.ordinal(count)
+            assert len(set(steps)) == count, (sequential, count, steps)
+            lightness = [ct.lightness(step) for step in steps]
+            assert lightness == sorted(lightness, reverse=True), (sequential, count)
+            assert ct.contrast(steps[0], ct.BACKGROUND) >= ct.MIN_STEP_CONTRAST
+            neighbours = min(ct.distance(a, b) for a, b in zip(steps, steps[1:], strict=False))
+            assert neighbours >= (4.0 if count <= 7 else 2.0), (sequential, count)
+    assert ct.ChartColours(sequential="#ffb703").ordinal(5) == [
+        "#edaa03",
+        "#d29603",
+        "#b68302",
+        "#9b7002",
+        "#805c02",
+    ]
+
+
+def test_colours_past_the_palette_stay_visible_and_a_faint_one_is_refused():
+    """Past the palette a chart took its colours half-way to white: a brand
+    palette opening on #ffd166 made its fifth line #ffe8b2, 1.2:1 on white. The
+    colours it makes keep 2:1 now, and a theme naming one under 1.3:1 is
+    refused in words."""
+
+    colours = ct.ChartColours(palette=("#ffd166", "#06d6a0", "#118ab2", "#ef476f"))
+    made = colours.series(12)[4:]
+    assert len(set(colours.series(12))) == 12
+    assert min(ct.contrast(colour, ct.BACKGROUND) for colour in made) >= ct.MIN_STEP_CONTRAST
+    made = ct.ChartColours().series(24)[8:]
+    assert min(ct.contrast(colour, ct.BACKGROUND) for colour in made) >= ct.MIN_STEP_CONTRAST
+    with pytest.raises(ReportThemeError) as refused:
+        ReportTheme(chart_palette=["#ffe8b2", "#2a78d6"])
+    assert str(refused.value) == (
+        "chart_palette: '#ffe8b2' on the charts' white background has a contrast of 1.2:1; "
+        "a bar or a line in it needs at least 1.3:1 to be seen."
+    )
+    with pytest.raises(ReportThemeError, match="chart_sequential: '#fff3b0'"):
+        ReportTheme(chart_sequential="#fff3b0")
+    ReportTheme(chart_palette=["#ffd166", "#2a78d6"], chart_sequential="#ffb703")  # 1.4:1, kept
 
 
 def test_the_steps_of_a_scale_read_in_order():
