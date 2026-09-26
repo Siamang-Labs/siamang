@@ -29,10 +29,13 @@ public class, dataclass field, and helper exported from the subpackage.
   `Expression`, `Quota`, `Script`, `FilterRule`.
 - **[`siamang.data`](reference/data.md)** — `SurveyData`, the analysis
   layer (frequencies, crosstabs, descriptives, banner tables, weighted
-  statistics), and `SurveyTables`.
+  statistics, paired tests, factor analysis, key drivers, perceptual maps,
+  price sensitivity, the intervals behind error bars), and `SurveyTables`.
 - **[`siamang.reporting`](reference/reporting.md)** — High-level declarative
   reporting tables (`FreqTable`, `CrossTable`, `GroupMeanTable`) and charts
-  (`BarChart`, `BoxPlot`, `HeatMap`, `ScatterPlot`).
+  (`BarChart`, `BoxPlot`, `HeatMap`, `LikertChart`, `ScatterPlot`), the chart
+  of an analysis's result (`result_charts`), and `Report` with its tables in
+  Excel.
 - **[`siamang.io`](reference/io.md)** — CSV, Excel, SPSS (`.sav`),
   Stata (`.dta`), R script export, and the data dictionary
   reader/writer.

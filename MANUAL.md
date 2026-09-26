@@ -489,6 +489,24 @@ data.plot.bar("trust").save("trust_bar.png")
 data.plot.boxplot("age", by="party").save("age_by_party.png")
 data.plot.heatmap(["trust_govt", "trust_courts", "trust_media"]).save("trust_heatmap.png")
 data.plot.scatter("age", "income").save("age_income_scatter.png")
+
+# Percentages of those who answered, largest first; the chart of a crosstab;
+# Pearson correlations; a battery on one scale as diverging bars
+data.plot.bar("party", show="percent", sort="value")
+data.plot.bar("trust", split="party", layout="stacked_100")
+data.plot.heatmap(["trust_govt", "trust_courts", "trust_media"], method="pearson")
+data.plot.likert(["trust_govt", "trust_courts", "trust_media"]).save("trust_likert.png")
+
+# The chart of a result, drawn from the numbers the analysis computed
+from siamang.reporting import result_charts
+
+means = data.report.means("age", by="party", method="anova", posthoc="tukey")
+result_charts.chart(means).save("age_means.png")   # means, 95 % CIs, post-hoc letters
+
+# A report, and its tables in one Excel workbook
+report = sg.Report(title="Trust").add(means, caption="Age by party")
+report.save("report.md")
+report.save_tables("report.xlsx")
 ```
 
 ### Low-Level Statistical Methods
@@ -514,7 +532,18 @@ from siamang.data import factor, paired
 
 paired.wilcoxon(data, "trust_govt", "trust_courts").stats
 paired.compare(data, ["trust_govt", "trust_courts", "trust_media"]).pairs  # Friedman
+paired.cochran(data, ["seen_tv", "seen_web", "seen_print"], yes=1).pairs  # Cochran's Q
 factor.analyze(data, items, rotation="promax").loadings                    # items: 3 or more
+
+# An ordered outcome; what drives a rating; a perceptual map; what people would pay
+from siamang.data import correspondence, drivers, pricing
+
+data.analysis.regression("satisfaction", ["trust_govt", "age"], kind="ordinal").table
+drivers.analyze(data, "satisfaction", ["trust_govt", "trust_courts", "trust_media"]).table
+correspondence.analyze(data, "party", column="region").rows
+pricing.van_westendorp(data, too_cheap="p_too_cheap", cheap="p_cheap",
+                       expensive="p_expensive", too_expensive="p_too_expensive").stats
+pricing.gabor_granger(data, ["buy_5", "buy_7", "buy_9"], prices=[5, 7, 9], yes=[4, 5]).stats
 
 # Weighted analysis
 data = data.with_weight("weight")
@@ -530,8 +559,16 @@ test), `report.means(method=…, posthoc=…)` (Student, Welch, ANOVA, Welch's
 ANOVA, Mann-Whitney, Kruskal-Wallis; Tukey, Games-Howell, Dunn),
 `report.ttest`, `report.crosstab(method="fisher")`,
 `report.correlation_matrix`, `siamang.data.paired` (Wilcoxon, McNemar,
-Friedman) and `siamang.data.factor`. See
-[`wiki/Analysis.md`](wiki/Analysis.md#choosing-the-test-yourself).
+Friedman, Cochran's Q), `siamang.data.factor`, the ordinal logit
+(`regression(kind="ordinal")`), `siamang.data.drivers` (Johnson's relative
+weights, the Shapley value), `siamang.data.correspondence` (a perceptual map)
+and `siamang.data.pricing` (Van Westendorp with Newton-Miller-Smith,
+Gabor-Granger). See
+[`wiki/Analysis.md`](wiki/Analysis.md#choosing-the-test-yourself). The charts
+— the bar chart's percentages, split and sort, the Likert chart, and
+`result_charts.chart()` for the chart of a result — are in
+[`wiki/Reporting-Charts.md`](wiki/Reporting-Charts.md); `Report.save_tables()`
+in [`wiki/Report-Document.md`](wiki/Report-Document.md#save_tables).
 
 ---
 

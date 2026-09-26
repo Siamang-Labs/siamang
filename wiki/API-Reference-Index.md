@@ -89,10 +89,14 @@ The dataset object and its derived tables. Documented in
 | `SurveyTables` | `from siamang.data import SurveyTables` | The `data.tables` accessor (banner and summary tables). | [[Banner Tables\|Banner-Tables]] |
 | `BannerTable` | `from siamang.data import BannerTable` | A cross-break banner table with Excel/CSV export. | [[Banner Tables\|Banner-Tables]] |
 | `inference` | `from siamang.data import inference` | Correlations, t-tests, ANOVA, post-hoc tests, Fisher's exact test and p adjustment on plain arrays. | [[Analysis]] |
-| `paired` | `from siamang.data import paired` | Wilcoxon signed-rank, McNemar and Friedman tests for answers from the same respondents. | [[Analysis]] |
+| `paired` | `from siamang.data import paired` | Wilcoxon signed-rank, McNemar, Friedman and Cochran's Q tests for answers from the same respondents. | [[Analysis]] |
 | `factor` | `from siamang.data import factor` | Exploratory factor analysis, with factor scores added to the data. | [[Analysis]] |
 | `descriptives` | `from siamang.data import descriptives` | N, missing, mean, SD, quartiles, skewness and kurtosis of numeric variables. | [[Analysis]] |
 | `bands` | `from siamang.data import bands` | A number cut into a labelled ordinal variable of bands. | [[Analysis]] |
+| `drivers` | `from siamang.data import drivers` | Key drivers: each predictor's share of R² by Johnson's relative weights or the Shapley value. | [[Analysis]] |
+| `correspondence` | `from siamang.data import correspondence` | A perceptual map: correspondence analysis of a crosstab or a brand-image grid. | [[Analysis]] |
+| `pricing` | `from siamang.data import pricing` | Price sensitivity: Van Westendorp (with Newton-Miller-Smith) and Gabor-Granger. | [[Analysis]] |
+| `intervals` | `from siamang.data import intervals` | The intervals behind a chart's error bars: Student's t for a mean, the linearization interval for a weighted one, Wilson's for a share. | [[Reporting Charts\|Reporting-Charts]] |
 
 > `SurveyData` is also re-exported at the top level, so `from siamang import SurveyData`
 > and `from siamang.data import SurveyData` both work.
@@ -121,7 +125,8 @@ Declarative, label-aware tables and charts. Documented in
 | `HeatMap` | `from siamang import HeatMap` | Group means or a correlation matrix as a heatmap. | [[Reporting Charts\|Reporting-Charts]] |
 | `LikertChart` | `from siamang import LikertChart` | Items on one scale as diverging stacked bars with top-2 / bottom-2. | [[Reporting Charts\|Reporting-Charts]] |
 | `ScatterPlot` | `from siamang import ScatterPlot` | A scatter plot with optional hue. | [[Reporting Charts\|Reporting-Charts]] |
-| `Report` | `from siamang import Report` | A composable document of tables and charts. | [[Report Document\|Report-Document]] |
+| `result_charts` | `from siamang.reporting import result_charts` | `chart()` draws the chart an analysis's result suits, from the numbers it computed. | [[Reporting Charts\|Reporting-Charts]] |
+| `Report` | `from siamang import Report` | A composable document of tables and charts; `save_tables()` writes its tables to one Excel workbook. | [[Report Document\|Report-Document]] |
 
 These objects are usually produced via the `data.report.*` and `data.plot.*`
 accessors rather than constructed directly.
