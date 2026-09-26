@@ -168,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Hedges' g; one-way and Welch's ANOVA with η², Kruskal-Wallis with ε²,
     Mann-Whitney with the rank-biserial r; Tukey's HSD (Tukey-Kramer),
     Games-Howell and Dunn's test; Fisher's exact test — 2 × 2 with the
-    conditional odds ratio and its exact interval as R's `fisher.test` reports
+    conditional odds ratio and its exact interval as R's `fisher.test` defines
     them, larger tables by the Fisher-Freeman-Halton test, summed exactly over
     up to 200,000 tables with the observed margins and otherwise estimated from
     20,000 tables drawn from a fixed seed, so a rerun gives the same p; and
