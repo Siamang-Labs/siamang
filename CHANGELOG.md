@@ -540,6 +540,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Key drivers and price charts stay clear at the Result chart's
+  sizes.** The Key drivers chart kept the row gridlines of seaborn's whitegrid
+  theme, which the Result chart sets (and any Bar, Heatmap or Likert chart
+  drawn before), so a line struck through every bar and its `57.8 %`; it now
+  draws the value axis's lines only, says `N = …` beside R² and wraps its
+  title to the room from the plot's left edge. At 5 × 3 inches Gabor-Granger's
+  twelve revenue labels ran together (`117.73118.22117.70`), its demand labels
+  touched (`24 %24 %`) and `highest revenue at 499` ran past the plot's edge;
+  labels that would touch are thinned (the best price's always kept) and the
+  note stays inside, the best price's line behind its value. Van Westendorp's
+  point names are placed clear of the marked points and inside the plot (the
+  IPP marker sat on its name; PMC ran onto the axis's `100`).
+
 - **A Result chart keeps its labels whole and its titles inside the figure.**
   With 16 or more long labels the rows took one line of 7 pt, cut with an
   ellipsis, rather than grow — so MaxDiff items that differ only at the end

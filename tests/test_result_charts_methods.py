@@ -100,7 +100,7 @@ def test_key_drivers_draw_the_chart_their_module_draws():
     assert _title(chart) == own.get_title(loc="left")
     assert _title(chart).splitlines() == [
         "Key drivers of Overall satisfaction",
-        f"Johnson's relative weights, R² = {result.r_squared:.3f}",
+        f"Johnson's relative weights, R² = {result.r_squared:.3f}, N = {result.n}",
         "weighted by 'w'",
     ]
     assert chart.weight_note == "weighted by 'w'"
@@ -629,3 +629,23 @@ def test_price_sensitivity_is_drawn_in_a_flow(tmp_path):
         "c_nms: Kind 'importance' does not suit the curves output of Price sensitivity "
         "(nms), which draws 'curves'."
     )
+
+
+def test_the_key_drivers_chart_has_no_row_lines_whatever_was_drawn_before():
+    """The Result chart sets seaborn's whitegrid theme, whose row lines struck
+    through every bar and its "57.8 %"; drivers.plot alone drew them too once
+    any chart had set the theme."""
+    import seaborn as sns
+
+    result = drivers.analyze(_drivers_data(), "overall", ["price", "staff", "queue", "parking"])
+    flow_chart = rc.chart(result.table)
+    assert not any(line.get_visible() for line in flow_chart._ax.yaxis.get_gridlines())
+    assert any(line.get_visible() for line in flow_chart._ax.xaxis.get_gridlines())
+    sns.set_theme(style="whitegrid")
+    try:
+        own = drivers.plot(result).axes[0]
+    finally:
+        sns.reset_orig()
+    assert not any(line.get_visible() for line in own.yaxis.get_gridlines())
+    title = flow_chart._ax.get_title(loc="left").splitlines()
+    assert title[1].endswith(f", N = {result.n}")

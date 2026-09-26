@@ -426,3 +426,71 @@ def test_the_charts_stay_legible_on_small_figures():
     wide = pricing.plot(gg, figsize=(10, 6)).axes[1]
     assert {label.get_rotation() for label in wide.get_xticklabels()} == {0.0}
     assert _touching(_text_boxes(wide.figure, wide.get_xticklabels())) == []
+
+
+def test_a_small_gabor_granger_chart_keeps_its_labels_apart():
+    """Twelve prices at 5 × 3 inches: the revenue labels ran together
+    ("117.73118.22117.70"), the demand labels touched ("24 %24 %"), and
+    "highest revenue at 499" ran past the plot's right edge."""
+
+    prices = [99, 149, 199, 249, 299, 349, 399, 449, 499, 549, 599, 649]
+    rng = np.random.default_rng(2)
+    frame = pd.DataFrame(
+        {
+            f"gg{i}": (rng.random(800) < 0.9 * np.exp(-p / 350)).astype(float)
+            for i, p in enumerate(prices)
+        }
+    )
+    result = pricing.gabor_granger(SurveyData(frame=frame), list(frame), prices=prices)
+    best = result.points["revenue"]
+    for size in ((5, 3), (10, 6)):
+        fig = pricing.plot(result, figsize=size)
+        demand_ax, revenue_ax = fig.axes
+        renderer = fig.canvas.get_renderer()
+        values = [t for t in demand_ax.texts if t.get_text().endswith(" %")], revenue_ax.texts
+        for texts in values:
+            shown = [text for text in texts if text.get_visible()]
+            assert _touching(_text_boxes(fig, shown)) == [], size
+        # The best price's numbers are always written.
+        revenue = dict(zip(result.prices, result.shares["revenue"], strict=True))
+        assert any(
+            t.get_visible() and t.get_text() == f"{revenue[best]:.2f}" for t in revenue_ax.texts
+        )
+        note = next(t for t in demand_ax.texts if t.get_text().startswith("highest revenue"))
+        box = note.get_window_extent(renderer)
+        plot = demand_ax.get_window_extent(renderer)
+        assert plot.x0 <= box.x0 and box.x1 <= plot.x1
+    # On a figure with room every value is written.
+    wide = pricing.plot(result, figsize=(16, 8))
+    assert all(text.get_visible() for ax in wide.axes for text in ax.texts)
+
+
+def test_the_point_names_leave_the_marked_points_and_the_axis_clear():
+    """At 5 × 3.5 inches the IPP marker sat on the "IPP …" name and the PMC
+    name ran onto the axis's "100"."""
+
+    rng = np.random.default_rng(2)
+    base = rng.lognormal(np.log(2500), 0.35, 800)
+    frame = pd.DataFrame(
+        {
+            "tc": np.round(base * 0.45, -1),
+            "ch": np.round(base * 0.7, -1),
+            "ex": np.round(base * 1.2, -1),
+            "te": np.round(base * 1.7, -1),
+        }
+    )
+    result = pricing.van_westendorp(SurveyData(frame=frame), **QUESTIONS)
+    for size in ((5, 3.5), (10, 6)):
+        fig = pricing.plot(result, figsize=size)
+        ax = fig.axes[0]
+        renderer = fig.canvas.get_renderer()
+        names = [text for text in ax.texts if text.get_text()[:3] in ("PMC", "OPP", "IPP", "PME")]
+        assert len(names) == 4
+        plot = ax.get_window_extent(renderer)
+        marks = [c for c in ax.collections if len(c.get_offsets()) == 1]
+        points = [ax.transData.transform(c.get_offsets()[0]) for c in marks]
+        for name in names:
+            box = name.get_window_extent(renderer)
+            assert plot.x0 <= box.x0 and box.x1 <= plot.x1, (size, name.get_text())
+            assert not any(box.padded(2).contains(*point) for point in points), name.get_text()
+        assert _touching(_text_boxes(fig, names)) == []

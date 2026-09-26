@@ -516,9 +516,11 @@ and the unrounded numbers in the predictors' order: `correlations`, `betas`,
 title=None, figsize=None, ax=None)` draws the shares as horizontal bars, largest
 on top, blue for a positive beta and orange for a negative one (a legend when
 both occur), each labelled with its percentage; the title names the outcome,
-the method and R², and a second line the weight. Labels wrap at a third of the
-width (three lines, then an ellipsis), many rows get a smaller font, and a
-figure too short for its rows grows. It returns the matplotlib `Figure`.
+then the method, R² and N, and a line the weight — wrapped to the room from the
+plot's left edge. Labels wrap at a third of the width (three lines, then an
+ellipsis), many rows get a smaller font, and a figure too short for its rows
+grows. Only the value axis has gridlines, whatever theme a chart drawn before
+set. It returns the matplotlib `Figure`.
 
 - **Rows.** Listwise over the outcome and the predictors, the codebook's missing
   codes counted as missing. A nominal variable with more than two answers is
@@ -661,8 +663,12 @@ figure), marks the four points and names them above the plot at their prices
 of the trial curve with NMS; for Gabor-Granger a demand panel above a revenue
 panel with the best price marked. It never puts two measures on two scales of
 one axis, and returns the matplotlib `Figure`. On a small figure the stacked
-names stay a text's height apart, price labels that would touch turn 45°, and
-the legend takes two rows when the figure is narrower than 6.5 inches.
+names stay a text's height apart — and clear of the points marked and of the
+plot's sides — price labels that would touch turn 45°, and the legend takes two
+rows when the figure is narrower than 6.5 inches. Gabor-Granger's value labels
+that would touch are thinned, each panel keeping the best price's and those
+clear of it (the table has every number), and "highest revenue at …" stays
+inside its panel, the line behind its value.
 
 ---
 
