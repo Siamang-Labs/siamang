@@ -983,8 +983,9 @@ def _check_design(
 def _method_problem(node_type: str, params: dict[str, Any]) -> str | None:
     """What the parameters of an analysis node settle before any data, in the
     words the run would refuse it with: how many drivers Key drivers weighs
-    (two or more, and at most 15 for the Shapley value), and how many
-    attributes a Perceptual map of attributes counts (two or more)."""
+    (two or more, and at most 15 for the Shapley value), how many attributes a
+    Perceptual map of attributes counts (two or more), and a Price sensitivity
+    node's prices against its questions and its four different questions."""
 
     if node_type == "analyze.drivers":
         from siamang.data.drivers import count_problem
@@ -998,6 +999,10 @@ def _method_problem(node_type: str, params: dict[str, Any]) -> str | None:
         attributes = params.get("attributes")
         if isinstance(attributes, list) and attributes:
             return layout_problem("attributes", attributes)
+    if node_type == "analyze.price":
+        from siamang.data.pricing import price_problem
+
+        return price_problem(params)
     return None
 
 

@@ -240,3 +240,130 @@ def test_perceptual_map_node_crosstab_and_attributes(questionnaire_doc, survey, 
             " yes.",
         ),
     ]
+
+
+# ─── price sensitivity ───────────────────────────────────────────────────────
+
+
+def _price_data():
+    import numpy as np
+    import pandas as pd
+
+    from siamang.core.variable import Variable, VariableMap
+    from siamang.data import SurveyData
+
+    rng = np.random.default_rng(3)
+    n = 240
+    base = rng.lognormal(np.log(10), 0.25, n)
+    frame = pd.DataFrame(
+        {
+            "tc": np.round(base * 0.5, 1),
+            "ch": np.round(base * 0.8, 1),
+            "ex": np.round(base * 1.2, 1),
+            "te": np.round(base * 1.7, 1),
+            "lc": rng.integers(1, 6, n),
+            "le": rng.integers(1, 6, n),
+            "wt": rng.uniform(0.5, 1.5, n),
+        }
+    )
+    wtp = base * rng.uniform(0.8, 1.2, n)
+    for price in (6, 8, 10, 12):
+        frame[f"gg{price}"] = (wtp >= price).astype(int)
+    variables = VariableMap()
+    variables.add_many(
+        [Variable(name, "ratio", label=label) for name, label in
+         (("tc", "Too cheap"), ("ch", "A bargain"), ("ex", "Getting expensive"),
+          ("te", "Too expensive"))]
+        + [Variable(name, "ordinal") for name in ("lc", "le")]
+        + [Variable(f"gg{p}", "nominal", label=f"Buy at {p}", labels={0: "No", 1: "Yes"})
+           for p in (6, 8, 10, 12)]
+    )  # fmt: skip
+    questionnaire = {
+        "variables": {
+            name: {"scale": variables[name].scale, "label": variables[name].label}
+            for name in variables
+        }
+    }
+    return SurveyData(frame=frame, variables=variables), questionnaire
+
+
+def test_price_sensitivity_node_runs_both_methods_weighted(tmp_path):
+    spec = default_registry().get("analyze.price")
+    assert spec.title == "Price sensitivity" and list(spec.outputs) == ["table", "curves", "stat"]
+    assert spec.reads("likelihood_expensive", {"method": "van_westendorp"})
+    assert not spec.reads("intent", {"method": "van_westendorp"})
+    assert not spec.reads("too_cheap", {"method": "gabor_granger"})
+    data, questionnaire = _price_data()
+    vw = {"too_cheap": "tc", "cheap": "ch", "expensive": "ex", "too_expensive": "te"}
+    gg = {
+        "method": "gabor_granger",
+        "intent": ["gg6", "gg8", "gg10", "gg12"],
+        "price_points": [6, 8, 10, 12],
+    }
+    flow = _flow(
+        [
+            ("src", "source.responses", {}),
+            ("apply", "prepare.apply_weight", {"column": "wt"}),
+            ("vw", "analyze.price", vw),
+            (
+                "nms",
+                "analyze.price",
+                {**vw, "likelihood_cheap": "lc", "likelihood_expensive": "le"},
+            ),
+            ("gg", "analyze.price", gg),
+            ("sec", "output.report_section", {"heading": "Prices"}),
+            ("save", "output.save_report", {"title": "Prices", "path": "outputs/prices.md"}),
+        ],
+        [
+            ("src", "data", "apply", "data"),
+            ("apply", "data", "vw", "data"),
+            ("apply", "data", "nms", "data"),
+            ("apply", "data", "gg", "data"),
+            ("vw", "table", "sec", "items"),
+            ("nms", "curves", "sec", "items"),
+            ("gg", "table", "sec", "items"),
+            ("sec", "report", "save", "sections"),
+        ],
+    )
+    assert check_flow(flow, questionnaire=questionnaire) == []
+    code = generate_flow(flow, questionnaire)
+    assert "from siamang.data import pricing" in code
+    assert "# ── Price sensitivity: Van Westendorp: tc, ch, ex, te " in code
+    assert "# ── Price sensitivity: Gabor-Granger: gg6, gg8, gg10, gg12 " in code
+    assert 'likelihood_cheap="lc"' in code and "calibration=None" in code
+    assert "prices=[6, 8, 10, 12], yes=None" in code
+    result = FlowRunner(flow).run(sources={"src": data}, cwd=tmp_path)
+    assert result.ok
+    from siamang.data import pricing
+
+    weighted = data.with_weight("wt")
+    assert result.output("vw", "stat") == pricing.van_westendorp(weighted, **vw).stats
+    assert result.output("vw", "stat")["Weight"] == "wt"
+    assert "Highest revenue (NMS)" in result.output("nms", "stat")
+    stat = result.output("gg", "stat")
+    assert stat["Method"] == "Gabor-Granger" and stat["Prices"] == 4
+    report = (tmp_path / "outputs" / "prices.md").read_text("utf-8")
+    assert "Optimal price point (OPP)" in report and "Revenue-maximising price" in report
+    assert "nan" not in report and json.dumps(stat)
+    # The check: prices against questions, all four questions, and a
+    # calibration without the questions it calibrates.
+    flow["nodes"][4]["params"]["price_points"] = [6, 8, 10]
+    flow["nodes"][2]["params"].pop("too_expensive")
+    flow["nodes"][2]["params"]["calibration"] = {"5": 0.8}
+    issues = sorted((i.severity, i.message) for i in check_flow(flow, questionnaire=questionnaire))
+    assert issues == [
+        (
+            "error",
+            "gg: Prices lists 3 prices for 4 purchase-intent questions; give one price per "
+            "question, in the same order.",
+        ),
+        (
+            "error",
+            "vw: Van Westendorp needs the too-expensive price — choose it in Too expensive.",
+        ),
+        (
+            "warning",
+            "vw: Calibration is read only with the two likelihood questions — choose them, or "
+            "clear Calibration.",
+        ),
+    ]

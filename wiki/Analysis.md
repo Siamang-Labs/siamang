@@ -629,6 +629,63 @@ correspondence.plot(result).savefig("map.png")
 
 ---
 
+## Price sensitivity
+
+What would respondents pay? `siamang.data.pricing` reads the two usual question
+designs; the flow node is **Price sensitivity** (`analyze.price`).
+
+```python
+from siamang.data import pricing
+
+psm = pricing.van_westendorp(
+    data, too_cheap="p_too_cheap", cheap="p_bargain",
+    expensive="p_expensive", too_expensive="p_too_expensive",
+)
+psm.table.to_frame()    # PMC, OPP, IPP, PME with their prices
+psm.stats["Range of acceptable prices"]
+pricing.plot(psm).savefig("psm.png")
+
+gg = pricing.gabor_granger(data, ["buy_499", "buy_699", "buy_899"], prices=[4.99, 6.99, 8.99],
+                           yes=[4, 5])
+gg.stats["Revenue-maximising price"]
+```
+
+**Van Westendorp's price sensitivity meter** asks four prices: too cheap (doubt
+the quality), a bargain, getting expensive, too expensive. Respondents whose
+four prices are not in that order misunderstood a question; they are left out
+and counted. At each price anyone named, the curves give the share who would
+call it too cheap, cheap (and *not cheap*, the rest), expensive (and *not
+expensive*), too expensive, joined by straight lines. The points are where they
+cross:
+
+| Point | Where |
+|-------|-------|
+| **PMC** — point of marginal cheapness | too cheap meets not cheap |
+| **OPP** — optimal price point | too cheap meets too expensive |
+| **IPP** — indifference price point | not cheap meets not expensive |
+| **PME** — point of marginal expensiveness | not expensive meets too expensive |
+
+PMC to PME is the **range of acceptable prices**. Where two lines run together
+for a stretch, the point is the middle of it; where they do not meet within
+the prices named, the point is left out and the statistics say so. Asked also
+how likely they would be to buy at their *cheap* and *expensive* prices, the
+**Newton-Miller-Smith** extension turns those answers into probabilities (5 →
+0.7 … 1 → 0 by default, or your own calibration) and gives the trial curve and
+the prices with the highest trial and the highest revenue.
+
+**Gabor-Granger** asks at each of a set of prices whether the respondent would
+buy. The table gives the share who would at each price, the revenue per
+respondent (price × share) with an index, and the elasticity between
+neighbouring prices; the statistics give the revenue-maximising price among
+those asked. Every respondent should answer every price: in a sequential design
+that stops asking after a no, fill in the implied answers first (Derive).
+
+Weighted data weighs every share. The chart draws the four curves with the
+points and the acceptable range shaded (and the trial curve below, with NMS),
+or the demand curve above the revenue — each measure in its own panel.
+
+---
+
 ## Weighted statistics
 
 Set a default weight column once with `with_weight(...)`, then pass
