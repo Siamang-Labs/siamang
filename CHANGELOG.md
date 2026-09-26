@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Charts in the report theme's colours: `palette="theme"`.** A `ReportTheme`
+  names chart colours — `chart_palette` (a list of hex colours, the series in
+  order), `chart_sequential` (magnitude, and the steps of an ordered scale),
+  `chart_diverging` (a pair, the low end first), `chart_text_color`,
+  `chart_grid_color` and `chart_font` (a font stack; the first face installed
+  is used) — and every chart can take them: the Bar chart in all its forms (a
+  histogram in the palette's first colour, a donut's slices in the palette,
+  Top N's Other in the neutral grey, error bars and significance letters in the
+  text colour), the Box plot, the Heatmap (`cmap="theme"`: the sequential
+  colour for means, the diverging pair for Spearman, Pearson and Kendall), the
+  Scatter plot, the Likert chart, the Trend and every Result chart, Key
+  drivers, the Perceptual map and Price sensitivity included (their first two
+  colours, the NPS and sentiment's red–grey–blue from the diverging pair, the
+  loadings and correlation heatmaps from it too). Each chart node's Palette
+  offers `theme`.
+  The defaults are a set a reader with protanopia or deuteranopia can tell
+  apart: eight hues whose neighbours, and any two of the first three, are at
+  least 9 apart in OKLab (×100) under Machado's simulation, and blue–red for a
+  scale that diverges. Text written on a fill is white or the theme's text,
+  whichever reads better, black where neither reaches 4.5:1. The theme is an
+  opt-in: a chart that names a palette of its own — every stored flow's — is
+  drawn byte for byte as before. A chart is drawn at its node, before the Save
+  report's Look is known, so a report draws each chart of palette `theme` again
+  from its parameters in its own theme's colours when they differ from the
+  ones it was drawn with (`siamang.reporting.chart_theme.in_report`), in the
+  Markdown's figures and the HTML's; at its node the chart takes the look
+  `SIAMANG_REPORT_THEME` names, else the defaults. In the theme's colours a Box
+  plot's boxes take the palette in the order drawn, undimmed, and a Scatter
+  plot's groups in the codebook's order under a legend titled by the
+  variable's label. `check_flow` names a bad
+  chart colour in Save report's Look: `chart_palette: 'purple' is not a hex
+  colour such as '#2a78d6'.`, `chart_text_color: '#cccccc' on the charts' white
+  background has a contrast of 1.6:1; text needs at least 4.5:1.`, `chart_diverging:
+  give two colours, the low end first and the high end second, e.g. ['#e34948',
+  '#2a78d6'].`
+
 - **Result chart: Key drivers, Perceptual map, Price sensitivity, Cochran's Q
   and the ordinal logit.** `visualize.result_chart` draws the later analyses
   too: Key drivers as `importance` (each driver's share of R²), a Perceptual

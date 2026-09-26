@@ -331,7 +331,13 @@ cannot draw fails that node, not the Save report or the preview after it.
 
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead
-of a palette, and ignores it when it draws a correlation matrix. These size the
+of a palette, and ignores it when it draws a correlation matrix. Every palette
+offers **`theme`** (a heatmap's `cmap` takes the word): the chart colours,
+text colour, grid and face of the Look of the Save report the chart is saved
+through (`ReportTheme`'s `chart_*` fields, reporting reference §1b), which the
+report draws the chart in when it is rendered — the chart was drawn at its node
+before the Look was known, in the look `SIAMANG_REPORT_THEME` names, else the
+colour-blind-safe defaults. A named palette is drawn as it always was. These size the
 matplotlib figure itself rather than the picture of it, so the axis labels keep
 their proportion. Resolution is a field on the chart (`SurveyChart.dpi`,
 default 150) which `save()` uses unless a caller passes `dpi=` explicitly.
@@ -377,7 +383,12 @@ connected item: `{"xtab": {"width": "75%", "align": "left"}}`, keyed like
 `captions` (`"fa.loadings"` for one output of a node with several). Both are checked
 by `check_flow`, so a misspelled field or a width like `"wide"` is named before
 the run rather than raised inside it, and both reach only the **HTML**: the
-Markdown is the report's content and carries no layout. A flow that names no
+Markdown is the report's content and carries no layout — except the theme's
+chart colours, which colour the report's charts of palette `theme` in the
+Markdown's figures and the HTML's alike. `check_flow` names a bad one as
+`PARAM_INVALID` (`Parameter 'theme' of save: chart_palette: 'purple' is not a
+hex colour such as '#2a78d6'.`, `… chart_text_color: '#cccccc' on the charts'
+white background has a contrast of 1.6:1; text needs at least 4.5:1.`). A flow that names no
 theme leaves `SIAMANG_REPORT_THEME` to answer.
 
 `output.save_report` also takes **`xlsx`** (*Also save tables to Excel*, off by

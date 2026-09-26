@@ -24,6 +24,8 @@ import re
 from dataclasses import dataclass, fields
 from typing import Any
 
+from siamang.reporting import chart_theme
+
 # ─── presets ─────────────────────────────────────────────────────────────────
 # The stacks are the questionnaire's own (frontend.theme.ui_config.FONT_PRESETS),
 # repeated here rather than imported: `siamang.reporting` is used headless, and
@@ -131,6 +133,19 @@ class ReportTheme:
     table_label: str = "Table"
     figure_label: str = "Figure"
 
+    # ── charts ───────────────────────────────────────────────────────
+    # The colours and the face of every chart whose palette is "theme"
+    # (siamang.reporting.chart_theme) — and of no other, so a chart that names
+    # a palette of its own keeps its picture. The defaults stay legible under
+    # protanopia and deuteranopia. Hex colours only: they are drawn by
+    # matplotlib, not by a browser.
+    chart_palette: tuple[str, ...] = chart_theme.PALETTE  # the series, in order
+    chart_sequential: str = chart_theme.SEQUENTIAL  # magnitude; an ordered scale's steps
+    chart_diverging: tuple[str, str] = chart_theme.DIVERGING  # low end, high end
+    chart_text_color: str = chart_theme.TEXT
+    chart_grid_color: str = chart_theme.GRID
+    chart_font: str | None = None  # a font stack; None: matplotlib's sans-serif
+
     # ── escape hatch ─────────────────────────────────────────────────
     # Appended after the generated stylesheet, so it wins. Unlike everything
     # above it is checked by nothing: a bad rule reaches the reader.
@@ -138,6 +153,11 @@ class ReportTheme:
 
     # ── derived ──────────────────────────────────────────────────────
     def __post_init__(self) -> None:
+        # A list of colours arrives from JSON as a list (or from a text box as
+        # one string); the theme holds a tuple, so it stays hashable and equal
+        # to itself read back.
+        for name in ("chart_palette", "chart_diverging"):
+            object.__setattr__(self, name, chart_theme.colours_of(getattr(self, name)))
         _validate(self)
 
     @property
@@ -203,9 +223,9 @@ class ReportTheme:
 
         default = ReportTheme()
         return {
-            f.name: getattr(self, f.name)
+            f.name: list(value) if isinstance(value, tuple) else value
             for f in fields(self)
-            if getattr(self, f.name) != getattr(default, f.name)
+            if (value := getattr(self, f.name)) != getattr(default, f.name)
         }
 
     @classmethod
@@ -300,6 +320,16 @@ def _validate(theme: ReportTheme) -> None:
     for name in ("align_numeric", "number_tables", "number_figures"):
         if not isinstance(getattr(theme, name), bool):
             raise ReportThemeError(f"{name}: expected true or false.")
+    chart = chart_theme.problem(
+        palette=theme.chart_palette,
+        sequential=theme.chart_sequential,
+        diverging=theme.chart_diverging,
+        text=theme.chart_text_color,
+        grid=theme.chart_grid_color,
+        font=theme.chart_font,
+    )
+    if chart:
+        raise ReportThemeError(chart)
     # `custom_css` is not checked — that is what it is for — except that it must
     # not be able to close the <style> element it is written into and start
     # something else.

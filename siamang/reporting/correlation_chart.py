@@ -33,6 +33,7 @@ def draw(chart: HeatMap) -> None:
     import seaborn as sns
 
     from siamang.data import inference
+    from siamang.reporting import chart_theme
 
     method = chart.method
     if method not in inference.CORRELATIONS:
@@ -77,7 +78,7 @@ def draw(chart: HeatMap) -> None:
     matrix.columns = [str(index) for index in range(1, len(labels) + 1)] if numbered else rows
     lines = max(row.count("\n") + 1 for row in rows)
 
-    sns.set_theme(style="whitegrid")
+    chart_theme.set_theme(style="whitegrid")
     fig, ax = plt.subplots(figsize=chart.figsize)
     chart._fig, chart._ax = fig, ax
     name = inference.CORRELATION_NAMES[method]
@@ -85,7 +86,7 @@ def draw(chart: HeatMap) -> None:
     sns.heatmap(
         matrix,
         annot=False,
-        cmap="RdBu_r",
+        cmap=chart_theme.cmap("RdBu_r", "diverging"),
         vmin=-1,
         vmax=1,
         center=0,

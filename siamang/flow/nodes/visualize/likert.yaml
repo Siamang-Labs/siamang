@@ -63,9 +63,10 @@ params:
     - RdYlBu
     - PiYG
     - coolwarm
+    - theme
     default: RdBu
     label: Palette
-    help: A diverging palette, the low answers in its first colour; the neutral answer is grey.
+    help: A diverging palette, the low answers in its first colour; the neutral answer is grey. Theme takes the colours of the report the chart is saved in — the diverging pair of its Save report's Look (low end first), with its text colour, grid and font.
 subtitle: '{items}'
 # Weighted when a weight is applied: the shares are sums of weights, n counts
 # respondents.

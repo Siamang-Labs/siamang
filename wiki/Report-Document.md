@@ -105,6 +105,12 @@ Writes the document, choosing the format from the file suffix: `.md`/`.markdown`
 → HTML. A `.pdf` suffix raises `NotImplementedError`; any other suffix raises
 `ValueError`. Parent directories are created automatically.
 
+A chart of `palette="theme"` is written in the chart colours of the report's
+`ReportTheme` (`chart_palette`, `chart_diverging`, … — see
+[[Reporting Charts|Reporting-Charts]]), in the Markdown's figures and the
+HTML's alike: drawn again from its parameters when it was drawn in other
+colours. Any other chart is written as it was drawn.
+
 ### `save_tables`
 
 ```python

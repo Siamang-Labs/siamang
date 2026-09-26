@@ -31,7 +31,8 @@ figure is built lazily on first use.
 
 - **`figsize`** — `(width, height)` in inches, default `(10, 6)`.
 - **`palette`** — seaborn palette name, default `"muted"` (e.g. `"deep"`,
-  `"pastel"`, `"colorblind"`).
+  `"pastel"`, `"colorblind"`), or `"theme"`: the colours of the report the
+  chart is shown in (see [Colours from the report theme](#colours-from-the-report-theme)).
 - **`title`** — override the auto-generated title (default `None` → derived from
   variable labels).
 
@@ -364,6 +365,48 @@ grouping and a linear regression trendline.
 ```python
 data.plot.scatter("age", "autonomy", hue="remote_freq").show()
 ```
+
+---
+
+## Colours from the report theme
+
+`palette="theme"` (a `HeatMap`'s `cmap="theme"`) colours a chart from the
+`ReportTheme` of the report it is in: its `chart_palette` (the series, in
+order), `chart_sequential` (a heatmap of means, the steps of an ordered scale),
+`chart_diverging` (a Likert chart, the Net Promoter Score and sentiment, the
+correlation and loadings heatmaps — low end first), `chart_text_color`,
+`chart_grid_color` and `chart_font`. Every chart takes it: `BarChart` in all
+its forms, `BoxPlot`, `HeatMap`, `ScatterPlot`, `LikertChart`, `TrendChart`
+and every Result chart, Key drivers, the Perceptual map and Price sensitivity
+included. A bar chart's Other (Top N, a donut's small slices) stays grey — the
+grey of a Likert chart's neutral answer — its error bars and significance
+letters take the text colour, and a histogram the palette's first colour.
+
+```python
+from siamang.reporting import Report, ReportTheme
+
+theme = ReportTheme(
+    chart_palette=["#7b3294", "#008837", "#e66101", "#0571b0"],
+    chart_diverging=["#e66101", "#5e3c99"],
+    chart_font="Liberation Sans, sans-serif",
+)
+chart = data.plot.bar("region", split="age", palette="theme")
+Report(title="Brands", theme=theme).add(chart).save("out/report.html")
+```
+
+Without a theme's colours the defaults apply, and they are chosen for readers
+with colour-vision deficiencies: eight hues whose neighbours (and any two of the
+first three) stay apart with protanopia and deuteranopia, blue for magnitude and
+red to blue for a scale that diverges. A value written on a bar is white or the
+text colour, whichever reads better (4.5:1 at least). Colours are hex
+(`#2a78d6`); a theme with a bad one is refused, naming it — `chart_palette:
+'purple' is not a hex colour such as '#2a78d6'.`
+
+A chart is drawn when it is made, before the report and its theme exist: it
+takes the look `SIAMANG_REPORT_THEME` names, else the defaults, and the report
+draws it again from its parameters in its own theme's colours when they differ
+(the chart you hold keeps its picture). A chart that names a palette of its own
+is never touched by a theme, so a stored flow keeps its pictures.
 
 ---
 

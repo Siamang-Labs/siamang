@@ -34,7 +34,7 @@ params:
   theme:
     kind: theme
     label: Look
-    help: Typefaces, measure, table style and page size of the rendered report. The Markdown is unaffected.
+    help: Typefaces, measure, table style and page size of the rendered report, and the chart colours and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected.
 subtitle: '{path}'
 imports:
 - import os

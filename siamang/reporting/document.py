@@ -27,6 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from siamang.reporting import chart_theme
 from siamang.reporting.charts import SurveyChart
 from siamang.reporting.tables import SurveyTable, frame_to_html
 from siamang.reporting.theme import _LENGTH, ReportTheme
@@ -291,6 +292,9 @@ class Report:
     # ── serialization ─────────────────────────────────────────────
     def to_markdown(self, asset_dir: str | Path = ".", *, embed_images: bool = False) -> str:
         asset_dir = Path(asset_dir)
+        # The theme the charts of palette "theme" take their colours from: the
+        # document's, or the one whatever runs this names — as the HTML's.
+        look = self.theme or ReportTheme.from_env()
         lines: list[str] = []
         if self.title:
             lines.append(f"# {self.title}")
@@ -315,7 +319,7 @@ class Report:
                 assert isinstance(payload, tuple)
                 comp, caption = payload[0], payload[1]
                 assert isinstance(comp, SurveyChart)
-                ref = self._chart_ref(comp, i, asset_dir, embed_images)
+                ref = self._chart_ref(comp, i, asset_dir, embed_images, look=look)
                 lines.append(f"![{caption or ''}]({ref})")
                 if caption:
                     lines.append(f"*{caption}*")
@@ -336,10 +340,15 @@ class Report:
         asset_dir: Path,
         embed: bool,
         theme: ReportTheme | None = None,
+        look: ReportTheme | None = None,
     ) -> str:
         # The figure is written at the theme's resolution when one is rendering
         # it; without a theme the chart's own `dpi` applies, as before.
         dpi = theme.figure_dpi if theme is not None else None
+        # A chart of palette "theme" is shown in the colours of the theme
+        # rendering it — drawn again from its parameters when it was drawn in
+        # others at its node (chart_theme.in_report); any other chart as drawn.
+        chart = chart_theme.in_report(chart, look or theme)
         if embed:
             with tempfile.TemporaryDirectory() as tmp:
                 png = Path(tmp) / f"fig_{index}.png"

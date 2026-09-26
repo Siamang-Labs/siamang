@@ -191,7 +191,50 @@ can be set in the same type.
 | `figure_dpi` | 72–600 | what figures are written at |
 | `caption_position` | `below` · `above` | |
 | `number_tables`, `number_figures`, `table_label`, `figure_label` | bool, str | `Table 1.` prefixes; off by default |
+| `chart_palette` | 2–12 hex colours | the series of a chart of `palette="theme"`, in order |
+| `chart_sequential` | a hex colour | magnitude (a heatmap of means) and the steps of an ordered scale |
+| `chart_diverging` | two hex colours | a scale's low end and high end (Likert, NPS, sentiment, correlations) |
+| `chart_text_color`, `chart_grid_color` | a hex colour | the charts' text (at least 4.5:1 on white) and grid lines |
+| `chart_font` | a font stack | the charts' face: the first of the stack installed where they are drawn |
 | `custom_css` | CSS | appended last, so it wins — and checked by nothing |
+
+**Chart colours.** The `chart_*` fields colour every chart whose palette is
+`"theme"` (a heatmap's `cmap="theme"`) — and no other, so a chart that names a
+palette of its own draws the picture it always drew. Their defaults
+(`siamang.reporting.chart_theme`) are chosen for readers with colour-vision
+deficiencies: eight hues, `#2a78d6 #eb6834 #1baf7a #eda100 #e87ba4 #008300
+#4a3aa7 #e34948`, in an order whose neighbours — and any two of the first three
+— are at least 9 apart in OKLab (×100) with protanopia and deuteranopia
+simulated (Machado, Oliveira & Fernandes 2009) and 19 with full colour vision;
+blue `#2a78d6` for magnitude; red `#e34948` to blue for a scale that diverges;
+text `#1a1a1a` and grid `#e0e0e0`. Colours are hex only (`#rgb` or `#rrggbb`):
+they are drawn by matplotlib, not a browser. A list may be given as one string
+(`"#2a78d6, #eb6834"`). Past the palette a chart takes its colours lighter,
+then darker, then hues spaced round the wheel, never one twice. An ordered
+scale's steps run from a tint of the sequential colour still 2:1 on white to
+the colour at half its lightness; a diverging scale's arms from each end to a
+tint of it 45 % of the way to white, the neutral answer grey (`#bdbdbd`). A
+value written on a bar, a segment or a cell is white or the text colour,
+whichever reads better — black where neither reaches 4.5:1, which one of white
+and black always does. Secondary text (the notes under a chart) is the text
+colour as light as still reads 4.5:1 on white. In the theme's colours a
+`BoxPlot`'s boxes take the palette in the order they are drawn, undimmed, and a
+`ScatterPlot`'s groups in the codebook's order, its legend titled by the
+variable's label. A `BarChart`'s Other (`top`, a donut's small slices) is the
+neutral grey, none of the palette's; its error bars and significance letters,
+and a donut's base and the percentages beside its ring, are the text colour,
+the lines to those percentages the secondary text colour; a histogram's bars,
+in every panel, are the palette's first colour.
+
+A chart is drawn when it is made (a flow draws it at its node, so what it
+cannot draw fails that node), and the report's theme is known only when the
+report is rendered. So a chart of palette `"theme"` is drawn at first in the
+theme `SIAMANG_REPORT_THEME` names, else the defaults; and `to_markdown`,
+`to_html` and `save` draw it again, from its parameters, in the chart colours of
+the theme they render with whenever those differ
+(`siamang.reporting.chart_theme.in_report`) — a copy, kept for the next
+rendering; the chart itself keeps its picture. The Markdown's figures take the
+document's theme too, so `.md` and `.html` show the same charts.
 
 `ReportTheme.from_env()` reads the JSON file named by `SIAMANG_REPORT_THEME`,
 the way `output.save_report` reads `SIAMANG_PROVENANCE`: whatever runs a flow can
@@ -255,7 +298,7 @@ Every chart component supports the following common interface:
 | :--- | :--- | :--- | :--- |
 | `data` | `SurveyData` | *Required* | The `SurveyData` container. |
 | `figsize` | `tuple[float, float]` | `(10, 6)` | Figure dimensions in inches `(width, height)`. |
-| `palette` | `str` | `"muted"` | Seaborn color palette name (e.g., `"muted"`, `"deep"`, `"pastel"`, `"colorblind"`). |
+| `palette` | `str` | `"muted"` | Seaborn color palette name (e.g., `"muted"`, `"deep"`, `"pastel"`, `"colorblind"`), or `"theme"`: the chart colours, text colour, grid and face of the report theme (§1b, *Chart colours*). |
 | `title` | `str \| None` | `None` | Optional chart title. If `None`, automatically generated from variable labels. |
 | `weight_note` | `str \| None` | — | Read-only. `None` on unweighted data; otherwise `"weighted by '<column>'"` for a chart that draws weighted numbers, or `"unweighted (the weight '<column>' is not applied)"` for one that cannot. |
 
@@ -378,12 +421,12 @@ In addition to base properties:
 | `columns` | `list[str]` | `[]` | List of variables to include in the matrix. |
 | `by` | `str \| None` | `None` | If specified, plots grouped means of `columns` across categories of `by`. If `None`, plots a correlation matrix of `columns` by `method`, over the respondents who answered every one of them. |
 | `annot` | `bool` | `True` | If `True`, writes the data value in each cell. |
-| `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name (grouped-means mode only). |
+| `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name (grouped-means mode only), or `"theme"`: the report theme's sequential colour for means and its diverging pair for a correlation matrix, with its text colour, grid and face (§1b). |
 | `vmin` | `float \| None` | `None` | Minimum value anchor for the colormap (grouped-means mode only). |
 | `vmax` | `float \| None` | `None` | Maximum value anchor for the colormap (grouped-means mode only). |
 | `method` | `str` | `"spearman"` | The correlation without `by`. `"spearman"` is drawn as it always was: unweighted, the answers read as they are (a missing code counts as an answer). `"pearson"` and `"kendall"` (tau-b) are drawn by `siamang.reporting.correlation_chart` from `inference.correlation_matrix(..., missing="listwise")` — the Correlation matrix table's numbers: the codebook's missing codes are left out, and the note under the plot gives N, the weight and the missing codes left out. Pearson is weighted on weighted data (colour bar `Weighted Pearson r`, `weight_note` `"weighted by 'w'"`); Kendall adds the unweighted line to its title. A pair that cannot be computed is a blank cell, named under the plot as the chart names its items (`Not computed (a blank cell): Trust × Constant: …`, or `1 × 3` when numbered); an item with the same answer from everyone has a blank diagonal too. Labels longer than 14 characters are numbered: rows `1. label`, columns `1`, `2`, …; the rows' labels are tried at 10 pt in a third of the width down to 8 pt in a half, the first whose rows fit the height grown by at most 60 %, and the plot is made tall enough for every row's wrapped label. The coefficients are written at the size their cells hold (at most 10 pt, "-0.03" in a cell); below 6 pt they are left out and the note says `The cells are too small to hold their coefficients: see the table.`; no gridlines cross the cells. Any other value is a `ValueError`. |
 
-> **Note:** In correlation mode (`by=None`) the matrix is always drawn on a diverging `RdBu_r` scale centered at 0 over the range `[-1, 1]`; the `cmap`, `vmin`, and `vmax` properties are ignored. To restyle a correlation heatmap, work with the `matplotlib` Axes returned by `plot()`.
+> **Note:** In correlation mode (`by=None`) the matrix is always drawn on a diverging `RdBu_r` scale centered at 0 over the range `[-1, 1]` (the theme's diverging pair with `cmap="theme"`); otherwise the `cmap`, `vmin`, and `vmax` properties are ignored. To restyle a correlation heatmap, work with the `matplotlib` Axes returned by `plot()`.
 
 #### Example
 
@@ -425,7 +468,7 @@ In addition to base properties:
 | `neutral` | `str` | `"split"` | `"split"`: an odd scale's middle answer half on either side of the centre. `"side"`: drawn apart, in a panel at the right titled by its label. An even scale has none; its centre falls between the middle two answers. |
 | `sort` | `str` | `"top2"` | `"top2"`: the largest top-2 share first (ties: the smaller bottom-2, then the order given). `"listed"`: the order of `columns`. |
 | `show_values` | `bool` | `True` | Each answer's share (`23%`) inside its segment where it fits. |
-| `palette` | `str` | `"RdBu"` | A diverging palette; the neutral answer is grey (`#bdbdbd`). An even scale of four or more answers samples it two wider and drops the two middle (palest) colours. |
+| `palette` | `str` | `"RdBu"` | A diverging palette; the neutral answer is grey (`#bdbdbd`). An even scale of four or more answers samples it two wider and drops the two middle (palest) colours. `"theme"`: the report theme's diverging pair, the low answers in its first colour. |
 | `table` | `pd.DataFrame` | — | Read-only: the numbers drawn, in chart order — `Item`, one column per answer (%), `Top-2`, `Bottom-2` (or `Top box`, `Bottom box`), `N`, and `Weighted N` on weighted data. |
 
 The title, when not given, is the words every item label starts with up to a separator (`: `, ` - `, ` – `, ` — `, `? `), and the rest of each label names its bar; without such a stem it is `"<n> items from <lowest label> to <highest label>"`, and one item's title is its label (its bar's row then reads `(n = …)`). The items' labels are tried at 11 pt in 0.3 of the width down to 8 pt in 0.45, the first whose rows fit the height grown by at most 60 %; a row is at most 60 pt tall, so few items make a shorter figure. The centre line runs behind the values, and the neutral answer's value has a grey box it hides behind. The note under the chart gives the base, the answers in the top-2 and bottom-2, the neutral answer's handling (`The neutral answer (3 = Neither) is split around the centre.` / `… is drawn apart, at the right.` / `No neutral answer: the centre falls between 2 = Fair and 3 = Good.`), the weight, `Left out as missing: …` for the codebook's missing codes, `Not on the scale, left out: …` for other values, and `No answer on the scale, not drawn: …` for an item nobody answered.
@@ -622,7 +665,10 @@ the plot as it is laid out, so nothing runs past the figure and the PNG is the
 width asked for. Value labels sit beside their bar or whisker and the axis widens until
 they fit; legends sit between the title and the plot. NPS and sentiment keep a
 red–grey–blue of their own and the heatmaps a diverging scale centred on 0; the
-palette colours everything else.
+palette colours everything else. With `palette="theme"` every colour is the
+report theme's (§1b): the series, the diverging pair for the red–grey–blue and
+the heatmaps, the text, the grid and the face — Key drivers, the Perceptual map
+and Price sensitivity included, in its first two colours.
 
 **Registry.** A later analysis adds its result with
 `register(result_type, kinds, fn, *, accepts=None, name=None)` — `fn(result,

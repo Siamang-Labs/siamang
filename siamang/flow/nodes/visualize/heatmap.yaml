@@ -46,7 +46,7 @@ params:
     kind: string
     default: YlOrRd
     label: Color map
-    help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale.
+    help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colours of the report the chart is saved in — its Save report Look's sequential colour for the means, its diverging pair for a correlation matrix, with its text colour, grid and font.
 checks:
 - when: by & method!=spearman
   severity: warning
