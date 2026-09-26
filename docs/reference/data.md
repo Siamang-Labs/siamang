@@ -589,7 +589,7 @@ whose `analysis` is the result.
   `attributes`, fewer than two attributes, attribute codes other than 0/1 with
   no `yes`, a multiple-choice attribute (explode it first).
 
-`plot(result, *, dimensions=(1, 2), title=None, figsize=None, ax=None)` draws
+`plot(result, *, dimensions=(1, 2), title=None, figsize=None, ax=None, numbered=None)` draws
 the symmetric map: rows as blue circles, columns as orange triangles, the axes
 on one scale crossing at the average profile and naming each dimension's share
 of the inertia, the title the map, the share shown and the weight. Labels are in
@@ -599,8 +599,13 @@ greedy placement, heaviest point first, over 96 spots per label (16 directions
 at 6 distances, the further ones with a thin line back to the point), then
 rounds of moving any label to a better spot. Long labels wrap onto two lines
 (narrower on a narrower figure), and the font shrinks from 10 to 7 pt as the
-labels crowd the plot. A table of one dimension is drawn on a line. It returns
-the matplotlib `Figure`.
+labels crowd the plot. A map whose names would still overlap (`numbered=None`;
+`True` always, `False` never) numbers its points instead — the rows 1, 2, …,
+then the columns — and lists each variable's numbered names under the legend,
+in two or more columns, the figure growing taller for the list. The legend's
+variable titles wrap rather than end in `…`, and the legend hangs under the x
+axis's title. A table of one dimension is drawn on a line. It returns the
+matplotlib `Figure`.
 
 ---
 

@@ -86,15 +86,28 @@ def _draw_map(result: Any, chart: ResultChart) -> str:
     (10 × 8 inches) a crowded map can be left with labels over each other.
     Such a map is drawn again, a fifth taller each time, until no two labels
     overlap or it is a fifth taller than it is wide — as the row charts grow
-    taller rather than print their labels over each other."""
+    taller rather than print their labels over each other; one still crowded
+    then numbers its points and lists their names under it."""
     from siamang.data import correspondence
 
     analysis = _analysis_of(result, correspondence.MapTable, correspondence.PerceptualMap)
     width, height = (float(value) for value in chart.figsize)
-    tallest = max(height, width * 1.2)
+    asked, tallest = height, max(height, width * 1.2)
     while True:
-        fig = correspondence.plot(analysis, title=chart.title, figsize=(width, height))
-        if height >= tallest or not labels_overlap(fig.axes[0]):
+        fig = correspondence.plot(
+            analysis, title=chart.title, figsize=(width, height), numbered=False
+        )
+        if not labels_overlap(fig.axes[0]):
+            break
+        if height >= tallest:
+            # Still crowded at its tallest: numbered points, and their names
+            # listed under the map — a map at least 0.8 as tall as it is wide.
+            fig = correspondence.plot(
+                analysis,
+                title=chart.title,
+                figsize=(width, max(asked, 0.8 * width)),
+                numbered=True,
+            )
             break
         height = min(height * 1.2, tallest)
     chart.adopt(fig)

@@ -346,7 +346,7 @@ What each result draws (the first kind is what `kind="auto"` draws):
 | Correlation matrix | `heatmap` — the lower triangle with the table's significance marks |
 | Code open answers | `shares`, `sentiment` |
 | Key drivers | `importance` — each driver's share of R² (`drivers.plot`) |
-| Perceptual map | `map` — the map, from any of its tables (`correspondence.plot`); drawn taller when its labels would overlap |
+| Perceptual map | `map` — the map, from any of its tables (`correspondence.plot`); drawn taller when its labels would overlap, and with numbered points and a list of their names under it when even that is too crowded |
 | Price sensitivity | `curves` — Van Westendorp's curves and points (and the NMS trial curve), or Gabor-Granger's demand and revenue (`pricing.plot`) |
 
 With a post-hoc test, Group means puts the **compact letter display** beside

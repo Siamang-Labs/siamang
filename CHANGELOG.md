@@ -540,6 +540,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A crowded Perceptual map numbers its points.** A dense map (24 brands ×
+  13 regions) grown to its cap of 1.2 × its width still printed names over
+  names (`Umbrella Pharmaceuticals Over-Scotland`), cut others with `…`, and
+  said nothing; its legend cut the row variable's title too. Such a map now
+  numbers its points — rows 1, 2, …, then the columns, placed so that no two
+  numbers touch — and lists the numbered names under the legend (the figure
+  grows taller for the list); `correspondence.plot` does the same when its
+  names would overlap (`numbered=None`, or `True` / `False` to choose). The
+  legend's titles wrap, and the legend hangs under the x axis's title (at a
+  tenth of the plot's height it sat on the title of a short map).
+
 - **The Key drivers and price charts stay clear at the Result chart's
   sizes.** The Key drivers chart kept the row gridlines of seaborn's whitegrid
   theme, which the Result chart sets (and any Bar, Heatmap or Likert chart
