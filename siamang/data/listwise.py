@@ -185,16 +185,19 @@ def p_rounded(value: float | None) -> float | None:
 
 def round_p(value: float) -> float:
     """A p-value to four decimals, as the tables have always printed one — or,
-    when four decimals would make it 0, to four significant digits
-    (``1.134e-24``): a test that found something never reports p = 0.
+    below 0.0001, to four significant digits (``1.134e-24``, ``5e-05``): a test
+    that found something never reports p = 0. The line is where
+    :func:`~siamang.reporting.tables.stat_text` starts writing an exponent, so a
+    footer prints the p the statistics keep.
 
     NaN stays NaN, as ``round`` leaves it.
     """
     value = float(value)
     if not np.isfinite(value):
         return value
-    kept = round(value, 4)
-    return kept if kept != 0 or value == 0 else float(f"{value:.4g}")
+    if value != 0 and abs(value) < 1e-4:
+        return float(f"{value:.4g}")
+    return round(value, 4)
 
 
 __all__ = [

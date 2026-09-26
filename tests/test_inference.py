@@ -867,7 +867,7 @@ def test_a_tiny_p_is_never_printed_as_zero():
     welch = stats.ttest_ind(low, high, equal_var=False).pvalue  # 7.68e-58
     ttest = two.report.ttest("y", by="g")
     assert ttest.stats["p"] == pytest.approx(welch, rel=1e-3) and ttest.stats["p"] > 0
-    assert f"p = {welch:.3g};" in ttest.to_markdown()
+    assert f"p = {welch:.4g};" in ttest.to_markdown()
     assert two.report.means("y", by="g", method="welch").stats["p"] == ttest.stats["p"]
     # The default test, chosen for you, too.
     student = stats.ttest_ind(low, high).pvalue
@@ -890,7 +890,7 @@ def test_a_tiny_p_is_never_printed_as_zero():
     fisher = two.report.crosstab("a", "g", method="fisher")
     exact = stats.fisher_exact(pd.crosstab(two.frame["a"], two.frame["g"]).to_numpy()).pvalue
     assert fisher.stats["p"] == pytest.approx(exact, rel=1e-3) and exact < 1e-60
-    assert f"p = {exact:.3g};" in fisher.to_markdown()
+    assert f"p = {exact:.4g};" in fisher.to_markdown()
 
     matrix = data.with_frame(frame.assign(y2=frame["y"] + rng.normal(0, 6.5, 600)))
     matrix.variables.add(Variable("y2", "interval", label="Y2"))
@@ -908,6 +908,37 @@ def test_a_tiny_p_is_never_printed_as_zero():
     assert stat_text(5.8e-07) == "5.8e-07" and stat_text(0.0123) == "0.0123"
     report = Report().add({"p_value": 2.17e-30, "df": 124.98}).to_markdown()
     assert "p_value = 2.17e-30; df = 124.98" in report
+
+
+def test_a_footer_prints_the_p_the_statistics_keep():
+    """round_p and stat_text switch to the exponent at the same line (0.0001) and
+    keep the same four significant digits, so a footer never says another p
+    than the Stat output: round_p(4.99996e-05) kept 5e-05 while the footer said
+    "p = 0.0001", and a t-test's p of 7.988e-32 read "p = 7.99e-32"."""
+    from siamang.data.listwise import round_p
+    from siamang.reporting.tables import stat_text
+
+    assert round_p(4.99996e-05) == 5e-05 and stat_text(round_p(4.99996e-05)) == "5e-05"
+    assert round_p(9.99e-05) == 9.99e-05 and stat_text(9.99e-05) == "9.99e-05"
+    assert round_p(0.00012) == 0.0001 and stat_text(0.00012) == "0.0001"
+    assert stat_text(7.988e-32) == "7.988e-32"
+    for p in (0.5, 0.04999, 0.00015, 0.0001, 9.9996e-05, 5e-05, 4.99996e-05, 1.2345e-09, 7.988e-32):
+        kept = round_p(p)
+        assert stat_text(kept) == str(kept), p
+
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(
+        {"y": np.r_[rng.normal(0, 1, 60), rng.normal(3, 1, 60)], "g": [1] * 60 + [2] * 60}
+    )
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("y", "interval", label="Y"),
+            Variable("g", "nominal", label="G", labels={1: "One", 2: "Two"}),
+        ]
+    )
+    ttest = SurveyData(frame=frame, variables=variables).report.ttest("y", by="g")
+    assert ttest.stats["p"] < 1e-4 and f"p = {ttest.stats['p']};" in ttest.to_markdown()
 
 
 def test_a_matrix_adjustment_counts_only_the_pairs_it_adjusted():
