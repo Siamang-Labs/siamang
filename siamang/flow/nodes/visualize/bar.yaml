@@ -54,6 +54,7 @@ params:
     kind: bool
     default: false
     label: Horizontal
+    help: Bars across, labels beside them. With Show, Split by or Sort set, vertical bars whose labels cannot be read under them (many long answers) are drawn across too.
   show_values:
     kind: bool
     default: true
