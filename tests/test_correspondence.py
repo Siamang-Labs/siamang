@@ -273,6 +273,13 @@ def test_an_attribute_grid_counts_ticks_per_brand():
     assert "Chi-square" not in stats  # a respondent is in several cells
     assert list(result.columns.to_frame()["Attributes"]) == ["Modern", "Cheap", "Friendly"]
     assert list(result.rows.to_frame()["Brand"]) == ["Acme", "Globex", "Initech"]
+    # Any code but a yes — a 9 for Refused — is no tick.
+    refused = _brands().frame.assign(cheap=lambda f: f["cheap"].replace(1, 9))
+    none = correspondence.analyze(
+        _brands().with_frame(refused), "brand", attributes=["modern", "cheap", "friendly"],
+        yes=1,
+    )  # fmt: skip
+    assert none.stats["Not in the map"] == "Cheap (nobody counted in them)"
     # "No" as the tick is the complement's map.
     flipped = correspondence.analyze(
         _brands(), "brand", attributes=["modern", "cheap", "friendly"], yes=0

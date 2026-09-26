@@ -294,7 +294,12 @@ def analyze(
     beta_p = np.full(p, np.nan)
     if df2 > 0:
         stats["Adjusted R²"] = rounded(1 - (1 - r2) * (base - 1) / df2, 4)
-        if r2 < 1:
+        if r2 >= 1 - 1e-12:
+            stats["Note"] = (
+                "the drivers explain the outcome exactly, so there is no residual to test "
+                "against"
+            )
+        else:
             f_value = (r2 / p) / ((1 - r2) / df2)
             stats["F"] = rounded(f_value, 3)
             stats["df"] = f"{p}, {int(df2) if float(df2).is_integer() else round(df2, 2)}"

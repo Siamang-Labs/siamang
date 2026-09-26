@@ -34,7 +34,9 @@ reads four price points where they cross.
   the statistics say which curve lies above the other throughout.
 - **Newton-Miller-Smith** (Newton, Miller & Smith 1993), when the survey also
   asked how likely the respondent would be to buy at their *cheap* and at their
-  *expensive* price: each answer becomes a probability by ``calibration`` (by
+  *expensive* price (the whole analysis is then of the respondents who answered
+  those too, so the points and the trial curve share one base): each answer
+  becomes a probability by ``calibration`` (by
   default the usual five-point one: 5 → 0.7, 4 → 0.5, 3 → 0.3, 2 → 0.1,
   1 → 0), and each respondent's purchase probability is 0 below their
   too-cheap price and above their too-expensive price, 0 *at* them (unless the
@@ -432,7 +434,9 @@ def van_westendorp(
     if notes:
         stats["Note"] = "; ".join(notes)
     _weight_stats(stats, data, w)
-    rows.report(stats, "any of the price questions")
+    rows.report(
+        stats, "any of the price or likelihood questions" if nms else "any of the price questions"
+    )
     footer = {key: stats[key] for key in ("Method", "N") if key in stats}
     footer["Curves"] = "% of the respondents at each price named"
     if data.weight is not None:

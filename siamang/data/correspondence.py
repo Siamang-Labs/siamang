@@ -16,7 +16,8 @@ independence (its *inertia*, χ² / n).
 - **attributes**: for each answer of the row variable (the brand, in data with
   a row per respondent and brand), the respondents who ticked each of a set of
   0/1 attribute variables — the usual brand-image grid. ``yes`` names the codes
-  that count as a tick (empty: 1, for 0/1 variables); a blank is no tick.
+  that count as a tick (empty: 1, for 0/1 variables); anything else — a blank,
+  a missing code — is no tick.
 
 :func:`ca` runs the analysis on a plain table and :func:`plot` draws the map.
 

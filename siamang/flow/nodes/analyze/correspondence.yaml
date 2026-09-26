@@ -36,7 +36,7 @@ params:
   attributes:
     kind: variables
     label: Attributes
-    help: 'Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank is no tick.'
+    help: 'Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank or a missing code is no tick.'
   yes_codes:
     kind: json
     label: Counts as yes (attributes)

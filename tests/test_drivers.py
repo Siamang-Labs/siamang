@@ -316,6 +316,12 @@ def test_missing_codes_binary_nominals_and_what_is_refused():
         drivers.analyze(few, "overall", ["price", "service", "range"])
     with pytest.raises(ValueError, match="method must be one of"):
         drivers.analyze(data, "overall", ["price", "range"], method="dominance")
+    exact = data.with_frame(
+        data.frame.assign(overall=data.frame["price"] + 2 * data.frame["range"])
+    )
+    fitted = drivers.analyze(exact, "overall", ["price", "range"])
+    assert fitted.stats["R²"] == 1.0 and "p" not in fitted.stats
+    assert fitted.stats["Note"].startswith("the drivers explain the outcome exactly")
     listed = data.with_frame(data.frame.assign(price=[[1, 2]] * len(data.frame)))
     with pytest.raises(TypeError, match="prepare.explode"):
         drivers.analyze(listed, "overall", ["price", "range"])
