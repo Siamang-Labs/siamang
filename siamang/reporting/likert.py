@@ -200,17 +200,23 @@ class LikertChart(SurveyChart):
         ticks = np.arange(-(limit // step), limit // step + 1) * step  # 0 among them
         ax.set_xticks(ticks)
         ax.set_xticklabels([f"{abs(value):.0f}%" for value in ticks])
-        ax.axvline(0.0, color="0.25", linewidth=0.9, zorder=3)
+        # Over the bars, under the values: the neutral answer's value sits on it.
+        ax.axvline(0.0, color="0.25", linewidth=0.9, zorder=2.5)
         ax.grid(False)
         ax.grid(True, axis="x", color="0.88", linewidth=0.8)
         ax.set_axisbelow(True)
-        width = chars_in(0.3 * self.figsize[0] * 72.0, font_size("ytick.labelsize"))
-        ticklabels = [_with_base(names[row["name"]], row["n"], width) for row in rows]
+        # One item's label is the title; its row says only its base.
+        shown = [names[row["name"]] if len(columns) > 1 else "" for row in rows]
+        label_size, ticklabels, row_pt = _item_labels(
+            shown, [row["n"] for row in rows], self.figsize
+        )
         ax.set_yticks(at)
-        ax.set_yticklabels(ticklabels)
+        ax.set_yticklabels(ticklabels, fontsize=label_size)
         ax.set_ylim(count - 0.5, -0.5)
         ax.set_xlabel("% of respondents" + (" (weighted)" if self.data.weight else ""))
-        title = self.title or stem or _fallback_title(columns, scale)
+        # One item is titled by its own label (its row then says only its base).
+        single = _label(self.data, columns[0]) if len(columns) == 1 else ""
+        title = self.title or stem or single or _fallback_title(columns, scale)
         title = wrap(title, chars_in(self.figsize[0] * 72.0 * 0.85, font_size("axes.titlesize")))
         if self.data.weight is not None:
             self._weighted()
@@ -237,9 +243,14 @@ class LikertChart(SurveyChart):
             frameon=False,
             fontsize=9,
         )
-        row_pt = max(label.count("\n") + 1 for label in ticklabels) * 11.0 * 1.2 + 10.0
         footnote = Footnote(fig, notes, legend=legend, axes=ax, least=count * row_pt)
         footnote.apply()
+        # Few items do not stretch over a tall figure: a row is at most 60 pt.
+        spare = axes_points(ax)[1] - count * max(row_pt, 60.0)
+        if spare > 1:
+            footnote.least = count * max(row_pt, 60.0)
+            fig.set_figheight(fig.get_figheight() - spare / 72.0)
+            footnote.apply()
         self._annotate(ax, aside, rows, scale, shares, lefts, colours, limit)
         footnote.apply()
 
@@ -310,7 +321,7 @@ class LikertChart(SurveyChart):
                     middle = value / 2.0
                 if value <= 0 or length < text_width(text, size) + 5 or band_pt < size + 2:
                     continue
-                target.text(
+                label = target.text(
                     middle,
                     index,
                     text,
@@ -318,7 +329,11 @@ class LikertChart(SurveyChart):
                     va="center",
                     fontsize=size,
                     color=ink_on(colours[code]),
+                    zorder=4,
                 )
+                if code == scale.neutral and target is ax:
+                    # The centre line runs behind the neutral answer's value.
+                    label.set_bbox({"facecolor": colours[code], "edgecolor": "none", "pad": 1.0})
 
 
 def likert_scale(data: Any, columns: list[str]) -> Scale:
@@ -445,11 +460,35 @@ def _stem(labels: list[str]) -> tuple[str, list[str]]:
     return stem, rests
 
 
+def _item_labels(
+    labels: list[str], bases: list[int], figsize: tuple[float, float]
+) -> tuple[float, list[str], float]:
+    """The items' labels (their base kept whole), their size and a row's
+    height: the largest size and narrowest column — 11 pt in 0.3 of the width,
+    down to 8 pt in 0.45 — at which every row fits the figure's height grown by
+    at most 60 %; else the smallest, the figure growing by what it lacks. A
+    narrow figure no longer balloons into a strip of three-line rows."""
+
+    width_pt, height_pt = figsize[0] * 72.0, figsize[1] * 72.0
+    base = font_size("ytick.labelsize")
+    tries = ((base, 0.3), (base - 1, 0.3), (base - 1, 0.4), (9.0, 0.4), (8.0, 0.45))
+    room = height_pt * 0.55 * 1.6
+    for size, share in tries:
+        width = chars_in(share * width_pt, size)
+        texts = [_with_base(label, n, width) for label, n in zip(labels, bases, strict=True)]
+        row = max(text.count("\n") + 1 for text in texts) * size * 1.2 + 10.0
+        if len(texts) * row <= room:
+            break
+    return size, texts, row
+
+
 def _with_base(label: str, n: int, width: int) -> str:
     """``label`` wrapped, its "(n = …)" kept whole on the last line or the next."""
 
-    text = wrap(label, width)
     base = f"(n = {n})"
+    if not label:
+        return base
+    text = wrap(label, width)
     last = text.rsplit("\n", 1)[-1]
     return f"{text} {base}" if len(last) + 1 + len(base) <= width else f"{text}\n{base}"
 
@@ -465,7 +504,15 @@ def _colours(palette: str, scale: Scale) -> dict[Any, Any]:
 
     import seaborn as sns
 
-    colours = list(sns.color_palette(palette, len(scale.codes)))
+    count = len(scale.codes)
+    if scale.neutral is None and count >= 4:
+        # An even scale has no middle colour: the two middle ones of a palette
+        # of as many are nearly white, and "Agree" vanished. Sampled two wider
+        # with the two middle ones dropped, the inner answers keep a colour.
+        wide = list(sns.color_palette(palette, count + 2))
+        colours = wide[: count // 2] + wide[count // 2 + 2 :]
+    else:
+        colours = list(sns.color_palette(palette, count))
     by_code = dict(zip(scale.codes, colours, strict=True))
     if scale.neutral is not None:
         by_code[scale.neutral] = NEUTRAL_GREY
@@ -529,9 +576,10 @@ def _count(chart: LikertChart, columns: list[str], scale: Scale) -> dict[str, An
 
     top_name = "Top-2" if scale.box == 2 else "Top box"
     bottom_name = "bottom-2" if scale.box == 2 else "bottom box"
+    ordered = chart.sort == "top2" and len(columns) > 1
     notes = [
         "Base: the respondents who answered each item on the scale (n beside it)."
-        + (f" Items in order of their {top_name.lower()} share." if chart.sort == "top2" else ""),
+        + (f" Items in order of their {top_name.lower()} share." if ordered else ""),
         f"{top_name}: {listed(scale.top)}; {bottom_name}: {listed(scale.bottom)}.",
     ]
     if scale.neutral is None:
