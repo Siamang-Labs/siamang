@@ -695,3 +695,25 @@ def test_a_legend_taller_than_the_plot_goes_under_it(tmp_path):
     # A legend that fits beside the plot stays there.
     beside = _data().plot.bar("q", split="g", show="percent")
     assert beside.plot().get_legend() is not None
+
+
+def test_series_past_the_palette_are_all_different_and_the_wheel_does_not_close():
+    """Past 'muted''s ten colours, husl's wheel gave 13 series whose first and
+    last (#f77189, #f668be) and neighbours (#35ae97, #36abb0) looked alike."""
+    from matplotlib.colors import to_hex, to_rgb
+
+    from siamang.reporting.chart_parts import series_colours
+
+    def distance(a, b) -> float:
+        return sum((x - y) ** 2 for x, y in zip(to_rgb(a), to_rgb(b), strict=True)) ** 0.5
+
+    for count in (13, 24, 30, 31, 45):
+        colours = series_colours("muted", count)
+        assert len({to_hex(colour) for colour in colours}) == count
+        closest = min(distance(a, b) for a, b in zip(colours, colours[1:], strict=False))
+        assert closest > 0.12, count
+        assert distance(colours[0], colours[-1]) > 0.12, count
+    chart = _brands().plot.bar("b", split="g", show="percent", layout="stacked_100")
+    ax = chart.plot()
+    faces = {to_hex(container.patches[0].get_facecolor()) for container in ax.containers}
+    assert len(faces) == 24

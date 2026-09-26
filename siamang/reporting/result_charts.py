@@ -437,9 +437,12 @@ class ResultChart(SurveyChart):
         self._adopted = True
 
     def colors(self, n: int) -> list[Any]:
-        """``n`` colours of the chart's palette, in its order."""
+        """``n`` colours of the chart's palette, in its order — never one twice:
+        past the palette's own, lighter and darker ones (``series_colours``)."""
         if sns is not None:
-            return list(sns.color_palette(self.palette, max(n, 1)))
+            from siamang.reporting.chart_parts import series_colours
+
+            return list(series_colours(self.palette, max(n, 1)))
         cmap = plt.get_cmap("tab10")
         return [cmap(i % 10) for i in range(max(n, 1))]
 

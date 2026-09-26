@@ -748,3 +748,32 @@ def test_odds_ratio_axes_name_minor_ticks_only_when_the_range_is_narrow():
     assert minor and {label.get_fontsize() for label in minor} == {
         label.get_fontsize() for label in major
     }
+
+
+def test_more_series_than_the_palette_holds_never_share_a_colour():
+    """Descriptives by 24 groups drew 10 colours for 24 series ('muted' cycles):
+    past its ten, the palette's colours come again lighter, then darker."""
+    from matplotlib.colors import to_hex
+
+    rng = np.random.default_rng(2)
+    frame = pd.DataFrame({"g": np.repeat(np.arange(1, 25), 5), "y": rng.normal(size=120)})
+    variables = VariableMap()
+    variables.add(
+        Variable("g", "nominal", label="Group", labels={i: f"G{i}" for i in range(1, 25)})
+    )
+    variables.add(Variable("y", "interval", label="Score"))
+    chart = rc.chart(
+        SurveyData(frame=frame, variables=variables).report.descriptives(["y"], by="g")
+    )
+    markers = [
+        line
+        for line in chart._ax.lines
+        if line.get_marker() == "o" and line.get_linestyle() == "None"
+    ]
+    legend = chart._ax.get_legend()
+    assert len(markers) == len(legend.get_texts()) == 24
+    assert len({to_hex(line.get_color()) for line in markers}) == 24
+    # Within the palette, the palette's own colours as before.
+    assert [to_hex(c) for c in chart.colors(3)] == [
+        to_hex(c) for c in __import__("seaborn").color_palette("muted", 3)
+    ]
