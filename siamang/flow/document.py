@@ -171,15 +171,12 @@ def check_flow(
     for name in _assigned_variables(questionnaire):
         # An arm the codebook leaves out is nominal, as Simulated data enters it.
         scales.setdefault(name, "nominal")
-    # The scales the nodes give what they make (the codebook's entry wins a
-    # shared name). A later node naming one of the wrong scale is warned, not
-    # stopped: a flow saved before this was checked may rely on it and runs.
-    made = (
-        {
-            name: scale
-            for name, scale in _made_scales(nodes, registry, questionnaire, scales).items()
-            if name not in scales
-        }
+    # The scales the nodes upstream of each node give what they make (the
+    # codebook's entry wins a shared name). A node naming one of the wrong scale
+    # is warned, not stopped: a flow saved before this was checked may rely on
+    # it and runs.
+    made_at = (
+        _made_scales(document, nodes, registry, questionnaire, scales)
         if questionnaire is not None
         else {}
     )
@@ -187,6 +184,9 @@ def check_flow(
         if node["type"] not in registry:
             continue
         spec = registry.get(node["type"])
+        made = {
+            name: scale for name, scale in made_at.get(node_id, {}).items() if name not in scales
+        }
         issues.extend(
             _check_params(node_id, spec, node.get("params") or {}, known_variables, scales, made)
         )
@@ -420,17 +420,65 @@ def _known_variables(
 
 
 def _made_scales(
+    document: dict[str, Any],
     nodes: dict[str, dict[str, Any]],
     registry: Registry,
     questionnaire: dict[str, Any] | None,
     codebook: dict[str, str | None],
+) -> dict[str, dict[str, str]]:
+    """For each node, the scale of every variable the nodes upstream of it make
+    — as the engine registers it: Derive its Scale (ratio by default), Recode
+    its Scale or the source's, an index interval, Bands ordinal, a cluster,
+    themes and quality flags nominal, the quality score ratio, Explode's columns
+    nominal, factor and MaxDiff scores interval. Columns made without a variable
+    (weights, the speeders' timing) have no scale to check.
+
+    Walked along the edges, in the order the flow runs: a Recode takes the
+    scale its source has where the Recode reads it — a Derive listed after it in
+    the document is still upstream — and a name made twice has the scale of the
+    maker nearest upstream of the node reading it, as it does at run time. With
+    two inputs, the one that runs later wins a name both bring."""
+
+    parents: dict[str, list[str]] = {node_id: [] for node_id in nodes}
+    edges: list[Edge] = []
+    for raw in document.get("edges") or []:
+        source, target = raw["from"]["node"], raw["to"]["node"]
+        if source in nodes and target in nodes:
+            parents[target].append(source)
+            edges.append(Edge(source, raw["from"]["port"], target, raw["to"]["port"]))
+    try:
+        order = node_order(nodes, edges)
+    except FlowError:
+        order = list(nodes)  # a cycle is an error of its own; walk as listed
+    rank = {node_id: index for index, node_id in enumerate(order)}
+
+    upstream: dict[str, dict[str, str]] = {}
+    leaving: dict[str, dict[str, str]] = {}
+    for node_id in order:
+        inherited: dict[str, str] = {}
+        for parent in sorted(set(parents[node_id]), key=rank.__getitem__):
+            inherited.update(leaving.get(parent, {}))
+        upstream[node_id] = inherited
+        node = nodes[node_id]
+        own = (
+            _scales_made(node, registry.get(node["type"]), questionnaire, codebook, inherited)
+            if node["type"] in registry
+            else {}
+        )
+        leaving[node_id] = {**inherited, **own}
+    return upstream
+
+
+def _scales_made(
+    node: dict[str, Any],
+    spec: NodeSpec,
+    questionnaire: dict[str, Any] | None,
+    codebook: dict[str, str | None],
+    inherited: dict[str, str],
 ) -> dict[str, str]:
-    """The scale each variable a node makes is given — as the engine registers
-    it: Derive its Scale (ratio by default), Recode its Scale or the source's,
-    an index interval, Bands ordinal, a cluster, themes and quality flags
-    nominal, the quality score ratio, Explode's columns nominal, factor and
-    MaxDiff scores interval. Columns made without a variable (weights, the
-    speeders' timing) have no scale to check."""
+    """The variables one node makes, with the scale it gives each; a Recode's
+    source has the codebook's scale, else the one it has where the Recode
+    reads it (``inherited``)."""
 
     scales: dict[str, str] = {}
 
@@ -438,42 +486,38 @@ def _made_scales(
         if isinstance(name, str) and name and scale:
             scales.setdefault(name, scale)
 
-    for node in nodes.values():
-        if node["type"] not in registry:
-            continue
-        spec = registry.get(node["type"])
-        params = resolved_params(spec, node.get("params") or {})
-        kind = spec.type
-        if kind == "prepare.derive":
-            made(params.get("name"), params.get("scale") or "ratio")
-        elif kind == "prepare.recode" and isinstance(params.get("variable"), str):
-            source = params["variable"]
-            made(
-                params.get("into") or f"{source}_recoded",
-                params.get("scale") or codebook.get(source) or scales.get(source) or "nominal",
-            )
-        elif kind == "prepare.index":
-            made(params.get("name"), "interval")
-        elif kind == "prepare.bands":
-            made(params.get("into"), "ordinal")
-        elif kind in ("analyze.cluster", "prepare.text_code"):
-            made(params.get("into"), "nominal")
-        elif kind == "prepare.quality":
-            made(params.get("flags_column"), "nominal")
-            made(params.get("score_column"), "ratio")
-        elif kind == "prepare.explode" and params.get("variable") and questionnaire:
-            for name in _exploded_names(questionnaire, params):
-                made(name, "nominal")
-        elif kind == "analyze.factor" and params.get("scores"):
-            for name in _factor_score_names(spec, params):
-                made(name, "interval")
-        elif (
-            kind == "prepare.maxdiff_scores"
-            and questionnaire
-            and isinstance(params.get("question"), str)
-        ):
-            for name in _maxdiff_score_names(questionnaire, params):
-                made(name, "interval")
+    params = resolved_params(spec, node.get("params") or {})
+    kind = spec.type
+    if kind == "prepare.derive":
+        made(params.get("name"), params.get("scale") or "ratio")
+    elif kind == "prepare.recode" and isinstance(params.get("variable"), str):
+        source = params["variable"]
+        made(
+            params.get("into") or f"{source}_recoded",
+            params.get("scale") or codebook.get(source) or inherited.get(source) or "nominal",
+        )
+    elif kind == "prepare.index":
+        made(params.get("name"), "interval")
+    elif kind == "prepare.bands":
+        made(params.get("into"), "ordinal")
+    elif kind in ("analyze.cluster", "prepare.text_code"):
+        made(params.get("into"), "nominal")
+    elif kind == "prepare.quality":
+        made(params.get("flags_column"), "nominal")
+        made(params.get("score_column"), "ratio")
+    elif kind == "prepare.explode" and params.get("variable") and questionnaire:
+        for name in _exploded_names(questionnaire, params):
+            made(name, "nominal")
+    elif kind == "analyze.factor" and params.get("scores"):
+        for name in _factor_score_names(spec, params):
+            made(name, "interval")
+    elif (
+        kind == "prepare.maxdiff_scores"
+        and questionnaire
+        and isinstance(params.get("question"), str)
+    ):
+        for name in _maxdiff_score_names(questionnaire, params):
+            made(name, "interval")
     return scales
 
 
