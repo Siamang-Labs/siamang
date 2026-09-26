@@ -374,7 +374,9 @@ To draw a result, connect the node's table (and its stat) to a **Result chart**:
 Group means become means with their confidence intervals and, after a post-hoc
 test, letters that mark which differ; a t-test its groups' or measurements'
 means; a correlation matrix a heatmap with its marks. The same works for Paired
-tests, Factor analysis and the other analyses — see
+tests (McNemar's and Cochran's Q's yes shares), Factor analysis, an ordinal
+logit's odds ratios, Key drivers, Perceptual maps, Price sensitivity and the
+other analyses — see
 [[Reporting Charts|Reporting-Charts]] (`result_charts`).
 
 ---
@@ -557,6 +559,8 @@ result.stats["R²"], result.stats["p"]
 drivers.plot(result).savefig("drivers.png")   # bars of the % of R², largest first
 ```
 
+In a flow, connect the node's table to a **Result chart** to draw the same bars.
+
 | **Importance** (`method`) | How the share is found |
 |---------------------------|------------------------|
 | `relative_weights` (default) | Johnson's relative weights: the outcome is regressed on the uncorrelated variables closest to the predictors, and each predictor gets back its part of those — as R's `rwa` package |
@@ -603,6 +607,8 @@ result.table.to_frame()     # each dimension's inertia and % of the total
 result.rows.to_frame()      # per brand: mass, quality, coordinates, contributions, cos²
 correspondence.plot(result).savefig("map.png")
 ```
+
+In a flow, connect any of the node's tables to a **Result chart** (Kind `map`).
 
 | **Table** (`layout`) | Cells |
 |----------------------|-------|
@@ -682,7 +688,8 @@ that stops asking after a no, fill in the implied answers first (Derive).
 
 Weighted data weighs every share. The chart draws the four curves with the
 points and the acceptable range shaded (and the trial curve below, with NMS),
-or the demand curve above the revenue — each measure in its own panel.
+or the demand curve above the revenue — each measure in its own panel. In a
+flow, connect the node's table or curves to a **Result chart** (Kind `curves`).
 
 ---
 

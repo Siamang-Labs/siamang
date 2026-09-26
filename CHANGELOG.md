@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Result chart: Key drivers, Perceptual map, Price sensitivity, Cochran's Q
+  and the ordinal logit.** `visualize.result_chart` draws the later analyses
+  too: Key drivers as `importance` (each driver's share of R²), a Perceptual
+  map as `map` (from any of its tables), Price sensitivity as `curves` (Van
+  Westendorp's curves and points with the NMS trial curve, or Gabor-Granger's
+  demand over revenue) — the charts `drivers.plot`, `correspondence.plot` and
+  `pricing.plot` draw, handed to the node whole by `ResultChart.adopt(fig)` —
+  and Cochran's Q as `shares` (each variable's yes share with Wilson's
+  interval), an ordinal logit as `coefficients` (odds ratios with the table's
+  Wald intervals, the thresholds left out). A map whose labels would overlap on
+  the figure asked for is drawn taller, and a price chart of two panels at
+  least 6 inches tall. `check_flow` knows what those outputs draw; Paired tests with
+  Cochran's Q draw `shares` (it said `means`, which the run could not draw).
+  The renderers are in `siamang.reporting.method_charts`.
+
 - **Result chart** (`visualize.result_chart`) and `siamang.reporting.result_charts`:
   the chart that suits an analysis's result, drawn from the numbers the
   analysis computed rather than from the data again — Group means with 95 %

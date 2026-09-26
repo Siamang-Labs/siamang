@@ -292,8 +292,11 @@ not say what the chart should (the weight of a regression, PCA, cluster or
 TURF, and the base of a regression's intervals). `kind` is `auto` (the chart
 the result suits) or `means`, `means_sd`, `interval`, `stacked`, `reach`,
 `items`, `utilities`, `scores`, `shares`, `importance`, `partworths`, `scree`,
-`loadings`, `profile`, `coefficients`, `heatmap`, `sentiment`; `title`, `width`,
-`height` and `palette` as the other chart nodes. `check_flow` reads what is
+`loadings`, `profile`, `coefficients`, `heatmap`, `sentiment`, `map` (Perceptual
+map, from any of its tables), `curves` (Price sensitivity, from its table or
+curves); `title`, `width`, `height` and `palette` as the other chart nodes (Key
+drivers — `importance` — the Perceptual map and Price sensitivity keep their
+own colours and title lines). `check_flow` reads what is
 connected before the run, from the node types and parameters upstream:
 
 - `RESULT_NOT_DRAWABLE` (error): `rc: A Result chart cannot draw the table
@@ -304,7 +307,7 @@ connected before the run, from the node types and parameters upstream:
   Principal components (pca), which draws 'loadings'; its variance output draws
   'scree'.` What an output draws follows its parameters: TURF's table draws
   `reach`, or `items` with `method: fixed`; MaxDiff's `scores` only with
-  `method: counts`; Paired tests' McNemar table `shares`; Code open answers'
+  `method: counts`; Paired tests' McNemar and Cochran's Q tables `shares`; Code open answers'
   `sentiment` only with `sentiment` ticked.
 - `RESULT_SOURCES` (warning): `rc: The results connected come from m, n; a
   Result chart draws one of them — the table output of Group means (m).`

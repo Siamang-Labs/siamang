@@ -535,8 +535,8 @@ draws instead: `A Result chart cannot draw a FreqTable (Value, Label, N, %, …)
 It draws the results of Group means, Descriptive statistics, t-test, Paired
 tests, Proportion CI, Net Promoter Score, TURF, MaxDiff, Conjoint, Share of
 preference, Principal components, Factor analysis, Cluster (k-means),
-Regression, Correlation matrix, Code open answers — connect the table of one of
-them.`, `Kind 'scree' does not suit this result: Group means draws 'means' or
+Regression, Correlation matrix, Code open answers, Key drivers, Perceptual map,
+Price sensitivity — connect the table of one of them.`, `Kind 'scree' does not suit this result: Group means draws 'means' or
 'means_sd'.`, `Unknown kind 'pie'; the kinds are auto, means, …`. `ResultChart`
 is a `SurveyChart`: `save()`, `plot()`, `show()`, `weight_note`, and a `Report`
 takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
@@ -547,7 +547,7 @@ takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 | `DescriptivesTable` | `means`, `means_sd` | each variable's mean, one coloured series per group with `by` |
 | `TTestTable` (t-test) | `means`, `means_sd` | each group's or measurement's mean with its interval at the test's confidence; a one-sample test draws its test value as a line; the test's difference and CI in a note |
 | Paired tests' `table` (Wilcoxon, Friedman) | `means`, `means_sd` | each measurement's mean (the row of differences is the test's) |
-| McNemar's `table` | `shares` | the share saying yes to each, with Wilson's interval |
+| McNemar's and Cochran's Q's `table` | `shares` | the share saying yes to each, with Wilson's interval; the test's p in a note |
 | Proportion CI's stat | `interval` | the share as a number over its interval on a 0–100 % track, with the base (the effective base when weighted) |
 | `NpsTable` | `stacked` | detractors, passives and promoters in one 100 % bar, the score and its 95 % CI above it |
 | `TurfTable` of a search | `reach` | reach by portfolio size, each point labelled with its gain, the portfolio under it |
@@ -558,9 +558,12 @@ takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 | PCA `variance` / `loadings`, `PcaResult` | `scree` / `loadings` | eigenvalues with the Kaiser line at 1 (the components kept filled, when the stat says how many); a diverging heatmap of the loadings |
 | Factor analysis `variance` / `loadings`, `FactorAnalysis` | `scree` / `loadings` | the same, with parallel analysis's random 95th percentile when it chose the number; loadings hidden in the table are blank |
 | Cluster centroids, `ClusterAssignment`, `ClusterResult` | `profile` | a snake plot: each cluster's means down the items, sized in the legend |
-| Regression `table`, `RegressionResult` | `coefficients` | a forest of the coefficients with 95 % intervals, the intercept left out — t with n − k df when the stat gives n (normal otherwise, and it says so); a logit's odds ratios on a log scale |
+| Regression `table`, `RegressionResult` | `coefficients` | a forest of the coefficients with 95 % intervals, the intercept left out — t with n − k df when the stat gives n (normal otherwise, and it says so); a logit's odds ratios on a log scale; the ordinal logit's odds ratios with the table's Wald intervals, its thresholds left out and a note saying which way the answers run |
 | `CorrelationMatrixTable` | `heatmap` | the lower triangle with the table's significance marks (on the adjusted p when adjusted) |
 | `ThemeTable` (Code open answers) | `shares`, `sentiment` | each theme's share of the coded answers and the coverage; the negative / neutral / positive split |
+| `DriverTable`, `KeyDrivers` (Key drivers) | `importance` | `drivers.plot`: each driver's share of R², largest first, a negative beta in the second colour |
+| `MapTable` (any of a Perceptual map's tables), `PerceptualMap` | `map` | `correspondence.plot`: the symmetric map of the first two dimensions; a map whose labels would overlap on the figure asked for is drawn taller (a fifth at a time, up to 1.2 × its width) |
+| `PriceTable` (`table` or `curves`), `PriceSensitivity` | `curves` | `pricing.plot`: Van Westendorp's four curves, points and acceptable range (with the NMS trial curve below), or Gabor-Granger's demand over revenue; a chart of two panels is at least 6 inches tall |
 
 **Weight.** A chart follows the weight of the result it draws: the note the
 result (or a stat beside it) carries is the second line of the title and
@@ -587,7 +590,13 @@ one class (a regression's coefficients and a PCA's loadings are both
 DataFrames); the last registration that accepts a result wins — and with
 `register_output(node_type, port, kinds)` (kinds a tuple, or a function of the
 node's parameters) tells `check_flow` what its output draws. A new kind is also
-a value of the node's `kind` enum.
+a value of the node's `kind` enum. An analysis with a chart of its own draws it
+whole and hands the figure over with `chart.adopt(fig)`: its title (the Title
+given replaces its first line), weight line, colours and labels are kept as
+drawn, and the chart does not lay it out again. The later analyses' renderers
+are in `siamang.reporting.method_charts`: Key drivers, the Perceptual map and
+Price sensitivity through their modules' `plot`, Cochran's Q and the ordinal
+logit as above.
 
 ---
 
