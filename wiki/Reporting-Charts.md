@@ -426,14 +426,45 @@ def trend(time, *, period="month", measure="percent", variable=None, codes=None,
   `codes` (`[4, 5]` is a top-2 box; for a multiple-choice question, any of
   them), `"mean"` of `variable`, or `"count"` of respondents.
 - **`by`** — one line per group; a respondent with a missing code is in none.
+  A multiple-choice question cannot split (a respondent would be in several
+  lines), nor be the time.
 - **`band`** — the 95 % interval: Proportion CI's normal approximation, or the
-  mean's t interval, on Kish's effective base when the data is weighted.
-- **`min_base`** — a point with fewer respondents is drawn hollow, noted under
-  the chart and in the table's `Note` column.
+  mean's t interval, on Kish's effective base when the data is weighted. The
+  bands of up to four lines are drawn; more would hide one another and the
+  lines, so the chart says "No bands: the 95% intervals of 13 lines would hide
+  one another; the table gives each point's."
+- **`min_base`** — a percent or a mean of fewer respondents is drawn hollow,
+  noted under the chart and in the table's `Note` column. A count is its own
+  base: its points are never hollow, and its table has no `Note`.
 
 On weighted data the points, the band and the count are weighted and the table
 gains `Weighted base` and `Effective base`; the codebook's missing codes are
 left out of every base and named in the table's statistics.
+
+**Long labels, many lines, small figures.** The Trend is drawn as the Bar
+chart's newer forms are: every line has a colour of its own (past the
+palette's ten, lighter and darker ones); the value axis ticks whole percents,
+or separates thousands of a count or a mean (`20,000`); a period's label is
+level, wrapped to the room between two ticks, when every word fits it, and
+otherwise slanted in as many lines as fit — only then, and only as far as it
+must, is every second or third period named; the title and axis titles wrap to
+the plot; the legend sits beside the plot, or under it on a figure narrower
+than 7.5 inches or when it is taller than the plot; and a figure too small for
+its labels grows taller rather than squeeze the plot. Under the plot the chart
+says what its table says under itself:
+
+```
+Base: 3,790 respondents who answered (weighted: 4,646.0); 157 to 201 per point.
+Gaps: no respondents in 3 of 39 points.
+Hollow points: fewer than 30 respondents.
+Bands: 95% confidence intervals.
+Weighted by 'w'; the bases count respondents.
+Left out as missing: Satisfaction: 210 (9 = Don't know).
+Left out: 1 without created_at; 1 whose created_at is not a date (for example 'n/a').
+```
+
+The Trend draws its own chart, and its table is that chart's numbers: it is
+not a result for the Result chart (connecting it says `RESULT_NOT_DRAWABLE`).
 
 ```python
 chart = data.plot.trend("wave", variable="satisfaction", codes=[4, 5], by="segment")
@@ -445,7 +476,11 @@ data.plot.trend("created_at", period="week", measure="count").show()
 ```
 
 In a flow it is the **Trend** node (`visualize.trend`), with a `chart` and a
-`table` output — the table goes into a report section or a Live tile.
+`table` output — the table goes into a report section or a Live tile. The flow
+check says before the run what the questionnaire already settles and the run
+would refuse: the mean of a nominal or a multiple-choice question, a
+multiple-choice question as Time or Split by, and a missing code named among
+the Answer codes (`PARAM_CONFLICT`, in the run's words).
 
 ---
 

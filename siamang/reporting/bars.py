@@ -42,8 +42,8 @@ from siamang.reporting.chart_parts import (
     font_size,
     ink_on,
     left_out_note,
+    legend_below,
     percent_axis,
-    row_major,
     series_colours,
     text_width,
     thousands_axis,
@@ -649,7 +649,7 @@ def render(chart: BarChart, bars: Bars) -> None:
                 title_fontsize=10,
             )
         else:
-            below = _legend_below(fig, handles, names, bars.legend_title, figure_pt)
+            below = legend_below(fig, handles, names, bars.legend_title, figure_pt)
 
     footnote = Footnote(fig, bars.notes, legend=below, axes=ax)
     footnote.apply()
@@ -660,7 +660,7 @@ def render(chart: BarChart, bars: Bars) -> None:
             # Taller than the plot, it would run over the notes: under the plot.
             handles, names = ax.get_legend_handles_labels()
             side.remove()
-            footnote.legend = _legend_below(fig, handles, names, bars.legend_title, figure_pt)
+            footnote.legend = legend_below(fig, handles, names, bars.legend_title, figure_pt)
             footnote.apply()
     if horizontal:
         _fit_across(ax, footnote, bars.positions, figure_pt)
@@ -670,27 +670,6 @@ def render(chart: BarChart, bars: Bars) -> None:
     if chart.show_values:
         _write_values(ax, bars, colours, thickness, offsets, horizontal)
         footnote.apply()
-
-
-def _legend_below(
-    fig: Any, handles: list[Any], names: list[str], title: str, figure_pt: float
-) -> Any:
-    """A figure legend between the plot and the notes, in as many columns as
-    the figure's width holds, read row by row."""
-
-    names = [wrap(name, 18) for name in names]
-    entry_pt = max(text_width(name, 9.0) for name in names) + 30.0
-    columns = max(1, min(len(names), int((figure_pt - 20.0) // entry_pt)))
-    return fig.legend(
-        row_major(handles, columns),
-        row_major(names, columns),
-        title=wrap(title, chars_in(figure_pt - 20.0, 9.0)),
-        loc="lower center",
-        ncol=columns,
-        frameon=False,
-        fontsize=9,
-        title_fontsize=9,
-    )
 
 
 def _write_values(

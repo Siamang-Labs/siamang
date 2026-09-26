@@ -31,14 +31,15 @@ t interval, on Kish's effective base when weighted.
 
 The codebook's missing codes of Time, the measure and Split by are left out
 and counted, and so are rows without a time or whose text is not a date. A
-point whose base (respondents) is below ``min_base`` is drawn hollow and noted
-in the table.
+percent or a mean whose base (respondents) is below ``min_base`` is drawn
+hollow and noted in the table; a count is its own base. A multiple-choice
+question as Time or Split by — several groups for one respondent — is refused
+in a sentence.
 """
 
 from __future__ import annotations
 
 import math
-import textwrap
 from dataclasses import dataclass, field
 from statistics import NormalDist
 from typing import TYPE_CHECKING, Any
@@ -46,6 +47,17 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.reporting.chart_parts import (
+    Footnote,
+    axes_points,
+    chars_in,
+    font_size,
+    legend_below,
+    percent_axis,
+    series_colours,
+    thousands_axis,
+    wrap,
+)
 from siamang.reporting.charts import SurveyChart, _get_label, _get_value_labels, _require_matplotlib
 
 if TYPE_CHECKING:
@@ -67,6 +79,9 @@ MEASURES = ("percent", "mean", "count")
 
 #: More points than this is a period chosen too short for the span, not a chart.
 MAX_POINTS = 500
+#: The most lines drawn with their confidence bands: more bands hide one
+#: another and the lines, and the table gives each point's interval.
+MAX_BANDS = 4
 
 _FREQUENCIES = {"day": "D", "week": "W-SUN", "month": "M", "quarter": "Q", "year": "Y"}
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -143,6 +158,18 @@ def trend(
 
     from siamang.data import multi
     from siamang.data.inference import missing_codes_note, without_missing_codes
+
+    if multi.is_multi(frame[time]):
+        raise ValueError(
+            f"{_get_label(data, time)} holds multiple-choice answers (lists of codes), and Time "
+            "is one wave or one date per respondent: choose the wave's variable or a date."
+        )
+    if by and multi.is_multi(frame[by]):
+        raise ValueError(
+            f"Split by needs one answer per respondent, and {_get_label(data, by)} allows "
+            "several: split by one of its options after Explode multiple choice, or choose "
+            "another variable."
+        )
 
     columns = [name for name in (time, variable, by) if name]
     cleaned, left_out = without_missing_codes(frame, columns, data.variables)
@@ -269,7 +296,9 @@ def trend(
                     "group_label": label,
                     **point,
                     "base": base,
-                    "low": base < min_base,
+                    # A count is its own base: only a percent or a mean
+                    # moves by chance on a few respondents.
+                    "low": measure != "count" and base < min_base,
                 }
             )
     points = pd.DataFrame(
@@ -663,10 +692,23 @@ def _table(
         columns["Weighted base"] = points["weighted_base"].round(1)
         if measure != "count":
             columns["Effective base"] = points["effective_base"].round(1)
-    columns["Note"] = [
-        ("no respondents" if base == 0 else f"base below {min_base}") if low else ""
-        for base, low in zip(points["base"], points["low"], strict=True)
-    ]
+
+    def note(base: int, low: bool, total: float) -> str:
+        if base == 0:
+            return "no respondents"
+        parts = [f"base below {min_base}"] if low else []
+        if weighted and not total > 0:
+            # Respondents whose weights are all 0 give no weighted point.
+            parts.append("their weights sum to 0")
+        return "; ".join(parts)
+
+    if measure != "count":  # a count of 0 is a point, not a gap
+        columns["Note"] = [
+            note(base, low, total)
+            for base, low, total in zip(
+                points["base"], points["low"], points["weighted_base"], strict=True
+            )
+        ]
     return pd.DataFrame(columns)
 
 
@@ -706,9 +748,18 @@ class TrendChart(SurveyChart):
     """A measure over waves or dates, one line per group (:func:`trend`).
 
     ``table`` is the same points as a table — period × group with the measure,
-    its interval and the bases — for a report or the Live screen. A point with
-    fewer than ``min_base`` respondents is drawn hollow, and the band is the
-    ``confidence`` interval of each point (``band=False`` leaves it out).
+    its interval and the bases — for a report or the Live screen. A percent or
+    a mean of fewer than ``min_base`` respondents is drawn hollow, and the band
+    is the ``confidence`` interval of each point (``band=False`` leaves it out;
+    past ``MAX_BANDS`` lines the table gives the intervals instead).
+
+    The chart is drawn as the newer charts are (:mod:`siamang.reporting.chart_parts`):
+    a colour per line however many there are, whole percents or thousands
+    separated on the value axis, the period labels level or slanted as they fit
+    the plot, the title, axis titles and legend wrapped (the legend under the
+    plot on a narrow figure or when it is taller than the plot), and the base,
+    the weight and what was left out written under it — the figure growing
+    taller rather than squeezing the plot.
     """
 
     time: str = ""
@@ -755,29 +806,24 @@ class TrendChart(SurveyChart):
     def _build(self) -> None:
         _require_matplotlib()
         import matplotlib.pyplot as plt
-        from matplotlib.ticker import MaxNLocator, PercentFormatter
-
-        try:
-            import seaborn as sns
-        except ImportError:  # pragma: no cover - seaborn comes with the charts extra
-            sns = None
+        import seaborn as sns
 
         points = self.points
-        if sns:
-            sns.set_theme(style="whitegrid", palette=self.palette)
+        sns.set_theme(style="whitegrid", palette=self.palette)
         fig, ax = plt.subplots(figsize=self.figsize)
         self._fig, self._ax = fig, ax
+        figure_pt = self.figsize[0] * 72.0
 
         count = len(points.groups)
-        if sns:
-            colors = list(sns.color_palette(self.palette, max(count, 1)))
-        else:  # pragma: no cover
-            cycle = plt.rcParams["axes.prop_cycle"].by_code_text().get("color", ["C0"])
-            colors = [cycle[index % len(cycle)] for index in range(max(count, 1))]
+        # One colour per line, none repeated however many lines there are.
+        colours = series_colours(self.palette, max(count, 1))
         positions = np.arange(len(points.periods))
         # Many periods (a year by day) are a line; its markers shrink with them.
         dense = len(positions) > 40
         size = 34 if not dense else max(6.0, 34 * 40 / len(positions))
+        # The bands of many lines hide one another and the lines: past a few
+        # lines the table gives each point's interval instead.
+        banded = self.band and points.measure != "count" and count <= MAX_BANDS
         drawn_band = False
         for index, (code, label) in enumerate(points.groups):
             rows = points.points[
@@ -786,7 +832,7 @@ class TrendChart(SurveyChart):
                 else points.points["group"].isna()
             ].sort_values("position")
             value = rows["value"].to_numpy(dtype=float)
-            color = colors[index % len(colors)]
+            color = colours[index]
             ax.plot(
                 positions,
                 value,
@@ -808,7 +854,7 @@ class TrendChart(SurveyChart):
                 s=size,
                 zorder=3,
             )
-            if self.band and points.measure != "count":
+            if banded:
                 lower = rows["lower"].to_numpy(dtype=float)
                 upper = rows["upper"].to_numpy(dtype=float)
                 if np.isfinite(lower).any():
@@ -819,105 +865,223 @@ class TrendChart(SurveyChart):
                     )
                     drawn_band = True
 
-        self._axis(ax, points.periods)
-        if points.measure == "percent":
-            ax.yaxis.set_major_formatter(PercentFormatter(100, decimals=0))
-            top = np.nanmax(
-                np.concatenate(
-                    [points.points["value"].to_numpy(float), points.points["upper"].to_numpy(float)]
-                )
-            )
-            top = 100.0 if not np.isfinite(top) else min(100.0, max(10.0, top * 1.12))
-            ax.set_ylim(0, top)
-        elif points.measure == "count":
-            ax.set_ylim(bottom=0)
-            ax.yaxis.set_major_locator(MaxNLocator(integer=points.weight is None))
-        elif points.scale_codes:
-            low_code, high_code = points.scale_codes[0], points.scale_codes[-1]
-            shown_values = np.concatenate(
-                [points.points[column].to_numpy(float) for column in ("value", "lower", "upper")]
-            )
-            finite = shown_values[np.isfinite(shown_values)]
-            if finite.size and finite.min() >= low_code and finite.max() <= high_code:
-                pad = (high_code - low_code) * 0.04
-                ax.set_ylim(low_code - pad, high_code + pad)
+        ax.grid(False)
+        ax.grid(True, color="0.9", linewidth=0.8)
+        ax.set_axisbelow(True)
+        ax.set_xticks(positions)
+        ax.set_xlim(-0.5, len(positions) - 0.5)
+        self._value_axis(ax, points)
 
-        ylabel = points.ylabel
+        ylabel = {"percent": "% of respondents", "mean": "Mean", "count": "Respondents"}[
+            points.measure
+        ]
         if points.weight is not None:
             ylabel += " (weighted)"
             self._weighted()
-        ax.set_ylabel(ylabel)
-        ax.set_xlabel(_wrap(points.xlabel, 60))
         title = self._auto_title(*(part for part in (points.title, points.group_title) if part))
-        ax.set_title(_wrap(title, max(40, int(self.figsize[0] * 7))))
+
+        below = None
         if points.group_title is not None:
-            legend = ax.legend(
-                title=_wrap(points.group_title, 24),
-                loc="upper left",
-                bbox_to_anchor=(1.01, 1.0),
-                frameon=False,
-            )
-            for text in legend.get_texts():
-                text.set_text(_wrap(text.get_text(), 24))
+            handles, names = ax.get_legend_handles_labels()
+            if figure_pt >= 7.5 * 72.0:  # beside the plot, else under it
+                ax.legend(
+                    handles,
+                    [wrap(name, 24) for name in names],
+                    title=wrap(points.group_title, 24),
+                    loc="upper left",
+                    bbox_to_anchor=(1.01, 1.0),
+                    frameon=False,
+                    fontsize=10,
+                    title_fontsize=10,
+                )
+            else:
+                below = legend_below(fig, handles, names, points.group_title, figure_pt)
 
-        notes = []
-        if points.points["low"].any():
-            notes.append(f"Hollow points: fewer than {points.min_base} respondents.")
-        if drawn_band:
-            notes.append(f"Band: {points.confidence:.0%} confidence interval.")
-        if points.weight is not None:
-            notes.append(f"Weighted by '{points.weight}'.")
-        fig.tight_layout()
+        footnote = Footnote(
+            fig, _notes(points, count, drawn_band, self.band), legend=below, axes=ax
+        )
+        _fit_titles(ax, title, points.xlabel, ylabel)
         _fit_ticks(fig, ax, points.periods)
-        fig.tight_layout()
-        if notes:
-            fig.text(
-                0.01,
-                0.005,
-                " ".join(notes),
-                fontsize=8.5,
-                color="0.35",
-                ha="left",
-                va="bottom",
-            )
-            fig.tight_layout(rect=(0, 0.035, 1, 1))
+        footnote.apply()
+        side = ax.get_legend()
+        if side is not None:
+            renderer = fig.canvas.get_renderer()
+            if side.get_window_extent(renderer).height > ax.get_window_extent(renderer).height + 1:
+                # Taller than the plot, it would run over the notes: under the plot.
+                handles, names = ax.get_legend_handles_labels()
+                side.remove()
+                footnote.legend = legend_below(fig, handles, names, points.group_title, figure_pt)
+                footnote.apply()
+        for _ in range(2):  # fitted to the plot as it is laid out
+            _fit_ticks(fig, ax, points.periods)
+            _fit_titles(ax, title, points.xlabel, ylabel)
+            footnote.apply()
 
-    def _axis(self, ax: Any, periods: list[str]) -> None:
-        """One tick per period, labelled; :func:`_fit_ticks` makes them legible."""
-        ax.set_xticks(np.arange(len(periods)))
-        ax.set_xticklabels([_wrap(label, 12) for label in periods])
-        ax.set_xlim(-0.5, len(periods) - 0.5)
+    def _value_axis(self, ax: Any, points: TrendPoints) -> None:
+        """The value axis: whole percents from 0, a count from 0 with its
+        thousands separated, a mean on its scale's codes when it keeps to them."""
+        from matplotlib.ticker import MaxNLocator
+
+        values = np.concatenate(
+            [points.points[column].to_numpy(float) for column in ("value", "lower", "upper")]
+        )
+        finite = values[np.isfinite(values)]
+        if points.measure == "percent":
+            top = 100.0 if not finite.size else min(100.0, max(10.0, finite.max() * 1.12))
+            ax.set_ylim(0, top)
+            percent_axis(ax.yaxis)
+            return
+        thousands_axis(ax.yaxis)
+        if points.measure == "count":
+            ax.set_ylim(bottom=0)
+            if points.weight is None:
+                # As many ticks as the axis holds, on whole respondents.
+                ax.yaxis.set_major_locator(MaxNLocator(nbins="auto", integer=True))
+            return
+        if points.scale_codes and finite.size:
+            low_code, high_code = points.scale_codes[0], points.scale_codes[-1]
+            if finite.min() >= low_code and finite.max() <= high_code:
+                pad = (high_code - low_code) * 0.04
+                ax.set_ylim(low_code - pad, high_code + pad)
+
+
+def _notes(points: TrendPoints, count: int, drawn_band: bool, band: bool) -> list[str]:
+    """What the chart says under itself: the base, the hollow points, the
+    band, the weight and what was left out — as a table says under itself."""
+
+    frame = points.points
+    respondents = int(frame["base"].sum())
+    whom = "respondents" if points.measure == "count" else "respondents who answered"
+    base = f"Base: {respondents:,} {'respondent' if respondents == 1 else whom}"
+    if points.weight is not None:
+        base += f" (weighted: {float(np.nansum(frame['weighted_base'])):,.1f})"
+    sizes = frame.loc[frame["base"] > 0, "base"]
+    if points.measure != "count" and len(sizes) > 1:
+        low, high = int(sizes.min()), int(sizes.max())
+        base += f"; {low:,} per point" if low == high else f"; {low:,} to {high:,} per point"
+    notes = [base + "."]
+    empty = int((frame["base"] == 0).sum()) if points.measure != "count" else 0
+    if empty:
+        notes.append(f"Gaps: no respondents in {empty} of {len(frame)} points.")
+    if points.weight is not None and points.measure != "count":
+        weightless = int(((frame["base"] > 0) & ~(frame["weighted_base"] > 0)).sum())
+        if weightless:
+            notes.append(
+                f"Not drawn: {weightless} {'point' if weightless == 1 else 'points'} whose "
+                "respondents' weights sum to 0."
+            )
+    drawn = frame["low"] & frame["value"].notna()
+    if drawn.any():
+        notes.append(f"Hollow points: fewer than {points.min_base} respondents.")
+    level = f"{points.confidence:.0%}"
+    if drawn_band:
+        notes.append(
+            f"Band: {level} confidence interval."
+            if count == 1
+            else f"Bands: {level} confidence intervals."
+        )
+    elif band and points.measure != "count" and count > MAX_BANDS:
+        notes.append(
+            f"No bands: the {level} intervals of {count} lines would hide one another; the "
+            "table gives each point's."
+        )
+    if points.weight is not None:
+        notes.append(f"Weighted by '{points.weight}'; the bases count respondents.")
+    if points.stats.get("Missing codes left out"):
+        notes.append(f"Left out as missing: {points.stats['Missing codes left out']}.")
+    if points.stats.get("Left out"):
+        notes.append(f"Left out: {points.stats['Left out']}.")
+    return notes
+
+
+def _fit_titles(ax: Any, title: str, xlabel: str, ylabel: str) -> None:
+    """The title and the axis titles wrapped to the plot as it is laid out: a
+    question's label is longer than a plot is wide."""
+
+    width, height = axes_points(ax)
+    size = font_size("axes.labelsize")
+    ax.set_xlabel(wrap(xlabel, chars_in(width, size)))
+    ax.set_ylabel(wrap(ylabel, chars_in(height, size)))
+    # Centred over the plot, the title may reach as far to either side of its
+    # centre as the figure goes on the nearer one.
+    box = ax.get_position()
+    centre = (box.x0 + box.x1) / 2.0
+    room = 2.0 * min(centre, 1.0 - centre) * ax.figure.get_figwidth() * 72.0 - 8.0
+    ax.set_title(wrap(title, chars_in(max(room, width), font_size("axes.titlesize"))))
+
+
+#: A period label under the axis is at most this many lines, level; longer
+#: ones are slanted.
+LEVEL_LINES = 4
+#: A slanted period label is at most this many characters a line.
+SLANTED_WIDTH = 40
+#: The angle of a slanted period label, in degrees.
+SLANT = 40
 
 
 def _fit_ticks(fig: Any, ax: Any, periods: list[str]) -> None:
-    """The period labels as they fit the axis drawn: level and wrapped when
-    they do not touch; slanted otherwise, every one of them while their lines
-    stay apart and every second, third … when there are too many."""
+    """The period labels as they fit the axis drawn: level, each on as few
+    lines as the room between two ticks allows (measured, not guessed), when
+    every word fits it; slanted otherwise, in as many lines as fit between two
+    slanted neighbours — every label while they fit, else every second,
+    third … label."""
+
+    from matplotlib.font_manager import FontProperties
 
     count = len(periods)
     if count == 0:
         return
-    level = [_wrap(label, 12) for label in periods]
-    ax.set_xticklabels(level, rotation=0, ha="center")
-    fig.canvas.draw()
+    size = font_size("xtick.labelsize")
     renderer = fig.canvas.get_renderer()
-    boxes = [text.get_window_extent(renderer) for text in ax.get_xticklabels()]
-    if all(left.x1 + 4 <= right.x0 for left, right in zip(boxes, boxes[1:], strict=False)):
-        return
-    slanted = [_wrap(label, 34) for label in periods]
-    lines = max(label.count("\n") + 1 for label in slanted)
-    size = ax.get_xticklabels()[0].get_fontsize() * fig.dpi / 72
-    spacing = ax.get_window_extent(renderer).width / count
-    angle = math.radians(40)
-    step = max(1, math.ceil(lines * size * 1.25 / max(spacing * math.sin(angle), 1e-9)))
+    font = FontProperties(size=size)
+
+    def widest(text: str) -> float:
+        """The widest line of ``text`` as drawn, in points."""
+        return max(
+            renderer.get_text_width_height_descent(line, font, ismath=False)[0]
+            for line in text.split("\n")
+        ) * (72.0 / fig.dpi)
+
+    slot = axes_points(ax)[0] / count
+    room = slot - 6.0  # a gap between neighbours
+    ax.set_xticks(np.arange(count))
+    words = [word for label in periods for word in label.split()] or [""]
+    if max(widest(word) for word in dict.fromkeys(words)) <= room:
+        longest = max(len(label) for label in periods)
+        shortest = max(len(word) for word in words)
+        for width in range(longest, shortest - 1, -1):
+            level = [wrap(label, width) for label in periods]
+            if any(label.count("\n") >= LEVEL_LINES for label in level):
+                break  # narrower only adds lines
+            if all(widest(label) <= room for label in level):
+                ax.set_xticklabels(level, rotation=0, ha="center")
+                return
+    # Slanted, two labels ``step`` periods apart are step · slot · sin(angle)
+    # apart across their lines: that many lines fit, each of at most
+    # SLANTED_WIDTH characters.
+    across = math.sin(math.radians(SLANT))
+    step, slanted = count, [wrap(label, SLANTED_WIDTH) for label in periods]
+    for tried in range(1, count + 1):
+        lines = int(tried * slot * across / (size * 1.25))
+        fitted = _slanted(periods, lines) if lines >= 1 else None
+        if fitted is not None:
+            step, slanted = tried, fitted
+            break
     # Only the labelled periods keep a tick (and a grid line): a line per day
     # of a year is a grey wash, not a grid.
     shown = list(range(0, count, step))
     ax.set_xticks(shown)
     ax.set_xticklabels(
-        [slanted[index] for index in shown], rotation=40, ha="right", rotation_mode="anchor"
+        [slanted[index] for index in shown], rotation=SLANT, ha="right", rotation_mode="anchor"
     )
 
 
-def _wrap(text: str, width: int) -> str:
-    return "\n".join(textwrap.wrap(str(text), width=width, break_long_words=False)) or str(text)
+def _slanted(periods: list[str], lines: int) -> list[str] | None:
+    """The labels wrapped as narrowly (from 16 characters) as keeps each
+    within ``lines`` lines, or None when even SLANTED_WIDTH does not."""
+
+    for width in range(16, SLANTED_WIDTH + 1):
+        wrapped = [wrap(label, width) for label in periods]
+        if all(label.count("\n") < lines for label in wrapped):
+            return wrapped
+    return None

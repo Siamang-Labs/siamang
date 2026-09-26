@@ -271,6 +271,9 @@ def test_the_count_weighted_and_not():
     weighted = trend(data.with_weight("w"), "wave", measure="count")
     assert [_row(weighted, p)["value"] for p in weighted.periods] == [12.0, 4.0, 4.0]
     assert "Lower 95%" not in weighted.table.columns
+    # A count is its own base: no point of it is "low", and nothing needs a note.
+    assert not counts.points["low"].any() and "Low base" not in counts.stats
+    assert "Note" not in counts.table.columns
 
 
 def test_a_multiple_choice_question_counts_who_chose_any_of_the_codes():
@@ -301,6 +304,26 @@ def test_a_mean_of_a_nominal_variable_is_refused():
     frame = pd.DataFrame({"wave": [1, 2], "seg": [1, 2]})
     with pytest.raises(ValueError, match="Segment is nominal: its codes are names"):
         trend(_data(frame, WAVE, SEG), "wave", measure="mean", variable="seg")
+
+
+def test_a_multiple_choice_time_or_split_is_refused_in_a_sentence():
+    frame = pd.DataFrame({"wave": [1, 2], "sat": [4, 5], "aware": [[1, 2], [2]]})
+    aware = Variable("aware", "nominal", label="Aware", labels={1: "A", 2: "B"})
+    data = _data(frame, WAVE, SAT, aware)
+    with pytest.raises(ValueError, match="Split by needs one answer per respondent, and Aware"):
+        trend(data, "wave", variable="sat", codes=[4, 5], by="aware")
+    with pytest.raises(ValueError, match="Aware holds multiple-choice answers .* and Time is one"):
+        trend(data, "aware", measure="count")
+
+
+def test_a_point_whose_weights_sum_to_0_says_so():
+    frame = pd.DataFrame({"wave": [1, 1, 2, 2], "sat": [4, 1, 5, 2], "w": [1.0, 1.0, 0.0, 0.0]})
+    data = _data(frame, WAVE, SAT, Variable("w", "ratio")).with_weight("w")
+    points = trend(data, "wave", variable="sat", codes=[4, 5], min_base=1)
+    assert np.isnan(_row(points, "Summer")["value"])
+    assert list(points.table["Note"]) == ["", "their weights sum to 0"]
+    chart = data.plot.trend("wave", variable="sat", codes=[4, 5], min_base=1)
+    assert "Not drawn: 1 point whose respondents' weights sum to 0." in _notes_of(chart)
 
 
 def test_too_many_days_are_refused_with_the_way_out():
@@ -335,8 +358,140 @@ def test_the_chart_draws_hollow_points_and_hands_over_its_table(tmp_path):
         if len(collection.get_offsets()) and (collection.get_facecolors()[:, :3] == 1).all()
     ]
     assert hollow, "a low base is drawn hollow"
-    notes = " ".join(text.get_text() for text in chart._fig.texts)
-    assert "Hollow points: fewer than 2 respondents." in notes and "Weighted by 'w'." in notes
+    # Under the plot, what a table says under itself: the base, the hollow
+    # points, the bands, the weight and the missing codes left out.
+    assert _notes_of(chart) == [
+        "Base: 10 respondents who answered (weighted: 13.0); 1 to 3 per point.",
+        "Hollow points: fewer than 2 respondents.",
+        "Bands: 95% confidence intervals.",
+        "Weighted by 'w'; the bases count respondents.",
+        "Left out as missing: Satisfaction: 1 (9 = Don't know); Segment: 1 (99 = Refused).",
+    ]
+
+
+def _notes_of(chart) -> list[str]:
+    """The notes written under a chart, one per line (short enough not to wrap)."""
+    chart.plot()
+    return [line for text in chart._fig.texts for line in text.get_text().split("\n")]
+
+
+def _tracking(groups: int, waves: int = 4, n: int = 2400, seed: int = 2) -> SurveyData:
+    """Waves of a question split by ``groups`` segments with long names."""
+    rng = np.random.default_rng(seed)
+    labels = {code: f"Segment number {code} of the panel, as recruited" for code in range(1, 99)}
+    segment = Variable("seg", "nominal", label="Segment of the panel", labels=labels)
+    wave = Variable(
+        "wave",
+        "ordinal",
+        label="Wave",
+        labels={code: f"Wave {code}: the fieldwork of month {code}" for code in range(1, 99)},
+    )
+    frame = pd.DataFrame(
+        {
+            "wave": rng.integers(1, waves + 1, n),
+            "seg": rng.integers(1, groups + 1, n),
+            "sat": rng.choice([1, 2, 3, 4, 5], n, p=[0.3, 0.3, 0.3, 0.06, 0.04]),
+            "w": rng.choice([500.0, 1000.0, 1500.0], n),
+        }
+    )
+    return _data(frame, wave, SAT, segment, Variable("w", "ratio"))
+
+
+def _inside(figure, texts) -> bool:
+    """Whether every text is drawn within the figure's width and height."""
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    box = figure.bbox
+    return all(
+        box.x0 - 1 <= extent.x0 and extent.x1 <= box.x1 + 1 and box.y0 - 1 <= extent.y0
+        for text in texts
+        if text.get_text()
+        for extent in [text.get_window_extent(renderer)]
+    )
+
+
+def test_many_lines_never_share_a_colour_and_leave_their_bands_to_the_table():
+    pytest.importorskip("matplotlib")
+    from matplotlib.collections import PolyCollection
+
+    many = _tracking(13).plot.trend("wave", variable="sat", codes=[4, 5], by="seg")
+    ax = many.plot()
+    colours = {tuple(np.round(line.get_color(), 3)) for line in ax.get_lines()}
+    assert len(ax.get_lines()) == 13 and len(colours) == 13
+    # Thirteen bands would be a fog over the lines: the table keeps the intervals.
+    assert not [c for c in ax.collections if isinstance(c, PolyCollection)]
+    assert (
+        "No bands: the 95% intervals of 13 lines would hide one another; the table gives each "
+        "point's." in " ".join(" ".join(_notes_of(many)).split())
+    )
+    assert {"Lower 95%", "Upper 95%"} <= set(many.table.to_frame().columns)
+    few = _tracking(4).plot.trend("wave", variable="sat", codes=[4, 5], by="seg")
+    bands = [c for c in few.plot().collections if isinstance(c, PolyCollection)]
+    assert len(bands) == 4 and "Bands: 95% confidence intervals." in _notes_of(few)
+
+
+def test_the_value_axis_ticks_whole_percents_and_separates_thousands():
+    pytest.importorskip("matplotlib")
+    data = _tracking(1)
+    ax = data.plot.trend("wave", variable="sat", codes=5).plot()
+    # About 4 %: the axis runs to 10 %, its ticks on whole percents.
+    assert ax.get_ylim() == (0.0, 10.0)
+    ticks = [tick for tick in ax.yaxis.get_major_locator()() if 0 <= tick <= 10]
+    assert ticks and all(float(tick).is_integer() for tick in ticks)
+    assert ax.yaxis.get_major_formatter()(4, 0) == "4%"
+    weighted = data.with_weight("w").plot.trend("wave", measure="count")
+    axis = weighted.plot().yaxis
+    assert axis.get_major_formatter()(600000, 0) == "600,000"
+    assert "Base: 2,400 respondents (weighted: " in _notes_of(weighted)[0]
+
+
+def test_a_narrow_figure_grows_and_keeps_its_labels_inside():
+    pytest.importorskip("matplotlib")
+    from siamang.reporting.chart_parts import axes_points
+
+    chart = _tracking(3, waves=7).plot.trend(
+        "wave", variable="sat", codes=[4, 5], by="seg", figsize=(5, 3.5)
+    )
+    ax = chart.plot()
+    figure = chart._fig
+    # Too narrow for a legend beside the plot: under it, the figure grown
+    # taller so the plot keeps a readable height.
+    assert ax.get_legend() is None and len(figure.legends) == 1
+    assert figure.get_figheight() > 3.5 and axes_points(ax)[1] >= 109
+    # Every wave is named, and nothing runs past the figure.
+    assert len([label for label in ax.get_xticklabels() if label.get_text()]) == 7
+    texts = [ax.title, ax.xaxis.label, ax.yaxis.label, *ax.get_xticklabels(), *figure.texts]
+    assert _inside(figure, texts)
+    legend = figure.legends[0]
+    assert _inside(figure, [legend.get_title(), *legend.get_texts()])
+
+
+def test_a_legend_taller_than_the_plot_goes_under_it():
+    pytest.importorskip("matplotlib")
+    chart = _tracking(13).plot.trend("wave", variable="sat", codes=[4, 5], by="seg")
+    ax = chart.plot()
+    assert ax.get_legend() is None and len(chart._fig.legends) == 1
+    names = [text.get_text() for text in chart._fig.legends[0].get_texts()]
+    assert names[0] == "Segment number 1\nof the panel, as\nrecruited"  # wrapped
+    assert _inside(chart._fig, [*chart._fig.legends[0].get_texts(), ax.title])
+
+
+def test_period_labels_are_level_where_they_fit_and_slanted_where_not():
+    pytest.importorskip("matplotlib")
+    stamps = pd.date_range("2026-01-01", "2026-12-31", freq="D", tz="UTC")
+    frame = pd.DataFrame({"at": stamps.astype(str), "sat": np.resize([1, 4, 5], len(stamps))})
+    data = _data(frame, SAT)
+    wide = data.plot.trend("at", variable="sat", codes=[4, 5], figsize=(12, 5)).plot()
+    labels = wide.get_xticklabels()
+    assert len(labels) == 12 and {label.get_rotation() for label in labels} == {0.0}
+    assert labels[0].get_text() in ("Jan 2026", "Jan\n2026")
+    narrow = data.plot.trend("at", variable="sat", codes=[4, 5], figsize=(3.5, 3)).plot()
+    turned = narrow.get_xticklabels()
+    assert {label.get_rotation() for label in turned} == {40.0}
+    # By day, a label on every day would be a smear: every n-th day is named.
+    days = data.plot.trend("at", period="day", measure="count").plot()
+    shown = [label.get_text() for label in days.get_xticklabels()]
+    assert shown[0] == "2026-01-01" and 10 < len(shown) < 60
 
 
 # ── the node ───────────────────────────────────────────────────────────────
@@ -411,6 +566,9 @@ def test_the_node_is_registered_with_its_parameters():
     assert not spec.reads("codes", {"measure": "mean"})
     assert not spec.reads("variable", {"measure": "count"})
     assert not spec.reads("band", {"measure": "count"})
+    # A count is its own base: Minimum base is not read with it.
+    assert spec.reads("min_base", {"measure": "mean"})
+    assert not spec.reads("min_base", {"measure": "count"})
     help_text = default_registry().get("prepare.apply_weight").params["column"].help
     weighted, _unweighted = help_text.split("Unweighted, and saying so:")
     assert "Trend" in weighted
@@ -437,6 +595,75 @@ def test_check_flow_knows_the_response_timestamps_and_the_rules(questionnaire_do
     assert [i.code for i in check_flow(flow, questionnaire=questionnaire_doc)] == [
         "UNKNOWN_VARIABLE"
     ]
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        (
+            {"measure": "mean", "variable": "region", "codes": None},
+            "trend: Region is nominal: its codes are names, not amounts, so their mean says "
+            "nothing. Track the percent choosing an answer instead (Measure = percent).",
+        ),
+        (
+            {"measure": "mean", "variable": "aware", "codes": None},
+            "trend: Brands heard of (unaided) holds multiple-choice answers (lists of codes), "
+            "which have no mean. Track the percent choosing an answer instead (Measure = "
+            "percent).",
+        ),
+        (
+            {"by": "aware"},
+            "trend: Split by needs one answer per respondent, and Brands heard of (unaided) "
+            "allows several: split by one of its options after Explode multiple choice, or "
+            "choose another variable.",
+        ),
+        (
+            {"time": "aware", "measure": "count", "variable": None, "codes": None},
+            "trend: Brands heard of (unaided) holds multiple-choice answers (lists of codes), "
+            "and Time is one wave or one date per respondent: choose the wave's variable or a "
+            "date.",
+        ),
+        (
+            {"variable": "trust_acme", "codes": [4, 9]},
+            "trend: 9 (Refused) is a missing code of Trust: Acme, not an answer: missing codes "
+            "are left out of the base. Name an answer.",
+        ),
+    ],
+)
+def test_check_flow_names_what_the_run_refuses(questionnaire_doc, survey, params, message):
+    """The run's refusals, said on the canvas before it — in the run's words."""
+    from siamang.flow import check_flow
+
+    flow = _trend_flow(params)
+    issues = check_flow(flow, questionnaire=questionnaire_doc)
+    assert [(issue.severity, issue.code, issue.message) for issue in issues] == [
+        ("error", "PARAM_CONFLICT", message)
+    ]
+    given = flow["nodes"][1]["params"]
+    with pytest.raises(ValueError) as refused:
+        trend(
+            _responses(survey),
+            given["time"],
+            measure=given.get("measure", "percent"),
+            variable=given["variable"],
+            codes=given["codes"],
+            by=given["by"],
+        )
+    assert str(refused.value) == message.removeprefix("trend: ")
+
+
+def test_a_result_chart_does_not_redraw_the_trends_table(questionnaire_doc):
+    """The Trend draws its own chart; its table is the chart's numbers, not a
+    result for the Result chart to draw again."""
+    from siamang.flow import check_flow
+
+    flow = _trend_flow()
+    flow["nodes"].append({"id": "again", "type": "visualize.result_chart", "params": {}})
+    flow["edges"].append(
+        {"from": {"node": "trend", "port": "table"}, "to": {"node": "again", "port": "result"}}
+    )
+    codes = [issue.code for issue in check_flow(flow, questionnaire=questionnaire_doc)]
+    assert codes == ["RESULT_NOT_DRAWABLE"]
 
 
 def test_the_node_runs_and_its_script_reproduces_it(questionnaire_doc, survey, tmp_path):

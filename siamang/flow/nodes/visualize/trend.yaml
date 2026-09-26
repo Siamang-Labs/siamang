@@ -58,7 +58,7 @@ params:
     default: 30
     minimum: 1
     label: Minimum base
-    help: A point with fewer respondents than this is drawn hollow and noted in the table.
+    help: A percent or a mean of fewer respondents than this is drawn hollow and noted in the table. Not used for the count, which is its own base.
   title:
     kind: string
     label: Title
@@ -140,7 +140,6 @@ template:
         period={period!r},
         measure="count",
         by={by!r},
-        min_base={min_base!r},
         title={title!r},
         figsize=({width!r}, {height!r}),
         palette={palette!r},

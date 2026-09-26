@@ -235,6 +235,8 @@ def check_flow(
             issues.extend(
                 _check_bar_answers(node_id, spec, node.get("params") or {}, questionnaire)
             )
+        if spec.type == "visualize.trend" and questionnaire is not None:
+            issues.extend(_check_trend(node_id, spec, node.get("params") or {}, questionnaire))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -1062,24 +1064,37 @@ def _answers(payload: dict[str, Any]) -> list[tuple[str, str]]:
     leaves out); a bare code or a mapping keyed by code in ``missing`` is read
     as well."""
 
-    from siamang.model.document import _parse_code_key
-
-    raw = payload.get("missing")
-    if isinstance(raw, dict):
-        missing = [_parse_code_key(code) for code in raw]
-    elif isinstance(raw, list):
-        missing = [item.get("code") if isinstance(item, dict) else item for item in raw]
-    else:
-        missing = []
-    values = payload.get("missing_values")
-    if isinstance(values, list):
-        missing += values
-    left_out = {_code_text(code) for code in missing}
+    left_out = _missing_codes(payload)
     return [
         (_code_text(code), label)
         for code, label in _labelled(payload.get("labels"))
         if _code_text(code) not in left_out
     ]
+
+
+def _missing_codes(payload: dict[str, Any]) -> dict[str, str | None]:
+    """A codebook variable's missing codes, as the codebook writes each (3,
+    not 3.0), with its label where the document gives one (see :func:`_answers`
+    for the forms read)."""
+
+    from siamang.model.document import _parse_code_key
+
+    raw = payload.get("missing")
+    found: dict[str, str | None] = {}
+    if isinstance(raw, dict):
+        for code, label in raw.items():
+            found[_code_text(_parse_code_key(code))] = label if isinstance(label, str) else None
+    elif isinstance(raw, list):
+        for item in raw:
+            code = item.get("code") if isinstance(item, dict) else item
+            label = item.get("label") if isinstance(item, dict) else None
+            found[_code_text(code)] = label if isinstance(label, str) else None
+    values = payload.get("missing_values")
+    if isinstance(values, list):
+        for code in values:
+            found.setdefault(_code_text(code), None)
+    labels = dict((_code_text(code), label) for code, label in _labelled(payload.get("labels")))
+    return {code: label or labels.get(code) for code, label in found.items()}
 
 
 def _param_problem(param: ParamSpec, value: Any) -> str | None:
@@ -1366,6 +1381,69 @@ def _check_bar_answers(
             f"{label(drawn)} allows several answers, so its options overlap and cannot be "
             "stacked: draw them side by side (Layout = grouped)."
         )
+    return (
+        [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)] if message else []
+    )
+
+
+def _check_trend(
+    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any]
+) -> list[FlowIssue]:
+    """What a Trend refuses when it runs (``siamang.reporting.trend.trend``)
+    and the questionnaire already settles: a multiple-choice question as Time
+    or Split by, the mean of a nominal or multiple-choice question, a missing
+    code named as an Answer code. Variables the codebook does not hold (made
+    upstream, or a response time) are the run's to check."""
+
+    params = resolved_params(spec, given)
+    variables = questionnaire.get("variables") or {}
+    asked = _asked_by(questionnaire)
+
+    def several(name: Any) -> bool:
+        return isinstance(name, str) and (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS
+
+    def label(name: str) -> str:
+        return str((variables.get(name) or {}).get("label") or name)
+
+    time, by, measure = params.get("time"), params.get("by"), params.get("measure")
+    variable, codes = params.get("variable"), params.get("codes")
+    message = None
+    if several(time):
+        message = (
+            f"{label(time)} holds multiple-choice answers (lists of codes), and Time is one wave "
+            "or one date per respondent: choose the wave's variable or a date."
+        )
+    elif several(by):
+        message = (
+            f"Split by needs one answer per respondent, and {label(by)} allows several: split "
+            "by one of its options after Explode multiple choice, or choose another variable."
+        )
+    elif measure == "mean" and several(variable):
+        message = (
+            f"{label(variable)} holds multiple-choice answers (lists of codes), which have no "
+            "mean. Track the percent choosing an answer instead (Measure = percent)."
+        )
+    elif (
+        measure == "mean"
+        and isinstance(variable, str)
+        and (variables.get(variable) or {}).get("scale") == "nominal"
+    ):
+        message = (
+            f"{label(variable)} is nominal: its codes are names, not amounts, so their mean "
+            "says nothing. Track the percent choosing an answer instead (Measure = percent)."
+        )
+    elif measure == "percent" and isinstance(variable, str) and variable in variables:
+        missing = _missing_codes(variables[variable])
+        named_codes = codes if isinstance(codes, list) else [] if unset(codes) else [codes]
+        for code in named_codes:
+            text = _code_text(code)
+            if text in missing:
+                named = f"{text} ({missing[text]})" if missing[text] else text
+                message = (
+                    f"{named} is a missing code of {label(variable)}, not an answer: missing "
+                    "codes are left out of the base. Name an answer."
+                )
+                break
     return (
         [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)] if message else []
     )
