@@ -68,14 +68,17 @@ class DataAnalysis:
         return result
 
     def mean(self, column: str, weighted: bool = False) -> float:
-        values = self.frame[column].dropna().astype(float)
-        if values.empty:
+        # By position: the weights of the rows answered are picked with the same
+        # mask, as a repeated index label would pull in every row sharing it.
+        present = self.frame[column].notna().to_numpy()
+        values = self.frame[column][present].astype(float).to_numpy()
+        if not len(values):
             return 0.0
         if not weighted:
             return float(values.mean())
         if self.weight_column is None:
             raise ValueError("weighted=True requires SurveyData.weight to be set.")
-        weights = self.frame.loc[values.index, self.weight_column].astype(float)
+        weights = self.frame[self.weight_column][present].astype(float).to_numpy()
         weight_sum = float(weights.sum())
         if weight_sum <= 0:
             return 0.0

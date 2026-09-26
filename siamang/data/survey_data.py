@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from siamang.core.expression import Expression
@@ -230,8 +231,14 @@ class SurveyData:
                 "n_unique": int(series.nunique(dropna=True)) if series.shape[0] else 0,
             }
             if weights is not None:
-                valid = series.notna() if series.shape[0] else pd.Series(dtype=bool)
-                row["weighted_n_valid"] = round(float(weights[valid[valid].index].sum()), 1)
+                # By position: selecting the weights by the answered rows' labels
+                # counted a repeated index label once per row sharing it.
+                valid = (
+                    series.notna().to_numpy()
+                    if series.shape[0]
+                    else np.zeros(len(weights), dtype=bool)
+                )
+                row["weighted_n_valid"] = round(float(weights[valid].sum()), 1)
             rows.append(row)
         return pd.DataFrame(rows)
 

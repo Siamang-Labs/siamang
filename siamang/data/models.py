@@ -101,12 +101,17 @@ def _numeric_items(
     the same with or without the weight.
     """
 
-    data = frame[items].apply(pd.to_numeric, errors="coerce").dropna()
+    numeric = frame[items].apply(pd.to_numeric, errors="coerce")
+    # The complete rows by position: their weights are picked with the same
+    # mask, not by label, which on a repeated index label pulls in every row
+    # sharing it (more weights than rows).
+    complete = numeric.notna().all(axis=1).to_numpy()
+    data = numeric[complete]
     if weight is None:
         return data, None
     if weight not in frame.columns:
         raise KeyError(f"column not found: {weight!r}")
-    weights = pd.to_numeric(frame.loc[data.index, weight], errors="coerce").fillna(0.0)
+    weights = pd.to_numeric(frame[weight], errors="coerce")[complete].fillna(0.0)
     values = weights.to_numpy(dtype=float)
     if np.any(values < 0):
         raise ValueError(f"The weight column {weight!r} has negative values.")
@@ -373,7 +378,8 @@ def kmeans(
     if k < 2:
         raise ValueError("kmeans needs k >= 2.")
     numeric = frame[items].apply(pd.to_numeric, errors="coerce")
-    complete = numeric.dropna()
+    mask = numeric.notna().all(axis=1).to_numpy()
+    complete = numeric[mask]
     if len(complete) < k:
         raise ValueError("kmeans: fewer complete rows than clusters.")
     matrix = complete.to_numpy(dtype=float)
@@ -407,8 +413,11 @@ def kmeans(
     order = np.argsort(-np.bincount(labels, minlength=k), kind="stable")
     rank = {old: new + 1 for new, old in enumerate(order)}
     numbered = np.array([rank[label] for label in labels])
-    series = pd.Series(np.nan, index=frame.index, dtype=float)
-    series.loc[complete.index] = numbered
+    # Placed by position: by label, a repeated index label is a row per
+    # respondent sharing it, and the assignment failed on the lengths.
+    placed = np.full(len(frame), np.nan)
+    placed[mask] = numbered
+    series = pd.Series(placed, index=frame.index, dtype=float)
     rows = []
     for cluster in range(1, k + 1):
         members = matrix[numbered == cluster]
