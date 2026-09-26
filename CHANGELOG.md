@@ -412,7 +412,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`Listwise.mask`). So are k-means' clusters (the same error), the weights of
   weighted PCA and reliability (a matmul of 12 weights against 6 rows), the
   weighted `analysis.mean` and `describe_variables()`' `weighted_n_valid`, which
-  counted each weight once per row sharing its label.
+  counted each weight once per row sharing its label. The weighted mean counts
+  a missing or non-numeric weight 0, as the rest do: picked by position, the
+  weights were summed by numpy, and one answered row without a weight made
+  the mean `nan`.
 
 - **A Parquet snapshot gives back its multiple-choice lists.** pandas reads a
   list stored in Parquet as a numpy array, and `read_snapshot` passed it on as
