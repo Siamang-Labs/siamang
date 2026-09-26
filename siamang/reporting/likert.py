@@ -38,6 +38,7 @@ from siamang.reporting.chart_parts import (
     font_size,
     ink_on,
     left_out_note,
+    percent_axis,
     row_major,
     text_width,
     wrap,
@@ -220,7 +221,7 @@ class LikertChart(SurveyChart):
             aside.set_axisbelow(True)
             top = float(np.max(shares[:, position[scale.neutral]]))
             aside.set_xlim(0, max(10.0, np.ceil(top * 1.35 / 10.0) * 10.0))
-            aside.xaxis.set_major_formatter(_percent_formatter())
+            percent_axis(aside.xaxis)  # whole percents: 2.5 is not "2%"
             aside.set_title(wrap(scale.labels[scale.neutral], 14), fontsize=10)
             aside.tick_params(axis="y", left=False)
 
@@ -445,12 +446,6 @@ def _colours(palette: str, scale: Scale) -> dict[Any, Any]:
     if scale.neutral is not None:
         by_code[scale.neutral] = NEUTRAL_GREY
     return by_code
-
-
-def _percent_formatter() -> Any:
-    from matplotlib.ticker import FuncFormatter
-
-    return FuncFormatter(lambda value, _position: f"{value:.0f}%")
 
 
 def _count(chart: LikertChart, columns: list[str], scale: Scale) -> dict[str, Any]:

@@ -346,3 +346,37 @@ def test_the_likert_node_checks_generates_and_runs(questionnaire_doc, tmp_path):
     assert chart.plot().get_title() == "Trust"
     assert chart.table["Item"].tolist() in (["Acme", "Globex"], ["Globex", "Acme"])
     assert "(9 = Refused)" in _footnote(chart)
+
+
+def test_the_neutral_panel_labels_every_tick_with_its_own_value():
+    """The panel of the neutral answer at 16 inches printed 2.5 as "2%" and
+    7.5 as "8%"; its ticks fall on whole percents."""
+
+    rng = np.random.default_rng(1)
+    items = [f"i{k}" for k in range(4)]
+    frame = pd.DataFrame(
+        {
+            item: rng.choice([1, 2, 3, 4, 5], size=400, p=[0.3, 0.2, 0.04, 0.2, 0.26])
+            for item in items
+        }
+    ).astype(float)
+    variables = VariableMap()
+    labels = {1: "SD", 2: "D", 3: "N", 4: "A", 5: "SA"}
+    variables.add_many([Variable(i, "ordinal", label=f"Item {i}", labels=labels) for i in items])
+    data = SurveyData(frame=frame, variables=variables)
+    for size in ((16, 6), (8, 5)):
+        chart = data.plot.likert(items, neutral="side", figsize=size)
+        chart.plot().figure.canvas.draw()
+        aside = chart._fig.axes[1]
+        low, high = aside.get_xlim()
+        ticks = [
+            (float(tick), label.get_text())
+            for tick, label in zip(aside.get_xticks(), aside.get_xticklabels(), strict=True)
+            if low <= tick <= high
+        ]
+        assert len(ticks) >= 2
+        assert all(text == f"{value:.0f}%" and value == int(value) for value, text in ticks)
+        renderer = chart._fig.canvas.get_renderer()
+        boxes = [label.get_window_extent(renderer) for label in aside.get_xticklabels()]
+        boxes = [box for box in boxes if box.width > 0]
+        assert all(a.x1 <= b.x0 for a, b in zip(boxes, boxes[1:], strict=False))
