@@ -157,6 +157,20 @@ def test_reader_router_reads_parquet(tmp_path):
     loaded = SurveyDataReader().read(tmp_path / "r.parquet")
     assert len(loaded.frame) == 4 and loaded.variables is None
 
+    # A multiple-choice list comes back a list, as read_snapshot gives it: an
+    # array was not multi.is_multi and Explode failed on its truth value.
+    import pandas as pd
+
+    from siamang.data import SurveyData, multi
+
+    lists = SurveyData(frame=pd.DataFrame({"aware": [[1, 3], [2], None], "x": [1, 2, 3]}))
+    write_snapshot(lists, tmp_path / "l.parquet", dictionary=False)
+    back = SurveyDataReader().read(tmp_path / "l.parquet")
+    assert back.frame["aware"].tolist() == [[1, 3], [2], None]
+    assert multi.is_multi(back.frame["aware"])
+    exploded = back.explode_multi("aware").frame
+    assert exploded[["aware_1", "aware_2", "aware_3"]].values.tolist()[:2] == [[1, 0, 1], [0, 1, 0]]
+
 
 def test_sav_and_dta_store_list_answers_next_to_missing_ones(tmp_path):
     """A multiple-choice list and a ranking mixed with respondents who never

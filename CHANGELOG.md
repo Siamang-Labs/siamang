@@ -418,7 +418,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   list stored in Parquet as a numpy array, and `read_snapshot` passed it on as
   one, so `multi.is_multi` was false and a generated script run with `--data
   …parquet` failed at Explode ("the truth value of an array … is ambiguous").
-  The arrays become the lists they were written as.
+  The arrays become the lists they were written as — in `read_snapshot` and in
+  `SurveyDataReader().read("….parquet")`, the reader the library documents.
 
 - **A factor score a rule did not keep is empty, not a KeyError.** With
   Factors empty and Add factor scores on, `check_flow` lets a later node name
