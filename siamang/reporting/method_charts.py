@@ -226,16 +226,18 @@ def _draw_ordinal(frame: Any, chart: ResultChart, stats: dict[str, Any]) -> str:
     table's own (R's ``exp(confint.default(fit))``). The thresholds are where
     the scale is cut, not an effect of anything, so they are left out."""
     coefficients = frame[frame["type"].astype(str) == "coefficient"]
-    _forest(coefficients, chart, stats)
+    coefficients.attrs = dict(frame.attrs)
     order = stats.get("order")
-    _mark_note(
-        chart._ax,
-        "An odds ratio above 1 makes the higher answers more likely"
+    _forest(
+        coefficients,
+        chart,
+        stats,
+        note="An odds ratio above 1 makes the higher answers more likely"
         + (f" ({order})" if order else "")
         + "; the thresholds between the answers are in the table.",
-        chart._size,
     )
     outcome = stats.get("outcome")
+    outcome = (frame.attrs.get("labels") or {}).get(str(outcome), outcome) if outcome else outcome
     return f"Ordinal logit: odds ratios{f' — {outcome}' if outcome else ''}"
 
 

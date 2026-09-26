@@ -389,7 +389,7 @@ def test_an_ordinal_logit_draws_its_odds_ratios_without_the_thresholds():
         segments = sorted((y0, x0, x1) for (x0, y0), (x1, _) in whiskers.get_segments())
         assert [s[1] for s in segments] == pytest.approx(list(table["odds_ratio_lower"][:2]))
         assert [s[2] for s in segments] == pytest.approx(list(table["odds_ratio_upper"][:2]))
-        assert _title(chart) == "Ordinal logit: odds ratios — y"
+        assert _title(chart) == "Ordinal logit: odds ratios — Satisfaction"  # the label
         note = " ".join(" ".join(text.get_text() for text in ax.texts).split())
         assert (
             "An odds ratio above 1 makes the higher answers more likely "
@@ -501,7 +501,7 @@ def test_the_new_results_are_checked_generated_and_drawn_weighted(
         ), node
         assert _title(chart).endswith(note), node
     assert _title(result.output("c_at")).startswith("Awareness by region\n")
-    assert _ticks(result.output("c_ord")._ax) == ["trust_acme", "age"]
+    assert _ticks(result.output("c_ord")._ax) == ["Trust: Acme", "Age"]  # by label
     # What each output draws, as the check reads it, is what the run draws.
     for node, kind, params, ports, _ in ANALYSES:
         spec = default_registry().get(kind)

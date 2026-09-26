@@ -506,15 +506,17 @@ class DataAnalysis:
     def pca(self, items: list[str], *, n_components: int | None = None, standardize: bool = True):
         """Principal components, of the weighted matrix when the data is weighted;
         see :func:`siamang.data.models.pca`."""
-        from siamang.data.models import pca
+        from siamang.data.models import labelled, pca
 
-        return pca(
+        result = pca(
             self.frame,
             items,
             n_components=n_components,
             standardize=standardize,
             weight=self.weight_column,
         )
+        labelled(result.loadings, list(items), self.variables)  # for a chart's rows
+        return result
 
     def reliability(self, items: list[str]):
         """Cronbach's alpha, weighted when the data is; see

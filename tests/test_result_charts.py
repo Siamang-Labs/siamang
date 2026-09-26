@@ -154,7 +154,9 @@ def test_group_means_draws_each_mean_with_its_interval(tmp_path):
     chart = rc.chart(table)
     ax = chart._ax
     assert chart.drawn == "means" and chart.weight_note is None
-    assert _ticks(ax) == ["Alpha", "Beta", "Gamma"]  # the table's order, top down
+    # The table's order, top down, each with its base: an interval is read
+    # with the number of answers behind it.
+    assert _ticks(ax) == ["Alpha (n = 6)", "Beta (n = 7)", "Gamma (n = 4)"]
     means = table.to_frame()["Mean"].tolist()
     assert [x for x, _ in sorted(_points(ax), key=lambda p: p[1])] == means
     whiskers = _whiskers(ax)
@@ -255,7 +257,11 @@ def test_descriptives_draw_one_series_per_group():
     ax = chart._ax
     assert _ticks(ax) == ["Score", "Twice the score"]
     legend = ax.get_legend()
-    assert [text.get_text() for text in legend.get_texts()] == ["Alpha", "Beta", "Gamma"]
+    assert [text.get_text() for text in legend.get_texts()] == [
+        "Alpha (n = 6)",
+        "Beta (n = 7)",
+        "Gamma (n = 4)",
+    ]
     assert legend.get_title().get_text() == "Group"
     assert len(_points(ax)) == 6  # two variables, three groups
     assert _whiskers(ax)[0][1:] == pytest.approx((2.70080170952, 7.29919829048), rel=1e-8)
@@ -271,7 +277,7 @@ def test_ttest_charts_the_groups_measurements_or_the_test_value():
     two = data.frame[data.frame["g"] != 3]
     independent = SurveyData(frame=two, variables=data.variables).report.ttest("y", by="g")
     chart = rc.chart(independent)
-    assert _ticks(chart._ax) == ["Alpha", "Beta"]
+    assert _ticks(chart._ax) == ["Alpha (n = 6)", "Beta (n = 7)"]
     assert chart._ax.get_title(loc="left").startswith("Score by Group")
     assert _whiskers(chart._ax)[0][1:] == pytest.approx((2.70080170952, 7.29919829048), abs=1e-3)
     assert any("Welch" in text for text in _texts(chart._ax))
@@ -283,7 +289,7 @@ def test_ttest_charts_the_groups_measurements_or_the_test_value():
     ]
     frame = pd.DataFrame({"a": [1.0, 2, 3, 4, 5], "b": [2.0, 2, 4, 5, 7]})
     pairs = rc.chart(SurveyData(frame=frame).report.ttest("a", kind="paired", other="b"))
-    assert _ticks(pairs._ax) == ["a", "b"]  # the difference is the test's, in the note
+    assert _ticks(pairs._ax) == ["a (n = 5)", "b (n = 5)"]  # the difference is in the note
 
 
 def test_paired_tests_draw_the_measurements_and_mcnemars_shares():
@@ -691,7 +697,7 @@ def test_two_variables_with_one_label_stay_two_rows():
     variables.add(Variable("a", "interval", label="Trust"))
     variables.add(Variable("b", "interval", label="Trust"))
     chart = rc.chart(SurveyData(frame=frame, variables=variables).report.descriptives(["a", "b"]))
-    assert _ticks(chart._ax) == ["Trust (a)", "Trust (b)"]
+    assert _ticks(chart._ax) == ["Trust (a) (n = 3)", "Trust (b) (n = 3)"]
     assert [x for x, _ in sorted(_points(chart._ax), key=lambda p: p[1])] == [2.0, 3.333]
 
 
@@ -895,3 +901,56 @@ def test_the_reach_curve_names_what_each_size_adds_by_its_label():
     chart = rc.chart(best)
     assert [tick.replace("\n", " ") for tick in _ticks(chart._ax, "x")] == ["1 a", "2 a new set"]
     assert any("The best portfolios of 2: b, c." in text for text in _texts(chart._ax))
+
+
+# ─── labels and bases ────────────────────────────────────────────────────────
+
+
+def test_model_charts_name_their_terms_by_label_and_say_their_base():
+    """A regression's forest read "z1…z14" and "Regression coefficients:
+    score"; a PCA's loadings and a cluster profile of the table alone read
+    "feel_rested"; nothing said the base or what region was compared with."""
+    rng = np.random.default_rng(3)
+    frame = pd.DataFrame(
+        {
+            "x1": rng.normal(size=90),
+            "region": np.repeat([1, 2, 3], 30),
+        }
+    )
+    frame["y"] = 1 + 2 * frame["x1"] + (frame["region"] == 2) + rng.normal(size=90)
+    variables = VariableMap()
+    variables.add(Variable("x1", "interval", label="Hours online"))
+    variables.add(
+        Variable("region", "nominal", label="Region", labels={1: "North", 2: "South", 3: "West"})
+    )
+    variables.add(Variable("y", "interval", label="Wellbeing score"))
+    data = SurveyData(frame=frame, variables=variables)
+    model = data.analysis.regression("y", ["x1", "region"])
+    assert list(model.table["term"]) == ["(intercept)", "x1", "region = South", "region = West"]
+    for chart in (rc.chart([model.table, model.stats]), rc.chart(model)):
+        assert _ticks(chart._ax) == ["Hours online", "Region = South", "Region = West"]
+        assert chart._ax.get_title(loc="left") == "Regression coefficients: Wellbeing score"
+        note = " ".join(_texts(chart._ax))
+        assert "N = 90 respondents in the model; compared with Region = North." in note
+    # The table alone does not know its base, and says what it compares with.
+    alone = " ".join(_texts(rc.chart(model.table)._ax))
+    assert "Compared with Region = North." in alone and "N = " not in alone
+
+    items = _items_data()
+    pca = items.analysis.pca([f"i{j}" for j in range(6)])
+    assert _ticks(rc.chart(pca.loadings)._ax)[0] == "Item 0: a statement to agree with"
+    clusters = items.cluster([f"i{j}" for j in range(4)], k=3)
+    assert _ticks(rc.chart(clusters.centroids)._ax)[0] == "Item 0: a statement to agree with"
+
+
+def test_charts_of_choice_and_correlation_say_their_base():
+    data = _items_data()
+    table = data.report.correlation_matrix(["i0", "i1", "i2"], method="pearson")
+    texts = " ".join(_texts(rc.chart(table)._ax))
+    assert "N = 300 (pairwise)." in texts
+    variables = VariableMap()
+    variables.add(Variable("why", "nominal", label="Why did you choose us?", dtype="str"))
+    themes = SurveyData(
+        frame=pd.DataFrame({"why": ["slow", "dear", "slow"]}), variables=variables
+    ).report.themes(_codeframe())
+    assert rc.chart(themes)._ax.get_title(loc="left") == "Themes: Why did you choose us?"

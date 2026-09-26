@@ -187,6 +187,7 @@ def regression(
         result = _logit(x, target, w, names, y, len(data), positive=positive)
     else:
         result = _ols(x, target, w, names, y, len(data))
+    describe_terms(result.table, data, y, predictors, variables)
     if weight:
         result.stats["weight"] = weight
         # The table says it too: a chart of it alone must not show it unweighted.
@@ -509,3 +510,41 @@ def reliability(
     if weight:
         stats["weight"] = weight
     return ReliabilityResult(alpha=alpha, items=pd.DataFrame(rows), stats=stats)
+
+
+def describe_terms(
+    table: pd.DataFrame,
+    data: pd.DataFrame,
+    y: str,
+    predictors: list[str],
+    variables: VariableMap | None,
+) -> None:
+    """Put in ``table.attrs`` what a chart of it names things by: ``labels``,
+    the codebook's label of ``y`` and of each predictor, and ``reference``,
+    the level each nominal predictor's other levels are compared with (its
+    first, as :func:`design_matrix` codes it). The table prints as before."""
+
+    labels = {
+        name: variables[name].label
+        for name in [y, *predictors]
+        if variables is not None and name in variables and variables[name].label
+    }
+    reference = {}
+    for name in predictors:
+        series = data[name]
+        if _is_categorical(name, variables, series):
+            levels = sorted(series.dropna().unique(), key=lambda v: (str(type(v)), v))
+            if levels:
+                reference[name] = _label_of(name, levels[0], variables)
+    table.attrs["labels"] = labels
+    table.attrs["reference"] = reference
+
+
+def labelled(frame: pd.DataFrame, names: list[str], variables: VariableMap | None) -> None:
+    """Put the codebook's labels of ``names`` in ``frame.attrs["labels"]``."""
+
+    frame.attrs["labels"] = {
+        name: variables[name].label
+        for name in names
+        if variables is not None and name in variables and variables[name].label
+    }

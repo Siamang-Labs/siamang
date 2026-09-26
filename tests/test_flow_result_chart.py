@@ -450,6 +450,14 @@ def test_maxdiff_conjoint_and_shares_are_drawn_from_their_tables(tmp_path):
     )
     worths = result.output("c_pw")
     assert len(worths._ax.patches) == len(parts)  # one bar per level
+    # Each attribute's levels in the design's order, whatever their worth.
+    ticks = [label.get_text() for label in worths._ax.get_yticklabels()]
+    prices = [tick.split(": ")[1] for tick in ticks if tick.startswith("price")]
+    brands = [tick.split(": ")[1] for tick in ticks if tick.startswith("brand")]
+    assert prices == ["10", "15", "20"] and brands == ["Acme", "Globex", "Initech"]
+    # Each chart says its base.
+    for chart in (utilities, scores, importance, worths):
+        assert any(text.get_text().startswith("Base: 160 respondents") for text in chart._ax.texts)
     assert len({bar.get_facecolor() for bar in worths._ax.patches}) == 2  # one colour per attribute
     shares = result.output("c_sh")
     frame = result.output("sh", "table").to_frame()
