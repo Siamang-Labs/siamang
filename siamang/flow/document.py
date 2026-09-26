@@ -1436,23 +1436,40 @@ def _check_bar_answers(
     from siamang.reporting.bars import MAX_VALUES
 
     values = _whole_values(variables.get(drawn) or {}) if isinstance(drawn, str) else None
-    # (Split by takes a nominal or ordinal variable only: its parameter says so.)
+    top = params.get("top")
+    top = top if isinstance(top, int) and not isinstance(top, bool) and top >= 1 else None
+    # The chart this node has always drawn (its first fragment) draws every
+    # value as it always did, and Top N draws only the N given most. (Split by
+    # takes a nominal or ordinal variable only: its parameter says so.)
+    classic = (
+        params.get("show") == "count"
+        and unset(params.get("split"))
+        and params.get("sort") == "code"
+        and layout not in ("histogram", "donut")
+        and top is None
+        and params.get("intervals") is not True
+    )
     if (
-        values is not None
-        and values > MAX_VALUES
-        and layout != "histogram"
-        and unset(params.get("by"))
+        values is None
+        or min(values, top or values) <= MAX_VALUES
+        or classic
+        or layout == "histogram"
+        or not unset(params.get("by"))
     ):
-        return [
-            FlowIssue(
-                "warning",
-                "PARAM_CONFLICT",
-                f"{node_id}: {label(drawn)} is a number of up to {values:,} values, and bars "
-                "draw each value given: Layout histogram draws its distribution.",
-                node_id,
-            )
-        ]
-    return []
+        return []
+    if top is not None:
+        message = (
+            f"{label(drawn)} is a number of up to {values:,} values, and Top N draws "
+            f"{'a slice' if layout == 'donut' else 'a bar'} for each of the {top} given most: "
+            f"set Top N to {MAX_VALUES} or fewer, or Layout histogram draws its distribution."
+        )
+    else:
+        drawing = "a donut draws a slice for" if layout == "donut" else "bars draw"
+        message = (
+            f"{label(drawn)} is a number of up to {values:,} values, and {drawing} each value "
+            "given: Layout histogram draws its distribution."
+        )
+    return [FlowIssue("warning", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)]
 
 
 def _check_tabbook(

@@ -776,9 +776,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with Bands).` (`Split by Age is … a group for each: band it first (Bands) to
   compare its ranges.`); `check_flow` warns when the codebook's valid range
   holds more than 30 whole numbers (`Age is a number of up to 84 values, and
-  bars draw each value given: Layout histogram draws its distribution.`) — a
+  bars draw each value given: Layout histogram draws its distribution.`; `… a
+  donut draws a slice for each value given …`) — a
   range of [0, 29.5] or [0.5, 30.5] holds 30 and is not warned of. The
-  classic chart is drawn as it always was.
+  classic chart is drawn as it always was, and `check_flow` does not warn of
+  it. With `top` only the N values given most are drawn, so N is what counts:
+  `top=5` draws five ages and Other, their steps of the scale taken among the
+  five (among all 84 neighbours read as one colour); past 30, `… and top=31
+  draws a bar for each of the 31 given most: give top=30 or fewer, or
+  layout='histogram' draws its distribution …` (`check_flow`: `… and Top N
+  draws a bar for each of the 31 given most: set Top N to 30 or fewer, or
+  Layout histogram draws its distribution.`).
 
 - **Nothing to draw is said.** Percent bars of a variable nobody answered (every
   answer a missing code) drew an empty axis ticked `−0%`; they say `No
