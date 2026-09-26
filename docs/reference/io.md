@@ -199,7 +199,7 @@ text format turned into floats come back as nullable `Int64`.
 `write_snapshot(data, path, *, dictionary=True, **write_kwargs)` writes the
 data file in the format of the suffix and the dictionary when `data` has
 variable metadata. Parquet needs `pip install "siamang[parquet]"`.
-`SurveyDataReader` also accepts `.parquet`.
+`SurveyDataReader` also accepts `.parquet`, and gives multiple-choice answers back as lists, as `read_snapshot` does.
 
 ---
 

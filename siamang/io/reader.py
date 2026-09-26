@@ -26,5 +26,11 @@ class SurveyDataReader:
         if suffix == ".parquet":
             import pandas as pd
 
-            return SurveyData(pd.read_parquet(p, **kwargs))
+            from siamang.io.snapshot import _lists_back
+
+            # pandas reads a list stored in Parquet as a numpy array, which no
+            # multiple-choice helper takes for a list (Explode failed on "the
+            # truth value of an array is ambiguous"): back to lists, as
+            # read_snapshot gives them.
+            return SurveyData(_lists_back(pd.read_parquet(p, **kwargs)))
         raise ValueError(f"Unsupported file format: {suffix}")
