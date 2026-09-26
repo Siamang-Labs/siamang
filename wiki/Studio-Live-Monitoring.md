@@ -182,8 +182,8 @@ The flow then appears under **Live tiles** with its tiles.
 |---|---|
 | **number** | one formatted number |
 | **stat** | a list of named values (e.g. mean, sd, n) |
-| **table** | the connected table |
-| **chart** | the connected chart as an image |
+| **table** | the connected table — a **Trend**'s `table` gives its points with their intervals and bases |
+| **chart** | the connected chart as an image — any chart node's: a Likert chart of a battery, a **Trend** of the weeks so far, or the Result chart of an analysis (means with their intervals, a TURF reach curve) as the run drew it. A chart whose **Palette** is `theme` is drawn in the look of the flow's **Save report**, so the tile shows the colors the report does — in the default chart colors when the flow's **Save report** nodes do not all name the same look |
 | **text** | the value as text |
 
 Numbers show up to three decimals; a number smaller than 0.001 — a p-value,
@@ -321,6 +321,14 @@ an "n = …" number tile. Share the public link; it updates as the field runs
 **Sanity checks.** A frequency tile for each screener variable catches routing
 mistakes within the first fifty interviews — far cheaper than discovering them
 at analysis.
+
+**Tracking tiles.** A **Trend** node on the cleaned data — **Time**
+`created_at`, **Period** `week` — with a **Live tile** of **Kind** `chart`
+shows the field week by week: **Measure** `count` for completes per week, or
+`percent` of the top-2 answers of a key question, **Split by** a quota
+variable for a line per cell. Each recompute adds the new week's point;
+points under the **Minimum base** are drawn hollow until they fill.
+→ [Trend](Studio-Node-Reference#trend)
 
 ## See also
 

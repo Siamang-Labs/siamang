@@ -21,13 +21,13 @@ are not addresses to paste into the survey's theme or text.
    assets/panel_wave1.sav
  report.html                  212.4 KB   9/20/2026          [download] [delete]
    outputs/tables/report.html
- fig_1.png                    31.0 KB    9/20/2026          [download] [delete]
-   outputs/tables/fig_1.png
+ report_fig_1.png             31.0 KB    9/20/2026          [download] [delete]
+   outputs/tables/report_fig_1.png
 ```
 
 | Column | Shows |
 |---|---|
-| **Name** | the file name, with its stored path underneath (for example `assets/panel_wave1.sav` for an upload, `outputs/tables/fig_1.png` for a run output), and an icon for images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`), reports (`.md`, `.html`) and other files |
+| **Name** | the file name, with its stored path underneath (for example `assets/panel_wave1.sav` for an upload, `outputs/tables/report_fig_1.png` for a run output), and an icon for images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`), reports (`.md`, `.html`) and other files |
 | **Size** | the stored size |
 | **Updated** | the date the file first appeared under that path (replacing a file keeps the original date) |
 
@@ -44,8 +44,8 @@ for a flow to read, a sample) and the outputs your flows produce show up
 here." — with **Upload a file**.
 
 Because the stored path is shown under each name, two files with the same name
-from different flows (`outputs/tables/fig_1.png`, `outputs/brand/fig_1.png`)
-can be told apart in the list.
+from different flows (`outputs/tables/report_fig_1.png`,
+`outputs/brand/report_fig_1.png`) can be told apart in the list.
 
 ## Upload a file
 

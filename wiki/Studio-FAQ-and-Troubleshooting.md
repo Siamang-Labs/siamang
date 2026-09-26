@@ -540,8 +540,10 @@ or Kruskal-Wallis for ordinal — or runs the one you name: `student`,
 `welch`, `anova`, `welch_anova`, `mannwhitney`, `kruskal` — and after
 `anova`, `welch_anova` or `kruskal`, a post-hoc comparison of every pair. Rank tests are
 also in **Compare groups** (with Dunn's test), paired ones in **Paired tests**
-(Wilcoxon, McNemar, Friedman), Fisher's exact test in **Crosstab**, and
-Pearson, Spearman or Kendall in **Correlation** and **Correlation matrix**.
+(Wilcoxon, McNemar, Friedman, Cochran's Q), Fisher's exact test in
+**Crosstab**, and Pearson, Spearman or Kendall in **Correlation** and
+**Correlation matrix**. For an ordered outcome there is **Regression** with
+**Model** `ordinal`.
 → [Which test](Studio-Node-Reference#analyze)
 
 **"Tukey's HSD follows a one-way ANOVA — set Test to anova, or Post-hoc to none."**
@@ -589,11 +591,188 @@ dropdowns list the answers of **Groups**), or use **Group means** with
 refused because its groups overlap: run **Explode multiple choice** and
 compare by one option's 0/1 column.
 
-**My research bundle stops at a t-test (or Export file) node.**
+**A Result chart says "Kind 'scree' does not suit the table output of …".**
+A Result chart draws what the connected output holds: a Group means table has
+means, not eigenvalues. The message names what that output draws, and when
+another output of the same analysis draws the kind you chose it says so —
+"Kind 'scree' does not suit the loadings output of Principal components (p),
+which draws 'loadings'; its variance output draws 'scree'." — so connect that
+one. Leave **Kind** at `auto` and the chart draws the first kind the result
+suits; the inspector lists them under the field and marks the others "(not
+for this result)". → [Result chart](Studio-Node-Reference#result-chart)
+
+**"A Result chart cannot draw the table output of Frequencies (…)".**
+A Result chart draws the results of analyses — means, tests, TURF, MaxDiff,
+factor analyses, regressions, key drivers, maps, prices (the message lists
+them all). A frequency table is a distribution: draw it with a **Bar chart**
+(**Show** `percent`), from the data. "The stat output of Regression (r) only
+tells a chart its weight and base; connect the output it draws, table, too."
+means the same: connect the analysis's table as well.
+
+**A Likert chart says "The items of a Likert chart must share one scale, and these do not: …".**
+A diverging bar needs one middle, so every item needs the same answers — the
+same value labels in the codebook, missing codes aside. The message names
+both scales. Draw the items of each scale in their own chart, or recode them
+onto one scale first; recode a scale that runs high to low (1 = Strongly
+agree) so that it runs low to high. A multiple-choice item, or items with no
+value labels, no whole-number valid range and no Likert scale question behind
+them, are refused the same way. → [Likert chart](Studio-Node-Reference#likert-chart)
+
+**"Split by needs one answer per respondent, and … allows several: …".**
+A **Bar chart** split into groups needs each respondent in one group. Draw
+the multiple-choice question as the **Variable** and split it by a
+single-answer question instead, or split by one of its options after
+**Explode multiple choice**. A multiple-choice **Variable** can be split, but
+its options overlap, so they are drawn side by side (**Layout** `grouped`),
+never stacked. → [Bar chart](Studio-Node-Reference#bar-chart)
+
+**My Bar chart looks different since I changed Sort (or Show).**
+At the defaults — **Show** `count`, no **Split by**, **Sort** `code`, no
+**Top N**, **Confidence intervals** off, a bar layout — the Bar chart is the
+one it has always been. Any other setting (a histogram and a donut too)
+draws the newer chart: its own colors, the base and notes under the plot,
+and the codebook's missing codes left out (the classic chart draws a
+"Refused" as a bar). Set them back to their defaults for the classic chart.
+
+**My Bar chart shows no significance letters.**
+Letters are drawn on a chart split into groups, in percentages, side by side:
+**Split by** set, **Show** `percent`, **Layout** `grouped` — the rules on the
+node say which is missing ("Significance letters compare the groups of Split
+by — set Split by.", "… compare percentages, as the Banner table's do — set
+Show to percent.", "… are drawn on bars side by side (Layout grouped), not on
+stacks."). With all three, the note under the chart says why a bar has none:
+"No group's share of any answer is significantly higher than another's.", or
+"Not tested, fewer than 30 respondents who answered: …" for a small group.
+→ [Bar chart](Studio-Node-Reference#bar-chart)
+
+**The letters on my Bar chart differ from the tab book's.**
+The comparisons are the same; the letters are not. The chart letters the
+groups of its **Split by** A, B, C, …; a tab book letters every column of its
+banner in one run — A–C for gender, then D–F for region — so its letters
+match the chart's only when **Split by** is the banner's first variable. A
+**Banner table** can differ in its numbers too: it counts a missing code as
+an answer and tests on everyone in a column, while the chart and the tab book
+leave missing codes out and test on those who answered.
+
+**"bins: The bins' edges must increase from one to the next, …".**
+A histogram's **Bins** is `auto`, a number of bins from 1 to 100, or the
+edges in increasing order, separated by commas: `18, 25, 35, 50, 65, 100`.
+The field suggests all three as you type. A histogram of a nominal or ordinal
+question is refused ("A histogram draws the distribution of a number, and
+Region is nominal: draw its answers as bars (Layout = grouped).") — draw it as
+bars. → [Bar chart](Studio-Node-Reference#bar-chart)
+
+**"Age is a number with 84 different values given, and this chart draws a bar for each: …".**
+Percent bars, a split or a donut draw a bar or a slice per value, and refuse
+a number of more than 30 values. Set **Layout** `histogram`, cut it into
+ranges with **Bands** first and draw the bands, or set **Top N** to 30 or
+fewer to draw only the values given most (a Top N over 30 says "… and top=40
+draws a bar for each of the 40 given most: give top=30 or fewer, …"). The
+check warns before the run when the codebook's valid range holds more than 30
+whole numbers ("Age is a number of up to 84 values, and bars draw each value
+given: …"); it does not warn of the chart of the defaults (Show count, no
+Split by, Sort code), which draws every value as it always did.
+
+**My Trend has no `created_at` to pick.**
+It is at the end of the **Time** dropdown, under **Beside the answers**, with
+`updated_at` and `started_at` — the timestamps the survey's responses carry,
+which the codebook does not list. (There is no `submitted_at`: Studio's
+responses do not have one, and the check calls it an unknown variable.) A flow
+that reads an uploaded file or simulated data has them only when the data has
+those columns: the node warns ("time: "created_at" is a timestamp of the
+survey's responses, and this node reads Data file: the run stops unless that
+data has a column created_at. …"), and the run stops with "The data has no
+column 'created_at' to read Time from." when it does not.
+→ [Trend](Studio-Node-Reference#trend)
+
+**"created_at spans 905 days: too many points for one chart. Choose a longer Period."**
+A Trend draws at most 500 points. Two and a half years by day is more; by
+week or month it fits. A **Time** of more than 500 different codes ("… has
+731 different values: not wave codes. …") is not a wave variable — pick the
+wave's variable or a date.
+
+**My Trend's points are hollow, or the bands are gone.**
+A point with fewer respondents than **Minimum base** (30) is drawn hollow and
+without its band, and its table row says "base below 30"; the table still
+gives its interval. With more than four lines the bands would hide one
+another, so none is drawn ("No bands: the 95% intervals of 5 lines would hide
+one another; the table gives each point's.") and each line's points take a
+shape of their own. Use a longer **Period**, fewer groups, or the table.
+
+**"9 (Refused) is a missing code of Trust: Acme, not an answer: …".**
+A Trend's **Answer codes** are answers; a missing code is left out of every
+base. Tick the answers you track — `4` and `5` for a top-2 box. The checklist
+does not offer missing codes; this appears for a code typed or stored before.
+
+**Where is my tab book?**
+A run of the flow writes it to the node's **Path** and keeps it as
+`outputs/<flow>/tabbook.xlsx`: on the **Reports** screen as **Tab book**
+(with an **Excel** button), in **Files** and on the run's card. A preview
+runs the node but keeps no file ("Not kept: a preview never keeps the files
+nodes write. …"), and a **Path** outside `outputs/` is not kept at all.
+→ [Tab books](Studio-Reports#tab-books)
+
+**My tab book left a question out.**
+The Contents and Notes sheets say why, as does the node's statistic
+(**Skipped**): with **Questions** empty, open answers and rankings are left
+out, and so are interval and ratio questions (name them for their means); a
+question nobody answered, or one of more than 30 different answers without
+answer labels that is not a number, is left out whatever you name. Tick the question in
+**Questions**, code an open answer first (**Code open answers**), or derive a
+ranking's first choice (**Derive**).
+→ [Tab book (Excel)](Studio-Node-Reference#tab-book-excel)
+
+**"… holds multiple-choice answers, and a banner column is a group of respondents that no one else is in. …".**
+A tab book's banner columns must not overlap. Run **Explode multiple choice**
+and use the 0/1 column of each option you want as a banner variable, or
+choose another variable.
+
+**My charts do not take the report's colors.**
+Only a chart whose **Palette** is `theme` (a **Heatmap**'s **Color map**
+`theme`) takes the **Chart colors** of its **Save report**'s **Look**; a
+named palette keeps its own. A chart in two reports takes each report's
+colors in that report. On its node's preview and on a Live tile it is drawn
+in the flow's **Save report** look — in the default colors when the flow has
+no **Save report**, or several with different looks. The house style reaches
+a flow only when it is stamped into its **Save report** node (**Use the house
+style**, **Apply to every flow**). → [Chart colors](Studio-Reports#chart-colors)
+
+**"theme: chart_text_color: '#cccccc' on the charts' white background has a contrast of 1.6:1; …".**
+The **Look**'s chart colors must read on white: text at 4.5:1 or more, a bar
+or a line at 1.3:1 or more. Pick a darker shade; a color checker shows the
+ratio. The node names each problem — a color that is not hex (`#2a78d6`),
+fewer than 2 or more than 12 series colors, a color given twice, two equal
+diverging ends. → [Chart colors](Studio-Reports#chart-colors)
+
+**Regression says "Region is nominal: its answers (…) have no order, …".**
+**Model** `ordinal` is for ordered answers — dissatisfied to satisfied. A
+nominal outcome has no order, and the model would take one from its codes.
+Use `logit` for an outcome of two answers, or make an ordered variable with
+**Recode** (**Scale** `ordinal`) first. The check says so before the run; for
+a variable a node of the flow makes nominal, it is a warning and the run
+refuses it. → [Regression](Studio-Node-Reference#regression)
+
+**Where are my report's tables in Excel?**
+Tick **Also Excel** in the Report view (the **Save report** node's **Also
+save tables to Excel**) and run the flow (or **Run all**): `<report>.xlsx` is
+written beside the report — on the Reports screen under **Excel**, in
+**Files**, and among the run's outputs. A run without the box does not delete
+an earlier one, so the **Excel** button then offers the workbook of the
+flow's last run that wrote it: tick the box and run again to bring it up to
+date. → [Tables in Excel](Studio-Reports#tables-in-excel)
+
+**My research bundle stops at a t-test, Export file, Result chart, Trend or Tab book node.**
 The bundle's engine pin may lag behind Studio: at the last merged upstream
-commit, the new statistics nodes, every **Export file** and **Code open
-answers** node, and a test chosen by hand stop with an error. The bundle's
-README says so; install the engine revision it names.
+commit, the new statistics nodes, **Key drivers**, **Perceptual map**,
+**Price sensitivity**, the **Likert chart**, the **Result chart**, the
+**Trend** and the **Tab book (Excel)**, every **Export file**, **Code open
+answers** and **TURF** node, a **Bar chart** with **Show** `percent`,
+**Split by**, **Sort** `value`, **Top N**, **Confidence intervals** or
+**Layout** `histogram` or `donut`, a **Heatmap** with Pearson or Kendall, a
+chart whose **Palette** (a Heatmap's **Color map**) is `theme`, a **Save
+report** whose **Look** names chart colors, Regression's `ordinal` model,
+**Save report**'s tables in Excel and a test chosen by hand stop with an
+error. The bundle's README says so; install the engine revision it names.
 → [Installing the engine](Studio-Reproducibility#installing-the-engine)
 
 **The report is empty or missing.**

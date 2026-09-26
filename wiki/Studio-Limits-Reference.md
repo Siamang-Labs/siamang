@@ -148,6 +148,23 @@ went.
 | Factor analysis | at least 3 items and more respondents than items; parallel analysis draws 100 random data sets (95th percentile); maximum likelihood is started from 14 fixed points |
 | Data check | up to 5 example values per problem, then "… (N more)" |
 | TURF exhaustive search (**Search** `best`) | up to 200,000 combinations; beyond, the run stops and suggests a smaller portfolio, fewer options or `greedy` |
+| Key drivers | at least 2 drivers; the Shapley value (**Importance** `shapley`) for at most 15 — Johnson's relative weights for more |
+| Significance letters (Banner table, Bar chart, Tab book) | a column or group of fewer than 30 respondents is not tested (the Bar chart and the Tab book count those who answered the question); **Level** 0.001–0.2 |
+
+## Charts, tab books and report colors
+
+| Item | Limit |
+|---|---|
+| Figure size | 2–30 inches each way (10 × 6 by default); a chart whose labels need more room grows taller |
+| Bar chart, newer forms | a number of more than 30 different values given is refused as bars, a split or a donut (a histogram draws it); with **Top N**, up to 30 of its values given most are drawn |
+| Bar chart **Top N** | 1–100 answers |
+| Bar chart **Bins** | at most 100 bins; a number of bins from 1 to 100 |
+| Bar chart **Confidence** | 0.5–0.999 (0.95 by default) |
+| Donut **Other below (%)** | 0–50 % (3 by default) |
+| Trend | at most 500 points: the periods from the first date to the last, or the wave codes; bands for up to 4 lines (more lines: marker shapes, the table keeps the intervals); **Minimum base** 30 by default |
+| Tab book | a banner variable of at most 30 different values; a question without answer labels of at most 30 different answers (a number shows its mean instead); sheet names cut to Excel's 31 characters; the letters as above |
+| Likert chart scale | from value labels, or a valid range of 2 to 11 whole numbers |
+| Chart colors (a report's **Look**) | **Series** 2–12 hex colors, none twice; a series or **Magnitude** color at least 1.3:1 on white; **Chart text** at least 4.5:1 |
 
 ## Open-answer coding with AI
 

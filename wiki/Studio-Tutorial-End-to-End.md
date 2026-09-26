@@ -317,9 +317,12 @@ Response quality `table` (counts per quality flag) to the Report section's
 > **Descriptive statistics** (not N, skewness or kurtosis), **Banner
 > table**, **Net Promoter Score**, **Regression**, **TURF**, **MaxDiff**,
 > **Conjoint**, **Share of preference**, **Principal components**, **Scale
-> reliability**, **Correlation** and **Correlation matrix** with Pearson,
-> **Bar chart**, **Heatmap** with **By**, and **Proportion CI** with
-> **Weighted** ticked. A Banner table is used here for its significance letters; a
+> reliability**, **Key drivers**, **Perceptual map** (its chi-square test
+> counts respondents), **Price sensitivity**, **Correlation** and
+> **Correlation matrix** with Pearson, **Bar chart**, **Heatmap** with **By**
+> or with Pearson, **Likert chart**, **Proportion CI** with **Weighted**
+> ticked, **Trend** and **Tab book (Excel)**; a **Result chart** follows the
+> result it draws. A Banner table is used here for its significance letters; a
 > **Crosstab** (**Rows** `satisfaction`, **Columns** `region`, **Percentages**
 > `col`) would also give weighted column percentages, with a chi-square test
 > on the effective base instead of letters. The **Bar chart** here, with
@@ -327,7 +330,7 @@ Response quality `table` (counts per quality flag) to the Report section's
 > reads "Weighted mean …"). **Compare groups**, **Correlation** and
 > **Correlation matrix** with Spearman or Kendall, **t-test**, **Paired
 > tests**, **Factor analysis**, **Cluster (k-means)**, **Box plot**,
-> **Scatter plot**, a **Heatmap** without **By**, **Response quality**,
+> **Scatter plot**, a Spearman or Kendall **Heatmap**, **Response quality**,
 > **Code open answers**, **Data check**, and the counts of **MaxDiff scores**
 > and **Bands** stay unweighted and say so in their output. See
 > [Making tables and tests use the weight](Studio-Cleaning-and-Weighting#making-tables-and-tests-use-the-weight).

@@ -131,7 +131,7 @@ ten more, up to the 50 most recent runs.
 │ ● success   flow   #412                              23 Sep, 09:13     │
 │ ✓ Queued ── ✓ Run ── ✓ Done      ran in 0m 34s                        │
 │ tables · Save #17                                                      │
-│ [tables.md  4.1 KB] [tables.html  88 KB] [fig_3.png  31 KB]            │
+│ [tables.md  4.1 KB] [tables.html  88 KB] [tables_fig_3.png  31 KB]     │
 │ › View logs                               [Re-run] [Open flow →]      │
 └───────────────────────────────────────────────────────────────────────┘
 ```
@@ -310,9 +310,9 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
 │   Responses  │                                   ↓               │ Rows · Columns · …     │
 │   …          │                            [Report section]       │ Instant (SQL)          │
 │ › Prepare 16 │                                   ↓               │ Preview   ▶ Run to here│
-│ › Analyze 23 │                              [Save report]        │ Connections            │
-│ › Visualize 4│                                                   │ Comments               │
-│ › Output   7 │   [+ − ⤢]                              minimap    │ Checks 0 errors · …    │
+│ › Analyze 26 │                              [Save report]        │ Connections            │
+│ › Visualize 7│                                                   │ Comments               │
+│ › Output   8 │   [+ − ⤢]                              minimap    │ Checks 0 errors · …    │
 └──────────────┴──────────────────────────────────────────────────┴────────────────────────┘
 ```
 
@@ -350,14 +350,17 @@ The inspector keeps its width (drag the divider) per browser.
 ### The palette
 
 Nodes grouped as **Sources**, **Prepare**, **Analyze**, **Visualize** and
-**Output**, each with a count — 4, 16, 23, 4 and 7, 54 nodes in all. Only
+**Output**, each with a count — 4, 16, 26, 7 and 8, 61 nodes in all. Only
 **Sources** is open at first; the groups you open stay open in this browser.
 The search box **Find node…** matches the title, the short name and the
 description, and also the labels of a node's parameters and the choices they
-offer — so "tukey" finds **Group means**, "wilcoxon" **Paired tests** and
-"kendall" **Correlation** and **Correlation matrix** — and opens every group
-with a match. The List view's node picker (`Ctrl/Cmd + K`) searches the same
-way.
+offer, with their names — so "tukey" finds **Group means**, "wilcoxon" and
+"cochran" **Paired tests**, "kendall" **Correlation**, **Correlation matrix**
+and **Heatmap**, "shapley" **Key drivers**, "gabor" **Price sensitivity**,
+"stacked to 100", "donut" and "histogram" the **Bar chart**, "iso week" the
+**Trend** and "tab book" or "banner" the **Tab book (Excel)** — and opens every
+group with a match. The
+List view's node picker (`Ctrl/Cmd + K`) searches the same way.
 Each item shows the title and a short name (`crosstab`), plus `· platform` for
 nodes that need the project database. Hover an item for its description.
 
@@ -382,8 +385,9 @@ name and type.
 - An input that takes one connection keeps only the newest: connecting
   another source to it **replaces** the old wire.
 - Inputs that take several (a **Report section**'s items, **Save report**'s
-  sections) keep them in the order you connect them — which is the order in
-  the report.
+  sections, a **Result chart**'s result — an analysis's table and its
+  statistics) keep them in the order you connect them — for the report nodes,
+  the order in the report.
 - To remove a wire, use **remove** next to it in the inspector's
   **Connections** (or **disconnect** in the List view).
 
@@ -476,10 +480,34 @@ value labels — `Capital region (1)` — so you pick the meaning, not the code.
 
 Where a node asks for an **answer** of a variable — a **t-test**'s **Group
 A** and **Group B** (answers of **Groups**), **Paired tests**' **Counts as
-yes (McNemar)**, **Proportion CI**'s **Answer code** — the field lists that
-variable's value labels (`1 — Male`), including the bands a **Bands** node
-made. **MaxDiff scores** lists the questionnaire's MaxDiff questions.
-Mappings, weighting targets and other codes are typed as JSON
+yes (McNemar, Cochran's Q)**, a **Perceptual map**'s **Counts as yes
+(attributes)**, **Price sensitivity**'s **Counts as would buy**,
+**Proportion CI**'s **Answer code**, a **Trend**'s **Answer codes** — the
+field lists that variable's value labels (`1 — Male`; for a list of
+variables, the first one's), including the bands a **Bands** node made; the
+t-test's groups and the Trend's codes leave its missing codes out.
+
+A field that can read columns the codebook does not describe lists them last,
+under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the
+survey's responses carry — `created_at — Response date (created_at)`,
+`updated_at — Last change (updated_at)` and `started_at — Start time
+(started_at)` — and the checks know them. A flow that reads them from a **Data
+file** or **Simulated data**, which have none unless the file brings the
+column, gets a warning. **Time** lists **Waves and dates** first (labelled
+codes, ordinal variables, date columns, a Date question's answers), then
+**Other variables**.
+
+A picker leaves out what its node refuses as soon as it is picked: a
+**Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not
+offer multiple-choice questions, rankings or open answers, and a **Trend**'s
+**Measure variable** with **Measure** `mean` does not offer nominal or
+multiple-choice questions. A variable already stored stays in the list, with
+the reason: `aware (several answers: not one wave or date)`.
+
+A few text fields suggest values as you type:
+a **Bar chart**'s **Bins** (`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a
+**Heatmap**'s **Color map** (`theme` beside four matplotlib maps). **MaxDiff scores** lists the questionnaire's
+MaxDiff questions. Mappings, weighting targets and other codes are typed as JSON
 (`{"1": 0.45, "2": 0.55}`); an empty JSON box shows the example its help
 gives.
 
@@ -491,13 +519,26 @@ field you filled in that the current choices do not read is named under the
 others, and kept for when they apply: "Not used with these choices, and kept
 for when they apply: **Groups** (with Design = independent)." — with a
 **Clear it** link (**Clear them** for several; focus then moves to the field
-whose choice hid them). A value kept that way is not checked and does not stop
+whose choice hid them). The note says each field's choices as simply as they
+go ("**Show** (with Layout ≠ donut)"), and brackets a part of several choices
+when there is another: "**Confidence intervals** (with (Show = count and Sort
+= code and Layout ≠ histogram and Layout ≠ donut) or Layout = grouped)". A value kept that way is not checked and does not stop
 the flow — the run ignores it, and so does the engine's check at Save. A field
 a choice needs is
 marked required. A choice whose code is shorthand shows its name beside it
-(`welch_anova — Welch's ANOVA`). See
+(`welch_anova — Welch's ANOVA`) — the node's own name where one code means
+different things in two nodes: `ordinal` reads `ordinal — ordinal logit,
+ordered answers` in a **Regression**'s **Model** and stays a scale in a
+**Recode**. See
 [Reading this page](Studio-Node-Reference#reading-this-page) in the node
 reference for the full list.
+
+**A Result chart's Kind** says under it what the connected analysis suits and
+what `auto` draws — "Group means (means.table) suits means — means with 95 %
+intervals; means_sd — means ± 1 SD. Auto draws means." — and marks the other
+kinds "(not for this result)". Before anything is connected it reads "Connect
+an analysis's table (or Proportion CI's stat) to see the charts it suits."
+See [Result chart](Studio-Node-Reference#result-chart).
 
 ### Checks
 
@@ -528,16 +569,47 @@ Studio checks a flow twice:
   Significance test is off." a warning, naming a setting the node would
   ignore. Each node's rules are listed in the
   [[Node Reference|Studio-Node-Reference]].
+
+  What the engine settles before any data is named here too, in its words: a
+  **Result chart** fed an output it cannot draw (`RESULT_NOT_DRAWABLE`), a
+  **Kind** the connected result does not suit (`RESULT_KIND`, naming the
+  output that does draw it) or results of two analyses (`RESULT_SOURCES`, a
+  warning); **Likert chart** items on two scales ("The items of a Likert chart
+  must share one scale, and these do not: …"), with several answers or with no
+  scale; a **Bar chart** split by, or stacking, a question that allows several
+  answers, a histogram of a question with answers, a donut of a
+  multiple-choice question, a **Split by** equal to its **Variable** and
+  **Bins** it cannot read ("bins: The bins' edges must increase from one to
+  the next, and 5 is followed by 3."); a **Trend**'s mean of a nominal or
+  multiple-choice question, a multiple-choice **Time** or **Split by**, and a
+  missing code among its **Answer codes** ("9 (Refused) is a missing code of
+  Trust: Acme, not an answer: …"); a **Tab book (Excel)** whose **Path** is no
+  workbook, or whose banner holds a multiple-choice question (and, as
+  warnings, a **Path** outside `outputs/` or a ranking or open answer named
+  in its **Questions**); a **Save report** whose **Look** names chart colors
+  the engine refuses ("theme: chart_text_color: '#cccccc' on the charts' white
+  background has a contrast of 1.6:1; text needs at least 4.5:1."); an ordinal
+  **Regression** of a nominal outcome (`VARIABLE_SCALE`:
+  "Region is nominal: its answers (Capital, North, South) have no order, …");
+  **Key drivers** with fewer than two drivers, or more than 15 with Shapley; a
+  **Perceptual map** with one attribute; **Price sensitivity**'s prices that do
+  not match their questions; **Paired tests** with a number of variables its
+  test cannot compare ("Cochran's Q compares three or more yes/no variables; 2
+  were given. For two, use McNemar.").
 - **With the engine**, when you press **Check**, when you preview and when you
   Save. The banner says "**Engine check: valid.** The engine can generate and
   run this flow." — or lists each problem by node. The engine's verdict is the
-  one that counts. Studio adds three checks of its own to it: a step's text
+  one that counts. Studio tells the engine which response timestamps its
+  responses carry (`created_at`, `updated_at`, `started_at`, not
+  `submitted_at`) and adds four checks of its own: a step's text
   that is not one line (the error `PARAM_LINE_BREAK`, see
   [One-line texts](Studio-Node-Reference#reading-this-page)), a data source
   naming a table or environment no project can have (the errors
-  `SOURCE_TABLE_NAME` and `SOURCE_ENVIRONMENT_NAME`), and a **Report path**
+  `SOURCE_TABLE_NAME` and `SOURCE_ENVIRONMENT_NAME`), a **Report path**
   that no **Save report** step writes (the warning `REPORT_PATH_UNWRITTEN`,
-  see [The combined report](#the-combined-report)).
+  see [The combined report](#the-combined-report)), and a response timestamp
+  read from a **Data file** or **Simulated data** (the warning
+  `RESPONSE_TIME_SOURCE`, see [Trend](Studio-Node-Reference#trend)).
 
 **Press Check before you Save**, and fix what it reports: a flow the engine
 rejects is saved, but it cannot run.
@@ -602,9 +674,9 @@ you take over; comments stay open." with **Take over**. See
 | Type | What flows through |
 |---|---|
 | **SurveyData** | the dataset *plus* its codebook and questionnaire — that is why tables come out labeled |
-| **Table** | a frequency table, crosstab, group-means table, banner, coefficient table, t-test, correlation matrix, factor loadings… |
-| **Chart** | a bar chart, box plot, heatmap or scatter plot |
-| **Stat** | a test result or a set of statistics (χ², Fisher, t, Kruskal-Wallis, Wilcoxon, a correlation, a confidence interval) |
+| **Table** | a frequency table, crosstab, group-means table, banner, coefficient table, t-test, correlation matrix, factor loadings, key drivers, a perceptual map's dimensions, rows and columns, price points and curves, a Trend's points… |
+| **Chart** | a bar chart (a histogram and a donut too), box plot, heatmap, Likert chart, scatter plot or trend, or the Result chart of an analysis |
+| **Stat** | a test result or a set of statistics (χ², Fisher, t, Kruskal-Wallis, Wilcoxon, Cochran's Q, a correlation, a confidence interval), or what a Tab book wrote |
 | **Report** | a report section or a whole report |
 | **Any** | accepted only by the **Live tile** input: anything can be shown on Live |
 
@@ -637,11 +709,12 @@ need not be), and the draft must pass the engine's check.
 | Node output | Preview |
 |---|---|
 | data (SurveyData) | "N rows × M columns" and the first 20 rows — handy for counting what each cleaning step removed |
-| table | the table (first 50 rows), with its statistics under it (a number below 0.0001 keeps four significant digits and its exponent there too, `p = 1.304e-09`). A node with several tables shows them all, the others each under its output's name: Friedman's **pairs** under **Paired tests**, the **variance** and **correlations** tables under **Factor analysis**'s loadings, the **variance** under **Principal components** (an empty one, such as the pairs of a two-variable test, is left out). The post-hoc pairs of **Group means** print under its means table |
-| chart | the rendered chart |
+| table | the table (first 50 rows), with its statistics under it (a number below 0.0001 keeps four significant digits and its exponent there too, `p = 1.304e-09`). A node with several tables shows them all, the others each under its output's name: the **pairs** of Friedman or Cochran's Q under **Paired tests**, the **variance** and **correlations** tables under **Factor analysis**'s loadings, the **variance** under **Principal components**, the **rows** and **columns** under a **Perceptual map**'s dimensions, the **curves** under **Price sensitivity**'s price points (an empty one, such as the pairs of a two-variable test, is left out). The post-hoc pairs of **Group means** print under its means table |
+| chart | the rendered chart — the picture a run draws, a chart of **Palette** `theme` in the look of the flow's **Save report**. A **Trend** shows the table of its points under the picture. A chart that cannot be drawn (a Likert chart of items without a scale, a Result chart of a result it cannot draw) fails its own node, with the reason, not the report after it |
 | stat | the statistics as a list of names and values. A number below 0.0001 is written with four significant digits and its exponent, as the table's footer writes it — a p of `1.132e-24`, not 0. A number below 1 that four significant digits hold is written as it is — a **Paired tests** p of `0.002343`, a **Bartlett p** of `0.00227` — as the footer writes it too |
 | report | the report as rendered, with a **Rendered \| Markdown** switch in the Report view |
 | table write | what a run would do, without doing it: "Not written: a preview never writes project tables. A run writes 812 rows to table 'clean_responses' (if it exists: replace)." |
+| tab book | the **Tab book (Excel)** runs and shows its statistic (**Workbook**, **Sheets written**, **Questions skipped**, …) with "Not kept: a preview never keeps the files nodes write. A run writes outputs/tabbook.xlsx." |
 | file, tile | "This node has no preview (its output is a file or a table write)." |
 
 A node that failed shows its error; nodes after it show "Not reached by the
@@ -655,9 +728,9 @@ files, and does not touch **Reports**, **Live** or the project's tables:
 - A **Write table** node in a preview is recorded, not executed — the table
   other flows and the **Data** screen read stays as it is, and the node's
   Preview pane says what a run would write.
-- What other output nodes write (an **Export file**, a **Save report**) is
-  discarded when the preview ends; only the previews shown in the inspector
-  remain.
+- What other output nodes write (an **Export file**, a **Save report**, a
+  **Tab book (Excel)**) is discarded when the preview ends; only the previews
+  shown in the inspector remain.
 - **Live** keeps showing the tiles of the flow's latest completed real run;
   a preview does not blank them.
 - The report preview has no provenance footer — that is added by real runs,
@@ -753,7 +826,9 @@ carries its charts inside. The kept files appear:
 - in **Files**, as `outputs/<flow>/<file>` — each run of the flow replaces the
   previous version there;
 - on the run's card as download chips — each run keeps its own;
-- in **Reports**, when they are `.md` or `.html` files;
+- in **Reports**, when they are `.md` or `.html` files — and a report's
+  tables in Excel (`<name>.xlsx` beside it) as its **Excel** download, and
+  each **Tab book (Excel)** workbook as a **Tab book** of its own;
 - on **Data** as tables, for **Write table** nodes;
 - on **Live**, for **Live tile** nodes.
 
@@ -822,10 +897,17 @@ other does not read back) to get a meaningful order.
 ### What Run all keeps
 
 - The **combined report**, with its `.html` twin and figures.
-- **Each successful flow's report** — its `.md`, the `.html` twin and the
-  figures the `.md` names — stored as soon as that flow finishes, under
-  `outputs/<flow>/` in **Files** and on **Reports**, where a single run of
-  the flow stores it. It replaces the flow's previous report there.
+- **Each successful flow's report** — its `.md`, the `.html` twin (when
+  **Also save HTML** is on), the workbook of its tables (`<name>.xlsx`, when
+  **Also save tables to Excel** is ticked) and the figures the `.md` names —
+  stored as soon as that flow finishes, under `outputs/<flow>/` in **Files**
+  and on **Reports**, where a single run of the flow stores it. It replaces
+  the flow's previous report there. Run all runs the flows in one working
+  copy, so two flows may save to the same default `outputs/report.md`: a
+  flow keeps only the twins its own **Save report** writes, never another
+  flow's workbook or HTML left under that name.
+- **Each successful flow's tab books** — the workbook every **Tab book
+  (Excel)** node writes under `outputs/` — stored the same way.
 - The tables its **Write table** nodes write, as in any run.
 
 Other files the flows write under `outputs/` (exports, HB files) are not kept

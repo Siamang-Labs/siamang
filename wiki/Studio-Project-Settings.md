@@ -145,8 +145,9 @@ with no styling, for a diff or a repository."
   **Reports** screen marks the report at this path with the **combined**
   badge, including a custom path.
 - **House style** — the report theme form (typeface, density, table style,
-  page size, sizes, figures, captions, colors), described on
-  [[Reports|Studio-Reports]].
+  page size, sizes, figures, captions, colors, and the chart colors of the
+  charts whose **Palette** is `theme`), described on
+  [[Reports|Studio-Reports]] (see [Chart colors](Studio-Reports#chart-colors)).
 
 Buttons:
 
