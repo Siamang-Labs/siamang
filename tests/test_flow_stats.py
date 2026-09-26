@@ -683,3 +683,55 @@ def test_a_made_variable_of_the_wrong_scale_is_warned(questionnaire_doc):
         "error",
         "VARIABLE_SCALE",
     )
+
+
+def test_a_made_variable_has_the_scale_its_maker_upstream_gives_it(questionnaire_doc):
+    """The made scales were collected in the order the document lists its nodes:
+    a Recode listed before the Derive whose variable it reads took that variable
+    for nominal (it is ratio at run time) and a Group means of it was warned;
+    and of two nodes making one name, the first listed won, not the one nearest
+    upstream. They are now walked along the edges."""
+
+    def issues(listed, edges):
+        nodes = {
+            "src": ("src", "source.responses", {}),
+            "der": ("der", "prepare.derive", {"name": "score", "formula": "age + 1"}),
+            "rec": (
+                "rec",
+                "prepare.recode",
+                {"variable": "score", "mapping": {"1": 1}, "into": "score_r"},
+            ),
+            "mn": ("mn", "analyze.means", {"y": "score_r", "by": "region"}),
+            "nom": (
+                "nom",
+                "prepare.derive",
+                {"name": "score", "formula": "age", "scale": "nominal"},
+            ),
+            "xt": ("xt", "analyze.crosstab", {"row": "score", "col": "gender"}),
+        }
+        flow = _flow([nodes[key] for key in listed], [(a, "data", b, "data") for a, b in edges])
+        return [
+            (i.severity, i.node, i.message)
+            for i in check_flow(flow, questionnaire=questionnaire_doc)
+            if i.code == "VARIABLE_SCALE"
+        ]
+
+    chain = [("src", "der"), ("der", "rec"), ("rec", "mn")]
+    assert issues(["src", "der", "rec", "mn"], chain) == []
+    assert issues(["src", "rec", "der", "mn"], chain) == []
+    assert issues(["mn", "rec", "der", "src"], chain) == []
+    # At run time the Recode's target is ratio, as the check now has it.
+    from siamang.model import from_document
+
+    data = from_document(questionnaire_doc).survey.simulate(n=5, seed=1)
+    recoded = data.derive_formula("score", "age + 1").recode_values("score", {1: 1}, into="score_r")
+    assert recoded.variables["score_r"].scale == "ratio"
+
+    # One name made twice: the nearest maker upstream of the reader decides.
+    ratio_last = [("src", "nom"), ("nom", "der"), ("der", "xt")]
+    nominal_last = [("src", "der"), ("der", "nom"), ("nom", "xt")]
+    for listed in (["src", "nom", "der", "xt"], ["src", "der", "nom", "xt"]):
+        warned = issues(listed, ratio_last)
+        assert [(severity, node) for severity, node, _ in warned] == [("warning", "xt")]
+        assert "'score' is ratio" in warned[0][2]
+        assert issues(listed, nominal_last) == []

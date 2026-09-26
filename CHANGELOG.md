@@ -453,6 +453,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   later node naming one its parameter does not take gets a warning ("Parameter
   'row' of xt: 'factor_1' is interval (as the node that makes it gives it),
   expected nominal | ordinal.") — not an error, so a flow saved before runs on.
+  The scale is the one the maker nearest upstream gives, walked along the
+  edges: a Recode of a derived variable is ratio like its source even when the
+  document lists the Recode first.
 
 - **Fisher's estimate, the R bundle's labels and Mann-Whitney's df are
   described as they are.** Crosstab's Fisher footer said the estimate was
