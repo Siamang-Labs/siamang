@@ -494,6 +494,15 @@ answer, nothing weighted — `lower` and `upper` are `None` and `note` says why
 * **`proportion_interval(successes, n, *, confidence=0.95)`**: Wilson's score
   interval (R's `prop.test(x, n, correct = FALSE)`), 0 and 1 exactly at 0 % and
   100 %.
+* **`share_interval(chose, weights=None, *, confidence=0.95)`**: the share of
+  the respondents who chose (a True/False per respondent) with Wilson's interval.
+  Unweighted it is `proportion_interval` of their count; weighted, Wilson's
+  interval of the weighted share on Kish's effective base, n = (Σ wᵢ)² / Σ wᵢ² —
+  the share and base `analysis.proportion_ci(..., weighted=True)` reports —
+  with `method` `"Wilson score on Kish's effective base, weighted"`. An answer
+  weighted 0 (or missing) takes no part and `n` counts those that carry weight;
+  equal weights give exactly the unweighted interval; a negative weight is
+  refused.
 
 ---
 

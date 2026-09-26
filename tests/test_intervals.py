@@ -10,7 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from siamang.data.intervals import mean_interval, proportion_interval, t_interval
+from siamang.data.intervals import (
+    mean_interval,
+    proportion_interval,
+    share_interval,
+    t_interval,
+)
 
 
 def test_the_mean_interval_is_students_t_as_r_gives_it():
@@ -89,3 +94,36 @@ def test_the_share_interval_is_wilsons_as_prop_test_gives_it():
     assert proportion_interval(0, 0).note == "no answers"
     with pytest.raises(ValueError):
         proportion_interval(5, 4)
+
+
+def test_a_weighted_share_takes_wilsons_interval_on_kishs_effective_base():
+    """Six answers weighted 1, 3, 1, 2, 2, 2, the first, second and fifth a yes:
+    the share is 6 / 11 and Kish's base (Σw)² / Σw² = 121 / 23 = 5.2609. Wilson's
+    interval at that base, by hand: centre (p + z²/2n) / (1 + z²/n), half-width
+    z √(p(1 − p)/n + z²/4n²) / (1 + z²/n) → 0.202228729206 – 0.850313966386."""
+    chose = [True, True, False, False, True, False]
+    weights = [1.0, 3.0, 1.0, 2.0, 2.0, 2.0]
+    share = share_interval(chose, weights)
+    assert share.estimate == pytest.approx(6 / 11)
+    assert (share.lower, share.upper) == pytest.approx((0.202228729206, 0.850313966386), abs=1e-11)
+    assert share.n == 6 and share.method == "Wilson score on Kish's effective base, weighted"
+    # Unweighted it is proportion_interval of the count; equal weights, the same.
+    plain = share_interval(chose)
+    assert (plain.lower, plain.upper) == (
+        proportion_interval(3, 6).lower,
+        proportion_interval(3, 6).upper,
+    )
+    for scale in (1.0, 2.5):
+        equal = share_interval(chose, [scale] * 6)
+        assert (equal.lower, equal.upper) == pytest.approx((plain.lower, plain.upper), abs=1e-12)
+    # A weight of 0 (or missing) takes no part; nobody carrying weight is said.
+    dropped = share_interval([True, False, True], [1.0, float("nan"), 0.0])
+    assert dropped.n == 1 and dropped.estimate == 1.0 and dropped.upper == 1.0
+    assert share_interval([True], [0.0]).note == "no answer carries weight"
+    assert share_interval([], []).note == "no answers"
+    none = share_interval([False, False], [1.0, 2.0])
+    assert none.estimate == 0.0 and none.lower == 0.0
+    with pytest.raises(ValueError, match="same length"):
+        share_interval([True], [1.0, 2.0])
+    with pytest.raises(ValueError, match="negative"):
+        share_interval([True, False], [1.0, -1.0])
