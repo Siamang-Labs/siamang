@@ -540,6 +540,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Sorting a Bar chart split by a scale keeps the scale in order.** With
+  Sort = value the answers of an ordinal scale were ordered by how often they
+  were given — a 100 % stack read Satisfied, Very satisfied, Neither, … from
+  the bottom, its colour ramp and top box scrambled. The scale's answers now
+  keep their order and the groups go largest first, by their share of the top
+  answer (by their total, for counts), noted under the chart (`Groups in
+  order of their share of Very satisfied; the answers keep the scale's
+  order.`). The Sort help also says that any setting but the defaults draws
+  the newer chart, whose look differs from the classic one.
+
 - **Result charts say their base and name things by their labels.** Group
   means (the most harmful: with 24 brands the intervals ran from n = 4 to
   hundreds, unsaid), Descriptive statistics and the t-test label each row
