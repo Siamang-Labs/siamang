@@ -114,6 +114,39 @@ def test_crosstab_percentages_are_of_each_groups_own_base():
     assert habit["1"] == 50.0 and habit["2"] == 100.0
 
 
+def test_weighted_crosstab_percentages_are_of_the_unrounded_base():
+    """A group weighing 0.6 + 0.7 = 1.3 whose two respondents both chose option
+    one: 100 %, not 1.3 / 1 = 130 % of a base rounded to 1. The Bar chart split
+    by the same variables draws the same numbers."""
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    frame = pd.DataFrame(
+        {"m": [[1], [1, 2], [2], [1]], "g": [1.0, 1.0, 2.0, 2.0], "w": [0.6, 0.7, 1.4, 0.2]}
+    )
+    out = multi.crosstab(frame, "m", "g", weight="w")
+    assert out["1.0"].tolist() == [100.0, 53.8] and out["2.0"].tolist() == [12.5, 87.5]
+    assert out.base == {1.0: 1, 2.0: 2}  # printed rounded; the shares are of 1.3 and 1.6
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable("m", "nominal", label="Used", labels={1: "Opt one", 2: "Opt two"}),
+            Variable("g", "nominal", label="Group", labels={1: "A", 2: "B"}),
+        ]
+    )
+    data = SurveyData(frame=frame, variables=variables).with_weight("w")
+    table = data.report.crosstab("m", "g", pct="col")
+    shown = table.to_frame()
+    # The groups are named by the labels of By, as a single-answer crosstab's are.
+    assert list(shown.columns) == ["Used", "A", "B"]
+    assert shown["A"].tolist()[:2] == [100.0, 53.8] and shown["B"].tolist()[:2] == [12.5, 87.5]
+    assert table.stats["Base"] == "A: 1, B: 2 (weighted)"
+    ax = data.plot.bar("m", split="g", show="percent").plot()
+    heights = [round(bar.get_height(), 1) for bar in ax.patches]
+    assert heights == [100.0, 12.5, 53.8, 87.5]  # option one in A and B, then option two
+
+
 # ─── explode ─────────────────────────────────────────────────────────────────
 
 

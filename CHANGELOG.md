@@ -540,6 +540,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Weighted percentages are of the sums of weights as they are.** The
+  Frequencies table rounded each weighted N to one decimal and then took the
+  percentages of those rounded numbers, so they could differ in the last digit
+  from the Bar chart's and the Likert chart's (18.0 against 17.9) and, with
+  small weights, be wrong outright: weights normalised to sum to 1 over 1000
+  respondents made every answer 20.0 %, and weights of 0.04, 0.04, 0.04 and
+  0.34 gave 0.0 / 25.0 / 75.0 % instead of 8.7 / 17.4 / 73.9 %. The N column
+  and the total still show one decimal; `%`, `Cumulative %` and the Weighted
+  N of the statistics are now of the unrounded sums (unweighted, the table is
+  what it was). The Crosstab of a weighted multiple-choice question divided
+  by each group's base rounded to a whole number, which put a group weighing
+  1.3 whose respondents all chose an option at 130 %; it divides by the
+  unrounded base, and names its columns by the labels of By (`A`, `B`, not
+  `1.0`, `2.0`), in the table and in its `Base` statistic.
+
 - **A Perceptual map no longer maps a blank answer as a category.** On the
   data Studio runs flows on — a snapshot read by `read_snapshot`, the
   platform's responses — labelled codes come back as nullable `Int64`, a

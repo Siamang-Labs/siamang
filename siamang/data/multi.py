@@ -218,10 +218,14 @@ def crosstab(
         groups = sorted(groups)
 
     bases: dict[Any, int] = {}
+    # The percentages are of the sums of weights as they are; ``base`` holds
+    # them rounded, as a table prints them (a group weighing 1.3 is not 1).
+    totals: dict[Any, float] = {}
     for group in groups:
         in_group = (df[by] == group) & answered
         total = float(weights[in_group].sum()) if weights is not None else float(in_group.sum())
         bases[group] = int(round(total))
+        totals[group] = total
 
     rows = []
     for code in wanted:
@@ -230,7 +234,7 @@ def crosstab(
         for group in groups:
             in_group = chosen & (df[by] == group)
             count = float(weights[in_group].sum()) if weights is not None else float(in_group.sum())
-            row[str(group)] = round(count / bases[group] * 100, 1) if bases[group] else 0.0
+            row[str(group)] = round(count / totals[group] * 100, 1) if totals[group] > 0 else 0.0
         rows.append(row)
     out = MultiCounts(rows, columns=["value", "label", *(str(g) for g in groups)])
     out.base = bases
