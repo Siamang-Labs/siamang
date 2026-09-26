@@ -212,6 +212,19 @@ and names the two things that work: print the HTML from a browser, or
 `pandoc report.html -o report.pdf` (`-o report.docx` for Word). Both honor the
 theme's `@page` rule.
 
+**Tables to Excel.** `Report.save_tables(path)` (`siamang.reporting.workbook.save_tables`)
+writes every table of the report to one `.xlsx` workbook — any other suffix is a
+`ValueError`. Each table gets the sheets its own `export_xlsx` writes (Group means
+with a post-hoc test: `<name>` and `<name> – Post-hoc`; a Banner with its letters),
+a bare DataFrame is written without its index (a two-row header joined with ` / `),
+and the table's `stats` go under it after an empty row. Sheets are named by
+caption, else section heading, else `stats["Variable"]`, else `Table <n>`: at most
+31 characters, without `[ ] : * ? / \` or an apostrophe at either end, unique
+regardless of case (`(2)`, `(3)`…), never `History`. A `Contents` sheet comes first:
+the report's title, a line saying charts are not included, and one linked row per
+sheet with its section and caption (`Frequencies: Region` for a table without
+one). Charts, text and statistics mappings are not tables and are skipped.
+
 `Report.add()` and `Report.image()` take a **`width`** (a CSS length), an
 **`align`** and a **`break_before`**, checked where they are written rather than
 where they are rendered. Two items at `width="48%"` with `align="left"` sit side

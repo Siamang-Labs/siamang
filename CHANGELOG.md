@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Save report: tables to Excel.** `output.save_report` takes `xlsx` (*Also
+  save tables to Excel*): every table of the report in `<path>.xlsx` beside it,
+  written by the new `Report.save_tables(path)`. Each table gets the sheets its
+  own `export_xlsx` writes — a Banner with its significance letters, Group means
+  with its post-hoc sheet — a bare DataFrame is written without its index, and a
+  table's statistics go under it. Sheets are named by caption, else section
+  heading (31 characters, no characters Excel refuses, unique), and a linked
+  Contents sheet lists them. Charts are left out. Off by default: a stored flow
+  renders the code it did.
+
 - **Likert chart.** `visualize.likert` and `data.plot.likert()`
   (`siamang.reporting.LikertChart`) draw a battery of items on one ordered scale
   as diverging stacked bars centred on the neutral answer — split around the

@@ -239,6 +239,14 @@ the run rather than raised inside it, and both reach only the **HTML**: the
 Markdown is the report's content and carries no layout. A flow that names no
 theme leaves `SIAMANG_REPORT_THEME` to answer.
 
+`output.save_report` also takes **`xlsx`** (*Also save tables to Excel*, off by
+default): every table of the report in `<path>.xlsx` beside the Markdown, written
+by `Report.save_tables` — a sheet per table as its own export writes it (a
+Banner's letters, Group means' post-hoc sheet), its statistics under it, named by
+its caption or section heading, and a Contents sheet first; charts are left out.
+The workbook lands where the report does, so it stays under the flow's outputs. A
+document that does not set it renders the code it always did.
+
 Which is why `html` defaults to **true**: a node whose `theme` and `layout` are
 checked on every run but produce no file anyone can look at is a trap, and the
 two parameters describe a document that was not being written. `html: false`

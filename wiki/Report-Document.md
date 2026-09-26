@@ -105,6 +105,30 @@ Writes the document, choosing the format from the file suffix: `.md`/`.markdown`
 → HTML. A `.pdf` suffix raises `NotImplementedError`; any other suffix raises
 `ValueError`. Parent directories are created automatically.
 
+### `save_tables`
+
+```python
+def save_tables(self, path: str | Path) -> Path: ...
+```
+
+Writes every table of the report to one Excel workbook (`path` must end in
+`.xlsx`): one sheet per table, exactly as the table's own `export_xlsx` writes
+it — a Banner keeps its significance letters, Group means with a post-hoc test
+gets a second sheet (`<name> – Post-hoc`) — and a bare DataFrame as the report
+prints it, without its index. The statistics a table prints under itself are
+written under it after an empty row, numbers as numbers. A sheet is named by the
+table's caption, else by the heading of its section, else by the variable it
+describes, else `Table <n>`; the name is cut to Excel's 31 characters, loses
+`[ ] : * ? / \`, and is made unique (`Age`, `Age (2)`). The first sheet,
+`Contents`, lists every sheet with its section and full caption (or the kind of
+table: `Group means: Age`), each a link. Charts, text and statistics lines are
+left out; a report without tables gets a Contents sheet that says so.
+
+```python
+report.save("out/report.md")
+report.save_tables("out/report.xlsx")
+```
+
 ---
 
 ## Fluent example: narrative + table + chart
