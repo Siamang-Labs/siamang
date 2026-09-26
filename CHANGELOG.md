@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Result chart** (`visualize.result_chart`) and `siamang.reporting.result_charts`:
+  the chart that suits an analysis's result, drawn from the numbers the
+  analysis computed rather than from the data again — Group means with 95 %
+  confidence intervals and the compact letter display of their post-hoc test,
+  Descriptive statistics, t-test and Paired tests as means with intervals (or
+  ± 1 SD), McNemar's yes shares, Proportion CI, the Net Promoter Score's
+  stacked groups, TURF's reach curve and a fixed portfolio's reach per option,
+  MaxDiff utilities (with intervals), scores and shares, Conjoint importance
+  and part-worths, Share of preference, scree plots and loadings heatmaps of
+  Principal components and Factor analysis, cluster profiles, a regression's
+  coefficients as a forest, the Correlation matrix as a heatmap with its marks,
+  and the themes (and sentiment) of Code open answers. The node's one input
+  takes several outputs of an analysis — its table, and its stat for the weight
+  and a regression's base — and `kind` picks among the charts a result has.
+  `check_flow` reads what is connected and says before the run when the chart
+  cannot draw it (`RESULT_NOT_DRAWABLE`), when the kind does not suit it
+  (`RESULT_KIND`), and when two analyses are connected (`RESULT_SOURCES`, a
+  warning); what only the data can tell fails the node with the reason. A chart
+  follows the weight of the result it draws and says which in its title. Long
+  labels wrap, many rows shrink the font and then grow the figure, and value
+  labels stay inside the plot. Later analyses add theirs with
+  `register(result_type, kinds, fn)` and `register_output(node_type, port,
+  kinds)`.
+
 - **`siamang.data.intervals`** — the intervals behind a chart's error bars:
   Student's t for a mean, the linearization (Taylor series) interval of a
   weighted mean as `survey::svymean` gives it for `ids = ~1`, and Wilson's

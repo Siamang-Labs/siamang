@@ -370,6 +370,13 @@ HSD follows a one-way ANOVA — set Test to anova, or Post-hoc to none.") and
 warns when a choice would be ignored. A flow saved before these parameters
 existed runs exactly as before.
 
+To draw a result, connect the node's table (and its stat) to a **Result chart**:
+Group means become means with their confidence intervals and, after a post-hoc
+test, letters that mark which differ; a t-test its groups' or measurements'
+means; a correlation matrix a heatmap with its marks. The same works for Paired
+tests, Factor analysis and the other analyses — see
+[[Reporting Charts|Reporting-Charts]] (`result_charts`).
+
 ---
 
 ## Paired tests

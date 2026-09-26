@@ -85,7 +85,7 @@ The runner and the generator use the same order.
 | source | `responses`*, `table`*, `file`, `simulated` |
 | prepare | `filter`, `select`, `recode`, `missing`, `dedup`, `speeders`, `quality`, `cell_weights`, `rake_weights`, `apply_weight`, `index`, `derive`, `bands`, `explode`, `text_code`, `maxdiff_scores` |
 | analyze | `freq`, `crosstab`, `means`, `descriptives`, `correlation`, `correlation_matrix`, `ttest`, `proportion_ci`, `compare_groups`, `paired`, `describe`, `data_check`, `banner`, `nps`, `regression`, `pca`, `factor`, `cluster`, `reliability`, `turf`, `maxdiff`, `conjoint`, `conjoint_shares` |
-| visualize | `bar`, `boxplot`, `heatmap`, `likert`, `scatter` |
+| visualize | `bar`, `boxplot`, `heatmap`, `likert`, `scatter`, `result_chart` |
 | output | `report_section`, `save_report`, `write_table`*, `export_file`, `choice_data`, `conjoint_data`, `live_tile` |
 
 \* platform nodes: they need the project database (`db`). A `source.responses`
@@ -109,7 +109,8 @@ groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
 Paired tests, Factor analysis, Cluster, Box plot, Scatter plot, a Heatmap
 without `by` with Spearman or Kendall, Response quality, Code open answers, Data check, and the counts
 of MaxDiff scores and Bands. Describe counts rows and adds a
-`weighted_n_valid` column. The HB exports carry no weight. The node's own
+`weighted_n_valid` column. A Result chart follows the result it draws — weighted
+where that result is, and its title says which. The HB exports carry no weight. The node's own
 `help` lists the same, so the palette says what the nodes do.
 
 **Tests chosen by hand.** `analyze.correlation` takes a `method` (`pearson`,
@@ -229,6 +230,38 @@ of a palette, and ignores it when it draws a correlation matrix. These size the
 matplotlib figure itself rather than the picture of it, so the axis labels keep
 their proportion. Resolution is a field on the chart (`SurveyChart.dpi`,
 default 150) which `save()` uses unless a caller passes `dpi=` explicitly.
+
+`visualize.result_chart` (Result chart) draws the chart that suits an
+analysis's result from the numbers the analysis computed
+(`siamang.reporting.result_charts`, reporting reference §4): Group means with
+their confidence intervals and post-hoc letters, a scree plot, TURF's reach
+curve, a regression's forest. Its one input, `result`, takes Tables and Stats
+and several edges (`many`): connect the analysis's table — the `variance` or
+`loadings` of a PCA or factor analysis — and its stat too where the table does
+not say what the chart should (the weight of a regression, PCA, cluster or
+TURF, and the base of a regression's intervals). `kind` is `auto` (the chart
+the result suits) or `means`, `means_sd`, `interval`, `stacked`, `reach`,
+`items`, `utilities`, `scores`, `shares`, `importance`, `partworths`, `scree`,
+`loadings`, `profile`, `coefficients`, `heatmap`, `sentiment`; `title`, `width`,
+`height` and `palette` as the other chart nodes. `check_flow` reads what is
+connected before the run, from the node types and parameters upstream:
+
+- `RESULT_NOT_DRAWABLE` (error): `rc: A Result chart cannot draw the table
+  output of Frequencies (fr); it draws the results of Group means, …`, or, for a
+  stat alone, `rc: The stat output of Regression (reg) only tells a chart its
+  weight and base; connect the output it draws, table, too.`
+- `RESULT_KIND` (error): `rc: Kind 'scree' does not suit the loadings output of
+  Principal components (pca), which draws 'loadings'; its variance output draws
+  'scree'.` What an output draws follows its parameters: TURF's table draws
+  `reach`, or `items` with `method: fixed`; MaxDiff's `scores` only with
+  `method: counts`; Paired tests' McNemar table `shares`; Code open answers'
+  `sentiment` only with `sentiment` ticked.
+- `RESULT_SOURCES` (warning): `rc: The results connected come from m, n; a
+  Result chart draws one of them — the table output of Group means (m).`
+
+What only the data can tell — a codeframe without sentiment asked to draw it —
+fails the node with the reason (`ResultChartError: There is no sentiment to
+draw: this codeframe was built without sentiment.`).
 
 `output.save_report` takes a **`theme`** — the `ReportTheme` fields, as an
 object — and `output.report_section` takes a **`layout`**, one entry per
