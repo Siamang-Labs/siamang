@@ -81,6 +81,7 @@ template:
         method={method!r},
         include={include!r},
         weight={in.data}.weight,
+        labels=turf.labels_of({in.data}, {items!r}),
     )
     {out.stat} = dict(
         Base={out.table}.base,

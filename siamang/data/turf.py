@@ -32,10 +32,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from itertools import combinations
+from typing import Any
 
 import pandas as pd
 
-__all__ = ["TurfTable", "evaluate", "item_reach", "portfolio_reach", "turf"]
+__all__ = ["TurfTable", "evaluate", "item_reach", "labels_of", "portfolio_reach", "turf"]
 
 #: Refuse an exhaustive search bigger than this rather than appearing to hang.
 _MAX_COMBINATIONS = 200_000
@@ -118,7 +119,7 @@ class TurfTable(pd.DataFrame):
     best one or merely a good one, is not a finding.
     """
 
-    _metadata = ["base", "method"]
+    _metadata = ["base", "method", "labels"]
 
     @property
     def _constructor(self) -> type[TurfTable]:
@@ -133,6 +134,7 @@ def turf(
     method: str = "best",
     weight: str | None = None,
     include: Sequence[str] | None = None,
+    labels: dict[str, str] | None = None,
 ) -> TurfTable:
     """The best portfolio of each size from 1 to ``max_size``.
 
@@ -146,7 +148,9 @@ def turf(
     number of the portfolio's items a reached respondent chose, the F in TURF
     that most tables quietly drop. With ``weight`` the reach is a sum of
     weights and the frequency a weighted mean. :func:`evaluate` reads one
-    portfolio instead of searching for the best.
+    portfolio instead of searching for the best. ``labels`` (column → label,
+    :func:`labels_of`) travel with the table as ``labels`` for a chart to name
+    the options by; ``items`` keeps the column names.
     """
 
     if method not in {"best", "greedy"}:
@@ -225,7 +229,17 @@ def turf(
     )
     out.base = int(round(base))
     out.method = method
+    out.labels = dict(labels or {})
     return out
+
+
+def labels_of(data: Any, items: Sequence[str]) -> dict[str, str]:
+    """``{column: label}`` of ``items`` from ``data``'s codebook (a SurveyData)."""
+
+    variables = getattr(data, "variables", None) or {}
+    return {
+        name: variables[name].label for name in items if name in variables and variables[name].label
+    }
 
 
 def _best(

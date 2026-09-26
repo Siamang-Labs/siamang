@@ -540,6 +540,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **TURF's reach curve shows what each size adds, by label.** Every tick
+  held the whole cumulative portfolio of column names, broken mid-word and
+  cut after four lines (`streaming_serv / ice_01_subscri / ption, …`), so the
+  chart could not show which option each step adds — the point of the curve
+  — and a flow's chart named options by variable (`owns_tablet`) while the
+  fixed portfolio's used labels. Each size now reads `+ <the option it adds>`
+  (a best portfolio that is not the one before plus an option reads `a new
+  set` and is listed in full under the chart), words whole, by label:
+  `turf.turf(..., labels=)` carries them on the table (`items` keeps the
+  column names, so the table prints as before), and the TURF node passes the
+  codebook's (`labels=turf.labels_of(data, items)`, a new argument in its
+  generated code).
+
 - **The Pearson and Kendall heatmap writes its coefficients at a size its
   cells hold.** It used seaborn's 12-pt annotations whatever the cell: with
   14 items at 10 × 6 inches every neighbouring coefficient in a row ran

@@ -555,7 +555,7 @@ takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 | McNemar's and Cochran's Q's `table` | `shares` | the share saying yes to each, with Wilson's interval; the test's p in a note |
 | Proportion CI's stat | `interval` | the share as a number over its interval on a 0–100 % track, with the base (the effective base when weighted) |
 | `NpsTable` | `stacked` | detractors, passives and promoters in one 100 % bar, the score and its 95 % CI above it |
-| `TurfTable` of a search | `reach` | reach by portfolio size, each point labelled with its gain, the portfolio under it |
+| `TurfTable` of a search | `reach` | reach by portfolio size, each point labelled with its gain, and under it the option that size adds (`+ label`, by the table's `labels`); a best portfolio that is not the one before plus an option reads `a new set` and is listed in full in a note |
 | `TurfTable` of a fixed portfolio | `items` | each option's reach and what it reaches alone, the portfolio's reach as a line |
 | `MaxDiffTable` | `utilities`, `scores`, `shares` (a counting table: `scores`) | utilities with their 95 % Wald intervals against the reference item (the standard errors are the fit's: `maxdiff.utilities`), the counting scores, or the shares |
 | `ConjointTable` | `importance`, `partworths` | each attribute's importance; every level's part-worth, coloured by attribute |

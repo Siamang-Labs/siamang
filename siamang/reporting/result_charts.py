@@ -1338,10 +1338,23 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
     )
     width = float(chart.figsize[0])
     per_slot = max(int(width * 0.8 * 72 / max(count, 1) / (9 * 0.55)), 10)
-    ticks = [
-        f"{int(size)}\n" + wrap(items, per_slot, 4)
-        for size, items in zip(table["size"], table["items"], strict=True)
-    ]
+    names = getattr(table, "labels", None) or {}
+    # Each size is named by what it adds to the portfolio before it — the step
+    # a TURF curve shows; a best portfolio that is not the last one plus one
+    # option is listed in full under the chart.
+    portfolios = [[item.strip() for item in str(items).split(",")] for items in table["items"]]
+    ticks, listed = [], []
+    for index, (size, portfolio) in enumerate(zip(table["size"], portfolios, strict=True)):
+        before = portfolios[index - 1] if index else []
+        new = [item for item in portfolio if item not in before]
+        grows = set(before) <= set(portfolio)
+        shown = ", ".join(str(names.get(item, item)) for item in new)
+        text = ("+ " + shown) if index and grows else shown if not index else "a new set"
+        ticks.append(f"{int(size)}\n" + _whole_words(text, per_slot, 4))
+        if not grows:
+            listed.append(
+                f"{int(size)}: " + ", ".join(str(names.get(item, item)) for item in portfolio)
+            )
     ax.set_xticks(x)
     ax.set_xticklabels(ticks, fontsize=9 if count <= 6 else 8, color=_INK)
     artists = []
@@ -1366,13 +1379,25 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
     ax.grid(axis="x", visible=False)
     ax.set_ylabel("Reach: respondents who chose at least one", color=_INK)
     ax.set_xlabel(
-        f"Portfolio size and the {'best' if table.method == 'best' else 'greedy'} portfolio "
-        f"of that size (base {table.base} respondents)",
+        f"Portfolio size and the option the {'best' if table.method == 'best' else 'greedy'} "
+        f"portfolio of that size adds (base {table.base} respondents)",
         color=_INK,
     )
+    if listed:
+        _mark_note(ax, "The best portfolios of " + "; ".join(listed) + ".", 10.0)
     _hide_spines(ax)
     chart.make_room(ax, artists, "y")
     return "TURF: reach by portfolio size"
+
+
+def _whole_words(text: str, width: int, lines: int) -> str:
+    """``text`` wrapped at ``width`` characters, a word never broken, in at
+    most ``lines`` lines (the last cut with an ellipsis)."""
+    wrapped = textwrap.wrap(text, width=max(width, 8), break_long_words=False) or [""]
+    if len(wrapped) > lines:
+        wrapped = wrapped[:lines]
+        wrapped[-1] = wrapped[-1][: max(width, 8) - 1].rstrip() + "…"
+    return "\n".join(wrapped)
 
 
 def _draw_turf_items(table: Any, chart: ResultChart) -> str:
