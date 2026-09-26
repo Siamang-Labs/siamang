@@ -360,6 +360,7 @@ def fit_ticks(ax: Any, which: str = "x", gap: float = 0.5) -> None:
     fig = ax.figure
     fixed = axis.get_major_locator()
     fixed_ticks = list(fixed.locs) if isinstance(fixed, FixedLocator) else None
+    bins = 0
     for step in range(1, 12):
         fig.draw_without_rendering()
         renderer = fig.canvas.get_renderer()
@@ -386,9 +387,11 @@ def fit_ticks(ax: Any, which: str = "x", gap: float = 0.5) -> None:
         if fixed_ticks is not None:
             axis.set_major_locator(FixedLocator(fixed_ticks[:: step + 1]))
         else:
-            axis.set_major_locator(
-                MaxNLocator(nbins=max(len(labels) - 2, 1), steps=[1, 2, 2.5, 5, 10])
-            )
+            # A bin fewer each time: 0 20,000 40,000 60,000 becomes 0 25,000
+            # 50,000 before it becomes 0 50,000.
+            bins = (bins or len(labels)) - 1
+            axis.set_major_locator(MaxNLocator(nbins=max(bins, 1), steps=[1, 2, 2.5, 5, 10]))
+    axis.set_major_locator(FixedLocator(list(axis.get_majorticklocs())))
 
 
 __all__ = [

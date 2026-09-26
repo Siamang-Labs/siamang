@@ -801,9 +801,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the bars are drawn across when neither can be read. A group's `(n = …)` is
   never broken over two lines, under the bars nor over a histogram's panel.
   A histogram's shared x axis ('0 50,000 100,000150,000…' in two columns at
-  10 in) and a count axis at 4 in are thinned until their labels keep half an
-  em apart, and the ticks found are kept when the figure is saved (matplotlib
-  chose them again then, by other settings). A histogram split into 8 groups
+  10 in) and a count or mean axis of horizontal bars are thinned, a bin at a
+  time (0 20,000 40,000 60,000 becomes 0 25,000 50,000), until their labels
+  keep half an em apart. The bars' axis is fitted once the values written
+  past the bars have lengthened it, and the ticks found are kept when the
+  figure is saved (matplotlib chose them again then, by other settings). A histogram split into 8 groups
   at 5 × 4 in had panels 24 pt tall under their wrapped titles: the figure
   grows until each is 72 pt. A mean of thousands reads `41,646.65` on the
   Bar chart and the Result charts' means (Group means, Descriptive
