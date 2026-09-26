@@ -624,11 +624,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   *Measure* is the percent choosing the *Answer codes* (a list is a top-2
   box; for a multiple-choice question, any of them), the mean of a
   variable, or the count of respondents; weighted data gives weighted points
-  and a weighted base per point. The confidence band is Proportion CI's normal
-  approximation or the mean's t interval, on Kish's effective base when
-  weighted. A percent or a mean under *Minimum base* (30) respondents is drawn
-  hollow and noted (`base below 30`, `no respondents`, `their weights sum to
-  0`); a count is its own base, so *Minimum base* is not read with it (nor
+  and a weighted base per point. The confidence band is a share's Wilson score
+  interval — the Bar chart's, which keeps a width at 0 % and 100 % where the
+  normal approximation has none — or the mean's t interval, on Kish's
+  effective base when weighted. A percent or a mean under *Minimum base* (30)
+  respondents is drawn hollow, without its band (a mean of two respondents'
+  t interval runs from −46 to 56 on a 0–10 scale; the value axis fits the
+  points and the bands drawn), and noted (`base below 30`, `no respondents`,
+  `their weights sum to 0`); a point at 0 % or 100 % is drawn whole on the
+  frame; a count is its own base, so *Minimum base* is not read with it (nor
   written into its code) and its table has no `Note`. Outputs: the `chart`,
   and a `table` of period × group with the measure, `Lower 95%`, `Upper 95%`,
   `Base`, `Weighted base`, `Effective base` and `Note`, whose statistics say
@@ -647,7 +651,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   under it the base and what was left out ("Base: 3,790 respondents who
   answered (weighted: 4,646.0); 157 to 201 per point.", "Gaps: no
   respondents in 3 of 39 points.", "Hollow points: fewer than 30
-  respondents.", "Bands: 95% confidence intervals.", "Not drawn: 1 point
+  respondents, drawn without a band (the table gives their intervals).",
+  "Bands: 95% confidence intervals.", "Not drawn: 1 point
   whose respondents' weights sum to 0.", "Weighted by 'w'; the bases count
   respondents.", "Left out as missing: …", "Left out: …"); a small figure
   grows taller rather than squeeze its plot. A mean of a nominal or a

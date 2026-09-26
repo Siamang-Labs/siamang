@@ -708,11 +708,13 @@ logit as above.
   `"percent"` choosing `codes` of `variable` (any of them for a
   multiple-choice question), its `"mean"`, or the `"count"` of respondents.
   Weighted data gives weighted points; the band is the 95 % interval
-  (Proportion CI's normal approximation, or the t interval of the mean, on
-  Kish's effective base when weighted), drawn for up to `MAX_BANDS` (4) lines
-  — past that the notes say the table gives each point's interval. A percent
-  or a mean with fewer than `min_base` respondents is drawn hollow; a count is
-  its own base. A multiple-choice question as `time` or `by` is refused
+  (a percent's Wilson score interval, as `intervals.share_interval` gives the
+  Bar chart's, or the t interval of the mean, on Kish's effective base when
+  weighted), drawn for up to `MAX_BANDS` (4) lines — past that the notes say
+  the table gives each point's interval. A percent or a mean with fewer than
+  `min_base` respondents is drawn hollow and without its band (the table gives
+  it), and the value axis fits the points and the bands drawn; a point at 0 %
+  or 100 % is drawn whole on the frame. A count is its own base. A multiple-choice question as `time` or `by` is refused
   (`ValueError`, in a sentence), as are a mean of a nominal or multiple-choice
   variable and a missing code among `codes`.
 
@@ -725,7 +727,8 @@ logit as above.
   or under it (`legend_below`) on a figure narrower than 7.5 inches or when it
   is taller than the plot, and a `Footnote` under it: `Base: … respondents who
   answered (weighted: …); … to … per point.`, `Gaps: …`, `Hollow points: fewer
-  than 30 respondents.`, `Band(s): 95% confidence interval(s).` or `No bands:
+  than 30 respondents, drawn without a band (the table gives their
+  intervals).`, `Band(s): 95% confidence interval(s).` or `No bands:
   …`, `Not drawn: … whose respondents' weights sum to 0.`, `Weighted by 'w';
   the bases count respondents.`, `Left out as missing: …`, `Left out: …`. A
   figure too small for its labels grows taller.

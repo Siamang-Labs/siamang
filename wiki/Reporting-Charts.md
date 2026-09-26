@@ -545,9 +545,12 @@ def trend(time, *, period="month", measure="percent", variable=None, codes=None,
 - **`by`** — one line per group; a respondent with a missing code is in none.
   A multiple-choice question cannot split (a respondent would be in several
   lines), nor be the time.
-- **`band`** — the 95 % interval: Proportion CI's normal approximation, or the
-  mean's t interval, on Kish's effective base when the data is weighted. The
-  bands of up to four lines are drawn; more would hide one another and the
+- **`band`** — the 95 % interval: a percent's Wilson score interval (the Bar
+  chart's, which keeps a width at 0 % and 100 %), or the mean's t interval, on
+  Kish's effective base when the data is weighted. A hollow point (below
+  `min_base`) is drawn without it — two respondents' interval would span the
+  scale several times over — and the table gives it; the value axis fits the
+  points and the bands drawn. The bands of up to four lines are drawn; more would hide one another and the
   lines, so the chart says "No bands: the 95% intervals of 13 lines would hide
   one another; the table gives each point's."
 - **`min_base`** — a percent or a mean of fewer respondents is drawn hollow,
@@ -573,7 +576,7 @@ says what its table says under itself:
 ```
 Base: 3,790 respondents who answered (weighted: 4,646.0); 157 to 201 per point.
 Gaps: no respondents in 3 of 39 points.
-Hollow points: fewer than 30 respondents.
+Hollow points: fewer than 30 respondents, drawn without a band (the table gives their intervals).
 Bands: 95% confidence intervals.
 Weighted by 'w'; the bases count respondents.
 Left out as missing: Satisfaction: 210 (9 = Don't know).
