@@ -256,4 +256,56 @@ tables, see [[Banner Tables|Banner-Tables]].
 
 ---
 
+## Tab book (Excel)
+
+A tab book is every question of the study crossed by the same banner, one
+sheet each — the workbook a client opens after fieldwork.
+`siamang.reporting.tabbook.write_tabbook` writes it; the flow node is
+**Tab book (Excel)** (`output.tabbook`), whose `stat` output says how many
+sheets were written and which questions were skipped, and why.
+
+```python
+from siamang.reporting.tabbook import write_tabbook
+
+stat = write_tabbook(
+    data.with_weight("weight"),
+    "outputs/tabbook.xlsx",
+    banner=["region", "age_band"],   # the columns: Total, then every code of each
+    questions=None,                  # every nominal, ordinal and multiple-choice question
+    percentages="column",            # or "row", or "none" (counts only)
+    counts=True,
+    letters=True, level=0.05, correction="none",   # or "bonferroni"
+    means=True,                      # mean and SD of an interval or ratio question
+)
+# {'Workbook': 'outputs/tabbook.xlsx', 'Sheets written': 23, 'Questions skipped': 1,
+#  'Skipped': 'comment: 187 different answers and no answer labels — …', …}
+```
+
+- **Contents** lists every question with a link to its sheet, and what was not
+  tabulated with the reason.
+- **One sheet per question**, named after its variable (at most 31
+  characters, unique as Excel compares names): the label, the banner across
+  (the banner variable over its codes, each with its letter), the base —
+  unweighted, and weighted when a weight applies — then per answer its count
+  and its percentage (`0.0%`), the letters in their own cells beside the
+  column percentage (they compare column percentages, so a book of row
+  percentages or counts only has none), and for an interval or ratio
+  question its mean and standard deviation per column. The header and the
+  bases are frozen.
+- **Notes**: the weight, the percentages, the base, the test, alpha,
+  Bonferroni, the minimum base, the missing codes left out and the date.
+
+The numbers are the [[Banner table's|Banner-Tables]]: its counts, and its
+two-sided z-test of column proportions within each banner variable (a column
+under thirty — effective — respondents is not tested; Total never is). Two
+things differ, on purpose: the codebook's missing codes are left out (a
+question's from its base; a banner variable's respondent is in Total and in
+none of its columns), and a column's base — for its percentages and its test —
+is those in it who answered the question. A multiple-choice question is one
+table of every option on the base of those who chose at least one, so its
+percentages add up to more than 100. `siamang.reporting.tabbook.tabulate`
+returns the numbers without writing the workbook.
+
+---
+
 See also: [[Reporting Charts|Reporting-Charts]] · [[Report Document|Report-Document]] · [[Banner Tables|Banner-Tables]] · [[Analysis]] · [[Working with Data|Working-with-Data]]

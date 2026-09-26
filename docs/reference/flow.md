@@ -105,7 +105,7 @@ Principal components, Scale reliability, Key drivers (its tests on Kish's
 effective N), Perceptual map (its chi-square test counts respondents), Price
 sensitivity, Correlation and Correlation matrix
 with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by` or with Pearson, the Likert chart, Proportion CI with
-`weighted` set, and the Trend. Unweighted and saying so (`"unweighted (the weight '<column>'
+`weighted` set, the Trend and the Tab book (Excel). Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
 groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
 Paired tests, Factor analysis, Cluster, Box plot, Scatter plot, a Heatmap
@@ -371,6 +371,19 @@ bases — for a report or a Live tile. `check_flow` knows the response
 timestamps a platform's frame carries (`document.RESPONSE_TIMES`:
 `created_at`, `updated_at`, `started_at`, `submitted_at`) as variables any
 node may name.
+
+`output.tabbook` (**Tab book (Excel)**) writes every chosen question crossed
+by a banner as a workbook with `siamang.reporting.tabbook.write_tabbook`:
+`questions` (empty: every nominal, ordinal and multiple-choice variable of the
+codebook except the banner, the weight and the response metadata), `banner`,
+`percentages` (`column` | `row` | `none`), `counts`, `letters` with `level`
+and `correction` (read only with the letters), `means`, `path` (default
+`outputs/tabbook.xlsx`). Its `stat` output: `Workbook`, `Sheets written`,
+`Questions skipped`, `Skipped` (each with its reason), `Banner`,
+`Percentages`, `Test` and on weighted data `Weight`. Percentages `none` with
+Counts off is a `PARAM_CONFLICT`; letters with Percentages other than `column`
+a warning, since the letters compare column percentages and are shown only
+beside them.
 
 ### A node specification
 

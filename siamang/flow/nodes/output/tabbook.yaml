@@ -1,0 +1,99 @@
+type: output.tabbook
+category: output
+title: Tab book (Excel)
+description: Every chosen question crossed by a banner of segments — one sheet each, with its bases, counts, percentages and the Banner table's significance letters — in an Excel workbook with a contents page and notes.
+inputs:
+  data: SurveyData
+outputs:
+  stat: Stat
+params:
+  questions:
+    kind: variables
+    label: Questions
+    help: Empty is every nominal, ordinal and multiple-choice variable of the codebook, except the banner variables, the weight and the response metadata. An interval or ratio question named here shows its mean.
+  banner:
+    kind: variables
+    required: true
+    scales:
+    - nominal
+    - ordinal
+    label: Banner
+    help: The columns are Total, then every code of each banner variable. Letters run across the whole banner, but columns are only compared inside their own variable.
+  percentages:
+    kind: enum
+    values:
+    - column
+    - row
+    - none
+    default: column
+    label: Percentages
+    help: 'column: of the column''s respondents who answered. row: of the answer''s respondents across each banner variable. none: counts only.'
+  counts:
+    kind: bool
+    default: true
+    label: Counts
+  letters:
+    kind: bool
+    default: true
+    label: Significance letters
+    help: The Banner table's test — a two-sided z-test of column proportions within each banner variable, on the base of those who answered (Kish's effective base when weighted); a column below 30 is not tested. The letters sit in their own cells beside the column percentages, and are shown only with them.
+  level:
+    kind: float
+    default: 0.05
+    minimum: 0.001
+    maximum: 0.2
+    label: Level
+  correction:
+    kind: enum
+    values:
+    - none
+    - bonferroni
+    default: none
+    label: Multiple comparisons
+  means:
+    kind: bool
+    default: true
+    label: Means
+    help: The mean and standard deviation of an interval or ratio question per column (not tested).
+  path:
+    kind: path
+    default: outputs/tabbook.xlsx
+    label: Path
+    help: An .xlsx file under outputs/, where the run keeps it.
+subtitle: '{banner} → {path}'
+checks:
+- when: percentages=none & counts=False
+  message: With Percentages none and Counts off the tables would be empty — turn one of them on.
+- when: letters=True & percentages!=column
+  severity: warning
+  message: Significance letters compare column percentages, so the sheets show them only with Percentages column; with row percentages or counts only they are left out.
+imports:
+- from siamang.reporting.tabbook import write_tabbook
+template:
+- when: letters=True
+  code: |
+    {out.stat} = write_tabbook(
+        {in.data},
+        {path!r},
+        questions={questions!r},
+        banner={banner!r},
+        percentages={percentages!r},
+        counts={counts!r},
+        letters=True,
+        level={level!r},
+        correction={correction!r},
+        means={means!r},
+    )
+- when: letters=False
+  code: |
+    {out.stat} = write_tabbook(
+        {in.data},
+        {path!r},
+        questions={questions!r},
+        banner={banner!r},
+        percentages={percentages!r},
+        counts={counts!r},
+        letters=False,
+        means={means!r},
+    )
+preview: stat
