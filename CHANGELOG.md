@@ -540,6 +540,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Likert chart fits a narrow figure and one item.** Every row took the
+  height of the tallest label wrapped to 0.3 of the width, so 14 items at 6 ×
+  4 inches grew to 6 × 23.75 and 5 items at 5 × 3 to 5 × 12.2; the labels are
+  now smaller and wider first. A single item filled a 6-inch plot with one
+  bar titled `1 item from Very dissatisfied to Very satisfied`, noted `Items
+  in order of their top-2 share`: a row is at most 60 pt, one item is titled
+  by its label (its row reads `(n = …)`), and the order note needs two. The
+  centre line ran through the neutral answer's value (`2|2%`); it runs
+  behind it. On an even scale the two middle answers were nearly white on
+  white (`#fddbc7`, `#d1e5f0` on 4-point RdBu); they keep a colour.
+
 - **What a Likert or Bar chart cannot draw fails its own node, and the flow
   check says it first.** The charts are built lazily, so a chart node
   "succeeded" and the error surfaced on Save report (`Node save

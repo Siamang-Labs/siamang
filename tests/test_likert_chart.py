@@ -440,3 +440,74 @@ def test_what_a_chart_cannot_draw_fails_the_chart_node(questionnaire_doc, tmp_pa
     failed = [run for run in result.runs if run.state == "error"]
     assert [run.node for run in failed] == ["n"]
     assert "none of the items has value labels" in failed[0].error
+
+
+def _battery(count: int, points: int = 5) -> SurveyData:
+    rng = np.random.default_rng(6)
+    labels = {code: f"Answer {code}" for code in range(1, points + 1)}
+    variables = VariableMap()
+    frame = {}
+    for index in range(count):
+        variables.add(
+            Variable(
+                f"s{index}", "ordinal", labels=labels,
+                label=f"Agreement: statement number {index} about the service received in the store",
+            )
+        )  # fmt: skip
+        frame[f"s{index}"] = rng.integers(1, points + 1, 200)
+    return SurveyData(frame=pd.DataFrame(frame), variables=variables)
+
+
+def test_a_narrow_figure_of_many_items_is_not_a_strip(tmp_path):
+    """14 items at 6 × 4 inches grew to 6 × 23.75: every row took the height of
+    the tallest label wrapped to 0.3 of a narrow figure. The labels get smaller
+    and wider first; the rows are no taller than their labels."""
+    chart = _battery(14).plot.likert([f"s{i}" for i in range(14)], figsize=(6, 4))
+    chart.save(tmp_path / "narrow.png")
+    ax = chart.plot()
+    lines = max(label.get_text().count("\n") + 1 for label in ax.get_yticklabels())
+    size = ax.get_yticklabels()[0].get_fontsize()
+    assert lines <= 3 and size >= 8
+    rows = ax.get_window_extent().height * 72 / ax.figure.dpi / 14
+    assert rows <= lines * size * 1.2 + 11
+    assert ax.figure.get_figheight() < 10
+    renderer = ax.figure.canvas.get_renderer()
+    boxes = sorted(
+        (t.get_window_extent(renderer) for t in ax.get_yticklabels()), key=lambda b: b.y0
+    )
+    assert all(low.y1 <= high.y0 + 0.5 for low, high in zip(boxes, boxes[1:], strict=False))
+
+
+def test_one_item_is_titled_by_its_label_and_draws_one_bar_of_a_row(tmp_path):
+    """One item filled a 6-inch plot with one bar, titled "1 item from … to …"
+    and noted "Items in order of their top-2 share"."""
+    chart = _battery(1).plot.likert(["s0"])
+    chart.save(tmp_path / "one.png")
+    ax = chart.plot()
+    assert ax.get_title() == "Agreement: statement number 0 about the service received in the store"
+    assert [label.get_text() for label in ax.get_yticklabels()] == ["(n = 200)"]
+    assert ax.get_window_extent().height * 72 / ax.figure.dpi <= 61
+    assert "Items in order" not in _footnote(chart)
+    assert "Items in order of their top-2 share" in _footnote(_battery(2).plot.likert(["s0", "s1"]))
+
+
+def test_the_centre_line_runs_behind_the_neutral_value():
+    chart = _battery(3).plot.likert(["s0", "s1", "s2"])
+    ax = chart.plot()
+    centre = next(line for line in ax.lines if list(line.get_xdata()) == [0.0, 0.0])
+    values = [text for text in ax.texts if text.get_text().endswith("%") and text.get_zorder() > 3]
+    assert values and centre.get_zorder() < min(text.get_zorder() for text in values)
+    neutral = [text for text in values if text.get_position()[0] == 0.0]
+    assert neutral and all(text.get_bbox_patch() is not None for text in neutral)
+
+
+def test_an_even_scale_keeps_its_inner_answers_coloured():
+    """A 4-point RdBu scale drew "Disagree" and "Agree" #fddbc7 and #d1e5f0,
+    white on white."""
+    from matplotlib.colors import to_rgb
+
+    chart = _battery(2, points=4).plot.likert(["s0", "s1"])
+    fills = [to_rgb(container.patches[0].get_facecolor()) for container in chart.plot().containers]
+    assert len(fills) == 4
+    assert all(min(channel for channel in fill) < 0.75 for fill in fills)  # none near white
+    assert fills[1] != fills[0] and fills[2] != fills[3]

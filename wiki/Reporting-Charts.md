@@ -231,7 +231,8 @@ alone on a scale of two or three) are written at the ends of every bar.
   scale, and these do not: Trust: Acme has 1 = No trust, …; Overall satisfaction
   has 1 = Very dissatisfied, …. Draw them in separate charts, or recode them onto
   one scale first.* Items without labels may give a valid range of whole
-  numbers instead.
+  numbers instead, or be asked by a Likert scale question (its points, the
+  ends named by its end labels).
 - **`neutral`** — `"split"` (the middle answer of an odd scale half on either
   side of the centre, the default) or `"side"` (apart, in a panel at the right).
   An even scale has no neutral answer; its centre falls between the middle two.
@@ -240,7 +241,13 @@ alone on a scale of two or three) are written at the ends of every bar.
 - **`show_values`** — each answer's share in its segment where it fits.
 - **`palette`** — a diverging palette (`"RdBu"`, `"BrBG"`, `"PuOr"`, `"RdYlBu"`,
   `"PiYG"`, `"coolwarm"`); the low answers take its first colour, the neutral
-  answer is grey.
+  answer is grey, and an even scale's two middle answers keep a colour (the
+  palette is sampled two wider and its two palest dropped).
+
+The item labels are fitted to the figure — smaller and wider on a narrow one —
+before the chart grows taller, and a row is no taller than its label (at most
+60 pt): one item draws one bar, titled by its label, its row showing its base.
+The centre line runs behind the neutral answer's value.
 
 Codes run low to high, left to right: recode a scale written the other way
 (1 = Strongly agree) first. The codebook's missing codes and any value not on
