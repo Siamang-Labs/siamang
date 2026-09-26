@@ -371,7 +371,7 @@ def test_an_ordinal_logit_draws_its_odds_ratios_without_the_thresholds():
     for chart in (rc.chart([table, model.stats]), rc.chart(model)):
         ax = chart._ax
         assert chart.drawn == "coefficients" and ax.get_xscale() == "log"
-        assert _ticks(ax) == ["x1", "x2"]  # not Low|Medium, Medium|High, High|Top
+        assert _ticks(ax) == ["x1", "x2"]  # not Low / Medium, Medium / High, High / Top
         points = sorted(
             (float(y), float(x))
             for line in ax.lines

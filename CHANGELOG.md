@@ -540,6 +540,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The ordinal logit refuses a nominal outcome, and its thresholds no longer
+  break a Markdown table.** Regression with Model = ordinal fitted a nominal
+  outcome such as a region in code order (`order = Capital < North < South`),
+  with odds ratios and a test and no warning. An outcome the codebook calls
+  nominal is now refused — "Region is nominal: its answers (Capital, North,
+  South) have no order, and the ordinal model would take one from their
+  codes. Use the logit for an outcome of two answers, or recode it onto an
+  ordered scale (Recode with Scale = ordinal) first." — and `check_flow` says
+  the same before the run (`VARIABLE_SCALE`; a warning when a node upstream
+  makes the variable nominal). The thresholds were named as polr names them,
+  `Very dissatisfied|Dissatisfied`; in a report's Markdown, Studio's node
+  preview and the Reports page the pipe ended the cell, and every number of a
+  threshold row moved a column right. They are named `Very dissatisfied /
+  Dissatisfied`, and a report's Markdown tables escape a `|` in any label or
+  name (`A\|B`).
+
 - **Weighted percentages are of the sums of weights as they are.** The
   Frequencies table rounded each weighted N to one decimal and then took the
   percentages of those rounded numbers, so they could differ in the last digit

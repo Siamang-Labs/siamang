@@ -111,6 +111,28 @@ def _placement(width: str | None, align: str | None, break_before: bool) -> dict
 
 
 def _frame_markdown(frame: pd.DataFrame) -> str:
+    # A "|" in a label or a name would end its cell: escaped, as a table
+    # component's Markdown escapes it (tabulate does not). Only such a column
+    # is touched, its cells kept as they are otherwise (a None stays blank).
+    def piped(value: object) -> bool:
+        return isinstance(value, str) and "|" in value
+
+    columns = [
+        column
+        for column in frame.columns
+        if frame[column].dtype == object and any(piped(value) for value in frame[column])
+    ]
+    if columns or any(piped(column) for column in frame.columns):
+        frame = frame.copy()
+        for column in columns:
+            frame[column] = pd.Series(
+                [value.replace("|", "\\|") if piped(value) else value for value in frame[column]],
+                index=frame.index,
+                dtype=object,
+            )
+        frame.columns = [
+            column.replace("|", "\\|") if piped(column) else column for column in frame.columns
+        ]
     return frame.to_markdown(index=False)
 
 

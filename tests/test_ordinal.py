@@ -95,8 +95,8 @@ def test_housing_with_frequency_weights_matches_polr_and_clm():
         "Type = Atrium",
         "Type = Terrace",
         "Cont = High",
-        "Low|Medium",
-        "Medium|High",
+        "Low / Medium",
+        "Medium / High",
     ]
     assert list(table["type"]) == ["coefficient"] * 6 + ["threshold"] * 2
     clm = [
@@ -165,7 +165,7 @@ def test_wine_unweighted_matches_clm_polr_and_statsmodels():
 
     result = regression(_wine(), "rating", ["warm", "contact"], kind="ordinal")
     table = result.table
-    assert list(table["term"]) == ["warm", "contact", "1|2", "2|3", "3|4", "4|5"]
+    assert list(table["term"]) == ["warm", "contact", "1 / 2", "2 / 3", "3 / 4", "4 / 5"]
     statsmodels = [2.503102007, 1.527797658, -1.344383411, 1.250808798, 3.466886926, 5.006404204]
     assert list(table["estimate"]) == pytest.approx(statsmodels, abs=2e-6)
     assert list(table["std_error"][:2]) == pytest.approx([0.5286801, 0.4766226], abs=1e-6)
@@ -266,9 +266,9 @@ def test_missing_codes_are_left_out_and_named_and_unused_answers_noted():
         "trust",
         "region = South",
         "region = Capital",
-        "Low|Middle",
-        "Middle|High",
-        "High|Very high",
+        "Low / Middle",
+        "Middle / High",
+        "High / Very high",
     ]
     assert result.table["estimate"][0] > 0 and "weight" not in stats
     # The same numbers as the fit on the complete rows by hand.
@@ -367,3 +367,24 @@ def test_the_other_kinds_are_unchanged():
     ]
     auto = regression(frame, "rating", ["warm", "contact"])
     assert auto.kind == "ols"  # five values: auto never chooses the ordinal model
+
+
+def test_a_nominal_outcome_is_refused_rather_than_ordered_by_its_codes():
+    """Type (Tower, Apartment, Atrium, Terrace) has no order: the model would
+    cut it at its codes and report Tower < Apartment < … as the order found.
+    Satisfaction, ordinal in the codebook, is the same data's outcome."""
+
+    housing = _housing()
+    with pytest.raises(ValueError) as refused:
+        regression(
+            housing.frame, "Type", ["Infl", "Cont"], kind="ordinal", weight="Freq",
+            variables=housing.variables,
+        )  # fmt: skip
+    message = str(refused.value)
+    assert message.startswith("Type is nominal: its answers (Tower, Apartment, Atrium, Terrace)")
+    assert "Use the logit for an outcome of two answers" in message
+    assert "Recode with Scale = ordinal" in message
+    assert housing.analysis.regression("Sat", ["Infl"], kind="ordinal").stats["categories"] == 3
+    # Without a codebook the codes are all there is, and they are taken as the order.
+    plain = ordinal_regression(housing.frame, "Type", ["Cont"], weight="Freq")
+    assert plain.stats["order"] == "1 < 2 < 3 < 4"
