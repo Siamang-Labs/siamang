@@ -382,7 +382,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a table component's cells, rounded already, with `str`, and a bare
   DataFrame's floats (a regression's coefficients, a PCA's loadings, a
   cluster's centroids) as tabulate does, with six significant digits
-  (`62.263`, `6.15462e-38`) rather than the full `62.26300527031391`.
+  (`62.263`, `6.15462e-38`) rather than the full `62.26300527031391`. Group
+  means of a float32 column (a Stata `float`, Parquet written elsewhere) is
+  computed in float64, so its cells read `3.444` in both, not the float32
+  `3.444000005722046` that `round(3)` could not hold.
 
 - **An answer weighted 0 no longer changes the weighted SD.** Descriptive
   statistics and Group means scaled the weighted variance by n / (n − 1) with n
