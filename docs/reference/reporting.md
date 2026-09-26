@@ -257,7 +257,9 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
 
 ### Categorical Distribution: `BarChart`
 
-Plots the counts of a categorical variable, or mean values of a continuous variable across groups. On weighted data the counts are sums of weights and the means weighted means.
+Plots the counts or percentages of a categorical variable, its answers within each group of a second variable (`split`: the chart of a crosstab), or mean values of a continuous variable across groups (`by`). On weighted data the counts are sums of weights, the percentages weighted and the means weighted means.
+
+While `show`, `split` and `sort` keep their defaults the chart is the one `BarChart` has always drawn. The other forms (`siamang.reporting.bars`) leave the codebook's missing codes out of the bars and say how many, and write under the plot the base (respondents who answered, and the weighted base), the weight, and for a multiple-choice question that its percentages are of respondents and add up to more than 100 %. They also draw a multiple-choice question, which the older chart could not (it raised `unhashable type: 'list'`); a multiple-choice question is drawn by them whatever the parameters. One series has one colour; the steps of an ordered scale (ordinal and up) are one hue light to dark; a colour belongs to its answer, whatever `sort` does to the order. Long labels wrap, a word is never broken — one longer than its bar's room makes the labels smaller (to 8 pt) or, below that, turns them 45° — the legend goes under the plot when the figure is narrower than 7.5 in; and a figure grows taller when its labels, legend and notes would leave the plot less than 110 pt (or 40 % of the height asked) — it keeps its width.
 
 #### Properties
 
@@ -268,7 +270,11 @@ In addition to base properties:
 | `column` | `str` | `""` | Variable to plot on the X-axis (or Y-axis if horizontal). |
 | `by` | `str \| None` | `None` | If specified, plots grouped means of `column` across categories of `by`. |
 | `horizontal` | `bool` | `False` | If `True`, draws horizontal bars. |
-| `show_values` | `bool` | `True` | If `True`, annotates bars with their numeric values. |
+| `show_values` | `bool` | `True` | If `True`, annotates bars with their numeric values (percentages as `45.2%`). A value is written where it fits — beside a bar's end, or inside its segment of a stack — and left to the axis where it would not. |
+| `show` | `str` | `"count"` | `"count"` or `"percent"` of the respondents who answered (of respondents for a multiple-choice question: the bars add up to more than 100 %). With `by` the bars are means; `show="percent"` with `by` is a `ValueError`. |
+| `split` | `str \| None` | `None` | A variable with one answer per respondent: the distribution of `column` within each of its groups — percentages of each group with `show="percent"`, as `CrossTable(pct="col")` gives them. Each group's `n` is written under its name. Not with `by` (a `ValueError`); not a multiple-choice variable. |
+| `layout` | `str` | `"grouped"` | With `split`: `"grouped"`, `"stacked"` (each group's total above its bar) or `"stacked_100"` (percentages, each group at 100 %). A multiple-choice `column` is drawn `"grouped"` only. |
+| `sort` | `str` | `"code"` | `"code"` (codebook order) or `"value"` (largest first: the answer given most overall with `split`, the highest mean with `by`). |
 
 #### Example
 
@@ -282,6 +288,12 @@ chart.show()
 # 2. Grouped mean bar chart
 chart = BarChart(data, column="autonomy", by="remote_freq", palette="pastel")
 chart.save("autonomy_means.png")
+
+# 3. Percentages, largest first
+BarChart(data, column="it_role", show="percent", sort="value", horizontal=True)
+
+# 4. The chart of a crosstab: satisfaction within each region, stacked to 100 %
+BarChart(data, column="satisfaction", split="region", layout="stacked_100")
 ```
 
 ---
@@ -431,7 +443,7 @@ To make this reporting API extremely convenient, two accessors are attached dire
 
 ### `data.plot` Accessor Methods
 
-* **`bar(column: str, *, by: str | None = None, horizontal: bool = False, show_values: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> BarChart`**:
+* **`bar(column: str, *, by: str | None = None, horizontal: bool = False, show_values: bool = True, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None, show: str = "count", split: str | None = None, layout: str = "grouped", sort: str = "code") -> BarChart`**:
   Creates a `BarChart` instance.
 * **`boxplot(column: str, *, by: str, show_points: bool = False, figsize: tuple[float, float] = (10, 6), palette: str = "muted", title: str | None = None) -> BoxPlot`**:
   Creates a `BoxPlot` instance.

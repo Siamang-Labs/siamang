@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Bar chart: percentages, Split by, and largest first.** `visualize.bar` and
+  `data.plot.bar()` take `show` (`count` | `percent` of the respondents who
+  answered), `split` (Split by: the answers within each group of a second
+  variable — the chart of a crosstab, percentages of each group, weighted like
+  the Crosstab), `layout` (`grouped` | `stacked` | `stacked_100`) and `sort`
+  (`code` | `value`). A multiple-choice question's percentages are of
+  respondents and add up to more than 100 %, which the chart says; its options
+  overlap, so they are drawn side by side and never stacked. These forms leave
+  the codebook's missing codes out of the bars and count them, and write the
+  base, the weight and each group's `n` on the chart. A colour belongs to its
+  answer whatever the order, an ordered scale is one hue light to dark, long
+  labels wrap, and a small figure grows taller rather than squash its plot. At
+  the defaults the chart and the node's code are what they were; the node's
+  checks refuse By with Split by and warn of By with percentages and of a
+  Layout without Split by. A multiple-choice question at the defaults, which
+  raised `unhashable type: 'list'`, is drawn as counts of respondents.
+
 - **`UIConfig.allow_theme_switch`** — whether the respondent may change the
   survey's light/dark theme. The runtime has always shown that button and
   remembered the choice, which made `default_theme` only ever a starting point:

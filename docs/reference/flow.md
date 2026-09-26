@@ -102,7 +102,7 @@ Crosstab (Fisher's exact test counts respondents), Group means (not N or the
 test), Descriptive statistics (not N, skewness or kurtosis), Banner table, Net
 Promoter Score, Regression, TURF, MaxDiff, Conjoint, Share of preference,
 Principal components, Scale reliability, Correlation and Correlation matrix
-with Pearson, the Bar chart, a Heatmap with `by`, and Proportion CI with
+with Pearson, the Bar chart (counts, percentages and Split by), a Heatmap with `by`, and Proportion CI with
 `weighted` set. Unweighted and saying so (`"unweighted (the weight '<column>'
 is not applied)"` in the stat, or as the chart title's second line): Compare
 groups, Correlation and Correlation matrix with Spearman or Kendall, t-test,
@@ -188,6 +188,20 @@ every level (page, block, question, answer option), the routing, and the
 questionnaire's scripts — an assigned arm is drawn, a `randomize_pages` order
 dealt. Quotas are deploy options, not part of the questionnaire, so none
 closes in a flow.
+
+`visualize.bar` draws counts or percentages and the chart of a crosstab:
+**`show`** (`count` | `percent` of the respondents who answered), **`split`**
+(Split by: the answers within each group of a second variable, as column
+percentages), **`layout`** (`grouped` | `stacked` | `stacked_100`, with Split
+by) and **`sort`** (`code` | `value`, largest first). A document that sets none
+of them renders the code it always did (`when: show=count & split=None &
+sort=code` is the old line); `by` is written only while Show is count, so a
+builder hides it for percentages. Its `checks`: By with Split by is an error
+(`By draws the mean of Variable in each group and Split by its answers in each
+group — clear one of them.`); By with Show percent (`By (the mean in each
+group) is not drawn when Show is percent; to show the answers in each group,
+use Split by.`) and a Layout other than grouped without Split by (`Layout
+applies only when Split by is set.`) are warnings.
 
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead

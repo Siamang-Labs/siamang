@@ -216,8 +216,21 @@ class BarChart(SurveyChart):
     by: str | None = None
     horizontal: bool = False
     show_values: bool = True
+    #: The newer forms (siamang.reporting.bars): "count" or "percent" of the
+    #: respondents who answered; a variable splitting the answers into groups,
+    #: drawn "grouped", "stacked" or "stacked_100"; bars in "code" order or
+    #: largest first ("value"). At their defaults the chart is the one it was.
+    show: str = "count"
+    split: str | None = None
+    layout: str = "grouped"
+    sort: str = "code"
 
     def _build(self) -> None:
+        from siamang.reporting import bars
+
+        if not bars.is_classic(self):
+            bars.draw(self)
+            return
         if sns:
             sns.set_theme(style="whitegrid", palette=self.palette)
 

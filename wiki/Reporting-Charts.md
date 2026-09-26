@@ -44,7 +44,8 @@ figure is built lazily on first use.
 
 **Weighted data.** After `with_weight(...)` a chart never disagrees in silence
 with the weighted tables beside it. `BarChart` draws sums of weights (axis
-"Weighted count") or weighted means ("Weighted mean …"), and `HeatMap` with `by`
+"Weighted count"), weighted percentages ("% of respondents (weighted)") or
+weighted means ("Weighted mean …"), and `HeatMap` with `by`
 draws weighted means (colour bar "Weighted mean"). `BoxPlot`, `ScatterPlot` and
 the correlation `HeatMap` have no standard weighted form, so they draw the
 respondents as they are and add a second title line, `unweighted (the weight
@@ -57,12 +58,14 @@ returns that line (or `"weighted by 'w'"`, or `None` on unweighted data).
 
 ```python
 BarChart(data, column="", by=None, horizontal=False, show_values=True,
+         show="count", split=None, layout="grouped", sort="code",
          figsize=(10, 6), palette="muted", title=None)
 ```
 
-With only `column`, plots a **frequency** distribution of a categorical
-variable. With `by` set, plots the **mean** of `column` within each category of
-`by`.
+With only `column`, plots the **distribution** of a categorical variable. With
+`by` set, plots the **mean** of `column` within each category of `by`. With
+`split` set, plots the **answers within each group** of a second variable — the
+chart of a crosstab.
 
 **Extra parameters**
 
@@ -70,14 +73,56 @@ variable. With `by` set, plots the **mean** of `column` within each category of
 - **`by`** — optional grouping variable; switches to grouped-mean mode.
 - **`horizontal`** — draw horizontal bars (default `False`).
 - **`show_values`** — annotate each bar with its value (default `True`).
+- **`show`** — `"count"` (default) or `"percent"`: the share of the respondents
+  who answered. For a multiple-choice question that is the share who named each
+  option, so the bars add up to more than 100 %, and the chart says so under
+  the plot.
+- **`split`** — a second variable (one answer per respondent). Each of its
+  groups gets the distribution of `column`, as percentages of the group when
+  `show="percent"` — a Crosstab's column percentages — and sums of weights on
+  weighted data, like the Crosstab.
+- **`layout`** — with `split`: `"grouped"` (bars side by side, the default),
+  `"stacked"`, or `"stacked_100"` (each group's bar at 100 %, percentages
+  whatever `show` says). A multiple-choice question's options overlap, so they
+  are drawn side by side only; stacking them is refused.
+- **`sort`** — `"code"` (the codebook's order, the default) or `"value"` (the
+  largest bar first; with `split`, the answer given most overall; with `by`,
+  the highest mean). A colour belongs to its answer, not to its place, so a
+  sorted chart and an unsorted one colour the same answer alike.
+
+At the defaults (`show="count"`, no `split`, `sort="code"`) the chart is the one
+it has always been, picture for picture. The newer forms also:
+
+- leave the codebook's missing codes out of the bars (a 99 "Don't know" is not
+  an answer) and say how many under the plot;
+- write under the plot the base (`Base: 571 respondents who answered
+  (weighted: 742.7).`), the weight, and for a split each group's `n` under its
+  name;
+- draw one colour for a single series, and the steps of an ordered scale
+  (ordinal and up) in one hue, light to dark;
+- wrap long labels, put the legend under the plot when the figure is too narrow
+  for it beside, and let a small figure grow taller rather than squash the
+  plot to nothing.
+
+A multiple-choice question is drawn by these forms whatever the parameters (the
+older chart could not draw one).
 
 ```python
 # Frequency of IT roles
 data.plot.bar("it_role").show()
 
+# Percent of respondents, largest first, horizontal
+data.plot.bar("it_role", show="percent", sort="value", horizontal=True)
+
+# Satisfaction within each region, stacked to 100 %
+data.plot.bar("satisfaction", split="region", layout="stacked_100")
+
 # Mean autonomy by remote frequency, saved to disk
 data.plot.bar("autonomy", by="remote_freq", palette="pastel").save("autonomy_means.png")
 ```
+
+`by` and `split` do different things — a mean in each group, the answers in
+each group — and cannot both be given; nor can `by` with `show="percent"`.
 
 ---
 
@@ -166,7 +211,8 @@ The accessor returns the same chart objects, so you can chain `show()`/`save()`:
 
 ```python
 def bar(column, *, by=None, horizontal=False, show_values=True,
-        figsize=(10, 6), palette="muted", title=None) -> BarChart
+        figsize=(10, 6), palette="muted", title=None,
+        show="count", split=None, layout="grouped", sort="code") -> BarChart
 def boxplot(column, *, by, show_points=False,
             figsize=(10, 6), palette="muted", title=None) -> BoxPlot
 def heatmap(columns, *, by=None, annot=True, cmap="YlOrRd",

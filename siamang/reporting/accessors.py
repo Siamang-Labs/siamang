@@ -298,6 +298,10 @@ class PlotAccessor:
         figsize: tuple[float, float] = (10, 6),
         palette: str = "muted",
         title: str | None = None,
+        show: str = "count",
+        split: str | None = None,
+        layout: str = "grouped",
+        sort: str = "code",
     ) -> BarChart:
         """Create a bar chart.
 
@@ -311,6 +315,16 @@ class PlotAccessor:
             Horizontal bars.
         show_values : bool
             Annotate bars with values.
+        show : str
+            ``"count"`` or ``"percent"`` of the respondents who answered (for a
+            multiple-choice question, of respondents: the bars add up to more
+            than 100 %).
+        split : str | None
+            A second variable: the answers within each of its groups, as a
+            crosstab's column percentages, drawn as ``layout`` says —
+            ``"grouped"``, ``"stacked"`` or ``"stacked_100"``.
+        sort : str
+            ``"code"`` (the codebook's order) or ``"value"`` (largest first).
         """
         from siamang.reporting.charts import BarChart
 
@@ -323,6 +337,10 @@ class PlotAccessor:
             figsize=figsize,
             palette=palette,
             title=title,
+            show=show,
+            split=split,
+            layout=layout,
+            sort=sort,
         )
 
     def boxplot(
