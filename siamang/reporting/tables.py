@@ -110,13 +110,19 @@ def _frame_to_markdown(df: pd.DataFrame) -> str:
     """Convert a DataFrame to a GitHub-flavored Markdown pipe table."""
     lines = []
     headers = list(df.columns)
-    lines.append("| " + " | ".join(str(h) for h in headers) + " |")
+    lines.append("| " + " | ".join(markdown_cell(h) for h in headers) + " |")
     lines.append("|" + "|".join("---" for _ in headers) + "|")
     # Row by row with each column's own type: iterrows() casts a row of numbers
     # to one float dtype, which printed a count of 4 as "4.0".
     for row in df.itertuples(index=False, name=None):
-        lines.append("| " + " | ".join(str(v) for v in row) + " |")
+        lines.append("| " + " | ".join(markdown_cell(v) for v in row) + " |")
     return "\n".join(lines)
+
+
+def markdown_cell(value: Any) -> str:
+    """A cell of a Markdown pipe table: a "|" in its text (a label "A|B") is
+    escaped, where it would end the cell and move the rest a column right."""
+    return str(value).replace("|", "\\|")
 
 
 def stat_text(value: Any) -> str:

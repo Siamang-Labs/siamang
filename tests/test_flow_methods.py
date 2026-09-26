@@ -94,7 +94,14 @@ def test_regression_offers_the_ordinal_model_and_runs_it_weighted(
     # The questionnaire asks the South no trust question: two regions remain.
     assert list(table["term"][:3]) == ["trust_acme", "region = North", "age"]
     report = (tmp_path / "outputs" / "ord.md").read_text("utf-8")
-    assert "Very dissatisfied|Dissatisfied" in report and "odds_ratio_lower" in report
+    # A threshold is one cell, and its row has as many cells as the header: a
+    # "|" in the term (polr's "Very dissatisfied|Dissatisfied") split it in two.
+    lines = report.splitlines()
+    header = next(line for line in lines if "odds_ratio_lower" in line)
+    row = next(line for line in lines if "Very dissatisfied / Dissatisfied" in line)
+    cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
+    assert cells[:2] == ["Very dissatisfied / Dissatisfied", "threshold"]
+    assert row.count("|") == header.count("|")
     assert "| nan" not in report  # the thresholds' odds ratio is blank
     assert json.dumps(stat)
 
@@ -396,3 +403,43 @@ def test_perceptual_map_reads_a_snapshot_as_the_simulated_data(questionnaire_doc
     rows = list(result.output("map", "rows").to_frame().iloc[:, 0])
     assert "<NA>" not in rows and rows == list(in_memory.rows.to_frame().iloc[:, 0])
     assert result.output("map", "stat")["Excluded"] > 0
+
+
+def test_ordinal_regression_of_a_nominal_outcome_is_named_before_the_run(questionnaire_doc):
+    """Region (Capital, North, South) is nominal in the codebook: the flow check
+    says so as the fit would, and a recode onto an ordinal scale is accepted."""
+    nodes = [
+        ("sim", "source.simulated", {"n": 300, "seed": 5}),
+        ("reg", "analyze.regression",
+         {"y": "region", "predictors": ["age", "gender"], "kind": "ordinal"}),
+    ]  # fmt: skip
+    flow = _flow(nodes, [("sim", "data", "reg", "data")])
+    issues = [
+        (i.severity, i.code, i.message) for i in check_flow(flow, questionnaire=questionnaire_doc)
+    ]
+    assert issues == [
+        (
+            "error",
+            "VARIABLE_SCALE",
+            "reg: Region is nominal: its answers (Capital, North, South) have no order, and the "
+            "ordinal model would take one from their codes. Use the logit for an outcome of two "
+            "answers, or recode it onto an ordered scale (Recode with Scale = ordinal) first.",
+        )
+    ]
+    flow["nodes"][1]["params"]["kind"] = "auto"
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    flow["nodes"][1]["params"].update(kind="ordinal", y="satisfaction")
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []
+    # A variable a node upstream makes nominal: a warning, as other made scales.
+    nodes = [
+        ("sim", "source.simulated", {"n": 300, "seed": 5}),
+        ("rec", "prepare.recode",
+         {"variable": "satisfaction", "mapping": {"1": 1, "2": 1, "3": 2, "4": 3, "5": 3},
+          "into": "sat3", "scale": "nominal"}),
+        ("reg", "analyze.regression", {"y": "sat3", "predictors": ["age"], "kind": "ordinal"}),
+    ]  # fmt: skip
+    flow = _flow(nodes, [("sim", "data", "rec", "data"), ("rec", "data", "reg", "data")])
+    issues = [(i.severity, i.code) for i in check_flow(flow, questionnaire=questionnaire_doc)]
+    assert issues == [("warning", "VARIABLE_SCALE")]
+    flow["nodes"][1]["params"]["scale"] = "ordinal"
+    assert check_flow(flow, questionnaire=questionnaire_doc) == []

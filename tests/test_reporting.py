@@ -588,3 +588,27 @@ def test_nps_names_the_weight_it_used():
     # Promoters weigh 2 of 6, detractors 4 of 6: NPS = 33.3 − 66.7.
     assert table.stats["NPS"] == -33.3 and table.stats["Weight"] == "w"
     assert "Weight" not in SurveyData(frame=frame).report.nps("nps").stats
+
+
+def test_a_pipe_in_a_label_stays_inside_its_markdown_cell():
+    """A "|" is a cell border in a Markdown table: a label or a bare frame's
+    text holding one is escaped, so the row keeps the header's cells."""
+    import pandas as pd
+
+    from siamang.core.variable import Variable, VariableMap
+    from siamang.data import SurveyData
+    from siamang.reporting import Report
+
+    variables = VariableMap()
+    variables.add(Variable("q", "nominal", label="Q", labels={1: "A|B", 2: "C"}))
+    data = SurveyData(frame=pd.DataFrame({"q": [1, 1, 2]}), variables=variables)
+    table = data.report.freq("q").to_markdown().splitlines()
+    assert table[2].startswith("| 1 | A\\|B | 2 |")
+    assert {line.count("|") - line.count("\\|") for line in table[:5]} == {6}
+    report = Report(title="Pipes")
+    report.add(pd.DataFrame({"term": ["x", "Low|High"], "odds": [2.0, 0.5]}))
+    report.add(data.report.freq("q"))
+    markdown = report.to_markdown()
+    bare = [line for line in markdown.splitlines() if "Low" in line]
+    assert bare == ["| Low\\|High |    0.5 |"]
+    assert "| A\\|B |" in markdown

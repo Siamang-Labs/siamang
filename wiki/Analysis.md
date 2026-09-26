@@ -514,7 +514,10 @@ model.stats["order"], model.stats["pseudo_r_squared"], model.stats["lr_p"]
   makes the higher answers more likely, and `odds_ratio = exp(β)` is the odds
   of answering above any cut rather than at or below it. The table lists the
   coefficients (`type` `coefficient`), then the thresholds (`threshold`, named
-  `Low|Medium` as polr names them), whose odds-ratio cells are blank.
+  `Low / Medium` — polr's `Low|Medium`, without the pipe that would split a
+  Markdown table's cell), whose odds-ratio cells are blank. The outcome must be
+  ordered: a variable the codebook calls nominal (a region) is refused, before
+  the run by the flow check and by the fit itself, since its codes are no order.
 - **Numbers.** Maximum likelihood (SciPy's BFGS on the exact gradient, then
   Newton steps on the exact Hessian), the standard errors from the observed
   information, z and its normal p, and the odds ratio's 95 % Wald interval —

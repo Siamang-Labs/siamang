@@ -64,6 +64,7 @@ here; the Brant test or a partial-proportional-odds model would.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -374,6 +375,12 @@ def ordinal_regression(
             "answers (lists of codes), which have no single value to model. Run "
             "prepare.explode first: it turns each option into its own 0/1 column."
         )
+    if variables is not None and y in variables:
+        problem = outcome_problem(
+            _label(y, variables), variables[y].scale, list(_labels(y, variables).values())
+        )
+        if problem:
+            raise ValueError(problem)
     cleaned, left_out = inference.without_missing_codes(frame, columns, variables)
     present = cleaned[columns].notna().all(axis=1).to_numpy()
     data = cleaned.loc[present, columns].reset_index(drop=True)
@@ -465,7 +472,9 @@ def ordinal_regression(
     p_values = np.where(np.isfinite(z), 2 * norm.sf(np.abs(z)), np.nan)
     q = float(norm.ppf((1 + confidence) / 2))
     answers = [_answer(v, labels) for v in carried]
-    cut_names = [f"{answers[j]}|{answers[j + 1]}" for j in range(cuts)]
+    # "Low / Medium", where polr writes "Low|Medium": a pipe is a cell border in
+    # a Markdown table, and would push the threshold's numbers a column right.
+    cut_names = [f"{answers[j]} / {answers[j + 1]}" for j in range(cuts)]
     table = pd.DataFrame(
         {
             "term": [*names, *cut_names],
@@ -568,6 +577,24 @@ def ordinal_regression(
     return RegressionResult(kind="ordinal", table=table, stats=stats)
 
 
+def outcome_problem(name: str, scale: str | None, answers: Sequence[Any] = ()) -> str | None:
+    """Why the variable labelled ``name``, of ``scale``, cannot be an ordinal
+    model's outcome, or None: a nominal variable's answers (``answers``, their
+    labels) have no order the thresholds could follow — the model would read
+    one from the codes (Capital < North < South) and report it as found."""
+
+    if scale != "nominal":
+        return None
+    shown = ", ".join(str(answer) for answer in list(answers)[:6])
+    more = ", …" if len(answers) > 6 else ""
+    listed = f" ({shown}{more})" if shown else ""
+    return (
+        f"{name} is nominal: its answers{listed} have no order, and the ordinal model would "
+        "take one from their codes. Use the logit for an outcome of two answers, or recode it "
+        "onto an ordered scale (Recode with Scale = ordinal) first."
+    )
+
+
 def _label(name: str, variables: VariableMap | None) -> str:
     if variables is not None and name in variables:
         return variables[name].label or name
@@ -593,4 +620,4 @@ def _nominal(name: str, variables: VariableMap | None, series: pd.Series) -> boo
     return series.dtype == object
 
 
-__all__ = ["MAX_CATEGORIES", "OrdinalFit", "fit", "ordinal_regression"]
+__all__ = ["MAX_CATEGORIES", "OrdinalFit", "fit", "ordinal_regression", "outcome_problem"]

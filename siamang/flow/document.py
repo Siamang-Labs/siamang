@@ -216,6 +216,12 @@ def check_flow(
         )
         issues.extend(_check_rules(node_id, spec, node.get("params") or {}))
         issues.extend(_check_design(node_id, spec, node.get("params") or {}, questionnaire))
+        if spec.type == "analyze.regression":
+            issues.extend(
+                _check_ordinal_outcome(
+                    node_id, spec, node.get("params") or {}, questionnaire, scales, made
+                )
+            )
         if spec.type == "prepare.maxdiff_scores" and questionnaire is not None:
             issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
         if spec.type == "visualize.likert" and questionnaire is not None:
@@ -978,6 +984,36 @@ def _check_design(
                 )
             ]
     return []
+
+
+def _check_ordinal_outcome(
+    node_id: str,
+    spec: NodeSpec,
+    given: dict[str, Any],
+    questionnaire: dict[str, Any] | None,
+    scales: dict[str, str | None],
+    made: dict[str, str],
+) -> list[FlowIssue]:
+    """An ordinal regression of a nominal outcome, in the words the run refuses
+    it with: an error for the codebook's scale, a warning for the scale a node
+    upstream gives what it makes (as other scale checks of made variables)."""
+
+    from siamang.data.ordinal import outcome_problem
+
+    params = resolved_params(spec, given)
+    y = params.get("y")
+    if params.get("kind") != "ordinal" or not isinstance(y, str):
+        return []
+    from_codebook = y in scales
+    scale = scales.get(y) if from_codebook else made.get(y)
+    payload = ((questionnaire or {}).get("variables") or {}).get(y) or {}
+    problem = outcome_problem(
+        str(payload.get("label") or y), scale, [label for _, label in _answers(payload)]
+    )
+    if not problem:
+        return []
+    severity = "error" if from_codebook else "warning"
+    return [FlowIssue(severity, "VARIABLE_SCALE", f"{node_id}: {problem}", node_id)]
 
 
 def _method_problem(node_type: str, params: dict[str, Any]) -> str | None:

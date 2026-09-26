@@ -12,7 +12,7 @@ params:
     kind: variable
     required: true
     label: Outcome
-    help: Two values → logistic (auto); otherwise linear. Ordered answers (dissatisfied … satisfied) → choose ordinal.
+    help: Two values → logistic (auto); otherwise linear. Ordered answers (dissatisfied … satisfied) → choose ordinal; a nominal outcome (a region) has no order, and ordinal refuses it.
   predictors:
     kind: variables
     required: true
