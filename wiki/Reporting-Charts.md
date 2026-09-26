@@ -364,8 +364,10 @@ table does not carry the weight itself — pass its statistics beside it
 t distribution.
 
 **Long labels, many categories.** Categories are rows, first at the top; labels
-wrap (three lines, then an ellipsis), the font shrinks from 10 to 7 pt as rows
-multiply, and a chart that still cannot hold them grows taller. Value labels
+wrap and stay whole, the font shrinks from 10 to 7 pt as rows multiply, and a
+chart that still cannot hold them grows taller rather than cut them — only a
+label past four lines is cut, and never so that two read alike. The title, the
+axis titles and the notes wrap to the plot, inside the figure. Value labels
 never leave the plot.
 
 **In a flow**, connect an analysis's table (and its stat) to a Result chart;
