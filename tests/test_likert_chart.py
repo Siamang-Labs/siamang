@@ -399,7 +399,7 @@ def test_the_check_and_the_run_read_a_likert_scale_question(questionnaire_doc, t
     survey = from_document(document).survey
     data = survey.simulate(n=120, seed=3)
     chart = FlowRunner(flow, questionnaire=survey).run(sources={"src": data}).output("n")
-    names = [text.get_text() for text in chart._fig.legends[0].get_texts()]
+    names = [text.get_text() for text in chart.plot().figure.legends[0].get_texts()]
     assert names == ["Very dissatisfied", "2", "3", "4", "Very satisfied"]
     # No scale anywhere: the check says what the run would.
     issues = check_flow(_flow({"items": ["age"]}, weight=False), questionnaire=document)

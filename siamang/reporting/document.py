@@ -290,7 +290,13 @@ class Report:
         return self
 
     # ── serialization ─────────────────────────────────────────────
-    def to_markdown(self, asset_dir: str | Path = ".", *, embed_images: bool = False) -> str:
+    def to_markdown(
+        self, asset_dir: str | Path = ".", *, embed_images: bool = False, prefix: str = ""
+    ) -> str:
+        """The report as Markdown, its figures written to ``asset_dir`` as
+        ``{prefix}fig_{n}.png`` (``n`` the block's place) and referenced by that
+        name. :meth:`save` passes the file's stem, so two reports saved in one
+        folder do not write each other's figures."""
         asset_dir = Path(asset_dir)
         # The theme the charts of palette "theme" take their colours from: the
         # document's, or the one whatever runs this names — as the HTML's.
@@ -319,7 +325,8 @@ class Report:
                 assert isinstance(payload, tuple)
                 comp, caption = payload[0], payload[1]
                 assert isinstance(comp, SurveyChart)
-                ref = self._chart_ref(comp, i, asset_dir, embed_images, look=look)
+                name = f"{prefix}fig_{i}.png"
+                ref = self._chart_ref(comp, name, asset_dir, embed_images, look=look)
                 lines.append(f"![{caption or ''}]({ref})")
                 if caption:
                     lines.append(f"*{caption}*")
@@ -336,7 +343,7 @@ class Report:
     def _chart_ref(
         self,
         chart: SurveyChart,
-        index: int,
+        name: str,
         asset_dir: Path,
         embed: bool,
         theme: ReportTheme | None = None,
@@ -348,16 +355,26 @@ class Report:
         # A chart of palette "theme" is shown in the colours of the theme
         # rendering it — drawn again from its parameters when it was drawn in
         # others at its node (chart_theme.in_report); any other chart as drawn.
-        chart = chart_theme.in_report(chart, look or theme)
-        if embed:
-            with tempfile.TemporaryDirectory() as tmp:
-                png = Path(tmp) / f"fig_{index}.png"
-                chart.save(png, dpi=dpi)
-                return _data_uri(png.read_bytes(), str(png))
-        asset_dir.mkdir(parents=True, exist_ok=True)
-        png = asset_dir / f"fig_{index}.png"
-        chart.save(png, dpi=dpi)
-        return png.name
+        # The figure (or a copy in the report's colours) is rendered once and
+        # let go: the next rendering of this report — the HTML after the
+        # Markdown — writes the same bytes, and a report of many charts never
+        # holds their figures all at once. One whose figure the caller asked
+        # for (plot(), show()) is theirs to change, and stays open.
+        shown = chart_theme.in_report(chart, look or theme)
+        let_go = shown is not chart or not getattr(chart, "_held", False)
+        try:
+            if embed:
+                with tempfile.TemporaryDirectory() as tmp:
+                    png = Path(tmp) / name
+                    shown.save(png, dpi=dpi)
+                    return _data_uri(png.read_bytes(), str(png))
+            asset_dir.mkdir(parents=True, exist_ok=True)
+            png = asset_dir / name
+            shown.save(png, dpi=dpi)
+            return png.name
+        finally:
+            if let_go:
+                shown.release()
 
     def _image_ref(self, path: str, embed: bool) -> str:
         p = Path(path)
@@ -449,7 +466,7 @@ class Report:
                 out.append(_figure(inner, caption, label, layout, theme))
             elif kind == "chart":
                 figures += 1
-                ref = self._chart_ref(component, i, asset_dir, embed, theme)
+                ref = self._chart_ref(component, f"fig_{i}.png", asset_dir, embed, theme)
                 alt = _esc(caption or "")
                 out.append(
                     _figure(
@@ -482,7 +499,12 @@ class Report:
         suffix = path.suffix.lower()
         path.parent.mkdir(parents=True, exist_ok=True)
         if suffix in (".md", ".markdown", ""):
-            path.write_text(self.to_markdown(asset_dir=path.parent), encoding="utf-8")
+            # Its figures are named by it (report_fig_3.png): a second report in
+            # the same folder would otherwise write over them. Only characters
+            # a Markdown link and any file system take as they are.
+            stem = re.sub(r"[^A-Za-z0-9._-]+", "-", path.stem).strip("-") or "report"
+            text = self.to_markdown(asset_dir=path.parent, prefix=f"{stem}_")
+            path.write_text(text, encoding="utf-8")
         elif suffix in (".html", ".htm"):
             # Written as a document, not a fragment: a saved `.html` is opened
             # by a person, so it carries its own stylesheet and its own images.

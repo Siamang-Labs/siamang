@@ -7,6 +7,7 @@ minimal configuration.
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -131,6 +132,12 @@ class SurveyChart:
     _colours: Any = field(init=False, repr=False, default=None)
     _drawn_with: Any = field(init=False, repr=False, default=None)
     _redrawn: Any = field(init=False, repr=False, default=None)
+    #: The figure as PNG, by resolution: what :meth:`png` rendered, which a
+    #: released figure (:meth:`release`) is answered with.
+    _pngs: dict[int, bytes] = field(init=False, repr=False, default_factory=dict)
+    #: The caller asked for the figure (:meth:`plot`, :meth:`show`) and may
+    #: still change it: a report leaves it open.
+    _held: bool = field(init=False, repr=False, default=False)
 
     def _build(self) -> None:
         """Build the chart. Subclasses must implement this."""
@@ -141,17 +148,28 @@ class SurveyChart:
             _require_matplotlib()
             from siamang.reporting import chart_theme
 
+            # A new figure: what the one before was rendered to (it may have
+            # been changed through plot()) no longer stands for the chart.
+            self._pngs = {}
             with chart_theme.drawing(self):
                 self._build()
+
+    def _ensure_computed(self) -> None:
+        """The chart's numbers and notes, drawing it only when it never was:
+        a released chart (:meth:`release`) keeps them."""
+        if self._fig is None and not self._pngs:
+            self._ensure_built()
 
     def plot(self):
         """Build and return the matplotlib Axes object."""
         self._ensure_built()
+        self._held = True
         return self._ax
 
     def show(self) -> None:
         """Display the chart (works in Jupyter and scripts)."""
         self._ensure_built()
+        self._held = True
         plt.show()
 
     def save(self, path: str | Path, dpi: int | None = None) -> Path:
@@ -162,10 +180,52 @@ class SurveyChart:
         — can raise the resolution of every chart at once by setting the field.
         Passing it explicitly still wins.
         """
-        self._ensure_built()
         path = Path(path)
-        self._fig.savefig(path, dpi=dpi if dpi is not None else self.dpi, bbox_inches="tight")
+        dpi = dpi if dpi is not None else self.dpi
+        if path.suffix.lower() == ".png":
+            # The same bytes savefig writes, kept for a released figure.
+            path.write_bytes(self.png(dpi))
+            return path
+        self._ensure_built()
+        self._fig.savefig(path, dpi=dpi, bbox_inches="tight")
         return path
+
+    def png(self, dpi: int | None = None) -> bytes:
+        """The chart as a PNG at ``dpi`` (default :attr:`dpi`): the bytes
+        :meth:`save` writes to a ``.png``.
+
+        While the figure is open it is rendered each time, so a change made
+        through :meth:`plot` shows. Once it is released (:meth:`release`) the
+        rendering made before is returned without drawing anything; another
+        resolution draws the chart again.
+        """
+        dpi = dpi if dpi is not None else self.dpi
+        if self._fig is None and dpi in self._pngs:
+            return self._pngs[dpi]
+        self._ensure_built()
+        buffer = io.BytesIO()
+        self._fig.savefig(buffer, format="png", dpi=dpi, bbox_inches="tight")
+        self._pngs[dpi] = buffer.getvalue()
+        return self._pngs[dpi]
+
+    def release(self) -> None:
+        """Close the figure and let go of it, keeping what :meth:`png` rendered.
+
+        A figure holds its drawing — megabytes at a report's resolution — for
+        as long as the chart refers to it, closed or not, and a flow keeps
+        every node's chart: a report of thirty charts held thirty figures. A
+        report releases each chart once it is written — but one whose figure
+        the caller asked for (:meth:`plot`, :meth:`show`) — and a flow run
+        (FlowRunner) each chart once its node has rendered it. After this,
+        :meth:`png` and :meth:`save` to a ``.png`` at a resolution rendered
+        before write those bytes; anything else (:meth:`plot`, :meth:`show`,
+        another resolution or format) draws the chart again from its
+        parameters.
+        """
+        if self._fig is not None and plt is not None:
+            plt.close(self._fig)
+        self._fig = self._ax = None
+        self._held = False
 
     def _auto_title(self, *parts: str) -> str:
         """Generate a title from variable labels."""
@@ -181,7 +241,7 @@ class SurveyChart:
         means) or says under its title that it does not — a picture beside a
         weighted table must never disagree with it in silence.
         """
-        self._ensure_built()
+        self._ensure_computed()
         return self._weight_note
 
     def _unweighted(self, title: str) -> str:

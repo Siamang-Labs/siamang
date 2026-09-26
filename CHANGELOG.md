@@ -689,6 +689,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Save report of many charts fits a small sandbox.** Every chart kept its
+  matplotlib figure — its drawing buffer, 7 to 12 MB at 150 dpi — for as long
+  as the chart existed, closed or not, and a generated script's globals and
+  `FlowRunner`'s outputs keep every node's chart: a report of 30 charts on
+  20,000 respondents was killed at 512 MB, in runs and in previews, and each
+  chart was drawn four times (the Markdown and the HTML, each saved with a
+  tight bounding box). A report now renders each chart once, writes the same
+  PNG to its Markdown and its HTML, and releases the figure
+  (`SurveyChart.png`, `SurveyChart.release`); `FlowRunner` renders each chart
+  at its node and releases it, and a preview or a report at that resolution
+  writes the kept picture without drawing again. A copy a report draws in its
+  own theme's colours is kept as its picture, not as an open figure. A chart
+  whose figure the caller asked for (`plot()`, `show()`) is left open. The
+  figures are byte for byte those written before. Measured with one CPU and a
+  512 MB memory limit: a 40-chart report went from killed at 19 s to written
+  in 29 s at 400 MB (its preview likewise).
+
+- **Two Save reports in one folder keep their own figures.** Every report named
+  its figures `fig_<n>.png` by the block's place, so `outputs/report.md` and
+  `outputs/summary.md` wrote each other's `fig_1.png` and one showed the other's
+  charts. `Report.save` names them by the file: `report_fig_1.png`,
+  `summary_fig_1.png` (characters other than letters, digits, `.`, `_` and `-`
+  become `-`). `to_markdown` takes the `prefix` it uses (default none).
+
 - **Save report's workbook links a sheet whose name has an apostrophe.** The
   Contents linked a table captioned `Brand's image` to `'Brand's image'!A1`,
   which Excel cannot follow; a sheet's name in a link is quoted with an

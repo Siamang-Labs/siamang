@@ -105,7 +105,7 @@ class LikertChart(SurveyChart):
     def table(self) -> pd.DataFrame:
         """The numbers drawn: per item, the share of each answer (%), top-2,
         bottom-2 and N (and the weighted N on weighted data), in chart order."""
-        self._ensure_built()
+        self._ensure_computed()
         return self._table.copy()
 
     def _build(self) -> None:

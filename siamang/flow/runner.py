@@ -138,7 +138,14 @@ class FlowRunner:
                         # A chart is built lazily; built here, what it cannot
                         # draw fails its own node, not the Save report after it.
                         chart = namespace.get(name)
-                        if callable(getattr(chart, "_ensure_built", None)):
+                        if callable(getattr(chart, "release", None)):
+                            # Rendered and let go: the run keeps every node's
+                            # output, and thirty open figures do not fit a
+                            # small sandbox. The picture is kept, so a preview
+                            # or a report at this resolution draws nothing again.
+                            chart.png()
+                            chart.release()
+                        elif callable(getattr(chart, "_ensure_built", None)):
                             chart._ensure_built()
                 except Exception as exc:  # noqa: BLE001 - reported per node
                     ms = int((time.perf_counter() - started) * 1000)

@@ -72,13 +72,15 @@ siamang).
 ### `to_markdown`
 
 ```python
-def to_markdown(self, asset_dir: str | Path = ".", *, embed_images: bool = False) -> str: ...
+def to_markdown(
+    self, asset_dir: str | Path = ".", *, embed_images: bool = False, prefix: str = ""
+) -> str: ...
 ```
 
 Renders the whole document to a Markdown string. Charts are materialized to PNG
-files named `fig_<index>.png`, where `<index>` is the chart block's position in
-the whole document (narrative blocks count too) — so the numbers are ordered
-but not consecutive:
+files named `<prefix>fig_<index>.png`, where `<index>` is the chart block's
+position in the whole document (narrative blocks count too) — so the numbers
+are ordered but not consecutive:
 
 - with `embed_images=False` (default), each chart is written into `asset_dir`
   and linked by relative filename;
@@ -101,9 +103,19 @@ def save(self, path: str | Path) -> Path: ...
 ```
 
 Writes the document, choosing the format from the file suffix: `.md`/`.markdown`
-(or no suffix) → Markdown with `asset_dir` set to the file's parent; `.html`/`.htm`
-→ HTML. A `.pdf` suffix raises `NotImplementedError`; any other suffix raises
+(or no suffix) → Markdown with `asset_dir` set to the file's parent and its
+figures named by the file: `report.md` writes `report_fig_3.png`, so two
+reports saved in one folder keep their own figures (characters other than
+letters, digits, `.`, `_` and `-` in the name become `-`: `Q3 results.md`
+writes `Q3-results_fig_3.png`); `.html`/`.htm` → HTML, its figures embedded. A
+`.pdf` suffix raises `NotImplementedError`; any other suffix raises
 `ValueError`. Parent directories are created automatically.
+
+Each chart is drawn once for a report and written as the same PNG to its
+Markdown and its HTML; its figure is then closed and let go
+(`SurveyChart.release`), so a report of many charts never holds their figures
+all at once. A chart whose figure you asked for (`plot()`, `show()`) is left
+open, as you may still be changing it.
 
 A chart of `palette="theme"` is written in the chart colours of the report's
 `ReportTheme` (`chart_palette`, `chart_diverging`, … — see
@@ -161,7 +173,7 @@ report = (
     .divider()
 )
 
-# Write report.md plus fig_*.png into ./out/
+# Write autonomy_report.md plus autonomy_report_fig_*.png into ./out/
 report.save("out/autonomy_report.md")
 ```
 

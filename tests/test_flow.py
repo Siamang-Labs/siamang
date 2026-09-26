@@ -858,7 +858,13 @@ def test_generated_script_reproduces_the_runner(
     script = script_dir / "scripts" / "satisfaction_by_region.py"
     script.write_text(generate_flow(flow_doc, questionnaire_doc), encoding="utf-8")
     snapshot = write_snapshot(responses, script_dir / "data" / "responses.parquet")
-    env = {**os.environ, "PYTHONPATH": str(script_dir), "MPLBACKEND": "Agg"}
+    # This checkout's engine, not whichever one is installed.
+    engine = str(ROOT.parent)
+    env = {
+        **os.environ,
+        "PYTHONPATH": os.pathsep.join([str(script_dir), engine]),
+        "MPLBACKEND": "Agg",
+    }
     completed = subprocess.run(
         [sys.executable, str(script), "--data", str(snapshot)],
         cwd=script_dir,
