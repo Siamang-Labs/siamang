@@ -139,13 +139,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   question the respondents who named any of them, not their sum); `intervals`
   and `confidence` (error bars: Wilson's interval on each percentage — Kish's
   effective base when weighted, the new `siamang.data.intervals.share_interval`
-  — and the Group means chart's interval on each mean by group, on bars side by
-  side only); `letters`, `level` and `correction` (with Split by, Show percent
-  and Layout grouped: each group lettered as the Banner table letters its
-  columns, and over each bar the letters of the groups whose share of that
+  — and Student's t (weighted, the linearization interval) on each mean by
+  group, Group means' interval when it leaves the missing codes out, on bars
+  side by side only); `letters`, `level` and `correction` (with Split by, Show percent
+  and Layout grouped: the groups of Split by lettered A, B, … in the Banner
+  table's order, and over each bar the letters of the groups whose share of that
   answer is significantly lower — the Banner table's column-proportion z-test,
   Bonferroni optional, on the base of those who answered, a group under 30 not
-  tested: the letters the Tab book prints for the same cells). Layout takes
+  tested: the comparisons the Tab book prints for the same cells, under the
+  letters its banner gives them — the same letters only when Split by is the
+  banner's first variable). Layout takes
   `histogram` (an interval or ratio variable in `bins`: `auto`, Freedman and
   Diaconis's width — whole-number answers a whole width, the edges halfway
   between the numbers — a number of bins, or the edges; counts or percent,

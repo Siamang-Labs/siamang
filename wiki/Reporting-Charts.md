@@ -105,20 +105,25 @@ chart of a crosstab. `layout="histogram"` draws a **histogram** of a number,
 - **`intervals`**, **`confidence`** — error bars at `confidence` (0.95): on a
   percentage, Wilson's score interval of the share (weighted: of the weighted
   share, on Kish's effective base — the share and base Proportion CI gives); on
-  a mean by group, the interval the Group means chart draws (Student's t;
-  weighted, the linearization interval). With `split` each group's own base.
+  a mean by group, Student's t interval (weighted, the linearization
+  interval) — the interval Group means draws when it leaves the missing codes
+  out; the Bar chart always leaves them out, and Group means' `auto` test
+  counts them as answers. With `split` each group's own base.
   The value is written past the whisker. On bars side by side only: stacked
   layouts refuse them; counts have none (the note says so).
 - **`letters`**, **`level`**, **`correction`** — with `split`,
-  `show="percent"` and `layout="grouped"`: each group gets the letter the Banner
-  table gives its column (A, B, … in the codebook's order, under its name), and
+  `show="percent"` and `layout="grouped"`: the groups of `split` are lettered A,
+  B, … over that variable's groups in the Banner table's order (the codebook's,
+  under each name), and
   each bar carries, in bold after its value, the letters of the groups whose
   share of that answer is significantly **lower** — the Banner table's
   two-sided z-test of column proportions at `level` (0.05), `correction`
   `"none"` or `"bonferroni"`, on the base of each group's respondents who
   answered (Kish's effective base when weighted). A group with fewer than 30 is
-  not tested, and the note names it. These are the letters the Tab book prints
-  for the same cells (and the Banner table's, when everyone answered).
+  not tested, and the note names it. The Tab book shows the same comparisons
+  for the same cells, under the letters its banner gives these columns — the
+  same letters only when `split` is the banner's first variable (it letters
+  across the whole banner: a third variable's groups are K–O there).
 - **`sort`** — `"code"` (the codebook's order, the default) or `"value"` (the
   largest bar first; with `split`, the answer given most overall; with `by`,
   the highest mean). A colour belongs to its answer, not to its place, so a

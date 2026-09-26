@@ -76,7 +76,7 @@ params:
     kind: bool
     default: false
     label: Confidence intervals
-    help: An error bar on each percentage (Wilson's interval, on Kish's effective base when weighted — each group's own base with Split by) and on each mean by group (the interval the Group means chart draws). Drawn on bars side by side (Layout grouped) only; counts have none.
+    help: An error bar on each percentage (Wilson's interval, on Kish's effective base when weighted — each group's own base with Split by) and on each mean by group (the interval Group means draws when it leaves the missing codes out — Student's t, weighted the linearization interval; the Bar chart always leaves them out). Drawn on bars side by side (Layout grouped) only; counts have none.
   confidence:
     kind: float
     default: 0.95
@@ -87,7 +87,7 @@ params:
     kind: bool
     default: false
     label: Significance letters
-    help: With Split by, Show percent and Layout grouped. Each group is lettered (A, B, …, under its name) as the Banner table letters its columns, and a bar carries the letters of the groups whose share of that answer is significantly lower — the Banner table's two-sided z-test of column proportions, on the group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The letters the Tab book prints for the same cells.
+    help: With Split by, Show percent and Layout grouped. The groups of Split by are lettered A, B, … (under their names) in the Banner table's order, and a bar carries the letters of the groups whose share of that answer is significantly lower — the Banner table's two-sided z-test of column proportions, on the group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The Tab book shows the same comparisons, under the letters its banner gives these columns — the same letters only when Split by is the banner's first variable.
   level:
     kind: float
     default: 0.05

@@ -295,7 +295,12 @@ def test_a_mean_by_group_carries_the_interval_the_group_means_chart_draws(tmp_pa
     assert np.allclose(
         _whiskers(weighted.plot())[0], [(i.lower, i.upper) for i in expected], atol=1e-12
     )
-    assert "weighted: the linearization interval" in _footnote(weighted)
+    # The note names the interval, not the Group means chart, whose auto test
+    # counts the missing codes the Bar chart leaves out.
+    assert (
+        "Error bars: 95 % confidence intervals of the mean (weighted: the linearization "
+        "interval)." in _footnote(weighted)
+    )
     # A group of one answer has no interval, and the note names it.
     one = _small().with_frame(_small().frame.assign(g=[1, 1, 1, 1, 1, 1, 1, 2]))
     single = one.plot.bar("score", by="g", intervals=True)
