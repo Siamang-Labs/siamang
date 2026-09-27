@@ -228,14 +228,39 @@ def _rows(spec: dict[str, Any]) -> list[dict[str, Any]]:
 # ─── the specs ───────────────────────────────────────────────────────────────
 
 
-def test_every_chart_form_has_a_spec_and_a_result_chart_has_none(charts, specs):
+class _Funnel:
+    """A result a later node registers a renderer of its own for."""
+
+    def __init__(self, steps: dict[str, float]) -> None:
+        self.steps = steps
+        self.stats: dict[str, Any] = {}
+
+
+def _own_figure() -> Any:
+    """A Result chart whose renderer draws a figure of its own, with none of
+    the shared forms: it has no interactive form."""
+
+    def draw(result: _Funnel, chart: Any) -> str:
+        _, ax = chart.figure()
+        ax.plot(list(result.steps), list(result.steps.values()))
+        return "Funnel"
+
+    renderer = rc.register(_Funnel, ["funnel"], draw, name="Funnel")
+    try:
+        return rc.chart(_Funnel({"Saw it": 100, "Clicked": 40, "Bought": 5}))
+    finally:
+        rc._RENDERERS.remove(renderer)
+
+
+def test_every_chart_form_has_a_spec_and_a_chart_without_one_says_none(charts, specs):
     assert all(spec is not None for spec in specs.values()), [
         name for name, spec in specs.items() if spec is None
     ]
-    # A result's chart has no interactive form yet: None, and its report
-    # shows its picture.
-    result = rc.chart(_survey().report.means("age", by="region"))
-    assert result.vega_lite() is None
+    # A Result chart has its spec (tests/test_interactive_result_charts.py);
+    # a later node's renderer that draws a figure of its own has none, and
+    # its report shows its picture.
+    assert rc.chart(_survey().report.means("age", by="region")).vega_lite() is not None
+    assert _own_figure().vega_lite() is None
 
 
 def test_every_spec_is_valid_vega_lite_6(specs, validator):
@@ -646,8 +671,7 @@ def test_write_spec_and_spec_path(charts, tmp_path):
         written is not None
         and json.loads(written.read_text("utf-8"))["usermeta"]["siamang"]["chart"] == "likert"
     )
-    result = rc.chart(_survey().report.means("age", by="region"))
-    assert vega.write_spec(result, tmp_path / "none.vl.json") is None
+    assert vega.write_spec(_own_figure(), tmp_path / "none.vl.json") is None
     assert not (tmp_path / "none.vl.json").exists()
 
 
@@ -729,14 +753,12 @@ def test_a_tile_carries_a_spec_only_for_a_chart_that_has_one(charts):
     with live.capture() as tiles:
         live.publish("a", kind="chart", label="Bars", value=charts["bar_classic"])
         live.publish("b", kind="number", label="N", value=3)
-        live.publish(
-            "c",
-            kind="chart",
-            label="Result",
-            value=rc.chart(_survey().report.means("age", by="region")),
-        )
+        live.publish("c", kind="chart", label="Funnel", value=_own_figure())
+        result = rc.chart(_survey().report.means("age", by="region"))
+        live.publish("d", kind="chart", label="Result", value=result)
     assert tiles[0].spec == charts["bar_classic"].vega_lite()
     assert tiles[1].spec is None and tiles[2].spec is None
+    assert tiles[3].spec == result.vega_lite() and tiles[3].spec is not None
 
 
 # ─── in a browser ────────────────────────────────────────────────────────────

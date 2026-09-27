@@ -50,6 +50,17 @@ An output not registered, other than a Stat of a node that has one, is named
 before the run as one the chart cannot draw. The renderers of the analyses that
 came after this module — Key drivers, the Perceptual map, Price sensitivity,
 Cochran's Q, the ordinal logit — are in :mod:`siamang.reporting.method_charts`.
+
+Interactive form
+----------------
+Every kind a built-in renderer draws has one (``chart.vega_lite()``, a Vega-Lite 6
+spec, :mod:`siamang.reporting.vega`): the shared forms — the rows of estimates
+and intervals (``_dots``), the rows of bars (``_bars``), the scree plot, the
+heatmaps — and each renderer's own record what they drew while they draw, and
+:mod:`siamang.reporting.result_specs` turns the record into the spec, with the
+picture's title, weight line, axis titles and notes. A renderer registered
+later has one when it draws with ``_dots`` or ``_bars``; one that draws a figure
+of its own has none (``vega_lite()`` is None) and its report shows its picture.
 """
 
 from __future__ import annotations
@@ -64,7 +75,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from siamang.reporting import chart_theme
+from siamang.reporting import chart_theme, result_specs
 from siamang.reporting.charts import SurveyChart, _require_matplotlib, plt, sns
 
 __all__ = [
@@ -390,6 +401,10 @@ class ResultChart(SurveyChart):
         if self._fig is None:
             raise RuntimeError(f"The renderer of {renderer.name} drew no figure.")
         self._weight_note = weight_note(self.result, *self.context)
+        # What was drawn, for the chart's interactive form (vega_lite()):
+        # its title, axis titles and notes as they are before the layout
+        # wraps them.
+        result_specs.finish(self, title)
         if not self._adopted:
             self._finish(title)
 
@@ -789,6 +804,9 @@ def _dots(
         chart.legend(ax, title=legend_title)
     _hide_spines(ax)
     chart.make_room(ax, artists)
+    result_specs.record_dots(
+        chart, ax, labels, series, reference=reference, legend_title=legend_title, dodge=dodge
+    )
     return ax, size
 
 
@@ -805,7 +823,8 @@ def _bars(
     a negative bar). Returns the axes, the row positions and the font size."""
     ax, y, size = chart.rows(labels)
     numbers = np.asarray([np.nan if v is None else v for v in values], dtype=float)
-    ax.barh(y, np.nan_to_num(numbers), height=0.66, color=color or chart.colors(1)[0], zorder=2)
+    fill = color or chart.colors(1)[0]
+    ax.barh(y, np.nan_to_num(numbers), height=0.66, color=fill, zorder=2)
     artists = [
         _label(ax, value, row, text, size, left=value < 0)
         for row, value, text in zip(y, numbers, texts, strict=True)
@@ -815,6 +834,7 @@ def _bars(
         ax.axvline(reference, color=_muted(), linewidth=1, zorder=1)
     _hide_spines(ax)
     chart.make_room(ax, artists)
+    result_specs.record_bars(chart, ax, labels, numbers, texts, fill, reference=reference)
     return ax, y, size
 
 
@@ -956,6 +976,7 @@ def _draw_group_means(table: Any, chart: ResultChart) -> str:
     ax.set_xlabel(_means_axis(chart, f"{'Weighted mean' if weighted else 'Mean'}"), color=_ink())
     _mean_axis_thousands(ax)
     if marks:
+        result_specs.note(chart, letters=[marks.get(label, "") for label in labels])
         posthoc = table.posthoc_table.result
         _mark_note(
             ax,
@@ -1183,6 +1204,7 @@ def _descriptives_panels(
     chart._size = size
     chars = int(0.34 * chart.figsize[0] * 72 / (size * 0.55))
     weighted = data.weight is not None
+    drawn = []
     for index, (row, title, panel) in enumerate(zip(rows, shown, per_panel, strict=True)):
         ax = axes[index][0]
         part = frame[frame["Variable"].astype(str) == row]
@@ -1205,6 +1227,18 @@ def _descriptives_panels(
         ax.tick_params(axis="x", labelsize=size, colors=_ink())
         ax.grid(axis="y", visible=False)
         artists = []
+        # Each group a series of its own, drawn in its row only.
+        series = [
+            {
+                "label": name,
+                "color": color,
+                "estimate": [np.nan] * len(names),
+                "lower": [np.nan] * len(names),
+                "upper": [np.nan] * len(names),
+                "text": [""] * len(names),
+            }
+            for name, color in zip(names, colors, strict=True)
+        ]
         for position, (name, color) in enumerate(zip(names, colors, strict=True)):
             record = by_group.get(name if name is None else str(name))
             if record is None:
@@ -1212,6 +1246,9 @@ def _descriptives_panels(
             estimate, lower, upper, texts = _means_series(
                 chart, [record["_interval"]], [record["SD"]], [record["Mean"]]
             )
+            for key, values in (("estimate", estimate), ("lower", lower), ("upper", upper)):
+                series[position][key][position] = values[0]
+            series[position]["text"][position] = texts[0]
             if lower[0] == lower[0] and upper[0] == upper[0]:
                 ax.hlines(position, lower[0], upper[0], color=color, linewidth=2, zorder=2)
             ax.plot(
@@ -1231,9 +1268,11 @@ def _descriptives_panels(
         _hide_spines(ax)
         chart.make_room(ax, artists)
         _mean_axis_thousands(ax)
+        drawn.append((title, panel, series, ax))
     axes[-1][0].set_xlabel(
         _means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_ink()
     )
+    result_specs.record_panels(chart, axes[-1][0], drawn, by_label)
     what = "Means" if by_label is None else f"Means by {by_label}"
     return f"{what}, each variable on its own scale"
 
@@ -1460,6 +1499,16 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
         fontsize=11,
         color=_muted(),
     )
+    result_specs.record_proportion(
+        chart,
+        ax,
+        share=share,
+        low=low,
+        high=high,
+        colour=color,
+        track=_track(),
+        line=f"{interval} {low:.1f} – {high:.1f} %, {base_text}",
+    )
     variable = getattr(result, "variable_label", None)
     if variable:
         return f"{variable}: {getattr(result, 'value_label', '')}".rstrip(": ")
@@ -1472,6 +1521,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
     fig, ax = chart.figure()
     colors = {"Detractors": _negative(), "Passives": _neutral(), "Promoters": _positive()}
     start = 0.0
+    legend = []
     for group, color in colors.items():
         share = float(frame.loc[group, "%"])
         ax.barh(
@@ -1484,6 +1534,7 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
             linewidth=2,
             label=f"{group} ({frame.loc[group, 'Range']}): {share:.1f} %",
         )
+        legend.append(f"{group} ({frame.loc[group, 'Range']}): {share:.1f} %")
         if share >= 7:
             ax.text(
                 start + share / 2,
@@ -1504,9 +1555,11 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
     ax.set_xticks(range(0, 101, 20))
     ax.set_xticklabels([f"{tick} %" for tick in range(0, 101, 20)], color=_ink())
     score = stats.get("NPS")
+    headline = None
     if score is not None:
         low, high = stats.get("CI95 low"), stats.get("CI95 high")
         interval = f" (95 % CI {low:+.1f} to {high:+.1f})" if low is not None else ""
+        headline = f"NPS {score:+.1f}{interval}"
         ax.text(
             50,
             0.85,
@@ -1524,6 +1577,23 @@ def _draw_nps(table: Any, chart: ResultChart) -> str:
         fontsize=10,
     )
     ax.set_xlabel(f"Share of the {stats.get('N valid', '')} respondents who answered", color=_ink())
+    shares = [float(frame.loc[group, "%"]) for group in colors]
+    result_specs.record_stack(
+        chart,
+        ax,
+        labels=None,
+        parts=list(colors),
+        legend=legend,
+        colours=list(colors.values()),
+        inks=[
+            chart_theme.ink_on(color, "white" if group != "Passives" else _INK)
+            for group, color in colors.items()
+        ],
+        shares=[shares],
+        texts=[[f"{share:.1f} %" for share in shares]],
+        least=7.0,
+        headline=headline,
+    )
     return f"Net Promoter Score: {stats.get('Variable', table.column)}"
 
 
@@ -1555,7 +1625,7 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
     # a TURF curve shows; a best portfolio that is not the last one plus one
     # option is listed in full under the chart.
     portfolios = [[item.strip() for item in str(items).split(",")] for items in table["items"]]
-    ticks, listed = [], []
+    ticks, listed, steps = [], [], []
     for index, (size, portfolio) in enumerate(zip(table["size"], portfolios, strict=True)):
         before = portfolios[index - 1] if index else []
         new = [item for item in portfolio if item not in before]
@@ -1563,6 +1633,7 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
         shown = ", ".join(str(names.get(item, item)) for item in new)
         text = ("+ " + shown) if index and grows else shown if not index else "a new set"
         ticks.append(f"{int(size)}\n" + _whole_words(text, per_slot, 4))
+        steps.append(f"{int(size)}\n{text}")
         if not grows:
             listed.append(
                 f"{int(size)}: " + ", ".join(str(names.get(item, item)) for item in portfolio)
@@ -1599,6 +1670,17 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
         _mark_note(ax, "The best portfolios of " + "; ".join(listed) + ".", 10.0)
     _hide_spines(ax)
     chart.make_room(ax, artists, "y")
+    result_specs.record_reach(
+        chart,
+        ax,
+        ticks=steps,
+        portfolios=[", ".join(str(names.get(item, item)) for item in p) for p in portfolios],
+        reach=reach,
+        added=added,
+        colour=color,
+        ink=_ink(),
+        base=result_specs.count_base(table.base),
+    )
     return "TURF: reach by portfolio size"
 
 
@@ -1642,6 +1724,8 @@ def _draw_turf_items(table: Any, chart: ResultChart) -> str:
         _label(ax, value, row, f"{value:.1f} % ({only:.1f} % only)", size)
         for row, value, only in zip(y, reach, unique, strict=True)
     ]
+    names = ["Reach", "Reached by this option only"]
+    total = None
     if len(whole):
         total = float(whole["reach_percent"].iloc[0])
         ax.axvline(
@@ -1651,11 +1735,26 @@ def _draw_turf_items(table: Any, chart: ResultChart) -> str:
             zorder=4,
             label=f"{whole['label'].iloc[0]}: {total:.1f} %",
         )
+        names.append(f"{whole['label'].iloc[0]}: {total:.1f} %")
     ax.set_xlim(0, 100)
     ax.set_xlabel(f"Reach (%) of the {table.base} respondents who answered", color=_ink())
     chart.legend(ax)
     _hide_spines(ax)
     chart.make_room(ax, artists)
+    result_specs.record_overlay(
+        chart,
+        ax,
+        labels=list(labels),
+        reach=reach,
+        unique=unique,
+        texts=[
+            f"{value:.1f} % ({only:.1f} % only)" for value, only in zip(reach, unique, strict=True)
+        ],
+        names=names,
+        colours=[light, dark, _ink()][: len(names)],
+        total=total,
+        base=result_specs.count_base(table.base),
+    )
     return "TURF: what each option of the portfolio reaches"
 
 
@@ -1746,7 +1845,7 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
         ax.set_xlabel("Importance: the attribute's share of the decision (%)", color=_ink())
         _base_note(ax, stats, size, "Of the levels tested, not of the attribute in general.")
         return f"Attribute importance: {question}"
-    labels, values, colors = [], [], []
+    labels, values, colors, groups = [], [], [], []
     palette = chart.colors(len(attributes))
     # Each attribute's levels in the design's order (the table sorts them by
     # worth): an ordered attribute such as price reads as its curve.
@@ -1771,6 +1870,7 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
             labels.append(f"{name}: {level}")
             values.append(float(worth))
             colors.append(color)
+            groups.append(name)
     ax, y, size = chart.rows(labels)
     ax.barh(y, values, height=0.66, color=colors, zorder=2)
     digits = _digits(values)
@@ -1781,6 +1881,17 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
     ax.axvline(0, color=_muted(), linewidth=1, zorder=1)
     _hide_spines(ax)
     chart.make_room(ax, artists)
+    result_specs.record_bars(
+        chart,
+        ax,
+        labels,
+        values,
+        [_number(value, digits) for value in values],
+        colors,
+        reference=0.0,
+        groups=groups,
+    )
+    result_specs.note(chart, legend_title="Attribute")
     ax.set_xlabel("Part-worth, against each attribute's first level at 0", color=_ink())
     _base_note(ax, stats, size)
     return f"Part-worths: {question}"
@@ -1906,6 +2017,23 @@ def _scree(
     ax.legend(frameon=False, fontsize=9, loc="upper right")
     _hide_spines(ax)
     chart.make_room(ax, artists, "y")
+    result_specs.record_scree(
+        chart,
+        ax,
+        eigenvalues=list(eigenvalues),
+        kept=kept,
+        random=None if random is None else list(random),
+        shown=[int(i) for i in shown],
+        name=name,
+        names=[
+            label,
+            "Kaiser criterion: eigenvalue 1",
+            "Random data, 95th percentile (parallel analysis)",
+        ],
+        colour=color,
+        ink=_ink(),
+        muted=_muted(),
+    )
     return "Scree plot"
 
 
@@ -1958,6 +2086,21 @@ def _loadings(chart: ResultChart, items: list[str], columns: list[str], values: 
     bar.outline.set_visible(False)
     if not annotate:
         ax.set_xlabel("The values are in the table.", color=_muted())
+    result_specs.record_image(
+        chart,
+        ax,
+        values,
+        cmap=cmap,
+        norm=norm,
+        rows=items,
+        columns=columns,
+        texts=[[f"{value:.2f}" if value == value else "" for value in line] for line in values],
+        annotate=annotate,
+        legend_title="Loading",
+        value_title="Loading",
+        blank="#f4f4f4" if np.isnan(values).any() else None,
+        blank_text="left blank in the table (a small loading)",
+    )
     return "Loadings"
 
 
@@ -2065,6 +2208,7 @@ def _draw_profile(
         ax.plot(
             item["estimate"], range(len(items)), "-", color=item["color"], linewidth=1.6, zorder=2
         )
+    result_specs.note(chart, lines=True)
     ax.set_xlabel("Mean of the cluster's members on each item", color=_ink())
     return "Cluster profiles"
 
@@ -2138,6 +2282,7 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any], note
     if logit:
         from matplotlib.ticker import FuncFormatter, LogLocator
 
+        result_specs.note(chart, log=True)
         ax.set_xscale("log")
         # Odds ratios as numbers (0.5, 1, 2), not powers of ten.
         ax.xaxis.set_major_locator(LogLocator(base=10, subs=(1.0, 2.0, 5.0)))
@@ -2272,6 +2417,25 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
     if stats.get("N"):
         missing = str(stats.get("Missing") or "").split(":")[0]
         _mark_note(ax, f"N = {stats['N']}" + (f" ({missing})" if missing else "") + ".", size)
+    result_specs.record_image(
+        chart,
+        ax,
+        shown,
+        cmap=cmap,
+        norm=norm,
+        rows=labels if short else numbered,
+        columns=labels if short else [str(i + 1) for i in range(count)],
+        row_names=labels,
+        column_names=labels,
+        texts=[[_cell_text(values, p, i, j) for j in range(count)] for i in range(count)],
+        annotate=annotate,
+        legend_title="Coefficient",
+        value_title="Coefficient",
+        notes=[marks],
+        details={
+            "p": [[_p_text(p[i, j]) if j < i else "" for j in range(count)] for i in range(count)]
+        },
+    )
     return str(stats.get("Method", "Correlations"))
 
 
@@ -2279,6 +2443,24 @@ def _coefficient(value: float) -> str:
     """A correlation to two decimals without its leading zero: .52, -.07."""
     text = _number(value)
     return text.replace("0.", ".", 1) if abs(float(text)) < 1 else text
+
+
+def _cell_text(values: np.ndarray, p: np.ndarray, i: int, j: int) -> str:
+    """What a correlation heatmap writes in a cell: the coefficient and its
+    marks below the diagonal, a dash on it, nothing above it."""
+    if j == i:
+        return "—"
+    if j > i:
+        return ""
+    value = values[i, j]
+    return "n/a" if value != value else f"{_coefficient(value)}{_marks(p[i, j])}"
+
+
+def _p_text(p: float) -> str:
+    """A p-value as APA writes one: .012, < .001."""
+    if p != p:
+        return "not computed"
+    return "< .001" if p < 0.001 else f"{p:.3f}".replace("0.", ".", 1)
 
 
 def _marks(p: float) -> str:
@@ -2350,6 +2532,27 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
         ax.set_xlabel("Sentiment of the theme's answers (%)", color=_ink())
         chart.legend(ax)
         _hide_spines(ax)
+        shares = [themes[column].to_numpy(dtype=float) for column, _ in parts]
+        names = [column.replace(" %", "") for column, _ in parts]
+        result_specs.record_stack(
+            chart,
+            ax,
+            labels=labels,
+            parts=names,
+            legend=names,
+            colours=[color for _, color in parts],
+            inks=[
+                chart_theme.ink_on(color, "white" if column != "Neutral %" else _INK)
+                for column, color in parts
+            ],
+            shares=[[share[row] for share in shares] for row in range(len(themes))],
+            texts=[
+                [f"{share[row]:.0f} %" if share[row] == share[row] else "" for share in shares]
+                for row in range(len(themes))
+            ],
+            least=8.0,
+            empty="no answer here has a sentiment",
+        )
         return f"Sentiment by theme: {variable}"
     values = themes["%"].to_numpy(dtype=float)
     counts = themes["N"].to_numpy()
