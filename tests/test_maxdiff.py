@@ -427,7 +427,12 @@ def test_the_dictionary_describes_exactly_the_columns_in_the_file(tmp_path):
     assert dictionary["reference"] in dictionary["items"]
     assert dictionary["reference"] in dictionary["note"]
     assert len(dictionary["items"]) == len([c for c in frame.columns if c.startswith("x")]) + 1
-    assert path.with_name("md.hb.R").read_text(encoding="utf-8").startswith("# Hierarchical Bayes")
+    script = path.with_name("md.hb.R").read_text(encoding="utf-8")
+    assert script.startswith("# Hierarchical Bayes")
+    # Each respondent's utilities are the mean of their kept draws, not the
+    # last draw of the chain (one draw is a noisy sample of the posterior).
+    assert "apply(out$betadraw, c(1, 2), mean)" in script
+    assert "dim(out$betadraw)[3]" not in script
 
 
 # ─── scores per respondent, as variables ─────────────────────────────────────
