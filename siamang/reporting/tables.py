@@ -504,17 +504,35 @@ class NpsTable(SurveyTable):
             )
         total_w = float(weights.sum())
         n = int(keep.sum())
+        weighted = bool(self.data.weight and self.data.weight in frame.columns)
         rows = []
         shares: dict[str, float] = {}
         for label, lo, hi in self.GROUPS:
             mask = (values >= lo) & (values <= hi)
             share = float(weights[mask].sum()) / total_w * 100 if total_w > 0 else 0.0
             shares[label] = share
-            rows.append(
-                {"Group": label, "Range": f"{lo}–{hi}", "N": int(mask.sum()), "%": round(share, 1)}
-            )
-        rows.append({"Group": "Total", "Range": "0–10", "N": n, "%": 100.0 if n else 0.0})
-        self._result = pd.DataFrame(rows, columns=["Group", "Range", "N", "%"])
+            row: dict[str, Any] = {"Group": label, "Range": f"{lo}–{hi}"}
+            if weighted:
+                # N is what the % is of, as in a weighted frequency table: the
+                # weighted count, with the respondents beside it. An unweighted
+                # N next to a weighted % (348 of 579 beside 61.8 %) reads as a
+                # sum that does not add up.
+                row["N"] = round(float(weights[mask].sum()), 1)
+                row["Unweighted N"] = int(mask.sum())
+            else:
+                row["N"] = int(mask.sum())
+            row["%"] = round(share, 1)
+            rows.append(row)
+        total: dict[str, Any] = {"Group": "Total", "Range": "0–10"}
+        if weighted:
+            total["N"] = round(total_w, 1)
+            total["Unweighted N"] = n
+        else:
+            total["N"] = n
+        total["%"] = 100.0 if n else 0.0
+        rows.append(total)
+        columns = ["Group", "Range", "N", *(["Unweighted N"] if weighted else []), "%"]
+        self._result = pd.DataFrame(rows, columns=columns)
 
         score = shares["Promoters"] - shares["Detractors"]
         # Standard error of a difference of two proportions from one sample
@@ -536,6 +554,26 @@ class NpsTable(SurveyTable):
 
 
 # ─── CrossTable ───────────────────────────────────────────────────────────────
+
+
+def _sparse_cells(expected: np.ndarray) -> str | None:
+    """What a chi-square test's footer says when its table is too sparse for
+    the test's p to be trusted (Cochran's rule: no expected count below 1, and
+    at most a fifth of them below 5), or None. The expected counts are those
+    the test was run on — of the effective sample when weighted."""
+
+    cells = int(expected.size)
+    if cells == 0:
+        return None
+    below = int((expected < 5).sum())
+    smallest = float(expected.min())
+    if below <= cells / 5 and smallest >= 1:
+        return None
+    return (
+        f"{below} of {cells} cells ({below / cells * 100:.0f}%) expect fewer than 5 "
+        f"respondents, the smallest {smallest:.1f}: the chi-square's p is not reliable "
+        "with so few; merge sparse answers, or use Fisher's exact test"
+    )
 
 
 @dataclass
@@ -619,14 +657,40 @@ class CrossTable(SurveyTable):
         if col_labels:
             display.columns = [col_labels.get(v, str(v)) for v in display.columns]
 
-        # Add row/column totals
-        row_totals = contingency.sum(axis=1).values
-        total_col = list(contingency.sum(axis=0).values) + [contingency.values.sum()]
-        if weights is not None:
-            row_totals = np.round(row_totals, 1)
-            total_col = [round(float(value), 1) for value in total_col]
-        display["Total"] = row_totals
-        display.loc["Total"] = total_col[: len(display.columns)]
+        # The margins. In a table of percentages the margin that is not a base
+        # holds percentages too — the overall distribution the rows (or the
+        # columns) are read against — and the counts the percentages are of are
+        # named "Base". A "Total" row of counts under row percentages read as
+        # percentages that did not add up (9.1, 29.6, … under 3.9, 7.4, …).
+        row_sums = contingency.sum(axis=1).to_numpy(dtype=float)
+        col_sums = contingency.sum(axis=0).to_numpy(dtype=float)
+        grand = float(contingency.to_numpy(dtype=float).sum())
+
+        def base(value: float) -> int | float:
+            return round(float(value), 1) if weights is not None else int(round(value))
+
+        def share(values: np.ndarray) -> list[float]:
+            if grand <= 0:
+                return [0.0 for _ in values]
+            return [round(float(value) / grand * 100, 1) for value in values]
+
+        def add_row(name: str, values: list[Any]) -> None:
+            # As objects, so a column of whole counts stays whole ("58", not
+            # "58.0") beside the percentages of the other columns.
+            display.loc[name] = pd.Series(values, index=display.columns, dtype=object)
+
+        if self.pct == "row":
+            display["Base"] = [base(value) for value in row_sums]
+            add_row("Total", [*share(col_sums), base(grand)])
+        elif self.pct == "col":
+            display["Total"] = share(row_sums)
+            add_row("Base", [*(base(value) for value in col_sums), base(grand)])
+        elif self.pct == "total":
+            display["Total"] = share(row_sums)
+            add_row("Total", [*share(col_sums), 100.0 if grand > 0 else 0.0])
+        else:
+            display["Total"] = [base(value) for value in row_sums]
+            add_row("Total", [*(base(value) for value in col_sums), base(grand)])
 
         # Reset index for clean output
         display = display.reset_index()
@@ -660,7 +724,7 @@ class CrossTable(SurveyTable):
                     total_w = float(weights.sum())
                     n_eff = total_w**2 / float((weights**2).sum()) if total_w > 0 else 0.0
                     table = table * (n_eff / total_w) if total_w > 0 else table
-                chi2_stat, p_value, dof, _ = chi2_contingency(table)
+                chi2_stat, p_value, dof, expected = chi2_contingency(table)
                 n = table.sum()
                 min_dim = min(contingency.shape[0] - 1, contingency.shape[1] - 1)
                 cramers_v = (chi2_stat / (n * min_dim)) ** 0.5 if n > 0 and min_dim > 0 else 0.0
@@ -675,7 +739,11 @@ class CrossTable(SurveyTable):
                     self._stats["Weighted N"] = round(total_w, 1)
                     self._stats["Effective N"] = round(n_eff, 1)
                     self._stats["Weight"] = self.data.weight
-                    self._stats["Base"] = "effective (Kish) for the test; weighted counts shown"
+                    shown = "weighted counts" if self.pct == "none" else "weighted bases"
+                    self._stats["Base"] = f"effective (Kish) for the test; {shown} shown"
+                sparse = _sparse_cells(np.asarray(expected, dtype=float))
+                if sparse:
+                    self._stats["Warning"] = sparse
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
         elif weights is not None:

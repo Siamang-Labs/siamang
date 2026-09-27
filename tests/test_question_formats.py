@@ -114,6 +114,13 @@ def test_nps_table_groups_scores_and_reports_the_score_with_a_ci():
     # Weights move the shares: the first five rows (all 7+) count double.
     weighted = _nps_data(weight=True).report.nps("nps")
     assert weighted.stats["NPS"] > 20.0
+    # Weighted, N is the weighted count the % is of, and the respondents are
+    # beside it: 5 promoters, three of them weighing 2.
+    shown = weighted.to_frame().set_index("Group")
+    assert list(shown.columns) == ["Range", "N", "Unweighted N", "%"]
+    assert shown.loc["Promoters", "N"] == 8.0 and shown.loc["Promoters", "Unweighted N"] == 5
+    assert shown.loc["Total", "N"] == 15.0 and shown.loc["Total", "Unweighted N"] == 10
+    assert shown.loc["Promoters", "%"] == round(8 / 15 * 100, 1)
     bad = SurveyData(frame=pd.DataFrame({"x": [1, 11]}))
     with pytest.raises(ValueError, match="outside 0–10"):
         bad.report.nps("x").to_frame()

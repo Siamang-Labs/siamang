@@ -83,7 +83,15 @@ freedom, p-value, Cramér's V, and N.
 - **`row`** — row variable (usually the independent variable).
 - **`col`** — column variable (usually the dependent variable).
 - **`pct`** — percentage direction: `"none"` (counts), `"row"`, `"col"`, or
-  `"total"`. The `Total` row/column always shows raw counts.
+  `"total"`. With `"row"` each row's counts are its `Base` column and the
+  `Total` row is the overall row percentage, the distribution the rows are
+  read against; with `"col"` the other way round (a `Base` row and a `Total`
+  column of the overall percentage); with `"total"` both margins are
+  percentages of the whole. Counts are weighted when the data is. With
+  `"none"` the `Total` row and column are the counts. When more than a fifth
+  of the chi-square's expected counts are below 5, or any is below 1
+  (Cochran's rule, on the base the test is run on), the footer's `Warning`
+  says so and suggests merging answers or Fisher's exact test.
 - **`test`** — run the Chi-square test and append the footer (default `True`).
   Requires `scipy`; without it the footer reports that scipy is missing.
 - **`method`** — `"chi2"` (default) or `"fisher"`: Fisher's exact test, for
@@ -98,13 +106,13 @@ print(data.report.crosstab("it_role", "remote_freq", pct="row").to_markdown())
 ```
 
 ```text
-| IT Role | Never | Occasionally | Hybrid | Mostly remote | Fully remote | Total |
+| IT Role | Never | Occasionally | Hybrid | Mostly remote | Fully remote | Base |
 |---|---|---|---|---|---|---|
 | Engineer | 17.2 | 19.0 | 27.6 | 20.7 | 15.5 | 58 |
 | Data Scientist | 19.1 | 10.6 | 17.0 | 21.3 | 31.9 | 47 |
 | DevOps | 27.9 | 32.6 | 20.9 | 7.0 | 11.6 | 43 |
 | PM | 26.9 | 17.3 | 30.8 | 11.5 | 13.5 | 52 |
-| Total | 45.0 | 39.0 | 49.0 | 31.0 | 36.0 | 200 |
+| Total | 22.5 | 19.5 | 24.5 | 15.5 | 18.0 | 200 |
 
 χ² = 21.485; df = 12; p = 0.0437; Cramér's V = 0.189; N = 200
 ```
@@ -195,7 +203,8 @@ medians while N, the test and the post-hoc pairs stay unweighted.
 `CorrelationMatrixTable` weights Pearson's coefficient (p on Kish's effective
 base); `TTestTable` and the rank correlations say the weight is not applied. The
 banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the
-`Weight`. The descriptives table weights means, SDs, medians and quartiles
+`Weight` (a weighted NPS table's `N` is the weighted count its `%` is of, with
+the respondents in `Unweighted N` beside it, as in `FreqTable`). The descriptives table weights means, SDs, medians and quartiles
 beside a `Weighted N` column and gives Kish's effective N. The quality, theme
 and data-check tables count responses and say
 `Weight: unweighted (the weight 'w' is not applied)`. See

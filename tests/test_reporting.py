@@ -332,17 +332,42 @@ def test_cross_table_percentages_are_of_weights():
     weighted = data.with_weight("w").report.crosstab("grp", "ans", pct="row")
     frame = weighted.to_frame()
 
-    assert plain["Yes"].tolist() == [50.0, 50.0, 2] and plain["Total"].tolist() == [2, 2, 4]
-    # Each group: Yes carries weight 1, No weight 3 — 25 / 75 — and the totals
+    # Row percentages: the Total row is the overall row percentage, and the
+    # counts they are of are the Base column (never counts in a column of %).
+    assert plain["Yes"].tolist() == [50.0, 50.0, 50.0] and plain["Base"].tolist() == [2, 2, 4]
+    assert "Total" not in plain.columns
+    # Each group: Yes carries weight 1, No weight 3 — 25 / 75 — and the bases
     # are sums of weights.
-    assert frame["Yes"].tolist() == [25.0, 25.0, 2.0]
-    assert frame["No"].tolist() == [75.0, 75.0, 6.0]
-    assert frame["Total"].tolist() == [4.0, 4.0, 8.0]
+    assert frame["Yes"].tolist() == [25.0, 25.0, 25.0]
+    assert frame["No"].tolist() == [75.0, 75.0, 75.0]
+    assert frame["Base"].tolist() == [4.0, 4.0, 8.0]
+    # Column percentages the other way round: a Total column of the overall
+    # percentage and a Base row.
+    columns = data.with_weight("w").report.crosstab("grp", "ans", pct="col").to_frame()
+    assert columns.iloc[:, 0].tolist()[-1] == "Base"
+    assert columns["Total"].tolist() == [50.0, 50.0, 8.0]
+    assert columns["Yes"].tolist() == [50.0, 50.0, 2.0]
     stats = weighted.stats
     assert stats["N"] == 4 and stats["Weighted N"] == 8.0 and stats["Weight"] == "w"
     # Kish: (1+3+1+3)² / (1+9+1+9) = 64 / 20 = 3.2 effective respondents.
     assert stats["Effective N"] == 3.2
     assert "effective (Kish)" in stats["Base"]
+    # Four respondents in a 2 x 2 table: every expected count is below 5.
+    assert stats["Warning"].startswith("4 of 4 cells (100%) expect fewer than 5 respondents")
+
+
+def test_a_sparse_crosstab_warns_and_a_full_one_does_not():
+    import pandas as pd
+
+    from siamang.data import SurveyData
+
+    big = pd.DataFrame({"a": [1, 2] * 100, "b": [1, 1, 2, 2] * 50})
+    assert "Warning" not in SurveyData(frame=big).report.crosstab("a", "b").stats
+    # One answer given by 3 of 203: its two cells expect about 1.5 each.
+    sparse = pd.concat([big, pd.DataFrame({"a": [3, 3, 3], "b": [1, 2, 1]})])
+    warning = SurveyData(frame=sparse).report.crosstab("a", "b").stats["Warning"]
+    assert warning.startswith("2 of 6 cells (33%) expect fewer than 5 respondents, the smallest")
+    assert "Fisher's exact test" in warning
 
 
 def test_cross_table_tests_on_the_effective_base_not_the_weighted_count():
