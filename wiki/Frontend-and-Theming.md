@@ -223,16 +223,39 @@ The other calls, all optional on the transport:
 | `checkQuota(variable, value)` | leaving a page, for each quota variable with a value not yet found open (`value` is a list for a `MultiChoice`) | `{ok: true}`, or `{ok: false}` when a cell holding the value is full — the interview then ends as "quota full". A throw or a slow answer (4 s) never stops anyone. See [[Quotas]]. |
 | `pickQuota(variable, values)` | a balanced `Script.assign_condition` before the first page | `{ok: true, value}` — the arm to assign |
 | `onPage({name, index, total})` | every page change | nothing |
-| `respondentId()` | once, when the survey loads | the respondent's id (a string), which becomes `answers.__respondent__` for seeded draws; without it the runtime keeps its own random id for the interview |
+| `respondentId()` | once, when the survey loads | the respondent's id (a string), which becomes `answers.__respondent__` for seeded draws; without it the runtime keeps its own random id for the interview. Keep it in the browser only from `onStart()`: the visitor may never start |
+| `onStart()` | once per page load, at the respondent's first answer or first move between pages (Resume and Start over count; the theme button does not) | nothing — from here the transport may keep what it needs in the browser (Studio: its respondent id) |
 
 What the runtime keeps in the respondent's browser (`localStorage`) is keyed by the
 survey: the transport's `survey_id` (`SIAMANG_ENV.survey_id`), or `SURVEY.surveyId` when
 the host page sets one. The autosave is `siamang_answers_<survey id>` (the answers
 without `__` keys, the page, the path taken, the page order it was dealt and when the
-interview started; a day at most — removed, and never written again, once the interview
-is submitted or ended by a full quota), the theme choice `siamang_theme_<survey id>` and
-the runtime's own respondent id `siamang_interview_<survey id>`. A host's transport may read the autosave — Studio's
-posts it as a partial response.
+interview started; offered back for a week — removed, and never written again, as soon
+as the interview is submitted or ended by a full quota), the theme choice
+`siamang_theme_<survey id>` and the runtime's own respondent id
+`siamang_interview_<survey id>`. A host's transport may read the autosave — Studio's
+posts it as a partial response — and keeps its own keys beside these (Studio:
+`siamang_respondent_<survey id>`, `siamang_ended_<survey id>`).
+
+- **Nothing before the respondent starts.** Opening a survey writes nothing: the
+  interview's id is drawn in memory and kept at the first answer or the first move
+  between pages (Resume and Start over count), and the transport's `onStart()` is called
+  then. A reload before that is a new visitor — nothing of theirs was kept or sent —
+  and draws anew. The theme button keeps the choice alone.
+- **A week without the survey, and it is gone.** `siamang_kept_<survey id>` notes when
+  the survey last wrote here. Every survey page that opens drops, for each survey on the
+  origin (its own included), the `siamang_answers_`, `siamang_respondent_`,
+  `siamang_interview_`, `siamang_ended_` and `siamang_theme_` keys and the note once the
+  note is 7 days old. A key found without a note (kept by an earlier runtime) is dated
+  then and goes a week later.
+- **The one-response mark stays.** `siamang_done_<survey id>`, which a host writes when
+  the researcher asks for one response per browser (Studio does), is never dropped:
+  forgetting it after a week would let the same browser answer again. It is a mark in the
+  browser, so the survey's consent text should mention it.
+- **In memory only.** A host page that should leave nothing in the browser — a preview —
+  sets `window.SIAMANG_STORAGE = "memory"` before the bundle loads: the runtime keeps its
+  state in memory for the life of the page and does not read, write or sweep
+  `localStorage` (a transport that reads the autosave finds none).
 
 Inside an iframe the runtime also tells the parent page its height:
 `window.parent.postMessage({type: "siamang:height", height: <px>}, "*")` when it loads and

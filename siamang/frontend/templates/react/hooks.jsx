@@ -1,6 +1,114 @@
 /* siamang React hooks — modular concerns extracted from the App monolith.
    Each hook owns its own state, effects, and contract. */
 
+/* ─── What this browser keeps ──────────────────────────────────────────── */
+
+/* The runtime keeps a few things in the respondent's browser, each keyed by
+   the survey: the autosave (siamang_answers_<id>), the theme they chose
+   (siamang_theme_<id>) and the interview's own id (siamang_interview_<id>). A
+   host's transport keeps its own beside them — Studio's
+   siamang_respondent_<id> and siamang_ended_<id>. Two rules bound all of it:
+
+   - Nothing is written before the respondent does something: their first
+     answer, their first move between pages, Resume or Start over
+     (startInterview), or the theme button, which writes the choice alone.
+     Opening a survey and leaving it leaves nothing behind.
+   - Nothing outlives a week without the survey. siamang_kept_<id> notes when
+     the survey last wrote here, and every survey page that opens drops the
+     keys of each survey on this origin that has not written for KEEP_MS —
+     its own included — with the note (sweepKept). A key found without a
+     note, kept by an older runtime, is given one then and goes a week later.
+
+   siamang_done_<id> — the "one response per browser" a researcher can ask a
+   host for (Studio writes it) — is none of these and is never dropped:
+   forgetting it after a week would let the same browser answer again.
+
+   A host page that should leave nothing in the browser at all, a preview,
+   sets window.SIAMANG_STORAGE = "memory" before the bundle: the runtime then
+   keeps its state in memory for the life of the page, and never touches the
+   browser's storage. */
+const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+const KEPT_PREFIXES = [
+  "siamang_answers_", "siamang_respondent_", "siamang_interview_", "siamang_ended_", "siamang_theme_",
+];
+const KEPT_AT = "siamang_kept_";
+
+const memoryStorage = (() => {
+  const values = new Map();
+  return {
+    getItem: (key) => (values.has(String(key)) ? values.get(String(key)) : null),
+    setItem: (key, value) => { values.set(String(key), String(value)); },
+    removeItem: (key) => { values.delete(String(key)); },
+    key: (index) => { const keys = Array.from(values.keys()); return index < keys.length ? keys[index] : null; },
+    get length() { return values.size; },
+  };
+})();
+
+/* Where the runtime keeps its state: the browser's localStorage, or null where
+   there is none — it can throw outright in a private mode or a sandboxed frame. */
+function keptStorage() {
+  if (window.SIAMANG_STORAGE === "memory") return memoryStorage;
+  try { return typeof localStorage !== "undefined" && localStorage ? localStorage : null; } catch (e) { return null; }
+}
+
+function keptGet(key) {
+  try { const storage = keptStorage(); return storage ? storage.getItem(key) : null; } catch (e) { return null; }
+}
+
+/* Note that the survey wrote here now: the clock sweepKept reads. */
+function noteKept(surveyId) {
+  try { const storage = keptStorage(); if (storage) storage.setItem(KEPT_AT + surveyId, String(Date.now())); }
+  catch (e) { /* undated: the next sweep dates it */ }
+}
+
+/* Keep `value` under `key` for the survey. False when the browser would not
+   keep it (no storage, or full). */
+function keepItem(surveyId, key, value) {
+  const storage = keptStorage();
+  if (!storage) return false;
+  try { storage.setItem(key, value); } catch (e) { return false; }
+  noteKept(surveyId);
+  return true;
+}
+
+function keptRemove(key) {
+  try { const storage = keptStorage(); if (storage) storage.removeItem(key); } catch (e) { /* nothing kept */ }
+}
+
+/* Drop what each survey on this origin keeps once the survey has not written
+   for KEEP_MS (see above). Run once as the page opens, before anything reads. */
+function sweepKept(now) {
+  const storage = keptStorage();
+  if (!storage) return;
+  const keys = [];
+  try {
+    for (let i = 0; i < storage.length; i++) keys.push(storage.key(i));
+  } catch (e) { return; }
+  const groups = new Map();
+  const notes = new Map();
+  for (const key of keys) {
+    if (typeof key !== "string") continue;
+    if (key.startsWith(KEPT_AT)) { notes.set(key.slice(KEPT_AT.length), Number(keptGet(key))); continue; }
+    const prefix = KEPT_PREFIXES.find((p) => key.startsWith(p));
+    if (!prefix) continue;
+    const id = key.slice(prefix.length);
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id).push(key);
+  }
+  for (const id of new Set([...groups.keys(), ...notes.keys()])) {
+    const group = groups.get(id) || [];
+    const at = notes.get(id);
+    try {
+      if (!group.length) storage.removeItem(KEPT_AT + id);
+      else if (!(at > 0)) storage.setItem(KEPT_AT + id, String(now));
+      else if (now - at >= KEEP_MS) {
+        for (const key of group) storage.removeItem(key);
+        storage.removeItem(KEPT_AT + id);
+      }
+    } catch (e) { /* refused: the next page that opens tries again */ }
+  }
+}
+
 /* ─── useTheme ─────────────────────────────────────────────────────────── */
 
 function useTheme(defaultTheme, allowSwitch, surveyId) {
@@ -21,12 +129,8 @@ function useTheme(defaultTheme, allowSwitch, surveyId) {
 
   const [theme, setTheme] = useState(() => {
     if (!allowSwitch) return preferred();
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved === "light" || saved === "dark") return saved;
-    } catch (err) {
-      /* Storage can throw outright in private mode, not merely come back empty. */
-    }
+    const saved = keptGet(storageKey);
+    if (saved === "light" || saved === "dark") return saved;
     return preferred();
   });
 
@@ -37,12 +141,9 @@ function useTheme(defaultTheme, allowSwitch, surveyId) {
   const toggle = useCallback(() => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
-    try {
-      localStorage.setItem(storageKey, next);
-    } catch (err) {
-      /* The choice still applies to this sitting; it just is not remembered. */
-    }
-  }, [theme, storageKey]);
+    // Where it cannot be kept, the choice still applies to this sitting.
+    keepItem(surveyId, storageKey, next);
+  }, [theme, storageKey, surveyId]);
 
   return { theme, toggle };
 }
@@ -68,15 +169,16 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   const [saving, setSaving] = useState(false);
   const [savedData, setSavedData] = useState(null);
 
-  // Load saved data on mount
+  // Load saved data on mount: offered back for a week (KEEP_MS), the time
+  // the survey's keys are kept at all (sweepKept).
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(AUTO_SAVE_KEY);
+      const raw = keptGet(AUTO_SAVE_KEY);
       if (raw) {
         const data = JSON.parse(raw);
         const age = Date.now() - new Date(data.savedAt).getTime();
-        if (age < 86400000) setSavedData(data);
-        else localStorage.removeItem(AUTO_SAVE_KEY);
+        if (age < KEEP_MS) setSavedData(data);
+        else keptRemove(AUTO_SAVE_KEY);
       }
     } catch (e) {}
   }, []);
@@ -97,10 +199,10 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
         const order = currentAnswers && currentAnswers.__pages__;
         if (Array.isArray(order)) data.pageOrder = order.map((p) => p && p.name);
         data.startedAt = interviewSession.startedAt;
-        localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(data));
-      } catch (e) { /* quota exceeded */ }
+        keepItem(surveyId, AUTO_SAVE_KEY, JSON.stringify(data));
+      } catch (e) { /* not kept */ }
     });
-  }, [AUTO_SAVE_KEY, historyRef]);
+  }, [AUTO_SAVE_KEY, historyRef, surveyId]);
 
   const scheduleSave = useCallback(() => {
     if (endedRef.current) return;
@@ -114,7 +216,7 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   }, [store, doSave, pageIdxRef]);
 
   const clearSaved = useCallback(() => {
-    try { localStorage.removeItem(AUTO_SAVE_KEY); } catch (e) {}
+    keptRemove(AUTO_SAVE_KEY);
     setSavedData(null);
   }, [AUTO_SAVE_KEY]);
 
@@ -403,12 +505,18 @@ function useQuotaCheck(quotaVars) {
    answers.__respondent__, which Script.assign_condition's seed and the
    MaxDiff / Conjoint design version are keyed by. A transport that knows the
    respondent (respondentId(), the id its own rows use) supplies it; otherwise
-   the runtime makes one up and keeps it in this browser until the interview
-   ends, so a reload resumes with the same arm and the same design. It never
-   leaves the browser as an answer (submittedAnswers drops `__` keys). */
+   the runtime makes one up and, once the respondent has started
+   (startInterview), keeps it in this browser until the interview ends, so a
+   reload resumes with the same arm and the same design. A reload before they
+   start is a new visitor: nothing of theirs was kept or sent. It never leaves
+   the browser as an answer (submittedAnswers drops `__` keys). */
 function interviewIdKey(surveyId) {
   return "siamang_interview_" + surveyId;
 }
+
+// The runtime's own id while it waits for the respondent to start, and
+// whether they have (once per page load).
+const interviewKeep = { id: null, started: false };
 
 function randomInterviewId() {
   try {
@@ -430,19 +538,37 @@ function interviewRespondentId(surveyId) {
       if (id !== null && id !== undefined && String(id) !== "") return String(id);
     }
   } catch (e) { /* the runtime's own id below */ }
-  try {
-    const saved = localStorage.getItem(interviewIdKey(surveyId));
-    if (saved) return saved;
-  } catch (e) { /* private mode: an id for this page load */ }
+  const saved = keptGet(interviewIdKey(surveyId));
+  if (saved) return saved;
   const id = randomInterviewId();
-  try { localStorage.setItem(interviewIdKey(surveyId), id); } catch (e) { /* not kept */ }
+  interviewKeep.id = id;
   return id;
+}
+
+/* The respondent has started: their first answer, their first move between
+   pages, Resume or Start over. From here the browser keeps what resuming the
+   interview needs — the runtime's own interview id when it has one, and the
+   note that dates what the survey keeps — and a transport with an optional
+   onStart() is told, so that it keeps its own from here too (Studio's
+   respondent id) rather than from the moment the page opened. Once per page
+   load; an error in the hook never stops the respondent. */
+function startInterview(surveyId) {
+  if (interviewKeep.started) return;
+  interviewKeep.started = true;
+  if (interviewKeep.id !== null) keepItem(surveyId, interviewIdKey(surveyId), interviewKeep.id);
+  else noteKept(surveyId);
+  interviewKeep.id = null;
+  try {
+    const transport = currentTransport();
+    if (transport && typeof transport.onStart === "function") transport.onStart();
+  } catch (e) { /* a transport must not be able to break the survey */ }
 }
 
 /* The interview is over (submitted, or ended by a full quota): the next one
    in this browser is a new respondent. */
 function forgetInterview(surveyId) {
-  try { localStorage.removeItem(interviewIdKey(surveyId)); } catch (e) { /* nothing kept */ }
+  interviewKeep.id = null;
+  keptRemove(interviewIdKey(surveyId));
 }
 
 /* ─── Embedded height ──────────────────────────────────────────────────── */

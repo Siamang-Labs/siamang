@@ -823,6 +823,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `compile_css(ui, font_base=...)`) and serves them with
   `siamang.frontend.theme.fonts.font_file()`.
 
+- **What a survey keeps in the browser: nothing before the respondent starts,
+  and nothing for more than a week.** The runtime wrote the interview's id
+  (`siamang_interview_<survey id>`) — and a transport's `respondentId()` was
+  asked for its own at the same moment — as the page opened, so a visitor who
+  only looked left a key behind; the autosave was offered back for a day but
+  stayed in the browser for good unless the same survey was opened again, as
+  did every other key of every survey on the origin. Now the id is drawn in
+  memory and kept at the respondent's first answer or first move between pages
+  (Resume and Start over count), when a transport's new optional `onStart()` is
+  called too, so it can keep its own from then (a reload before that is a new
+  visitor, with nothing of theirs kept or sent). `siamang_kept_<survey id>`
+  notes when a survey last wrote, and every survey page that opens drops the
+  `siamang_answers_`, `siamang_respondent_`, `siamang_interview_`,
+  `siamang_ended_` and `siamang_theme_` keys of each survey on the origin not
+  written for 7 days, its own included; a key kept before the note is dated
+  when it is first seen and goes a week later. The autosave is offered back
+  for that week, not a day, and is removed as soon as the interview is
+  submitted or ended by a full quota, as it was. `siamang_done_<survey id>`,
+  a host's "one response per browser", is never dropped. A host page that
+  should leave nothing in the browser (a preview) sets
+  `window.SIAMANG_STORAGE = "memory"`: the runtime then keeps its state in
+  memory and does not touch `localStorage`.
+
 ### Removed
 
 - `UIConfig.effective_google_fonts_url` and the `"google_fonts"` URL of each

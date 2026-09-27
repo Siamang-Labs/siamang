@@ -64,7 +64,9 @@ Inside a snippet you have these globals:
   the respondent leaves the page or submits) and `answers.__respondent__` — the
   interview's respondent id: the transport's `respondentId()` when it has one (Studio's
   platform transport returns the id of the response row), otherwise a random id the
-  runtime keeps in the browser until the interview is submitted, so a reload keeps it.
+  runtime keeps in the browser from the respondent's first answer or page turn until the
+  interview is submitted, so a reload keeps it (a reload before the respondent starts
+  draws a new one: nothing of theirs was kept).
   It is what a seeded `assign_condition` and the MaxDiff/Conjoint design version are
   drawn from. `__` keys are never submitted as answers.
 - **`utils`** — helper functions: `shuffle(list, seed?)` (a shuffled copy), `sample(list,
