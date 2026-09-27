@@ -760,7 +760,9 @@ hand only.
 ### Terms
 
 A term is a word or a phrase, case-folded and with one apostrophe as the answers
-are. There are no regular expressions (`re:` is refused).
+are, and split into words where an answer is: `e-mail` and `n/a` are two words
+each (a `-`, `/` or `·` between two letters), and quotation marks around a term
+are dropped. There are no regular expressions (`re:` is refused).
 
 | Term | Matches | Does not match |
 |------|---------|----------------|
@@ -772,6 +774,7 @@ are. There are no regular expressions (`re:` is refused).
 | `staff ~3 rude` | the two within 3 words of each other, either order (`~0`: adjacent) | across punctuation or a line break |
 | `not late`, `don't know` | *was not late*, *wasn't late*, *I don't know*, *I dont know*, *I do not know*: the negation is the term's own | *I don't really know* (use `don't ~2 know`) |
 | `not_friendly staff` | *no friendly staff*: the words under the negation `not_` asks for are the term's | *friendly staff* |
+| `n/a`, `e-mail` | *N/A*, *n/a - nothing*; *my E-mail* (two words each, as in the answers) | *n / a* (a loose `/` ends a clause) |
 
 A term matches only mentions that are **not negated**, unless the negation is
 one of its own words or the one a `not_` word of it asks for; `not_word`
@@ -866,8 +869,10 @@ expressions are not supported: write the words, with * for word forms (delay*),
 rude)*), `~` without a number or with words on one side only, two `~N`, `~N`
 over 20, `*` or `not_` alone, an empty alternative, `require` mixing terms and
 lists. As **warnings** (the codeframe applies; the part does nothing): a term
-that can never match — `e-mail` (*'-' is not part of a word*), `'cause`, a
-clause word in a clause, a word the replacements take away, `not_and`, the
+that can never match — `n.a.` (*'.' is not part of a word*), `'cause`, the
+`e-mail` of `e-mail|email` (two words, which one of several alternatives cannot
+be), a clause word in a clause, a word the replacements take away and none
+writes back, `not_and`, the
 *do not* of `do|really not` (an answer's *do not* is read as *don't*) — a term
 given twice, a term both included and excluded, `require` or `exclude` without
 `include`, a net of one theme, several codes decided for a single-theme

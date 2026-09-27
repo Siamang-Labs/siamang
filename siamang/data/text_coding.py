@@ -645,9 +645,12 @@ def _read_v2(payload: Mapping[str, Any]) -> tuple[Codeframe | None, list[Codefra
         scope = text_rules.CLAUSE
 
     replace = _read_replacements(payload.get("replace"), error, warn)
-    replaced_words = {
-        text_rules.normalise_replacement(a): text_rules.normalise_replacement(b) for a, b in replace
-    }
+    replaced_words = _Replaced(
+        {
+            text_rules.normalise_replacement(a): text_rules.normalise_replacement(b)
+            for a, b in replace
+        }
+    )
 
     raw_themes = payload.get("themes")
     themes: list[Theme] = []
@@ -780,7 +783,7 @@ def _read_theme(
     entry: Any,
     index: int,
     scope: str,
-    replaced: dict[str, str],
+    replaced: _Replaced,
     error: Any,
     warn: Any,
 ) -> Theme | None:
@@ -853,7 +856,7 @@ def _read_rules(
     name: str,
     where: tuple[str | int, ...],
     scope: str,
-    replaced: dict[str, str],
+    replaced: _Replaced,
     error: Any,
     warn: Any,
 ) -> Rules | None:
@@ -948,10 +951,38 @@ def _read_rules(
     return Rules(include=include, require=tuple(require), exclude=exclude, scope=own_scope)
 
 
-def _term_notes(term: text_rules.Term, scope: str, replaced: dict[str, str]) -> list[str]:
+class _Replaced(dict[str, str]):
+    """The replacements as the validator reads a term against them: what each
+    replaces (``from`` -> ``to``, both as the rules read them) and, made once,
+    the words and phrases they write. They are made in one pass, so a word one
+    replacement takes away is still in the text the rules read where another
+    writes it (a → b and b → a)."""
+
+    def __init__(self, pairs: dict[str, str]) -> None:
+        super().__init__(pairs)
+        self.written = [
+            f" {' '.join(text_rules.analyse(after).words)} " for after in pairs.values() if after
+        ]
+        self.words = frozenset(word for phrase in self.written for word in phrase.split())
+
+    def gone(self, words: str) -> bool:
+        """Whether no answer's text as the rules read it holds ``words`` (a
+        word, or a phrase): one replacement takes them away, none writes them."""
+        return (
+            words in self
+            and self[words] != words
+            and (words not in self.words if " " not in words else not self._writes(words))
+        )
+
+    def _writes(self, phrase: str) -> bool:
+        return any(f" {phrase} " in written for written in self.written)
+
+
+def _term_notes(term: text_rules.Term, scope: str, replaced: _Replaced) -> list[str]:
     """Why a readable term still can never match: a word the answers never
     hold as the term asks — one that splits clauses (in a clause), one the
-    replacements take away, or a negation asked to be negated."""
+    replacements take away (and none writes), or a negation asked to be
+    negated."""
 
     notes: list[str] = []
     for atoms in term.words:
@@ -965,7 +996,7 @@ def _term_notes(term: text_rules.Term, scope: str, replaced: dict[str, str]) -> 
                 f"can never match within a clause: '{atoms[0].core}' ends a clause "
                 "(give the theme the scope 'answer')"
             )
-        gone = [a.core for a in atoms if a.core in replaced and replaced[a.core] != a.core]
+        gone = [a.core for a in atoms if replaced.gone(a.core)]
         if len(gone) == len(atoms):
             notes.append(
                 f"can never match: '{gone[0]}' is replaced by '{replaced[gone[0]]}' "
@@ -979,7 +1010,7 @@ def _term_notes(term: text_rules.Term, scope: str, replaced: dict[str, str]) -> 
         if len(never) == len(atoms):
             notes.append(f"can never match: '{never[0]}' is never negated itself")
     whole = text_rules.normalise_term(term.text)
-    if whole in replaced and " " in whole and replaced[whole] != whole:
+    if " " in whole and replaced.gone(whole):
         notes.append(
             f"can never match: '{whole}' is replaced by '{replaced[whole]}' "
             "before the rules read an answer"

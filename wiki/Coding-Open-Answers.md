@@ -112,7 +112,7 @@ Save the codeframe as `analysis/why.codeframe.json` and
 | `multiple` | `true`: several themes an answer (a multiple-choice variable). `false` (default): one theme (a nominal variable). |
 | `max_codes` | The most themes the rules give an answer; `0` (default) for no cap. |
 | `scope` | Where the rules read: `"clause"` (default) or `"answer"`. A theme's own `rules.scope` wins. |
-| `replace` | `[{"from": "delievery", "to": "delivery"}]`: whole words or phrases replaced before the rules read — typos, synonyms. |
+| `replace` | `[{"from": "delievery", "to": "delivery"}]`: whole words or phrases replaced before the rules read — typos, synonyms. They are made in one pass: a word one replacement writes is not replaced again. |
 | `themes` | `code`, `label`, and optionally `definition`, `group` (the net it belongs to), `exclusive`, `priority` and `rules`. |
 | `assignments` | Your decisions: `{fingerprint: code, [codes] or []}`. |
 
@@ -148,6 +148,11 @@ matches there.
   negated one. A negation written in the term (`not late`, `no problems`,
   `don't know`) is the term's own, and so is the one a `not_` word asks for:
   in *no friendly staff*, `not_friendly staff` finds the staff under it.
+- A term's words are split where an answer's are: `e-mail` and `n/a` are two
+  words each (a `-`, `/` or `·` between two letters), so they find *E-mail*
+  and *N/A*, and quotation marks around a term are dropped (`"late"` is
+  `late`). One of several alternatives cannot be two words: `e-mail|email`
+  warns, and `e-mail` and `email` are two terms.
 - There are no regular expressions: `re:` is refused.
 - A "word" longer than 200 characters — a pasted link or string — matches no
   term.
@@ -210,14 +215,14 @@ highest-ranked of several).
 
 ```python
 found = text_coding.validate({**codeframe, "themes": codeframe["themes"] + [
-    {"code": 4, "label": "Mail", "rules": {"include": ["e-mail", "re:mail"]}}]})
+    {"code": 4, "label": "Mail", "rules": {"include": ["e-mail|email", "re:mail"]}}]})
 for issue in found.errors + found.warnings:
     print(issue.level, issue.path, issue.message)
 ```
 
 ```text
 error ('themes', 4, 'rules', 'include', 1) theme 4 (Mail): include term 're:mail': regular expressions are not supported: write the words, with * for word forms (delay*), | for alternatives (slow|late) and ~N for words near each other (staff ~3 rude)
-warning ('themes', 4, 'rules', 'include', 0) theme 4 (Mail): include term 'e-mail' can never match: '-' is not part of a word — the answers are split into words there, so write the parts as separate words
+warning ('themes', 4, 'rules', 'include', 0) theme 4 (Mail): include term 'e-mail|email' has a part that can never match, 'e-mail': it is two words (an answer is split at '-'), which one of several alternatives cannot be — make it a term of its own
 ```
 
 `explain` shows how one answer is read and why it got its themes:

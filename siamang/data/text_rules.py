@@ -201,6 +201,19 @@ def _patterns() -> tuple[re.Pattern[str], re.Pattern[str]]:
     return tokens, re.compile(word)
 
 
+@lru_cache(maxsize=1)
+def _inner_joiner() -> re.Pattern[str]:
+    """A joiner between two letters of a term's word — where an answer's
+    *e-mail* or *n/a* is two words — but not after the ``_`` of ``not_``."""
+    letters = _word_class()
+    return re.compile(f"(?<=[{letters}])(?<!_)[{re.escape(JOINERS)}](?=[{letters}])")
+
+
+#: Quotation marks around a whole term, which an answer's words never hold:
+#: ``"late"`` is the term ``late``.
+QUOTES = '"“”„‟«»‹›'
+
+
 def rule_text(normalised: str) -> str:
     """An answer's normalised text (``text_coding.normalise``) as the rules
     read it before replacements: one apostrophe, no underscore."""
@@ -364,9 +377,9 @@ class Term:
 
 def normalise_term(term: str) -> str:
     """A term in the answers' normal form (NFKC, case-folded, one apostrophe,
-    single spaces)."""
+    single spaces), without quotation marks around it."""
     text = unicodedata.normalize("NFKC", str(term)).casefold().translate(_APOSTROPHES)
-    return " ".join(text.split())
+    return " ".join(text.strip().strip(QUOTES).split())
 
 
 def normalise_replacement(text: str) -> str:
@@ -392,7 +405,14 @@ def parse_term(term: Any) -> tuple[Term, list[str]]:
             "forms (delay*), | for alternatives (slow|late) and ~N for words near each "
             "other (staff ~3 rude)"
         )
-    parts = text.split(" ")
+    # A word is split where an answer's is: e-mail and n/a are two words each,
+    # so the term finds them. Not in a part with alternatives (e-mail|email),
+    # where one word cannot become two: that part is warned about below.
+    parts = [
+        piece
+        for part in text.split(" ")
+        for piece in ([part] if "|" in part or "~" in part else _inner_joiner().split(part))
+    ]
     operators = [i for i, part in enumerate(parts) if "~" in part]
     if len(operators) > 1:
         raise TermError("a term takes one ~N at most")
@@ -431,6 +451,15 @@ def _phrase(parts: list[str], warnings: list[str], whole: str) -> tuple[tuple[At
             if not core.replace("*", ""):
                 raise TermError("* stands for letters of a word and needs some of its own: delay*")
             core = SPELLED.get(core, core)
+            joined = _inner_joiner().search(core)
+            if joined is not None:
+                # Only an alternative gets here: a part without is split.
+                warnings.append(
+                    f"has a part that can never match, '{alternative}': it is two words (an "
+                    f"answer is split at '{joined.group(0)}'), which one of several "
+                    "alternatives cannot be — make it a term of its own"
+                )
+                continue
             problem = _never_a_word(core)
             if problem:
                 warnings.append(

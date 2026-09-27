@@ -25,7 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   within a clause or the whole answer. A term is a word or phrase with `*` for
   word forms (`delay*`), `|` for alternatives (`slow|late`), `not_word` for a
   negated mention only and `A ~N B` for words within N of each other, either
-  order, between two punctuation marks; it matches only mentions that are not
+  order, between two punctuation marks — its words split where an answer's are
+  (`e-mail` and `n/a` are two words each, quotation marks around it dropped);
+  it matches only mentions that are not
   negated (`late` does not match *wasn't late*) unless the negation is its own
   (`don't know`) or the one a `not_` word asks for (`not_friendly staff` finds
   *no friendly staff*). There are no regular expressions (`re:` is refused).
@@ -48,8 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `siamang.data.text_rules` holds the rules; `text_coding` gains
   `validate(codeframe)` (every error and warning with its path — unknown codes,
   duplicate codes and replacements, empty and unreadable terms, terms that can
-  never match: `theme 4 (Mail): include term 'e-mail' can never match: '-' is
-  not part of a word — …`), `preview(answers, codeframe)` (each distinct
+  never match: `theme 4 (Mail): include term 'n.a.' can never match: '.' is
+  not part of a word — …`, a word a replacement takes away and none writes
+  back), `preview(answers, codeframe)` (each distinct
   answer's codes and whether a coder or which rule gave them, with the term and
   the words it matched; counts per theme and net; coverage; and per theme and
   answer `negated`, what reading a negated mention as no match costs the theme

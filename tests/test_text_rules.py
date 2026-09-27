@@ -82,6 +82,17 @@ def _matches(term: str, text: str, **theme) -> bool:
         # an apostrophe inside a word is part of it, however it was typed
         ("don't", "I don’t", True),
         ("can't|cannot", "I cannot say", True),
+        # a term is split into words where an answer is: a joiner between two
+        # letters (e-mail, n/a) parts two words, and quotation marks go
+        ("n/a", "N/A", True),
+        ("n/a", "n/a - nothing", True),
+        ("n/a", "n / a", False),  # a loose slash ends a clause
+        ("e-mail", "My E-mail bounced", True),
+        ("e-mail*", "I e-mailed twice", True),
+        ("not_e-mail", "no e-mail at all", True),
+        ("not_e-mail", "an e-mail at last", False),
+        ('"late"', "late again", True),
+        ("“customer service”", "the customer service", True),
     ],
 )
 def test_term_forms(term, text, expected):
@@ -628,7 +639,8 @@ def test_an_unusable_codeframe_is_refused_with_a_reason_and_a_place(change, mess
 @pytest.mark.parametrize(
     ("theme", "message"),
     [
-        (_theme(1, "A", ["e-mail"]), "'-' is not part of a word"),
+        (_theme(1, "A", ["e-mail|email"]), "'e-mail': it is two words (an answer is split at '-')"),
+        (_theme(1, "A", ["n.a."]), "'.' is not part of a word"),
         (_theme(1, "A", ["'cause"]), "neither begins nor ends with an apostrophe"),
         (_theme(1, "A", ["but"]), "'but' ends a clause"),
         (_theme(1, "A", ["colour"]), "'colour' is replaced by 'color'"),
@@ -646,6 +658,32 @@ def test_a_term_that_can_never_match_is_a_warning(theme, message):
     assert found.ok, found.errors
     assert any(message in w.message for w in found.warnings), found.warnings
     text_coding.parse(payload)  # it applies; that term does nothing
+
+
+def test_a_word_one_replacement_takes_away_and_another_writes_can_match():
+    """The replacements are made in one pass: with a → b and b → a an answer's
+    b is read as a, so the term a matches it and is no term that "can never
+    match"; a phrase another replacement writes likewise. A word nothing
+    writes back is still one."""
+    swap = _cf(
+        _theme(1, "A", ["a"]),
+        _theme(2, "Service", ["customer service"]),
+        _theme(3, "Colour", ["colour"]),
+        replace=[
+            {"from": "a", "to": "b"},
+            {"from": "b", "to": "a"},
+            {"from": "customer service", "to": "support"},
+            {"from": "customer care", "to": "customer service"},
+            {"from": "colour", "to": "color"},
+        ],
+    )
+    found = text_coding.validate(swap)
+    never = [w for w in found.warnings if "can never match" in w.message]
+    assert [list(w.path) for w in never] == [["themes", 2, "rules", "include", 0]], never
+    assert "'colour' is replaced by 'color'" in never[0].message
+    assert _codes("b", swap) == [1]
+    assert _codes("a", swap) == []
+    assert _codes("customer care", swap) == [2]
 
 
 def test_a_warning_names_its_theme_when_an_earlier_one_is_refused():
