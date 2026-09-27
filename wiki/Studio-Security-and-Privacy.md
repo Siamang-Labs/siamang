@@ -79,32 +79,42 @@ Nothing else is public.
   verdict and the counts, but only the link parameters a flow reads, and
   never the invitation token. See [[Data Exports|Studio-Data-Exports]] and
   [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]].
+- **Answers arrive before the respondent submits.** Each time the respondent
+  moves to another page, and each time they leave the tab, the answers so far
+  are sent to Studio as a **partial** response, so someone who stops halfway
+  still leaves a row. The final submission replaces it.
 - **IP addresses are not stored with responses.** They are used briefly to
   limit how fast one address can submit. On surveys where you switch on the
-  **captcha**, the check loads from Cloudflare, so Cloudflare sees each
-  respondent's IP address and browser, and Studio sends Cloudflare the
+  **captcha**, the check loads from Cloudflare when the respondent submits —
+  not before — so Cloudflare sees the IP address and browser of each
+  respondent who sends their answers, and Studio sends Cloudflare the
   respondent's IP address with the captcha token so Cloudflare can verify it.
   The **Captcha** panel on the Distribute card says so and asks you to name
   Cloudflare Turnstile in your survey's privacy notice (see
   [Captcha](Studio-Distribution-Channels#captcha)).
 - **The respondent id** is a random identifier the survey page keeps in the
-  respondent's browser for one interview, so that its saved progress and the
-  finished response land on the same row. It is dropped when the interview
-  ends, and the next interview in that browser gets a new one. It is not an
-  identity: Studio cannot tell whether two responses came from the same
-  person.
+  respondent's browser for one interview, once they start answering, so that
+  its saved progress and the finished response land on the same row. It is
+  dropped when the interview ends, and the next interview in that browser gets
+  a new one. It is not an identity: Studio cannot tell whether two responses
+  came from the same person.
 - **One response per browser**, an option on the Distribute card (off by
-  default), makes the survey page remember in the respondent's own browser
+  default), makes the survey page keep a mark in the respondent's own browser
   that the survey was answered there. Nothing about the browser is sent to
-  Studio, so a private window, cleared browser data or another device can
-  answer again. A survey published before this option existed needs one
-  republish of its environment for its page to honor it.
-- **In the respondent's browser**, the survey keeps the answers given so far
-  for up to 24 hours, so that a reload can resume the interview, and removes
-  them once the interview is submitted or ends on a full quota. Until then,
-  someone else opening the same link in that browser is offered to resume.
-  A survey published before this update may keep them after the interview
-  ends; republish it to get this behavior.
+  Studio, so cleared browser data, a private window, another browser or
+  another device can answer again. The mark stays on the respondent's device
+  after they answer, until they clear their browser data — the survey's other
+  browser data goes after a week, the mark does not — so mention it in your
+  consent text. Unique invitation links are more reliable, especially for
+  respondents in the EU, where keeping such a mark on a device needs the
+  respondent's consent. A survey published before this option existed needs
+  one republish of its environment for its page to honor it.
+- **In the respondent's browser**, the survey keeps a draft of the answers
+  given so far for up to a week, so that a reload or a later visit can resume
+  the interview, and removes it once the interview is submitted or ends on a
+  full quota. Until then, someone else opening the same link in that browser
+  is offered to resume. Everything a survey keeps there, and for how long, is
+  under [Cookies and browser storage](#cookies-and-browser-storage).
 - **Personal data you ask for** (a name, an email, a phone number) is personal
   data you collected. Treat it accordingly, and say so on your consent page.
 - **Email invitations** store the contact list you imported, each person's
@@ -142,7 +152,9 @@ the row. Delete or re-create those copies as well. See
 first page's title; a survey published before this update shows it after one
 republish), **Contact email**, **Privacy URL** and **Ethics statement**. Put your consent text on the first page with a required "I agree"
 question, and route anyone who declines to the end of the survey (see
-[[Logic and Branching|Studio-Logic-and-Branching]]).
+[[Logic and Branching|Studio-Logic-and-Branching]]). What the consent text
+should say about the respondent's browser and the services a survey uses is
+under [What to say in your consent text](#what-to-say-in-your-consent-text).
 
 ### Open answers and codeframes
 
@@ -165,6 +177,121 @@ What respondents write in open questions stays in Studio when you code it:
   [below](#the-ai-assistant-and-your-data)).
 
 See [[Coding Open Answers|Studio-Open-Answer-Coding]].
+
+---
+
+## Cookies and browser storage
+
+What Studio and your surveys keep in the browser, and which other services a
+browser talks to. Neither Studio nor a survey uses analytics, advertising or
+tracking cookies or scripts.
+
+### Studio's cookie and storage
+
+Studio sets **one cookie**, `sc_auth`, on `studio.siamang.org`. Its value is
+`1`: it says nothing about you, and only tells Studio's web server whether to
+show you the app or the sign-in page — your sign-in itself is checked by the
+API on every request. It lasts 7 days, renewed each time you open Studio, and
+**Sign out** removes it. It is marked `Secure`, so the browser sends it over
+HTTPS only, and `SameSite=Lax`.
+
+Everything else is in the browser's local storage for `studio.siamang.org`,
+which the browser never sends anywhere on its own:
+
+| Key | What it holds | How long |
+|---|---|---|
+| `sc_session` | your sign-in: the token the API checks, the token that renews it, your name, email and organizations | until you sign out |
+| `sc_next` | the team invitation to return to once you have signed in | until you have signed in |
+| `ss_theme`, `ss_density` | the theme and density you picked (see [[Account and Profile\|Studio-Account-and-Profile]]) | until you clear the browser's data for Studio |
+| `sc_last_opened` | when you last opened each project in this browser, for **Sort: Last opened** | the same |
+| `siamang.builder.inspector`, `siamang.flows.node-inspector`, `siamang.flows.report-preview` | the panel widths you dragged | the same |
+| `siamang.flows.palette-open`, `ui:insp:…`, `ui:theme:…`, `ui:report-theme:…` | the node groups and the Inspector and theme sections you keep open | the same |
+
+### A survey's storage
+
+A published survey sets **no cookies**. Its page keeps a few entries in the
+browser's local storage for the survey host (`study.siamang.org`), each named
+after the survey id (`<id>` below) — and **nothing until the respondent
+starts**: their first answer, their first move to another page, **Resume** or
+**Start over**, or the light/dark button, which keeps only that choice.
+Someone who opens the link and leaves keeps nothing.
+
+| Key | What it holds | How long |
+|---|---|---|
+| `siamang_answers_<id>` | the draft: the answers so far, the page reached and the path taken, and when they were saved — what **Resume** brings back | removed when the interview is submitted (a screen-out included) or ends on a full quota; otherwise 7 days |
+| `siamang_respondent_<id>` | the interview's `respondent_id`, which ties its partial responses and its completion to one row | from the start until the interview ends; at most 7 days |
+| `siamang_ended_<id>` | when an interview in this browser last ended, so nothing of it is sent again as a new one | 7 days |
+| `siamang_theme_<id>` | light or dark, once the respondent presses the light/dark button | 7 days |
+| `siamang_kept_<id>` | when the survey last wrote there — the clock for the 7 days | goes with the rest |
+| `siamang_done_<id>` | only with [One response per browser](Studio-Distribution-Channels#one-response-per-browser) on: the date and time this browser sent its response, or ended on a screen-out or a full quota | **not** cleared after a week — it stays until the respondent clears their browser data |
+
+**The week.** Everything but `siamang_done_<id>` goes once the survey has not
+written there for 7 days — a week after the respondent's last answer. A
+browser cannot delete anything on a timer, so the entries go the next time any
+survey from the survey host opens in that browser, before anything reads them;
+a draft older than 7 days is never offered back.
+
+**Previews keep nothing.** The Builder's canvas preview, the Walkthrough and
+share-preview links keep their state in memory: a reload starts over, and the
+browser is left as it was. A staged preview from the Builder's **Preview**
+button is a real build and keeps a draft as a live survey does. See
+[[Testing Your Survey|Studio-Testing-Your-Survey]].
+
+### Other services
+
+| Service | When a browser talks to it | What it learns |
+|---|---|---|
+| **Supabase** (sign-in) | on the sign-in page and while you work: your browser signs in and renews its session with Supabase's authentication service; a Google or Microsoft sign-in passes through Supabase and the provider's own pages | your IP address, browser and sign-in details; the provider's pages keep their own cookies on their own sites |
+| **Stripe** (payments) | only when an owner clicks **Continue to checkout** or **Manage billing**: the browser leaves Studio for Stripe's own pages | what you enter there; Stripe's cookies stay on Stripe's sites, and Studio's pages load nothing from Stripe |
+| **Cloudflare Turnstile** (captcha) | in Studio, on the sign-up, password and **Reset your password** forms of the sign-in page — not on its first, email step; in a survey, only with the [captcha](Studio-Distribution-Channels#captcha) on, and only when the respondent submits | the IP address and browser; Studio sends Cloudflare the IP address with the token to verify it |
+| Fonts | none: Studio's own fonts come with the app, and a survey's (Source Serif 4, Inter, Nunito) come from the survey host — for previews, from Studio's API. Nothing is requested from Google Fonts or any other font service | — |
+| Whatever you link yourself | a **Logo URL**, a font or image your **Custom CSS** loads, a request a custom script makes | the site you name sees each respondent's IP address and browser: name it in your privacy notice |
+
+### Why there is no cookie banner
+
+Studio's cookie and its local storage do only what you asked for — keeping you
+signed in, bringing you back to an invitation — or remember a choice you made:
+the theme, the density, panel widths, open sections. Nothing tracks you, and
+nothing is shared with another site. Under the EU's ePrivacy rules, storage
+that is strictly necessary for a service the user asked for, or that keeps a
+choice the user made, needs no consent, so Studio shows no cookie banner.
+
+A survey's draft, its `respondent_id` and the respondent's light/dark choice
+are of the same kind: they let the respondent resume, and keep their own
+preference. The exception is the **One per browser** mark: it serves you, not
+the respondent. That is why it belongs in your consent text, and why unique
+invitation links ([[Email Invitations|Studio-Email-Invitations]] *(Plus)*) are the
+better tool for respondents in the EU, where keeping such a mark on a device
+needs the respondent's consent. This is how Siamang reads the rules; your
+data-protection officer decides for your study.
+
+### What to say in your consent text
+
+Tell respondents, in the survey's consent text or privacy notice:
+
+- that the survey keeps their answers so far in their browser for up to a
+  week, so they can resume — and that on a shared computer, the next person to
+  open the link in that browser within the week is offered to resume an
+  unfinished interview (**Start over** discards it);
+- that their answers reach you page by page, as **partial** responses, even if
+  they never submit;
+- what is recorded besides the answers: when they started and how long they
+  took, the last page reached, and three counts — how often they left the
+  tab, for how long, and how many times they pasted;
+- with **One per browser** on, that a mark stays in their browser after they
+  answer, until they clear their browser data;
+- with the captcha on, that Cloudflare Turnstile checks their browser when
+  they submit and sees their IP address;
+- anything the link carries that identifies them (an invitation, a panel id),
+  and anything the survey loads from another site (a logo, fonts, scripts).
+
+> **Note.** A survey keeps the runtime it was built with. One published before
+> this update loads its fonts from Google Fonts and the captcha as the page
+> opens, keeps the respondent id from the moment the page opens, and keeps a
+> draft for 24 hours but everything else with no limit. Republish its
+> environment (a Save with nothing changed will do) to get what this section
+> describes; see [Republishing](Studio-Publishing-and-Environments#republishing).
+> Previews are rendered fresh and need nothing.
 
 ---
 
@@ -276,8 +403,9 @@ under [Activity](Studio-Organizations-and-Team#activity).
   uppercase letter, a number and a symbol. Signing up with email and password
   requires **confirming the address** from the email Studio sends.
 - **Captcha** (Cloudflare Turnstile) protects sign-up, sign-in and password
-  reset when it is enabled. The check loads from Cloudflare, like the one on
-  surveys.
+  reset when it is enabled. The check loads from Cloudflare when the sign-up,
+  password or **Reset your password** form opens — not on the first, email
+  step.
 - **Too many attempts** are slowed down: the sign-in service limits attempts,
   and Studio limits how often it tells whether an email address has an
   account. From one network (IP) address it answers at most 10 lookups a

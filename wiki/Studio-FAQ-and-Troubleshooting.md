@@ -295,9 +295,13 @@ the page Body above the questions, "About N minutes", the completion
 **Title**, the newer Wording fields, auto-height in the script embed,
 option shuffles that keep "None of the above" in place, a required Matrix
 that asks for every row, answering a Matrix row by row from the keyboard,
-and answers that say they are keyed by variable name, so Studio stores them
-exactly as sent. Responses it already
-collected need nothing: Data, exports and flows read them in today's layout.
+answers that say they are keyed by variable name, so Studio stores them
+exactly as sent, fonts served from the survey host instead of Google Fonts, a
+captcha that loads only at submit and sends its token (an older build marks
+every response `captcha: unavailable`), and browser storage that waits for
+the respondent to start and lasts a week instead of 24 hours. Responses it
+already collected need nothing: Data, exports and flows read them in today's
+layout.
 The one exception is a quota cell on a Matrix row or on a per-choice variable
 of a wide Multiple choice: it counts only responses collected after the
 republish.

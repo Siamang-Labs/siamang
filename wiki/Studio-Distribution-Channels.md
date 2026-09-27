@@ -232,11 +232,17 @@ The panel says it in bold, whether codes are on or off:
 
 The **Captcha** chip adds an invisible Cloudflare Turnstile check when the
 respondent submits — no checkbox, no extra click for anyone real. It is off by
-default.
+default. Nothing is loaded from Cloudflare before the respondent submits, so a
+visitor who never sends their answers is never seen by it.
 
 1. Open **Captcha** (**Captcha · off**) → **Turn on**. Studio saves a new
    version ("Turn on the captcha"): "Saved as #18 — republish main to apply".
 2. Republish the environment.
+
+The check runs behind the "Submitting your responses…" overlay. On the rare
+submit where Cloudflare wants a click first, it comes on screen with "One more
+step: please complete this check to send your answers.", and the respondent
+has two minutes for it.
 
 When the respondent submits, three things can happen:
 
@@ -250,7 +256,15 @@ The third case is deliberate: a finished questionnaire is too valuable to throw
 away because a browser extension stopped the check. To keep a bot that simply
 skips the check from getting anywhere, submissions **without** a token are
 limited to **3 per hour** from one network address per survey. (Saving
-progress of an unfinished interview does not use up that allowance.)
+progress of an unfinished interview does not use up that allowance.) Past
+that, the respondent sees the "Submission failed" dialog with "The security
+check that protects this survey could not run in your browser, so your answers
+could not be saved. If an ad blocker, a browser extension or your network
+blocks challenges.cloudflare.com, allow it and try again." **Try again**
+loads the check afresh, so it succeeds once they allow it. With the captcha
+on, the panel says so: "Only a few such responses an hour are taken from one
+network; past that, the respondent is asked to allow the check and try
+again."
 
 The verdict is written by Studio, never by the respondent's browser. Filter on
 it in **Data** (the **Captcha unavailable** quick filter), in an export or in a
@@ -258,14 +272,20 @@ flow (the `captcha` column). See [[Data Quality|Studio-Data-Quality]].
 
 The panel ends with a note on privacy:
 
-> **Privacy.** The check loads from Cloudflare, so Cloudflare sees each
-> respondent’s IP address and browser, and Studio sends Cloudflare the
-> respondent’s IP address with the token to verify it. Name Cloudflare
-> Turnstile in your survey’s privacy notice.
+> **Privacy.** The check loads from Cloudflare only when the respondent
+> submits, so Cloudflare sees the IP address and browser of each respondent
+> who sends their answers, and Studio sends Cloudflare the respondent’s IP
+> address with the token to verify it. Name Cloudflare Turnstile in your
+> survey’s privacy notice.
 
 The captcha is a project setting, not part of the questionnaire: a
 `questionnaire.py` you download and run yourself has no captcha. **Turn off**
 works the same way as turning it on (a Save, then republish).
+
+> **Note.** A survey published with the captcha on before this update loads
+> the check as the page opens, and never sends its token: every response it
+> stores is marked `captcha: unavailable`. Republish the environment to fix
+> both.
 
 ---
 
@@ -280,7 +300,7 @@ offered on every published environment except previews.
 1. Open **One per browser**. The panel reads **One response per browser ·
    off**: "Anyone with the link can answer again: every interview is a new
    response, and Studio cannot tell whether two came from the same person.
-   Turn this on and the survey page remembers, in the respondent’s browser,
+   Turn this on and the survey page keeps a mark in the respondent’s browser
    that the survey was answered there. Off by default."
 2. Click **Turn on**. Toast: **One response per browser — on for main**. The
    chip now reads **One per browser · on**, and the panel: "A browser that has
@@ -309,13 +329,27 @@ rebuild and **Reopen**, and every change is recorded in **Settings →
 Activity** as `deploy.one_response_per_browser`.
 
 > **Limitation.** The panel says what this is and is not: "Checked in the
-> browser only. Nothing about the browser is sent to Studio, so a private
-> window, cleared browser data or another device can answer again, and people
-> who share one browser count as one. A survey published before this option
-> existed needs one republish of main for its page to honor it." Interviews
-> that ended before you turned it on are not remembered. For one answer per
-> *person*, use [[Email Invitations|Studio-Email-Invitations]] or a panel
-> provider's own checks.
+> browser only. Nothing about the browser is sent to Studio, so cleared
+> browser data, a private window, another browser or another device can
+> answer again, and people who share one browser count as one. A survey
+> published before this option existed needs one republish of main for its
+> page to honor it." Interviews that ended before you turned it on are not
+> remembered. For one answer per *person*, use
+> [[Email Invitations|Studio-Email-Invitations]] or a panel provider's own
+> checks.
+
+**Mention it in your consent text.** The mark is the date and time this
+browser answered, kept under the survey host's `siamang_done_<survey id>`.
+Unlike the rest of what a survey keeps in the browser, it is not cleared after
+a week: it stays until the respondent clears their browser data. The panel
+says: "Mention it in your consent text. The mark stays on the respondent’s
+device after they answer — the survey’s other browser data is cleared after a
+week, the mark is not — so your survey’s consent text should say so. Unique
+invitation links are more reliable, especially for respondents in the EU,
+where keeping such a mark on a device needs the respondent’s consent: email
+invitations give each respondent a personal link, and Studio records on its
+side who has answered, whatever browser or device they use." See
+[Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage).
 
 ---
 

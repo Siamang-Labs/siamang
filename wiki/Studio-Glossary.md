@@ -260,8 +260,9 @@ chart or an output. → [[Node Reference|Studio-Node-Reference]]
 
 **One per browser** — an environment setting (off by default) under which a
 browser that has already answered sees "You have already taken part" instead
-of the questionnaire. Checked in the browser only; it does not identify
-people. → [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
+of the questionnaire. Checked in the browser only, by a mark the survey keeps
+there after the respondent answers — mention it in your consent text; it does
+not identify people. → [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
 
 **Ordinal regression** — a regression of an outcome of ordered answers
 (dissatisfied … satisfied): the proportional-odds (cumulative logit) model,

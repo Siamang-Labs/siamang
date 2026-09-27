@@ -83,6 +83,8 @@ Press `Esc` or click outside to close the menu.
 
 Theme and density are **preferences of this browser**, not of your account.
 They are remembered on this computer and do not follow you to another one.
+Everything Studio keeps in your browser — its one cookie included — is listed
+under [Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage).
 
 ---
 
