@@ -128,6 +128,12 @@ def duplicate_pattern(
     fewer than ``min_items`` present columns flags nobody — and **all** members
     of a colliding group are flagged, not just the later ones: which of them is
     the original is not ours to decide.
+
+    A flat pattern — the same answer all the way down — is left out: two
+    straightliners who picked the same column collide whoever they are, so
+    their match says nothing about a repeat submission, and
+    :func:`straightlining` already names them. Counted here too, every
+    straightliner of a popular column read as a duplicate as well.
     """
 
     present = _present(frame, items)
@@ -135,8 +141,9 @@ def duplicate_pattern(
         return pd.Series(False, index=frame.index)
     subset = frame[present]
     complete = subset.notna().all(axis=1)
+    flat = subset.nunique(axis=1, dropna=False) <= 1
     duplicated = subset.duplicated(keep=False)
-    return complete & duplicated
+    return complete & ~flat & duplicated
 
 
 def attention_failed(

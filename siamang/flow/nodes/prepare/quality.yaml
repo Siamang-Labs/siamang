@@ -12,7 +12,7 @@ params:
     kind: variables
     default: []
     label: Battery to check
-    help: A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these.
+    help: A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these; a flat pattern (the same answer throughout) is straightlining, never a duplicate, since two straightliners of one column match whoever they are.
   pairs:
     kind: mapping
     default: {}

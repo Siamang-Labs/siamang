@@ -112,9 +112,20 @@ def test_inconsistency_skips_pairs_it_cannot_compare():
 
 
 def test_duplicate_pattern_flags_every_member_of_a_colliding_group():
-    out = quality.duplicate_pattern(_battery(), BATTERY)
-    assert list(out) == [False, True, True, False, False]
-    assert not quality.duplicate_pattern(_battery(), BATTERY, min_items=9).any()
+    frame = _battery()
+    frame.loc[5] = frame.loc[0]  # the honest respondent, submitted twice
+    out = quality.duplicate_pattern(frame, BATTERY)
+    assert list(out) == [True, False, False, False, False, True]
+    assert not quality.duplicate_pattern(frame, BATTERY, min_items=9).any()
+
+
+def test_two_straightliners_of_one_column_are_not_a_duplicate():
+    """The flatliner and its twin (all 4s) collide whoever they are: they are
+    straightlining, which says so, and not a repeat submission."""
+    assert not quality.duplicate_pattern(_battery(), BATTERY).any()
+    assert list(quality.straightlining(_battery(), BATTERY)) == [False, True, True, False, False]
+    flags = quality.quality_flags(_battery(), items=BATTERY)
+    assert list(flags) == ["", "straightlining", "straightlining", "", ""]
 
 
 def test_attention_failed_only_judges_answered_checks():
@@ -140,9 +151,10 @@ def test_checks_compare_numbers_as_numbers_not_as_text():
 
 def test_quality_flags_name_every_failed_check_in_order():
     frame = _battery()
-    frame["trap"] = [3, 3, 1, 3, 3]
-    frame["age"] = [30, 40, 40, 30, 30]
-    frame["age_again"] = [30, 41, 40, 30, 30]
+    frame.loc[5] = frame.loc[0]  # the honest respondent's answers again
+    frame["trap"] = [3, 3, 1, 3, 3, 1]
+    frame["age"] = [30, 40, 40, 30, 30, 30]
+    frame["age_again"] = [30, 41, 40, 30, 30, 31]
     flags = quality.quality_flags(
         frame,
         items=BATTERY,
@@ -150,13 +162,14 @@ def test_quality_flags_name_every_failed_check_in_order():
         expected={"trap": 3},
     )
     assert flags.tolist() == [
+        "duplicate",
+        "straightlining; inconsistency",
+        "straightlining; attention",
         "",
-        "straightlining; inconsistency; duplicate",
-        "straightlining; duplicate; attention",
         "",
-        "",
+        "inconsistency; duplicate; attention",
     ]
-    assert quality.quality_score(flags).tolist() == [0, 3, 3, 0, 0]
+    assert quality.quality_score(flags).tolist() == [1, 2, 2, 0, 0, 3]
 
 
 def test_quality_flags_with_nothing_configured_flags_nobody():

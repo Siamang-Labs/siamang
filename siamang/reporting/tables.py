@@ -1160,6 +1160,14 @@ class QualityTable(SurveyTable):
         rows.append({"Check": "Clean", "N": screened - flagged, "%": share(screened - flagged)})
         self._result = pd.DataFrame(rows, columns=["Check", "N", "%"])
         self._stats = {"Screened": screened, "Flagged": flagged}
+        several = sum(1 for parts in reasons if len([p for p in parts if p]) > 1)
+        if several:
+            # Without it a reader adds the rows up: 20 straightlining and 32
+            # attention read as 52 responses when they share most of them.
+            self._stats["Overlap"] = (
+                f"{several} {'response' if several == 1 else 'responses'} failed more than "
+                "one check: counted under each, and once in Any check"
+            )
         # Screening is about the responses received, not the population they
         # stand for, so the counts are of responses whatever the weight.
         if (note := _unweighted_note(self.data)) is not None:
