@@ -77,6 +77,33 @@ def test_the_snapshot_formats_are_written_as_before(tmp_path):
     assert path.is_file() and (tmp_path / "clean.dictionary.json").is_file()
 
 
+def test_an_excel_file_takes_times_with_a_time_zone_in_utc(tmp_path):
+    """Excel holds no time zone, and pandas refused to write one: the response
+    times Studio's data carries (timezone-aware) stopped a flow's Export file
+    to .xlsx. They are written in UTC, a column of them or a single one; a
+    formula-like text stays text beside them."""
+    import datetime as dt
+
+    import openpyxl
+
+    frame = pd.DataFrame(
+        {
+            "created_at": pd.to_datetime(["2026-01-01T10:00:00+02:00", None], utc=True),
+            "seen": [dt.datetime(2026, 3, 1, 12, tzinfo=dt.timezone(dt.timedelta(hours=-5))), None],
+            "why": ["=1+1", "fine"],
+        }
+    )
+    path = export_file(SurveyData(frame=frame), tmp_path / "coded.xlsx")
+    back = pd.read_excel(path)
+    assert back["created_at"][0] == pd.Timestamp("2026-01-01 08:00:00")
+    assert pd.isna(back["created_at"][1])
+    assert back["seen"][0] == pd.Timestamp("2026-03-01 17:00:00")
+    sheet = openpyxl.load_workbook(path).active
+    assert sheet["C2"].value == "=1+1" and sheet["C2"].data_type == "s"
+    # The frame given is left as it was.
+    assert str(frame["created_at"].dtype) == "datetime64[ns, UTC]"
+
+
 def test_an_unknown_extension_names_the_ones_that_work(tmp_path):
     with pytest.raises(ValueError, match=r"'\.txt'.*\.parquet.*\.R, \.json"):
         export_file(_data(), tmp_path / "data.txt")
