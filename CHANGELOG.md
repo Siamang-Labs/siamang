@@ -798,6 +798,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`siamang.io.excel_text`): a label, an answer or a banner name that begins
   with `=` is never a formula, and its links quote a sheet's name.
 
+- **A transport can say why the answers were not sent.** An error thrown by a
+  transport's `submit()` may carry `respondentMessage`, a sentence or two for
+  the respondent — why the answers did not go, and what they can do about it —
+  which the retry dialog shows in place of the survey's `retry_body` (the
+  attempt count follows it). Studio's transport uses it when its captcha could
+  not run and the server would not take the answers without it. Any other
+  error shows `retry_body` as before.
+
 ### Changed
 
 - **The survey's typefaces come with the survey, not from Google Fonts.** Every
@@ -853,6 +861,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **An ending page no longer says the answers were recorded while they are
+  not.** A survey whose last page is an ending page (`kind` `final`,
+  `disqualification` or `redirect`) sends its answers as that page opens, and
+  the page showed alone while they went — without the "Submitting" overlay a
+  page with questions shows — and stayed as it was when they did not arrive:
+  no retry dialog and, after the last attempt, no error screen, so a
+  respondent read "thank you, your answers were recorded" over answers that
+  were never stored (a server that refused them, a network that dropped them).
+  The overlay and the retry dialog now show over an ending page as over any
+  other ("Try again", or "Save locally and finish", which keeps the answers in
+  the browser and stays on the page), and once the interview is closed (the
+  last attempt failed, or the server said the quota is full) the closed screen
+  replaces the page.
 
 - **A time with a time zone goes to Excel in UTC.** A workbook cell holds no
   time zone, and pandas refuses to write a time that has one, so a frame with

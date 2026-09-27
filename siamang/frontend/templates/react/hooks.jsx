@@ -631,6 +631,17 @@ function submittedAnswers(snapshot) {
   return out;
 }
 
+/* A transport that knows why a submission failed, and what the respondent can
+   do about it, says so on the error it throws: `respondentMessage`, one or two
+   plain sentences, which the retry dialog shows in place of the survey's own
+   retry text (Studio's transport does, when its captcha could not run and the
+   server would not take the answers without it). Any other error gets the
+   survey's text. */
+function respondentMessage(err) {
+  const message = err && err.respondentMessage;
+  return typeof message === "string" && message.trim() ? message.trim() : null;
+}
+
 function useSubmission(store, finishSaved, surveyId) {
   const [phase, setPhase] = useState("running"); // "running" | "completed" | "closed"
   // Why the survey closed on this respondent: "quota_full" (the sample is
@@ -640,6 +651,8 @@ function useSubmission(store, finishSaved, surveyId) {
   const [submitId, setSubmitId] = useState(null);
   const [submittedAt, setSubmittedAt] = useState(null);
   const [submitAttempts, setSubmitAttempts] = useState(0);
+  // What the transport said about the last failed attempt (respondentMessage).
+  const [submitMessage, setSubmitMessage] = useState(null);
 
   const submit = useCallback(async (isRetry = false) => {
     const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
@@ -675,6 +688,7 @@ function useSubmission(store, finishSaved, surveyId) {
     } catch (err) {
       console.error("siamang submit failed:", err);
       setSubmitting(false);
+      setSubmitMessage(respondentMessage(err));
       const newAttempts = (isRetry ? submitAttempts : 0) + 1;
       setSubmitAttempts(newAttempts);
       if (newAttempts >= 3) {
@@ -684,7 +698,7 @@ function useSubmission(store, finishSaved, surveyId) {
     }
   }, [store, finishSaved, submitAttempts, surveyId]);
 
-  return { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit };
+  return { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submitMessage, submit };
 }
 
 /* ─── useKeyboardShortcuts ─────────────────────────────────────────────── */

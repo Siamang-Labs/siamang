@@ -216,6 +216,21 @@ value one of its codes, plus `__status` (`"completed"`, `"screened_out"` or
 The runtime's own state (`__pages__`, `__options__`, `__errors__`, `__timers__`) is
 never sent. See [[Question Types|Question-Types]] for the codes.
 
+While `submit()` runs, the page shows "Submitting your responses…" — over an ending page
+too, which sends the answers as it opens. When it throws, the respondent gets the retry
+dialog (`retry_title`, `retry_body`, "Attempt 1 of 3."; **Try again** calls `submit()`
+again, **Save locally and finish** keeps the answers in the browser and ends on the
+page), and after the third failure the closed screen (`error_title`, `error_body`). A
+transport that knows why the answers did not go, and what the respondent can do about
+it, puts that on the error it throws as `respondentMessage`; the retry dialog shows it
+in place of `retry_body`:
+
+```js
+const err = new Error("submit failed: 429");
+err.respondentMessage = "The security check could not run in your browser. Allow it and try again.";
+throw err;
+```
+
 The other calls, all optional on the transport:
 
 | Call | When | Answer the runtime expects |
