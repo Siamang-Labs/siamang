@@ -226,8 +226,8 @@ the organization's plan." and the plan buttons are disabled for them.
 
 ```
 ┌ Pro trial · 27 days left. Full access to every Pro feature; …                ┐
-┌ Beta offer: 12 months of Plus for $200 — one payment, 33% off …  [Get the Plus year] ┐
-┌ Beta offer: 12 months of Pro for $800 — one payment, 33% off …   [Get the Pro year]  ┐
+┌ Beta offer: 12 months of Plus for $240 — one payment, 20% off …  [Get the Plus year] ┐
+┌ Beta offer: 12 months of Pro for $900 — one payment, 24% off …   [Get the Pro year]  ┐
 ┌ Card, invoices and cancellation are managed in the Stripe portal. [Manage billing]   ┐
 
  ┌ Free ─────────┐ ┌ Plus ─────────┐ ┌ Pro  trial ───┐ ┌ Corporate ────┐
@@ -250,7 +250,9 @@ period.**", followed by "Full access to every *plan* feature; one
 subscription covers the whole organization. Afterward the organization
 switches to the free plan — your data and surveys are kept." Once card
 payments are live it adds "Subscribe or extend now: **billing starts only when
-the free period ends**." Without a countdown it reads "The Siamang engine is
+the free period ends**." When Plus was bought during the trial, the note says
+instead "Afterward the organization moves to the **Plus** plan you chose, on
+*date*." Without a countdown it reads "The Siamang engine is
 source-available; Studio is billed per plan. One subscription covers the whole
 organization."
 
@@ -286,6 +288,7 @@ The button at the bottom of a card is one of:
 | Button | Meaning |
 |---|---|
 | **current plan** (a label) | the plan the organization is on, when no trial or paid period is running |
+| **starts *date*** (a label) | the plan bought during the trial; it starts when the trial ends |
 | **Upgrade** | a higher plan than the current one (during a trial or a paid period, whichever of Plus and Pro is not the running plan); opens the checkout dialog (owner only) |
 | **Extend Pro** / **Extend Plus** | on the plan whose trial or paid period is running; subscribes now, with billing starting when the running period ends (owner only) |
 | **Coming soon** (disabled) | card payments are not live yet in the beta ("Available at the official release"). Until they are, every card except the current plan and Corporate shows it. |
@@ -297,21 +300,23 @@ There is no button to move to a lower plan on the cards. See
 **Beta offers.** While a beta offer runs, the owner sees one line per offer
 with its price and deadline:
 
-- "**Beta offer: 12 months of Plus for $200** — one payment, 33% off the
+- "**Beta offer: 12 months of Plus for $240** — one payment, 20% off the
   monthly price, until *date*." with **Get the Plus year**;
-- "**Beta offer: 12 months of Pro for $800** — one payment, 33% off the
+- "**Beta offer: 12 months of Pro for $900** — one payment, 24% off the
   monthly price, until *date*." with **Get the Pro year**.
 
-An offer is a single payment for twelve months of that plan. Bought during a
-trial, the twelve months start when the trial ends; otherwise they start on
-purchase. After the twelve months the organization returns to Free unless you
-buy again. An offer cannot be added on top of an active monthly subscription
+An offer is a single payment for twelve months of that plan: a beta special
+for one year, not a price that renews. Bought during a trial, the twelve months
+start when the trial ends (a Plus year bought during the Pro trial leaves the
+organization on Pro until then); otherwise they start on purchase. After the
+twelve months the organization returns to Free unless you subscribe to a
+plan. An offer cannot be added on top of an active monthly subscription
 ("…a subscription is active; a year offer cannot be added to it — cancel the
 subscription first"). After the deadline the offers disappear.
 
 **The checkout dialog.** **Upgrade**, **Extend Pro** (or **Extend Plus**) and the offer buttons
 open **Switch to *plan***, which shows the plan and its price (`$25/mo`,
-`$99/mo`, `$200 one-time`, `$800 one-time`), and the line "Plans, trials and
+`$99/mo`, `$240 one-time`, `$900 one-time`), and the line "Plans, trials and
 year offers are described in the Terms of Use; how we handle your data is in
 the Privacy Policy. By continuing you agree to both." With card payments live,
 it says "You'll be taken to Stripe's secure checkout to enter card details.
@@ -335,7 +340,12 @@ checkout it answers "Could not open the billing portal. No billing account yet
   instead, you see "Checkout canceled — your plan is unchanged".
 - **Buying during the trial** never shortens it: billing starts when the free
   period ends. The exception is the last two days or so of a trial, when
-  billing starts right away.
+  billing starts right away. **Pro** (a subscription or the Pro year) keeps the
+  organization on Pro. **Plus** (a subscription or the Plus year) starts when
+  the trial ends: the organization stays on the Pro trial until then and then
+  moves to Plus, not to Free. The Plus card shows **starts *date***, and
+  canceling that Plus subscription before the trial ends leaves the trial
+  running as if nothing was bought.
 - **Switching between Plus and Pro** on an existing subscription takes effect
   immediately. The difference is charged or credited pro rata.
 - **A subscription that has already ended.** If the payment provider has
@@ -387,8 +397,8 @@ The siamang engine that runs your questionnaire and analysis is
 source-available and **free for non-commercial use**: personal use, research,
 education, and non-commercial organizations. A research bundle you download
 from Studio runs on it at no cost for such purposes. Paid Studio plans include
-a commercial license for the engine. For academic pricing, or a commercial
-license for using the engine outside Studio, write to `info@siamang-team.org`.
+a commercial license for the engine. For a commercial license for using the
+engine outside Studio, write to `info@siamang-team.org`.
 
 ## See also
 
