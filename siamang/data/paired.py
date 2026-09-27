@@ -797,9 +797,10 @@ def cochran(
     )
     result = cochran_test(said.astype(float))
     n = rows.n
+    shared, names = _options_of(data, variables)
     table = pd.DataFrame(
         {
-            "Variable": [label_of(data, name) for name in variables],
+            "Variable": names,
             "N": [n] * len(variables),
             "Yes": [int(value) for value in result.yes],
             "% yes": [rounded(value / n * 100, 1) if n else None for value in result.yes],
@@ -807,6 +808,7 @@ def cochran(
     )
     stats: dict[str, Any] = {
         "Test": "Cochran's Q",
+        **({"Question": shared} if shared else {}),
         "Counts as yes": _codes_text(data, variables, codes),
         "Variables": len(variables),
         "N": n,
@@ -874,11 +876,12 @@ def _mcnemar_pairs(
         results.append((i, j, mcnemar_test(b, c, p_value=p_value)))
     raw = [np.nan if result.p is None else result.p for _, _, result in results]
     adjusted = adjust(raw, posthoc)
+    shared, names = _options_of(data, variables)
     frame = pd.DataFrame(
         [
             {
-                "Variable A": label_of(data, variables[i]),
-                "Variable B": label_of(data, variables[j]),
+                "Variable A": names[i],
+                "Variable B": names[j],
                 "N": n,
                 "% yes A": rounded(said[:, i].mean() * 100, 1) if n else None,
                 "% yes B": rounded(said[:, j].mean() * 100, 1) if n else None,
@@ -898,6 +901,7 @@ def _mcnemar_pairs(
     tested = int((~np.isnan(np.asarray(raw))).sum())
     footer: dict[str, Any] = {
         "Test": "McNemar for each pair",
+        **({"Question": shared} if shared else {}),
         "Difference": "A − B",
         "Adjustment": f"{'Holm' if posthoc == 'holm' else 'Bonferroni'} ({tested} comparisons)",
         "N": n,
@@ -905,11 +909,7 @@ def _mcnemar_pairs(
     methods = sorted({result.method for _, _, result in results if result.method != "none"})
     if methods:
         footer["p-value"] = " / ".join(methods)
-    untested = [
-        f"{label_of(data, variables[i])} – {label_of(data, variables[j])}"
-        for i, j, result in results
-        if result.p is None
-    ]
+    untested = [f"{names[i]} – {names[j]}" for i, j, result in results if result.p is None]
     if untested:
         footer["Note"] = f"no respondent answered the two differently for {', '.join(untested)}"
     unweighted(footer, data)
@@ -925,6 +925,16 @@ def _no_mcnemar_pairs(data: SurveyData, why: str) -> ResultTable:
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
+
+def _options_of(data: SurveyData, variables: list[str]) -> tuple[str, list[str]]:
+    """The question the 0/1 ``variables`` of one exploded question share
+    ("Ways of managing screen time"), and each by its option alone ("App time
+    limits"); ("", their labels) when they share none. Two columns of
+    "Ways of managing screen time: …" wrapped each pair over six lines."""
+    from siamang.reporting.chart_parts import common_prefix
+
+    return common_prefix([label_of(data, name) for name in variables])
 
 
 def _signed_rank_stats(result: SignedRank) -> dict[str, Any]:
