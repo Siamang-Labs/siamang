@@ -237,7 +237,12 @@ both print an undefined cell (the SD of one answer) as a blank, never `nan`.
 and `Uncoded` as shares of everyone who answered, with `Coverage` and
 `Distinct uncoded answers` in its stats; with `sentiment=True` and a codeframe
 built with sentiment, each row adds `Negative %`, `Neutral %` and `Positive %`
-and the stats the overall `Sentiment` and the `Net sentiment`.
+and the stats the overall `Sentiment` and the `Net sentiment`. With a version 2
+codeframe — coding by hand and by rules, several themes an answer, nets — every
+row is a share of the respondents who answered: the themes, each net
+(`Delivery (net)`, a respondent counted once) with its themes under it,
+`No theme`, `Coded`, `Coded by hand`, `Coded by rules` and `Uncoded`; see
+[[Coding Open Answers|Coding-Open-Answers]].
 
 ```python
 data.report.freq("it_role", sort="freq").to_frame()

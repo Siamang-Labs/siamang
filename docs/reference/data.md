@@ -353,7 +353,7 @@ Tidy-frame descriptives for scripts that do not go through `SurveyData`:
 | `turf.turf(frame, items, *, max_size=3, method="best", weight=None, include=None, labels=None)` | `TurfTable` (`method` `best` or `greedy`) | The best (or greedy) portfolio of each size: `size`, `items` (column names), `reach`, `reach_percent`, `incremental`, `incremental_percent`, `frequency`; `base`. `labels` (column → label; `turf.labels_of(data, items)` reads them from the codebook) travel as `table.labels`, which the Result chart names the options by. |
 | `turf.evaluate(frame, portfolio, *, items=None, weight=None, labels=None)` | `TurfTable` (`method == "fixed"`) | Per option `reach`, `reach_percent`, `unique`, `unique_percent`, `frequency`; a `(portfolio)` row with the portfolio's reach and frequency. `items` sets the base; an empty portfolio reads all items. |
 | `bands.bands(data, column, *, bins, into, labels=None, right=False, label=None)` | `Banded(data, stats)` | `SurveyData.recode` after taking the column's missing codes out; default labels `18 to under 30` (`band_labels`); stats count each band and what fell outside. |
-| `text_coding.uncoded_answers(frame, codeframe)` | Series | The answered texts the codeframe has no theme for. |
+| `text_coding.uncoded_answers(frame, codeframe)` | Series | The answered texts the codeframe has no theme for (see [Coding open answers](#coding-open-answers-text_coding-and-text_rules)). |
 
 ---
 
@@ -687,6 +687,162 @@ rows when the figure is narrower than 6.5 inches. Gabor-Granger's value labels
 that would touch are thinned, each panel keeping the best price's and those
 clear of it (the table has every number), and "highest revenue at …" stays
 inside its panel, the line behind its value.
+
+---
+
+## Coding open answers: `text_coding` and `text_rules`
+
+A **codeframe** is a JSON file (`analysis/<name>.codeframe.json`) that says how
+the answers of one open-text variable are coded, and `siamang.data.text_coding`
+applies it: no model, no network, the same result at every run. Answers are
+matched by `fingerprint(text)` — sixteen hex characters of SHA-256 over
+`normalise(text)` (Unicode NFKC, whitespace collapsed, case-folded) — so the
+same answer typed differently is the same answer. The file keeps fingerprints,
+never the answers' texts.
+
+**Version 1** (`"schema_version": "1.0"`, or none) is themes and one theme per
+fingerprint; an answer it has no verdict for is uncoded. It is read and applied
+exactly as before version 2 existed: the same variable, table and generated code.
+
+**Version 2** (`"schema_version": "2.0"`) codes each answer by the first of:
+
+1. a coder's decision for its fingerprint (`assignments`) — one theme, several,
+   or none (`[]`: read, and belongs to no theme);
+2. the themes' **rules** (`siamang.data.text_rules`), which run at every run, so
+   answers collected after the rules were written are coded too;
+3. nothing: the answer is **uncoded**, left for a coder.
+
+A blank answer is not answered and is never coded.
+
+### The version 2 file
+
+| Field | Meaning |
+|-------|---------|
+| `variable` | The open-text variable coded. |
+| `into` | The theme variable made (default `<variable>_theme`). |
+| `language` | `"en"`, the only one: the negations, clause words and stop words the rules know are English. |
+| `multiple` | `true`: several themes an answer, and the theme variable is multiple-choice (a list of codes per answer). `false` (default): one theme, a nominal variable. |
+| `max_codes` | The most themes the rules give an answer (`0`, the default: no cap). |
+| `scope` | Where a theme's rules are read unless it says otherwise: `"clause"` (default) or `"answer"`. |
+| `replace` | `[{"from", "to"}]`: whole words or phrases replaced before the rules read an answer — synonyms, typos (`"to": ""` drops them). |
+| `themes` | `[{code, label, definition?, group?, exclusive?, priority?, rules?}]` (up to 200). `group` names a **net**; `exclusive` a theme that stands alone (*Nothing / Don't know*); `priority` (a number, default 0) decides the one theme a single-theme answer keeps and where `max_codes` cuts, ties by the order of `themes`. |
+| `rules` | `{include: [terms], require: [terms] or [[terms], …], exclude: [terms], scope?}`. |
+| `assignments` | `{fingerprint: code | [codes] | []}`: the coders' decisions. |
+| `sentiment`, `model`, `built_at`, `source_rows` | As in version 1. |
+
+A theme **matches** in a scope — a clause, or the whole answer — when one of its
+`include` terms matches there, each `require` group (a flat list is one group:
+any of its terms; a list of lists is one group each) has a term that matches
+there, and no `exclude` term matches there. A theme without rules is coded by
+hand only.
+
+```json
+{
+  "schema_version": "2.0",
+  "variable": "why",
+  "multiple": true,
+  "replace": [{"from": "delievery", "to": "delivery"}],
+  "themes": [
+    {"code": 1, "label": "Late delivery", "group": "Delivery",
+     "rules": {"include": ["late", "delay*"]}},
+    {"code": 2, "label": "Damaged", "group": "Delivery",
+     "rules": {"include": ["damag*", "broken|broke"]}},
+    {"code": 3, "label": "Rude staff",
+     "rules": {"include": ["rude", "unfriendly"], "require": ["staff", "driver", "courier"]}},
+    {"code": 9, "label": "Nothing / Don't know", "exclusive": true,
+     "rules": {"include": ["nothing", "don't know"], "scope": "answer"}}
+  ],
+  "assignments": {"4f0c29d1a8e3b7c2": [1, 3], "0d5e8a7f1b2c3d4e": []}
+}
+```
+
+### Terms
+
+A term is a word or a phrase, case-folded and with one apostrophe as the answers
+are. There are no regular expressions (`re:` is refused).
+
+| Term | Matches | Does not match |
+|------|---------|----------------|
+| `late` | *It was LATE!* | *latest*; *wasn't late*, *never late*, *no late deliveries* (negated) |
+| `delay*` | *delay*, *delays*, *delayed* (`*`: any letters, anywhere in the word) | *relay* |
+| `slow\|late` | either word at that place | |
+| `not_late` | *wasn't late*, *never late*, *not really late* | *late* |
+| `customer service` | the words in order, next to each other | *service to the customer*, *customer, service* |
+| `staff ~3 rude` | the two within 3 words of each other, either order (`~0`: adjacent) | across punctuation |
+| `not late`, `don't know` | *was not late*, *I don't know*: the negation is the term's own | *I don't really know* (use `don't ~2 know`) |
+
+A term matches only mentions that are **not negated**, unless the negation is
+one of its own words; `not_word` matches only a negated one. A phrase and a
+proximity never reach across punctuation.
+
+### How the rules read an answer
+
+* `normalise(text)`, then one apostrophe (`’ ʼ ‘ ´ ′` → `'`), `_` read as a
+  space, then `replace`.
+* **Words**: letters, digits and combining marks of any script, an apostrophe
+  inside a word kept (`wasn't`, `l'eau`); diacritics kept (`café` ≠ `cafe`).
+  An answer in any language keeps its words and matches terms in them.
+* **Clauses** end at `. , ; : ! ? ( ) [ ] { } – — …` (and `¡ ¿ 。 ， 、 ； ： ！ ？ ؟ ، ؛ । ॥`)
+  and at *but, however, although, though, whereas, except, plus*; those words
+  belong to no clause, so a term holding one matches only with scope `answer`.
+* **Negation**: *not, no, never, cannot, without, nothing, none, nobody,
+  neither, nor, hardly, barely*, every word ending in *n't*, and the n't forms
+  typed without the apostrophe (*dont, doesnt, didnt, isnt, wasnt, arent,
+  werent, cant, couldnt, wont, wouldnt, shouldnt, havent, hasnt, hadnt, aint,
+  mustnt, neednt*) negate the next **3** words, stopping at a clause's end and
+  at *and, or, yet*. English only: *не* negates nothing.
+
+### How the matching themes are resolved
+
+An exclusive theme is kept only when no other theme matched (of several
+exclusive ones, the one ranked highest); then the themes are ranked by
+`priority` (highest first, ties by their order), cut to `max_codes`, and to one
+when `multiple` is false. The kept themes come in the order of `themes`. A
+coder's decision is kept as it is, except that a single-theme codeframe keeps
+the highest-ranked of several.
+
+### Functions
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `parse(payload)`, `load(path)` | `Codeframe` | Raise `CodeframeError` (`codeframe: …`) with the first error. `Codeframe.version`, `.multiple`, `.nets` (`{group: codes}`, groups of two or more themes), `.labels`, `.to_dict()`. |
+| `validate(codeframe)` | `Validation` (`.errors`, `.warnings`, `.ok`, `.to_dict()`) | Each `CodeframeIssue` has `level`, `message` and `path` into the JSON (`["themes", 2, "rules", "include", 0]`). |
+| `codes(series, codeframe)` | Series | `Int64` codes (NA uncoded), or with `multiple` lists of codes (`[]` for a coder's *no theme*, `None` uncoded or blank). |
+| `sources(series, codeframe)` | Series | `hand`, `rule` or `uncoded`; NA for a blank answer. |
+| `coding(series, codeframe)` | `list[Coding]` | Each answer's `codes`, `source` (`hand`, `rule`, `uncoded`, `blank`) and the rules that `fired`; each distinct answer coded once. |
+| `apply(data, codeframe, *, into=None, sentiment=False)` | `SurveyData` | The theme variable, `Theme: <variable>`, with the themes as value labels: nominal, or multiple-choice with `multiple`. |
+| `coverage(frame, codeframe)` | dict | `answered`, `coded`, `uncoded`; version 2 adds `by_hand`, `by_rules` and `no_theme`, and `coded` counts every answer decided (`by_hand` + `by_rules`). `tally(codings, weights=None)` gives the same of a list of `Coding`. |
+| `uncoded_answers(frame, codeframe)` | Series | The answered texts no coder decided and no rule matched. |
+| `preview(answers, codeframe)` | dict | `answers` (per distinct answer: `text`, `count`, `fingerprint`, `codes`, `source`, and for `rule` the `hits` — `code`, `label`, `term`, `fragment`, `clause`), `themes` (`count`, `percent` of those who answered, `by_hand`, `by_rules`), `nets` (`count`: a respondent once), `coverage` (of respondents, with `percent_coded`) and `distinct` (of distinct answers). `answers` is a mapping of answer to count, pairs, or a Series. |
+| `explain(text, codeframe)` | dict | `normalised`, `fingerprint`, `tokens` (`word`, `negated`, `negated_by`, `clause`), `clauses`, `manual`, `rules` (each rule whose include term matched or would have: `status` `fired`, `vetoed` or `negation`, `term`, `fragment`, `clause`, `reason`), `dropped` (themes set aside and why), `codes`, `source`. |
+| `suggest(answers, n=30, *, codeframe=None, min_count=2)` | dict | `words` and `phrases` (two words, neither a stop word), the `n` commonest held by at least `min_count` respondents, each with `count` and an `example`; a negated word as `not_word`. With a codeframe its replacements are made and the answers it codes left out. |
+
+`preview` codes 50,000 distinct answers against 30 themes of 10 terms in a few
+seconds on one CPU: the rules are compiled once per `Codeframe` (every word form
+a pattern, every term filed under its first word's patterns, `*` matched in one
+pass rather than by backtracking) and each distinct word looked up once.
+
+`validate` names, as **errors**: no themes, a bad variable name, a language
+other than `en`, a scope other than `clause`/`answer`, a negative `max_codes`,
+a theme code given twice or not a whole number, a theme without a label,
+`examples` in a theme (*a version 2 codeframe keeps no answers' texts, only
+their fingerprints — remove its examples*), an assignment whose key is not a
+fingerprint or that names an unknown theme, a replacement given twice or
+without `from`, and a term that cannot be read — empty, `re:…` (*regular
+expressions are not supported: write the words, with * for word forms (delay*),
+| for alternatives (slow|late) and ~N for words near each other (staff ~3
+rude)*), `~` without a number or with words on one side only, two `~N`, `~N`
+over 20, `*` or `not_` alone, an empty alternative, `require` mixing terms and
+lists. As **warnings** (the codeframe applies; the part does nothing): a term
+that can never match — `e-mail` (*'-' is not part of a word*), `'cause`, a
+clause word in a clause, a word the replacements take away, `not_and` — a term
+given twice, a term both included and excluded, `require` or `exclude` without
+`include`, a net of one theme, several codes decided for a single-theme
+answer, `max_codes` in a single-theme codeframe, and an unknown key.
+
+`data.report.themes(codeframe)` is the table (see the reporting reference); the
+Code open answers node applies the codeframe in a flow, and `check_flow(...,
+codeframes={path: document})` reads what it makes (see the flow reference).
 
 ---
 

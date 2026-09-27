@@ -9,6 +9,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Coding open answers by hand and by rules: codeframe version 2.** A
+  codeframe (`"schema_version": "2.0"`) codes each answer by the first of: a
+  coder's decision for its fingerprint (`assignments`: a code, several codes, or
+  `[]` — read, and no theme), the themes' rules, nothing (uncoded). The rules run
+  at every run, so answers collected after they were written are coded too. The
+  file adds `language` (`"en"`), `multiple` (several themes an answer: the theme
+  variable is then multiple-choice, a list of codes per answer, with the themes
+  as value labels), `max_codes`, `scope` (`clause` or `answer`), `replace`
+  (whole words or phrases replaced before the rules read: typos, synonyms), and
+  per theme `group` (a net), `exclusive` (*Nothing / Don't know*: kept only when
+  no other theme matches), `priority` (which theme a single-theme answer keeps,
+  where `max_codes` cuts; ties by order) and `rules` — `include`, `require` (a
+  list: any of them; a list of lists: one of each) and `exclude` terms, matched
+  within a clause or the whole answer. A term is a word or phrase with `*` for
+  word forms (`delay*`), `|` for alternatives (`slow|late`), `not_word` for a
+  negated mention only and `A ~N B` for words within N of each other, either
+  order; it matches only mentions that are not negated (`late` does not match
+  *wasn't late*) unless the negation is its own (`don't know`). There are no
+  regular expressions (`re:` is refused). The words are Unicode — letters,
+  digits and combining marks of any script, inner apostrophes kept, case-folded,
+  diacritics kept — so an answer in any language is kept and matched; the
+  negations (*not, no, never, n't…*, reaching three words, stopped by
+  punctuation and *and, or, yet, but…*), clause words (*but, however,
+  although…*) and stop words are English. Only fingerprints of answers are kept:
+  a version 2 file with `examples` or an assignment keyed by text is refused.
+  `siamang.data.text_rules` holds the rules; `text_coding` gains
+  `validate(codeframe)` (every error and warning with its path — unknown codes,
+  duplicate codes and replacements, empty and unreadable terms, terms that can
+  never match: `theme 4 (Mail): include term 'e-mail' can never match: '-' is
+  not part of a word — …`), `preview(answers, codeframe)` (each distinct
+  answer's codes and whether a coder or which rule gave them, with the term and
+  the words it matched; counts per theme and net; coverage — 50,000 distinct
+  answers against 30 themes of 10 terms in a few seconds), `explain(text,
+  codeframe)` (the words with their negations, the clauses, every rule that
+  fired, was vetoed or was blocked by a negation and why, the themes set aside),
+  `suggest(answers, n)` (frequent words and two-word phrases of the uncoded
+  answers, stop words left out), `coding`, `sources`, and `coverage` gains
+  `by_hand`, `by_rules` and `no_theme`. The theme table of a version 2
+  codeframe counts respondents: each theme and each net (`Delivery (net)`, a
+  respondent once, its themes under it) as a share of those who answered (with
+  several themes an answer, `Percentages` says they add up to more than 100 %),
+  then `No theme`, `Coded`, `Coded by hand`, `Coded by rules` and `Uncoded`; its
+  stats (and the Code open answers node's stat) gain `Coded by hand` and `Coded
+  by rules`. `check_flow(..., codeframes={path: document})` knows the theme
+  variable a Code open answers node makes — its name when **Theme variable** is
+  empty, multiple-choice when the codeframe gives several themes an answer (a
+  donut, a Split by or a banner of it is refused as for a multiple-choice
+  question) — and reports a codeframe the run could not apply. A version 1
+  codeframe is read and applied exactly as before: the same variable, table,
+  chart and generated code.
+
 - **Charts in the report theme's colours: `palette="theme"`.** A `ReportTheme`
   names chart colours — `chart_palette` (a list of hex colours, the series in
   order), `chart_sequential` (magnitude, and the steps of an ordered scale),

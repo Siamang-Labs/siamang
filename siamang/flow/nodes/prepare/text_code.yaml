@@ -1,7 +1,7 @@
 type: prepare.text_code
 category: prepare
 title: Code open answers
-description: Apply a frozen codeframe to an open-text variable — the same answers get the same theme every time, with no model and no network.
+description: Apply a codeframe to an open-text variable — each answer gets the themes a coder gave it, else the ones the codeframe's rules find, the same way at every run, with no model and no network.
 inputs:
   data: SurveyData
 outputs:
@@ -13,12 +13,12 @@ params:
     kind: path
     required: true
     label: Codeframe
-    help: The codeframe file (analysis/<name>.codeframe.json) built from these answers.
+    help: The codeframe file (analysis/<name>.codeframe.json) — its themes, the answers coded by hand (kept as fingerprints, never as texts) and the rules that code the rest, including answers collected later.
   into:
     kind: string
     creates: variable
     label: Theme variable
-    help: Defaults to the name the codeframe carries.
+    help: Defaults to the name the codeframe carries. A codeframe that gives an answer several themes makes a multiple-choice variable (a list of codes per answer).
   sentiment:
     kind: bool
     default: false

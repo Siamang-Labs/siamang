@@ -229,8 +229,23 @@ Several nodes expose what the library already computed:
 | `prepare.maxdiff_scores` (MaxDiff scores) | `maxdiff.with_scores(data, question, prefix=…)` | `data` with `<prefix><item code>` per item (default `<question>_score_`); `stat`: respondents scored, unreadable answers |
 | `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labelled ordinal band variable; `stat`: count per band, outside, missing codes |
 | `analyze.turf` with `method: fixed` | `turf.evaluate(frame, portfolio, items=…, weight=…, labels=…)` | `table`: reach, unique reach and frequency per option and for the portfolio |
-| `prepare.text_code` | `data.report.themes(codeframe, sentiment=…)` | a `stat` output: Coverage, Distinct uncoded answers, and with sentiment the Sentiment split and Net sentiment |
+| `prepare.text_code` | `data.report.themes(codeframe, sentiment=…)` | a `stat` output: Coverage, Distinct uncoded answers, and with sentiment the Sentiment split and Net sentiment; with a version 2 codeframe also Coded by hand and Coded by rules, and the theme variable is multiple-choice (lists of codes) when the codeframe gives several themes an answer |
 | `output.export_file` | `siamang.io.export_file(data, path)` | `.R` writes the R bundle (CSV, dictionary, import script), `.json` the codebook alone |
+
+`check_flow(..., codeframes={path: document})` takes the codeframe documents a
+Code open answers node may name, by the path it names them by (`./` and `\`
+are read as the node would): with one, the theme variable is known by the name
+the codeframe gives it when **Theme variable** (`into`) is empty, it holds
+multiple-choice answers when the codeframe gives several themes an answer — so
+a donut, a Split by, a stack, a Trend's Time or By and a Tab book's banner of
+it are the errors they are for a multiple-choice question (`bar: comment_theme
+allows several answers, so its shares add up to more than 100 % and are not
+the parts of a whole: draw them as bars (Layout = grouped).`) — a codeframe the
+run could not apply is `PARAM_INVALID` (`Parameter 'codeframe' of code:
+analysis/comment.codeframe.json cannot be applied: theme 1 (Late): include term
+'re:late': regular expressions are not supported: …`), and one that codes a
+variable the questionnaire does not have is `UNKNOWN_VARIABLE`. Without it the
+check is what it was: the theme variable is `into`, nominal.
 
 `check_flow` knows the variables these create before a run: `into` of Bands,
 and one score variable per item of the named MaxDiff question (its `choices`,
