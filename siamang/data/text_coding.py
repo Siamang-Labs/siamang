@@ -347,8 +347,8 @@ def fingerprint(text: Any) -> str:
     return _fingerprint_of(normalise(text))
 
 
-def _fingerprint_of(normalised: str) -> str:
-    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()[:16]
+def _fingerprint_of(normalized: str) -> str:
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
 
 
 def parse(payload: Mapping[str, Any]) -> Codeframe:
@@ -489,7 +489,7 @@ def validate(codeframe: Mapping[str, Any] | Codeframe) -> Validation:
     A version 1 file is checked as :func:`parse` checks it (the first problem);
     a version 2 file is checked in full: unknown codes and fingerprints,
     duplicate codes and replacements, empty or unreadable terms, terms that
-    can never match an answer once it is normalised, keys that mean nothing.
+    can never match an answer once it is normalized, keys that mean nothing.
     """
 
     payload = codeframe.to_dict() if isinstance(codeframe, Codeframe) else codeframe
@@ -647,7 +647,7 @@ def _read_v2(payload: Mapping[str, Any]) -> tuple[Codeframe | None, list[Codefra
     replace = _read_replacements(payload.get("replace"), error, warn)
     replaced_words = _Replaced(
         {
-            text_rules.normalise_replacement(a): text_rules.normalise_replacement(b)
+            text_rules.normalize_replacement(a): text_rules.normalize_replacement(b)
             for a, b in replace
         }
     )
@@ -675,7 +675,7 @@ def _read_v2(payload: Mapping[str, Any]) -> tuple[Codeframe | None, list[Codefra
         folded = theme.label.casefold()
         if folded in labels:
             warn(
-                f"themes {labels[folded]} and {theme.code} are both labelled {theme.label!r}",
+                f"themes {labels[folded]} and {theme.code} are both labeled {theme.label!r}",
                 "themes",
                 index,
                 "label",
@@ -755,13 +755,13 @@ def _read_replacements(raw: Any, error: Any, warn: Any) -> tuple[tuple[str, str]
             error("a replacement is an object with from and to", "replace", index)
             continue
         before, after = entry.get("from"), entry.get("to", "")
-        if not isinstance(before, str) or not text_rules.normalise_replacement(before):
+        if not isinstance(before, str) or not text_rules.normalize_replacement(before):
             error("a replacement needs the words it replaces (from)", "replace", index, "from")
             continue
         if not isinstance(after, str):
             error("a replacement's to is text (empty to drop the words)", "replace", index, "to")
             continue
-        key = text_rules.normalise_replacement(before)
+        key = text_rules.normalize_replacement(before)
         if len(key) > text_rules.MAX_TERM_LENGTH or len(after) > text_rules.MAX_TERM_LENGTH:
             error(
                 f"a replacement is longer than {text_rules.MAX_TERM_LENGTH} characters",
@@ -773,7 +773,7 @@ def _read_replacements(raw: Any, error: Any, warn: Any) -> tuple[tuple[str, str]
             error(f"{before.strip()!r} is replaced twice", "replace", index, "from")
             continue
         seen[key] = index
-        if key == text_rules.normalise_replacement(after):
+        if key == text_rules.normalize_replacement(after):
             warn(f"{before.strip()!r} is replaced by itself", "replace", index)
         pairs.append((before.strip(), after.strip()))
     return tuple(pairs)
@@ -900,7 +900,7 @@ def _read_rules(
                 warn(f"{name}: {key} term {term.strip()!r} {note}", *spot)
             for note in _term_notes(parsed, reads, replaced):
                 warn(f"{name}: {key} term {term.strip()!r} {note}", *spot)
-            normal = text_rules.normalise_term(term)
+            normal = text_rules.normalize_term(term)
             if normal in seen:
                 warn(f"{name}: {key} term {term.strip()!r} is given twice", *spot)
                 continue
@@ -940,8 +940,8 @@ def _read_rules(
             f"{name}: its rules have no include term, so its require and exclude terms do nothing",
             *where,
         )
-    both = {text_rules.normalise_term(t) for t in include} & {
-        text_rules.normalise_term(t) for t in exclude
+    both = {text_rules.normalize_term(t) for t in include} & {
+        text_rules.normalize_term(t) for t in exclude
     }
     for term in sorted(both):
         warn(
@@ -961,7 +961,7 @@ class _Replaced(dict[str, str]):
     def __init__(self, pairs: dict[str, str]) -> None:
         super().__init__(pairs)
         self.written = [
-            f" {' '.join(text_rules.analyse(after).words)} " for after in pairs.values() if after
+            f" {' '.join(text_rules.analyze(after).words)} " for after in pairs.values() if after
         ]
         self.words = frozenset(word for phrase in self.written for word in phrase.split())
 
@@ -1009,7 +1009,7 @@ def _term_notes(term: text_rules.Term, scope: str, replaced: _Replaced) -> list[
         ]
         if len(never) == len(atoms):
             notes.append(f"can never match: '{never[0]}' is never negated itself")
-    whole = text_rules.normalise_term(term.text)
+    whole = text_rules.normalize_term(term.text)
     if " " in whole and replaced.gone(whole):
         notes.append(
             f"can never match: '{whole}' is replaced by '{replaced[whole]}' "
@@ -1441,7 +1441,7 @@ def preview(
 def explain(text: Any, codeframe: Mapping[str, Any] | Codeframe) -> dict[str, Any]:
     """Why ``text`` is coded as it is, step by step, as JSON-ready data:
 
-    ``normalised`` (the text the rules read: normalised with its line breaks
+    ``normalized`` (the text the rules read: normalized with its line breaks
     kept, one apostrophe, the replacements made), ``fingerprint``, ``tokens``
     (each ``word`` as the rules read it — *do not* as *don't* — whether it is
     ``negated`` and by which word, its ``clause``), ``clauses``, ``manual`` (a
@@ -1455,20 +1455,20 @@ def explain(text: Any, codeframe: Mapping[str, Any] | Codeframe) -> dict[str, An
 
     cf = _as_codeframe(codeframe)
     read = _read(text)
-    normalised = _normal(read)
+    normalized = _normal(read)
     result = _code_text(cf, read)
     rules = cf.rule_set
     analysis = rules.prepare(read)
     clause_of = {c: i for i, c in enumerate(sorted({c for c in analysis.clause if c >= 0}))}
-    manual = cf.assignments.get(_fingerprint_of(normalised)) if normalised else None
+    manual = cf.assignments.get(_fingerprint_of(normalized)) if normalized else None
     if manual is not None and cf.version < 2:
         manual = (int(manual),)
     fired = rules.fire(analysis)
     _, dropped = text_rules.resolve(fired, multiple=cf.multiple, max_codes=cf.max_codes)
     return {
         "text": "" if _missing(text) else str(text),
-        "normalised": analysis.text,
-        "fingerprint": _fingerprint_of(normalised),
+        "normalized": analysis.text,
+        "fingerprint": _fingerprint_of(normalized),
         "tokens": [
             {
                 "word": word,

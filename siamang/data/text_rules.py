@@ -6,7 +6,7 @@ nothing — the answer stays uncoded for a coder to read. This module is the
 second step. It is deliberately small and literal, because a rule a researcher
 cannot predict is a rule nobody can defend:
 
-* An answer is **normalised** as :func:`siamang.data.text_coding.normalise`
+* An answer is **normalized** as :func:`siamang.data.text_coding.normalise`
   does (Unicode NFKC, case-folded, whitespace collapsed — but a run of it that
   holds a line break is one line break), its apostrophes made one (``’`` →
   ``'``), then the codeframe's **replacements** applied — whole words or
@@ -74,10 +74,10 @@ __all__ = [
     "RuleTheme",
     "Term",
     "TermError",
-    "analyse",
+    "analyze",
     "is_negator",
-    "normalise_replacement",
-    "normalise_term",
+    "normalize_replacement",
+    "normalize_term",
     "parse_term",
     "resolve",
     "rule_text",
@@ -214,10 +214,10 @@ def _inner_joiner() -> re.Pattern[str]:
 QUOTES = '"“”„‟«»‹›'
 
 
-def rule_text(normalised: str) -> str:
-    """An answer's normalised text (``text_coding.normalise``) as the rules
+def rule_text(normalized: str) -> str:
+    """An answer's normalized text (``text_coding.normalise``) as the rules
     read it before replacements: one apostrophe, no underscore."""
-    return normalised.translate(_READ)
+    return normalized.translate(_READ)
 
 
 def is_negator(word: str) -> bool:
@@ -282,8 +282,8 @@ def _kind(word: str) -> tuple[str, int]:
     return known
 
 
-def analyse(text: str) -> Analysis:
-    """Split ``text`` — already normalised and replaced — into words, and mark
+def analyze(text: str) -> Analysis:
+    """Split ``text`` — already normalized and replaced — into words, and mark
     the clauses and the negated words. An n't form typed without its
     apostrophe, *cannot*, and an auxiliary verb followed by *not* are read as
     one n't word (:data:`SPELLED`, :data:`CONTRACTED`)."""
@@ -375,14 +375,14 @@ class Term:
         return self.first + self.second
 
 
-def normalise_term(term: str) -> str:
+def normalize_term(term: str) -> str:
     """A term in the answers' normal form (NFKC, case-folded, one apostrophe,
     single spaces), without quotation marks around it."""
     text = unicodedata.normalize("NFKC", str(term)).casefold().translate(_APOSTROPHES)
     return " ".join(text.strip().strip(QUOTES).split())
 
 
-def normalise_replacement(text: str) -> str:
+def normalize_replacement(text: str) -> str:
     """A replacement's words in the form the rules read an answer in."""
     return " ".join(unicodedata.normalize("NFKC", str(text)).casefold().translate(_READ).split())
 
@@ -394,7 +394,7 @@ def parse_term(term: Any) -> tuple[Term, list[str]]:
 
     if not isinstance(term, str):
         raise TermError("a term is text")
-    text = normalise_term(term)
+    text = normalize_term(term)
     if not text:
         raise TermError("the term is empty")
     if len(text) > MAX_TERM_LENGTH:
@@ -572,7 +572,7 @@ class RuleSet:
     def __init__(self, themes: Sequence[RuleTheme], replace: Sequence[tuple[str, str]] = ()):
         self.themes = tuple(themes)
         self._replacements = {
-            normalise_replacement(a): normalise_replacement(b) for a, b in replace
+            normalize_replacement(a): normalize_replacement(b) for a, b in replace
         }
         self._replace_re = _replacer(self._replacements)
         self._patterns: list[str] = []
@@ -634,7 +634,7 @@ class RuleSet:
     # ── compiling ──
 
     def _term(self, text: str) -> int:
-        key = normalise_term(text)
+        key = normalize_term(text)
         if key in self._term_ids:
             return self._term_ids[key]
         try:
@@ -691,10 +691,10 @@ class RuleSet:
 
     # ── reading an answer ──
 
-    def prepare(self, normalised: str) -> Analysis:
-        """An answer's normalised text, read: replacements made, words split
+    def prepare(self, normalized: str) -> Analysis:
+        """An answer's normalized text, read: replacements made, words split
         and marked, and each word's patterns looked up."""
-        analysis = analyse(self.replaced(normalised))
+        analysis = analyze(self.replaced(normalized))
         analysis.matched = [self._patterns_of(word) for word in analysis.words]
         return analysis
 
@@ -751,10 +751,10 @@ class RuleSet:
             self._seen[word] = result
         return result
 
-    def replaced(self, normalised: str) -> str:
-        """An answer's normalised text with one apostrophe and the replacements
+    def replaced(self, normalized: str) -> str:
+        """An answer's normalized text with one apostrophe and the replacements
         made: the text the rules read (where its lines break kept)."""
-        text = rule_text(normalised)
+        text = rule_text(normalized)
         if self._replace_re is not None:
             text = self._replace_re.sub(lambda m: self._replacements[m.group(0)], text)
             text = "\n".join(filter(None, (" ".join(line.split()) for line in text.splitlines())))
@@ -929,7 +929,7 @@ class RuleSet:
         return self._terms[number].term.text
 
     def term_id(self, text: str) -> int:
-        return self._term_ids[normalise_term(text)]
+        return self._term_ids[normalize_term(text)]
 
     def explain(self, analysis: Analysis) -> list[dict[str, Any]]:
         """Every rule that matched, or would have: fired, vetoed (a require
@@ -1141,7 +1141,7 @@ def suggest_terms(
     pairs: Counter[str] = Counter()
     example: dict[str, str] = {}
     for written, text, count in answers:
-        analysis = analyse(text)
+        analysis = analyze(text)
         seen_words: set[str] = set()
         seen_pairs: set[str] = set()
         for position, word in enumerate(analysis.words):

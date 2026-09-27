@@ -314,7 +314,7 @@ def test_an_answer_read_across_lines_keeps_its_fingerprint():
     payload = _cf(_theme(1, "Price", ["price"]), assignments={fp("x\ny"): [1]})
     explained = text_coding.explain(text, payload)
     assert explained["fingerprint"] == fp(text)
-    assert explained["normalised"] == "not happy\nprice too high"
+    assert explained["normalized"] == "not happy\nprice too high"
     assert _codes("x  \n  Y", payload) == [1] and _codes("X y", payload) == [1]
     # The same words on one line and on two are one fingerprint, read apart.
     got = text_coding.preview({text: 2, "Not happy Price too high": 1}, payload)
@@ -367,7 +367,7 @@ def test_replacements_are_whole_words_or_phrases_made_before_the_rules_read():
     assert _codes("the app", payload) == [3]
     assert _codes("an apple", payload) == []  # a word, not the start of one
     assert _codes("they dont seem helpful", payload) == []  # now a negation
-    assert text_coding.explain("n/a", payload)["normalised"] == "nothing"
+    assert text_coding.explain("n/a", payload)["normalized"] == "nothing"
 
 
 # ─── several themes, exclusive themes, priority ──────────────────────────────
@@ -649,7 +649,7 @@ def test_an_unusable_codeframe_is_refused_with_a_reason_and_a_place(change, mess
         (_theme(1, "A", ["late"], exclude=["LATE"]), "both included and excluded"),
         (_theme(1, "A", require=["staff"]), "have no include term"),
         (_theme(1, "A", ["x"], group="Solo"), "the net 'Solo' has one theme"),
-        (_theme(1, "A", ["x"], colour="red"), "'colour' is not a theme field"),
+        (_theme(1, "A", ["x"], color="red"), "'color' is not a theme field"),
     ],
 )
 def test_a_term_that_can_never_match_is_a_warning(theme, message):
@@ -668,7 +668,7 @@ def test_a_word_one_replacement_takes_away_and_another_writes_can_match():
     swap = _cf(
         _theme(1, "A", ["a"]),
         _theme(2, "Service", ["customer service"]),
-        _theme(3, "Colour", ["colour"]),
+        _theme(3, "Color", ["colour"]),
         replace=[
             {"from": "a", "to": "b"},
             {"from": "b", "to": "a"},
@@ -1032,7 +1032,7 @@ def test_preview_codes_each_distinct_answer_and_counts_themes_nets_and_coverage(
 
 def test_explain_says_why_step_by_step():
     got = text_coding.explain("Delivery wasn't late, but the driver was RUDE", FULL)
-    assert got["normalised"] == "delivery wasn't late, but the driver was rude"
+    assert got["normalized"] == "delivery wasn't late, but the driver was rude"
     assert got["clauses"] == ["delivery wasn't late", "the driver was rude"]
     late = next(t for t in got["tokens"] if t["word"] == "late")
     assert late == {"word": "late", "negated": True, "negated_by": "wasn't", "clause": 0}
