@@ -253,7 +253,15 @@ def test_cochrans_q_in_a_flow_on_exploded_awareness(questionnaire_doc, survey, t
 
     direct = paired.cochran(data, brands)
     assert stat == direct.stats
-    assert len(result.output("q", "pairs").to_frame()) == 3
+    pairs = result.output("q", "pairs")
+    assert len(pairs.to_frame()) == 3
+    # The brands by their own names: the question all three share (Explode
+    # labels them "Brands heard of (unaided): Acme") is said once, under the
+    # tables, rather than twice in every pair.
+    table = result.output("q", "table").to_frame()
+    assert list(table["Variable"]) == ["Acme", "Globex", "Initech"]
+    assert list(pairs.to_frame()["Variable A"]) == ["Acme", "Acme", "Globex"]
+    assert stat["Question"] == pairs.stats["Question"] == "Brands heard of (unaided)"
     report = (tmp_path / "outputs" / "q.md").read_text("utf-8")
     assert "Cochran's Q" in report and "McNemar for each pair" in report
     assert json.dumps(stat)
