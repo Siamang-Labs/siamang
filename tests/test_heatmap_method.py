@@ -410,10 +410,10 @@ def test_many_long_items_by_many_groups_keep_their_mean_cells():
     assert not any(a.overlaps(b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
 
 
-def test_the_question_every_row_shares_is_said_once_on_the_colour_bar():
-    """MaxDiff scores (and exploded options) are all labelled "Question:
+def test_the_question_every_row_shares_is_said_once_on_the_color_bar():
+    """MaxDiff scores (and exploded options) are all labeled "Question:
     item": each row said the question again ("1. MaxDiff score: Focus
-    sessions" eight times). The rows name the items, and the colour bar says
+    sessions" eight times). The rows name the items, and the color bar says
     what they are the mean of."""
     rng = np.random.default_rng(4)
     items = ["s1", "s2", "s3"]
@@ -436,5 +436,5 @@ def test_the_question_every_row_shares_is_said_once_on_the_colour_bar():
     )
     rows = [label.get_text().replace("\n", " ") for label in ax.get_yticklabels()]
     assert rows == ["1. Bedtime wind-down mode", "2. Focus sessions", "3. Mood check-ins"]
-    colour_bar = ax.figure.axes[-1]
-    assert colour_bar.get_ylabel() == "Mean MaxDiff score"
+    color_bar = ax.figure.axes[-1]
+    assert color_bar.get_ylabel() == "Mean MaxDiff score"

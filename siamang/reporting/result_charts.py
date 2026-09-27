@@ -1614,7 +1614,7 @@ def _whole_words(text: str, width: int, lines: int) -> str:
 
 def _named_options(names: dict[Any, Any]) -> dict[Any, str]:
     """The options by their own names: an exploded question's options are all
-    labelled "Question: option", and the question on every tick left no room
+    labeled "Question: option", and the question on every tick left no room
     for the option ("App features they would use: Focus sessions")."""
     from siamang.reporting.chart_parts import common_prefix
 

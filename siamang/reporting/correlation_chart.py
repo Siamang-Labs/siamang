@@ -207,7 +207,7 @@ def draw_means(chart: HeatMap) -> None:
         for label, name in zip(labels, columns, strict=True)
     ]
     # "MaxDiff score: Focus sessions", "MaxDiff score: …" on every row: the
-    # rows name what differs, and what they share goes to the colour bar.
+    # rows name what differs, and what they share goes to the color bar.
     from siamang.reporting.chart_parts import common_prefix, in_sentence
 
     shared, labels = common_prefix(labels)

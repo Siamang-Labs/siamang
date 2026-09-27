@@ -111,10 +111,10 @@ def test_kmeans_keeps_the_best_of_ten_starts_whatever_the_row_order():
     # rows by position: the same respondents stored in another order came out
     # as other clusters.
     rng = np.random.default_rng(0)
-    centres = [(0, 0), (5, 0), (0, 5), (5, 5)]
+    centers = [(0, 0), (5, 0), (0, 5), (5, 5)]
     sizes = [80, 40, 40, 20]
     frame = pd.DataFrame(
-        np.vstack([rng.normal(c, 0.8, size=(n, 2)) for c, n in zip(centres, sizes, strict=True)]),
+        np.vstack([rng.normal(c, 0.8, size=(n, 2)) for c, n in zip(centers, sizes, strict=True)]),
         columns=["x", "y"],
     )
 

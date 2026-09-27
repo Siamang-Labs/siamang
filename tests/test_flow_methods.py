@@ -94,7 +94,7 @@ def test_regression_offers_the_ordinal_model_and_runs_it_weighted(
     assert list(model["type"]).count("threshold") == 4
     # The questionnaire asks the South no trust question: two regions remain.
     assert list(model["term"][:3]) == ["trust_acme", "region = North", "age"]
-    # … and the table a report shows is labelled and rounded, with the odds
+    # … and the table a report shows is labeled and rounded, with the odds
     # ratio and its interval on the coefficients only, and the model's N and
     # fit under it.
     table = result.output("ord", "table").to_frame()

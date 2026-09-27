@@ -374,9 +374,9 @@ def pca(
 
 
 def _kmeans_pp(scaled: np.ndarray, k: int, rng: np.random.Generator) -> np.ndarray:
-    """k-means++ seeding: the first centre a random row, each next one a row
+    """k-means++ seeding: the first center a random row, each next one a row
     drawn with probability proportional to its squared distance from the
-    nearest centre so far."""
+    nearest center so far."""
 
     centers = scaled[[rng.integers(len(scaled))]]
     while len(centers) < k:

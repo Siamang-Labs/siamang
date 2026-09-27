@@ -163,7 +163,7 @@ class PriceSensitivity:
     n: int
     weight: str | None = None
     notes: list[str] = field(default_factory=list)
-    #: What the prices are in ("£ a month"), when the price questions' labels
+    #: What the prices are in ("$ a month"), when the price questions' labels
     #: all end with it in brackets; the chart's price axis names it.
     unit: str | None = None
 
@@ -586,7 +586,7 @@ _UNIT = re.compile(r"\(([^()]+)\)\s*$")
 
 def _unit(data: SurveyData, questions: list[str]) -> str | None:
     """The unit the price questions' labels all end with in brackets —
-    "Too cheap (£ a month)", … — or None when they do not agree."""
+    "Too cheap ($ a month)", … — or None when they do not agree."""
 
     variables = data.variables
     units = set()
