@@ -98,15 +98,24 @@ class ReportAccessor:
         return ThemeTable(data=self._data, codeframe=codeframe, sentiment=sentiment)
 
     def descriptives(
-        self, columns: list[str], *, by: str | None = None, detail: bool = False
+        self,
+        columns: list[str],
+        *,
+        by: str | None = None,
+        detail: bool = False,
+        layout: str = "long",
     ) -> Any:
         """N, missing, mean, SD, median, minimum and maximum of each variable
         (per group with ``by``; ``detail`` adds quartiles, skewness and
         kurtosis). Missing codes are not answers; on weighted data the mean,
-        SD, median and quartiles are weighted and stats give Kish's effective N."""
+        SD, median and quartiles are weighted and stats give Kish's effective N.
+        ``layout="means"`` (with ``by``) shows a row per variable and a
+        column per group with its mean."""
         from siamang.reporting.summaries import DescriptivesTable
 
-        return DescriptivesTable(data=self._data, columns=list(columns), by=by, detail=detail)
+        return DescriptivesTable(
+            data=self._data, columns=list(columns), by=by, detail=detail, layout=layout
+        )
 
     def data_check(self, variables: list[str] | None = None) -> Any:
         """The data against its codebook: one row per problem ``validate()``

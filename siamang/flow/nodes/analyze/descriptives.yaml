@@ -28,10 +28,30 @@ params:
     kind: bool
     default: false
     label: Quartiles, skewness and kurtosis
+  layout:
+    kind: enum
+    values:
+    - long
+    - means
+    default: long
+    label: Layout
+    help: 'With By group. long: a row per variable and group with N, mean, SD, median, minimum and maximum. means: a row per variable and a column per group with its mean, a compact profile of the groups; their sizes are under the table.'
 subtitle: '{variables}'
-template: |
-  # On weighted data the mean, SD, median and quartiles are weighted, N and
-  # Missing stay counts of respondents, and the stat gives Kish's effective N.
-  {out.table} = {in.data}.report.descriptives({variables!r}, by={by!r}, detail={detail!r})
+checks:
+- when: layout=means
+  require: by!=None
+  message: The means layout shows each group's mean — choose a By group, or the long layout.
+template:
+- when: layout=long
+  code: |
+    # On weighted data the mean, SD, median and quartiles are weighted, N and
+    # Missing stay counts of respondents, and the stat gives Kish's effective N.
+    {out.table} = {in.data}.report.descriptives({variables!r}, by={by!r}, detail={detail!r})
+- when: layout=means
+  code: |
+    # A row per variable, a column per group with its mean (weighted on
+    # weighted data); the groups' sizes and Kish's effective N in the stat.
+    {out.table} = {in.data}.report.descriptives({variables!r}, by={by!r}, layout="means")
+- |
   {out.stat} = {out.table}.stats
 preview: table

@@ -354,3 +354,60 @@ def test_a_repeated_index_label_is_read_by_position():
     assert matrix.to_frame()["N"].tolist() == [6, 6, 6]
     assert data.report.descriptives(["x"]).to_frame()["N"].tolist() == [6]
     assert data.frame.index.tolist() == [0, 0, 1, 1, 2, 2]  # the data keeps its index
+
+
+# ─── the means layout ────────────────────────────────────────────────────────
+
+
+def test_the_means_layout_is_a_row_per_variable_and_a_column_per_group():
+    """By group, the long table is a row per variable and group (21 rows by 11
+    columns for seven variables of three groups, wider than a report's
+    column). The means layout is the same means, a row per variable and a
+    column per group, the groups' sizes under it."""
+    for weighted in (False, True):
+        data = _data(weight=weighted)
+        long = data.report.descriptives(["sat", "age"], by="region").to_frame()
+        table = data.report.descriptives(["sat", "age"], by="region", layout="means")
+        frame = table.to_frame()
+        assert list(frame.columns) == ["Variable", "Label", "South", "North"]
+        assert list(frame["Label"]) == ["Satisfaction", "Age"]
+        for variable in ("sat", "age"):
+            for group in ("South", "North"):
+                shown = frame.loc[frame["Variable"] == variable, group].iloc[0]
+                assert shown == _row(long, variable, Region=group)["Mean"]
+        # The rows a chart reads are the long ones, whatever is shown.
+        assert table.long_frame().equals(long)
+        stats = table.stats
+        assert stats["By"] == "Region"
+        groups = "South: 2 respondents" + (" (3.0 weighted)" if weighted else "")
+        assert stats["Groups"].startswith(groups)
+        assert ("Effective N" in stats) == weighted
+        assert stats["Cells"].startswith(
+            "each variable's " + ("weighted mean" if weighted else "mean")
+        )
+    with pytest.raises(ValueError, match="set by"):
+        _data().report.descriptives(["sat"], layout="means").to_frame()
+
+
+def test_the_means_layout_is_the_nodes_choice_and_a_stored_flow_keeps_its_code(tmp_path):
+    from siamang.flow import check_flow, generate_flow
+
+    def flow(**params):
+        return {
+            "schema_version": "1.0",
+            "name": "d",
+            "nodes": [
+                {"id": "sim", "type": "source.simulated", "params": {"n": 50, "seed": 3}},
+                {"id": "desc", "type": "analyze.descriptives", "params": params},
+            ],
+            "edges": [
+                {"from": {"node": "sim", "port": "data"}, "to": {"node": "desc", "port": "data"}}
+            ],
+        }
+
+    stored = generate_flow(flow(variables=["x"], by="g"), None)
+    assert 'report.descriptives(["x"], by="g", detail=False)' in stored
+    means = generate_flow(flow(variables=["x"], by="g", layout="means"), None)
+    assert 'report.descriptives(["x"], by="g", layout="means")' in means
+    issues = [i.message for i in check_flow(flow(variables=["x"], layout="means"))]
+    assert any("The means layout shows each group's mean" in m for m in issues), issues

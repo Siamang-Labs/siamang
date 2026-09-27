@@ -224,7 +224,7 @@ Several nodes expose what the library already computed:
 
 | Node | Engine call | Outputs |
 |------|-------------|---------|
-| `analyze.descriptives` (Descriptive statistics) | `data.report.descriptives(variables, by=…, detail=…)` | `table`: N, Missing, Mean, SD, Min, Median, Max (+ Q1, Q3, Skewness, Kurtosis) per variable and group; `stat`: missing codes set aside, Weighted N, Effective N, Design effect |
+| `analyze.descriptives` (Descriptive statistics) | `data.report.descriptives(variables, by=…, detail=…)`, or `layout="means"` | `table`: N, Missing, Mean, SD, Min, Median, Max (+ Q1, Q3, Skewness, Kurtosis) per variable and group, or (Layout `means`) a row per variable and a column per group with its mean; `stat`: missing codes set aside, Weighted N, Effective N, Design effect (and the groups' sizes) |
 | `analyze.data_check` (Data check) | `data.report.data_check(variables)` | `table`: Severity, Variable, Problem, Rows, Examples, Code; `stat`: Checked, Errors, Warnings |
 | `prepare.maxdiff_scores` (MaxDiff scores) | `maxdiff.with_scores(data, question, prefix=…)` | `data` with `<prefix><item code>` per item (default `<question>_score_`); `stat`: respondents scored, unreadable answers |
 | `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labelled ordinal band variable; `stat`: count per band, outside, missing codes |

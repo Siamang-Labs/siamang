@@ -789,7 +789,7 @@ banded.variables["age_band"].labels   # {1: '18-29', 2: '30-44', 3: '45+'}
 
 ```python
 data.report.descriptives(columns: list[str], *, by: str | None = None,
-                         detail: bool = False) -> DescriptivesTable
+                         detail: bool = False, layout: str = "long") -> DescriptivesTable
 ```
 
 One row per variable — or per variable and group with `by` — with `N`,
@@ -830,6 +830,12 @@ data.report.descriptives(["autonomy"], by="it_role", detail=True).to_frame()
 - **Undefined is blank.** The SD of one answer, skewness below three answers and
   kurtosis below four (or without spread) are NaN in `to_frame()` and empty
   cells in Markdown and HTML.
+- **A profile of the groups.** With `by`, `layout="means"` shows the same
+  means as a row per variable and a column per group — seven variables of
+  three groups are 7 rows by 5 columns rather than 21 by 11 — with the groups'
+  sizes (respondents, and weighted) and Kish's effective N under the table;
+  `long_frame()` keeps the row per variable and group, which a Result chart
+  of the node draws. The node's **Layout** asks for it.
 
 `siamang.data.descriptives.describe(frame, columns, variables=…, weight=…,
 by=…, detail=…)` is the same computation on a bare frame.
