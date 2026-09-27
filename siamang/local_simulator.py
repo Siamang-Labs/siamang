@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from siamang.core.questionnaire import Questionnaire
     from siamang.core.quota import Quota
     from siamang.core.script import Script
+    from siamang.core.variable import VariableMap
     from siamang.data.survey_data import SurveyData
 
 
@@ -528,7 +529,7 @@ def simulate_survey(
     nominal variable for every assigned arm the codebook does not already
     have, labeled with the arms."""
 
-    from siamang.core.variable import Variable, VariableMap
+    from siamang.core.variable import VariableMap
     from siamang.data.survey_data import SurveyData
 
     frame = simulate_questionnaire(survey, n=n, seed=seed, quotas=quotas)
@@ -539,23 +540,40 @@ def simulate_survey(
             for variable in question.var if isinstance(question.var, list) else [question.var]:
                 if variable.name not in variables:
                     variables.add(variable)
-    missing = [arm for arm in _arms(survey.scripts) if arm.variable not in variables]
-    if missing:
-        known = VariableMap()
-        for variable in variables.values() if isinstance(variables, dict) else variables:
-            known.add(variable)
-        for arm in missing:
-            known.add(
-                Variable(
-                    arm.variable,
-                    "nominal",
-                    label=arm.variable,
-                    labels=dict(zip(arm.codes, arm.labels, strict=True)),
-                    description="Arm drawn by Script.assign_condition",
-                )
-            )
-        variables = known
+    variables = with_arm_variables(variables, survey.scripts)
     return SurveyData(frame=frame, variables=variables, questionnaire=survey)
+
+
+def with_arm_variables(variables: VariableMap, scripts: Sequence[Script] | None) -> VariableMap:
+    """``variables`` with a nominal variable for every arm the ``scripts``
+    assign (``Script.assign_condition``) that it does not already have,
+    labeled with the arms: a new map when there is one to add, ``variables``
+    itself otherwise (a questionnaire's codebook is never changed in place).
+
+    No question collects an arm, yet real responses and Simulated data carry
+    it as a column; only the script says what its codes mean. Simulated data
+    and a snapshot read with its questionnaire (``read_snapshot``, a
+    platform's Responses node) describe it the same way."""
+
+    from siamang.core.variable import Variable, VariableMap
+
+    missing = [arm for arm in _arms(scripts) if arm.variable not in variables]
+    if not missing:
+        return variables
+    known = VariableMap()
+    for variable in variables.values() if isinstance(variables, dict) else variables:
+        known.add(variable)
+    for arm in missing:
+        known.add(
+            Variable(
+                arm.variable,
+                "nominal",
+                label=arm.variable,
+                labels=dict(zip(arm.codes, arm.labels, strict=True)),
+                description="Arm drawn by Script.assign_condition",
+            )
+        )
+    return known
 
 
 # ─── scripts ──────────────────────────────────────────────────────────────────

@@ -191,15 +191,25 @@ def _find_dictionary(source: Path, explicit: str | Path | None) -> Path | None:
 
 
 def _questionnaire_variables(questionnaire: Questionnaire) -> VariableMap:
+    """The codebook a questionnaire gives its data: its declared variables, or
+    the questions' when it declares none, and the arm every
+    ``Script.assign_condition`` draws, labeled with the arms — as Simulated
+    data describe it. Without the arm a flow read ``1`` and ``2`` where the
+    respondents were shown "Control" and "Treatment", and a data check called
+    the column one the codebook does not know."""
+
+    from siamang.local_simulator import with_arm_variables
+
     if questionnaire.variables:
-        return questionnaire.variables
-    variables = VariableMap()
-    for question in questionnaire.all_questions():
-        bound = question.var if isinstance(question.var, list) else [question.var]
-        for variable in bound:
-            if variable.name not in variables:
-                variables.add(variable)
-    return variables
+        variables = questionnaire.variables
+    else:
+        variables = VariableMap()
+        for question in questionnaire.all_questions():
+            bound = question.var if isinstance(question.var, list) else [question.var]
+            for variable in bound:
+                if variable.name not in variables:
+                    variables.add(variable)
+    return with_arm_variables(variables, questionnaire.scripts)
 
 
 def _list_columns(questionnaire: Questionnaire) -> list[str]:

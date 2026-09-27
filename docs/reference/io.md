@@ -191,7 +191,10 @@ data = read_snapshot("data/responses.parquet", questionnaire=survey)
 `read_snapshot(path, *, dictionary=None, questionnaire=None, weight=None, **read_kwargs)`
 resolves the codebook in this order: an explicit `dictionary` path;
 `<stem>.dictionary.json` or `dictionary.json` next to the file; metadata
-embedded in a `.sav` / `.dta`; the variables of `questionnaire`. The
+embedded in a `.sav` / `.dta`; the variables of `questionnaire` (its
+declared codebook, or its questions' variables), with a nominal variable for
+the arm of every `Script.assign_condition` it does not declare, labeled with
+the arms, as Simulated data have it. The
 questionnaire, when given, is attached to the `SurveyData`; `weight` names
 the weight column to apply. With a codebook, integer-coded columns that a
 text format turned into floats come back as nullable `Int64`.
