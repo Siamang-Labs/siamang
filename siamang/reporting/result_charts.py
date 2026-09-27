@@ -2295,9 +2295,8 @@ def _has_sentiment(table: Any) -> bool:
 
 
 def _draw_themes(table: Any, chart: ResultChart) -> str:
-    frame = table.to_frame()
     stats = table.stats
-    themes = frame[~frame["Theme"].isin(["Coded", "Uncoded"])]
+    themes = table.theme_rows()  # not the nets, nor the Coded and Uncoded rows
     labels = [str(value) for value in themes["Theme"]]
     variable = stats.get("Variable", "")
     data = getattr(table, "data", None)
@@ -2361,7 +2360,12 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
         [f"{value:.1f} % ({int(n)})" for value, n in zip(values, counts, strict=True)],
         color=chart.colors(1)[0],
     )
-    ax.set_xlabel("Share of the coded answers (%), with the number of answers", color=_ink())
+    ax.set_xlabel(
+        "Share of the respondents who answered (%), with their number"
+        if getattr(table.codeframe, "version", 1) >= 2
+        else "Share of the coded answers (%), with the number of answers",
+        color=_ink(),
+    )
     coverage = stats.get("Coverage")
     if coverage:
         _mark_note(ax, f"Coverage: {coverage}.", size)

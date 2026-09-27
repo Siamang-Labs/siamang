@@ -89,10 +89,12 @@ class ReportAccessor:
         )
 
     def themes(self, codeframe: Any, *, sentiment: bool = False) -> ThemeTable:
-        """What a frozen codeframe coded these open answers as: one row per
-        theme, plus how many answers it had no theme for, and the coverage in
-        stats. ``sentiment`` adds each theme's negative / neutral / positive
-        split when the codeframe carries sentiment."""
+        """What a codeframe coded these open answers as: one row per theme
+        (and per net, version 2), plus how many answers it had no theme for,
+        and the coverage in stats — with version 2, how many answers were
+        coded by hand and how many by the rules. ``sentiment`` adds each
+        theme's negative / neutral / positive split when the codeframe carries
+        sentiment."""
         from siamang.reporting.tables import ThemeTable
 
         return ThemeTable(data=self._data, codeframe=codeframe, sentiment=sentiment)

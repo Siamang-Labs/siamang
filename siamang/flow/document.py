@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import math
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import cache
@@ -168,6 +168,7 @@ def check_flow(
     registry: Registry | None = None,
     questionnaire: dict[str, Any] | None = None,
     response_times: Iterable[str] | None = None,
+    codeframes: Mapping[str, Any] | None = None,
 ) -> list[FlowIssue]:
     """Every problem of the graph: unknown nodes, bad params, wrong edges, cycles.
 
@@ -178,6 +179,12 @@ def check_flow(
     Trend's Time); ``None`` means every one :data:`RESPONSE_TIMES` lists, and a
     platform whose responses carry fewer names those, so that one it does not
     have is an unknown variable here rather than a failed run.
+    ``codeframes`` are the codeframe documents a Code open answers node may
+    name, by the path it names them by (``analysis/why.codeframe.json``): with
+    one, the check knows the theme variable's name when ``into`` is left empty,
+    that it holds lists of codes when the codeframe gives several themes an
+    answer (so a chart or a banner that needs one answer says so), and a
+    codeframe that cannot be applied is an error here rather than in the run.
     Errors make the flow unusable; warnings are worth showing. Returns the
     list — :func:`resolve_flow` raises on the first error instead.
     """
@@ -201,8 +208,9 @@ def check_flow(
                 )
             )
 
+    frames = _codeframes_named(nodes, codeframes)
     known_variables = _known_variables(
-        document, nodes, registry, questionnaire, response_times=response_times
+        document, nodes, registry, questionnaire, response_times=response_times, frames=frames
     )
     scales = {
         name: payload.get("scale")
@@ -216,9 +224,18 @@ def check_flow(
     # is warned, not stopped: a flow saved before this was checked may rely on
     # it and runs.
     made_at = (
-        _made_scales(document, nodes, registry, questionnaire, scales)
+        _made_scales(document, nodes, registry, questionnaire, scales, frames)
         if questionnaire is not None
         else {}
+    )
+    # A theme variable a codeframe with several themes an answer makes holds
+    # lists of codes, as a multiple-choice question does.
+    several = frozenset(
+        name
+        for node_id, (_, codeframe) in frames.items()
+        if codeframe is not None and codeframe.multiple
+        for name in [_theme_name(nodes[node_id], codeframe)]
+        if name and name not in scales
     )
     for node_id, node in nodes.items():
         if node["type"] not in registry:
@@ -244,12 +261,18 @@ def check_flow(
             issues.extend(_check_likert_scale(node_id, node.get("params") or {}, questionnaire))
         if spec.type == "visualize.bar" and questionnaire is not None:
             issues.extend(
-                _check_bar_answers(node_id, spec, node.get("params") or {}, questionnaire)
+                _check_bar_answers(node_id, spec, node.get("params") or {}, questionnaire, several)
             )
         if spec.type == "visualize.trend" and questionnaire is not None:
-            issues.extend(_check_trend(node_id, spec, node.get("params") or {}, questionnaire))
+            issues.extend(
+                _check_trend(node_id, spec, node.get("params") or {}, questionnaire, several)
+            )
         if spec.type == "output.tabbook":
-            issues.extend(_check_tabbook(node_id, spec, node.get("params") or {}, questionnaire))
+            issues.extend(
+                _check_tabbook(node_id, spec, node.get("params") or {}, questionnaire, several)
+            )
+        if node_id in frames:
+            issues.extend(_check_codeframe(node_id, node, frames[node_id], known_variables))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -448,9 +471,11 @@ def _known_variables(
     questionnaire: dict[str, Any] | None,
     *,
     response_times: Iterable[str] | None = None,
+    frames: dict[str, tuple[Any, Any]] | None = None,
 ) -> set[str] | None:
     """Variables a node may name, or ``None`` when there is no codebook to check
-    against; ``response_times`` as :func:`check_flow` takes them."""
+    against; ``response_times`` as :func:`check_flow` takes them, ``frames``
+    the codeframes of Code open answers nodes (:func:`_codeframes_named`)."""
 
     if questionnaire is None:
         return None
@@ -469,6 +494,9 @@ def _known_variables(
             known.update(_exploded_names(questionnaire, params))
         if spec.type == "prepare.maxdiff_scores" and isinstance(params.get("question"), str):
             known.update(_maxdiff_score_names(questionnaire, params))
+        codeframe = (frames or {}).get(node["id"], (None, None))[1]
+        if codeframe is not None:
+            known.add(_theme_name(node, codeframe))
     return known
 
 
@@ -524,6 +552,7 @@ def _made_scales(
     registry: Registry,
     questionnaire: dict[str, Any] | None,
     codebook: dict[str, str | None],
+    frames: dict[str, tuple[Any, Any]] | None = None,
 ) -> dict[str, dict[str, str]]:
     """For each node, the scale of every variable the nodes upstream of it make
     — as the engine registers it: Derive its Scale (ratio by default), Recode
@@ -560,7 +589,14 @@ def _made_scales(
         upstream[node_id] = inherited
         node = nodes[node_id]
         own = (
-            _scales_made(node, registry.get(node["type"]), questionnaire, codebook, inherited)
+            _scales_made(
+                node,
+                registry.get(node["type"]),
+                questionnaire,
+                codebook,
+                inherited,
+                (frames or {}).get(node_id, (None, None))[1],
+            )
             if node["type"] in registry
             else {}
         )
@@ -574,10 +610,12 @@ def _scales_made(
     questionnaire: dict[str, Any] | None,
     codebook: dict[str, str | None],
     inherited: dict[str, str],
+    codeframe: Any = None,
 ) -> dict[str, str]:
     """The variables one node makes, with the scale it gives each; a Recode's
     source has the codebook's scale, else the one it has where the Recode
-    reads it (``inherited``)."""
+    reads it (``inherited``); a theme variable has the name its codeframe
+    gives it when the node's ``into`` does not."""
 
     scales: dict[str, str] = {}
 
@@ -599,8 +637,10 @@ def _scales_made(
         made(params.get("name"), "interval")
     elif kind == "prepare.bands":
         made(params.get("into"), "ordinal")
-    elif kind in ("analyze.cluster", "prepare.text_code"):
+    elif kind == "analyze.cluster":
         made(params.get("into"), "nominal")
+    elif kind == "prepare.text_code":
+        made(params.get("into") or (codeframe.into if codeframe is not None else None), "nominal")
     elif kind == "prepare.quality":
         made(params.get("flags_column"), "nominal")
         made(params.get("score_column"), "ratio")
@@ -618,6 +658,91 @@ def _scales_made(
         for name in _maxdiff_score_names(questionnaire, params):
             made(name, "interval")
     return scales
+
+
+def _codeframes_named(
+    nodes: dict[str, dict[str, Any]], codeframes: Mapping[str, Any] | None
+) -> dict[str, tuple[Any, Any]]:
+    """For each Code open answers node whose codeframe ``codeframes`` holds:
+    the document, and the codeframe read from it (None when it cannot be)."""
+
+    from siamang.data import text_coding
+
+    if not codeframes:
+        return {}
+    by_path = {_plain_path(str(path)): payload for path, payload in codeframes.items()}
+    found: dict[str, tuple[Any, Any]] = {}
+    for node_id, node in nodes.items():
+        path = (node.get("params") or {}).get("codeframe")
+        if node.get("type") != "prepare.text_code" or not isinstance(path, str):
+            continue
+        payload = by_path.get(_plain_path(path))
+        if payload is None:
+            continue
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                payload = None
+        codeframe = None
+        if isinstance(payload, text_coding.Codeframe):
+            codeframe = payload
+        elif isinstance(payload, Mapping):
+            with suppress(text_coding.CodeframeError, TypeError, ValueError):
+                codeframe = text_coding.parse(payload)
+        found[node_id] = (payload, codeframe)
+    return found
+
+
+def _plain_path(path: str) -> str:
+    parts = [part for part in path.replace("\\", "/").split("/") if part not in ("", ".")]
+    return "/".join(parts)
+
+
+def _theme_name(node: dict[str, Any], codeframe: Any) -> str:
+    """The theme variable a Code open answers node makes: its ``into``, else
+    the name its codeframe carries."""
+    into = (node.get("params") or {}).get("into")
+    return into.strip() if isinstance(into, str) and into.strip() else codeframe.into
+
+
+def _check_codeframe(
+    node_id: str, node: dict[str, Any], frame: tuple[Any, Any], known: set[str] | None
+) -> list[FlowIssue]:
+    """A codeframe the run could not apply, or that codes a variable the data
+    will not have."""
+
+    from siamang.data import text_coding
+
+    payload, codeframe = frame
+    path = (node.get("params") or {}).get("codeframe")
+    if codeframe is None:
+        if isinstance(payload, dict):
+            errors = list(text_coding.validate(payload).errors)
+        else:
+            errors = []
+        reason = errors[0].message if errors else "it is not a codeframe (a JSON object)"
+        more = f" (+{len(errors) - 1} more)" if len(errors) > 1 else ""
+        return [
+            FlowIssue(
+                "error",
+                "PARAM_INVALID",
+                f"Parameter 'codeframe' of {node_id}: {path} cannot be applied: "
+                f"{reason.removeprefix('codeframe: ')}{more}",
+                node_id,
+            )
+        ]
+    if known is not None and codeframe.variable not in known:
+        return [
+            FlowIssue(
+                "error",
+                "UNKNOWN_VARIABLE",
+                f"Parameter 'codeframe' of {node_id}: {path} codes {codeframe.variable!r}, "
+                "which is not a variable of this questionnaire.",
+                node_id,
+            )
+        ]
+    return []
 
 
 def _assigned_variables(questionnaire: dict[str, Any] | None) -> list[str]:
@@ -1410,7 +1535,11 @@ def _likert_answers(
 
 
 def _check_bar_answers(
-    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any]
+    node_id: str,
+    spec: NodeSpec,
+    given: dict[str, Any],
+    questionnaire: dict[str, Any],
+    several_made: frozenset[str] = frozenset(),
 ) -> list[FlowIssue]:
     """A Bar chart split by a question that allows several answers, or a stack
     of one's options; a histogram of a nominal, ordinal or multiple-choice
@@ -1422,7 +1551,9 @@ def _check_bar_answers(
     asked = _asked_by(questionnaire)
 
     def several(name: Any) -> bool:
-        return isinstance(name, str) and (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS
+        return isinstance(name, str) and (
+            (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS or name in several_made
+        )
 
     def label(name: str) -> str:
         return str((variables.get(name) or {}).get("label") or name)
@@ -1501,7 +1632,11 @@ def _check_bar_answers(
 
 
 def _check_tabbook(
-    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any] | None
+    node_id: str,
+    spec: NodeSpec,
+    given: dict[str, Any],
+    questionnaire: dict[str, Any] | None,
+    several_made: frozenset[str] = frozenset(),
 ) -> list[FlowIssue]:
     """What a Tab book refuses when it runs (``write_tabbook``) and the flow
     already settles: a path that is not an .xlsx workbook, a banner variable
@@ -1542,7 +1677,9 @@ def _check_tabbook(
         return str((variables.get(name) or {}).get("label") or name)
 
     for name in params.get("banner") or []:
-        if isinstance(name, str) and (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS:
+        if isinstance(name, str) and (
+            (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS or name in several_made
+        ):
             issues.append(
                 FlowIssue(
                     "error",
@@ -1608,7 +1745,11 @@ def _whole_values(payload: dict[str, Any]) -> int | None:
 
 
 def _check_trend(
-    node_id: str, spec: NodeSpec, given: dict[str, Any], questionnaire: dict[str, Any]
+    node_id: str,
+    spec: NodeSpec,
+    given: dict[str, Any],
+    questionnaire: dict[str, Any],
+    several_made: frozenset[str] = frozenset(),
 ) -> list[FlowIssue]:
     """What a Trend refuses when it runs (``siamang.reporting.trend.trend``)
     and the questionnaire already settles: a multiple-choice question as Time
@@ -1621,7 +1762,9 @@ def _check_trend(
     asked = _asked_by(questionnaire)
 
     def several(name: Any) -> bool:
-        return isinstance(name, str) and (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS
+        return isinstance(name, str) and (
+            (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS or name in several_made
+        )
 
     def label(name: str) -> str:
         return str((variables.get(name) or {}).get("label") or name)

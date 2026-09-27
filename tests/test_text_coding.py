@@ -303,3 +303,113 @@ def test_the_node_hands_on_the_coverage_as_a_stat(tmp_path):
     assert stat["Sentiment"] == "negative 0.0 %, neutral 100.0 %, positive 0.0 % of 1 answer"
     assert "why_theme_sentiment" in result.output("code", "data").frame
     assert "Neutral %" in result.output("code", "table").to_frame().columns
+
+
+# ─── version 1, as it was ────────────────────────────────────────────────────
+
+
+def test_a_version_1_codeframe_reads_and_applies_exactly_as_before(tmp_path):
+    """Pinned at the revision before version 2: the file written back, the
+    codes, the coverage, the table (sentiment, a weight) and the generated
+    code of a version 1 codeframe are the same, byte for byte."""
+
+    from siamang.flow import generate_flow
+
+    fp = text_coding.fingerprint
+    answers = [
+        "Charging is too slow",
+        "  charging  IS   too   slow ",
+        "The price",
+        "Nothing at all",
+        "",
+        None,
+        "=SUM(A1)",
+        "Цена высокая",
+        "charging is too slow\nreally",
+    ]
+    payload = {
+        "schema_version": "1.0",
+        "variable": "why",
+        "themes": [
+            {"code": 1, "label": "Charging", "definition": "Speed."},
+            {"code": 2, "label": "Price", "examples": ["The price"]},
+            {"code": 3, "label": "=Other"},
+        ],
+        "assignments": {
+            fp("Charging is too slow"): 1,
+            fp("The price"): 2,
+            fp("Цена высокая"): 2,
+            fp("=SUM(A1)"): 3,
+        },
+        "sentiment": {fp("Charging is too slow"): -1, fp("The price"): 1},
+        "model": "m",
+        "built_at": "2026-09-13",
+        "source_rows": 4,
+    }
+    cf = text_coding.parse(payload)
+    assert cf.version == 1 and not cf.multiple
+    assert json.dumps(cf.to_dict(), ensure_ascii=False) == (
+        '{"schema_version": "1.0", "variable": "why", "into": "why_theme", "themes": '
+        '[{"code": 1, "label": "Charging", "definition": "Speed."}, {"code": 2, "label": '
+        '"Price", "examples": ["The price"]}, {"code": 3, "label": "=Other"}], "assignments": '
+        '{"f887f32929175cfa": 1, "60f4a731ffcd8b85": 2, "ac5ef1d6fc5c9c89": 2, '
+        '"2bfc65fae6ef8c6f": 3}, "sentiment": {"f887f32929175cfa": -1, "60f4a731ffcd8b85": 1}, '
+        '"model": "m", "built_at": "2026-09-13", "source_rows": 4}'
+    )
+    variables = VariableMap()
+    variables.add(Variable("why", "nominal", label="Why?", dtype="str"))
+    frame = pd.DataFrame({"why": answers, "w": [float(i) for i in range(1, 10)]})
+    data = SurveyData(frame=frame, variables=variables)
+    assert repr(text_coding.codes(frame["why"], cf).tolist()) == (
+        "[1, 1, 2, <NA>, <NA>, <NA>, 3, 2, <NA>]"
+    )
+    assert text_coding.coverage(frame, cf) == {"answered": 7, "coded": 5, "uncoded": 2}
+    assert list(text_coding.uncoded_answers(frame, cf)) == [
+        "Nothing at all",
+        "charging is too slow\nreally",
+    ]
+    applied = text_coding.apply(data, cf, sentiment=True)
+    assert applied.report.themes(cf, sentiment=True).to_markdown() == (
+        "| Theme | N | % | Negative % | Neutral % | Positive % |\n|---|---|---|---|---|---|\n"
+        "| Charging | 2 | 40.0 | 100.0 | 0.0 | 0.0 |\n| Price | 2 | 40.0 | 0.0 | 0.0 | 100.0 |\n"
+        "| =Other | 1 | 20.0 |  |  |  |\n| Coded | 5 | 71.4 | 66.7 | 0.0 | 33.3 |\n"
+        "| Uncoded | 2 | 28.6 |  |  |  |\n\nVariable = why; Answered = 7; Themes = 3; "
+        "Coverage = 71.4 % of the answers have a theme; Distinct uncoded answers = 2; "
+        "Percentages = a theme: of the coded answers; Coded and Uncoded: of all answers; "
+        "Sentiment = negative 66.7 %, neutral 0.0 %, positive 33.3 % of 3 answers; "
+        "Net sentiment = -33.3; Codeframe = m, 2026-09-13"
+    )
+    assert applied.with_weight("w").report.themes(cf).to_markdown() == (
+        "| Theme | N | % |\n|---|---|---|\n| Charging | 2 | 40.0 |\n| Price | 2 | 40.0 |\n"
+        "| =Other | 1 | 20.0 |\n| Coded | 5 | 71.4 |\n| Uncoded | 2 | 28.6 |\n\n"
+        "Variable = why; Answered = 7; Themes = 3; Coverage = 71.4 % of the answers have a "
+        "theme; Distinct uncoded answers = 2; Percentages = a theme: of the coded answers; "
+        "Coded and Uncoded: of all answers; Codeframe = m, 2026-09-13; "
+        "Weight = unweighted (the weight 'w' is not applied)"
+    )
+    flow = {
+        "schema_version": "1.0",
+        "name": "t",
+        "nodes": [
+            {"id": "src", "type": "source.responses", "params": {}},
+            {
+                "id": "code",
+                "type": "prepare.text_code",
+                "params": {"codeframe": "why.codeframe.json", "sentiment": True},
+            },
+        ],
+        "edges": [
+            {"from": {"node": "src", "port": "data"}, "to": {"node": "code", "port": "data"}}
+        ],
+    }
+    code = generate_flow(flow)
+    assert code[code.index("# ── Code open answers") :] == (
+        "# ── Code open answers: why.codeframe.json ───────────────────────────────────────\n"
+        "# studio: code\n"
+        '_codeframe = text_coding.load("why.codeframe.json")\n'
+        "n_code_data = text_coding.apply(n_src, _codeframe, into=None, sentiment=True)\n"
+        "# Coverage travels with the themes: a theme share is of the coded answers,\n"
+        "# and how many answers the codeframe had never seen is the other half of it.\n"
+        "n_code_table = n_code_data.report.themes(_codeframe, sentiment=True)\n"
+        "n_code_stat = n_code_table.stats\n"
+    )

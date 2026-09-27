@@ -20,7 +20,8 @@ helpers cover the cleaning, weighting and analysis steps of a survey pipeline:
   question;
 - :mod:`siamang.data.conjoint` — part-worths, attribute importance and shares of
   preference from a choice-based conjoint;
-- :mod:`siamang.data.text_coding` — a frozen codeframe applied to open answers.
+- :mod:`siamang.data.text_coding` — a codeframe applied to open answers: a
+  coder's decisions, and rules for the rest (:mod:`siamang.data.text_rules`).
 """
 
 from siamang.data import (

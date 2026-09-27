@@ -1221,6 +1221,14 @@ class ThemeTable(_BlankUndefined, SurveyTable):
     and the stats give the overall split and the net (positive minus negative).
     A codeframe without sentiment says so in the stats rather than being
     silently ignored.
+
+    A version 2 codeframe counts respondents: each theme's row is a share of
+    everyone who answered (with several themes an answer they add up to more
+    than 100 %, which the stats say), a net's row — ``<group> (net)``, its
+    themes under it — counts a respondent once however many of its themes they
+    have, ``No theme`` counts the answers a coder decided have none, and
+    ``Coded`` splits into ``Coded by hand`` and ``Coded by rules`` before
+    ``Uncoded``. The stats carry the same counts.
     """
 
     codeframe: Any = None
@@ -1229,6 +1237,9 @@ class ThemeTable(_BlankUndefined, SurveyTable):
     def _build(self) -> None:
         from siamang.data import text_coding
 
+        if getattr(self.codeframe, "version", 1) >= 2:
+            self._build_v2()
+            return
         frame = self.data.frame
         cf = self.codeframe
         series = frame[cf.variable]
@@ -1277,22 +1288,139 @@ class ThemeTable(_BlankUndefined, SurveyTable):
         if (note := _unweighted_note(self.data)) is not None:
             self._stats["Weight"] = note
 
+    def theme_rows(self) -> pd.DataFrame:
+        """The rows that are themes — not nets, and not the Coded, Uncoded and
+        by-hand/by-rules rows under them: what a chart of the table draws."""
+        self._ensure_built()
+        kinds = getattr(self, "_kinds", None)
+        if kinds is None:
+            return self._result[~self._result["Theme"].isin(["Coded", "Uncoded"])]
+        return self._result[[kind == "theme" for kind in kinds]]
+
+    def _build_v2(self) -> None:
+        """A version 2 codeframe: a row per theme and per net, shares of the
+        respondents who answered; then Coded (by hand and by the rules) and
+        Uncoded."""
+        from siamang.data import text_coding
+
+        frame = self.data.frame
+        cf = self.codeframe
+        series = frame[cf.variable]
+        coded = text_coding.coding(series, cf)
+        counts = text_coding.tally(coded)
+        answered = counts["answered"]
+        of_answered = lambda n: round(n / answered * 100, 1) if answered else 0.0  # noqa: E731
+        have = [set(item.codes or ()) for item in coded]
+        rows: list[dict[str, Any]] = []
+        kinds: list[str] = []
+        masks: list[pd.Series] = []
+
+        def row(label: str, kind: str, mask: list[bool]) -> None:
+            n = int(sum(mask))
+            rows.append({"Theme": label, "N": n, "%": of_answered(n)})
+            kinds.append(kind)
+            masks.append(pd.Series(mask, index=series.index, dtype=bool))
+
+        def count(code: int) -> int:
+            return int(sum(code in got for got in have))
+
+        # A net and its themes stay together; the nets and the themes in no net
+        # are ordered by their counts, and so are the themes inside a net.
+        nets = cf.nets
+        in_net = {code for members in nets.values() for code in members}
+        labels = cf.labels
+        blocks: list[tuple[int, str, tuple[int, ...] | None, int | None]] = []
+        for name, members in nets.items():
+            n = int(sum(bool(got.intersection(members)) for got in have))
+            blocks.append((n, f"{name} (net)", members, None))
+        for theme in cf.themes:
+            if theme.code not in in_net:
+                blocks.append((count(theme.code), theme.label, None, theme.code))
+        blocks.sort(key=lambda block: (-block[0], block[1]))
+        for _, label, members, code in blocks:
+            if members is None:
+                row(label, "theme", [code in got for got in have])
+                continue
+            row(label, "net", [bool(got.intersection(members)) for got in have])
+            for member in sorted(members, key=lambda c: (-count(c), labels[c])):
+                row(labels[member], "theme", [member in got for got in have])
+        # A coder's "no theme" is a decision, not a gap: its own row, in Coded.
+        none = [item.source == "hand" and not item.codes for item in coded]
+        if any(none):
+            row("No theme", "none", none)
+        row("Coded", "coded", [item.source in ("hand", "rule") for item in coded])
+        row("Coded by hand", "hand", [item.source == "hand" for item in coded])
+        row("Coded by rules", "rules", [item.source == "rule" for item in coded])
+        row("Uncoded", "uncoded", [item.source == "uncoded" for item in coded])
+        self._kinds = kinds
+        columns = ["Theme", "N", "%"]
+        uncoded = {
+            text_coding.fingerprint(value)
+            for value, item in zip(series, coded, strict=True)
+            if item.source == "uncoded"
+        }
+        percentages = "of the respondents who answered"
+        if cf.multiple:
+            percentages += (
+                "; a respondent can have several themes, so the themes add up to more than 100 %"
+            )
+        self._stats = {
+            "Variable": cf.variable,
+            "Answered": answered,
+            "Themes": len(cf.themes),
+            "Coverage": f"{of_answered(counts['coded'])} % of the answers are coded",
+            "Coded by hand": counts["by_hand"],
+            "Coded by rules": counts["by_rules"],
+            "Distinct uncoded answers": len(uncoded),
+            "Percentages": percentages,
+        }
+        if nets:
+            self._stats["Nets"] = (
+                "a net counts a respondent once, however many of its themes they have"
+            )
+        if self.sentiment and cf.sentiment:
+            answered_mask = pd.Series(
+                [item.source != "blank" for item in coded], index=series.index, dtype=bool
+            )
+            columns += self._sentiment_split(rows, masks, series, answered_mask)
+        elif self.sentiment:
+            self._stats["Sentiment"] = "not in this codeframe"
+        self._result = pd.DataFrame(rows, columns=columns)
+        if cf.model:
+            self._stats["Codeframe"] = f"{cf.model}{f', {cf.built_at}' if cf.built_at else ''}"
+        if (note := _unweighted_note(self.data)) is not None:
+            self._stats["Weight"] = note
+
     def _add_sentiment(
         self, rows: list[dict[str, Any]], series: pd.Series, themes: pd.Series
     ) -> list[str]:
         """Negative / neutral / positive per row, of the answers with a sentiment."""
         from siamang.data import text_coding
 
-        scores = text_coding.sentiment_scores(series, self.codeframe)
         answered = series.map(lambda v: text_coding.normalise(v) != "")
         masks = {
             "coded": themes.notna() & answered,
             "uncoded": themes.isna() & answered,
         }
-        names = {-1: "Negative %", 0: "Neutral %", 1: "Positive %"}
+        row_masks: list[Any] = []
         for row in rows:
             code = row.pop("_code")
             mask = masks.get(code) if isinstance(code, str) else (themes == code).fillna(False)
+            row_masks.append(mask)
+        return self._sentiment_split(rows, row_masks, series, answered)
+
+    def _sentiment_split(
+        self,
+        rows: list[dict[str, Any]],
+        row_masks: list[Any],
+        series: pd.Series,
+        answered: pd.Series,
+    ) -> list[str]:
+        from siamang.data import text_coding
+
+        scores = text_coding.sentiment_scores(series, self.codeframe)
+        names = {-1: "Negative %", 0: "Neutral %", 1: "Positive %"}
+        for row, mask in zip(rows, row_masks, strict=True):
             scored = scores[mask.astype(bool)].dropna()
             for value, name in names.items():
                 row[name] = (

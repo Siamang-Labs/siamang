@@ -24,6 +24,7 @@
 **Data & analysis**
 - [[Working with Data|Working-with-Data]]
 - [[Analysis]]
+- [[Coding Open Answers|Coding-Open-Answers]]
 - [[Banner Tables|Banner-Tables]]
 
 **Reporting**
