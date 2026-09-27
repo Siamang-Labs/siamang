@@ -158,6 +158,11 @@ def test_the_codebook_describes_the_arm_a_script_assigns(tmp_path):
     loaded = read_snapshot(target, questionnaire=survey)
     arm = loaded.variables["condition"]
     assert (arm.scale, arm.labels) == ("nominal", {1: "Control", 2: "Treatment"})
+    # Named as words, not as the column it is: a table grouped by it says so.
+    assert arm.label == "Condition"
+    from siamang.local_simulator import _readable
+
+    assert _readable("message_arm") == "Message arm" and _readable("arm") == "Arm"
     # Described as Simulated data describe it, and the codes stay integers.
     assert arm == simulated.variables["condition"]
     assert str(loaded.frame["condition"].dtype) in {"int64", "Int64"}

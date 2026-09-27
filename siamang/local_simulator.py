@@ -568,12 +568,21 @@ def with_arm_variables(variables: VariableMap, scripts: Sequence[Script] | None)
             Variable(
                 arm.variable,
                 "nominal",
-                label=arm.variable,
+                # A name, not a label, is all the script gives: written as a
+                # reader would say it ("Message arm"), not as a column header
+                # ("message_arm") in every table and chart that groups by it.
+                label=_readable(arm.variable),
                 labels=dict(zip(arm.codes, arm.labels, strict=True)),
                 description="Arm drawn by Script.assign_condition",
             )
         )
     return known
+
+
+def _readable(name: str) -> str:
+    """A variable name as words: ``message_arm`` reads "Message arm"."""
+    words = " ".join(part for part in name.replace("-", "_").split("_") if part)
+    return (words[:1].upper() + words[1:]) if words else name
 
 
 # ─── scripts ──────────────────────────────────────────────────────────────────
