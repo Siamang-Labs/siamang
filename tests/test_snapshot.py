@@ -131,6 +131,51 @@ def test_questionnaire_supplies_the_codebook_and_is_attached(tmp_path):
     assert set(table["label"].dropna()) <= {"Capital", "North", "South"}
 
 
+def test_the_codebook_describes_the_arm_a_script_assigns(tmp_path):
+    # No question collects an arm, so the questions alone left it unlabeled:
+    # a flow read "1" and "2" where respondents saw the two messages.
+    import siamang as sg
+
+    seen = Variable("seen", "nominal", label="Seen the ad", labels={1: "Yes", 2: "No"})
+
+    def survey_with(variables: VariableMap | None) -> sg.Questionnaire:
+        return sg.Questionnaire(
+            title="A",
+            pages=[
+                sg.Page(
+                    name="treated",
+                    show_if=sg.compare("condition", "=", 2),
+                    items=[sg.SingleChoice("Seen the ad?", var=seen, id="q_seen")],
+                )
+            ],
+            scripts=[sg.Script.assign_condition("condition", [(1, "Control"), (2, "Treatment")])],
+            variables=variables,
+        )
+
+    survey = survey_with(None)
+    simulated = survey.simulate(n=20, seed=1)
+    target = write_snapshot(SurveyData(frame=simulated.frame), tmp_path / "sim.csv")
+    loaded = read_snapshot(target, questionnaire=survey)
+    arm = loaded.variables["condition"]
+    assert (arm.scale, arm.labels) == ("nominal", {1: "Control", 2: "Treatment"})
+    # Described as Simulated data describe it, and the codes stay integers.
+    assert arm == simulated.variables["condition"]
+    assert str(loaded.frame["condition"].dtype) in {"int64", "Int64"}
+    table = loaded.analysis.frequencies("condition", labels=True)
+    assert set(table["label"].dropna()) == {"Control", "Treatment"}
+
+    # A declared codebook gets the arm too, and is not changed in place.
+    declared = VariableMap()
+    declared.add(seen)
+    loaded = read_snapshot(target, questionnaire=survey_with(declared))
+    assert loaded.variables["condition"].labels == {1: "Control", 2: "Treatment"}
+    assert list(declared) == ["seen"]
+    # One the codebook already declares is its own.
+    declared.add(Variable("condition", "nominal", label="Arm", labels={1: "A", 2: "B"}))
+    loaded = read_snapshot(target, questionnaire=survey_with(declared))
+    assert loaded.variables["condition"].labels == {1: "A", 2: "B"}
+
+
 def test_weight_column_is_applied(tmp_path):
     data = _data()
     frame = data.frame.assign(weight=[1.0, 0.5, 1.5, 1.0])

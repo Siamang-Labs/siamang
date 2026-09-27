@@ -724,6 +724,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A snapshot's codebook describes the arm a script assigns.** No question
+  collects the arm `Script.assign_condition` draws, so the codebook
+  `read_snapshot` builds from a questionnaire (and a platform's Responses
+  node, which builds it the same way) left it out: a flow read the arm as `1`
+  and `2` where respondents were shown "Control" and "Treatment", and a Data
+  check called it a column the codebook does not know. The codebook now has a
+  nominal variable for every arm the questionnaire does not declare, labeled
+  with the arms, as Simulated data have had it
+  (`local_simulator.with_arm_variables`, used by both). One the codebook
+  declares keeps its own entry, and the questionnaire's codebook is not
+  changed in place.
+
 - **A Bar chart splits by a group with a blank or a missing code.** Codes read
   back as integers (`read_snapshot`, a platform's data) are nullable `Int64`,
   where a blank is `<NA>`, and so is a declared missing code once the chart
