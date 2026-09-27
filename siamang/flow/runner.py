@@ -71,9 +71,17 @@ class FlowRunner:
         questionnaire: Questionnaire | None = None,
         registry: Registry | None = None,
         questionnaire_document: dict[str, Any] | None = None,
+        codeframes: Mapping[str, Any] | None = None,
     ) -> None:
+        """``codeframes`` are the codeframe documents the flow's Code open
+        answers nodes name, by path, as :func:`~siamang.flow.check_flow` takes
+        them: with them the theme variable a node leaves unnamed has its
+        codeframe's name here as it has in the check."""
         self.graph: FlowGraph = resolve_flow(
-            document, registry=registry, questionnaire=questionnaire_document
+            document,
+            registry=registry,
+            questionnaire=questionnaire_document,
+            codeframes=codeframes,
         )
         self.questionnaire = questionnaire
 

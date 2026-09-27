@@ -144,6 +144,71 @@ def test_a_negated_mention_is_found_by_not_in_either_word_of_a_proximity():
     assert not _matches("staff ~3 rude", "the staff were not rude")
 
 
+@pytest.mark.parametrize(
+    ("term", "text", "expected"),
+    [
+        # The staff are under the negation the term asks for with not_: the
+        # term's own, as a negation written in the term is.
+        ("not_friendly staff", "No friendly staff", True),
+        ("not_friendly staff", "Not friendly staff at all", True),
+        ("not_friendly ~3 staff", "Not friendly staff at all", True),
+        ("staff ~3 not_friendly", "Not friendly staff", True),  # either order
+        ("staff ~3 not_friendly", "The staff were not friendly", True),
+        ("not_friendly ~3 staff", "The staff were not friendly", True),
+        # …but a word negated by another negation is still negated
+        ("not_friendly staff", "Friendly staff", False),
+        ("not_late ~3 staff", "not late and no staff", False),
+        ("not_late ~5 staff", "never late and no staff", False),
+    ],
+)
+def test_a_not_form_takes_the_words_under_the_negation_it_asks_for(term, text, expected):
+    assert _matches(term, text) is expected
+
+
+@pytest.mark.parametrize(
+    ("term", "text", "expected"),
+    [
+        # An n't form is one however it is typed: with its apostrophe,
+        # without it, or spelled out with not.
+        ("don't know", "I dont know", True),
+        ("don't know", "I do not know", True),
+        ("don't know", "I don’t know", True),
+        ("do not know", "I don't know", True),
+        ("dont know", "do not know", True),
+        ("would not recommend", "I wouldn't recommend it", True),
+        ("wouldn't recommend", "I would not recommend it", True),
+        ("can't|cannot find", "I can not find it", True),
+        ("won't", "they will not", True),
+        ("don't|doesn't work", "it does not work", True),
+        ("didn't|never arrive", "it did not arrive", True),
+        ("didn't|never arrive", "it never arrive", True),
+        # "not" in a term is every negation written with not
+        ("not happy", "I wasn't happy", True),
+        ("not happy", "I'm not happy", True),
+        ("not happy", "never happy", False),
+        # a mention under such a negation is negated, as it was
+        ("know", "I do not know", False),
+        ("recommend", "would not recommend", False),
+        ("not_recommend", "would not recommend", True),
+        # "not" after a word that is no auxiliary stays a word of its own
+        ("not late", "definitely not late", True),
+        ("do not", "do, not", False),
+    ],
+)
+def test_the_nt_forms_are_one_however_they_are_typed(term, text, expected):
+    assert _matches(term, text) is expected
+
+
+def test_do_not_is_read_as_one_negating_word():
+    got = text_coding.explain("I do not know, can not say", _cf(_theme(1, "DK", ["don't know"])))
+    assert [t["word"] for t in got["tokens"]] == ["i", "don't", "know", "can't", "say"]
+    assert [t["negated_by"] for t in got["tokens"]] == [None, None, "don't", None, "can't"]
+    assert got["codes"] == [1]
+    # In a term whose place holds another word too, "do not" is warned of.
+    found = text_coding.validate(_cf(_theme(1, "A", ["do|really not know"])))
+    assert any("'do not' is read as 'don't'" in w.message for w in found.warnings)
+
+
 # ─── clauses and scope ───────────────────────────────────────────────────────
 
 
@@ -176,6 +241,80 @@ def test_a_rule_reads_one_clause_unless_its_scope_is_the_answer():
 def test_clauses_end_at_punctuation_and_at_the_clause_words(text):
     explained = text_coding.explain(text, _cf(_theme(1, "T", ["x"])))
     assert explained["clauses"] == ["fast", "delivery damaged"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "fast\ndelivery damaged",
+        "fast\r\n\r\n  delivery damaged",
+        "fast delivery damaged",
+        "fast - delivery damaged",
+        "- fast\n- delivery damaged",
+        "fast -- delivery damaged",
+        "• fast • delivery damaged",
+        "fast | delivery damaged",
+        "fast / delivery damaged",
+        "fast/ delivery damaged",
+        "fast · delivery damaged",
+    ],
+)
+def test_a_line_break_a_spaced_dash_a_bullet_and_a_slash_end_a_clause(text):
+    explained = text_coding.explain(text, _cf(_theme(1, "T", ["x"])))
+    assert explained["clauses"] == ["fast", "delivery damaged"]
+
+
+def test_a_negation_and_a_clause_rule_stop_at_the_end_of_a_line():
+    payload = _cf(
+        _theme(1, "Price", ["price"]),
+        _theme(2, "Damaged", ["damaged"], require=["staff"]),
+        multiple=True,
+    )
+    assert _codes("Not happy\nPrice too high", payload) == [1]
+    assert _codes("Not good - price too high", payload) == [1]
+    assert _codes("- not helpful\n- price high", payload) == [1]
+    assert _codes("Staff fine\nparcel damaged", payload) == []
+    assert _codes("Staff fine, parcel damaged", payload) == []
+    assert _codes("staff: parcel damaged", payload) == []
+    assert _codes("the staff had the parcel damaged", payload) == [2]
+    # A line's words stay together: a phrase does not reach into the next.
+    assert not _matches("customer service", "customer\nservice")
+
+
+@pytest.mark.parametrize(
+    ("term", "text"),
+    [
+        ("e mail", "e-mail"),
+        ("n a", "n/a"),
+        ("and or", "and/or"),
+        ("col legi", "col·legi"),
+        ("well known", "well‐known"),
+    ],
+)
+def test_a_joiner_between_two_letters_ends_no_clause(term, text):
+    assert _matches(term, text)
+
+
+def test_an_answer_read_across_lines_keeps_its_fingerprint():
+    """A line break ends a clause for the rules, but the fingerprint — and so
+    a coder's decision — is the answer's as it always was."""
+    text = "Not happy\nPrice too high"
+    assert fp(text) == fp("not happy price too high")
+    payload = _cf(_theme(1, "Price", ["price"]), assignments={fp("x\ny"): [1]})
+    explained = text_coding.explain(text, payload)
+    assert explained["fingerprint"] == fp(text)
+    assert explained["normalised"] == "not happy\nprice too high"
+    assert _codes("x  \n  Y", payload) == [1] and _codes("X y", payload) == [1]
+    # The same words on one line and on two are one fingerprint, read apart.
+    got = text_coding.preview({text: 2, "Not happy Price too high": 1}, payload)
+    assert [(a["fingerprint"], a["codes"], a["count"]) for a in got["answers"]] == [
+        (fp(text), [1], 2),
+        (fp(text), [], 1),
+    ]
+    series = pd.Series([text, "Not happy Price too high", "not happy\r\nprice too high"])
+    cf = text_coding.parse(payload)
+    assert text_coding.codes(series, cf).tolist() == [1, pd.NA, 1]
+    assert text_coding.coverage(pd.DataFrame({"why": series}), cf)["by_rules"] == 2
 
 
 def test_an_exclude_vetoes_only_where_it_is():
@@ -398,6 +537,17 @@ def test_an_exclusive_theme_without_rules_is_a_valid_theme():
         ),
         ({"themes": [_theme(1, " ")]}, "theme 1 has no label", ["themes", 0, "label"]),
         (
+            {"themes": [_theme(2**63, "Big", ["late"])]},
+            "theme code 9223372036854775808 is out of range",
+            ["themes", 0, "code"],
+        ),
+        (
+            {"themes": [_theme(1, "A"), _theme(-(2**31) - 1, "B")]},
+            "a code is a whole number from -2147483648 to 2147483647",
+            ["themes", 1, "code"],
+        ),
+        ({"themes": [_theme(1e300, "Big")]}, "is out of range", ["themes", 0, "code"]),
+        (
             {"assignments": {fp("x"): 7}},
             "names unknown theme 7",
             ["assignments", fp("x")],
@@ -496,6 +646,38 @@ def test_a_term_that_can_never_match_is_a_warning(theme, message):
     assert found.ok, found.errors
     assert any(message in w.message for w in found.warnings), found.warnings
     text_coding.parse(payload)  # it applies; that term does nothing
+
+
+def test_a_warning_names_its_theme_when_an_earlier_one_is_refused():
+    found = text_coding.validate(
+        _cf(
+            {"code": "x", "label": "Bad"},
+            _theme(1, "A"),
+            _theme(1, "A again"),
+            _theme(2, "B", group="Solo"),
+        )
+    )
+    net = next(w for w in found.warnings if "the net 'Solo'" in w.message)
+    assert list(net.path) == ["themes", 3, "group"]
+
+
+def test_the_largest_codes_a_variable_holds_apply():
+    for code in (2**31 - 1, -(2**31)):
+        cf = text_coding.parse(_cf(_theme(code, "Edge", ["late"])))
+        assert text_coding.codes(pd.Series(["late"]), cf).tolist() == [code]
+    # A version 1 codeframe refuses a code its theme variable cannot hold,
+    # rather than failing when it is applied.
+    for code in (2**63, float("inf")):
+        with pytest.raises(text_coding.CodeframeError, match="codeframe: "):
+            text_coding.parse(
+                {
+                    "schema_version": "1.0",
+                    "variable": "why",
+                    "themes": [{"code": code, "label": "B"}],
+                }
+            )
+    big = {"schema_version": "1.0", "variable": "why", "themes": [{"code": 2**40, "label": "B"}]}
+    assert text_coding.parse(big).themes[0].code == 2**40
 
 
 def test_version_2_fields_in_a_version_1_file_are_said_to_do_nothing():
@@ -609,6 +791,47 @@ def test_coverage_counts_what_was_decided_by_hand_and_by_the_rules():
         "Something else entirely",
         "wasn't late",
     ]
+
+
+def test_a_missing_answer_is_blank_however_the_column_holds_it():
+    """pd.NA and NaT are not the texts "<NA>" and "NaT": nobody answered."""
+    payload = _cf(
+        _theme(1, "Late", ["late"]),
+        _theme(9, "Nothing / N/A", ["nothing", "na", "n a", "nat"], exclusive=True),
+    )
+    cf = text_coding.parse(payload)
+    strings = pd.Series(["late", None, "n/a", pd.NA], dtype="string")
+    assert text_coding.codes(strings, cf).tolist() == [1, pd.NA, 9, pd.NA]
+    assert text_coding.sources(strings, cf).tolist() == ["rule", pd.NA, "rule", pd.NA]
+    assert text_coding.coverage(pd.DataFrame({"why": strings}), cf)["answered"] == 2
+    mixed = pd.Series(["late", pd.NaT, float("nan"), None, "nothing"], dtype="object")
+    assert text_coding.coverage(pd.DataFrame({"why": mixed}), cf)["answered"] == 2
+    table = _data(strings.astype(object)).report.themes(cf).to_frame().set_index("Theme")
+    assert table.loc["Nothing / N/A", "N"] == 1 and table.loc["Nothing / N/A", "%"] == 50.0
+    assert text_coding.preview(strings, cf)["coverage"]["answered"] == 2
+    assert text_coding.explain(pd.NA, cf)["text"] == ""
+    assert text_coding.normalise(pd.NA) == "" and text_coding.normalise(pd.NaT) == ""
+    # A version 1 codeframe no longer counts them as answered either.
+    old = text_coding.parse(
+        {"schema_version": "1.0", "variable": "why", "themes": [{"code": 1, "label": "L"}]}
+    )
+    assert text_coding.coverage(pd.DataFrame({"why": strings}), old)["answered"] == 2
+    assert list(text_coding.uncoded_answers(pd.DataFrame({"why": strings}), old)) == [
+        "late",
+        "n/a",
+    ]
+
+
+def test_a_coders_several_themes_come_in_the_codeframe_order():
+    payload = _cf(*THEMES, multiple=True, assignments={fp("Beta"): [3, 1], fp("Gamma"): [5, 2]})
+    cf = text_coding.parse(payload)
+    assert text_coding.codes(pd.Series(["Beta", "gamma"]), cf).tolist() == [[1, 3], [2, 5]]
+    assert text_coding.explain("beta", cf)["codes"] == [1, 3]
+    # The file keeps them as the coder gave them.
+    assert cf.to_dict()["assignments"][fp("Beta")] == [3, 1]
+    # One theme an answer: the one ranked highest (priority, then order).
+    single = text_coding.parse({**payload, "multiple": False})
+    assert text_coding.codes(pd.Series(["Beta", "gamma"]), single).tolist() == [3, 2]
 
 
 def test_answers_collected_after_the_rules_are_coded_by_them():
@@ -748,6 +971,7 @@ def test_preview_codes_each_distinct_answer_and_counts_themes_nets_and_coverage(
         "count": 10,
         "by_hand": 4,
         "by_rules": 6,
+        "negated": 0,
         "percent": 83.3,
     }
     assert result["nets"] == [{"group": "Delivery", "codes": [1, 2], "count": 10, "percent": 83.3}]
@@ -801,6 +1025,46 @@ def test_explain_says_why_step_by_step():
     assert manual["manual"] == [2] and manual["source"] == "hand" and manual["dropped"] == []
 
 
+def test_preview_counts_the_answers_a_theme_loses_to_a_negation():
+    """A negated mention does not match — the owner's rule — and preview says
+    what that costs each theme, so a coder can read those answers."""
+    payload = _cf(
+        _theme(1, "Parcel", ["parcel"]),
+        _theme(2, "Staff", ["staff"]),
+        _theme(3, "Delivery", ["deliver*"], scope="answer"),
+        _theme(4, "Late", ["late"]),
+        multiple=True,
+        assignments={fp("no staff, no parcel"): [2]},
+    )
+    answers = {
+        "never received my parcel": 3,
+        "Not enough staff, and the parcel was fine": 2,
+        "no information about delivery": 1,
+        "late, but the parcel wasn't late": 1,
+        "no staff, no parcel": 5,  # a coder decided: the rules do not run
+        "late": 1,
+    }
+    got = text_coding.preview(answers, payload)
+    negated = {t["code"]: t["negated"] for t in got["themes"]}
+    assert negated == {1: 3, 2: 2, 3: 1, 4: 0}
+    rows = {a["text"]: a for a in got["answers"]}
+    assert rows["never received my parcel"]["source"] == "uncoded"
+    assert rows["never received my parcel"]["negated"] == [
+        {"code": 1, "label": "Parcel", "term": "parcel", "fragment": "parcel"}
+    ]
+    assert rows["Not enough staff, and the parcel was fine"]["codes"] == [1]
+    assert [n["code"] for n in rows["Not enough staff, and the parcel was fine"]["negated"]] == [2]
+    # A theme it got elsewhere in the answer is not lost to the negation.
+    assert rows["late, but the parcel wasn't late"]["codes"] == [1, 4]
+    assert rows["late, but the parcel wasn't late"]["negated"] == []
+    assert rows["no staff, no parcel"]["negated"] == []
+    # coding() carries the same, for a table or an editor to use.
+    coded = text_coding.coding(["never received my parcel"], text_coding.parse(payload))[0]
+    assert [(theme.code, term, words) for theme, term, words in coded.negated] == [
+        (1, "parcel", "parcel")
+    ]
+
+
 def test_suggest_offers_frequent_words_and_phrases_of_the_uncoded_answers():
     answers = {
         "The app crashes all the time": 3,
@@ -825,6 +1089,13 @@ def test_suggest_offers_frequent_words_and_phrases_of_the_uncoded_answers():
     terms = {w["term"] for w in everything["words"]} | {p["term"] for p in everything["phrases"]}
     assert not terms & {"the", "all", "but", "time the", "wasn't"}
     assert text_coding.suggest(answers, 30, min_count=6) == {"words": [], "phrases": []}
+    # A negated mention is counted apart: a word can come both ways.
+    both = text_coding.suggest({"not fast": 3, "fast": 1, "never fast enough": 2, "so fast": 2})
+    assert [(w["term"], w["count"]) for w in both["words"]][:2] == [("not_fast", 5), ("fast", 3)]
+    # "do not know" is suggested as it is matched: don't know.
+    assert text_coding.suggest({"I do not know": 2, "dont know": 1})["phrases"] == [
+        {"term": "don't know", "count": 3, "example": "I do not know"}
+    ]
 
 
 def test_preview_is_fast_on_a_large_study():
@@ -874,6 +1145,104 @@ def test_preview_is_fast_on_a_large_study():
     elapsed = time.perf_counter() - started
     assert len(result["answers"]) == 50_000 and result["coverage"]["by_rules"] > 0
     assert elapsed < 15, f"{elapsed:.1f} s"
+
+
+def test_a_long_word_costs_no_more_than_a_short_one():
+    """An answer with no spaces — a pasted string, a keyboard mash — is one
+    word; looking it up in the forms with * does not grow with its square."""
+    payload = _cf(_theme(1, "T", ["delay*", "*ing", "c*ng", "a*b*c", "*arg*"]))
+    started = time.perf_counter()
+    result = text_coding.preview(["a" * 300_000, "b" * 200_000 + "ing"], payload)
+    assert time.perf_counter() - started < 2
+    assert result["coverage"]["uncoded"] == 2
+    # A word as long as a term may be is read; a longer one — no word a term
+    # can name — matches none.
+    assert _matches("delay*", "delay" + "s" * 195)
+    assert not _matches("delay*", "delay" + "s" * 196)
+
+
+def test_a_long_repetitive_answer_takes_little_time_and_memory():
+    """What coding an answer keeps grows with the terms that match it, not
+    with its words times the terms they could begin."""
+    import tracemalloc
+
+    nothing = _cf(_theme(1, "Nothing wrong", [f"no problem{i}" for i in range(10)]))
+    started = time.perf_counter()
+    assert text_coding.preview(["no " * 300_000], nothing)["coverage"]["uncoded"] == 1
+    assert time.perf_counter() - started < 3
+    late = _cf(
+        *[_theme(c, f"T{c}", [f"late x{c}y{i}" for i in range(50)]) for c in range(1, 41)],
+        multiple=True,
+    )
+    cf = text_coding.parse(late)
+    assert cf.rule_set.rules  # compiled before measuring
+    text = "late " * 4_000 + "late x3y7"
+    tracemalloc.start()
+    started = time.perf_counter()
+    try:
+        assert text_coding.explain(text, cf)["codes"] == [3]
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert time.perf_counter() - started < 3
+    assert peak < 40_000_000, f"{peak / 1e6:.0f} MB"
+
+
+def test_many_forms_with_a_star_inside_are_looked_up_not_tried_one_by_one():
+    """Two hundred themes of forms like c*ng — within the limits — against a
+    few thousand different words."""
+    import random
+
+    rng = random.Random(3)
+    letters = "abcdefghijklmnop"
+    themes = [
+        _theme(
+            code,
+            f"T{code}",
+            [
+                rng.choice(
+                    [
+                        f"{rng.choice(letters)}*{rng.choice(letters)}{code}x{i}",
+                        f"{rng.choice(letters)}{code}x{i}*{rng.choice(letters)}",
+                        f"{rng.choice(letters)}*x{code}*{i}",
+                        f"*{rng.choice(letters)}{code}x{i}*",
+                    ]
+                )
+                for i in range(250)
+            ],
+        )
+        for code in range(1, 201)
+    ]
+    cf = text_coding.parse(_cf(*themes, multiple=True))
+    assert cf.rule_set.rules  # compiled before measuring
+    words = list(
+        {"".join(rng.choice(letters) for _ in range(rng.randint(3, 10))) for _ in range(4000)}
+    )
+    answers = [" ".join(rng.choices(words, k=10)) for _ in range(2000)]
+    # One word made of a term of each kind (its * as "zz"), and what each
+    # term, read in full, says of them.
+    kinds = [
+        lambda t: t.count("*") == 1 and t[1] == "*",  # a*b17x3
+        lambda t: t.count("*") == 1 and t[-2] == "*",  # a17x3*b
+        lambda t: t.count("*") == 2 and t[1] == "*",  # a*x17*3
+        lambda t: t[0] == "*",  # *a17x3*
+    ]
+    probes = [
+        next(t for t in theme["rules"]["include"] if kind(t)).replace("*", "zz")
+        for theme, kind in zip(themes[:40:10], kinds, strict=True)
+    ]
+    answers.append(" ".join(probes))
+    started = time.perf_counter()
+    result = text_coding.preview(answers, cf)
+    assert time.perf_counter() - started < 8
+    expected = {
+        code
+        for code, theme in enumerate(themes, 1)
+        for term in theme["rules"]["include"]
+        if any(text_rules._glob(tuple(term.split("*")), word) for word in probes)
+    }
+    assert len(expected) >= 4
+    assert set(result["answers"][-1]["codes"]) == expected
 
 
 def test_the_rules_module_reads_a_term_back_as_written():
@@ -992,6 +1361,84 @@ def test_check_flow_knows_the_theme_variable_its_codeframe_makes(questionnaire_d
         "assignments": {fp("late"): 1},
     }
     assert check_flow(donut, questionnaire=questionnaire_doc, codeframes={CODEFRAME: old}) == []
+    # A Likert chart of it, as of a multiple-choice question.
+    likert = flow({}, ("lik", "visualize.likert", {"items": ["comment_theme"]}))
+    issues = check_flow(
+        likert, questionnaire=questionnaire_doc, codeframes={CODEFRAME: COMMENT_FRAME}
+    )
+    assert [(i.severity, i.message) for i in issues if i.code == "PARAM_CONFLICT"] == [
+        (
+            "error",
+            "lik: comment_theme allows several answers; a Likert chart draws items with one "
+            "answer each on a scale.",
+        )
+    ]
+    assert "PARAM_CONFLICT" not in {
+        i.code
+        for i in check_flow(likert, questionnaire=questionnaire_doc, codeframes={CODEFRAME: single})
+    }
+
+
+def test_the_check_the_run_and_the_script_agree_on_a_theme_variable_its_codeframe_names(
+    questionnaire_doc, tmp_path, monkeypatch
+):
+    """With Theme variable empty, the name is the codeframe's: given the same
+    codeframes, the check passes the flow, the run runs it and the script is
+    written; without them all three refuse it alike."""
+    from siamang.cli.flow import run_check, run_flow
+    from siamang.flow import FlowError, FlowRunner, check_flow, generate_flow, read_codeframes
+    from siamang.io import write_snapshot
+    from siamang.model import from_document
+
+    frame = {**COMMENT_FRAME, "into": "comment_theme"}
+    flow = _flow(
+        [
+            ("src", "source.responses", {}),
+            ("code", "prepare.text_code", {"codeframe": CODEFRAME}),
+            ("bar", "visualize.bar", {"variable": "comment_theme"}),
+        ],
+        [("src", "data", "code", "data"), ("code", "data", "bar", "data")],
+    )
+    survey = from_document(questionnaire_doc).survey
+    responses = survey.simulate(n=16, seed=4)
+    responses = responses.with_frame(
+        responses.frame.assign(comment=[COMMENTS[i % len(COMMENTS)] for i in range(16)])
+    )
+    (tmp_path / "analysis").mkdir()
+    (tmp_path / CODEFRAME).write_text(json.dumps(frame), encoding="utf-8")
+    codeframes = read_codeframes(flow, tmp_path)
+    assert codeframes == {CODEFRAME: frame}
+    assert check_flow(flow, questionnaire=questionnaire_doc, codeframes=codeframes) == []
+    code = generate_flow(flow, questionnaire_doc, codeframes=codeframes)
+    assert "text_coding.apply(n_src, _codeframe, into=None" in code
+    runner = FlowRunner(
+        flow, questionnaire=survey, questionnaire_document=questionnaire_doc, codeframes=codeframes
+    )
+    result = runner.run(sources={"src": responses}, cwd=tmp_path)
+    assert result.ok and result.output("code", "data").frame["comment_theme"].iloc[0] == [1]
+    # Without them, none of the three knows the name.
+    assert [i.code for i in check_flow(flow, questionnaire=questionnaire_doc)] == [
+        "UNKNOWN_VARIABLE"
+    ]
+    with pytest.raises(FlowError, match="unknown variable 'comment_theme'"):
+        generate_flow(flow, questionnaire_doc)
+    with pytest.raises(FlowError, match="unknown variable 'comment_theme'"):
+        FlowRunner(flow, questionnaire=survey, questionnaire_document=questionnaire_doc)
+    # The command line reads the codeframes where the flow runs.
+    flow_path, q_path = tmp_path / "comments.flow.json", tmp_path / "q.json"
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    q_path.write_text(json.dumps(questionnaire_doc), encoding="utf-8")
+    snapshot = write_snapshot(responses, tmp_path / "responses.csv")
+    monkeypatch.chdir(tmp_path)
+    assert run_check(str(flow_path), questionnaire=str(q_path)) == 0
+    assert run_flow(str(flow_path), data=[str(snapshot)], questionnaire=str(q_path)) == 0
+    monkeypatch.chdir(tmp_path / "analysis")
+    assert run_check(str(flow_path), questionnaire=str(q_path)) == 1
+    # A file that is not JSON is a codeframe the run could not apply.
+    (tmp_path / CODEFRAME).write_text("{not json", encoding="utf-8")
+    broken = read_codeframes(flow, tmp_path)
+    issues = check_flow(flow, questionnaire=questionnaire_doc, codeframes=broken)
+    assert "PARAM_INVALID" in {i.code for i in issues}
 
 
 def _comments_flow():

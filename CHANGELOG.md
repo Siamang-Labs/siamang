@@ -25,27 +25,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   within a clause or the whole answer. A term is a word or phrase with `*` for
   word forms (`delay*`), `|` for alternatives (`slow|late`), `not_word` for a
   negated mention only and `A ~N B` for words within N of each other, either
-  order; it matches only mentions that are not negated (`late` does not match
-  *wasn't late*) unless the negation is its own (`don't know`). There are no
-  regular expressions (`re:` is refused). The words are Unicode — letters,
-  digits and combining marks of any script, inner apostrophes kept, case-folded,
-  diacritics kept — so an answer in any language is kept and matched; the
-  negations (*not, no, never, n't…*, reaching three words, stopped by
-  punctuation and *and, or, yet, but…*), clause words (*but, however,
-  although…*) and stop words are English. Only fingerprints of answers are kept:
-  a version 2 file with `examples` or an assignment keyed by text is refused.
+  order, between two punctuation marks; it matches only mentions that are not
+  negated (`late` does not match *wasn't late*) unless the negation is its own
+  (`don't know`) or the one a `not_` word asks for (`not_friendly staff` finds
+  *no friendly staff*). There are no regular expressions (`re:` is refused).
+  The words are Unicode — letters, digits and combining marks of any script,
+  inner apostrophes kept, case-folded, diacritics kept — so an answer in any
+  language is kept and matched; a "word" over 200 characters (a pasted string)
+  matches no term. An n't form is one however it is typed: *dont* is *don't*,
+  *cannot* and *can not* are *can't*, *do not*, *would not*… are *don't*,
+  *wouldn't*…, in the answers and in the terms, so `don't know` finds *I dont
+  know* and *I do not know*, and `not` in a term stands for every negation
+  written with it (`not happy` finds *wasn't happy*). The negations (*not, no,
+  never, n't…*, reaching three words, stopped by the end of a clause and *and,
+  or, yet*), clause words (*but, however, although…*) and stop words are
+  English. A clause ends at punctuation, at a line break (an answer on several
+  lines is read line by line, its fingerprint that of the same words on one),
+  at a bullet or `|`, and at `-`, `/`, `·` that do not join two letters (*fast
+  - cheap*, but *e-mail*, *n/a*). Only fingerprints of answers are kept: a
+  version 2 file with `examples` or an assignment keyed by text is refused, and
+  a theme code outside the 32-bit range is an error.
   `siamang.data.text_rules` holds the rules; `text_coding` gains
   `validate(codeframe)` (every error and warning with its path — unknown codes,
   duplicate codes and replacements, empty and unreadable terms, terms that can
   never match: `theme 4 (Mail): include term 'e-mail' can never match: '-' is
   not part of a word — …`), `preview(answers, codeframe)` (each distinct
   answer's codes and whether a coder or which rule gave them, with the term and
-  the words it matched; counts per theme and net; coverage — 50,000 distinct
-  answers against 30 themes of 10 terms in a few seconds), `explain(text,
+  the words it matched; counts per theme and net; coverage; and per theme and
+  answer `negated`, what reading a negated mention as no match costs the theme
+  — *never received my parcel* is not *Parcel* — for a coder to read; 50,000
+  distinct answers against 30 themes of 10 terms in a few seconds, a codeframe
+  at the limits over a thousand answers in about one, and an answer costs no
+  more than its length: a word is looked up by its beginning and end, a term
+  tried only where its first word is and only in an answer holding each of
+  its words), `explain(text,
   codeframe)` (the words with their negations, the clauses, every rule that
   fired, was vetoed or was blocked by a negation and why, the themes set aside),
   `suggest(answers, n)` (frequent words and two-word phrases of the uncoded
-  answers, stop words left out), `coding`, `sources`, and `coverage` gains
+  answers, stop words left out, a negated mention counted apart as
+  `not_word`), `coding`, `sources`, and `coverage` gains
   `by_hand`, `by_rules` and `no_theme`. The theme table of a version 2
   codeframe counts respondents: each theme and each net (`Delivery (net)`, a
   respondent once, its themes under it) as a share of those who answered (with
@@ -55,10 +73,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by rules`. `check_flow(..., codeframes={path: document})` knows the theme
   variable a Code open answers node makes — its name when **Theme variable** is
   empty, multiple-choice when the codeframe gives several themes an answer (a
-  donut, a Split by or a banner of it is refused as for a multiple-choice
-  question) — and reports a codeframe the run could not apply. A version 1
-  codeframe is read and applied exactly as before: the same variable, table,
-  chart and generated code.
+  donut, a Split by, a banner or a Likert chart of it is refused as for a
+  multiple-choice question) — and reports a codeframe the run could not apply;
+  `resolve_flow`, `FlowRunner` and `generate_flow` take the same `codeframes`,
+  so what the check passes the run runs and the generator writes, and
+  `read_codeframes(flow, root)` reads them from where the flow runs (as
+  `siamang flow check`, `flow run` and `codegen` do). A coder's several themes
+  come in the order of the themes. A version 1 codeframe is read and applied
+  as before: the same variable, table, chart and generated code.
 
 - **Charts in the report theme's colours: `palette="theme"`.** A `ReportTheme`
   names chart colours — `chart_palette` (a list of hex colours, the series in
@@ -774,6 +796,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `=` is never a formula, and its links quote a sheet's name.
 
 ### Fixed
+
+- **A missing open answer is not an answer.** A text column that holds its
+  missing values as `pd.NA` (a `string` column, `convert_dtypes()`) or `NaT`
+  had them read as the texts *<NA>* and *NaT*: `text_coding.normalise` gave
+  `<na>`, so the coverage and the theme table of a codeframe counted those
+  respondents as having answered (uncoded), and a version 2 rule for *na*
+  coded them. Every missing value — `None`, NaN, `pd.NA`, `NaT` — is now
+  blank, in version 1 as in version 2. A version 1 codeframe whose theme code
+  its theme variable cannot hold (2⁶³ or more) is refused when it is read
+  (`CodeframeError`) rather than failing when it is applied.
 
 - **A frequency table of codes with a stray text among them.** Frequencies
   sorted a column's values as they came, and a column holding codes and a

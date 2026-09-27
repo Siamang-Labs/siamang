@@ -7,31 +7,49 @@ second step. It is deliberately small and literal, because a rule a researcher
 cannot predict is a rule nobody can defend:
 
 * An answer is **normalised** as :func:`siamang.data.text_coding.normalise`
-  does (Unicode NFKC, case-folded, whitespace collapsed), its apostrophes made
-  one (``’`` → ``'``), then the codeframe's **replacements** applied — whole
-  words or phrases, for synonyms and typos.
+  does (Unicode NFKC, case-folded, whitespace collapsed — but a run of it that
+  holds a line break is one line break), its apostrophes made one (``’`` →
+  ``'``), then the codeframe's **replacements** applied — whole words or
+  phrases, for synonyms and typos.
 * It is split into **words**: runs of letters, digits and combining marks in
   any script, with an apostrophe inside a word kept (``wasn't``). Diacritics
   stay (``café`` is not ``cafe``). Every other character separates words, and
-  ``. , ; : ! ? ( ) [ ] { } – — …`` (and their CJK, Arabic and Devanagari
-  forms) also end a **clause**, as do the words *but, however, although,
-  though, whereas, except* and *plus*.
+  a line break, ``. , ; : ! ? ( ) [ ] { } – — ‒ ― … • ◦ ‣ ▪ |`` (and their
+  CJK, Arabic and Devanagari forms) also end a **clause**, as do ``- / ·``
+  when they do not join two letters (*fast - cheap*, but not *e-mail* or
+  *n/a*) and the words *but, however, although, though, whereas, except* and
+  *plus*.
+* The n't forms are read as one: ``dont`` (typed without its apostrophe) as
+  ``don't``, ``cannot`` and ``can not`` as ``can't``, ``do not`` as ``don't``
+  and so on for the auxiliary verbs — in the answers and in the terms alike, so
+  a term ``don't know`` finds *I dont know* and *I do not know*, and
+  ``would not recommend`` finds *wouldn't recommend*. The word ``not`` in a
+  term stands for every negation written with it: ``not happy`` finds *wasn't
+  happy*.
 * A **negation** — *not, no, never, cannot, without, nothing, none, nobody,
-  neither, nor, hardly, barely* and every *n't* form (``wasn't``, and
-  ``wasnt`` typed without its apostrophe) — marks the next three words as
-  negated, stopping early at a clause's end and at *and, or, yet*. The packs
-  are English; an answer in another language keeps its words and matches terms
-  in them, but no negation is found in it.
+  neither, nor, hardly, barely* and every *n't* form — marks the next three
+  words as negated, stopping early at a clause's end and at *and, or, yet*.
+  The packs are English; an answer in another language keeps its words and
+  matches terms in them, but no negation is found in it.
 
 A **term** is a word or phrase in the same normal form, and what it may say is
 short: ``delay*`` (``*`` for any letters: *delay, delays, delayed*),
 ``slow|late`` (either word at that place), ``not_late`` (only a negated
 mention: *wasn't late*, *never late*), ``staff ~3 rude`` (the two within three
-words of each other, in either order). A term matches only mentions that are
-**not** negated — ``late`` does not match *wasn't late* — unless the negation
-is part of the term itself (``not late``, ``don't know``). There are no
-regular expressions: a pattern language is a way to write a rule nobody can
-read back, and a server that runs them runs whatever it is sent.
+words of each other, in either order, between two punctuation marks). A term
+matches only mentions that are **not** negated — ``late`` does not match
+*wasn't late* — unless the negation is part of the term itself (``not late``,
+``don't know``) or the term asks for it (``not_friendly staff`` finds *no
+friendly staff*: the staff are under the negation the term asks for). There
+are no regular expressions: a pattern language is a way to write a rule
+nobody can read back, and a server that runs them runs whatever it is sent.
+
+What coding an answer costs grows with its length and no faster: each distinct
+word is looked up once, in a time that does not depend on how long it is (a
+"word" longer than the longest term, 200 characters — a pasted link or string
+— is no word a term can name, and matches none), and a term is tried only
+where its first word is and only in an answer that holds a form of each of its
+words.
 
 Everything here is a pure function of the codeframe and the text: no model,
 no network, no state that outlives a call except caches of the compiled rules.
@@ -79,16 +97,47 @@ NEGATORS = frozenset(
 #: The n't forms as respondents type them without the apostrophe.
 BARE_NT = frozenset(
     "dont doesnt didnt isnt wasnt arent werent cant couldnt wont wouldnt shouldnt "
-    "havent hasnt hadnt aint mustnt neednt".split()
+    "havent hasnt hadnt aint mustnt neednt shant".split()
 )
+#: Each read as its n't form (and *cannot* as *can't*), in an answer and in a
+#: term, so the spellings are one.
+SPELLED = {**{bare: bare[:-2] + "n't" for bare in sorted(BARE_NT)}, "cannot": "can't"}
+#: An auxiliary verb followed by *not* is read as its n't form (*do not* as
+#: *don't*), in an answer and in a term, so the two spellings are one.
+CONTRACTED = {
+    "do": "don't",
+    "does": "doesn't",
+    "did": "didn't",
+    "is": "isn't",
+    "are": "aren't",
+    "was": "wasn't",
+    "were": "weren't",
+    "has": "hasn't",
+    "have": "haven't",
+    "had": "hadn't",
+    "can": "can't",
+    "could": "couldn't",
+    "will": "won't",
+    "would": "wouldn't",
+    "shall": "shan't",
+    "should": "shouldn't",
+    "must": "mustn't",
+    "need": "needn't",
+    "might": "mightn't",
+}
 #: How many words after a negation it reaches.
 NEGATION_WINDOW = 3
 #: Words that end a negation's reach (as a clause's end does).
 NEGATION_STOPS = frozenset("but however although though whereas except plus and or yet".split())
 #: Words that end a clause (as punctuation does).
 CLAUSE_WORDS = frozenset("but however although though whereas except plus".split())
-#: Characters that end a clause: sentence and list punctuation, brackets, dashes.
-BOUNDARIES = ".,;:!?()[]{}–—…¡¿。，、；：！？؟،؛।॥"
+#: Characters that end a clause: line breaks, sentence and list punctuation,
+#: brackets, dashes, bullets.
+BOUNDARIES = ".,;:!?()[]{}–—‒―…•◦‣▪|¡¿。，、；：！？؟،؛।॥" "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029"
+#: Characters that join the parts of a word (*e-mail*, *n/a*, *col·legi*) and
+#: end a clause where they do not stand between two letters (*fast - cheap*,
+#: *late / damaged*, a list's ``- item``).
+JOINERS = "-‐‑−/·"
 #: Words too common to suggest as a term.
 STOP_WORDS = frozenset(
     """
@@ -107,9 +156,11 @@ _APOSTROPHES = str.maketrans(dict.fromkeys("‘’ʼ`´′＇", "'"))
 #: As the rules read an answer: one apostrophe, and no underscore (which
 #: ``\w`` counts as a letter, and a word here does not).
 _READ = str.maketrans({**dict.fromkeys("‘’ʼ`´′＇", "'"), "_": " "})
-#: The longest a term may be, and the widest a proximity (``~N``).
+#: The longest a term may be (and a word that can match one), and the widest
+#: a proximity (``~N``).
 MAX_TERM_LENGTH = 200
 MAX_GAP = 20
+_NO_PATTERNS: frozenset[int] = frozenset()
 
 
 @lru_cache(maxsize=1)
@@ -140,9 +191,13 @@ def _word_class() -> str:
 
 @lru_cache(maxsize=1)
 def _patterns() -> tuple[re.Pattern[str], re.Pattern[str]]:
-    char = f"[{_word_class()}]"
+    letters = _word_class()
+    char = f"[{letters}]"
     word = f"{char}+(?:'{char}+)*"
-    tokens = re.compile(f"(?P<w>{word})|(?P<b>[{re.escape(BOUNDARIES)}]+)")
+    joiner = f"[{re.escape(JOINERS)}]"
+    # A joiner ends a clause unless a letter is on both sides of it.
+    loose = f"(?<![{letters}]){joiner}|{joiner}(?![{letters}])"
+    tokens = re.compile(f"(?P<w>{word})|(?P<b>[{re.escape(BOUNDARIES)}]+|{loose})")
     return tokens, re.compile(word)
 
 
@@ -188,29 +243,37 @@ class Analysis:
         return " ".join(self.words[min(spots) : max(spots) + 1])
 
 
-_PLAIN, _ENDS_CLAUSE, _ENDS_NEGATION, _NEGATES = 0, 1, 2, 3
-_KINDS: dict[str, int] = {}
+_PLAIN, _ENDS_CLAUSE, _ENDS_NEGATION, _NEGATES, _NOT = 0, 1, 2, 3, 4
+#: A word as it is written -> as the rules read it (``dont`` as ``don't``),
+#: and what it does.
+_KINDS: dict[str, tuple[str, int]] = {}
 
 
-def _kind(word: str) -> int:
-    kind = _KINDS.get(word)
-    if kind is None:
-        if word in CLAUSE_WORDS:
+def _kind(word: str) -> tuple[str, int]:
+    known = _KINDS.get(word)
+    if known is None:
+        read = SPELLED.get(word, word)
+        if read in CLAUSE_WORDS:
             kind = _ENDS_CLAUSE
-        elif word in NEGATION_STOPS:
+        elif read in NEGATION_STOPS:
             kind = _ENDS_NEGATION
-        elif is_negator(word):
+        elif read == "not":
+            kind = _NOT
+        elif is_negator(read):
             kind = _NEGATES
         else:
             kind = _PLAIN
+        known = (read, kind)
         if len(_KINDS) < 200_000:
-            _KINDS[word] = kind
-    return kind
+            _KINDS[word] = known
+    return known
 
 
 def analyse(text: str) -> Analysis:
     """Split ``text`` — already normalised and replaced — into words, and mark
-    the clauses and the negated words."""
+    the clauses and the negated words. An n't form typed without its
+    apostrophe, *cannot*, and an auxiliary verb followed by *not* are read as
+    one n't word (:data:`SPELLED`, :data:`CONTRACTED`)."""
 
     tokens, _ = _patterns()
     words: list[str] = []
@@ -220,6 +283,7 @@ def analyse(text: str) -> Analysis:
     current_clause, current_segment = 0, 0
     clause_open = False
     reach, source = 0, -1
+    after_word = False
     for word, _ in tokens.findall(text):
         if not word:  # punctuation: the clause and any negation end here
             if clause_open:
@@ -228,10 +292,18 @@ def analyse(text: str) -> Analysis:
             if words and segment[-1] == current_segment:
                 current_segment += 1
             reach = 0
+            after_word = False
             continue
-        kind = _KINDS.get(word)
-        if kind is None:
-            kind = _kind(word)
+        known = _KINDS.get(word)
+        word, kind = _kind(word) if known is None else known
+        if kind == _NOT and after_word and words[-1] in CONTRACTED:
+            # "do not" is "don't": one word, which negates the ones after it.
+            index = len(words) - 1
+            words[index] = CONTRACTED[words[index]]
+            negated_by[index] = -1
+            reach, source = NEGATION_WINDOW, index
+            continue
+        after_word = True
         index = len(words)
         words.append(word)
         segment.append(current_segment)
@@ -248,7 +320,7 @@ def analyse(text: str) -> Analysis:
         if kind == _ENDS_NEGATION:
             reach = 0
             negated_by.append(-1)
-        elif kind == _NEGATES:
+        elif kind >= _NEGATES:
             reach, source = NEGATION_WINDOW, index
             negated_by.append(-1)
         elif reach:
@@ -346,7 +418,7 @@ def parse_term(term: Any) -> tuple[Term, list[str]]:
 
 def _phrase(parts: list[str], warnings: list[str], whole: str) -> tuple[tuple[Atom, ...], ...]:
     words = []
-    for part in parts:
+    for part in _contract(parts, warnings):
         alternatives = part.split("|")
         if any(not alternative for alternative in alternatives):
             raise TermError(f"'{part}' has an empty alternative: write slow|late")
@@ -358,6 +430,7 @@ def _phrase(parts: list[str], warnings: list[str], whole: str) -> tuple[tuple[At
                 raise TermError("not_ needs a word after it: not_late")
             if not core.replace("*", ""):
                 raise TermError("* stands for letters of a word and needs some of its own: delay*")
+            core = SPELLED.get(core, core)
             problem = _never_a_word(core)
             if problem:
                 warnings.append(
@@ -369,6 +442,27 @@ def _phrase(parts: list[str], warnings: list[str], whole: str) -> tuple[tuple[At
             atoms.append(Atom(core, negated))
         words.append(tuple(atoms))
     return tuple(words)
+
+
+def _contract(parts: list[str], warnings: list[str]) -> list[str]:
+    """A term's words as the answers' are read: an auxiliary verb followed by
+    *not* is its n't form (``do not know`` is ``don't know``)."""
+    kept: list[str] = []
+    for part in parts:
+        if part == "not" and kept:
+            cores = [SPELLED.get(alternative, alternative) for alternative in kept[-1].split("|")]
+            if all(core in CONTRACTED for core in cores):
+                kept[-1] = "|".join(dict.fromkeys(CONTRACTED[core] for core in cores))
+                continue
+            if any(core in CONTRACTED for core in cores):
+                verbs = [core for core in cores if core in CONTRACTED]
+                warnings.append(
+                    f"has a part that can never match, '{verbs[0]} not': an answer's "
+                    f"'{verbs[0]} not' is read as '{CONTRACTED[verbs[0]]}' — write it as a "
+                    "term of its own"
+                )
+        kept.append(part)
+    return kept
 
 
 def _never_a_word(core: str) -> str | None:
@@ -425,6 +519,11 @@ class _Compiled:
     second: tuple[tuple[tuple[int, bool], ...], ...]
     gap: int
     dead: bool
+    #: The patterns of each word after the first: an answer that holds none
+    #: of one word's patterns cannot hold the term.
+    needs: tuple[frozenset[int], ...] = ()
+    #: Whether a word of it asks for a negated mention (not_).
+    asks: bool = False
 
 
 class RuleSet:
@@ -432,7 +531,14 @@ class RuleSet:
     every term becomes one pattern, every term is filed under the patterns
     its first word may take, and an answer's words are looked up once each
     (and remembered), so coding an answer costs what its words match rather
-    than what the codeframe holds."""
+    than what the codeframe holds.
+
+    A word's patterns are found by lookups rather than by trying each form: an
+    exact form by the word, ``delay*`` by the word's beginning (one lookup for
+    each length a form's beginning has), ``*ing`` by its end, and a form with
+    ``*`` inside by its first or last letters, or by three letters of its
+    middle, before it is matched in full. A term is tried only where its first
+    word is, and only in an answer that holds a form of each of its words."""
 
     def __init__(self, themes: Sequence[RuleTheme], replace: Sequence[tuple[str, str]] = ()):
         self.themes = tuple(themes)
@@ -444,18 +550,30 @@ class RuleSet:
         self._pattern_ids: dict[str, int] = {}
         self._terms: list[_Compiled] = []
         self._term_ids: dict[str, int] = {}
-        #: pattern id -> the terms whose first word may take it
+        #: pattern id -> the terms whose first word may take it, and have no
+        #: other word / have others (what else they need is in ``needs``)
         self._anchored: dict[int, list[int]] = {}
+        self._anchored_alone: dict[int, list[int]] = {}
         self._exact: dict[str, list[int]] = {}
+        #: a form's beginning (``delay`` of ``delay*``) or end -> its patterns
         self._prefix: dict[str, list[int]] = {}
         self._suffix: dict[str, list[int]] = {}
-        self._other: list[tuple[int, tuple[str, ...]]] = []
+        #: a form with one * inside (``c*ng``): its beginning -> its end -> patterns
+        self._between: dict[str, dict[str, list[int]]] = {}
+        #: forms with more: filed by their longer end, else by three letters of
+        #: their longest inner piece, and matched in full when found
+        self._head: dict[str, list[tuple[int, tuple[str, ...]]]] = {}
+        self._tail: dict[str, list[tuple[int, tuple[str, ...]]]] = {}
+        self._inner: dict[str, list[tuple[int, tuple[str, ...]]]] = {}
         self._seen: dict[str, frozenset[int]] = {}
         #: term id -> the rules (by index) it is an include term of
         self._including: dict[int, list[int]] = {}
         self.rules: list[
             tuple[RuleTheme, tuple[int, ...], tuple[tuple[int, ...], ...], tuple[int, ...]]
         ] = []
+        #: per rule: its include terms' ranks, its require groups and its
+        #: exclude terms, as sets
+        self._sets: list[tuple[dict[int, int], tuple[frozenset[int], ...], frozenset[int]]] = []
         for theme in self.themes:
             if not theme.include:
                 continue
@@ -465,6 +583,24 @@ class RuleSet:
             for number in include:
                 self._including.setdefault(number, []).append(len(self.rules))
             self.rules.append((theme, include, require, exclude))
+            self._sets.append(
+                (
+                    {n: i for i, n in reversed(list(enumerate(include)))},
+                    tuple(frozenset(group) for group in require),
+                    frozenset(exclude),
+                )
+            )
+
+        def lengths(index: dict[str, Any]) -> tuple[int, ...]:
+            return tuple(sorted({len(key) for key in index}))
+
+        self._prefix_lengths = lengths(self._prefix)
+        self._suffix_lengths = lengths(self._suffix)
+        self._between_lengths = lengths(self._between)
+        self._between_ends = {head: lengths(ends) for head, ends in self._between.items()}
+        self._head_lengths = lengths(self._head)
+        self._tail_lengths = lengths(self._tail)
+        self._inner_lengths = lengths(self._inner)
 
     # ── compiling ──
 
@@ -479,16 +615,25 @@ class RuleSet:
         first = tuple(self._word(atoms) for atoms in term.first)
         second = tuple(self._word(atoms) for atoms in term.second)
         dead = not first or any(not atoms for atoms in (*first, *second))
+        needs = tuple(frozenset(p for p, _ in atoms) for atoms in (*first[1:], *second))
+        asks = any(negated for atoms in (*first, *second) for _, negated in atoms)
         number = len(self._terms)
-        self._terms.append(_Compiled(term, first, second, term.gap, dead))
+        self._terms.append(_Compiled(term, first, second, term.gap, dead, needs, asks))
         self._term_ids[key] = number
         if not dead:
+            anchored = self._anchored if needs else self._anchored_alone
             for pattern in {pattern for pattern, _ in first[0]}:
-                self._anchored.setdefault(pattern, []).append(number)
+                anchored.setdefault(pattern, []).append(number)
         return number
 
     def _word(self, atoms: tuple[Atom, ...]) -> tuple[tuple[int, bool], ...]:
-        return tuple((self._pattern(atom.core), atom.negated) for atom in atoms)
+        alternatives: list[tuple[int, bool]] = []
+        for atom in atoms:
+            alternatives.append((self._pattern(atom.core), atom.negated))
+            if atom.core == "not" and not atom.negated:
+                # "not" in a term is every negation written with it: wasn't…
+                alternatives.append((self._pattern("*n't"), False))
+        return tuple(dict.fromkeys(alternatives))
 
     def _pattern(self, core: str) -> int:
         if core in self._pattern_ids:
@@ -496,15 +641,23 @@ class RuleSet:
         number = len(self._patterns)
         self._patterns.append(core)
         self._pattern_ids[core] = number
-        stars = core.count("*")
-        if not stars:
+        pieces = tuple(core.split("*"))
+        if len(pieces) == 1:
             self._exact.setdefault(core, []).append(number)
-        elif stars == 1 and core.endswith("*"):
-            self._prefix.setdefault(core[:-1], []).append(number)
-        elif stars == 1 and core.startswith("*"):
-            self._suffix.setdefault(core[1:], []).append(number)
+        elif len(pieces) == 2 and not pieces[1]:
+            self._prefix.setdefault(pieces[0], []).append(number)
+        elif len(pieces) == 2 and not pieces[0]:
+            self._suffix.setdefault(pieces[1], []).append(number)
+        elif len(pieces) == 2:
+            ends = self._between.setdefault(pieces[0], {})
+            ends.setdefault(pieces[1], []).append(number)
+        elif pieces[0] and len(pieces[0]) >= len(pieces[-1]):
+            self._head.setdefault(pieces[0], []).append((number, pieces))
+        elif pieces[-1]:
+            self._tail.setdefault(pieces[-1], []).append((number, pieces))
         else:
-            self._other.append((number, tuple(core.split("*"))))
+            inner = max(pieces, key=len)
+            self._inner.setdefault(inner[:3], []).append((number, pieces))
         return number
 
     # ── reading an answer ──
@@ -517,19 +670,53 @@ class RuleSet:
         return analysis
 
     def _patterns_of(self, word: str) -> frozenset[int]:
+        """The patterns ``word`` takes. Each lookup is of a piece of the word
+        no longer than a form, so a long word costs no more than a short one."""
         known = self._seen.get(word)
         if known is not None:
             return known
+        size = len(word)
+        if size > MAX_TERM_LENGTH:
+            return _NO_PATTERNS  # no term is that long; a link or a pasted string
         found: set[int] = set(self._exact.get(word, ()))
-        if self._prefix:
-            for end in range(len(word) + 1):
-                found.update(self._prefix.get(word[:end], ()))
-        if self._suffix:
-            for start in range(len(word) + 1):
-                found.update(self._suffix.get(word[start:], ()))
-        for number, pieces in self._other:
-            if _glob(pieces, word):
-                found.add(number)
+        for length in self._prefix_lengths:
+            if length > size:
+                break
+            found.update(self._prefix.get(word[:length], ()))
+        for length in self._suffix_lengths:
+            if length > size:
+                break
+            found.update(self._suffix.get(word[size - length :], ()))
+        for length in self._between_lengths:
+            if length >= size:
+                break
+            ends = self._between.get(word[:length])
+            if ends is not None:
+                for tail in self._between_ends[word[:length]]:
+                    if length + tail > size:
+                        break
+                    found.update(ends.get(word[size - tail :], ()))
+        for length in self._head_lengths:
+            if length > size:
+                break
+            for number, pieces in self._head.get(word[:length], ()):
+                if _glob(pieces, word):
+                    found.add(number)
+        for length in self._tail_lengths:
+            if length > size:
+                break
+            for number, pieces in self._tail.get(word[size - length :], ()):
+                if _glob(pieces, word):
+                    found.add(number)
+        if self._inner:
+            tried: set[int] = set()
+            for length in self._inner_lengths:
+                for start in range(size - length + 1):
+                    for number, pieces in self._inner.get(word[start : start + length], ()):
+                        if number not in tried:
+                            tried.add(number)
+                            if _glob(pieces, word):
+                                found.add(number)
         result = frozenset(found)
         if len(self._seen) < 500_000:
             self._seen[word] = result
@@ -537,29 +724,56 @@ class RuleSet:
 
     def replaced(self, normalised: str) -> str:
         """An answer's normalised text with one apostrophe and the replacements
-        made: the text the rules read."""
+        made: the text the rules read (where its lines break kept)."""
         text = rule_text(normalised)
         if self._replace_re is not None:
             text = self._replace_re.sub(lambda m: self._replacements[m.group(0)], text)
-            text = " ".join(text.split())
+            text = "\n".join(filter(None, (" ".join(line.split()) for line in text.splitlines())))
         return text
 
     def matches(
-        self, analysis: Analysis, *, ignore_negation: bool = False
+        self,
+        analysis: Analysis,
+        *,
+        ignore_negation: bool = False,
+        blocked: dict[int, dict[int, str]] | None = None,
     ) -> dict[int, dict[int, str]]:
         """Every term that matches ``analysis``: term id -> {clause: the words
         it matched there} (clause -1 for a match that reaches across clauses,
-        which only a rule over the whole answer takes)."""
+        which only a rule over the whole answer takes). ``blocked``, when
+        given, gets the same of the terms whose words are there but negated
+        other than the term asks."""
 
         found: dict[int, dict[int, str]] = {}
-        tried: set[tuple[int, int]] = set()
+        if not analysis.matched:
+            return found
+        present = frozenset().union(*analysis.matched)
+        # The terms worth trying at a word of each pattern: those whose every
+        # other word has a form in this answer.
+        live: dict[int, list[int]] = {}
+        for pattern in present:
+            alone = self._anchored_alone.get(pattern, ())
+            others = [
+                number
+                for number in self._anchored.get(pattern, ())
+                if all(not need.isdisjoint(present) for need in self._terms[number].needs)
+            ]
+            if alone or others:
+                live[pattern] = [*alone, *others]
+        if not live:
+            return found
         for position, patterns in enumerate(analysis.matched):
+            if len(patterns) == 1:
+                for pattern in patterns:
+                    for number in live.get(pattern, ()):
+                        self._match_at(number, position, analysis, found, ignore_negation, blocked)
+                continue
+            tried: set[int] = set()  # a term under two of this word's patterns
             for pattern in patterns:
-                for number in self._anchored.get(pattern, ()):
-                    if (number, position) in tried:
-                        continue
-                    tried.add((number, position))
-                    self._match_at(number, position, analysis, found, ignore_negation)
+                for number in live.get(pattern, ()):
+                    if number not in tried:
+                        tried.add(number)
+                        self._match_at(number, position, analysis, found, ignore_negation, blocked)
         return found
 
     def _match_at(
@@ -569,6 +783,7 @@ class RuleSet:
         analysis: Analysis,
         found: dict[int, dict[int, str]],
         ignore_negation: bool,
+        blocked: dict[int, dict[int, str]] | None = None,
     ) -> None:
         term = self._terms[number]
         first = _phrase_at(term.first, start, analysis)
@@ -589,14 +804,18 @@ class RuleSet:
                 if second is not None and analysis.segment[other] == analysis.segment[start]:
                     spans.append((first[0] + second[0], first[1] + second[1]))
         for positions, atoms in spans:
-            if not ignore_negation and not _negation_fits(positions, atoms, analysis):
-                continue
+            into = found
+            if not ignore_negation and not _negation_fits(positions, atoms, analysis, term.asks):
+                if blocked is None:
+                    continue
+                into = blocked
             clauses = {analysis.clause[p] for p in positions}
             where = clauses.pop() if len(clauses) == 1 else -1
-            hits = found.setdefault(number, {})
-            hits.setdefault(where, analysis.fragment(positions))
-            if where != -1:
-                hits.setdefault(-1, analysis.fragment(positions))
+            hits = into.setdefault(number, {})
+            if where not in hits:
+                hits[where] = analysis.fragment(positions)
+            if where != -1 and -1 not in hits:
+                hits[-1] = hits[where]
 
     # ── themes ──
 
@@ -610,20 +829,38 @@ class RuleSet:
             return fired
         texts: list[str] | None = None
         candidates = sorted({r for n in found for r in self._including.get(n, ())})
-        for theme, include, require, exclude in (self.rules[r] for r in candidates):
+        for index in candidates:
+            # What of the rule is in the answer: read from the terms found,
+            # not from the rule's lists, which may be long.
+            theme, include, require_terms, exclude_terms = self.rules[index]
+            rank, require, exclude = self._sets[index]
+            hits = (
+                [n for n in include if n in found]
+                if len(include) <= len(found)
+                else sorted((n for n in found if n in rank), key=rank.__getitem__)
+            )
+            needed = [
+                [n for n in terms if n in found]
+                if len(terms) <= len(found)
+                else [n for n in found if n in group]
+                for terms, group in zip(require_terms, require, strict=True)
+            ]
+            vetoes = (
+                [n for n in exclude_terms if n in found]
+                if len(exclude_terms) <= len(found)
+                else [n for n in found if n in exclude]
+            )
             if theme.scope == ANSWER:
-                if all(any(n in found for n in group) for group in require) and not any(
-                    n in found for n in exclude
-                ):
-                    number = next(n for n in include if n in found)
+                if all(needed) and not vetoes:
+                    number = hits[0]
                     fired.append(Fired(theme, self.term_text(number), found[number][-1], -1))
                 continue
-            clauses = sorted({c for n in include if n in found for c in found[n] if c >= 0})
+            clauses = sorted({c for n in hits for c in found[n] if c >= 0})
             for clause in clauses:
-                if all(
-                    any(clause in found.get(n, ()) for n in group) for group in require
-                ) and not any(clause in found.get(n, ()) for n in exclude):
-                    number = next(n for n in include if clause in found.get(n, ()))
+                if all(any(clause in found[n] for n in group) for group in needed) and not any(
+                    clause in found[n] for n in vetoes
+                ):
+                    number = next(n for n in hits if clause in found[n])
                     texts = analysis.clause_texts() if texts is None else texts
                     fired.append(
                         Fired(
@@ -636,6 +873,28 @@ class RuleSet:
                     )
                     break
         return fired
+
+    def negated(
+        self, found: dict[int, dict[int, str]], blocked: dict[int, dict[int, str]]
+    ) -> list[tuple[RuleTheme, str, str]]:
+        """The themes an include term of which is in the answer only negated
+        other than it asks — where it is (its clause, or the answer), no
+        include term of the theme matches — with the term and the words:
+        what the rule that a negated mention does not match costs each theme,
+        for a coder to read (``matches(..., blocked=…)`` gives ``blocked``)."""
+        out: list[tuple[RuleTheme, str, str]] = []
+        for index in sorted({r for n in blocked for r in self._including.get(n, ())}):
+            theme = self.rules[index][0]
+            rank = self._sets[index][0]
+            matched = [n for n in found if n in rank]
+            for number in sorted((n for n in blocked if n in rank), key=rank.__getitem__):
+                hits = blocked[number]
+                units = [-1] if theme.scope == ANSWER else [c for c in hits if c >= 0]
+                unit = next((u for u in units if not any(u in found[n] for n in matched)), None)
+                if unit is not None:
+                    out.append((theme, self.term_text(number), hits[unit]))
+                    break
+        return out
 
     def term_text(self, number: int) -> str:
         return self._terms[number].term.text
@@ -797,14 +1056,30 @@ def _phrase_at(
 
 
 def _negation_fits(
-    positions: list[int], atoms: list[tuple[tuple[int, bool], ...]], analysis: Analysis
+    positions: list[int],
+    atoms: list[tuple[tuple[int, bool], ...]],
+    analysis: Analysis,
+    asks: bool = True,
 ) -> bool:
     """Whether each word is mentioned as its term asks: negated for a not_
     form, else not negated — or negated by a word of the term itself, as
-    *not late* and *don't know* are."""
+    *not late* and *don't know* are, or by the negation a not_ form of the
+    term asks for (``not_friendly staff``: *no friendly staff*). ``asks``
+    False says no word of the term is a not_ form."""
+    negated_by = analysis.negated_by
+    if not asks:
+        for position in positions:
+            source = negated_by[position]
+            if source >= 0 and source not in positions:
+                return False
+        return True
     inside = set(positions)
     for position, alternatives in zip(positions, atoms, strict=True):
-        source = analysis.negated_by[position]
+        source = negated_by[position]
+        if source >= 0 and any(negated for _, negated in alternatives):
+            inside.add(source)  # the negation this term asks for is its own
+    for position, alternatives in zip(positions, atoms, strict=True):
+        source = negated_by[position]
         if not any(
             (source >= 0) if negated else (source < 0 or source in inside)
             for _, negated in alternatives

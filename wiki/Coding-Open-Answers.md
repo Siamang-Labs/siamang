@@ -23,7 +23,8 @@ Each answer is coded by the first of:
    rules run at every run.
 3. **Nothing.** The answer is *uncoded*: left for you to read.
 
-A blank answer is not an answer and is never coded.
+A blank answer — an empty cell, or a missing value however the column holds
+it (`None`, `NaN`, `pd.NA`, `NaT`) — is not an answer and is never coded.
 
 ---
 
@@ -131,29 +132,56 @@ matches there.
 | `delay*` | *delay*, *delays*, *delayed* | *relay* |
 | `slow\|late` | *slow* or *late* | |
 | `customer service` | *the customer service was bad* | *service to the customer* |
-| `staff ~3 rude` | *the staff were very rude*, *rude staff* | *rude. The staff* |
+| `staff ~3 rude` | *the staff were very rude*, *rude staff* | *rude. The staff*, *rude, the staff* |
 | `not_late` | *wasn't late*, *never late* | *it was late* |
-| `don't know` | *I don't know* | *I don't really know* (write `don't ~2 know`) |
+| `not_friendly staff` | *no friendly staff* | *friendly staff* |
+| `don't know` | *I don't know*, *I dont know*, *I do not know* | *I don't really know* (write `don't ~2 know`) |
+| `would not recommend` | *would not recommend*, *wouldn't recommend* | |
+| `not happy` | *not happy*, *wasn't happy* | *never happy* |
 
 - `*` stands for any letters of a word, anywhere in it (`*charg*`).
 - `|` gives alternatives at one place of a phrase: `customer serv*|support`.
 - `~N` finds two words (or phrases) within N words of each other, in either
-  order, in one sentence.
+  order, between two punctuation marks — a comma or a line break ends its
+  reach as a full stop does.
 - A term matches a mention that is **not negated**. `not_word` matches only a
   negated one. A negation written in the term (`not late`, `no problems`,
-  `don't know`) is the term's own.
+  `don't know`) is the term's own, and so is the one a `not_` word asks for:
+  in *no friendly staff*, `not_friendly staff` finds the staff under it.
 - There are no regular expressions: `re:` is refused.
+- A "word" longer than 200 characters — a pasted link or string — matches no
+  term.
+
+**One n't form, however it is typed.** *dont* is read as *don't*, *cannot* and
+*can not* as *can't*, and *do not*, *was not*, *would not*… as *don't*,
+*wasn't*, *wouldn't* (after *do, does, did, is, are, was, were, has, have,
+had, can, could, will, would, shall, should, must, need, might*) — in the
+answers and in your terms alike. So `don't know` and `do not know` are the
+same term, and each finds all three spellings. The word `not` in a term stands
+for every negation written with *not*: `not happy` finds *wasn't happy*.
+`explain` shows the words as they are read.
 
 **Negation.** *not, no, never, cannot, without, nothing, none, nobody, neither,
-nor, hardly, barely* and every *n't* form (also typed without the apostrophe:
-*dont*, *wasnt*, *cant*…) negate the next three words, stopping at punctuation
-and at *and, or, yet, but, however, although, though, whereas, except, plus*.
-So in *not cheap, and fast* only *cheap* is negated.
+nor, hardly, barely* and every *n't* form negate the next three words,
+stopping at the end of a clause and at *and, or, yet*. So in *not cheap, and
+fast* only *cheap* is negated.
 
-**Clauses** end at punctuation and at *but, however, although, though,
-whereas, except, plus*. In *Delivery was quick but the box was damaged*, a theme
-that requires *delivery* and includes *damaged* does not match in clause scope
-— they are in different clauses — and does with `"scope": "answer"`.
+**Clauses** end at a line break, at punctuation (`. , ; : ! ? ( ) [ ] { }`,
+the dashes `– —`, `…`, a bullet `•`, `|`), at `-`, `/` and `·` when they do
+not join two letters (*fast - cheap*, *late / broken*, a list's `- item`; but
+*e-mail* and *n/a* stay whole), and at *but, however, although, though,
+whereas, except, plus*. In *Delivery was quick but the box was damaged*, a
+theme that requires *delivery* and includes *damaged* does not match in clause
+scope — they are in different clauses — and does with `"scope": "answer"`. An
+answer written on several lines is read line by line: *Not happy* on one line
+does not negate *Price too high* on the next. (Its fingerprint, and so your
+decision for it, is that of the same words on one line.)
+
+**What negation costs.** A mention under a negation does not match, so
+*never received my parcel* is not coded *Parcel*, nor *not enough staff*
+*Staff*. `preview` counts, per theme, the respondents it loses this way
+(`negated`) and lists them per answer, so you can read them: a `not_` term or
+your own decision codes the ones that belong.
 
 **Other languages.** Words are Unicode: *Цена*, *café*, *नमस्ते* are words, and
 terms in them match. Only negation is English — an answer in another language
@@ -205,7 +233,8 @@ e["codes"]     # [2]
 Each rule is `fired`, `vetoed` (a `require` missing or an `exclude` present,
 with the reason) or `negation` (the words are there, negated). `dropped` lists
 the themes that matched and were set aside — an exclusive theme, a cut by
-priority — and why.
+priority — and why. `tokens` are the words as the rules read them (*do not*
+as *don't*), each with the word that negates it.
 
 `preview` codes a whole list of answers with their counts and gives, per
 distinct answer, its codes, whether they came from you or from a rule (with the
@@ -218,8 +247,13 @@ p["coverage"]
 #  'no_theme': 3, 'percent_coded': 93.8}
 ```
 
+Each theme also has `negated`: the respondents who mention one of its include
+terms only negated and did not get it (see *What negation costs*).
+
 It is fast enough to run as you edit: 50,000 different answers against 30
-themes of 10 terms each take a few seconds.
+themes of 10 terms each take a few seconds, and what an answer costs grows
+with its length and no faster — a long pasted answer, or one word of a
+hundred thousand letters, takes no longer than its reading.
 
 ---
 
@@ -234,8 +268,9 @@ text_coding.suggest({"The app crashes": 3, "app crashes all the time": 2}, 5, co
 #  'phrases': [{'term': 'app crashes', 'count': 5, 'example': 'The app crashes'}]}
 ```
 
-English stop words are left out, and a word mostly met negated comes as
-`not_word` — a term you can paste as it is.
+English stop words are left out, and a negated mention is counted apart, as
+`not_word` — a term you can paste as it is — so a word can come both ways
+(`fast` and `not_fast`).
 
 ---
 
@@ -247,6 +282,19 @@ statistics (coverage, coded by hand and by rules). A codeframe that gives
 several themes an answer makes a multiple-choice variable, so a later chart or
 tab book treats it as one. See [[Reporting Tables|Reporting-Tables]] for the
 table.
+
+The theme variable holds the themes: an answer you decided has no theme and
+an uncoded one have none there. So a frequency or crosstab of it counts the
+respondents *with a theme*, while the theme table counts everyone who
+answered — its **No theme** and **Uncoded** rows are the difference. Quote
+the table for the share of respondents who said something.
+
+When **Theme variable** is left empty, the variable takes the name the
+codeframe carries (`into`). Checking the flow, running it and writing its
+script know that name only when they are given the codeframe
+(`check_flow`, `FlowRunner` and `generate_flow` take `codeframes=`;
+`siamang flow check`, `flow run` and `codegen` read it where the flow runs) —
+writing the name in **Theme variable** makes a flow that never depends on it.
 
 ---
 

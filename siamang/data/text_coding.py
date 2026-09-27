@@ -178,10 +178,20 @@ class Codeframe:
     #: (from, to): words or phrases replaced before the rules read an answer.
     replace: tuple[tuple[str, str], ...] = ()
     _compiled: Any = field(default=None, init=False, repr=False, compare=False)
+    _ranks: Any = field(default=None, init=False, repr=False, compare=False)
 
     @property
     def labels(self) -> dict[int, str]:
         return {theme.code: theme.label for theme in self.themes}
+
+    @property
+    def ranks(self) -> dict[int, tuple[float, int]]:
+        """Each theme's rank: (-priority, its place in ``themes``) — the
+        highest priority first, ties by order."""
+        if self._ranks is None:
+            ranks = {t.code: (-float(t.priority), i) for i, t in enumerate(self.themes)}
+            object.__setattr__(self, "_ranks", ranks)
+        return cast(dict[int, tuple[float, int]], self._ranks)
 
     @property
     def nets(self) -> dict[str, tuple[int, ...]]:
@@ -286,12 +296,43 @@ def normalise(text: Any) -> str:
 
     Not stemmed and not stripped of punctuation: two answers that differ by a
     word are different answers, and deciding they are not is the coding scheme's
-    job, not the lookup's.
+    job, not the lookup's. A missing value — ``None``, NaN, ``pd.NA``, ``NaT`` —
+    is blank, not the text it would print as.
     """
 
-    if text is None or (isinstance(text, float) and pd.isna(text)):
+    if _missing(text):
         return ""
     return _SPACE_RE.sub(" ", unicodedata.normalize("NFKC", str(text)).strip()).casefold()
+
+
+def _missing(value: Any) -> bool:
+    """A missing answer however the column holds it: None, NaN, ``pd.NA``,
+    ``NaT`` — never the text ``<NA>`` or ``nan`` it would print as."""
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return False
+    return bool(pd.api.types.is_scalar(value) and pd.isna(value))
+
+
+def _read(text: Any) -> str:
+    """An answer as the rules read it: :func:`normalise`, except that a run of
+    whitespace holding a line break is one line break (``\\n``), which ends a
+    clause. ``_read(t).replace("\\n", " ") == normalise(t)``, so the answer's
+    fingerprint is the one it always had."""
+    if _missing(text):
+        return ""
+    lines = unicodedata.normalize("NFKC", str(text)).strip().splitlines()
+    if len(lines) == 1:
+        return _SPACE_RE.sub(" ", lines[0]).casefold()
+    # Each run of whitespace holding a line break becomes one line break, as
+    # normalise() makes it one space: the lines, despaced, empty ones dropped.
+    return "\n".join(filter(None, (_SPACE_RE.sub(" ", line).strip() for line in lines))).casefold()
+
+
+def _normal(read: str) -> str:
+    """:func:`normalise`'s text of an answer :func:`_read` read."""
+    return read.replace("\n", " ") if "\n" in read else read
 
 
 def fingerprint(text: Any) -> str:
@@ -341,8 +382,11 @@ def parse(payload: Mapping[str, Any]) -> Codeframe:
             raise CodeframeError("codeframe: a theme must be an object")
         try:
             code = int(entry["code"])
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
             raise CodeframeError("codeframe: a theme needs an integer code") from exc
+        if not -(2**63) <= code < 2**63:
+            # The theme variable holds 64-bit integers; this one it cannot.
+            raise CodeframeError(f"codeframe: theme code {code} is out of range")
         label = str(entry.get("label") or "").strip()
         if not label:
             raise CodeframeError(f"codeframe: theme {code} has no label")
@@ -530,6 +574,11 @@ _THEME_KEYS = frozenset({"code", "label", "definition", "group", "exclusive", "p
 _RULE_KEYS = frozenset({"include", "require", "exclude", "scope"})
 
 
+#: The codes a theme may have: what a variable's value labels hold in every
+#: format the data is written to (a 32-bit integer).
+CODE_RANGE = (-(2**31), 2**31 - 1)
+
+
 def _as_code(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
@@ -609,6 +658,8 @@ def _read_v2(payload: Mapping[str, Any]) -> tuple[Codeframe | None, list[Codefra
         error(f"more than {MAX_THEMES_V2} themes", "themes")
         raw_themes = []
     codes: dict[int, Theme] = {}
+    #: each theme read, by code -> its place in the JSON's list
+    places: dict[int, int] = {}
     labels: dict[str, int] = {}
     for index, entry in enumerate(raw_themes):
         theme = _read_theme(entry, index, scope, replaced_words, error, warn)
@@ -617,6 +668,7 @@ def _read_v2(payload: Mapping[str, Any]) -> tuple[Codeframe | None, list[Codefra
         if theme.code in codes:
             error(f"theme code {theme.code} appears twice", "themes", index, "code")
             continue
+        places[theme.code] = index
         folded = theme.label.casefold()
         if folded in labels:
             warn(
@@ -634,11 +686,10 @@ def _read_v2(payload: Mapping[str, Any]) -> tuple[Codeframe | None, list[Codefra
             groups.setdefault(theme.group, []).append(theme.code)
     for name, members in groups.items():
         if len(members) == 1:
-            index = next(i for i, t in enumerate(themes) if t.code == members[0])
             warn(
                 f"the net {name!r} has one theme ({members[0]}), so no net row is shown for it",
                 "themes",
-                index,
+                places[members[0]],
                 "group",
             )
 
@@ -740,6 +791,14 @@ def _read_theme(
     code = _as_code(entry.get("code"))
     if code is None:
         error("a theme needs a whole-number code", *where, "code")
+        return None
+    if not CODE_RANGE[0] <= code <= CODE_RANGE[1]:
+        error(
+            f"theme code {code} is out of range: a code is a whole number from "
+            f"{CODE_RANGE[0]} to {CODE_RANGE[1]}",
+            *where,
+            "code",
+        )
         return None
     label = entry.get("label")
     label = label.strip() if isinstance(label, str) else ""
@@ -981,31 +1040,44 @@ class Coding:
     codes: tuple[int, ...] | None
     source: str
     fired: tuple[text_rules.Fired, ...] = ()
+    #: For an answer the rules read: the themes an include term of which is
+    #: in it only negated (and that it did not get), with the term and words.
+    negated: tuple[tuple[text_rules.RuleTheme, str, str], ...] = ()
 
 
 _BLANK = Coding(None, "blank")
 _UNCODED = Coding(None, "uncoded")
 
 
-def _code_text(codeframe: Codeframe, normalised: str) -> Coding:
-    if not normalised:
+def _code_text(codeframe: Codeframe, read: str) -> Coding:
+    """How an answer :func:`_read` read is coded."""
+    if not read:
         return _BLANK
-    manual = codeframe.assignments.get(_fingerprint_of(normalised))
+    manual = codeframe.assignments.get(_fingerprint_of(_normal(read)))
     if codeframe.version < 2:
         return _UNCODED if manual is None else Coding((int(manual),), "hand")
     if manual is not None:
+        rank = codeframe.ranks
+        last = (math.inf, math.inf)
         if not codeframe.multiple and len(manual) > 1:
-            order = {t.code: (-float(t.priority), i) for i, t in enumerate(codeframe.themes)}
-            manual = (min(manual, key=order.__getitem__),)
-        return Coding(tuple(manual), "hand")
+            manual = (min(manual, key=lambda code: rank.get(code, last)),)
+        # In the order of the themes, as the rules give theirs.
+        return Coding(tuple(sorted(manual, key=lambda code: rank.get(code, last)[1])), "hand")
     rules = codeframe.rule_set
     if not rules.rules:
         return _UNCODED
-    fired = rules.fire(rules.prepare(normalised))
+    analysis = rules.prepare(read)
+    blocked: dict[int, dict[int, str]] = {}
+    found = rules.matches(analysis, blocked=blocked)
+    fired = rules.fire(analysis, found)
     kept, _ = text_rules.resolve(fired, multiple=codeframe.multiple, max_codes=codeframe.max_codes)
+    negated: tuple[tuple[text_rules.RuleTheme, str, str], ...] = ()
+    if blocked:
+        got = {f.theme.code for f in kept}
+        negated = tuple(item for item in rules.negated(found, blocked) if item[0].code not in got)
     if not kept:
-        return _UNCODED
-    return Coding(tuple(f.theme.code for f in kept), "rule", tuple(kept))
+        return Coding(None, "uncoded", (), negated) if negated else _UNCODED
+    return Coding(tuple(f.theme.code for f in kept), "rule", tuple(kept), negated)
 
 
 def coding(series: Iterable[Any], codeframe: Codeframe) -> list[Coding]:
@@ -1018,7 +1090,7 @@ def coding(series: Iterable[Any], codeframe: Codeframe) -> list[Coding]:
     for value in series:
         known = by_value.get(value) if isinstance(value, str) else None
         if known is None:
-            text = normalise(value)
+            text = _read(value)
             known = by_text.get(text)
             if known is None:
                 known = by_text[text] = _code_text(codeframe, text)
@@ -1192,8 +1264,11 @@ def _as_codeframe(codeframe: Mapping[str, Any] | Codeframe) -> Codeframe:
 
 def _distinct(answers: Any) -> list[tuple[str, str, int]]:
     """``answers`` — a mapping of answer to count, pairs of the two, answers
-    alone, or a Series of them — as (text, normalised text, count), one per
-    fingerprint (the first text seen, the counts summed), blanks left out."""
+    alone, or a Series of them — as (text, text as :func:`_read` reads it,
+    count), one per answer as the rules read it (the first text seen, the
+    counts summed), blanks and missing values left out. Two answers that
+    differ only in where their lines break share a fingerprint but are read
+    apart."""
 
     if isinstance(answers, pd.Series):
         items: Iterable[Any] = ((value, 1) for value in answers)
@@ -1207,18 +1282,18 @@ def _distinct(answers: Any) -> list[tuple[str, str, int]]:
             text, count = item
         else:
             text, count = item, 1
-        normalised = normalise(text)
-        if not normalised:
+        read = _read(text)
+        if not read:
             continue
         try:
             count = int(count)
         except (TypeError, ValueError):
             count = 1
-        if normalised in merged:
-            merged[normalised][2] += count
+        if read in merged:
+            merged[read][2] += count
         else:
-            merged[normalised] = [str(text), normalised, count]
-    return [(text, normalised, count) for text, normalised, count in merged.values()]
+            merged[read] = [str(text), read, count]
+    return [(text, read, count) for text, read, count in merged.values()]
 
 
 def _percent(part: int, whole: int) -> float:
@@ -1232,14 +1307,24 @@ def preview(
     """How ``codeframe`` codes ``answers`` — each distinct answer with how many
     gave it — as JSON-ready data for an editor to show:
 
-    * ``answers``: one entry per distinct answer (by fingerprint, in the order
-      given): ``text``, ``count``, ``fingerprint``, ``codes``, ``source``
-      (``hand`` | ``rule`` | ``uncoded``) and, for ``rule``, ``hits`` — each
-      theme's ``code``, ``label``, the include ``term`` that matched, the
-      ``fragment`` it matched and the ``clause`` it was in;
+    * ``answers``: one entry per distinct answer (in the order given; answers
+      that differ only in case, spacing or Unicode form are one, and so share
+      a fingerprint — two that differ in where their lines break share it
+      too, but are two entries, since a line break ends a clause):
+      ``text``, ``count``, ``fingerprint``, ``codes`` (in the themes' order),
+      ``source`` (``hand`` | ``rule`` | ``uncoded``), for ``rule`` the
+      ``hits`` — each theme's ``code``, ``label``, the include ``term`` that
+      matched, the ``fragment`` it matched and the ``clause`` it was in — and,
+      for ``rule`` and ``uncoded``, ``negated``: the themes it did not get
+      although an include term of theirs is in it, negated (``code``,
+      ``label``, ``term``, ``fragment``);
     * ``themes``: per theme its ``count`` of respondents (answers × counts),
-      ``percent`` of those who answered, and how many of them by hand and by
-      rules;
+      ``percent`` of those who answered, how many of them by hand and by
+      rules, and ``negated`` — the respondents who did not get it although
+      they mention an include term of it, negated (*never received my
+      parcel*): what reading negated mentions as not matching costs the
+      theme, to be read with :func:`explain` (a ``not_`` term or a coder's
+      decision codes them);
     * ``nets``: per net (a group of two or more themes) its ``count`` —
       a respondent once, however many of its themes they have — and percent;
     * ``coverage``: :func:`coverage`'s counts, of respondents, and ``distinct``
@@ -1251,20 +1336,25 @@ def preview(
 
     cf = _as_codeframe(codeframe)
     distinct = _distinct(answers)
-    coded = [_code_text(cf, normalised) for _, normalised, _ in distinct]
+    coded = [_code_text(cf, read) for _, read, _ in distinct]
     weights = [count for _, _, count in distinct]
     counts = tally(coded, weights)
     answered = counts["answered"]
-    per_theme = {theme.code: {"count": 0, "by_hand": 0, "by_rules": 0} for theme in cf.themes}
+    per_theme = {
+        theme.code: {"count": 0, "by_hand": 0, "by_rules": 0, "negated": 0} for theme in cf.themes
+    }
     nets = cf.nets
     per_net = dict.fromkeys(nets, 0)
     rows = []
-    for (text, normalised, count), result in zip(distinct, coded, strict=True):
+    for (text, read, count), result in zip(distinct, coded, strict=True):
         got = result.codes or ()
         for code in got:
             if code in per_theme:
                 per_theme[code]["count"] += count
                 per_theme[code]["by_hand" if result.source == "hand" else "by_rules"] += count
+        for theme, _, _ in result.negated:
+            if theme.code in per_theme:
+                per_theme[theme.code]["negated"] += count
         for name, members in nets.items():
             if any(code in members for code in got):
                 per_net[name] += count
@@ -1272,7 +1362,7 @@ def preview(
             {
                 "text": text,
                 "count": count,
-                "fingerprint": _fingerprint_of(normalised),
+                "fingerprint": _fingerprint_of(_normal(read)),
                 "codes": list(got),
                 "source": result.source,
                 "hits": [
@@ -1284,6 +1374,10 @@ def preview(
                         "clause": fired.where,
                     }
                     for fired in result.fired
+                ],
+                "negated": [
+                    {"code": theme.code, "label": theme.label, "term": term, "fragment": fragment}
+                    for theme, term, fragment in result.negated
                 ],
             }
         )
@@ -1316,21 +1410,24 @@ def preview(
 def explain(text: Any, codeframe: Mapping[str, Any] | Codeframe) -> dict[str, Any]:
     """Why ``text`` is coded as it is, step by step, as JSON-ready data:
 
-    ``normalised`` (the text the rules read: normalised, one apostrophe, the
-    replacements made), ``fingerprint``, ``tokens`` (each ``word``, whether it
-    is ``negated`` and by which word, its ``clause``), ``clauses``, ``manual``
-    (a coder's decision for this answer, or None — it overrides the rules),
+    ``normalised`` (the text the rules read: normalised with its line breaks
+    kept, one apostrophe, the replacements made), ``fingerprint``, ``tokens``
+    (each ``word`` as the rules read it — *do not* as *don't* — whether it is
+    ``negated`` and by which word, its ``clause``), ``clauses``, ``manual`` (a
+    coder's decision for this answer, or None — it overrides the rules),
     ``rules`` (every rule whose include term matched, or would have but for a
-    negation: ``status`` ``fired`` | ``vetoed`` | ``negated``, the ``term``, the
-    ``fragment``, the ``clause`` and the ``reason``), ``dropped`` (themes that
-    fired and were set aside, and why) and the result: ``codes`` and ``source``.
+    negation: ``status`` ``fired`` | ``vetoed`` | ``negation``, the ``term``,
+    the ``fragment``, the ``clause`` and the ``reason``), ``dropped`` (themes
+    that fired and were set aside, and why) and the result: ``codes`` and
+    ``source``.
     """
 
     cf = _as_codeframe(codeframe)
-    normalised = normalise(text)
-    result = _code_text(cf, normalised)
+    read = _read(text)
+    normalised = _normal(read)
+    result = _code_text(cf, read)
     rules = cf.rule_set
-    analysis = rules.prepare(normalised)
+    analysis = rules.prepare(read)
     clause_of = {c: i for i, c in enumerate(sorted({c for c in analysis.clause if c >= 0}))}
     manual = cf.assignments.get(_fingerprint_of(normalised)) if normalised else None
     if manual is not None and cf.version < 2:
@@ -1338,7 +1435,7 @@ def explain(text: Any, codeframe: Mapping[str, Any] | Codeframe) -> dict[str, An
     fired = rules.fire(analysis)
     _, dropped = text_rules.resolve(fired, multiple=cf.multiple, max_codes=cf.max_codes)
     return {
-        "text": "" if text is None else str(text),
+        "text": "" if _missing(text) else str(text),
         "normalised": analysis.text,
         "fingerprint": _fingerprint_of(normalised),
         "tokens": [
@@ -1375,16 +1472,18 @@ def suggest(
     uncoded ones, with their counts): ``words`` and ``phrases``, the ``n``
     commonest of each held by at least ``min_count`` respondents, each with its
     ``count`` and one ``example`` answer. English stop words are left out; a
-    word mostly met negated comes as ``not_word``, a term that finds it. With
-    a ``codeframe`` its replacements are made first, and the answers it codes
+    negated mention is counted apart, as ``not_word`` — the term that finds it
+    — so a word can come both ways (``fast`` and ``not_fast``). With a
+    ``codeframe`` its replacements are made first, and the answers it codes
     left out."""
 
     cf = None if codeframe is None else _as_codeframe(codeframe)
     rules = cf.rule_set if cf is not None and cf.version >= 2 else None
     items = []
-    for text, normalised, count in _distinct(answers):
-        if cf is not None and _code_text(cf, normalised).source != "uncoded":
+    for text, read, count in _distinct(answers):
+        if cf is not None and _code_text(cf, read).source != "uncoded":
             continue
-        read = rules.replaced(normalised) if rules is not None else text_rules.rule_text(normalised)
-        items.append((text, read, count))
+        items.append(
+            (text, rules.replaced(read) if rules is not None else text_rules.rule_text(read), count)
+        )
     return text_rules.suggest_terms(items, n=max(0, int(n)), min_count=min_count)

@@ -15,6 +15,7 @@ results.
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Mapping
 from typing import Any
 
 from siamang.codegen.emit import comment_text
@@ -44,16 +45,20 @@ def generate_flow(
     questionnaire_module: str = "survey.questionnaire",
     platform_module: str = "siamang_studio",
     format: bool = True,
+    codeframes: Mapping[str, Any] | None = None,
 ) -> str:
     """Render the flow as a Python script.
 
     ``questionnaire`` is the questionnaire document; when given, variable
     parameters are checked against its codebook. ``questionnaire_module`` is
     where the script imports ``survey`` from; ``platform_module`` is the SDK
-    that provides ``db`` on the platform.
+    that provides ``db`` on the platform. ``codeframes`` as
+    :func:`~siamang.flow.check_flow` takes them.
     """
 
-    graph = resolve_flow(document, registry=registry, questionnaire=questionnaire)
+    graph = resolve_flow(
+        document, registry=registry, questionnaire=questionnaire, codeframes=codeframes
+    )
     code = _Generator(
         graph, header or DEFAULT_HEADER, questionnaire_module, platform_module
     ).render()

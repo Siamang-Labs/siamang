@@ -237,8 +237,9 @@ Code open answers node may name, by the path it names them by (`./` and `\`
 are read as the node would): with one, the theme variable is known by the name
 the codeframe gives it when **Theme variable** (`into`) is empty, it holds
 multiple-choice answers when the codeframe gives several themes an answer — so
-a donut, a Split by, a stack, a Trend's Time or By and a Tab book's banner of
-it are the errors they are for a multiple-choice question (`bar: comment_theme
+a donut, a Split by, a stack, a Trend's Time or By, a Tab book's banner and a
+Likert chart's item of it are the errors they are for a multiple-choice
+question (`bar: comment_theme
 allows several answers, so its shares add up to more than 100 % and are not
 the parts of a whole: draw them as bars (Layout = grouped).`) — a codeframe the
 run could not apply is `PARAM_INVALID` (`Parameter 'codeframe' of code:
@@ -246,6 +247,16 @@ analysis/comment.codeframe.json cannot be applied: theme 1 (Late): include term
 're:late': regular expressions are not supported: …`), and one that codes a
 variable the questionnaire does not have is `UNKNOWN_VARIABLE`. Without it the
 check is what it was: the theme variable is `into`, nominal.
+`resolve_flow`, `FlowRunner(..., codeframes=…)` and `generate_flow(...,
+codeframes=…)` take the same mapping, so a flow the check passes because it
+knows the codeframe's name for the theme variable is one the run runs and the
+generator writes; without it, all of them refuse a node naming it
+(`UNKNOWN_VARIABLE`), as before. `read_codeframes(flow, root=".")` reads the
+codeframe files the flow's Code open answers nodes name from the directory the
+flow runs in (`{path: document}`; a missing file is left out, one that is not
+JSON is passed as its text and reported as a codeframe that cannot be
+applied), and `siamang flow check`, `flow run` (from `--cwd`) and `siamang
+codegen` of a flow read them so.
 
 `check_flow` knows the variables these create before a run: `into` of Bands,
 and one score variable per item of the named MaxDiff question (its `choices`,
@@ -554,7 +565,7 @@ Variables in the rendered code are `n_<id>` for a single output and
 ## `FlowRunner`
 
 ```python
-runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=doc)
+runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=doc, codeframes=None)
 result = runner.run(sources={"src": data_or_path}, db=None, cwd="work", upto=None)
 ```
 
@@ -564,7 +575,8 @@ sources by node id (a `SurveyData` or a snapshot path, read with
 module (`as_survey_data`, `write_table`); `cwd` is where relative output
 paths land; `upto` runs a node and its ancestors only. With
 `raise_on_error=False` the run stops at the first failing node and reports
-it instead of raising.
+it instead of raising. `codeframes` (`{path: document}`, as `check_flow` takes
+them) name the theme variable a Code open answers node leaves unnamed.
 
 A chart is drawn at its node, so what it cannot draw fails that node; it is
 rendered to a PNG at its own `dpi` there and its figure released
@@ -590,7 +602,8 @@ the row count of a `SurveyData`.
 ```python
 generate_flow(flow, questionnaire=None, *, registry=None, header=None,
               questionnaire_module="survey.questionnaire",
-              platform_module="siamang_studio", format=True) -> str
+              platform_module="siamang_studio", format=True,
+              codeframes=None) -> str
 ```
 
 Sections: docstring (title, description, `header` with `{schema}` and
