@@ -253,7 +253,7 @@ EXPECTED = {
     "c_pca": ("scree", "weighted by 'weight'", "DataFrame"),
     "c_fac": ("loadings", "unweighted (the weight 'weight' is not applied)", "ResultTable"),
     "c_clu": ("profile", "unweighted (the weight 'weight' is not applied)", "DataFrame"),
-    "c_reg": ("coefficients", "weighted by 'weight'", "DataFrame"),
+    "c_reg": ("coefficients", "weighted by 'weight'", "RegressionTable"),
     "c_cor": ("heatmap", "weighted by 'weight'", "CorrelationMatrixTable"),
 }
 

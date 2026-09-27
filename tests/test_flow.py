@@ -756,7 +756,10 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
     assert exploded.variables["aware_1"].label == "Brands heard of (unaided): Acme"
     assert "rho" in result.output("corr")
     assert set(result.output("cmp")) >= {"statistic", "p_value"}
-    assert list(result.output("reg", "table")["term"])[:2] == ["(intercept)", "age"]
+    # The Regression node's table is the model for a reader; the model's own
+    # coefficients are kept beside it.
+    assert list(result.output("reg", "table").result.table["term"])[:2] == ["(intercept)", "age"]
+    assert list(result.output("reg", "table").to_frame()["Term"])[:2] == ["(Intercept)", "Age"]
     assert result.output("reg", "stat")["model"] == "WLS"  # the flow applied a weight
     assert list(result.output("pca", "loadings").columns) == ["item", "PC1", "PC2"]
     assert "segment" in result.output("clu", "data").frame.columns
@@ -764,6 +767,16 @@ def test_every_prepare_analyze_visualize_node_runs(questionnaire_doc, survey, re
         result.output("sel").frame.dropna(subset=["age", "satisfaction"])
     )
     assert "alpha" in result.output("rel", "stat")
+    reliability = result.output("rel", "table")
+    assert list(reliability.to_frame().columns) == [
+        "Variable",
+        "Label",
+        "Mean",
+        "Item-total r",
+        "Alpha if deleted",
+    ]
+    assert reliability.stats["Cronbach's alpha"] == round(result.output("rel", "stat")["alpha"], 3)
+    assert reliability.stats["Weight"] == "weight"
     # After Apply weight every result either uses the weight or says it does not.
     unweighted = "unweighted (the weight 'weight' is not applied)"
     assert result.output("corr")["weight"] == unweighted
