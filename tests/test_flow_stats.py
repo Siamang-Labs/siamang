@@ -361,6 +361,14 @@ BEFORE = {
         "    else n_src.analysis.kruskal('satisfaction', 'region')\n"
         ")\n"
     ),
+    # Before Number clusters by.
+    ("analyze.cluster", '{"items": ["age", "satisfaction"], "k": 3, "into": "segment"}'): (
+        "_clusters = n_src.cluster(['age', 'satisfaction'], k=3, into='segment', seed=42, "
+        "standardize=True)\n"
+        "n_n_data = _clusters.data\n"
+        "n_n_table = _clusters.centroids\n"
+        "n_n_stat = _clusters.stats\n"
+    ),
     # Before Duplicates also match on.
     ("prepare.quality", '{"items": ["trust_acme", "trust_globex"], "expected": {"gender": 1}}'): (
         "_flags = quality.quality_flags(\n"
@@ -432,6 +440,25 @@ def test_duplicates_can_match_on_more_than_the_battery(questionnaire_doc, survey
     flags = result.outputs["n"]["data"].frame["quality_flags"]
     assert "duplicate" in flags[first] and "duplicate" in flags.iloc[-2]
     assert "duplicate" not in flags[other] and "duplicate" not in flags.iloc[-1]
+
+
+def test_clusters_can_be_numbered_by_an_items_mean(questionnaire_doc, survey, tmp_path):
+    """Cluster's Number clusters by: written when set, one of the Items or an
+    error in the check, and run the clusters come numbered by that item."""
+    params = {"items": ["age", "satisfaction"], "k": 3, "into": "segment", "number_by": "age"}
+    flow, issues = _one("analyze.cluster", params, questionnaire_doc)
+    assert issues == []
+    code = render_node(resolve_flow(flow, questionnaire=questionnaire_doc), "n")
+    assert "number_by='age'," in code
+    _, issues = _one("analyze.cluster", {**params, "number_by": "trust_acme"}, questionnaire_doc)
+    assert [issue.message for issue in issues] == [
+        "n: Number clusters by must be one of the Items."
+    ]
+    result = FlowRunner(flow, questionnaire=survey).run(
+        sources={"src": survey.simulate(n=120, seed=4)}, cwd=tmp_path, raise_on_error=True
+    )
+    assert result.outputs["n"]["table"]["age"].is_monotonic_increasing
+    assert result.outputs["n"]["stat"]["numbered_by"] == "mean of age, lowest first"
 
 
 # ─── a flow with every new option ────────────────────────────────────────────

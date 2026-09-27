@@ -37,9 +37,32 @@ params:
     kind: bool
     default: true
     label: Standardize items
+  number_by:
+    kind: variable
+    scales:
+    - ordinal
+    - interval
+    - ratio
+    label: Number clusters by
+    help: Optional, one of the Items. Empty, the clusters are numbered by size, largest first; set, by this item's mean, lowest first. Two segments of close sizes swap numbers when a few respondents come or go, and a name given to a number (with Derive) then lands on the other segment; numbered by the item that tells them apart, each keeps its number.
 subtitle: '{k} clusters → {into}'
-template: |
-  _clusters = {in.data}.cluster({items!r}, k={k!r}, into={into!r}, seed={seed!r}, standardize={standardize!r})
+template:
+# Number clusters by is written only when it is set, so a stored flow renders
+# the code it did.
+- when: number_by=None
+  code: |
+    _clusters = {in.data}.cluster({items!r}, k={k!r}, into={into!r}, seed={seed!r}, standardize={standardize!r})
+- when: number_by!=None
+  code: |
+    _clusters = {in.data}.cluster(
+        {items!r},
+        k={k!r},
+        into={into!r},
+        seed={seed!r},
+        standardize={standardize!r},
+        number_by={number_by!r},
+    )
+- |
   {out.data} = _clusters.data
   {out.table} = _clusters.centroids
   {out.stat} = _clusters.stats

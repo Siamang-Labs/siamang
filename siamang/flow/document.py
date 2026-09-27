@@ -974,7 +974,8 @@ def _check_design(
 ) -> list[FlowIssue]:
     """What a node's parameters settle before any data, beyond the rules its
     grammar can say: how many variables a paired test compares (an error — the
-    run would refuse it), a Bar chart's Bins that are not auto, a number or
+    run would refuse it), a Cluster numbered by a variable that is not one of
+    its Items (an error), a Bar chart's Bins that are not auto, a number or
     increasing edges (an error), and a t-test of two groups whose Groups has
     more than two answers in the codebook with none named (a warning: a filter
     upstream may leave two in the data)."""
@@ -991,6 +992,19 @@ def _check_design(
     problem = _method_problem(spec.type, params)
     if problem:
         return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {problem}", node_id)]
+    if (
+        spec.type == "analyze.cluster"
+        and isinstance(params.get("number_by"), str)
+        and params.get("number_by") not in (params.get("items") or [])
+    ):
+        return [
+            FlowIssue(
+                "error",
+                "PARAM_CONFLICT",
+                f"{node_id}: Number clusters by must be one of the Items.",
+                node_id,
+            )
+        ]
     if (
         spec.type == "visualize.bar"
         and isinstance(params.get("split"), str)
