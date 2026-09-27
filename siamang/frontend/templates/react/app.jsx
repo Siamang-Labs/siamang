@@ -1046,6 +1046,46 @@ function ClosedScreen({ reason, redirectUrl }) {
   );
 }
 
+/* ─── Sending the answers ──────────────────────────────────────────────── */
+
+/* While the answers are on their way, and when they did not arrive. Shown over
+   a page with questions and over an ending page alike: an ending page is where
+   most surveys send their answers, and it must not read as done while they
+   are still being sent, or when they could not be. */
+function SubmittingOverlay({ uiTexts }) {
+  return (
+    <div className="siamang-loading-overlay" role="alert" aria-live="assertive">
+      <div className="siamang-loading-overlay__spinner"><div className="siamang-spinner"></div></div>
+      <p className="siamang-loading-overlay__text">{uiTexts.submitting}</p>
+    </div>
+  );
+}
+
+/* A failed submission, before the last attempt: try again, or keep the answers
+   in this browser and finish. The body is the transport's word on why, when it
+   has one (respondentMessage), else the survey's retry text. */
+function RetryDialog({ uiTexts, attempts, message, onRetry, onSaveLocal }) {
+  return (
+    <div className="siamang-retry-overlay" role="dialog" aria-modal="true" aria-label={uiTexts.retryTitle}>
+      <div className="siamang-retry-dialog">
+        <div className="siamang-retry-dialog__icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M12 7v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <circle cx="12" cy="16" r="0.8" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 className="siamang-retry-dialog__title">{uiTexts.retryTitle}</h3>
+        <p className="siamang-retry-dialog__body">{message || uiTexts.retryBody} {fillText(uiTexts.attempt, { n: attempts, max: 3 })}</p>
+        <div className="siamang-retry-dialog__actions">
+          <button className="sd-btn sd-navigation__next-btn" onClick={onRetry}>{uiTexts.retryAction}</button>
+          <button className="sd-btn sd-navigation__prev-btn" onClick={onSaveLocal}>{uiTexts.saveLocalAction}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Terminal pages (disqualification / final / redirect) ─────────────── */
 
 function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiTexts }) {
@@ -1173,7 +1213,7 @@ function App() {
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish: finishSaved } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef);
 
   // ─── Submission ───
-  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submit } = useSubmission(store, finishSaved, surveyId);
+  const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submitMessage, submit } = useSubmission(store, finishSaved, surveyId);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const submittingRef = useRef(submitting);
@@ -1468,17 +1508,30 @@ function App() {
     );
   }
 
+  // Sending the answers, and a send that failed (see SubmittingOverlay).
+  const submittingOverlay = submitting ? <SubmittingOverlay uiTexts={uiTexts} /> : null;
+  const retryDialog = phase === "running" && submitAttempts > 0 && submitAttempts < 3 ? (
+    <RetryDialog uiTexts={uiTexts} attempts={submitAttempts} message={submitMessage}
+      onRetry={() => submit(true)} onSaveLocal={() => { saveNow(); setPhase("completed"); }} />
+  ) : null;
+
   // ─── Terminal pages (disqualification / final / redirect) ───
   // When the respondent reaches a terminal page it ends the survey: record the
   // response (screened-out for disqualification) and show the page's content.
+  // Over it, the answers being sent and a send that failed, as over a page
+  // with questions: the page's "thank you, your answers were recorded" must
+  // not stand alone while they are not. Once the interview is closed — the
+  // last attempt failed, or the server said the quota is full — the closed
+  // screen below says so instead of the page.
   const _cur = nav.currentPage;
-  if (_cur && isTerminalPage(_cur)) {
+  if (_cur && isTerminalPage(_cur) && phase !== "closed") {
     return (
       <>
         <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
         <div id="survey"><Header /><main id="surveyContainer" role="main">
           <TerminalScreen page={_cur} store={store} submit={submit} phase={phase} submitId={submitId} submittedAt={submittedAt} uiTexts={uiTexts} />
-        </main><Footer /></div>
+          {submittingOverlay}
+        </main>{retryDialog}<Footer /></div>
       </>
     );
   }
@@ -1616,32 +1669,9 @@ function App() {
               </ErrorBoundary>
             ) : null}
           </div>
-          {submitting && (
-            <div className="siamang-loading-overlay" role="alert" aria-live="assertive">
-              <div className="siamang-loading-overlay__spinner"><div className="siamang-spinner"></div></div>
-              <p className="siamang-loading-overlay__text">{uiTexts.submitting}</p>
-            </div>
-          )}
+          {submittingOverlay}
         </main>
-        {submitAttempts > 0 && submitAttempts < 3 && (
-          <div className="siamang-retry-overlay" role="dialog" aria-modal="true" aria-label={uiTexts.retryTitle}>
-            <div className="siamang-retry-dialog">
-              <div className="siamang-retry-dialog__icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M12 7v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="12" cy="16" r="0.8" fill="currentColor"/>
-                </svg>
-              </div>
-              <h3 className="siamang-retry-dialog__title">{uiTexts.retryTitle}</h3>
-              <p className="siamang-retry-dialog__body">{uiTexts.retryBody} {fillText(uiTexts.attempt, { n: submitAttempts, max: 3 })}</p>
-              <div className="siamang-retry-dialog__actions">
-                <button className="sd-btn sd-navigation__next-btn" onClick={() => submit(true)}>{uiTexts.retryAction}</button>
-                <button className="sd-btn sd-navigation__prev-btn" onClick={() => { saveNow(); setPhase("completed"); }}>{uiTexts.saveLocalAction}</button>
-              </div>
-            </div>
-          </div>
-        )}
+        {retryDialog}
         <Footer />
         {ui.allowThemeSwitch !== false && (
           <div className="siamang-footer__row" style={{ justifyContent: "center", marginTop: 12 }}>

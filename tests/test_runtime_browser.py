@@ -40,16 +40,26 @@ from .test_runtime_store import fnv1a, mulberry32, seeded_shuffle
 # A transport that keeps everything it is handed. `window.__T.full` lists the
 # quota cells ([variable, value]) that answer "full"; `quotaThrows` makes every
 # check fail the way an unreachable server does; `submitReply` is what a
-# submission is answered with.
+# submission is answered with; `failSubmits` makes that many submissions throw
+# (with `failMessage` as their respondentMessage, when set); `holdSubmit`
+# keeps each submission waiting until the page calls `window.__T.release()`.
 _TRANSPORT = r"""
 window.SIAMANG_ENV = { transport: "test", survey_id: "t" };
 window.SIAMANG_TRANSPORTS = window.SIAMANG_TRANSPORTS || {};
-window.__T = Object.assign({ full: [], quotaThrows: false }, window.__T || {},
+window.__T = Object.assign({ full: [], quotaThrows: false, failSubmits: 0 }, window.__T || {},
   { submitted: [], quotaCalls: [], pages: [] });
 window.SIAMANG_TRANSPORTS.test = {
   onPage(p) { window.__T.pages.push(p.name); },
   async submit(r) {
     window.__T.submitted.push(JSON.parse(JSON.stringify(r)));
+    if (window.__T.holdSubmit) await new Promise((go) => { window.__T.release = go; });
+    if (window.__T.failSubmits > 0) {
+      window.__T.failSubmits -= 1;
+      const err = new Error("submit failed: 503");
+      err.status = 503;
+      if (window.__T.failMessage) err.respondentMessage = window.__T.failMessage;
+      throw err;
+    }
     return window.__T.submitReply || { response_id: 7 };
   },
   respondentId() { return window.__T.rid; },
@@ -3003,6 +3013,157 @@ def test_a_terminal_page_pipes_answers_into_its_title_and_body(tmp_path):
     result = run_in_browser(_body_document(), scenario, tmp_path)
     assert result["title"] == "Thanks Ann"
     assert result["body"] == "<p>You chose <b>Pear</b>, Ann.</p>"
+
+
+# ── Sending the answers from an ending page ──────────────────────────────────
+
+# Answer _body_document's two pages; the third is its ending ("final") page,
+# which sends the answers as it opens.
+_TO_THE_ENDING = (
+    """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+    """
+    + _NEXT
+    + """
+        await page.click("text=Pear");
+    """
+    + _NEXT
+)
+
+# What is on screen: the ending page's title, the "Submitting" overlay, the
+# retry dialog's text and the closed screen's.
+_ON_SCREEN = """
+    const onScreen = async () => page.evaluate(() => {
+        const text = (sel) => { const el = document.querySelector(sel); return el ? el.textContent : null; };
+        return {
+            ending: text(".sd-completedpage__title"),
+            sending: !!document.querySelector(".siamang-loading-overlay"),
+            retry: text(".siamang-retry-dialog__body"),
+            closed: text(".siamang-closed"),
+            submitted: window.__T.submitted.length,
+        };
+    });
+"""
+
+
+def test_an_ending_page_shows_the_answers_being_sent(tmp_path):
+    """The ending page used to show at once, alone, while its answers were
+    still on their way: a respondent read "your answers were recorded" and
+    could close the tab before they were (a captcha that loads at submit
+    makes that wait seconds long)."""
+    scenario = (
+        _ON_SCREEN
+        + _TO_THE_ENDING
+        + """
+        const sending = await onScreen();
+        await page.evaluate(() => window.__T.release());
+        await page.waitForSelector(".siamang-loading-overlay", { state: "detached" });
+        const sent = await onScreen();
+        return { sending, sent };
+    """
+    )
+    state = run_in_browser(
+        _body_document(), scenario, tmp_path, init="window.__T = { holdSubmit: true };"
+    )
+    assert state["sending"]["ending"] == "Thanks Ann"
+    assert state["sending"]["sending"] is True
+    assert state["sent"]["sending"] is False
+    assert state["sent"]["retry"] is None
+    assert state["sent"]["ending"] == "Thanks Ann"
+
+
+def test_a_send_that_fails_on_an_ending_page_offers_to_try_again(tmp_path):
+    """A failed send from an ending page left the page as if nothing had
+    happened, and the answers were never sent: the retry dialog of a page with
+    questions now shows over it too."""
+    scenario = (
+        _ON_SCREEN
+        + _TO_THE_ENDING
+        + """
+        await page.waitForSelector(".siamang-retry-dialog");
+        const failed = await onScreen();
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        await page.waitForSelector(".siamang-retry-dialog", { state: "detached" });
+        await page.waitForSelector(".sd-completedpage__meta");
+        const retried = await onScreen();
+        return { failed, retried };
+    """
+    )
+    state = run_in_browser(
+        _body_document(), scenario, tmp_path, init="window.__T = { failSubmits: 1 };"
+    )
+    assert state["failed"]["retry"] == "We could not save your responses. Attempt 1 of 3."
+    assert state["failed"]["submitted"] == 1
+    assert state["retried"]["submitted"] == 2
+    assert state["retried"]["retry"] is None
+    assert state["retried"]["ending"] == "Thanks Ann"
+
+
+def test_answers_that_never_arrive_from_an_ending_page_end_on_the_error_screen(tmp_path):
+    """After the last attempt the page no longer thanks the respondent for
+    answers that were not recorded; the closed screen says they were not."""
+    scenario = (
+        _ON_SCREEN
+        + _TO_THE_ENDING
+        + """
+        for (let n = 1; n <= 2; n++) {
+            await page.waitForFunction((n) => {
+                const body = document.querySelector(".siamang-retry-dialog__body");
+                return body && body.textContent.includes(`Attempt ${n} of 3.`);
+            }, n);
+            await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        }
+        await page.waitForSelector(".siamang-closed");
+        return await onScreen();
+    """
+    )
+    state = run_in_browser(
+        _body_document(), scenario, tmp_path, init="window.__T = { failSubmits: 3 };"
+    )
+    assert state["submitted"] == 3
+    assert state["ending"] is None
+    assert state["retry"] is None
+    assert "Submission error" in state["closed"]
+    assert "We could not save your responses." in state["closed"]
+
+
+def test_keeping_the_answers_in_the_browser_finishes_on_the_ending_page(tmp_path):
+    scenario = (
+        _ON_SCREEN
+        + _TO_THE_ENDING
+        + """
+        await page.waitForSelector(".siamang-retry-dialog");
+        await page.click(".siamang-retry-dialog .sd-navigation__prev-btn");
+        await page.waitForSelector(".siamang-retry-dialog", { state: "detached" });
+        const finished = await onScreen();
+        await page.waitForFunction(() => localStorage.getItem("siamang_answers_t"));
+        const kept = await page.evaluate(() => JSON.parse(localStorage.getItem("siamang_answers_t")).answers);
+        return { finished, kept };
+    """
+    )
+    state = run_in_browser(
+        _body_document(), scenario, tmp_path, init="window.__T = { failSubmits: 1 };"
+    )
+    assert state["finished"]["ending"] == "Thanks Ann"
+    assert state["finished"]["closed"] is None
+    assert state["kept"]["name"] == "Ann"
+
+
+def test_the_retry_dialog_says_what_the_transport_knows_about_the_failure(tmp_path):
+    """A transport can say why the answers were not sent and what the
+    respondent can do (respondentMessage), in place of the generic text."""
+    init = 'window.__T = { failSubmits: 1, failMessage: "  The check could not run. Allow it and try again. " };'
+    scenario = (
+        _ON_SCREEN
+        + _TO_THE_ENDING
+        + """
+        await page.waitForSelector(".siamang-retry-dialog");
+        return await onScreen();
+    """
+    )
+    state = run_in_browser(_body_document(), scenario, tmp_path, init=init)
+    assert state["retry"] == "The check could not run. Allow it and try again. Attempt 1 of 3."
 
 
 # ── Header ───────────────────────────────────────────────────────────────────
