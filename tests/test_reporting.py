@@ -123,7 +123,12 @@ def test_quality_table_counts_by_reason_over_everyone_screened():
     assert rows["Any check"] == 2 and rows["Clean"] == 2
     percent = dict(zip(table.to_frame()["Check"], table.to_frame()["%"], strict=True))
     assert percent["Any check"] == 50.0
-    assert table.stats == {"Screened": 4, "Flagged": 2}
+    assert table.stats == {
+        "Screened": 4,
+        "Flagged": 2,
+        "Overlap": "1 response failed more than one check: counted under each, and once in "
+        "Any check",
+    }
     # A check nobody failed is not a row of zeros: only what happened is shown.
     assert "Inconsistency" not in rows
     assert "| Check " in table.to_markdown()
