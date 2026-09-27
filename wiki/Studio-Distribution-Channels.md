@@ -312,7 +312,7 @@ Activity** as `deploy.one_response_per_browser`.
 > browser only. Nothing about the browser is sent to Studio, so a private
 > window, cleared browser data or another device can answer again, and people
 > who share one browser count as one. A survey published before this option
-> existed needs one republish of main for its page to honour it." Interviews
+> existed needs one republish of main for its page to honor it." Interviews
 > that ended before you turned it on are not remembered. For one answer per
 > *person*, use [[Email Invitations|Studio-Email-Invitations]] or a panel
 > provider's own checks.

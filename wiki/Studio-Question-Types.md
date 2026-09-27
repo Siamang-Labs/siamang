@@ -380,7 +380,7 @@ them: the question bank's *Trust in institutions*, headed `0` … `10`, stores
   Rename a row's variable in the **Variable** section, which has a name field
   for each row ("Matrix rows write one variable each, in the order of Options
   → Rows; rename a row's variable here."). A matrix whose rows came from its
-  variables' labels (an import, the example study) lists those labels under
+  variables' labels (from an import, say) lists those labels under
   **Rows**; editing, adding or removing a row turns them into statements.
 - **Columns.** A column's code follows its header. Renaming a column changes
   only its label: the code it stores stays, also while you type the new text
@@ -567,8 +567,8 @@ to warn about. The hint beside the switch always says what is stored.
   becomes the Other option — it opens the text box, and no second "Other" is
   added. A Qualtrics import does this for a text-entry choice.
 - **Options that come from the codebook.** A Single choice, or a Multiple
-  choice in the array layout, from an import or the example study can have no
-  **Choices** of its own: the survey then offers its variable's value labels.
+  choice in the array layout, from an import can have no **Choices** of its
+  own: the survey then offers its variable's value labels.
   Switching Other or None of the above on for such a question first copies
   those labels into its **Choices** list (without the Other or None code
   itself), so the new option is added beside them and the Save stays valid.
@@ -718,7 +718,7 @@ Walk through a passing and a failing answer in **Preview** before you publish;
 details in [Attention checks](Studio-Logic-and-Branching#attention-checks).
 
 Without step 3 nobody is screened out during the interview: the check is
-scored afterwards by the **Response quality** node, whose **Attention checks**
+scored afterward by the **Response quality** node, whose **Attention checks**
 parameter is filled from these settings. See
 [[Data Quality|Studio-Data-Quality]].
 
@@ -733,7 +733,7 @@ The type dropdown at the top of the Inspector converts the question in place.
 | question text, hint, Id, Required, Show if, Hide if, Skip to, Randomize option order, the variable name, and the choices when both types have them (Single choice, Multiple choice, Ranking, MaxDiff) | tags, Media URL, the attention-check setting, Other and None of the above, display and all other type-specific settings |
 
 Converting to or from MaxDiff or Conjoint replaces the question's variables with
-a fresh set. Check the **Variable** section afterwards: the codebook entry
+a fresh set. Check the **Variable** section afterward: the codebook entry
 keeps its old scale (a Single choice turned into a Number is still *nominal*,
 which the engine flags as `INCOMPATIBLE_QUESTION_SCALE`).
 

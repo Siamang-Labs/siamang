@@ -701,7 +701,7 @@ shape of their own. Use a longer **Period**, fewer groups, or the table.
 
 **"9 (Refused) is a missing code of Trust: Acme, not an answer: …".**
 A Trend's **Answer codes** are answers; a missing code is left out of every
-base. Tick the answers you track — `4` and `5` for a top-2 box. The checklist
+base. Check the answers you track — `4` and `5` for a top-2 box. The checklist
 does not offer missing codes; this appears for a code typed or stored before.
 
 **Where is my tab book?**
@@ -717,7 +717,7 @@ The Contents and Notes sheets say why, as does the node's statistic
 (**Skipped**): with **Questions** empty, open answers and rankings are left
 out, and so are interval and ratio questions (name them for their means); a
 question nobody answered, or one of more than 30 different answers without
-answer labels that is not a number, is left out whatever you name. Tick the question in
+answer labels that is not a number, is left out whatever you name. Check the question in
 **Questions**, code an open answer first (**Code open answers**), or derive a
 ranking's first choice (**Derive**).
 → [Tab book (Excel)](Studio-Node-Reference#tab-book-excel)
@@ -753,12 +753,12 @@ a variable a node of the flow makes nominal, it is a warning and the run
 refuses it. → [Regression](Studio-Node-Reference#regression)
 
 **Where are my report's tables in Excel?**
-Tick **Also Excel** in the Report view (the **Save report** node's **Also
+Check **Also Excel** in the Report view (the **Save report** node's **Also
 save tables to Excel**) and run the flow (or **Run all**): `<report>.xlsx` is
 written beside the report — on the Reports screen under **Excel**, in
 **Files**, and among the run's outputs. A run without the box does not delete
 an earlier one, so the **Excel** button then offers the workbook of the
-flow's last run that wrote it: tick the box and run again to bring it up to
+flow's last run that wrote it: check the box and run again to bring it up to
 date. → [Tables in Excel](Studio-Reports#tables-in-excel)
 
 **My research bundle stops at a t-test, Export file, Result chart, Trend or Tab book node.**
@@ -780,6 +780,15 @@ A report needs a **Report section** connected to a **Save report** node, and the
 flow must have run. Output paths must be under `outputs/`.
 → [[Reports|Studio-Reports]]
 
+**"The table clean_responses does not exist yet: it is written by 1. Clean raw responses. Run that flow (or Run all) first, then this one."**
+The flow reads a project table (a **Project table** node) that no run has
+written yet — a preview never writes one. Run the flow the message names,
+or **Run all**, which runs it first; then preview or run this flow again. A
+new project started from the example study is in this state: its flows
+after `cleaning` read `clean_responses`, and `segments` reads
+`scored_responses`, which `wellbeing` writes. See
+[Tables between flows](Studio-Flows#tables-between-flows).
+
 **A flow is missing from the combined report, or Run all says "report … was not written".**
 The combined report takes each flow's **Report path** (flow settings). A flow
 without one is left out. A path the flow does not write fails that flow:
@@ -794,14 +803,93 @@ report** node moves the Report path it had set along with it, and deleting
 the node clears it.
 
 **Live tiles are stale.**
-Tiles show the flow's last *completed* run; a failed run leaves the previous
-tiles in place (check "updated …"), and previews never change them. On Free,
+Tiles show the flow's last *completed* run, or a newer **Run all** that ran
+it; a failed run leaves the previous tiles in place (check "updated …"), and
+previews never change them. On Free,
 press **Recompute now**; automatic recomputation is Plus and above and needs
-**Live: recompute on new responses** ticked and saved. A failed automatic
+**Live: recompute on new responses** checked and saved. A failed automatic
 recompute does not email the owners. → [[Live Monitoring|Studio-Live-Monitoring]]
 
 **The public live link shows "page not found".**
 It was revoked or rotated, or the organization's plan no longer includes Live.
+
+---
+
+## Coding open answers
+
+**Where is Code open answers… — coding with the AI assistant?**
+Switched off on this platform. It sent the text your respondents wrote to the
+AI provider, so its buttons (**Code open answers…**, **Code more answers…**)
+and its dialog are gone. Build the codeframe yourself: on the **Code open
+answers** node, **New codeframe…** (or **Files → Codeframes → New
+codeframe…**) opens the codeframe editor, where you code answers by hand and
+write word rules that code the rest. Codeframes the assistant built earlier
+keep working. → [[Coding Open Answers|Studio-Open-Answer-Coding]]
+
+**"AI coding of open answers is switched off on this platform."**
+The API's answer to a request to start a coding job, and the log of a coding
+job queued before the switch (in **Run history**). Nothing was read or
+charged. Use the codeframe editor instead.
+
+**An answer I expected to get a theme is uncoded.**
+Type it into **Test a phrase**: it shows each rule that fired, was vetoed or
+met a negation. The usual reasons: the word is **negated** (*wasn't late* —
+`late` finds only mentions that are not; `not_late` finds the negated ones);
+a **Must also contain** word is in **another clause** (a comma or *but* ends
+one — set **Reads** to **the whole answer**); the term misses a **word form**
+(`delay` does not find *delayed*; write `delay*`); a **But not** word is
+there; or the answer is in another language than the term. Add a term, or
+code the answer by hand. → [Writing rules](Studio-Open-Answer-Coding#writing-rules)
+
+**"2 errors — the codeframe cannot be applied or saved until they are fixed."**
+The list under it (and the mark beside each term or setting at fault) says
+what: "the codeframe has no themes" for a new one — **Add theme**; a term
+beginning `re:` — "regular expressions are not supported: …"; a theme without
+a label, the same words replaced twice. **Save changes** stays disabled
+("Fix the codeframe's errors first") until they are gone.
+→ [Mistakes the editor catches](Studio-Open-Answer-Coding#mistakes-the-editor-catches)
+
+**"This codeframe is version 1: a theme for each answer it was built from, and no rules. …"**
+An older codeframe — built by the assistant, or the example study's. The node
+applies it as before. Editing it makes it version 2: its decisions are kept,
+its example answers are left out (version 2 keeps only fingerprints).
+→ [Older codeframes](Studio-Open-Answer-Coding#older-codeframes-version-1)
+
+**The themes add up to more than 100 %.**
+The codeframe gives an answer several themes, and every % is of the
+respondents who answered; the table's **Percentages** says so. A net's row
+counts each respondent once.
+→ [The table](Studio-Open-Answer-Coding#the-table)
+
+**The theme table and a Frequencies of the theme variable give different numbers.**
+The theme table counts everyone who answered, with **No theme** and
+**Uncoded** rows. In the theme variable, an answer coded as no theme and an
+uncoded one are empty, so a **Frequencies** of it counts only the
+respondents with a theme. Quote the theme table for shares of those who
+answered.
+
+**A Split by, a donut, a banner or a Likert chart refuses my theme variable.**
+The codeframe gives several themes an answer, so its theme variable is
+multiple-choice, and these refuse it as they refuse a multiple-choice
+question. Use it where a multiple-choice question goes (a **Frequencies**, a
+**Crosstab**'s rows, a **Bar chart**'s variable), or turn off **An answer may
+have several themes**.
+
+**The nodes after Code open answers do not offer its theme variable.**
+The codeframe is not saved yet: a codeframe started from the node is kept only
+in its browser tab until you save it in its editor, and the node says so
+("*path* is not saved yet: it is kept in this tab until you save it in its
+editor."). Save it, and save the flow.
+
+**"analysis/… is not saved in this project: it was started and never saved. Start it again, or choose another codeframe."**
+The node names a codeframe that was started from it in a tab that is now
+closed, and never saved. **New codeframe…** starts it again under the same
+name, or choose another codeframe.
+
+**Answers that just arrived are not in the codeframe editor.**
+The editor reads the answers again once its last reading is a minute old.
+Check **Answers from** and **Only completed responses** too: they choose which
+responses it lists.
 
 ---
 
@@ -861,8 +949,8 @@ No — as the Secrets tab says, connectors and repository deposits read them by
 key; flow runs cannot, and they have no network access anyway.
 
 **The Zenodo DOI starts with 10.5072 / points to sandbox.zenodo.org.**
-**Use sandbox.zenodo.org** is ticked by default in the Deposit dialog. Deposit
-again with it unticked and a production Zenodo token.
+**Use sandbox.zenodo.org** is checked by default in the Deposit dialog. Deposit
+again with it unchecked and a production Zenodo token.
 → [[History and Versions|Studio-History-and-Versions]]
 
 ---

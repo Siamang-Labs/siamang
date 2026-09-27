@@ -78,7 +78,7 @@ it holds a 3- or 6-digit hex value; for anything else (a named color,
 the pairs that decide whether the survey can be read:
 
 - "Body text on the page reads at X:1", which should be at least 4.5:1;
-- "The primary colour reads at X:1", at least 3:1 (non-text);
+- "The primary color reads at X:1", at least 3:1 (non-text);
 - inside **More colors**: "Muted text reads at X:1", at least 4.5:1.
 
 Above the floor the line ends "— above the N:1 floor". Below it, the line
@@ -144,7 +144,7 @@ The dots let a respondent go **back**, never forward:
 - a dot of a page they visited on the way to the current page takes them back
   there, and **← Previous** then continues from that page;
 - dots ahead of the current page, and dots of pages the routing skipped, are
-  greyed out and do nothing;
+  grayed out and do nothing;
 - only pages actually visited are drawn as completed;
 - with **Allow going back** off, no dot goes back.
 

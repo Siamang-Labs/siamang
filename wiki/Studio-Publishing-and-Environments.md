@@ -556,7 +556,7 @@ environment from the archive, which brings it back to the list.
 ## Build log
 
 The **Build log** chip opens the log of the environment's last build. While a
-build runs, lines stream in; afterwards the stored log is shown (or **No logs
+build runs, lines stream in; afterward the stored log is shown (or **No logs
 recorded.**). Lines you may see:
 
 | Line | Meaning |

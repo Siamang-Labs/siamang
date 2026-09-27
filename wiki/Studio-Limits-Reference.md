@@ -19,7 +19,7 @@ saving and deleting, you just cannot add more.
 | Members per organization (owner and pending invitations count) | 2 | 15 | unlimited | unlimited |
 | Completed interviews per project (all environments together; screen-outs, partials and the Example template's sample rows not counted) | 1,000 | unlimited | unlimited | unlimited |
 | File storage per organization (uploads **and** run outputs) | 250 MB | 5 GB | 50 GB | unlimited |
-| Analysis flows per project | 3 | 20 | unlimited | unlimited |
+| Analysis flows per project (checked when a Save adds one: a project started from the example study keeps its six on every plan) | 3 | 20 | unlimited | unlimited |
 | Access codes per questionnaire | 100 | 5,000 | unlimited | unlimited |
 | One flow run: time / memory | 5 min / 512 MB | 15 min / 1 GB | 30 min / 2 GB | 30 min / 2 GB |
 | "Run to here" previews per user, per project, per hour | 30 | 120 | 600 | unlimited |
@@ -32,14 +32,15 @@ saving and deleting, you just cannot add more.
 | Email invitations: per month / per day / first mailing | — | 1,000 / 300 / 200 | 5,000 / 1,500 / 500 | no caps |
 | AI assistant: credits per month / per day | — | 8,000 / 2,000 | 50,000 / 8,000 | 300,000 / 30,000 |
 | AI requests per person per hour | — | 30 | 100 | 300 |
-| Larger AI model (drafts, open-answer coding) | — | — | ✓ | ✓ |
+| Larger AI model (drafts from a brief) | — | — | ✓ | ✓ |
 | SSO | — | — | after the beta | after the beta |
 | Self-hosting | — | — | — | ✓ |
 
 Free on every plan: the whole Builder (all question types, logic, quotas,
 randomization, theme, the script library), imports, the question bank and
-templates, Download .py, research bundles, every data export, History,
-pre-registration and deposits, comments and edit locks, API keys.
+templates, coding open answers by hand and by rules, Download .py, research
+bundles, every data export, History, pre-registration and deposits, comments
+and edit locks, API keys.
 
 → [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
 
@@ -166,14 +167,29 @@ went.
 | Likert chart scale | from value labels, or a valid range of 2 to 11 whole numbers |
 | Chart colors (a report's **Look**) | **Series** 2–12 hex colors, none twice; a series or **Magnitude** color at least 1.3:1 on white; **Chart text** at least 4.5:1 |
 
-## Open-answer coding with AI
+## Coding open answers
+
+Coding by hand and by rules, in the codeframe editor and the **Code open
+answers** node. → [[Coding Open Answers|Studio-Open-Answer-Coding]]
 
 | Item | Limit |
 |---|---|
-| Distinct answers per job | 4,000 |
-| Themes per codeframe | up to 24 |
-| Answer length read | first 400 characters |
-| Credits | about 160 for 1,000 answers (Plus model), about 600 (Pro model) |
+| AI coding of open answers | switched off on this platform |
+| Codeframe name | `analysis/<name>.codeframe.json`: lower-case letters, digits, `_`; starts with a letter; up to 63 characters |
+| Themes per codeframe | up to 200 (an older, version 1 codeframe: 64) |
+| Terms per list (**Words and phrases**, **But not**, each **Must also contain** list) | up to 500 |
+| A term | up to 200 characters; words near each other at most `~20` apart; no regular expressions |
+| Replacements | up to 2,000, each side up to 200 characters |
+| Negation | reaches the next 3 words, within the clause; English only |
+| A "word" in an answer | longer than 200 characters (a pasted link), it matches no term |
+| Keys in the answers list | `1`–`9` for the first nine themes |
+| Distinct answers the editor reads | the 100,000 most frequent (beyond: "the rarest answers are left out") |
+| Answers per page in the editor | 100 |
+| New answers in the editor | read again once the last reading is a minute old |
+| Suggested words | up to 30 words and 30 two-word phrases, each used by 2 respondents or more |
+| Editor requests (answers, previews, tests, suggestions) | 60 per 10 seconds per person; one request up to 8 MB |
+| Errors and warnings listed | the first 200 of each, with the total |
+| Credits | none |
 
 ## History, files and automation
 

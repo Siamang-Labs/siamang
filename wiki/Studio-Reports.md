@@ -49,7 +49,7 @@ Three rules make sure a report arrives:
 2. Set the same file as the flow's **Report path** (Flow settings, click the
    empty canvas) if you want it in the [combined report](#the-combined-report)
    of **Run all**. The Report view does this for you, and changing the
-   **Save report** node's **Path** afterwards moves the **Report path** with
+   **Save report** node's **Path** afterward moves the **Report path** with
    it. A **Report path** that names a file the flow does not write makes the
    flow fail in **Run all**; **Check** and the Save warn about it first.
 3. There is no PDF writer: a **Path** ending in `.pdf` fails. Print or convert
@@ -328,10 +328,10 @@ house style is stamped into its **Save report** node, like the rest of it.
 **What the engine refuses**, named on the **Save report** node as you edit
 and by **Check** — so a palette nobody could read never reaches a client:
 
-- a color that is not hex: "theme: chart_palette: 'purple' is not a hex colour
+- a color that is not hex: "theme: chart_palette: 'purple' is not a hex color
   such as '#2a78d6'.";
 - fewer than 2 or more than 12 **Series** colors, or one given twice: "theme:
-  chart_palette: give between 2 and 12 colours, in the order the series take
+  chart_palette: give between 2 and 12 colors, in the order the series take
   them; got 1.", "theme: chart_palette: '#2a78d6' is given twice; two series
   would look alike.";
 - a series or **Magnitude** color all but invisible on white: "theme:
@@ -341,7 +341,7 @@ and by **Check** — so a palette nobody could read never reaches a client:
   the charts' white background has a contrast of 1.6:1; text needs at least
   4.5:1.";
 - two equal diverging ends: "theme: chart_diverging: the two ends are the same
-  colour, so the scale would not diverge.";
+  color, so the scale would not diverge.";
 - a typeface with CSS in it: "theme: chart_font: a list of font names
   separated by commas, without ; { } < >."
 
@@ -372,7 +372,11 @@ of its own. A palette you choose is yours to check.
   `.md` is refused: "A combined report must be a Markdown path inside the
   project, like reports/report.md." The **combined** badge on the Reports
   screen follows this path.
-- **House style** — the same form as the **Look** tab.
+- **House style** — the same form as the **Look** tab. A project started
+  from the example study begins with one: the Look its six flows' reports
+  use (**Typeface** **modern**, **Tables** **zebra**, teal **Links** and six
+  **Chart colors** that readers with protanopia or deuteranopia can tell
+  apart).
 
 The house style is a **stamp**, never a setting a run reads: a flow's report
 always renders in the look of its own **Save report** node — the same look
@@ -404,14 +408,19 @@ at once ("Update report settings", "Apply the report house style to 3 flows")
 ## The Reports screen
 
 ```
-┌ Reports ─────────────────────┐┌ outputs/tables/tables.md   [Markdown] [HTML] [Excel] [Print / PDF] ┐
-│ Tables                        ││                                                                         │
-│ tables · tables.md · 23/09    ││   Digital Life – key tables                                             │
-│ Report  combined              ││   …                                                                     │
-│ report.md · 23/09             ││                                                                         │
-│ Tab book  Excel               ││                                                                         │
-│ tables · tabbook.xlsx · 23/09 ││                                                                         │
-└──────────────────────────────┘└─────────────────────────────────────────────────────────────────────────┘
+┌ Reports ───────────────────────────┐┌ outputs/tables/key_tables.md   [Markdown] [HTML] [Excel] [Print / PDF] ┐
+│ Data quality                       ││                                                                        │
+│ cleaning · data_quality.md · 23/09 ││   Key tables                                                           │
+│ Key tables                         ││   Life satisfaction                                                    │
+│ tables · key_tables.md · 23/09     ││   How life satisfaction is distributed and how it varies by age, …     │
+│ Screen use                         ││   …                                                                    │
+│ usage · screen_use.md · 23/09      ││                                                                        │
+│ …                                  ││                                                                        │
+│ Report  combined                   ││                                                                        │
+│ report.md · 23/09                  ││                                                                        │
+│ Tab book  Excel                    ││                                                                        │
+│ tables · tabbook.xlsx · 23/09      ││                                                                        │
+└────────────────────────────────────┘└────────────────────────────────────────────────────────────────────────┘
 ```
 
 - **The left rail** lists every report the project's runs have produced: every
@@ -467,7 +476,7 @@ download button.
 
 ### Tables in Excel
 
-Tick **Also Excel** in the Report view's title row — on the canvas, **Also
+Check **Also Excel** in the Report view's title row — on the canvas, **Also
 save tables to Excel** on the **Save report** node — and run the flow. Beside
 the report, at its **Path** with `.xlsx` (`outputs/satisfaction.xlsx`), the
 run writes every table of the report into one workbook. It is listed on the
@@ -495,7 +504,7 @@ What the workbook holds:
   Contents sheet that says so.
 - The workbook is written by every run of the flow — on its own, on a
   schedule, or in **Run all**, which stores it beside the flow's report as a
-  single run does. A run with the box unticked does not remove an older one:
+  single run does. A run with the box unchecked does not remove an older one:
   the **Excel** button then offers the workbook of the flow's last run that
   wrote it, which may be older than the report. The combined report has no
   workbook.
@@ -512,9 +521,9 @@ letters. A flow writes one with a **Tab book (Excel)** node (Output):
 
 1. Add **Tab book (Excel)** after your cleaning and weighting steps and
    connect the data to it.
-2. Tick the **Banner** variables (`gender`, `region`, `age_band`); leave
+2. Check the **Banner** variables (`gender`, `region`, `age_band`); leave
    **Questions** empty for every nominal, ordinal and multiple-choice
-   question, or tick the ones you want.
+   question, or check the ones you want.
 3. **Run** the flow. The workbook is written to the node's **Path**
    (`outputs/tabbook.xlsx` by default) and kept as
    `outputs/<flow>/tabbook.xlsx`.
@@ -577,7 +586,7 @@ produced from a research bundle carries the bundle's `PROVENANCE.md` instead,
 which adds the data files' row counts and hashes (see
 [[Reproducibility|Studio-Reproducibility]]). Previews have no footer.
 
-Untick the box, and the next runs — on the platform and from a research
+Uncheck the box, and the next runs — on the platform and from a research
 bundle made from that Save — write their reports without the footer. Reports
 already written keep theirs.
 
@@ -586,18 +595,26 @@ already written keep theirs.
 ## The combined report
 
 **Run all** (Flows → **More ▾ → Run all flows**) runs every flow and then
-writes one combined document, "Combined report":
+writes one combined document, titled with the questionnaire's title — the
+example study's is *Digital Life & Wellbeing 2026* — or "Combined report"
+when the questionnaire has none:
 
-- a **Contents** list, then one section per flow, in the order the flows ran
+- a **Contents** list, then one chapter per flow, in the order the flows ran
   — a flow after the flows whose tables it reads, alphabetical where that
-  leaves a choice (see [Run all](Studio-Flows#run-all)) — titled with the
-  flow's title and containing that flow's report;
+  leaves a choice (see [Run all](Studio-Flows#run-all)). Each chapter is
+  headed with its report's own title (*Data quality*, *Key tables*, …), the
+  flow's title stands under the heading (*1. Clean raw responses*), and the
+  report's sections follow one heading level down;
 - only flows whose **Report path** (Flow settings) names their report are
   included;
+- the [provenance footer](#the-provenance-footer), when it is on, once at the
+  end rather than after every chapter;
 - written to `reports/report.md` (or the path in **Settings → Reports**) with
   an `.html` twin in the house style; charts are copied beside it as
   `<flow>__<report>_fig_N.png` (an `_` in the flow name becomes `-`), taken
-  from each flow as soon as it finishes, so two flows' figures never mix.
+  from each flow as soon as it finishes, so two flows' figures never mix. The
+  `.html` twin carries its figures inside it, so it shows them on this screen
+  and wherever you open the downloaded file.
 
 Because it is assembled from each flow's Markdown, the combined HTML has the
 house style's typefaces, measure and page box but plainer tables than a single
@@ -605,7 +622,9 @@ flow's own HTML.
 
 **When a flow fails**, **Run all** still runs the flows that do not depend on
 it and ends as failed — and still writes the combined report from the flows
-that succeeded, titled **Combined report (incomplete)**. Its first section,
+that succeeded, its title marked incomplete: *Digital Life & Wellbeing 2026
+(incomplete)*, or **Combined report (incomplete)** for a questionnaire without
+a title. Its first section,
 **Missing from this report**, reads: "This Run all did not finish every flow,
 so this report has only the sections of the flows that did. Not in it:",
 then one line per flow — "**tables** — failed: *reason*" or "**charts** —

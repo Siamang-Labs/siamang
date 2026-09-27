@@ -257,8 +257,8 @@ What you see, top to bottom:
 | Rule | Detail |
 |---|---|
 | Which responses | **all** rows of all environments (`pilot` and `main` together), **including partial interviews**. For completed-only, weighted or filtered results, use [[Flows\|Studio-Flows]] |
-| Frequencies | the 50 most frequent values; percentages are of all responses |
-| Crosstabs | up to 2,500 cells; totals always cover all responses |
+| Frequencies | the 50 most frequent values; percentages are of all responses. When every answer is a number or a code, the bars come in code order (`0`, `1`, `2` … `10`, no answer last); answers in words come largest first |
+| Crosstabs | up to 2,500 cells; totals always cover all responses. Rows and columns that are numbers or codes sort by value, then words, then no answer |
 | Unanswered | shown as `—` |
 | Variables offered | those of your published questionnaire |
 
@@ -285,8 +285,11 @@ load says "Could not load this chart." with **Retry**.
 ### Pinned widgets
 
 Pinned widgets appear for everyone on the project, under **Pinned from
-studio/settings.json**. They are declared in the `insights` list of
-`studio/settings.json` (there is no editor for this list in the beta):
+studio/settings.json · every response in the table, partial ones included,
+unweighted** — a flow's report of the same question reads the cleaned,
+weighted data and gives other numbers. They are declared in the `insights`
+list of `studio/settings.json` (there is no editor for this list in the
+beta):
 
 ```json
 "insights": [
@@ -296,6 +299,14 @@ studio/settings.json**. They are declared in the `insights` list of
 ```
 
 Only `frequency` and `crosstab` widgets are drawn.
+
+A project started from the [example study](Studio-Projects#the-example-study)
+pins five: *Overall life satisfaction*, *Life satisfaction by age group (1 =
+16-29, 2 = 30-44, 3 = 45+)*, *Hours a day on screens*, *Would recommend the
+app (0 = not at all likely, 10 = extremely likely)* and *Interest in the app
+by message (1 = sleep, 2 = time)*. They count every sample response; the
+reports of the example's flows give the same questions for the respondents
+who pass its cleaning, weighted.
 
 ---
 

@@ -93,7 +93,7 @@ you typed before you submit.
 
 ### Password rules
 
-The checklist under the password field ticks each rule off as you type (○
+The checklist under the password field checks each rule off as you type (○
 becomes ✓). **Create account** stays disabled until all five are met.
 
 | Checklist item | Rule |
@@ -341,7 +341,7 @@ again** button comes first.
 | "Password must be 8+ characters with a lower- and upper-case letter, a number, and a symbol." | The new password misses a rule from the checklist. |
 | "Could not send recovery email. …" | The reset email could not be requested. The second sentence gives the reason (for example, a new link requested too soon after the last one). Wait a little and try again. |
 | "Could not create your account. …" / "Could not reset your password. …" / "Could not sign you in with that provider. …" | The action failed. The sentence after the first gives the reason. |
-| The **Sign in** or **Create account** button stays grey | Solve the captcha, and for sign-up fill in the name and meet every password rule. |
+| The **Sign in** or **Create account** button stays gray | Solve the captcha, and for sign-up fill in the name and meet every password rule. |
 | Nothing arrives by email | Check spam and the address you typed. Reset emails can be requested again from **Reset your password**. |
 
 Still stuck? Write to `info@siamang-team.org` from the address you use for

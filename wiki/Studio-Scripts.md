@@ -180,6 +180,13 @@ again.) The full description, with balancing against quotas, quota cells on
 the arms and branching on the arm, is in
 [Experimental assignment](Studio-Quotas-and-Randomization#experimental-assignment).
 
+The [example study](Studio-Projects#the-example-study) draws its A/B message
+this way: **Variable** `message_arm`, arms `1` Sleep message and `2` Time
+message, with a seed. Written as code, its questionnaire has no codebook
+entry for the arm, and needs none: the Builder's checks count a variable a
+script writes as known, and a flow's **Responses** node, **Data → Export** in
+SPSS or Stata and a research bundle's codebook label it with the arms.
+
 ---
 
 ## Custom JavaScript *(Plus)*

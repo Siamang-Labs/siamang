@@ -39,6 +39,17 @@ Why this order:
   describe only the respondents you keep, and the weighting sees the final
   set of rows.
 
+> **In the example study.** The flow `cleaning` (*1. Clean raw responses*) of
+> a project started from the [example study](Studio-Projects#the-example-study)
+> is a worked case: **Responses** (completed interviews only) with **Data
+> check** beside it, **Dedup respondents**, **Speeders & partials**, **Bands**
+> (the age in the three age groups, for a consistency check), **Response
+> quality** in **drop** mode, **Rake weights** and **Write table**
+> `clean_responses`, with an R export and two Live tiles. Its report says what
+> each step removed and what the weighting did. Missing codes are cleared in
+> the flows that need it: `tables` runs **Missing values** before its banner
+> and tab book. See [The example study's flows](Studio-Flows#the-example-studys-flows).
+
 Use **Run to here** on each node while you build: the preview of every
 Prepare node starts with "N rows × M columns", so you can see how many
 respondents each step removed. A preview never writes a project table, so
@@ -77,7 +88,7 @@ table into your report's methods section. See
 A **partial** is an interview that was started but not submitted. Two ways to
 exclude them:
 
-- On the **Responses** node, tick **Only completed responses**. The partials
+- On the **Responses** node, check **Only completed responses**. The partials
   never enter the flow.
 - Or keep them in and use **Speeders & partials** with **Drop partials**,
   which defines "partial" by the answers *you* require (below). This is the
@@ -86,9 +97,9 @@ exclude them:
 
 > **Note.** Partial interviews reach the project only from surveys published
 > with the current survey runtime. Once you publish a survey again, its
-> partials start arriving, and a flow whose **Responses** node does not tick
+> partials start arriving, and a flow whose **Responses** node does not check
 > **Only completed responses** includes them — its counts can grow for that
-> reason alone. Tick the box, or drop them as above, before you compare with
+> reason alone. Check the box, or drop them as above, before you compare with
 > earlier runs.
 
 ## One row per respondent
@@ -118,7 +129,7 @@ satisfaction:
 | Parameter | Value |
 |---|---|
 | **Minimum seconds** | `90` |
-| **Required answers** | tick `age`, `region`, `satisfaction` |
+| **Required answers** | check `age`, `region`, `satisfaction` |
 | **Drop partials** | on |
 
 > **Tip.** Choose the threshold from your own data: the Distribute screen shows
@@ -139,7 +150,7 @@ failed attention checks — and by default only **marks** responses:
 
 Recipe:
 
-1. **Battery to check**: tick the items of your grid question.
+1. **Battery to check**: check the items of your grid question.
 2. **Straightlining tolerance**: `0` flags only literally identical answers;
    `0.5` also flags near-flat ones.
 3. **Answers that must agree**: pairs of variables that should match, as JSON,
@@ -282,7 +293,7 @@ itself: **Variable** `age`, **Boundaries** `[18, 30, 50, 100]`, **New
 variable** `age_band` gives an ordinal variable with the bands "18 to under
 30", "30 to under 50" and "50 to under 100" (or your own **Band labels**,
 `["18–29", "30–49", "50+"]`). A band includes its lower boundary and runs up
-to, not including, the next; tick **Bands include their upper boundary** for
+to, not including, the next; check **Bands include their upper boundary** for
 the other way round. Its advantages over a formula: the variable's missing
 codes are taken out first, so a 999 "Refused" never lands in the top band,
 and its statistics count each band and whatever fell outside every band —
@@ -306,7 +317,7 @@ For each scale it finds:
    evidence the index is one thing.
 
 Reverse-keyed items: either reverse the item with a **Derive** node first
-(**New variable** `q3_r`, **Formula** `6 - q3`) and tick `q3_r` in **Index /
+(**New variable** `q3_r`, **Formula** `6 - q3`) and check `q3_r` in **Index /
 scale**'s **Items** — later nodes offer it — or compute the index directly in
 one **Derive**: `mean(q1, q2, 6 - q3, q4)`. The index, like any created
 variable, can be picked in the nodes after it and goes to your exports and
@@ -363,7 +374,7 @@ After **Apply weight**, add a **Frequencies** node for each weighting variable
 and preview it: the **%** column should equal your targets (45 % for code `1`
 of `region`), with the respondents actually counted in the **Unweighted N**
 column beside it. For a share with its confidence interval, use a
-**Proportion CI** with **Weighted** ticked — for example **Variable**
+**Proportion CI** with **Weighted** checked — for example **Variable**
 `region`, **Answer code** `1` — which should give 0.45 (its base is the
 respondents who answered `region`, and its `n` is their effective base). A
 **Bar chart** of `region` draws the weighted counts ("Weighted count" on the
@@ -417,14 +428,14 @@ unweighted." From there on:
   test on Kish's effective base.
 - **Result chart** — as the result it draws; its title's second line says
   which.
-- **Proportion CI**, when its **Weighted** box is ticked.
+- **Proportion CI**, when its **Weighted** box is checked.
 
 These have no weighted form and say so — "unweighted (the weight 'weight' is
 not applied)" in their statistics, table or chart title: **Compare groups**,
 **Correlation** and **Correlation matrix** with `spearman` or `kendall`,
 **t-test**, **Paired tests** (Cochran's Q among them), **Factor analysis**,
 **Cluster (k-means)**, **Box plot**, **Scatter plot**, **Heatmap** without
-**By** with **Method** `spearman` or `kendall`, **Proportion CI** unticked,
+**By** with **Method** `spearman` or `kendall`, **Proportion CI** unchecked,
 the tables of **Response quality**, **Code open answers** and **Data check**,
 and the counts of **MaxDiff scores** and **Bands** (the variables they make
 are weighted like any other in the tables after them). A **Result chart** of

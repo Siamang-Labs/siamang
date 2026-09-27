@@ -92,7 +92,7 @@ The first two come with a **Fix the branch** button: it moves the old
 Screen-out page (keeping its wording) behind the last Final or Redirect page —
 or adds a new one, leaving a conditional page to its own job — adding a Final
 page first if none ends the survey, and points the branch at it. Save and
-republish afterwards, and walk the survey once as a respondent who passes. See
+republish afterward, and walk the survey once as a respondent who passes. See
 [Attention checks](Studio-Logic-and-Branching#attention-checks) and
 [Screening people out](Studio-Logic-and-Branching#screening-people-out).
 
@@ -124,7 +124,7 @@ partial interviews not) that failed an attention check **or** straightlined:
 - **Straightlining**: every **Matrix** with three or more rows counts as a
   battery; a response is flat when all rows are answered and all answers are
   identical. A Multiple choice in the wide layout also writes one variable per
-  choice, but it is not a battery — ticking every option is not
+  choice, but it is not a battery — checking every option is not
   straightlining.
 
 The checks come from the questionnaire **the environment is running**, not
@@ -239,6 +239,7 @@ four checks:
 | Parameter | Meaning |
 |---|---|
 | **Battery to check** | a matrix or battery of same-scale items; straightlining and duplicate patterns are measured across it |
+| **Duplicates also match on** | other answers a duplicate must repeat as well as the battery — age, gender and a few questions of the respondent's own; empty, the battery alone decides |
 | **Answers that must agree** | pairs `left variable: right variable`; answering them differently is a contradiction |
 | **Attention checks** | `variable: expected answer`. **Fill from the questionnaire (N marked)** copies the checks marked in the Builder |
 | **Straightlining tolerance** | the spread across the battery at or below which a response counts as flat; `0` (default) means identical answers |
@@ -251,8 +252,13 @@ What the checks mean:
   tolerance (a battery needs at least 3 items);
 - **inconsistency** — a pair answered differently (both answered);
 - **duplicate** — the same complete answer pattern as another respondent
-  across a battery of at least 5 items; every member of such a group is
-  flagged, because which one is the original cannot be known;
+  across a battery of at least 5 items, and the same answers to the
+  **Duplicates also match on** questions (two unanswered ones match); every
+  member of such a group is flagged, because which one is the original cannot
+  be known. A flat pattern — the same answer all the way down — is
+  straightlining, never a duplicate: two straightliners of one column match
+  whoever they are. Two honest respondents can answer a battery alike now and
+  then; the more answers a duplicate must share, the surer the match;
 - **attention** — an attention check answered with anything but the expected
   answer.
 
@@ -265,6 +271,18 @@ dropped, and ready for a report section.
 Details of every parameter: [[Node Reference|Studio-Node-Reference]].
 Where these nodes fit in a cleaning flow:
 [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]].
+
+> **In the example study.** The flow `cleaning` of a project started from
+> the [example study](Studio-Projects#the-example-study) runs both nodes on
+> the sample responses: **Speeders & partials** with **Minimum seconds**
+> `240`, and **Response quality** in **drop** mode over the eleven statements
+> of its two matrices, with the age group asked checked against the age
+> typed (cut into the same groups by **Bands**), the attention check among
+> the phone statements, and **Duplicates also match on** age, gender, area,
+> employment, life satisfaction and hours on screens. The sample has all four
+> problems planted, among them interviews submitted twice. Its report, *Data
+> quality*, gives the table of failed checks with *Screened* and *Clean*
+> under it — the numbers to report (see [Reporting exclusions](#reporting-exclusions)).
 
 ---
 

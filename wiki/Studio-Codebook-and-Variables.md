@@ -1,6 +1,6 @@
 # Codebook and Variables
 
-In most survey tools the codebook is something you write afterwards, by hand.
+In most survey tools the codebook is something you write afterward, by hand.
 In Studio it is part of the questionnaire: every question writes one or more
 **variables**, and each variable carries its scale, label, value labels, valid
 range and missing codes. That is why an SPSS export arrives labeled, why tables

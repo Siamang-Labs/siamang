@@ -42,11 +42,11 @@ error until you fill it in. The inspector marks every other parameter
 | Type | How you set it in the inspector |
 |---|---|
 | variable | a dropdown of the variables available at this node (`name — label`), filtered to the scales the node accepts. A stored variable of another scale stays shown as what the node reads, with its scale: "q_md_score_1 (interval — Rows takes nominal / ordinal)" — an error of the check for a codebook variable, a warning for one a node of the flow makes. A made variable has the scale the nearest node upstream that makes it gives it (a Recode of a derived variable is ratio, like its source), and the dropdown offers it with that scale; a name the codebook has keeps the codebook's. An arm an **Assign to a condition** script writes is offered as a nominal variable ("assigned by a script") when the codebook does not list it. A field that can read columns the codebook does not describe lists them last, under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the survey's responses carry — `created_at — Response date (created_at)`, `updated_at — Last change (updated_at)`, `started_at — Start time (started_at)`. A field leaves out what its node refuses as soon as it is picked: a **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not offer multiple-choice questions, rankings or open answers, and a **Trend**'s **Measure variable** for a mean no nominal or multiple-choice question; a stored one stays shown with the reason (`aware (several answers: not one wave or date)`) |
-| variables (several) | a checklist of the same variables, filtered the same way; a ticked variable the list would not offer stays in it, with its scale or "(not in codebook)", and can be unticked |
+| variables (several) | a checklist of the same variables, filtered the same way; a checked variable the list would not offer stays in it, with its scale or "(not in codebook)", and can be unchecked |
 | choice | a dropdown of the allowed values (**— default —** leaves the default). Where the code is a statistician's shorthand, the option shows its name beside it — `welch_anova — Welch's ANOVA`, `fdr_bh — Benjamini-Hochberg`; the stored value and the generated script keep the code |
-| answer code | an answer of the variable another parameter names, picked from that variable's value labels (`1 — Male`): a dropdown (**— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be ticked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads "5 (not an answer of gender)" in a dropdown and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1 — Male`; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1" (not an answer of gender)`. Where the field reads a list of variables, the answers are those of the first one ticked. When that variable has no value labels, the field is a JSON box instead |
+| answer code | an answer of the variable another parameter names, picked from that variable's value labels (`1 — Male`): a dropdown (**— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be checked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads "5 (not an answer of gender)" in a dropdown and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1 — Male`; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1" (not an answer of gender)`. Where the field reads a list of variables, the answers are those of the first one checked. When that variable has no value labels, the field is a JSON box instead |
 | whole number, number | a number box; the placeholder shows the default |
-| checkbox | ticked = on |
+| checkbox | checked = on |
 | text | a text box; where the text names a new variable or column, the hint says "names a new variable". A few text boxes suggest values as you type — a **Bar chart**'s **Bins** (`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a **Heatmap**'s **Color map** (`theme`, `YlOrRd`, `Blues`, `viridis`, `RdBu_r`) — and take any other value the node reads |
 | JSON object, JSON | a text box that must contain valid JSON; it is read when you leave the box, and a parse error is shown under it. Where the help gives an example, the empty box shows it (`[18, 30, 45, 65, 100]`) |
 | condition | the Builder's condition editor, over the variables available at this node |
@@ -57,10 +57,11 @@ error until you fill it in. The inspector marks every other parameter
 variables, then those that nodes upstream of it make — a **Recode**,
 **Derive**, **Index / scale**, **Bands**, **Explode multiple choice**,
 **MaxDiff scores**, **Cluster (k-means)**, **Factor analysis** with **Add
-factor scores** ticked, **Response quality**, **Speeders & partials**, a
-weighting node, or a **Code open answers** whose **Theme variable** is filled
-in — labeled "*label* · made by *node*" (or "made by *node*"), then those a
-table the flow reads brings, labeled "from table *table* · made by *flow*". A
+factor scores** checked, **Response quality**, **Speeders & partials**, a
+weighting node, or a **Code open answers** (its **Theme variable**, or the
+name its codeframe carries) — labeled "*label* · made by *node*" (or "made
+by *node*"), then those a table the flow reads brings, labeled "from table
+*table* · made by *flow*". A
 variable made further down the flow is not offered: it does not exist yet
 when this node runs. See
 [Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers).
@@ -198,7 +199,7 @@ Notes:
   column. Partial interviews reach the `responses` table only from surveys
   published with the current survey runtime: a survey published before
   partial saves were fixed sends only submitted interviews until you publish
-  it again, and from then on a flow that does not tick this box sees its
+  it again, and from then on a flow that does not check this box sees its
   partial interviews too.
 - A **Table** or **Environment** that no project can have (see the rules
   above), including a name that ends in a line break, fails the engine check
@@ -258,6 +259,14 @@ responses), as SurveyData labeled by the questionnaire's codebook.
   failed) when that flow fails. Running this flow on its own does not run the
   writer first: it reads the table as it is. See
   [Run all](Studio-Flows#run-all).
+- A table no run has written yet stops the node, in a preview and in a run:
+  "The table clean_responses does not exist yet: it is written by 1. Clean
+  raw responses. Run that flow (or Run all) first, then this one." — naming
+  the flow whose **Write table** writes it, or "…: a flow's Write table node
+  makes it." when none does.
+- A multiple-choice question kept as one variable, and a ranking, come back
+  as lists, as from **Responses**, so **Explode multiple choice** and a tab
+  book read them.
 - The table brings the variables its writer stored with it — labels, scales
   and value labels of a recode, a derived variable, an index, a cluster, the
   quality flags — merged with the questionnaire's codebook (the
@@ -320,7 +329,7 @@ that is missing or not a number counts as 0.
 | **Likert chart** | the shares are sums of weights; each item's `n` counts respondents (see [Likert chart](#likert-chart)) |
 | **Trend** | each point's percent, mean or count (the sum of weights), its band on Kish's effective base; the bases count respondents (see [Trend](#trend)) |
 | **Result chart** | as the result it draws is, and its title's second line says which (see [Result chart](#result-chart)) |
-| **Proportion CI** | only when its **Weighted** box is ticked (see [Proportion CI](#proportion-ci)) |
+| **Proportion CI** | only when its **Weighted** box is checked (see [Proportion CI](#proportion-ci)) |
 | **Tab book (Excel)** | counts and bases are sums of weights (shown to one decimal) beside the unweighted base, percentages are of those sums, and the letters test on Kish's effective base (see [Tab book (Excel)](#tab-book-excel)) |
 
 These have no weighted form. After Apply weight they run on the respondents
@@ -340,7 +349,7 @@ of the chart's title (also under a title you set):
 | **Crosstab** with **Test** `fisher` | its `Base` line: "the test counts respondents (an exact test needs whole counts); weighted counts shown" |
 | **Perceptual map**'s chi-square test | `Chi-square counts` = "respondents (unweighted), as a test of a table must" (the map itself is weighted) |
 | **Cluster (k-means)** | statistic `weight` |
-| **Proportion CI** with **Weighted** unticked | statistic `weight` |
+| **Proportion CI** with **Weighted** unchecked | statistic `weight` |
 | **Box plot**, **Scatter plot**, **Heatmap** without **By** with **Method** `spearman` or `kendall` | second title line |
 | **Response quality**, **Code open answers**, **Data check** | `Weight` under their table: they count responses, answers and rows |
 | **Bands**, **MaxDiff scores** | `Weight` in their statistics: they count respondents, or score each one |
@@ -367,7 +376,7 @@ analysis)".
 ### Bands
 
 `prepare.bands` — "Cut a number into bands — age into age groups, income into
-brackets — as a labelled ordinal variable; what falls outside every band is
+brackets — as a labeled ordinal variable; what falls outside every band is
 counted."
 
 **In:** `data` (SurveyData) → **Out:** `data` (SurveyData), `stat` (Stat)
@@ -386,7 +395,7 @@ counted."
   means** by it prints "18 to under 30", not `1`. Later nodes offer it in
   their variable lists ("made by *node*"), and a **t-test**'s **Group A** and
   **Group B** offer its bands.
-- With **Bands include their upper boundary** ticked, the default labels read
+- With **Bands include their upper boundary** checked, the default labels read
   "18 to 30", "over 30 to 45", ….
 - The `stat` output names the step (`Variable` = `age → age_band`), counts
   each band (`Bands` = `16 to under 30: 12; 30 to under 45: 15; …`) and what
@@ -644,7 +653,8 @@ write-up.
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Battery to check** | variables (several) | empty | — | A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these. |
+| **Battery to check** | variables (several) | empty | — | A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these; a flat pattern (the same answer throughout) is straightlining, never a duplicate, since two straightliners of one column match whoever they are. |
+| **Duplicates also match on** | variables (several) | empty | — | Other answers a duplicate must repeat as well as the battery, such as age, gender and a few questions of their own. Two honest respondents can answer a battery alike, and both are dropped as one person submitting twice; the more answers two responses must share, the surer the match. Empty, the battery alone decides. |
 | **Answers that must agree** | JSON object | empty | — | left variable: right variable. A respondent answering them differently is flagged as contradictory. |
 | **Attention checks** | JSON object | empty | — | variable: the answer a reading respondent gives. |
 | **Straightlining tolerance** | number | `0.0` | at least 0.0 | Standard deviation across the battery at or below which a response counts as flat. 0 means literally identical answers. |
@@ -658,7 +668,7 @@ The four checks:
 |---|---|
 | `straightlining` | the standard deviation of a response across **Battery to check** is at or below **Straightlining tolerance** |
 | `inconsistency` | a pair in **Answers that must agree** was answered differently |
-| `duplicate` | the response's complete answer pattern across the battery is identical to another response's — every member of such a group is flagged |
+| `duplicate` | the response's complete answer pattern across a battery of at least 5 items — not a flat one — is identical to another response's, and so are its answers to **Duplicates also match on** (two unanswered ones match) — every member of such a group is flagged |
 | `attention` | an attention-check variable was answered with anything but the expected answer |
 
 - **Flags column** (`quality_flags`) holds the failed checks joined with
@@ -769,56 +779,85 @@ The rules, precisely:
 
 ### Code open answers
 
-`prepare.text_code` — applies a **frozen codeframe** (themes and which answer
-belongs to which) to an open-text variable. The model ran once, earlier, when
-the codeframe was built; this node only looks answers up in the saved file, so
-the same answers get the same themes on every run, and no network call happens
-inside your flow. See [[Coding Open Answers|Studio-Open-Answer-Coding]].
+`prepare.text_code` — applies a **codeframe** to an open-text variable: each
+answer gets the themes a coder gave it by hand, else the ones the codeframe's
+word rules find, else it stays uncoded. The same way at every run, with no
+model and no network — and the rules code the answers collected after they
+were written too. You build the codeframe in the codeframe editor. See
+[[Coding Open Answers|Studio-Open-Answer-Coding]].
 
 **In:** `data` (SurveyData) → **Out:** `data` (SurveyData), `table` (Table), `stat` (Stat)
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Codeframe** | file path | required | — | The codeframe file (`analysis/<name>.codeframe.json`) built from these answers. |
-| **Theme variable** | text | — | — | Defaults to the name the codeframe carries. |
+| **Codeframe** | file path | required | — | The codeframe file (`analysis/<name>.codeframe.json`) — its themes, the answers coded by hand (kept as fingerprints, never as texts) and the rules that code the rest, including answers collected later. |
+| **Theme variable** | text | — | — | Defaults to the name the codeframe carries. A codeframe that gives an answer several themes makes a multiple-choice variable (a list of codes per answer). |
 | **Also add sentiment** | checkbox | off | — | A sentiment variable beside the theme, and each theme's negative / neutral / positive split in the table. Only when the codeframe was built with it — the stat says when it was not. |
 
-- **Codeframe** is a dropdown of the project's saved codeframes (**— choose a
-  codeframe —**). The button beside it — **Code open answers…**, or **Code
-  more answers…** once one exists — opens the assistant that builds one. With
-  none yet: "No codeframe in this project yet. The assistant builds one from
-  the answers you have collected; you read it and save it before anything is
-  coded."
+- **Codeframe** is a dropdown of the project's codeframes (**— choose a
+  codeframe —**), with a line under it: "Choose a codeframe document of this
+  project." or "No codeframe document exists in this project." The button
+  under it opens the codeframe editor: **New codeframe…** when none is
+  chosen — it asks for the open-text variable and a name, sets the new file on
+  the node at once and shows the answers this flow's **Responses** node
+  reads — and **Edit codeframe…** for the chosen one. A new codeframe is a
+  document only once saved in its editor; until then the dropdown lists it as
+  "*path* (not saved)" and the line reads "*path* is not saved yet: it is kept
+  in this tab until you save it in its editor." (in another tab: "*path* is
+  not saved in this project: it was started and never saved. Start it again,
+  or choose another codeframe."). There is no button to code with the AI
+  assistant: AI coding of open answers is switched off on this platform.
+- **Theme variable** left empty takes the name the codeframe carries (set in
+  the editor's **Codeframe settings → Theme variable**, `<variable>_theme`
+  by default).
 - **Output `data`:** adds the theme variable (label `Theme: <variable>`, value
-  labels = your theme labels) and, with **Also add sentiment**, a
+  labels = your theme labels): the code, or with several themes an answer the
+  list of codes (a **multiple-choice** variable). An answer coded as no theme
+  and an uncoded one are empty there. With **Also add sentiment**, also a
   `<theme variable>_sentiment` variable coded −1 / 0 / 1 (Negative / Neutral /
   Positive).
-- **Output `table`:** one row per theme with N and %, largest first, then
-  **Coded** and **Uncoded** rows. A theme's % is of the **coded** answers;
-  **Coded** and **Uncoded** are shares of **everyone who answered** — so one
-  uncoded answer in four reads 25 %. (It used to be taken of the coded
-  answers, which read 33.3 %; a flow run again gives the corrected share.)
-  With **Also add sentiment** and a codeframe built with it, each row adds
-  **Negative %**, **Neutral %** and **Positive %** of its answers.
+- **Output `table`:** one row per theme and per net ("*net* (net)", its themes
+  under it; a net counts a respondent once), ordered by their counts, with N
+  and %; then **No theme** (answers a coder decided have none, when there are
+  any), **Coded**, **Coded by hand**, **Coded by rules** and **Uncoded**. Every
+  % is of the **respondents who answered**; with several themes an answer the
+  themes add up to more than 100 %. With **Also add sentiment** and a
+  codeframe built with it, each row adds **Negative %**, **Neutral %** and
+  **Positive %** of its answers.
 - **Output `stat`** — the table's statistics, which it also prints under it:
-  **Variable**, **Answered**, **Themes**, **Coverage** ("75.0 % of the answers
-  have a theme"), **Distinct uncoded answers** (how many different answers a
-  new coding job would have to look at), **Percentages** ("a theme: of the
-  coded answers; Coded and Uncoded: of all answers") and **Codeframe** (the
-  model and when it built the codeframe). With sentiment: **Sentiment**
+  **Variable**, **Answered**, **Themes**, **Coverage** ("87.5 % of the answers
+  are coded"), **Coded by hand**, **Coded by rules**, **Distinct uncoded
+  answers** (how many different answers are left to read), **Percentages**
+  ("of the respondents who answered", and with several themes an answer "; a
+  respondent can have several themes, so the themes add up to more than 100
+  %"), **Nets** when there are nets, and **Codeframe** (the model and when)
+  for a codeframe the assistant built earlier. With sentiment: **Sentiment**
   ("negative 66.7 %, neutral 0.0 %, positive 33.3 % of 3 answers") and **Net
   sentiment** (positive minus negative, in points); asked of a codeframe
   built without it, **Sentiment** reads "not in this codeframe". Wire it into
-  a **Live tile** to watch the coverage fall as new answers arrive.
+  a **Live tile** to watch the coverage as new answers arrive.
+- **An older codeframe (version 1)** — one the assistant built, or the example
+  study's — gives the table it always did: theme rows as shares of the
+  **coded** answers, **Coded** and **Uncoded** as shares of everyone who
+  answered, **Coverage** "… % of the answers have a theme" and **Percentages**
+  "a theme: of the coded answers; Coded and Uncoded: of all answers".
 - The table counts answers, not weights; on weighted data it says "Weight:
   unweighted (the weight 'weight' is not applied)".
-- Answers are matched by their normalized text. An answer the codeframe has
-  never seen — collected after it was built — stays blank (uncoded) rather
-  than being guessed.
-- Later nodes offer the theme variable in their variable lists when you type
-  its name in **Theme variable** (for example `feedback_theme`); left empty,
-  the node still creates it under the codeframe's name, but the pickers do
-  not list it. The sentiment variable is not offered.
+- Answers are matched by their text with case, spacing and Unicode form set
+  aside, so a coder's decision holds wherever the same answer appears. The
+  rules read the words: English negations, clauses, word forms (`delay*`),
+  alternatives (`slow|late`), negated mentions (`not_late`) and words near
+  each other (`staff ~3 rude`); no regular expressions.
+- Later nodes offer the theme variable in their variable lists ("made by
+  *node*"), whether its name is typed in **Theme variable** or left to a
+  codeframe saved in the project. A multiple-choice theme variable is treated
+  as a multiple-choice question: a donut, a **Split by**, a banner column or a
+  Likert chart of it is refused. The sentiment variable is not offered.
+- The flow's check reads the project's codeframes: a codeframe the run could
+  not apply is an error of the flow ("Parameter 'codeframe' of *node*: *path*
+  cannot be applied: …"), and so is one that codes a variable the
+  questionnaire does not have ("… codes '*variable*', which is not a variable
+  of this questionnaire.").
 
 ---
 
@@ -930,7 +969,7 @@ the same numbers when everyone answered and no missing code was given.
 ### Cluster (k-means)
 
 `analyze.cluster` — segments respondents on a set of items with k-means
-(k-means++ start, deterministic for a given seed). It adds a labeled nominal
+(the best of ten k-means++ starts, deterministic for a given seed). It adds a labeled nominal
 cluster variable to the data and returns the centroids. Wire its `data` output
 on to use the segments: later nodes offer the cluster variable in their
 variable lists (a **Crosstab** by segment, say), and **Export file** or
@@ -948,8 +987,9 @@ run a **Frequencies** of the cluster variable on the weighted data.
 | **Items** | variables (several) | required | ordinal / interval / ratio variables | Variables to segment on. |
 | **Clusters** | whole number | `3` | 2–12 | Number of clusters. |
 | **Cluster variable** | text | `cluster` | — | Name of the new cluster variable. |
-| **Seed** | whole number | `42` | — | Random seed; the same seed gives the same clusters. |
+| **Seed** | whole number | `42` | — | The random draws of ten k-means++ starts; the start with the smallest within-cluster sum of squares is kept, so the clusters do not depend on the order of the rows. |
 | **Standardize items** | checkbox | on | — | Put the items on a common scale before clustering. |
+| **Number clusters by** | variable | — | one of the **Items** | Optional. Empty, the clusters are numbered by size, largest first; set, by this item's mean, lowest first. Two segments of close sizes swap numbers when a few respondents come or go, and a name given to a number (with **Derive**) then lands on the other segment; numbered by the item that tells them apart, each keeps its number. |
 
 ### Compare groups
 
@@ -1119,10 +1159,10 @@ To draw the matrix, connect its `table` to a **Result chart** (Kind
 ### Perceptual map
 
 `analyze.correspondence` — "Correspondence analysis of a crosstab, or of the
-attributes ticked for each brand — the dimensions and their share of the
+attributes checked for each brand — the dimensions and their share of the
 inertia, and where each row and column lies on the map, with contributions and
 quality." A table of counts says cell by cell which brands are seen as modern
-and which as good value; the map shows it at a glance: a brand lies towards
+and which as good value; the map shows it at a glance: a brand lies toward
 the attributes it gets more of than the average brand does. Connect any of its
 tables to a **Result chart** to draw the map.
 
@@ -1130,15 +1170,15 @@ tables to a **Result chart** to draw the map.
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Table** | choice | `crosstab` | `crosstab`, `attributes` | crosstab counts the respondents in each pair of answers of Rows and Columns (a multiple-choice variable counts each answer chosen). attributes counts, for each answer of Rows — the brand, in data with a row per respondent and brand — the respondents who ticked each of the Attributes. |
+| **Table** | choice | `crosstab` | `crosstab`, `attributes` | crosstab counts the respondents in each pair of answers of Rows and Columns (a multiple-choice variable counts each answer chosen). attributes counts, for each answer of Rows — the brand, in data with a row per respondent and brand — the respondents who checked each of the Attributes. |
 | **Rows** | variable | required | nominal / ordinal variables | The points of one kind on the map — brands, regions, segments. A respondent whose answer is blank or one of the codebook's missing codes is left out. |
 | **Columns** | variable | — | nominal / ordinal variables | Crosstab: the points of the other kind — the answers crossed with Rows. Shown only with **Table** `crosstab`. |
-| **Attributes** | variables (several) | — | — | Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank or a missing code is no tick. Shown only with **Table** `attributes`. |
-| **Counts as yes (attributes)** | answer code | — | — | The code, or a list of codes, that counts as ticking an attribute. Empty works for 0/1 variables. Shown only with **Table** `attributes`. |
+| **Attributes** | variables (several) | — | — | Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank or a missing code counts as unchecked. Shown only with **Table** `attributes`. |
+| **Counts as yes (attributes)** | answer code | — | — | The code, or a list of codes, that counts as checking an attribute. Empty works for 0/1 variables. Shown only with **Table** `attributes`. |
 | **Dimensions in the tables** | whole number | `2` | 1–10 | How many dimensions the rows and columns tables give coordinates, contributions and cos² for; the map shows the first two, and the inertia table lists them all. |
 
 The **Table** dropdown reads `crosstab — Rows by Columns` and `attributes —
-Attributes ticked for each answer of Rows`; the node's card reads `region ×
+Attributes checked for each answer of Rows`; the node's card reads `region ×
 satisfaction`, or `brand × modern, good_value, friendly` for attributes.
 
 - **Two layouts.** `crosstab` crosses two questions: **Rows** `region`,
@@ -1148,9 +1188,9 @@ satisfaction`, or `brand × modern, good_value, friendly` for attributes.
   such a file in with a **Data file** node. **Rows** can also be a question
   about the respondent — a region, a segment — with the 0/1 columns of an
   exploded multiple-choice question as **Attributes**: the map then shows which
-  regions tick which options.
+  regions check which options.
 - **Rules:** "A crosstab map crosses Rows with Columns — choose the Columns
-  variable.", "An attribute map counts the Attributes ticked for each answer
+  variable.", "An attribute map counts the Attributes checked for each answer
   of Rows — choose two or more attribute variables." and "A perceptual map of
   attributes needs two or more attribute variables; 1 was given." (errors);
   "Counts as yes is read only with Table = attributes — set it, or clear
@@ -1172,7 +1212,7 @@ satisfaction`, or `brand × modern, good_value, friendly` for attributes.
   independence). A point's **Quality** says how well the dimensions shown
   represent it; its **Contribution** how much it shapes a dimension.
 - **Signs are arbitrary** in any correspondence analysis: here each dimension
-  points towards the row that contributes most to it, so a map can be the
+  points toward the row that contributes most to it, so a map can be the
   mirror image of another package's.
 - **The chi-square test** of independence is given for a crosstab of two
   single-answer questions. Where a respondent can be counted in several cells
@@ -1187,7 +1227,7 @@ satisfaction`, or `brand × modern, good_value, friendly` for attributes.
   ("… so there is nothing to map: the table is independent."), attributes
   that are not 0/1
   without **Counts as yes** ("The attributes hold 1, 2, 3, 4, 5, 9: name the
-  code (or codes) that counts as ticking an attribute in Counts as yes — `yes`
+  code (or codes) that counts as checking an attribute in Counts as yes — `yes`
   outside a flow."), and a multiple-choice attribute (run **Explode multiple
   choice** first, or use the crosstab layout with it as **Columns**).
 - **On weighted data** every cell is a sum of weights, so the map is weighted,
@@ -1334,7 +1374,8 @@ and kurtosis on request."
 |---|---|---|---|---|
 | **Variables** | variables (several) | required | ordinal / interval / ratio variables | The codebook's missing codes (a 99 "Don't know") are not answers and count as missing. |
 | **By group** | variable | — | nominal / ordinal variables | Optional. One row per variable and group; a blank or a missing code of the group variable is no group. A multiple-choice question gives one group per option, and they overlap. |
-| **Quartiles, skewness and kurtosis** | checkbox | off | — | — |
+| **Quartiles, skewness and kurtosis** | checkbox | off | — | Only with **Layout** `long`. |
+| **Layout** | choice | `long` | `long`, `means` | With **By group**. `long`: a row per variable and group with N, mean, SD, median, minimum and maximum. `means`: a row per variable and a column per group with its mean, a compact profile of the groups; their sizes are under the table. |
 
 One row per variable — or per variable and group — with **Variable**,
 **Label**, the group, **N**, **Missing**, **Mean**, **SD**, **Min**,
@@ -1360,14 +1401,14 @@ bias-corrected G1 and excess G2 that SPSS and Excel report).
   the SD's n included, so one weighted answer has no SD. The statistics add
   **Weight**, **Weighted N**, **Effective N** (Kish), the **Design effect** and
   the **Note** "mean, SD and median are weighted; N and Missing count
-  respondents" (with **Quartiles, skewness and kurtosis** ticked: "mean, SD,
+  respondents" (with **Quartiles, skewness and kurtosis** checked: "mean, SD,
   median and quartiles are weighted; N and Missing count respondents; skewness
   and kurtosis are unweighted") — with "; rows weighted 0 are left out of the
   weighted statistics" after "count respondents" when any row weighs 0.
 
 To chart the means, connect its `table` to a **Result chart**: `means` (each
 mean with its 95 % interval) or `means_sd` (± 1 SD), a row per variable with
-its base; with **By group**, a colour per group, the legend giving each
+its base; with **By group**, a color per group, the legend giving each
 group's base (`Capital (n = 170–197)` when it differs between variables).
 
 ### Key drivers
@@ -1377,7 +1418,7 @@ each one's share of R² by Johnson's relative weights or the Shapley value
 (LMG), beside the correlations and standardized betas." A regression's
 coefficients answer another question — what changes when one rating moves and
 the others stay put — and when the ratings correlate, as ratings of one brand
-do, a coefficient can shrink or even flip sign because a neighbour took its
+do, a coefficient can shrink or even flip sign because a neighbor took its
 share. Key drivers splits the model's R² between the drivers instead, so the
 shares add up to R² (100 %).
 
@@ -1441,7 +1482,7 @@ predictor (listwise)") and **Missing codes** ("138 answers with a missing code
   effective N"), and **df** has decimals ("3, 167.33").
 
 Connect its `table` to a **Result chart** for the bars: each driver's share
-of R², largest first, a driver with a negative beta in a second colour
+of R², largest first, a driver with a negative beta in a second color
 (legend "positive beta", "negative beta"), titled "Key drivers of Overall
 satisfaction" with the method, R² and N on the line under it.
 
@@ -1458,7 +1499,7 @@ all.
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Items** | variables (several) | required | ordinal / interval / ratio variables | Three or more, analysed as standardised scores (their correlations). A respondent missing any item is left out; the codebook's missing codes count as missing. |
+| **Items** | variables (several) | required | ordinal / interval / ratio variables | Three or more, analyzed as standardized scores (their correlations). A respondent missing any item is left out; the codebook's missing codes count as missing. |
 | **Factors** | whole number | — | at least 1 | Empty chooses the number by the rule below. |
 | **Number of factors by** | choice | `kaiser` | `kaiser`, `parallel` | When Factors is empty. kaiser keeps the eigenvalues above 1; parallel keeps the factors whose eigenvalue beats the 95th percentile of 100 random data sets of the same size, drawn from Seed. |
 | **Extraction** | choice | `minres` | `minres`, `principal`, `ml` | minres (minimum residual) as psych and factor_analyzer; principal is iterated principal axis factoring; ml is maximum likelihood, as R's factanal, and adds a test of fit; it is started from 14 fixed points and keeps the best, and warns when they disagree (often a sign of too many factors). |
@@ -1466,7 +1507,7 @@ all.
 | **Sort items by factor** | checkbox | off | — | — |
 | **Hide loadings below** | number | `0` | 0–1 | Blank out the loadings smaller than this in the table (0 shows every loading), so the structure reads at a glance. |
 | **Add factor scores** | checkbox | off | — | Regression-method scores, one variable per factor, missing for the respondents left out. |
-| **Score variable prefix** | text | `factor_` | — | The scores are named <prefix>1, <prefix>2, … — with Add factor scores on. The prefix itself is not a variable. Shown only with **Add factor scores** ticked. |
+| **Score variable prefix** | text | `factor_` | — | The scores are named <prefix>1, <prefix>2, … — with Add factor scores on. The prefix itself is not a variable. Shown only with **Add factor scores** checked. |
 | **Seed (parallel analysis)** | whole number | `42` | — | Shown only with **Number of factors by** `parallel`. |
 
 The dropdowns read `minres — minimum residual`, `principal — principal
@@ -1499,7 +1540,7 @@ under its output's name.
   most that fit is used), with `minres` or `principal` more factors than the
   items' correlations can identify, and with `ml`, starts that disagree — a
   reason to compare a solution with fewer factors.
-- **Factor scores.** With **Add factor scores** ticked the `data` output
+- **Factor scores.** With **Add factor scores** checked the `data` output
   carries `factor_1`, `factor_2`, … (interval), blank for the respondents
   left out, and later nodes offer them ("factor 1 score · made by *node*") —
   a **Group means** of `factor_1` by region, a **Regression** on them. With
@@ -1507,7 +1548,7 @@ under its output's name.
   fewer than the items), the ones after the first as "factor 2 score (empty
   unless the rule keeps it) · made by *node*". The run makes the scores of the
   factors it kept, and of the others the ones a node downstream reads, empty and
-  labelled "Factor 2 score (not made: the Kaiser criterion kept 1 factor)";
+  labeled "Factor 2 score (not made: the Kaiser criterion kept 1 factor)";
   **Scores** names them ("factor_1 (regression method); factor_2 empty: the
   Kaiser criterion kept 1 factor"). A score nothing reads is not added, so the
   data, its exports and its tables carry only the scores made and the ones in
@@ -1711,7 +1752,7 @@ McNemar, yes/no`, `friedman — Friedman, three or more`, `cochran — Cochran's
 Q, three or more yes/no`. `auto` never picks Cochran's Q: choose it by hand.
 
 **Counts as yes (McNemar, Cochran's Q)** is a checklist of the first
-variable's answers (`4 High`, `5 Full`) — tick 4 and 5 for a top-two box.
+variable's answers (`4 High`, `5 Full`) — check 4 and 5 for a top-two box.
 McNemar or Cochran's Q on variables that are not 0/1 without it stops with
 the answers to choose from: "McNemar needs to know which answer counts as
 yes: the variables hold 1 = No trust, 2 = Low, 3 = Medium, 4 = High, 5 =
@@ -1820,7 +1861,7 @@ purchase intent at set prices."
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Method** | choice | `van_westendorp` | `van_westendorp`, `gabor_granger` | van_westendorp reads four prices each respondent named and finds where their cumulative curves cross. gabor_granger reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximising price among them. |
+| **Method** | choice | `van_westendorp` | `van_westendorp`, `gabor_granger` | van_westendorp reads four prices each respondent named and finds where their cumulative curves cross. gabor_granger reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximizing price among them. |
 | **Too cheap** | variable | — | interval / ratio variables | Van Westendorp: "At what price would it be so cheap that you would doubt its quality?" A respondent missing any of the four prices, or whose prices are not in the order too cheap ≤ cheap ≤ expensive ≤ too expensive, is left out and counted. |
 | **Cheap (a bargain)** | variable | — | interval / ratio variables | "At what price would it be a bargain — a great buy for the money?" |
 | **Expensive (getting expensive)** | variable | — | interval / ratio variables | "At what price would it start to seem expensive, though still worth considering?" |
@@ -1914,7 +1955,7 @@ one row per price, lowest first — **Price**, **Question** (by its label),
 **Would buy %**, **Revenue per respondent** (price × share), **Revenue index**
 (100 at the best price) and **Elasticity** (the arc elasticity from the price
 before). The statistics: **Method** "Gabor-Granger", **Counts as yes**,
-**Prices**, **N**, **Revenue-maximising price**, **Would buy % at it**,
+**Prices**, **N**, **Revenue-maximizing price**, **Would buy % at it**,
 **Revenue per respondent at it**, **Not monotone** (respondents who would buy
 at a higher price but not at a lower one), **Elasticity** and **Excluded**.
 Every respondent should answer every price: in a sequential design that stops
@@ -1953,12 +1994,12 @@ The statistics are `p` (the share), `lower`, `upper` and `n`. The base is
 the respondents who answered the variable — someone who skipped it is not
 counted as "did not choose".
 
-- **Weighted** ticked: the share is weighted and `n` is Kish's effective base
+- **Weighted** checked: the share is weighted and `n` is Kish's effective base
   of those respondents; a missing weight counts as 0, and weights of 1 give
   the unweighted result. The statistics add `weight` with the column's name.
   Earlier, a weighted share also counted the respondents who did not answer,
   which made it too small; a flow run again reports the corrected share.
-- **Weighted** unticked on weighted data: the share is of the respondents as
+- **Weighted** unchecked on weighted data: the share is of the respondents as
   they are, and `weight` reads "unweighted (the weight 'weight' is not
   applied)".
 - Its `stat` output is the one statistic a **Result chart** draws (Kind
@@ -1990,7 +2031,7 @@ model, so a flow saved before it existed runs as it did.
 **The ordinal model** is for an outcome of ordered answers — very
 dissatisfied to very satisfied — which is neither a number an ordinary
 regression may average nor a yes/no for a logit. It fits one threshold
-between each pair of neighbouring answers and one coefficient per predictor,
+between each pair of neighboring answers and one coefficient per predictor,
 the same at every cut: logit P(y ≤ j) = θⱼ − xβ, as R's `MASS::polr` and
 `ordinal::clm`, Stata's `ologit` and statsmodels' `OrderedModel` define it.
 A positive coefficient makes the higher answers more likely; its odds ratio
@@ -2011,7 +2052,7 @@ is the odds of answering above any cut rather than at or below it.
   `coefficients` ("a positive coefficient makes the higher answers more
   likely: logit P(y ≤ j) = threshold j − xβ, as R's MASS::polr"), `interval`
   ("95 % Wald interval of the odds ratio") and `missing_codes` ("Trust: Acme:
-  74 (9 = Refused)"); `note` when a labelled answer nobody in the model gave
+  74 (9 = Refused)"); `note` when a labeled answer nobody in the model gave
   is not a category, `warning` when there is something to warn about.
 - **A nominal outcome is refused**, before the run by the check
   (`VARIABLE_SCALE`; a warning when a node upstream makes the variable
@@ -2026,7 +2067,7 @@ is the odds of answering above any cut rather than at or below it.
   not a code, a predictor that does not vary, predictors that are a
   combination of each other. **Warned** (in `warning`): a fit that did not
   converge, and a predictor that separates the answers — its estimate runs
-  off towards infinity and cannot be read.
+  off toward infinity and cannot be read.
 - **On weighted data** each respondent's weight multiplies their part of the
   likelihood, as the logit's does; when the weights do not average about 1,
   `weights` says what they sum to, because the standard errors count that
@@ -2304,11 +2345,11 @@ split by a second variable, grouped or stacked, like the chart of a crosstab
 | **Show** | choice | `count` | `count`, `percent` | Count, or percent of the respondents who answered — for a multiple-choice question the share who named each option, so the bars add up to more than 100 % (the chart says so). With By the bars are means. |
 | **Split by** | variable | — | nominal / ordinal variables | The answers within each group of this variable — the chart of a crosstab, with percentages of each group (column percentages), weighted when a weight is applied. |
 | **Layout** | choice | `grouped` | `grouped`, `stacked`, `stacked_100`, `histogram`, `donut` | With Split by: the groups' bars side by side, stacked, or stacked to 100 % of each group (percentages, whatever Show says); a multiple-choice question's options overlap and are drawn side by side only. histogram: an interval or ratio variable in Bins, as counts or percent — with Split by, a panel per group. donut: one variable's answers as the parts of a whole, their percentages on the slices and the base in the middle (not with Split by, By or a multiple-choice question). |
-| **Sort** | choice | `code` | `code`, `value` | Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colours follow the answer, not its place — the same in a Top N chart and a donut of the same question. Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot. |
+| **Sort** | choice | `code` | `code`, `value` | Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colors follow the answer, not its place — the same in a Top N chart and a donut of the same question. Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot. |
 | **Horizontal** | checkbox | off | — | Bars across, labels beside them. With Show, Split by or Sort set, vertical bars whose labels cannot be read under them (many long answers) are drawn across too. |
 | **Show values** | checkbox | on | — | Print the value on each bar — in a donut, each slice's percentage. |
 | **Top N** | whole number | — | 1–100 | Only the N answers given most — with Split by, given most overall; for a multiple-choice question, the options named most; for a number of many values, its N values given most (up to 30). Empty draws every answer. In a donut the rest are combined as Other. |
-| **Combine the rest as Other** | checkbox | off | — | With Top N, one more bar for the answers after the top N — for a multiple-choice question, the respondents who named any of them — drawn grey and last. Off, the rest are left out; the note under the chart says how many. |
+| **Combine the rest as Other** | checkbox | off | — | With Top N, one more bar for the answers after the top N — for a multiple-choice question, the respondents who named any of them — drawn gray and last. Off, the rest are left out; the note under the chart says how many. |
 | **Confidence intervals** | checkbox | off | — | An error bar on each percentage (Wilson's interval, on Kish's effective base when weighted — each group's own base with Split by) and on each mean by group (the interval Group means draws when it leaves the missing codes out — Student's t, weighted the linearization interval; the Bar chart always leaves them out). Drawn on bars side by side (Layout grouped) only; counts have none. |
 | **Confidence** | number | `0.95` | 0.5–0.999 | The intervals' confidence level. |
 | **Significance letters** | checkbox | off | — | With Split by, Show percent and Layout grouped. The groups of Split by are lettered A, B, … (under their names) in the Banner table's order, and a bar carries the letters of the groups whose share of that answer is significantly lower — the Banner table's two-sided z-test of column proportions, on the group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The Tab book shows the same comparisons, under the letters its banner gives these columns — the same letters only when Split by is the banner's first variable. |
@@ -2319,7 +2360,7 @@ split by a second variable, grouped or stacked, like the chart of a crosstab
 | **Title** | text | — | — | Chart title. |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart), with its text colour, grid and font. The others are seaborn's palettes. |
+| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes. |
 
 The dropdowns read `count — respondents`, `percent — % of those who
 answered`; `grouped — side by side`, `stacked — stacked, as Show says`,
@@ -2338,8 +2379,8 @@ every layout but `histogram`; **Horizontal** and **Combine the rest as
 Other** for bars only (not a histogram or a donut); **Confidence
 intervals** with `grouped` (and with a stacked layout at **Show** `count` and
 **Sort** `code`, where a rule warns that it is not drawn), **Confidence** once
-it is ticked; **Significance letters** with **Show** `percent` and
-`grouped`, its **Level** and **Multiple comparisons** once it is ticked;
+it is checked; **Significance letters** with **Show** `percent` and
+`grouped`, its **Level** and **Multiple comparisons** once it is checked;
 **Bins** for a histogram and **Other below (%)** for a donut.
 
 **Seven charts in one node:**
@@ -2350,7 +2391,7 @@ it is ticked; **Significance letters** with **Show** `percent` and
 | the answers given most, of a long list | **Top N** (and **Combine the rest as Other**) | the N answers given most; the rest left out, or one gray **Other** bar, last |
 | the answers within groups — the chart of a crosstab | **Split by**, **Layout** | per group of **Split by**, its distribution: counts, or % of the group (column percentages); `stacked_100` stacks each group to 100 % |
 | which groups differ on an answer | **Split by**, **Show** `percent`, **Significance letters** | the grouped bars, each carrying the letters of the groups whose share is significantly lower |
-| a mean by group | **By** | the mean of **Variable** in each group of **By**, with its interval when **Confidence intervals** is ticked |
+| a mean by group | **By** | the mean of **Variable** in each group of **By**, with its interval when **Confidence intervals** is checked |
 | how a number spreads | **Layout** `histogram`, **Bins** | the number in bins, as counts or % — a panel per group with **Split by** |
 | the parts of a whole | **Layout** `donut` | a ring of the answers' shares, the base in the middle |
 
@@ -2391,7 +2432,7 @@ alone included) draws the newer chart, whose look differs:
   its distribution (or band it first with Bands)." ("… a slice for each …"
   in a donut). With **Top N** it draws the N values given most, so N is what
   counts: up to 30 are drawn, in steps of one hue light to dark among
-  themselves (among all 84, neighbours would read as one color); past 30, "Age
+  themselves (among all 84, neighbors would read as one color); past 30, "Age
   is a number with 84 different values given, and top=40 draws a bar for each
   of the 40 given most: give top=30 or fewer, or layout='histogram' draws its
   distribution (or band it first with Bands)." A question nobody answered
@@ -2491,7 +2532,7 @@ ignores):
 - The rules on the intervals and the letters, and on **By** with **Show**
   `percent`, speak of bars (`grouped`, `stacked`, `stacked_100`): a histogram
   or a donut draws neither intervals nor letters, and when they are left
-  ticked from the bars it is not warned of them — they are named under the
+  checked from the bars it is not warned of them — they are named under the
   fields as not used with these choices. Of a donut with **By** and **Split
   by** left over, the two warnings are that it draws neither.
 
@@ -2543,7 +2584,7 @@ respondents." Unweighted, the axes read "Count" and "Mean *label*".
 | **Title** | text | — | — | Chart title. |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart), with its text colour, grid and font. The others are seaborn's palettes. |
+| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes. |
 
 Quartiles and whiskers are of the respondents as they are; on weighted data
 the title's second line says "unweighted (the weight 'weight' is not
@@ -2559,12 +2600,12 @@ or Kendall), or their means by group."
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Items** | variables (several) | required | — | The items to show. |
-| **By** | variable | — | nominal / ordinal variables | Each item's mean in each group of this variable (weighted when a weight is applied). With a named Colour map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Colour map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name. Without By, the heatmap is the correlation matrix of the items. |
+| **By** | variable | — | nominal / ordinal variables | Each item's mean in each group of this variable (weighted when a weight is applied). With a named Color map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Color map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name. Without By, the heatmap is the correlation matrix of the items. |
 | **Method** | choice | `spearman` | `pearson`, `spearman`, `kendall` | The correlation drawn without By, over the respondents who answered every item. Spearman, the default, reads the answers as it always has (a missing code such as 9 = Refused counts as an answer; run Missing values first to leave it out). Pearson and Kendall leave the codebook's missing codes out and say so, as Correlation matrix does; Pearson is weighted when a weight is applied, Kendall says it is not. |
 | **Title** | text | — | — | Chart title. |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Color map** | text | `YlOrRd` | a matplotlib colormap, or `theme` | A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colours of the report the chart is saved in — its Save report Look's sequential colour for the means, its diverging pair for a correlation matrix, with its text colour, grid and font. |
+| **Color map** | text | `YlOrRd` | a matplotlib colormap, or `theme` | A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colors of the report the chart is saved in — its Save report Look's sequential color for the means, its diverging pair for a correlation matrix, with its text color, grid and font. |
 
 The **Method** dropdown reads `pearson — Pearson r`, `spearman — Spearman
 rho, answers as they are`, `kendall — Kendall tau-b`. `spearman` draws the
@@ -2616,9 +2657,9 @@ heatmap with the table's significance marks.
 ### Likert chart
 
 `visualize.likert` — "A battery of items on one ordered scale as diverging
-stacked bars centred on the neutral answer, with each item's top-2 and
+stacked bars centered on the neutral answer, with each item's top-2 and
 bottom-2 shares." Each item is a bar: the answers below the middle of the
-scale stack to the left of a centre line, those above it to the right, so a
+scale stack to the left of a center line, those above it to the right, so a
 battery's lean reads at a glance.
 
 **In:** `data` (SurveyData) → **Out:** `chart` (Chart)
@@ -2626,13 +2667,13 @@ battery's lean reads at a glance.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Items** | variables (several) | required | ordinal / interval variables | Items with one answer each on the same scale — the same value labels in the codebook (a battery such as agree–disagree statements). Codes run low to high, left to right; recode a scale that runs the other way first. The codebook's missing codes (a 9 "Don't know") are left out and counted under the chart. |
-| **Neutral answer** | choice | `split` | `split`, `side` | Split draws the middle answer of an odd scale half on either side of the centre; side draws it apart, in a panel at the right. An even scale has no neutral answer, and its centre falls between the two middle answers. |
+| **Neutral answer** | choice | `split` | `split`, `side` | Split draws the middle answer of an odd scale half on either side of the center; side draws it apart, in a panel at the right. An even scale has no neutral answer, and its center falls between the two middle answers. |
 | **Sort items** | choice | `top2` | `top2`, `listed` | top2 puts the item with the largest share in the top two answers first (the top answer alone on a scale of two or three); listed keeps the order of Items. |
 | **Show values** | checkbox | on | — | Each answer's share in its segment where it fits. The top-2 and bottom-2 shares are always written at the ends. |
 | **Title** | text | — | — | Empty takes the words the items' labels start with ("Trust" of "Trust: Acme" and "Trust: Globex"), the rest of each label naming its bar. |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | A battery whose labels need more room makes the figure taller. |
-| **Palette** | choice | `RdBu` | `RdBu`, `BrBG`, `PuOr`, `RdYlBu`, `PiYG`, `coolwarm`, `theme` | A diverging palette, the low answers in its first colour; the neutral answer is grey. Theme takes the colours of the report the chart is saved in — the diverging pair of its Save report's Look (low end first), with its text colour, grid and font. |
+| **Palette** | choice | `RdBu` | `RdBu`, `BrBG`, `PuOr`, `RdYlBu`, `PiYG`, `coolwarm`, `theme` | A diverging palette, the low answers in its first color; the neutral answer is gray. Theme takes the colors of the report the chart is saved in — the diverging pair of its Save report's Look (low end first), with its text color, grid and font. |
 
 The dropdowns read `split — half on either side`, `side — in a panel at the
 right`, `top2 — largest top-2 share first`, `listed — in the order of Items`.
@@ -2647,10 +2688,10 @@ Globex (n = 484)     41%    [ 20% | 21% |  21%  | 20% | 18% ]    38%
                ■ No trust  ■ Low  ■ Medium  ■ High  ■ Full
 ```
 
-The centre line (0 %) runs through the middle of the neutral answer, here
+The center line (0 %) runs through the middle of the neutral answer, here
 **Medium**, half of which lies on either side.
 
-**What counts as the scale.** Each item's labelled answers in the codebook,
+**What counts as the scale.** Each item's labeled answers in the codebook,
 its missing codes left out; without value labels, a valid range of whole
 numbers (2 to 11 of them); failing that, a Likert scale question's points,
 the two ends named by its end labels. Every item must have the same answers.
@@ -2671,11 +2712,11 @@ its own node with the same words:
 **Under the chart**, notes say what it shows:
 
 - "Base: the respondents who answered each item on the scale (n beside it).
-  Items in order of their top-2 share." — each bar is labelled with its base
+  Items in order of their top-2 share." — each bar is labeled with its base
   (`Acme (n = 485)`);
 - "Top-2: 4 = High, 5 = Full; bottom-2: 1 = No trust, 2 = Low." — the shares
   at the ends of each bar;
-- "The neutral answer (3 = Medium) is split around the centre." (or "… is
+- "The neutral answer (3 = Medium) is split around the center." (or "… is
   drawn apart, at the right.");
 - "Left out as missing: Trust: Acme: 108 (9 = Refused); Trust: Globex: 109 (9
   = Refused)." — and "Not on the scale, left out: …" for values off the
@@ -2703,7 +2744,7 @@ the data again, the picture never disagrees with the table beside it.
 | **Title** | text | — | — | Empty takes the result's own title ("Age by Region", "Key drivers of Overall satisfaction"). |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. A chart with more rows than its height holds legibly grows taller. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | The colours of the bars, points and series. Net Promoter Score and sentiment keep their own red–grey–blue, the heatmaps their diverging scale, and Key drivers, the Perceptual map and Price sensitivity their own colour-blind-safe pairs. Theme takes every colour from the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart), its series, its diverging pair for the red–grey–blue and the heatmaps, its text colour, grid and font. |
+| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | The colors of the bars, points and series. Net Promoter Score and sentiment keep their own red–gray–blue, the heatmaps their diverging scale, and Key drivers, the Perceptual map and Price sensitivity their own color-blind-safe pairs. Theme takes every color from the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), its series, its diverging pair for the red–gray–blue and the heatmaps, its text color, grid and font. |
 
 **Connecting it.** Wire the analysis's `table` into **result** — for
 **Factor analysis** and **Principal components** the `variance` output (scree)
@@ -2747,8 +2788,8 @@ correlation heatmap`, `sentiment — sentiment split`, `map — perceptual map`,
 | **Cluster (k-means)** (`table`) | `profile` | each cluster's means down the items, the legend giving its size ("Cluster 1 (n = 141, 44.9 %)") |
 | **Regression** (`table`) | `coefficients` | a forest of the coefficients with their 95 % intervals, without the intercept; odds ratios on a log scale for a logit and the ordinal logit (its thresholds left out) |
 | **Correlation matrix** (`table`) | `heatmap` | the lower triangle with the table's significance marks |
-| **Code open answers** (`table`) | `shares`; `sentiment` too with sentiment ticked | each theme's share; its answers' sentiment |
-| **Key drivers** (`table`) | `importance` | each driver's share of R², largest first, a negative beta in a second colour |
+| **Code open answers** (`table`) | `shares`; `sentiment` too with sentiment checked | each theme's share (of the respondents who answered; of the coded answers for an older, version 1 codeframe) — not the nets, nor the Coded and Uncoded rows; its answers' sentiment |
+| **Key drivers** (`table`) | `importance` | each driver's share of R², largest first, a negative beta in a second color |
 | **Perceptual map** (`table`, `rows` or `columns`) | `map` | the symmetric map of the first two dimensions, each axis with its share of the inertia |
 | **Price sensitivity** (`table` or `curves`) | `curves` | Van Westendorp's curves and price points (with the NMS trial curve), or Gabor-Granger's demand above its revenue |
 
@@ -2787,7 +2828,7 @@ top; their labels wrap and stay whole, the font shrinks as rows multiply, and
 a chart that still cannot hold them grows taller rather than cut them — only
 a label past four lines is cut, and never so that two read alike. The title,
 axis titles and notes wrap to the plot; values never leave it. Many series
-each get a colour of their own. A perceptual map whose labels would overlap
+each get a color of their own. A perceptual map whose labels would overlap
 is drawn taller, and one too crowded even then numbers its points and lists
 the numbered names under the legend.
 
@@ -2807,7 +2848,7 @@ a third, with a trend line.
 | **Title** | text | — | — | Chart title. |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart), with its text colour, grid and font. The others are seaborn's palettes. |
+| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes. |
 
 Every respondent is one point and the trend line is fitted unweighted; on
 weighted data the title's second line says "unweighted (the weight 'weight'
@@ -2826,7 +2867,7 @@ wave, completes per week.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Time** | variable | required | any variable, or a response timestamp | A wave code (one point per wave, ordered by code, its labels on the axis) or a date — a date column, or text in ISO 8601 such as the responses' created_at (2026-05-25 09:00:00+00:00). Times with a zone are read in UTC. |
-| **Period** | choice | `month` | `day`, `week`, `month`, `quarter`, `year` | How dates are grouped into points. A week is an ISO week, Monday to Sunday, labelled by its ISO year and number (2026-W22). Every period between the first and the last is on the axis, an empty one as a gap. Not used for a wave code. |
+| **Period** | choice | `month` | `day`, `week`, `month`, `quarter`, `year` | How dates are grouped into points. A week is an ISO week, Monday to Sunday, labeled by its ISO year and number (2026-W22). Every period between the first and the last is on the axis, an empty one as a gap. Not used for a wave code. |
 | **Measure** | choice | `percent` | `percent`, `mean`, `count` | percent: the share of those who answered that gave one of the Answer codes. mean: the mean of a numeric (or ordinal) variable. count: the number of respondents — the sum of weights when weighted. |
 | **Measure variable** | variable | — | — | The question the percent or the mean is of. Its missing codes are left out of every base and counted. |
 | **Answer codes** | answer code (several) | — | answers of **Measure variable** | The answer counted, or a list of them counted together (a top-2 box), e.g. [4, 5]. For a multiple-choice question, choosing any of them. |
@@ -2836,7 +2877,7 @@ wave, completes per week.
 | **Title** | text | — | — | Empty takes what is tracked ("Overall satisfaction: % Satisfied or Very satisfied", "Mean Trust: Acme", "Respondents"), with "by *Split by*". |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text colour, grid and font. The others are seaborn's palettes. |
+| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text color, grid and font. The others are seaborn's palettes. |
 
 The dropdowns read `percent — % choosing the Answer codes`, `mean — mean of
 the Measure variable`, `count — respondents (weighted: sum of weights)` and
@@ -2847,7 +2888,7 @@ its own base. The card reads `satisfaction = 4, 5 over created_at`, `mean
 trust_acme over wave` or `respondents over created_at`.
 
 **Time.** The picker lists the codebook's variables — **Waves and dates**
-first (labelled codes, ordinal variables, date columns, a Date question's
+first (labeled codes, ordinal variables, date columns, a Date question's
 answers), then **Other variables** — and, under **Beside the answers**, the
 timestamps the survey's responses carry: `created_at — Response date
 (created_at)` (when the response came in — the usual choice), `updated_at —
@@ -2868,7 +2909,7 @@ is on the axis, so a week without respondents is a gap in a percent or a
 mean, and a 0 in a count.
 
 **Answer codes** is a checklist of the **Measure variable**'s answers (its
-missing codes are not offered): tick one answer, or several to track them
+missing codes are not offered): check one answer, or several to track them
 together — `4` and `5` for a top-2 box. Without value labels it is a JSON box
 (`[4, 5]`).
 
@@ -2892,7 +2933,7 @@ or **Count**), **Lower 95%** and **Upper 95%** (not for a count), **Base**
 **Note** ("base below 30", "no respondents", "their weights sum to 0").
 Under it: **Measure** ("% choosing 4 = Satisfied, 5 = Very satisfied —
 Overall satisfaction"), **Base**, **Time** ("created_at, by week — ISO weeks,
-Monday to Sunday, labelled by ISO year and week number"), **Interval** ("95%
+Monday to Sunday, labeled by ISO year and week number"), **Interval** ("95%
 Wilson score interval, as the Bar chart draws a share's", "95% t interval of
 the mean"), **Weight**, **Low base** ("6 of 18 points have fewer than 30
 respondents (drawn hollow)") and **Missing codes left out**. The node's
@@ -2902,7 +2943,7 @@ satisfaction choosing 4 (Satisfied) or 5 (Very satisfied) was tracked over the
 date each response came in, by month, one line per group of Region, with its
 95% confidence band (Wilson score intervals, on Kish's effective base when
 weighted), points of fewer than 30 respondents drawn hollow and without a
-band, missing codes left out". Over a wave variable — labelled codes, or
+band, missing codes left out". Over a wave variable — labeled codes, or
 numbers without labels, a point per code — it says "was tracked wave by wave
 (Wave)".
 
@@ -3023,7 +3064,7 @@ What each extension writes, for **Path** `outputs/clean.<ext>`:
 
 **The R bundle.** `clean.R` reads `clean.csv` (as UTF-8) and its dictionary
 (with the `jsonlite` package) into a data frame named `survey_data`: the
-codebook's missing codes become `NA`, labelled codes become factors, and each
+codebook's missing codes become `NA`, labeled codes become factors, and each
 column's `label` attribute is the variable's label from the codebook (not the
 question's text). A code the codebook has no
 label for keeps a level of its own rather than turning into `NA`; a
@@ -3114,7 +3155,7 @@ footer** is on (the default).
 | **Also save HTML** | checkbox | on | — | Also write the styled `.html` twin next to the Markdown. |
 | **Table of contents** | checkbox | off | — | Add a table of contents. |
 | **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (Path with .xlsx) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
-| **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colours and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected. |
+| **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected. |
 
 - **The Excel workbook** (`outputs/report.xlsx` for the default **Path**) is
   the report's tables as a spreadsheet: numbers stay numbers, and text stays
@@ -3141,13 +3182,13 @@ footer** is on (the default).
   **Palette** is `theme` (a **Heatmap**'s **Color map** `theme`) is drawn in
   them, in the `.md`'s figures as in the `.html`. A chart with a named palette
   keeps its own. What the engine refuses is named on the node as you type, in
-  its words: "theme: chart_palette: 'purple' is not a hex colour such as
-  '#2a78d6'."; "theme: chart_palette: give between 2 and 12 colours, in the
+  its words: "theme: chart_palette: 'purple' is not a hex color such as
+  '#2a78d6'."; "theme: chart_palette: give between 2 and 12 colors, in the
   order the series take them; got 1."; "theme: chart_palette: '#2a78d6' is
   given twice; two series would look alike."; "theme: chart_palette:
   '#ffe8b2' on the charts' white background has a contrast of 1.2:1; a bar or
   a line in it needs at least 1.3:1 to be seen."; "theme: chart_diverging: the
-  two ends are the same colour, so the scale would not diverge."; "theme:
+  two ends are the same color, so the scale would not diverge."; "theme:
   chart_text_color: '#cccccc' on the charts' white background has a contrast
   of 1.6:1; text needs at least 4.5:1."; "theme: chart_font: a list of font
   names separated by commas, without ; { } < >." See
@@ -3189,7 +3230,7 @@ the segments that matter, in one file.
 The **Percentages** dropdown reads `column — of each column's respondents`,
 `row — of each answer's respondents`, `none — counts only`. **Level** and
 **Multiple comparisons** are shown only while **Significance letters** is
-ticked. The card reads `gender, region → outputs/tabbook.xlsx`.
+checked. The card reads `gender, region → outputs/tabbook.xlsx`.
 
 **The workbook.**
 
@@ -3309,8 +3350,9 @@ for other flows (**Project table**) and a table on the **Data** screen.
   bottom, like the script it becomes. The canvas refuses a connection that
   would close a cycle.
 - **A model anywhere inside a run.** Open answers are coded by **Code open
-  answers**, which applies a scheme built earlier and frozen — so a flow always
-  produces the same numbers and never calls out to anything.
+  answers**, which applies a codeframe's decisions by hand and its word rules
+  — so a flow always produces the same numbers and never calls out to
+  anything.
 - **A PDF writer.** Reports are Markdown and HTML (with their tables in
   Excel on request); print or convert the HTML.
 

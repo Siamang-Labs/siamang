@@ -128,7 +128,7 @@ cooperative. The type is set in
   Every admin and member loses access immediately. Their past Saves and
   activity stay, attributed to them.
 
-  Pending invitations are not cancelled by the switch, and a personal
+  Pending invitations are not canceled by the switch, and a personal
   organization no longer lists them, so someone could still join through an
   old link. Revoke them under **Settings → Members** before you switch.
 
@@ -467,7 +467,7 @@ on a row:
 
 - **unsigned**: the webhook was added without a secret. Hover: "Deliveries
   carry no X-Siamang-Signature header. Delete the webhook and add it again
-  with a secret to sign them." A secret cannot be added afterwards.
+  with a secret to sign them." A secret cannot be added afterward.
 - **never fires: terminal** (or another name): the webhook subscribes to an
   event nothing sends. Hover: "Nothing emits terminal: this webhook never
   fires for it. Delete it and add it again with the events you want."

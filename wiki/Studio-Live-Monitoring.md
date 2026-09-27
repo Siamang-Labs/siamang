@@ -174,7 +174,7 @@ change the analysis, and the tiles change with it.
 
 3. With no node selected, the inspector shows the **Flow** panel; check
    **Live: recompute on new responses** there.
-4. **Save**, then **Run** the flow once.
+4. **Save**, then **Run** the flow once (or **Run all**).
 
 The flow then appears under **Live tiles** with its tiles.
 
@@ -189,8 +189,27 @@ The flow then appears under **Live tiles** with its tiles.
 Numbers show up to three decimals; a number smaller than 0.001 — a p-value,
 say — is written with its exponent (`2.35e-5`) rather than rounded to 0.
 
-By default every tile takes one grid cell. Larger tiles can be set only in
-the flow's document; there is no drag-to-resize on the Live tab.
+By default every tile takes one grid cell. Larger tiles — up to four cells
+across and three down; a larger size is drawn at that — can be set only in
+the flow's document; there is no drag-to-resize on the Live tab. A chart fills
+its tile without being cropped, so a chart drawn low and wide (a **Figure
+height (in)** well under its **Figure width (in)**) reads best in a wide
+tile.
+
+> **In the example study.** A project started from the
+> [example study](Studio-Projects#the-example-study) has two flows with
+> tiles. `cleaning` (*1. Clean raw responses*) has Live on, with a
+> **number** tile *Clean respondents* (**Show** `rows`: the respondents left
+> after cleaning) and a **table** tile *Quality checks* (how many responses
+> failed each check); on Free its row reads **manual**. `usage` (*3. Screen
+> use*) has a **chart** tile *Screen time by week* — the **Trend** of its
+> report, whose chart goes to the tile as well — with Live off, so its row
+> reads **live off** and the tile changes when the flow runs. Both rows say
+> **not run yet** until the flows have run: press **Recompute now** for
+> `cleaning`, or run **Run all** on **Flows** for both. Their sizes are set
+> in the flow documents: *Quality checks* takes two grid cells by two,
+> *Screen time by week* four across and three down — which is why its trend
+> is drawn 7.5 × 3.4 inches.
 
 ### A flow's row
 
@@ -235,9 +254,11 @@ minutes after **Recompute now**.
 
 ### Freshness and failed runs
 
-Tiles always show the **last completed run** of their flow. If a later run
-fails, the tiles keep the previous numbers — the **updated …** time tells you
-how old they are, and the flow's run history shows the error. A failed
+Tiles always show the **last completed run** of their flow — its own run, or
+a **Run all** in which the flow ran, whichever is newer (the row's run number
+is then the Run all's). If a later run fails, the tiles keep the previous
+numbers — the **updated …** time tells you how old they are, and the flow's
+run history shows the error. A failed
 recompute does not email the organization's owners (the "Scheduled analysis
 failed" email is for schedules). A table or chart that could not be drawn
 shows a short error in the tile instead ("chart could not be rendered: …").
@@ -278,7 +299,7 @@ tiles is a Plus feature." and the button is disabled.
   > Anyone holding it sees a page-not-found, and creating a link again gives a
   > different address." → **Revoke link**
 
-  Afterwards the bar notes "Link revoked `<time>`. Anyone who kept it now sees
+  Afterward the bar notes "Link revoked `<time>`. Anyone who kept it now sees
   a page-not-found. A new link gets a different address."
 
 ### What viewers see

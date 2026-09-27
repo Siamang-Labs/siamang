@@ -431,6 +431,11 @@ and similar tags work; plain text works too, but line breaks collapse. Piping
 (`{answer:variable}`, `{label:variable}`) fills in an earlier answer in the
 title and the Body of every kind of page, Final, Screen-out and Redirect pages
 included; `{label:variable}` shows the chosen option's label, not its code.
+The Structure canvas shows a Body as the text a respondent reads — its
+headings, paragraphs and list items on lines of their own, the tags left out
+and entities such as `&amp;` read — not as its HTML source; the Inspector's
+**Body** field keeps the HTML. The example study's *About this study* page,
+for one, shows "Digital Life & Wellbeing 2026" and its two paragraphs.
 
 ### Page properties
 

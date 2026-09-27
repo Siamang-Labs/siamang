@@ -2,8 +2,10 @@
 
 **Project → Files** lists everything the project keeps in storage that is not
 a document: the files you upload and the output files your flow runs produce.
-This page covers uploading, downloading and deleting, the storage quota,
-reading an uploaded data file in a flow, and what files cannot be used for.
+It also lists the project's **codeframes** — documents, but where you would
+look for them — and opens them in the codeframe editor. This page covers
+uploading, downloading and deleting, the storage quota, reading an uploaded
+data file in a flow, codeframes, and what files cannot be used for.
 
 ---
 
@@ -16,6 +18,13 @@ A flow reads an upload by its path, assets/<name> — the File of a Data file
 node. Download links are made when you click and expire after 5 minutes: they
 are not addresses to paste into the survey's theme or text.
 
+Codeframes  analysis/*.codeframe.json · coding open answers by hand and by rules
+                                                          [ + New codeframe… ]
+ Codeframe                      Codes      Themes   Updated
+ why                            why        4        Sep 21, 2026        edit
+   analysis/why.codeframe.json
+
+Uploads and run outputs
  Name                         Size       Updated
  panel_wave1.sav              1.2 MB     9/12/2026   [copy] [download] [delete]
    assets/panel_wave1.sav
@@ -24,6 +33,9 @@ are not addresses to paste into the survey's theme or text.
  report_fig_1.png             31.0 KB    9/20/2026          [download] [delete]
    outputs/tables/report_fig_1.png
 ```
+
+The **Codeframes** section is described [below](#codeframes). Under
+**Uploads and run outputs**:
 
 | Column | Shows |
 |---|---|
@@ -39,8 +51,8 @@ Each row has icon buttons:
 | Download | "Download (the link lasts 5 minutes)" | downloads the file ([below](#download-a-file)) |
 | Delete | "Delete" | deletes the file after a confirmation ([below](#delete-a-file)) |
 
-With no files the screen says **No files yet** — "Uploaded files (a data file
-for a flow to read, a sample) and the outputs your flows produce show up
+With no files the section says **No files yet** — "Uploaded files (a data
+file for a flow to read, a sample) and the outputs your flows produce show up
 here." — with **Upload a file**.
 
 Because the stored path is shown under each name, two files with the same name
@@ -171,6 +183,35 @@ put them. See [[Reproducibility|Studio-Reproducibility]].
 > *(Pro)* in the ← import direction — and read it with a **Project table**
 > node. Imported columns arrive as text. See
 > [Importing a table](Studio-Connectors#importing-a-table).
+
+## Codeframes
+
+The **Codeframes** section ("analysis/*.codeframe.json · coding open answers
+by hand and by rules") lists the project's codeframes: the coding schemes of
+its open questions, which a flow's **Code open answers** node applies. They
+are documents of the project, not uploads — each change is saved with a
+**Save** and shows in **History** — but this is where you would look for
+them.
+
+| Column | Shows |
+|---|---|
+| **Codeframe** | its name, with its path underneath (`analysis/<name>.codeframe.json`) |
+| **Codes** | the open-text variable it codes |
+| **Themes** | how many themes it has |
+| **Updated** | when it was last saved |
+
+- **edit** on a row opens the codeframe in the codeframe editor; **Back to
+  Files** returns here.
+- **New codeframe…** starts one: it asks for the open-text variable and a
+  name, and opens the editor. The new codeframe is listed here once you have
+  saved it.
+- With none: "No codeframe yet. A Code open answers node in a flow applies
+  one; start it here or from the node."
+- A viewer can open and read a codeframe; **New codeframe…** is disabled for
+  them ("Your role in this project lets you read codeframes, not start one").
+- There is no **Delete** for a codeframe; one that no node names does nothing.
+
+See [[Coding Open Answers|Studio-Open-Answer-Coding]].
 
 ## What Files is not for
 

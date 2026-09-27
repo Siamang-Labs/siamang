@@ -213,7 +213,7 @@ delete it and add it again.
 > terminal** — delete it and add it again with the events you want. Earlier
 > versions also did not store the **Secret** typed in the form, so webhooks
 > added in the app back then send unsigned requests and show **unsigned**; a
-> secret cannot be added afterwards, so delete such a webhook and add it again
+> secret cannot be added afterward, so delete such a webhook and add it again
 > if your endpoint checks signatures.
 
 ### Create a webhook through the API

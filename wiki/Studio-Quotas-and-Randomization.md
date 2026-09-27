@@ -227,7 +227,7 @@ condition                      condition assignment (2 arms) ● on        edit 
 - **only enabled** hides what is switched off. **Open Scripts** goes to the
   Scripts tab (tooltip "Page order, seeded option order and condition
   assignment live in Scripts").
-- The three **order switches** can be ticked here or in the Inspector; it is
+- The three **order switches** can be checked here or in the Inspector; it is
   the same setting. **open** selects the item in Structure.
 - **Script rows** ("page order", "option order (seedable)", "condition
   assignment (N arms[, balanced by quota])") always read **● on**. Change or
@@ -362,7 +362,7 @@ order, so it appears in Randomization as "condition assignment".
 
 **Balance.** A random draw lets arms drift apart over a field period, and a
 screen-out that hits one arm harder is never made up. With **Keep the arms
-level against their quotas** ticked, each new respondent goes to the arm that
+level against their quotas** checked, each new respondent goes to the arm that
 is furthest behind its own quota target (current ÷ limit, so a 2:1 design
 keeps its proportions; ties are broken at random). It needs one quota cell per
 arm on the assignment variable. The form tells you:
@@ -387,7 +387,7 @@ on every arm, new respondents go to arms that still have room; the weighted
 draw decides only when every arm is full or the server does not answer in
 time. Without **Balance**, the weighted draw can put a respondent into a full
 arm while other arms still have room, and that respondent is turned away:
-tick **Balance** whenever the arms have quota cells.
+check **Balance** whenever the arms have quota cells.
 
 **Branching on the arm.** The assignment variable is an ordinary variable for
 Logic. Pick it in any condition editor (it is in the codebook with the arm

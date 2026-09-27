@@ -215,13 +215,17 @@ of its **Path** decides what it writes:
 
 `clean.R` reads `clean.csv` (UTF-8) and its dictionary with the `jsonlite`
 package into a data frame `survey_data`: the codebook's missing codes become
-`NA`, labelled codes become factors (a code without a label keeps a level of
+`NA`, labeled codes become factors (a code without a label keeps a level of
 its own), each column's `label` attribute is the variable's label from the
 codebook (not the question's text), and
 multiple-choice columns (`1;3`) stay text. Put the three files in one folder
 and run `Rscript clean.R`, or `source("clean.R")` from R — the script finds
 its files beside itself. See
 [Export the cleaned data for R](Studio-Recipes#export-the-cleaned-data-for-r).
+The [example study](Studio-Projects#the-example-study)'s flow `cleaning`
+writes one: `outputs/cleaning/clean_responses.R`, `clean_responses.csv` and
+`clean_responses.dictionary.json` in **Files**, the cleaned responses with
+their weight — kept by a run of the flow and by **Run all** alike.
 
 An `.xlsx` a flow writes keeps text as text: an open answer such as
 `=HYPERLINK(…)` stays the string it is, never a formula Excel would run —
@@ -230,7 +234,7 @@ as in the Data tab's Excel export.
 ### From a flow: a report's tables in Excel
 
 Where the data exports above give the answers, a report's tables give the
-results. Tick **Also save tables to Excel** on a flow's **Save report** node
+results. Check **Also save tables to Excel** on a flow's **Save report** node
 (**Also Excel** in the Report view) and each run writes, beside the report,
 `outputs/<flow>/<report>.xlsx`:
 

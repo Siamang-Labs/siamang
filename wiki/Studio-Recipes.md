@@ -49,7 +49,7 @@ short path; the linked pages have every option and caveat.
   [clean once, reuse](#clean-once-and-reuse-the-clean-data-in-several-flows) ·
   [rename or delete a flow](#rename-duplicate-or-delete-a-flow) ·
   [analyze an uploaded file](#analyze-a-file-you-uploaded) ·
-  [open answers](#code-open-ended-answers) ·
+  [open answers](#code-an-open-question-by-rules) ·
   [nightly report](#a-nightly-report-on-a-schedule) ·
   [client dashboard](#a-live-dashboard-for-a-client) ·
   [Google Sheets](#keep-a-google-sheet-in-sync)
@@ -67,6 +67,13 @@ short path; the linked pages have every option and caveat.
 > collected after you publish again land in a column with the new name. So
 > rename **before** fieldwork and before you build flows. See
 > [Question Id and variable name](Studio-Builder-Overview#question-id-and-variable-name).
+
+> **See it done in the example study.** A project started from the
+> [example study](Studio-Projects#the-example-study) has many of these
+> recipes already built and run on its 729 sample responses. Where it has
+> one, a line *In the example study* names the page, or the flow and the node
+> id, to look at (node ids are on the node cards; each flow is described in
+> [The example study's flows](Studio-Flows#the-example-studys-flows)).
 
 ---
 
@@ -94,6 +101,10 @@ The templates that ask for consent (**Pilot study** among them) use a
 variant: a Screen-out page `screen_out` right after the consent page, with
 **Show if** `consent = 0`, so only people who decline ever see it. Both
 patterns work.
+
+*In the example study:* the same variant — the Screen-out page *No problem*
+right after *Your consent*, with **Show if** `consent = 2` (**No, not now**).
+
 → [[Logic and Branching|Studio-Logic-and-Branching]]
 
 ### An eligibility screener
@@ -107,6 +118,10 @@ in Data). They do not count toward the environment's response cap or any
 quota cell, and they are still recorded when the cap is full, so your
 screener numbers stay complete.
 
+*In the example study:* the page *A quick check* asks the age, and the
+Screen-out page after it, *Thanks for your interest*, has **Show if**
+`age < 16` — the Show-if variant of the same screener.
+
 ### A follow-up question for some respondents only
 
 Select the follow-up question → **Logic → Show if → Add condition** — for
@@ -118,12 +133,18 @@ publish it again). Check the
 **Logic map → Questions** lens: an arc drawn upward in red means the
 condition reads an answer the respondent has not given yet.
 
+*In the example study:* the commute question on *Where you work or study*
+is shown only to those who work or study and not fully remotely (AND with
+NOT), the trust question on *Apps & media* only if the news source is `1`,
+`2` or `3` (`in`), and *The apps you use* pipes the kind of app into the
+question after it with `{label:main_app}`.
+
 ### An attention check that ends the survey
 
 1. **+ Question → Presets → Attention check** (a required single choice,
    already marked, with its expected answer). Rename the variable to
    `attention`.
-2. In the Inspector, tick **Also end the survey for respondents who fail**
+2. In the Inspector, check **Also end the survey for respondents who fail**
    (the hint then reads "branches to *page*"). Studio adds a branch rule from
    the check's page to a Screen-out page that only this rule leads to: one
    **after the last Final or Redirect page**, so respondents who pass walk on
@@ -149,6 +170,11 @@ the Inspector shows why the branch does not work, with **Fix the branch**:
 press it, Save, and publish again — see
 [Attention checks](Studio-Logic-and-Branching#attention-checks).
 
+*In the example study:* the attention check is the fourth row of the *You and
+your phone* matrix and does not end the survey; the flow `cleaning` drops
+those who fail it instead (node `quality`, **Attention checks**
+`attention_check: 2`, **Mode** `drop`).
+
 → [[Data Quality|Studio-Data-Quality]]
 
 ### Measure and report NPS
@@ -158,6 +184,10 @@ press it, Save, and publish again — see
 3. In a flow: source → **Net Promoter Score** (**0–10 item** `nps`) — the
    score (promoters minus detractors) with a confidence interval. Connect its
    `table` to a **Report section**, or its output to a **Live tile**.
+
+*In the example study:* "If the app existed, how likely would you be to
+recommend it to a friend?" (`app_recommend`, a 0–10 **Likert scale** on
+*Using the app*), scored by the flow `wellbeing_app`, node `recommend`.
 
 ### Shuffle answer options, questions or blocks
 
@@ -174,6 +204,10 @@ press it, Save, and publish again — see
   remaining positions. A respondent who resumes a saved interview continues
   in the order they were dealt.
 - **More ▾ → Randomization** lists every shuffle in one table.
+
+*In the example study:* *Your devices* and *Apps & media* shuffle their
+blocks, the *Social* block its two questions, four questions their options,
+and a **Shuffle options** script the news sources.
 
 → [[Quotas and Randomization|Studio-Quotas-and-Randomization]]
 
@@ -275,6 +309,9 @@ A survey published before quota cells closed lets everyone through until you
 publish it again. The environment's response cap is a separate, overall
 limit. → [When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full)
 
+*In the example study:* three cells on age group, 400 completed interviews
+each.
+
 ### Accept one response per browser
 
 **Distribute** → the environment's card → **One per browser** → **Turn on**.
@@ -310,7 +347,7 @@ panel provider's own checks.
 1. Publish the environment you will invite to.
 2. **Distribute → Email invitations → Import contacts**: paste one per line
    (`ada@example.com`, `Ada Lovelace <ada@example.com>`, or a CSV with an
-   `email` column); tick the consent confirmation; **Import**.
+   `email` column); check the consent confirmation; **Import**.
 3. **New mailing**: subject, message containing `{link}` (and `{name}` if you
    have names), your **From name** and **Reply-to**; check the preview; **Send
    to N**.
@@ -408,7 +445,7 @@ effective base.
 > (not its chi-square test), **Price sensitivity**, the **Bar chart**, a
 > **Heatmap** with **By** or with Pearson, the **Likert chart**, the
 > **Trend**, the **Tab book (Excel)** and **Proportion CI** (with
-> **Weighted** ticked) use the weight.
+> **Weighted** checked) use the weight.
 > **Compare groups**, **Correlation** and **Correlation matrix** with
 > Spearman or Kendall, **t-test**, **Paired tests**, **Factor analysis**,
 > **Cluster (k-means)**, **Box plot**, **Scatter plot**, a Spearman or
@@ -416,6 +453,11 @@ effective base.
 > **Data check** stay unweighted and say so in their output ("unweighted (the
 > weight '…' is not applied)"); a **Result chart** says whichever its result
 > is. See the linked page.
+
+*In the example study:* the flow `cleaning` rakes to age group, gender and
+area (node `rake`); the flow `tables` applies the weight and has both a
+**Crosstab** with its chi-square on the effective base (node `xtab`) and a
+**Banner table** with letters (node `banner`).
 
 → [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]
 
@@ -427,18 +469,22 @@ across (**Breakdowns**), **Significance letters** on. Connect it to a
 study in Excel, use a tab book ([below](#a-tab-book-for-the-client)).
 → [[Node Reference|Studio-Node-Reference]]
 
+*In the example study:* the flow `tables`, node `banner` — four habits by
+age group and gender, after **Missing values** so that the refusals get no
+column.
+
 ### A tab book for the client
 
 Every question of the study by the client's segments, in one Excel file.
 
 1. In a flow, after your cleaning and weighting steps, add **Tab book
    (Excel)** (Output) and connect the data to it.
-2. **Banner**: tick the segments — `gender`, `region`, `age_band` (age cut
+2. **Banner**: check the segments — `gender`, `region`, `age_band` (age cut
    into ranges by **Bands**: a banner takes nominal and ordinal variables).
 3. **Questions**: leave empty for every nominal, ordinal and multiple-choice
    question (open answers and rankings are left out, with the reason on the
-   Contents sheet), or tick the ones the client asked for — a number you
-   tick shows its mean.
+   Contents sheet), or check the ones the client asked for — a number you
+   check shows its mean.
 4. Keep **Percentages** `column`, **Counts** and **Significance letters**
    on; **Path** `outputs/tabbook.xlsx`, or a name of your own
    (`outputs/client_q3.xlsx`).
@@ -452,6 +498,9 @@ the **Notes** sheet says how it was computed — the weight, the test, the
 minimum base, the missing codes left out. A question with several answers
 cannot be a banner variable: **Explode multiple choice** first and use its
 0/1 columns. → [Tab book (Excel)](Studio-Node-Reference#tab-book-excel)
+
+*In the example study:* the flow `tables`, node `tabbook` — fourteen named
+questions by age group, gender and area.
 
 ### Pearson or Kendall correlations, and a correlation matrix
 
@@ -470,7 +519,7 @@ counts them as answers unless **Missing values** comes first.
 
 Every pair of several variables:
 
-1. Add **Correlation matrix**: tick the **Variables** (`trust_1` …
+1. Add **Correlation matrix**: check the **Variables** (`trust_1` …
    `trust_6`), **Method** `spearman`, **Missing answers** `pairwise`.
 2. With many pairs, set **p adjustment** to `holm` (or `fdr_bh`): the stars
    then follow the adjusted p, and the footer says "Holm, over 15 pairs".
@@ -508,6 +557,9 @@ Male, 2 = Female, 3 = Other); a t-test compares two — name them in Group A and
 Group B."
 → [t-test](Studio-Node-Reference#t-test)
 
+*In the example study:* the flow `wellbeing_app`, node `framing` — interest
+in the app by `message_arm`, the A/B message each respondent was shown.
+
 ### An ANOVA with post-hoc comparisons
 
 1. Add **Group means**: **Variable** `spend_month`, **By** `region`.
@@ -526,6 +578,11 @@ section**: the post-hoc table goes into the report with it. Means, SDs and
 medians are weighted after **Apply weight**; the test and the pairs are not.
 → [Group means](Studio-Node-Reference#group-means)
 
+*In the example study:* the flow `segments`, nodes `means` (ANOVA with
+Tukey's pairs) and `ranks` (Kruskal-Wallis with Dunn's pairs), both placed
+before **Apply weight** so that the means printed with the tests are the
+ones compared.
+
 ### Compare before and after in the same respondents
 
 When the same people answered twice — a rating before and after a message,
@@ -535,16 +592,21 @@ the same scale about two brands — compare each respondent with themselves:
   people`, **Variable** `rating_before`, **Second measurement**
   `rating_after`. The footer gives t, df, p, the mean difference (before −
   after) with its CI, **Cohen's d (d_z)** and the incomplete pairs left out.
-- **Ratings as ranks:** **Paired tests**, tick **Variables** `rating_before`
-  then `rating_after` (the order you tick them is the order compared: the
+- **Ratings as ranks:** **Paired tests**, check **Variables** `rating_before`
+  then `rating_after` (the order you check them is the order compared: the
   difference is the first minus the second). **Test** `auto` runs the Wilcoxon
   signed-rank test: W+, W-, Z, p and the rank-biserial r.
 - **Yes/no answers:** **Paired tests** with **Test** `mcnemar` and **Counts
-  as yes (McNemar)** ticked on the yes answer (tick 4 and 5 for a top-two
+  as yes (McNemar)** checked on the yes answer (check 4 and 5 for a top-two
   box): the % yes of each, the change in points, and p.
 - **Three or more** (three concepts rated by everyone): **Paired tests** with
   three **Variables** runs Friedman's test; its `pairs` output has a Wilcoxon
   test for every pair, Holm-adjusted.
+- **Three or more yes/no answers:** **Paired tests** with **Test** `cochran`
+  runs Cochran's Q; its `pairs` output has a McNemar test for every pair,
+  Holm-adjusted. The example study's flow `usage` compares the four ways of
+  managing screen time this way (node `manage`, after **Explode multiple
+  choice**).
 
 A respondent who missed either question is left out of both, and the
 codebook's missing codes count as missing; the footer says how many. These
@@ -553,19 +615,19 @@ tests are unweighted and say so.
 
 ### Exploratory factor analysis with scores
 
-1. Add **Factor analysis**: tick the **Items** of your battery (three or
+1. Add **Factor analysis**: check the **Items** of your battery (three or
    more, rated on the same scale).
 2. Leave **Factors** empty and set **Number of factors by** to `parallel`
    (or type the number you expect in **Factors**).
 3. **Rotation** `promax` when the factors may correlate (they usually do in
-   attitudes), `varimax` when they should not. Tick **Sort items by factor**
+   attitudes), `varimax` when they should not. Check **Sort items by factor**
    and set **Hide loadings below** to `0.3` so the structure reads at a
    glance.
 4. **Run to here**. The preview shows the loadings (with each item's
    communality and MSA), the **variance** explained and the factor
    **correlations**; the statistics give **KMO** (below 0.5 comes with a
    warning), Bartlett's test and **Variance explained %**.
-5. Tick **Add factor scores**: `factor_1`, `factor_2`, … are added to the
+5. Check **Add factor scores**: `factor_1`, `factor_2`, … are added to the
    data. Wire the node's `data` output on — a **Group means** of `factor_1` by
    `region`, a **Regression** on the scores, an **Export file**.
 
@@ -573,6 +635,11 @@ Before averaging a factor's items into a scale, run **Scale reliability** on
 them and build it with **Index / scale**. Respondents missing any item are
 left out (their scores are blank); the analysis is unweighted and says so.
 → [Factor analysis](Studio-Node-Reference#factor-analysis)
+
+*In the example study:* the flow `wellbeing`, node `factor` — two factors
+fixed in **Factors**, promax, scores `digital_1` and `digital_2` for the
+regression after it; its nodes `alpha` and `index` check and build the
+wellbeing scale as the paragraph above says.
 
 ### MaxDiff scores per respondent in a crosstab
 
@@ -586,7 +653,7 @@ preferences down by segment, give each respondent their own scores first:
 2. Mean score by segment: **Group means**, **Variable** `q_md_score_1`,
    **By** `region` (weighted after **Apply weight**).
 3. As a crosstab: add **Bands** — **Variable** `q_md_score_1`,
-   **Boundaries** `[-1, 0, 1]`, tick **Bands include their upper boundary**,
+   **Boundaries** `[-1, 0, 1]`, check **Bands include their upper boundary**,
    **Band labels** `["Not ahead", "Ahead"]`, **New variable** `price_ahead`
    — then **Crosstab**, **Rows** `price_ahead`, **Columns** `region`. "Ahead"
    are the respondents who picked the item as best more often than as worst.
@@ -594,6 +661,9 @@ preferences down by segment, give each respondent their own scores first:
 Respondents who never saw the item are blank, so they are in neither band.
 → [MaxDiff scores](Studio-Node-Reference#maxdiff-scores) ·
 [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
+
+*In the example study:* the flow `segments`, nodes `scores` → `wants`: the
+segments' mean scores as a **Heatmap**.
 
 ### A 100 % stacked bar of a question by segment
 
@@ -625,14 +695,14 @@ by side only.
 
 ### A Likert battery chart
 
-1. Add **Likert chart** (Visualize) and tick the **Items**: statements rated
+1. Add **Likert chart** (Visualize) and check the **Items**: statements rated
    on the same scale, such as `trust_acme`, `trust_globex`, `trust_initech`
    (1 = No trust … 5 = Full).
 2. Leave **Neutral answer** `split — half on either side`, or choose `side —
    in a panel at the right` to keep the middle answer apart. **Sort items**
    `top2` puts the item with the largest top-2 share first; `listed` keeps
    the order of **Items**.
-3. **Run to here**. Each item is a bar centred on the neutral answer, with
+3. **Run to here**. Each item is a bar centered on the neutral answer, with
    its bottom-2 and top-2 shares at the ends. The title is what the labels
    share ("Trust"), each bar the rest with its base ("Acme (n = 485)"), and
    the notes under the chart say which answers make the top-2 and bottom-2
@@ -645,6 +715,9 @@ to right: recode a scale written the other way (1 = Strongly agree) first.
 After **Apply weight** the shares are weighted.
 → [Likert chart](Studio-Node-Reference#likert-chart)
 
+*In the example study:* the flow `wellbeing`, node `likert` — the six
+statements about the phone.
+
 ### A bar chart with significance letters
 
 Which regions are more satisfied than others, marked on the chart the way a
@@ -653,9 +726,9 @@ banner table marks it.
 1. After your cleaning steps (and **Apply weight**), add **Bar chart**:
    **Variable** `satisfaction`, **Split by** `region`, **Show** `percent`,
    **Layout** `grouped`.
-2. Tick **Significance letters**. Leave **Level** at `0.05`; with many
+2. Check **Significance letters**. Leave **Level** at `0.05`; with many
    groups, set **Multiple comparisons** `bonferroni`.
-3. Optional: tick **Confidence intervals** for each bar's margin of error.
+3. Optional: check **Confidence intervals** for each bar's margin of error.
 4. **Run to here**. The regions are lettered under their names —
    `Capital (A)`, `North (B)`, `South (C)` — and a letter over a bar names a
    region whose share of that answer is significantly lower. The note under
@@ -690,6 +763,9 @@ its answers as bars. Edges that do not increase are named on the field:
 by 3."
 → [Bar chart](Studio-Node-Reference#bar-chart)
 
+*In the example study:* the flow `usage`, node `hist` — hours a day on
+screens in two-hour bins, a panel per age group.
+
 ### A monthly tracking trend by segment
 
 Satisfaction month by month since launch, a line per segment.
@@ -700,7 +776,7 @@ Satisfaction month by month since launch, a line per segment.
    answers** (or your wave variable, for a wave-by-wave tracker). **Period**
    `month` (`week` for an ISO week, Monday to Sunday).
 3. **Measure** `percent`, **Measure variable** `satisfaction`, **Answer
-   codes** `4` and `5` ticked — a top-2 box. (`mean` tracks the average;
+   codes** `4` and `5` checked — a top-2 box. (`mean` tracks the average;
    `count` the respondents.)
 4. **Split by** `segment`. Keep **Confidence band** on and **Minimum base**
    `30`.
@@ -714,6 +790,10 @@ table keeps the intervals). To put it in the report, add the `chart` (and
 the `table`, for the numbers) to a **Report section**; for a live dashboard,
 connect the `chart` to a **Live tile** (**Kind** `chart`).
 → [Trend](Studio-Node-Reference#trend)
+
+*In the example study:* the flow `usage`, node `trend` — the weekly mean of
+hours a day on screens — whose `chart` goes both to a **Report section** and
+to the Live tile `tile_trend`.
 
 ### Brand colors in charts
 
@@ -735,6 +815,10 @@ A color too faint on white, text under 4.5:1 or a color given twice is
 refused on the node with the reason. To use the same colors in every flow,
 set them in **Settings → Reports → House style** and **Apply to every flow**.
 → [Chart colors](Studio-Reports#chart-colors)
+
+*In the example study:* the six flows' **Save report** nodes share one Look,
+which is also the project's house style, and every chart has **Palette**
+`theme` (the **Heatmap** **Color map** `theme`).
 
 ### Chart a MaxDiff or TURF result
 
@@ -766,6 +850,10 @@ connected result suits.
 → [Result chart](Studio-Node-Reference#result-chart) ·
 [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]
 
+*In the example study:* the flow `wellbeing_app`, nodes `turf` →
+`turf_chart` (the reach of the best shortlist of one, two and three
+features) and `maxdiff`, whose table goes into the report on its own.
+
 ### A key-driver analysis
 
 Which attribute ratings matter most for overall satisfaction?
@@ -790,6 +878,9 @@ or **Derive**. Respondents missing the outcome or any driver are left out
 (**Excluded**).
 → [Key drivers](Studio-Node-Reference#key-drivers)
 
+*In the example study:* the flow `wellbeing`, nodes `drivers` →
+`drivers_chart` — life satisfaction on six measures.
+
 ### A perceptual map
 
 Which regions (or segments) go with which brands?
@@ -811,8 +902,12 @@ attribute columns, in data with one row per respondent and brand (bring such
 a file in with a **Data file** node); set **Counts as yes (attributes)** when
 the attributes are coded other than 0/1. With a question about the respondent
 as **Rows** and an exploded multiple-choice question as **Attributes**, the
-map shows which regions tick which options.
+map shows which regions check which options.
 → [Perceptual map](Studio-Node-Reference#perceptual-map)
+
+*In the example study:* the flow `usage`, nodes `map` → `map_chart` —
+**Table** `attributes` with the kind of app used most as **Rows** and the
+eight yes/no feelings of a wide multiple choice as **Attributes**.
 
 ### A Van Westendorp study
 
@@ -838,11 +933,15 @@ map shows which regions tick which options.
 Respondents whose four prices are not in order are left out and counted in
 **Inconsistent** — many of them suggest a question was misread. For
 **Gabor-Granger** (buy or not at set prices), set **Method**
-`gabor_granger`, tick one question per price in **Would buy at each price**,
+`gabor_granger`, check one question per price in **Would buy at each price**,
 list the prices in the same order in **Prices** (`[4.99, 6.99, 8.99]`) and,
-on a likelihood scale, tick the answers that mean would buy in **Counts as
+on a likelihood scale, check the answers that mean would buy in **Counts as
 would buy** (4 and 5 for a top-two box).
 → [Price sensitivity](Studio-Node-Reference#price-sensitivity)
+
+*In the example study:* the four questions are on the page *What it should
+cost*, shown only to those whose interest is 3 or more; the flow
+`wellbeing_app`, nodes `price` → `price_chart`, analyzes them.
 
 ### An ordinal regression
 
@@ -853,7 +952,7 @@ For an outcome of ordered answers — very dissatisfied to very satisfied:
 2. **Model** `ordinal — ordinal logit, ordered answers`.
 3. **Run to here**. The table lists each coefficient with its standard
    error, z, p, odds ratio and 95 % interval, then the thresholds between
-   neighbouring answers (`Very dissatisfied / Dissatisfied`); the statistics
+   neighboring answers (`Very dissatisfied / Dissatisfied`); the statistics
    give the answers' `order`, `n`, McFadden's `pseudo_r_squared`, the
    likelihood-ratio test (`lr_p`) and `aic`.
 4. Connect the `table` to a **Result chart**: the odds ratios with their
@@ -867,6 +966,10 @@ the logit. The codebook's missing codes are left out and counted
 (`missing_codes`), and the model is weighted after **Apply weight**.
 → [Regression](Studio-Node-Reference#regression)
 
+*In the example study:* the flow `wellbeing`, node `ordinal` — life
+satisfaction (1–7) on the wellbeing index, the two factor scores, hours on
+screens and age group.
+
 ### Export the cleaned data for R
 
 1. End your cleaning flow with **Export file**, **Path** `outputs/clean.R`.
@@ -876,7 +979,7 @@ the logit. The codebook's missing codes are left out and counted
    Download all three into one folder.
 4. In R (with the `jsonlite` package installed): `source("clean.R")`. The
    data frame `survey_data` has the codebook's missing codes as `NA`,
-   labelled codes as factors and each variable's codebook label as the
+   labeled codes as factors and each variable's codebook label as the
    column's `label` attribute.
 
 The export carries what the flow made — recodes, bands, factor scores, the
@@ -884,6 +987,9 @@ weight column. `outputs/codebook.json` writes the codebook alone, and
 `outputs/clean.sav` a labeled SPSS file that R's `haven` reads.
 → [Export file](Studio-Node-Reference#export-file) ·
 [[Data Exports|Studio-Data-Exports]]
+
+*In the example study:* the flow `cleaning`, node `export`, writes
+`outputs/clean_responses.R` with its `.csv` and dictionary.
 
 ### Clean once and reuse the clean data in several flows
 
@@ -904,6 +1010,11 @@ made by a_clean").
 research bundle made with data, `b_tables` reads `data/tables/clean.csv` —
 the table as it was when the bundle was made — and the **Write table** step
 does not run there; see [[Reproducibility|Studio-Reproducibility]].
+
+*In the example study:* `cleaning` writes `clean_responses`, which `tables`,
+`usage`, `wellbeing` and `wellbeing_app` read; `wellbeing` writes
+`scored_responses`, which `segments` reads — so **Run all** runs `cleaning`
+first and `segments` last.
 
 ### Rename, duplicate or delete a flow
 
@@ -939,13 +1050,35 @@ Runs, **Run all** and **Run to here** read the upload directly; a research
 bundle made with data brings the uploads its flows name.
 → [[Files|Studio-Files]]
 
-### Code open-ended answers
+### Code an open question by rules
 
-In a flow, add **Code open answers**, press **Code open answers…**, choose the
-open-text question and environment, **Start coding**. Read and rename the
-proposed themes, **Save codeframe**, then point the node at it and run. The
-answers' text is sent to the AI provider — check your consent wording first.
+1. In a flow, add **Code open answers** after the **Responses** node (and
+   your cleaning), and on the node click **New codeframe…**. Pick the
+   open-text **Variable**, keep the **Name** → **Open the editor**.
+2. **Add theme**, give it a **Label** (*Late delivery*) and, under **Words
+   and phrases**, the terms that give it: `late`, `delay*`. Add a word that
+   rules it out under **But not** if one misleads it. The answers on the
+   right show at once what each rule codes ("rule: delay* → “delayed”").
+3. Repeat for the other themes. Put related themes in one **Net**
+   (*Delivery*); check **Only when no other theme applies** under **More** for
+   *Nothing / Don't know*; in **Codeframe settings**, check **An answer may
+   have several themes** if answers mention more than one thing.
+4. Set **Show** to **Uncoded** and read what is left: add words from
+   **Suggested words**, or select answers and press `1`–`9` to code them by
+   hand (`0` for no theme). **Test a phrase** shows why an answer is coded as
+   it is — often a negation: `late` does not find *wasn't late*.
+5. **Save changes** → **Save**, then **Back to *flow***, save the flow and
+   run it. The node's `table` goes into a **Report section**.
+
+Each run codes the answers collected since by the same rules; come back to
+**Uncoded** now and then. Nothing is sent to any AI provider.
 → [[Coding Open Answers|Studio-Open-Answer-Coding]]
+
+*In the example study:* the codeframe is already made
+(`analysis/improve.codeframe.json`, an older one without rules), and the flow
+`tables`, node `code`, applies it with **Also add sentiment** on. **Edit
+codeframe…** on that node opens it in the editor, where the two answers it
+has never seen show as **Uncoded**.
 
 ### A nightly report on a schedule
 
@@ -960,11 +1093,14 @@ instead. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 ### A live dashboard for a client
 
 *(Plus and above.)* Add **Live tile** nodes to a flow (a respondent count with
-**Show** `rows`, a crosstab, a chart, a **Trend** of completes per week), tick
+**Show** `rows`, a crosstab, a chart, a **Trend** of completes per week), check
 **Live: recompute on new responses** in the flow settings, **Save** and
 **Run** once. On **Live**, press **Create public link** and send it.
 **Revoke** it when the engagement ends.
 → [[Live Monitoring|Studio-Live-Monitoring]]
+
+*In the example study:* the flow `cleaning` has two tiles with Live on, and
+`usage` a chart tile of screen time by week.
 
 ### Keep a Google Sheet in sync
 
@@ -986,8 +1122,8 @@ not on a schedule; only owners and admins can run one). →
    affiliation`), license, keywords, abstract → **Save study metadata**.
 2. **History** → open the Save you field with → **More ▾ → Pre-register**.
 3. Add your Zenodo token under **Settings → Secrets** (owners and admins).
-4. **More ▾ → Deposit** → **Zenodo**, pick the token, **untick "Use
-   sandbox.zenodo.org"**, tick **Publish immediately** for a DOI now →
+4. **More ▾ → Deposit** → **Zenodo**, pick the token, **uncheck "Use
+   sandbox.zenodo.org"**, check **Publish immediately** for a DOI now →
    **Deposit**.
 
 → [[History and Versions|Studio-History-and-Versions]]

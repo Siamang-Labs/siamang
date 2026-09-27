@@ -71,7 +71,7 @@ Under the hood a project is a handful of documents:
 | `survey/questionnaire.json` | pages, blocks, questions, logic, quotas, codebook, theme, scripts | **Builder** |
 | `flows/<name>.flow.json` | one analysis flow: nodes, connections, parameters, report layout, live tiles | **Flows** |
 | `studio/settings.json` | environments, runtime, connectors, pinned insights, report house style, study and citation metadata | **Settings**, **Distribute** |
-| `analysis/<name>.codeframe.json` | a coding scheme for one open-text question | **Flows** (Code open answers) |
+| `analysis/<name>.codeframe.json` | a coding scheme for one open-text question: themes, word rules, the answers coded by hand | the codeframe editor, from **Flows** (Code open answers) or **Files** |
 
 You never have to open these files — you edit them through the screens. They
 matter because they are what gets versioned, downloaded and reproduced.
@@ -191,7 +191,7 @@ response caps and quota cells.
 Every question writes one or more **variables**. A variable carries its
 **scale** (nominal, ordinal, interval, ratio), a **label**, **value labels**
 (code → meaning), a valid range and **missing codes**. Together they are the
-**codebook** — built while you write questions, not afterwards. It is why SPSS
+**codebook** — built while you write questions, not afterward. It is why SPSS
 exports arrive labeled and why tables show "Capital region" instead of `1`.
 
 Answers are stored under the **variable name**: it names the column in your
@@ -264,7 +264,7 @@ with the engine version its `environment/requirements.txt` names; its README
 says where that engine comes from and whether it can be older than the one
 Studio runs. **Provenance** — which Save, which data snapshot,
 which engine version produced a result — is written into every bundle and,
-unless you untick **End every report with the provenance footer** under
+unless you uncheck **End every report with the provenance footer** under
 **Settings → Reports**, into the footer of every generated report.
 
 → [[Reproducibility|Studio-Reproducibility]]

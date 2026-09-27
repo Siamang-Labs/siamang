@@ -361,7 +361,7 @@ passing one.
 
 ### Attention checks
 
-For an instructed-response item ("please choose *Rarely*"), tick **Attention
+For an instructed-response item ("please choose *Rarely*"), check **Attention
 check** on the question ("scored in the flow, not in the survey") and pick the
 **Expected answer**. Until you set one, the Builder warns "Until an answer is
 set, this question checks nothing." The option is available on single choice,
@@ -369,8 +369,8 @@ Likert, number and open text questions.
 
 By default, a failed check is only flagged in the data, for your analysis to
 decide (see [[Data Quality|Studio-Data-Quality]]). To stop the interview
-instead, tick **Also end the survey for respondents who fail** (hint "adds a
-screen-out branch"; once ticked, "branches to <page>"). This adds an ordinary
+instead, check **Also end the survey for respondents who fail** (hint "adds a
+screen-out branch"; once checked, "branches to <page>"). This adds an ordinary
 branch rule to the page that holds the check, pointing at a Screen-out page
 that only this rule leads to. Under the box the Inspector explains:
 
@@ -382,7 +382,7 @@ that only this rule leads to. Under the box the Inspector explains:
 
 (The middle sentence appears only while the Screen-out page really does sit
 behind the Final page.) The rule appears in the page's **Logic** section like
-any other, and unticking the box removes it; the Screen-out page stays.
+any other, and unchecking the box removes it; the Screen-out page stays.
 
 **Who is screened out.** Only a respondent who answered, and answered
 something other than the expected answer:
@@ -439,7 +439,7 @@ the checkbox, and the same finding in **Validation → Structure** as
 | "“<page>” has a show if or hide if of its own. Where it is hidden, a respondent who fails is sent on to the next page shown after it instead of being screened out." | the rule points at a conditional Screen-out page (the consent templates' `screen_out`) | **Fix the branch** |
 | "Skip to on <question> is checked before branch rules, so for anyone who answers <question> this branch never fires." | a question on the same page has a Skip to, which wins over every branch rule | remove the Skip to, or put the check on a page of its own |
 
-**Fix the branch** rebuilds the rule as a new tick would. A Screen-out page
+**Fix the branch** rebuilds the rule as checking the box anew would. A Screen-out page
 that passing respondents walk into is moved, with its wording, to right after
 the last Final or Redirect page (a Final page is added first if none ends the
 survey), and the rule is pointed at it. A conditional Screen-out page is left
@@ -695,8 +695,10 @@ never blocks a Save:
   questions.
 - A condition that reads a variable no question collects and the codebook does
   not declare: `<item>: the condition reads "<var>", which no question collects and the codebook does not declare`.
-  A variable that only the codebook declares (the arm of **Assign to a
-  condition**, for example) is not flagged.
+  A variable that only the codebook declares is not flagged, and neither is
+  one that an **Assign to a condition** or a custom script writes, declared
+  or not — the example study's pages *An app idea* read `message_arm`, the
+  arm its assign script draws, without a codebook entry for it.
 - A branch rule with an empty condition:
   `<page>: the branch to "<target>" has no condition — an empty rule never fires; add one, or use Default next`.
 - An attention check whose screen-out branch cannot work:

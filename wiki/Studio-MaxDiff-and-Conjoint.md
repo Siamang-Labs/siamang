@@ -269,6 +269,18 @@ takes the question's Id (or name) and reads its design from the questionnaire �
 nothing has to be re-entered. See [[Analysis Flows|Studio-Flows]] and
 [[Node Reference|Studio-Node-Reference]].
 
+> **In the example study.** A project started from the
+> [example study](Studio-Projects#the-example-study) has a MaxDiff with its
+> answers: "Which of these would matter most to you in the app, and which
+> least?" (Id `app_md`) — eight features of an app idea, four per task, six
+> tasks, 20 versions (so each item is shown three times to each respondent),
+> with **Best is called** `Most` and **Worst is called** `Least`. The flow
+> `wellbeing_app` runs the **MaxDiff** node on it (node `maxdiff`), and the
+> flow `segments` gives each respondent their scores (**MaxDiff scores**,
+> node `scores`), draws the segments' mean scores as a heatmap and saves the
+> choices for a hierarchical Bayes estimate (**Choice data for HB**, node
+> `hb`). See [The example study's flows](Studio-Flows#the-example-studys-flows).
+
 ### MaxDiff node
 
 "What a best–worst question found — one row per item, with the counting score,
