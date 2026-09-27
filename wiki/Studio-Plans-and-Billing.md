@@ -345,7 +345,11 @@ checkout it answers "Could not open the billing portal. No billing account yet
   the trial ends: the organization stays on the Pro trial until then and then
   moves to Plus, not to Free. The Plus card shows **starts *date***, and
   canceling that Plus subscription before the trial ends leaves the trial
-  running as if nothing was bought.
+  running as if nothing was bought. In the last two days or so of the trial,
+  when billing cannot wait, a Plus subscription starts right away. A purchase
+  lifts the trial's limits (email invitations, the AI allowance) at once.
+  While a Plus year you bought waits for the trial to end, no other plan can
+  be bought, so its months are never lost.
 - **Switching between Plus and Pro** on an existing subscription takes effect
   immediately. The difference is charged or credited pro rata.
 - **A subscription that has already ended.** If the payment provider has
