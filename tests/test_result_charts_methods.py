@@ -451,7 +451,7 @@ EXPECTED = {
     "c_xt": ("map", "weighted by 'weight'", "MapTable"),
     "c_at": ("map", "weighted by 'weight'", "MapTable"),
     "c_coch": ("shares", "unweighted (the weight 'weight' is not applied)", "ResultTable"),
-    "c_ord": ("coefficients", "weighted by 'weight'", "DataFrame"),
+    "c_ord": ("coefficients", "weighted by 'weight'", "RegressionTable"),
 }
 
 

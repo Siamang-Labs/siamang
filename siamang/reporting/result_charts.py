@@ -2374,6 +2374,7 @@ def _register_builtins() -> None:
     from siamang.data.paired import PairedResult
     from siamang.data.survey_data import ClusterAssignment
     from siamang.data.turf import TurfTable
+    from siamang.reporting.model_tables import RegressionTable
     from siamang.reporting.result_table import ResultTable
     from siamang.reporting.stat_tables import CorrelationMatrixTable, TTestTable
     from siamang.reporting.summaries import DescriptivesTable
@@ -2472,6 +2473,14 @@ def _register_builtins() -> None:
         name="Regression",
     )
     register(RegressionResult, ("coefficients",), _draw_regression, name="Regression")
+    # The Regression node's table (a report's view of the model) draws the model.
+    register(
+        RegressionTable,
+        ("coefficients",),
+        lambda table, chart: _draw_regression(table.result, chart),
+        accepts=lambda table: table.result is not None,
+        name="Regression",
+    )
     register(CorrelationMatrixTable, ("heatmap",), _draw_correlations, name="Correlation matrix")
     register(
         ThemeTable,

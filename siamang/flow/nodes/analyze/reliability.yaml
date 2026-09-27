@@ -17,8 +17,11 @@ params:
     - ratio
     label: Items
 subtitle: 'α of {items}'
+imports:
+- from siamang.reporting.model_tables import reliability_table
 template: |
   _scale = {in.data}.analysis.reliability({items!r})
-  {out.table} = _scale.items
+  # Each item with its label, rounded; alpha, the items and N under the table.
+  {out.table} = reliability_table(_scale, {in.data})
   {out.stat} = _scale.stats
 preview: table

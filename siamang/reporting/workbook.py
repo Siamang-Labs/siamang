@@ -207,6 +207,7 @@ _KINDS = {
     "DriverTable": "Key drivers",
     "MapTable": "Perceptual map",
     "PriceTable": "Price sensitivity",
+    "RegressionTable": "Regression",
 }
 
 

@@ -540,6 +540,19 @@ model.stats["order"], model.stats["pseudo_r_squared"], model.stats["lr_p"]
   answers — its estimate runs off towards infinity and cannot be read.
 - `kind="auto"` never picks the ordinal model, so an existing flow runs as it
   did. The proportional-odds assumption itself is not tested.
+- **In a report.** The Regression node's table is
+  `siamang.reporting.model_tables.regression_table(model, data)`: each term by
+  its codebook label (a nominal level as `Region: North (vs Capital)`, a
+  threshold as `Threshold: Low / Medium`), the estimate, its SE, z (t for OLS)
+  and p rounded as the other analyses' tables, the odds ratio and its 95 %
+  interval on the coefficients only, and under it the model, N, the fit
+  (McFadden's pseudo-R², or R² for OLS), the likelihood-ratio test and which
+  ordinal predictors were taken as numbers (one slope across their codes). The
+  model as computed stays on the table as `.result`, and a Result chart draws
+  from it. Scale reliability's table is `reliability_table(result, data)` in
+  the same way: each item by its label with its mean, corrected item-total
+  correlation and alpha if deleted, and alpha, the items and N under it. The
+  nodes' `stat` outputs are the models' own `stats`, as before.
 
 ---
 

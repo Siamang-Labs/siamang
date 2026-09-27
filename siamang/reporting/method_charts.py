@@ -251,6 +251,7 @@ def register_all() -> None:
     from siamang.data import correspondence, drivers, pricing
     from siamang.data.models import RegressionResult
     from siamang.data.paired import PairedResult
+    from siamang.reporting.model_tables import RegressionTable
     from siamang.reporting.result_table import ResultTable
 
     register(
@@ -299,6 +300,15 @@ def register_all() -> None:
         ("coefficients",),
         lambda result, chart: _draw_ordinal(result.table, chart, {**chart.stats, **result.stats}),
         accepts=lambda result: result.kind == "ordinal",
+        name="Regression",
+    )
+    register(
+        RegressionTable,
+        ("coefficients",),
+        lambda table, chart: _draw_ordinal(
+            table.result.table, chart, {**chart.stats, **table.result.stats}
+        ),
+        accepts=lambda table: table.result is not None and table.result.kind == "ordinal",
         name="Regression",
     )
 

@@ -29,8 +29,12 @@ params:
     label: Model
     help: auto fits a logit when Outcome has two values and a linear model otherwise. ordinal is the proportional-odds (cumulative logit) model of three or more ordered answers — thresholds between the answers, one coefficient per predictor with its odds ratio and 95 % Wald interval, McFadden's pseudo-R²; a positive coefficient makes the higher answers more likely, as R's MASS::polr. It leaves the codebook's missing codes out and says how many. All three use the weight when one is applied.
 subtitle: '{y} ~ {predictors}'
+imports:
+- from siamang.reporting.model_tables import regression_table
 template: |
   _model = {in.data}.analysis.regression({y!r}, {predictors!r}, kind={kind!r})
-  {out.table} = _model.table
+  # The coefficients for a reader (labels, rounded, the model's N and fit under
+  # them); a Result chart draws from the model they keep (.result).
+  {out.table} = regression_table(_model, {in.data})
   {out.stat} = _model.stats
 preview: table

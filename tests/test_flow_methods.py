@@ -89,20 +89,38 @@ def test_regression_offers_the_ordinal_model_and_runs_it_weighted(
     )
     # trust_acme's Refused (9) is not a level of trust.
     assert "Trust: Acme" in stat["missing_codes"] and "9 = Refused" in stat["missing_codes"]
-    table = result.output("ord", "table")
-    assert list(table["type"]).count("threshold") == 4
+    # The model as computed is kept for charts and scripts …
+    model = result.output("ord", "table").result.table
+    assert list(model["type"]).count("threshold") == 4
     # The questionnaire asks the South no trust question: two regions remain.
-    assert list(table["term"][:3]) == ["trust_acme", "region = North", "age"]
+    assert list(model["term"][:3]) == ["trust_acme", "region = North", "age"]
+    # … and the table a report shows is labelled and rounded, with the odds
+    # ratio and its interval on the coefficients only, and the model's N and
+    # fit under it.
+    table = result.output("ord", "table").to_frame()
+    assert list(table.columns) == ["Term", "Estimate", "SE", "z", "p", "Odds ratio", "95% CI"]
+    assert list(table["Term"][:3]) == ["Trust: Acme", "Region: North (vs Capital)", "Age"]
+    thresholds = table[table["Term"].str.startswith("Threshold: ")]
+    assert len(thresholds) == 4
+    assert thresholds["Odds ratio"].isna().all() and thresholds["95% CI"].isna().all()
+    assert table["Estimate"].map(lambda v: round(v, 3) == v).all()
+    footer = result.output("ord", "table").stats
+    assert footer["Model"] == "Proportional odds (cumulative logit)"
+    assert footer["Outcome"] == "Overall satisfaction" and footer["N"] == stat["n"]
+    assert footer["McFadden's pseudo-R²"] == round(stat["pseudo_r_squared"], 4)
+    assert footer["Weight"] == "weight"
     report = (tmp_path / "outputs" / "ord.md").read_text("utf-8")
     # A threshold is one cell, and its row has as many cells as the header: a
     # "|" in the term (polr's "Very dissatisfied|Dissatisfied") split it in two.
     lines = report.splitlines()
-    header = next(line for line in lines if "odds_ratio_lower" in line)
+    header = next(line for line in lines if "Odds ratio" in line)
     row = next(line for line in lines if "Very dissatisfied / Dissatisfied" in line)
     cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
-    assert cells[:2] == ["Very dissatisfied / Dissatisfied", "threshold"]
+    assert cells[0] == "Threshold: Very dissatisfied / Dissatisfied"
     assert row.count("|") == header.count("|")
-    assert "| nan" not in report  # the thresholds' odds ratio is blank
+    # The thresholds' odds ratio is blank, never "nan" or "None".
+    assert "| nan" not in report and "None" not in report
+    assert "odds_ratio" not in report and "std_error" not in report
     assert json.dumps(stat)
 
 
