@@ -17,6 +17,7 @@ from siamang.flow.document import (
     FlowIssue,
     check_flow,
     node_order,
+    read_codeframes,
     resolve_flow,
     validate_flow,
 )
@@ -50,6 +51,7 @@ __all__ = [
     "generate_flow",
     "live",
     "node_order",
+    "read_codeframes",
     "render_condition",
     "render_node",
     "resolve_flow",

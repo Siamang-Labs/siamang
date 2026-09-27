@@ -19,10 +19,12 @@ def run(
     try:
         document = loads(Path(path).read_text(encoding="utf-8"))
         if "nodes" in document:
-            from siamang.flow import generate_flow
+            from siamang.flow import generate_flow, read_codeframes
 
             qdoc = loads(Path(questionnaire).read_text(encoding="utf-8")) if questionnaire else None
-            code = generate_flow(document, qdoc, format=format)
+            code = generate_flow(
+                document, qdoc, format=format, codeframes=read_codeframes(document)
+            )
         else:
             code = generate_questionnaire(document, format=format)
     except (OSError, ValueError, DocumentError) as exc:

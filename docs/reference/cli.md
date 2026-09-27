@@ -207,8 +207,8 @@ siamang flow nodes [--json]
 
 | Subcommand | Description |
 |------------|-------------|
-| `check` | JSON Schema plus graph checks against the node registry (and the codebook when `--questionnaire` is given). Prints every issue with its code; exit 1 on errors. |
-| `run` | Execute the flow in-process. `--data` feeds the platform data source from a snapshot file (`NODE=PATH` when there are several); relative output paths land in `--cwd`. Prints one line per node and the live tiles. |
+| `check` | JSON Schema plus graph checks against the node registry (and the codebook when `--questionnaire` is given). The codeframes the flow's Code open answers nodes name are read from the current directory. Prints every issue with its code; exit 1 on errors. |
+| `run` | Execute the flow in-process. `--data` feeds the platform data source from a snapshot file (`NODE=PATH` when there are several); relative output paths land in `--cwd`, and the codeframes are read from there. Prints one line per node and the live tiles. |
 | `nodes` | List the node registry by category; `--json` prints it as the builder receives it. |
 
 ---

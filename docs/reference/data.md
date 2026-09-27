@@ -696,9 +696,10 @@ A **codeframe** is a JSON file (`analysis/<name>.codeframe.json`) that says how
 the answers of one open-text variable are coded, and `siamang.data.text_coding`
 applies it: no model, no network, the same result at every run. Answers are
 matched by `fingerprint(text)` — sixteen hex characters of SHA-256 over
-`normalise(text)` (Unicode NFKC, whitespace collapsed, case-folded) — so the
-same answer typed differently is the same answer. The file keeps fingerprints,
-never the answers' texts.
+`normalise(text)` (Unicode NFKC, whitespace collapsed, case-folded; a missing
+value — `None`, NaN, `pd.NA`, `NaT` — is blank) — so the same answer typed
+differently is the same answer. The file keeps fingerprints, never the answers'
+texts.
 
 **Version 1** (`"schema_version": "1.0"`, or none) is themes and one theme per
 fingerprint; an answer it has no verdict for is uncoded. It is read and applied
@@ -712,7 +713,7 @@ exactly as before version 2 existed: the same variable, table and generated code
    answers collected after the rules were written are coded too;
 3. nothing: the answer is **uncoded**, left for a coder.
 
-A blank answer is not answered and is never coded.
+A blank or missing answer is not answered and is never coded.
 
 ### The version 2 file
 
@@ -768,29 +769,45 @@ are. There are no regular expressions (`re:` is refused).
 | `slow\|late` | either word at that place | |
 | `not_late` | *wasn't late*, *never late*, *not really late* | *late* |
 | `customer service` | the words in order, next to each other | *service to the customer*, *customer, service* |
-| `staff ~3 rude` | the two within 3 words of each other, either order (`~0`: adjacent) | across punctuation |
-| `not late`, `don't know` | *was not late*, *I don't know*: the negation is the term's own | *I don't really know* (use `don't ~2 know`) |
+| `staff ~3 rude` | the two within 3 words of each other, either order (`~0`: adjacent) | across punctuation or a line break |
+| `not late`, `don't know` | *was not late*, *wasn't late*, *I don't know*, *I dont know*, *I do not know*: the negation is the term's own | *I don't really know* (use `don't ~2 know`) |
+| `not_friendly staff` | *no friendly staff*: the words under the negation `not_` asks for are the term's | *friendly staff* |
 
 A term matches only mentions that are **not negated**, unless the negation is
-one of its own words; `not_word` matches only a negated one. A phrase and a
-proximity never reach across punctuation.
+one of its own words or the one a `not_` word of it asks for; `not_word`
+matches only a negated one. A phrase and a proximity never reach across
+punctuation (a comma too) or a line break. The word `not` in a term stands
+for every negation written with *not* (`not happy` finds *wasn't happy*).
 
 ### How the rules read an answer
 
-* `normalise(text)`, then one apostrophe (`’ ʼ ‘ ´ ′` → `'`), `_` read as a
-  space, then `replace`.
+* `normalise(text)` — except that a run of whitespace holding a line break
+  is one line break — then one apostrophe (`’ ʼ ‘ ´ ′` → `'`), `_` read as a
+  space, then `replace`. The fingerprint is `normalise`'s, so an answer on two
+  lines is the same answer (and the same decision) as its words on one; the
+  rules read the two apart, and `preview` lists them apart.
 * **Words**: letters, digits and combining marks of any script, an apostrophe
   inside a word kept (`wasn't`, `l'eau`); diacritics kept (`café` ≠ `cafe`).
-  An answer in any language keeps its words and matches terms in them.
-* **Clauses** end at `. , ; : ! ? ( ) [ ] { } – — …` (and `¡ ¿ 。 ， 、 ； ： ！ ？ ؟ ، ؛ । ॥`)
-  and at *but, however, although, though, whereas, except, plus*; those words
-  belong to no clause, so a term holding one matches only with scope `answer`.
+  An answer in any language keeps its words and matches terms in them. A word
+  longer than 200 characters (the longest a term may be) matches no term.
+* **The n't forms are one**: the forms typed without the apostrophe (*dont,
+  doesnt, didnt, isnt, wasnt, arent, werent, cant, couldnt, wont, wouldnt,
+  shouldnt, havent, hasnt, hadnt, aint, mustnt, neednt, shant*) and *cannot*
+  are read as their n't forms, and *do, does, did, is, are, was, were, has,
+  have, had, can, could, will, would, shall, should, must, need, might*
+  followed by *not* as one n't word (*do not* → *don't*, *will not* →
+  *won't*) — in the answers and in the terms, so each spelling finds the
+  others. `explain`'s tokens are the words so read.
+* **Clauses** end at a line break, at `. , ; : ! ? ( ) [ ] { } – — ‒ ― … • ◦ ‣ ▪ |`
+  (and `¡ ¿ 。 ， 、 ； ： ！ ？ ؟ ، ؛ । ॥`), at `- ‐ ‑ − / ·` where they do not
+  stand between two letters (*fast - cheap*, *late / broken*, a list's `- item`;
+  *e-mail*, *n/a* and *col·legi* are words split, not clauses), and at *but,
+  however, although, though, whereas, except, plus*; those words belong to no
+  clause, so a term holding one matches only with scope `answer`.
 * **Negation**: *not, no, never, cannot, without, nothing, none, nobody,
-  neither, nor, hardly, barely*, every word ending in *n't*, and the n't forms
-  typed without the apostrophe (*dont, doesnt, didnt, isnt, wasnt, arent,
-  werent, cant, couldnt, wont, wouldnt, shouldnt, havent, hasnt, hadnt, aint,
-  mustnt, neednt*) negate the next **3** words, stopping at a clause's end and
-  at *and, or, yet*. English only: *не* negates nothing.
+  neither, nor, hardly, barely* and every word ending in *n't* negate the next
+  **3** words, stopping at a clause's end and at *and, or, yet*. English only:
+  *не* negates nothing.
 
 ### How the matching themes are resolved
 
@@ -798,8 +815,15 @@ An exclusive theme is kept only when no other theme matched (of several
 exclusive ones, the one ranked highest); then the themes are ranked by
 `priority` (highest first, ties by their order), cut to `max_codes`, and to one
 when `multiple` is false. The kept themes come in the order of `themes`. A
-coder's decision is kept as it is, except that a single-theme codeframe keeps
-the highest-ranked of several.
+coder's decision is kept, its themes in the order of `themes` (the file keeps
+them as given), except that a single-theme codeframe keeps the highest-ranked
+of several.
+
+The theme variable holds the themes: a coder's *no theme* (`[]`, or NA in a
+single-theme codeframe) and an uncoded answer have none there, so a frequency
+or crosstab of it is of the respondents with a theme, where the theme table's
+percentages are of everyone who answered (its No theme and Uncoded rows are
+the difference).
 
 ### Functions
 
@@ -807,24 +831,32 @@ the highest-ranked of several.
 |----------|---------|-------|
 | `parse(payload)`, `load(path)` | `Codeframe` | Raise `CodeframeError` (`codeframe: …`) with the first error. `Codeframe.version`, `.multiple`, `.nets` (`{group: codes}`, groups of two or more themes), `.labels`, `.to_dict()`. |
 | `validate(codeframe)` | `Validation` (`.errors`, `.warnings`, `.ok`, `.to_dict()`) | Each `CodeframeIssue` has `level`, `message` and `path` into the JSON (`["themes", 2, "rules", "include", 0]`). |
-| `codes(series, codeframe)` | Series | `Int64` codes (NA uncoded), or with `multiple` lists of codes (`[]` for a coder's *no theme*, `None` uncoded or blank). |
+| `codes(series, codeframe)` | Series | `Int64` codes (NA uncoded), or with `multiple` lists of codes in the order of `themes` (`[]` for a coder's *no theme*, `None` uncoded or blank). |
 | `sources(series, codeframe)` | Series | `hand`, `rule` or `uncoded`; NA for a blank answer. |
-| `coding(series, codeframe)` | `list[Coding]` | Each answer's `codes`, `source` (`hand`, `rule`, `uncoded`, `blank`) and the rules that `fired`; each distinct answer coded once. |
+| `coding(series, codeframe)` | `list[Coding]` | Each answer's `codes`, `source` (`hand`, `rule`, `uncoded`, `blank`), the rules that `fired`, and `negated`: the themes it did not get although an include term of theirs is in it, negated (theme, term, words); each distinct answer coded once. |
 | `apply(data, codeframe, *, into=None, sentiment=False)` | `SurveyData` | The theme variable, `Theme: <variable>`, with the themes as value labels: nominal, or multiple-choice with `multiple`. |
 | `coverage(frame, codeframe)` | dict | `answered`, `coded`, `uncoded`; version 2 adds `by_hand`, `by_rules` and `no_theme`, and `coded` counts every answer decided (`by_hand` + `by_rules`). `tally(codings, weights=None)` gives the same of a list of `Coding`. |
 | `uncoded_answers(frame, codeframe)` | Series | The answered texts no coder decided and no rule matched. |
-| `preview(answers, codeframe)` | dict | `answers` (per distinct answer: `text`, `count`, `fingerprint`, `codes`, `source`, and for `rule` the `hits` — `code`, `label`, `term`, `fragment`, `clause`), `themes` (`count`, `percent` of those who answered, `by_hand`, `by_rules`), `nets` (`count`: a respondent once), `coverage` (of respondents, with `percent_coded`) and `distinct` (of distinct answers). `answers` is a mapping of answer to count, pairs, or a Series. |
-| `explain(text, codeframe)` | dict | `normalised`, `fingerprint`, `tokens` (`word`, `negated`, `negated_by`, `clause`), `clauses`, `manual`, `rules` (each rule whose include term matched or would have: `status` `fired`, `vetoed` or `negation`, `term`, `fragment`, `clause`, `reason`), `dropped` (themes set aside and why), `codes`, `source`. |
-| `suggest(answers, n=30, *, codeframe=None, min_count=2)` | dict | `words` and `phrases` (two words, neither a stop word), the `n` commonest held by at least `min_count` respondents, each with `count` and an `example`; a negated word as `not_word`. With a codeframe its replacements are made and the answers it codes left out. |
+| `preview(answers, codeframe)` | dict | `answers` (per distinct answer as the rules read it: `text`, `count`, `fingerprint` — shared by two answers that differ only in their line breaks —, `codes`, `source`, for `rule` the `hits` — `code`, `label`, `term`, `fragment`, `clause` — and `negated`: the themes it lost to a negation, `code`, `label`, `term`, `fragment`), `themes` (`count`, `percent` of those who answered, `by_hand`, `by_rules`, and `negated`: the respondents who mention an include term of it only negated and did not get it), `nets` (`count`: a respondent once), `coverage` (of respondents, with `percent_coded`) and `distinct` (of distinct answers). `answers` is a mapping of answer to count, pairs, or a Series. |
+| `explain(text, codeframe)` | dict | `normalised` (with its line breaks), `fingerprint`, `tokens` (`word` as the rules read it, `negated`, `negated_by`, `clause`), `clauses`, `manual`, `rules` (each rule whose include term matched or would have: `status` `fired`, `vetoed` or `negation`, `term`, `fragment`, `clause`, `reason`), `dropped` (themes set aside and why), `codes`, `source`. |
+| `suggest(answers, n=30, *, codeframe=None, min_count=2)` | dict | `words` and `phrases` (two words, neither a stop word), the `n` commonest held by at least `min_count` respondents, each with `count` and an `example`; a negated mention is counted apart, as `not_word` (a word can come both ways). With a codeframe its replacements are made and the answers it codes left out. |
 
 `preview` codes 50,000 distinct answers against 30 themes of 10 terms in a few
 seconds on one CPU: the rules are compiled once per `Codeframe` (every word form
 a pattern, every term filed under its first word's patterns, `*` matched in one
-pass rather than by backtracking) and each distinct word looked up once.
+pass rather than by backtracking) and each distinct word looked up once — by
+its beginning and end for the forms with `*`, so a word costs the same however
+long it is — and a term is tried only where its first word is, in an answer
+holding a form of each of its words. An answer costs what its length does and
+no more: a long pasted answer, or one "word" of a hundred thousand letters,
+takes no longer than it takes to read, and a codeframe at the limits (200
+themes of 1,500 terms) previews a thousand answers in about a second.
 
 `validate` names, as **errors**: no themes, a bad variable name, a language
 other than `en`, a scope other than `clause`/`answer`, a negative `max_codes`,
-a theme code given twice or not a whole number, a theme without a label,
+a theme code given twice, not a whole number or outside −2,147,483,648 …
+2,147,483,647 (what the theme variable holds in every format it is written
+to), a theme without a label,
 `examples` in a theme (*a version 2 codeframe keeps no answers' texts, only
 their fingerprints — remove its examples*), an assignment whose key is not a
 fingerprint or that names an unknown theme, a replacement given twice or
@@ -835,7 +867,8 @@ rude)*), `~` without a number or with words on one side only, two `~N`, `~N`
 over 20, `*` or `not_` alone, an empty alternative, `require` mixing terms and
 lists. As **warnings** (the codeframe applies; the part does nothing): a term
 that can never match — `e-mail` (*'-' is not part of a word*), `'cause`, a
-clause word in a clause, a word the replacements take away, `not_and` — a term
+clause word in a clause, a word the replacements take away, `not_and`, the
+*do not* of `do|really not` (an answer's *do not* is read as *don't*) — a term
 given twice, a term both included and excluded, `require` or `exclude` without
 `include`, a net of one theme, several codes decided for a single-theme
 answer, `max_codes` in a single-theme codeframe, and an unknown key.

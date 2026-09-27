@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from siamang.flow import FlowError, FlowRunner, check_flow, default_registry
+from siamang.flow import FlowError, FlowRunner, check_flow, default_registry, read_codeframes
 from siamang.flow.document import loads as load_flow
 from siamang.model import DocumentError, from_document, loads
 
@@ -18,12 +18,14 @@ def _questionnaire(path: str | None):
 
 
 def run_check(path: str, questionnaire: str | None = None) -> int:
-    """``siamang flow check flow.json [--questionnaire questionnaire.json]``."""
+    """``siamang flow check flow.json [--questionnaire questionnaire.json]``: the
+    codeframes the flow names are read from the current directory, where a
+    run reads them."""
 
     try:
         flow = load_flow(Path(path).read_text(encoding="utf-8"))
         qdoc, _survey = _questionnaire(questionnaire)
-        issues = check_flow(flow, questionnaire=qdoc)
+        issues = check_flow(flow, questionnaire=qdoc, codeframes=read_codeframes(flow))
     except (OSError, ValueError, FlowError, DocumentError) as exc:
         print(f"validation error: {exc}")
         return 2
@@ -52,7 +54,12 @@ def run_flow(
     try:
         flow = load_flow(Path(path).read_text(encoding="utf-8"))
         qdoc, survey = _questionnaire(questionnaire)
-        runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=qdoc)
+        runner = FlowRunner(
+            flow,
+            questionnaire=survey,
+            questionnaire_document=qdoc,
+            codeframes=read_codeframes(flow, cwd or "."),
+        )
         sources = _sources(runner, data or [])
         result = runner.run(sources=sources, cwd=cwd, upto=upto, raise_on_error=False)
     except (OSError, ValueError, FlowError, DocumentError) as exc:

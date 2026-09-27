@@ -28,6 +28,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import cache
 from importlib import resources
+from pathlib import Path
 from typing import Any
 
 from siamang.data.checks import RESPONSE_TIME_LABELS
@@ -185,8 +186,11 @@ def check_flow(
     that it holds lists of codes when the codeframe gives several themes an
     answer (so a chart or a banner that needs one answer says so), and a
     codeframe that cannot be applied is an error here rather than in the run.
-    Errors make the flow unusable; warnings are worth showing. Returns the
-    list — :func:`resolve_flow` raises on the first error instead.
+    A run and a generated script know that name only from the same
+    codeframes: give them to :class:`~siamang.flow.FlowRunner` and
+    :func:`~siamang.flow.generate_flow` too (or write the name in **Theme
+    variable**). Errors make the flow unusable; warnings are worth showing.
+    Returns the list — :func:`resolve_flow` raises on the first error instead.
     """
 
     validate_flow(document)
@@ -258,7 +262,9 @@ def check_flow(
         if spec.type == "prepare.maxdiff_scores" and questionnaire is not None:
             issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
         if spec.type == "visualize.likert" and questionnaire is not None:
-            issues.extend(_check_likert_scale(node_id, node.get("params") or {}, questionnaire))
+            issues.extend(
+                _check_likert_scale(node_id, node.get("params") or {}, questionnaire, several)
+            )
         if spec.type == "visualize.bar" and questionnaire is not None:
             issues.extend(
                 _check_bar_answers(node_id, spec, node.get("params") or {}, questionnaire, several)
@@ -400,11 +406,15 @@ def resolve_flow(
     *,
     registry: Registry | None = None,
     questionnaire: dict[str, Any] | None = None,
+    codeframes: Mapping[str, Any] | None = None,
 ) -> FlowGraph:
-    """Check the flow and return the resolved graph; raise :class:`FlowError` on errors."""
+    """Check the flow and return the resolved graph; raise :class:`FlowError` on
+    errors. ``codeframes`` as :func:`check_flow` takes them."""
 
     registry = registry or default_registry()
-    issues = check_flow(document, registry=registry, questionnaire=questionnaire)
+    issues = check_flow(
+        document, registry=registry, questionnaire=questionnaire, codeframes=codeframes
+    )
     errors = [issue for issue in issues if issue.severity == "error"]
     if errors:
         first = errors[0]
@@ -691,6 +701,31 @@ def _codeframes_named(
             with suppress(text_coding.CodeframeError, TypeError, ValueError):
                 codeframe = text_coding.parse(payload)
         found[node_id] = (payload, codeframe)
+    return found
+
+
+def read_codeframes(document: dict[str, Any], root: str | Path = ".") -> dict[str, Any]:
+    """The codeframe documents a flow's Code open answers nodes name, read from
+    ``root`` — the directory the flow runs in, which the node reads its file
+    from — as :func:`check_flow`, :func:`resolve_flow`, ``FlowRunner`` and
+    ``generate_flow`` take them (``{path: document}``). A file that is not
+    there is left out (the check then does not know the theme variable's
+    name, as before); one that is not JSON is passed as its text, which the
+    check reports as a codeframe that cannot be applied."""
+
+    found: dict[str, Any] = {}
+    for node in document.get("nodes") or []:
+        path = (node.get("params") or {}).get("codeframe")
+        if node.get("type") != "prepare.text_code" or not isinstance(path, str) or not path:
+            continue
+        try:
+            text = (Path(root) / path).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        try:
+            found[path] = json.loads(text)
+        except json.JSONDecodeError:
+            found[path] = text
     return found
 
 
@@ -1418,14 +1453,19 @@ def _reachable(nodes: dict[str, dict[str, Any]], edges: list[Edge], registry: Re
 
 
 def _check_likert_scale(
-    node_id: str, params: dict[str, Any], questionnaire: dict[str, Any]
+    node_id: str,
+    params: dict[str, Any],
+    questionnaire: dict[str, Any],
+    several_made: frozenset[str] = frozenset(),
 ) -> list[FlowIssue]:
     """A Likert chart's items share one scale: the same labelled answers in the
     codebook, missing codes aside (``_answers``) — else the whole numbers of a
     valid range, else the points of the Likert scale question asking it — as
     the chart requires when it runs (``siamang.reporting.likert.likert_scale``),
-    and each has one answer. Items the codebook does not hold (made upstream)
-    are the run's to check."""
+    and each has one answer: not a multiple-choice question, nor a variable
+    made upstream that holds several answers (``several_made``: a theme
+    variable of a codeframe with several themes an answer). Other items the
+    codebook does not hold (made upstream) are the run's to check."""
 
     items = params.get("items")
     if not isinstance(items, list):
@@ -1437,6 +1477,12 @@ def _check_likert_scale(
     def problem(message: str) -> list[FlowIssue]:
         return [FlowIssue("error", "PARAM_CONFLICT", f"{node_id}: {message}", node_id)]
 
+    for name in items:
+        if isinstance(name, str) and name not in variables and name in several_made:
+            return problem(
+                f"{name} allows several answers; a Likert chart draws items with one answer "
+                "each on a scale."
+            )
     for name in known:
         if (asked.get(name) or {}).get("type") in _SEVERAL_ANSWERS:
             label = variables[name].get("label") or name
@@ -1872,6 +1918,7 @@ __all__ = [
     "FlowGraph",
     "FlowIssue",
     "check_flow",
+    "read_codeframes",
     "dumps",
     "load_flow_schema",
     "loads",
