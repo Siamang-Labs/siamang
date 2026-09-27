@@ -39,7 +39,7 @@ def test_p_adjustments_match_r_p_adjust():
     assert inference.adjust_p(p, "fdr_bh") == pytest.approx([0.04, 0.16 / 3, 0.16 / 3, 0.2])
     assert inference.adjust_p(p, "bonferroni") == pytest.approx([0.04, 0.16, 0.12, 0.8])
     assert inference.adjust_p(p, "none") == pytest.approx(p)
-    # Capped at 1; a missing p stays missing and does not count towards m.
+    # Capped at 1; a missing p stays missing and does not count toward m.
     assert inference.adjust_p([0.4, 0.6], "bonferroni") == pytest.approx([0.8, 1.0])
     adjusted = inference.adjust_p([0.01, np.nan, 0.03], "bonferroni")
     assert adjusted[0] == pytest.approx(0.02) and math.isnan(adjusted[1])
@@ -866,7 +866,7 @@ def test_the_defaults_say_when_they_count_missing_codes_as_answers():
         "Satisfaction: 1 (99 = Don't know); Satisfaction later: 1 (99)" + remedy
     )
     crosstab = data.report.crosstab("grp", "ans")
-    assert "9" in crosstab.to_frame().iloc[:, 0].tolist()  # a row of its own, unlabelled
+    assert "9" in crosstab.to_frame().iloc[:, 0].tolist()  # a row of its own, unlabeled
     assert crosstab.stats["Missing codes counted as answers"] == "Group: 1 (9 = Refused)" + remedy
     assert (
         "Missing codes counted as answers" in data.report.crosstab("grp", "ans", test=False).stats

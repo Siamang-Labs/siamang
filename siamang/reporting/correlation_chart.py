@@ -140,7 +140,7 @@ def draw(chart: HeatMap) -> None:
 
 def draw_means(chart: HeatMap) -> None:
     """Build ``chart``'s mean of each item in each group of ``by`` in the
-    theme's colours: the classic form's numbers but for the codebook's missing
+    theme's colors: the classic form's numbers but for the codebook's missing
     codes, which are left out and counted (the classic form averaged a 99 = Not
     applicable into a 1–5 scale's mean), long item labels numbered and wrapped
     so the cells keep the plot, each group's base under its name, and the base,

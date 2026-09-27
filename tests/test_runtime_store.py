@@ -3,7 +3,7 @@
 `dist/bundle.js` is loaded into a bare Node context — React, the DOM and the
 page globals stubbed out — so the functions that decide where an answer is
 stored can be called directly. Only Node is needed (skipped without it); the
-same behaviour is played end to end in ``test_runtime_browser.py``.
+same behavior is played end to end in ``test_runtime_browser.py``.
 """
 
 from __future__ import annotations
@@ -167,7 +167,7 @@ def test_a_wide_multichoice_writes_one_or_zero_per_option_and_reads_codes():
 
 def _chained_wide() -> list[dict[str, Any]]:
     """aware offers Globex in the North (region = 1); bought offers Globex to
-    whom aware showed it and who left it unticked (aware_globex = 0)."""
+    whom aware showed it and who left it unchecked (aware_globex = 0)."""
 
     from siamang.core.expression import Expression, VarRef
     from siamang.frontend.compiler.react import _compile_condition
@@ -194,7 +194,7 @@ def _chained_wide() -> list[dict[str, Any]]:
     ]
 
 
-# Acme ticked in both in the North (Globex offered in both, left unticked),
+# Acme checked in both in the North (Globex offered in both, left unchecked),
 # then the region changed to the South.
 _NORTH_THEN_SOUTH = {
     "region": 2,

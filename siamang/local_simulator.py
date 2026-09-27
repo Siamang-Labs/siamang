@@ -194,7 +194,7 @@ def _simulate_wide_multichoice(
     """One 0/1 per variable, as the runtime offers the options: with a choice
     per variable, choice *i* is variable *i* (its code is what ``exclusive``
     names) and, with ``answers``, an option its own ``show_if`` / ``hide_if``
-    hides is not offered — never ticked, and missing rather than 0. An
+    hides is not offered — never checked, and missing rather than 0. An
     exclusive choice drawn stands alone, as in array mode."""
 
     variables = question.var if isinstance(question.var, list) else [question.var]
@@ -391,7 +391,7 @@ def simulate_from_pages(
     ``quotas`` are the compiler options' ``quota`` cells. Leaving a page, a
     respondent holding a value in a full cell — an answer, or the arm drawn
     before the first page — ends there: the runtime's "quota full" screen,
-    not a complete. Only completes count towards a cell, as ingest counts
+    not a complete. Only completes count toward a cell, as ingest counts
     them, so a balanced assignment whose cells are all full keeps its draw
     and the respondent ends on the first page. The
     walk of respondent *k* therefore depends on the *k − 1* before it, which

@@ -16,7 +16,7 @@ params:
     - gabor_granger
     default: van_westendorp
     label: Method
-    help: van_westendorp reads four prices each respondent named and finds where their cumulative curves cross. gabor_granger reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximising price among them.
+    help: van_westendorp reads four prices each respondent named and finds where their cumulative curves cross. gabor_granger reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximizing price among them.
   too_cheap:
     kind: variable
     scales:

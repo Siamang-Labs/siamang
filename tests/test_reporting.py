@@ -334,7 +334,7 @@ def test_weighted_freq_percentages_are_of_the_unrounded_sums_of_weights():
     assert by_frequency["Label"].tolist() == ["c", "b", "a", "Total"]
     assert by_frequency["%"].tolist() == [73.9, 17.4, 8.7, 100.0]
     assert by_frequency["Cumulative %"].tolist() == [73.9, 91.3, 100.0, 100.0]
-    # Weights normalised to sum to 1 over 1000 respondents: every sum rounds to
+    # Weights normalized to sum to 1 over 1000 respondents: every sum rounds to
     # 0.2, and the table read 20.0 % for every answer.
     rng = np.random.default_rng(0)
     codes = rng.integers(1, 4, 1000).astype(float)
@@ -530,7 +530,7 @@ def test_a_heatmap_of_means_is_weighted_and_a_correlation_heatmap_says_it_is_not
     heat = weighted.plot.heatmap(["score"], by="grp")
     cells = np.asarray(heat.plot().collections[0].get_array()).ravel().tolist()
     assert cells == [17.5, 37.5] and heat.weight_note == "weighted by 'w'"
-    assert heat.plot().figure.axes[-1].get_ylabel() == "Weighted mean"  # the colour bar
+    assert heat.plot().figure.axes[-1].get_ylabel() == "Weighted mean"  # the color bar
     plain = _weighted_pair().plot.heatmap(["score"], by="grp").plot()
     assert plain.figure.axes[-1].get_ylabel() == ""
 

@@ -330,7 +330,7 @@ def pca(
         _, singular, vt = np.linalg.svd(matrix, full_matrices=False)
         eigen = singular**2 / (len(data) - 1)
     else:
-        # The SVD of the centred rows scaled by √(pᵢ / (1 − Σp²)) is the
+        # The SVD of the centered rows scaled by √(pᵢ / (1 − Σp²)) is the
         # eigen-decomposition of the weighted covariance: the same route as the
         # unweighted branch, so equal weights land on the same numbers.
         mean, covariance = _weighted_moments(matrix, weights)

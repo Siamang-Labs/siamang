@@ -1,4 +1,4 @@
-"""siamang.data.bands — numbers into labelled bands, missing codes kept out."""
+"""siamang.data.bands — numbers into labeled bands, missing codes kept out."""
 
 from __future__ import annotations
 

@@ -390,7 +390,7 @@ def with_scores(
 
     The same number :func:`respondent_scores` gives in long form — best minus
     worst over the times the item was shown to *this* respondent, from −1 to 1
-    — but one column per item, unrounded, labelled with the item and registered
+    — but one column per item, unrounded, labeled with the item and registered
     in the codebook, so it can go straight into a crosstab, a cluster or a
     regression. A respondent who was never shown an item has no score for it
     (a blank, not a zero: "never picked" and "never offered" are different

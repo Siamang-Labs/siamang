@@ -127,8 +127,8 @@ _R_ENV = {"LANG": "C.UTF-8", "PATH": "/usr/local/bin:/usr/bin:/bin"}
 
 @pytest.mark.skipif(not _r_available(), reason="Rscript with jsonlite")
 def test_r_reads_the_bundle_with_factors_and_missing_codes(tmp_path):
-    """Sourced from another directory: missing codes are NA, labelled codes
-    factors, an unlabelled code keeps a level of its own instead of vanishing,
+    """Sourced from another directory: missing codes are NA, labeled codes
+    factors, an unlabeled code keeps a level of its own instead of vanishing,
     several answers stay text, and a text answer that reads "NA" is an answer."""
 
     script = export_file(_data(), tmp_path / "bundle" / "survey.R")

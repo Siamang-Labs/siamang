@@ -176,8 +176,8 @@ fewer than two predictors, and more than 15 with `shapley`, before the run.
 is a simple correspondence analysis. `layout` `crosstab` (default) crosses
 `row` with `column` (respondents in each pair of answers; a multiple-choice
 variable counts each answer chosen); `attributes` counts, for each answer of
-`row`, the respondents who ticked each of `attributes` (0/1 variables;
-`yes_codes` says what a tick is). `dimensions` (default 2) is how many
+`row`, the respondents who checked each of `attributes` (0/1 variables;
+`yes_codes` says what counts as checked). `dimensions` (default 2) is how many
 dimensions the point tables show. Outputs: `table` (each dimension's singular
 value, principal inertia, % and cumulative %, the statistics as its footer),
 `rows` and `columns` (mass, quality, inertia %, and per dimension the principal
@@ -214,7 +214,7 @@ and `scores` with the prefix `into` (default `factor_`). Outputs: `data` (with
 than the items when a rule chooses — and then the run makes the scores of the
 factors kept and, of the rest, the ones a node downstream names (the template
 passes them as `read_later={read_after!r}`: `FlowGraph.read_after`), empty,
-labelled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)` and
+labeled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)` and
 named in the stat's `Scores`, so a later node reading one finds an empty
 variable that says why. No other empty score reaches the data. A template may
 name `{read_after!r}` as it names `{node!r}`: the variables the node makes that
@@ -227,7 +227,7 @@ Several nodes expose what the library already computed:
 | `analyze.descriptives` (Descriptive statistics) | `data.report.descriptives(variables, by=…, detail=…)`, or `layout="means"` | `table`: N, Missing, Mean, SD, Min, Median, Max (+ Q1, Q3, Skewness, Kurtosis) per variable and group, or (Layout `means`) a row per variable and a column per group with its mean; `stat`: missing codes set aside, Weighted N, Effective N, Design effect (and the groups' sizes) |
 | `analyze.data_check` (Data check) | `data.report.data_check(variables)` | `table`: Severity, Variable, Problem, Rows, Examples, Code; `stat`: Checked, Errors, Warnings |
 | `prepare.maxdiff_scores` (MaxDiff scores) | `maxdiff.with_scores(data, question, prefix=…)` | `data` with `<prefix><item code>` per item (default `<question>_score_`); `stat`: respondents scored, unreadable answers |
-| `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labelled ordinal band variable; `stat`: count per band, outside, missing codes |
+| `prepare.bands` (Bands) | `bands.bands(data, variable, bins=…, into=…, labels=…, right=…)` | `data` with a labeled ordinal band variable; `stat`: count per band, outside, missing codes |
 | `analyze.turf` with `method: fixed` | `turf.evaluate(frame, portfolio, items=…, weight=…, labels=…)` | `table`: reach, unique reach and frequency per option and for the portfolio |
 | `prepare.text_code` | `data.report.themes(codeframe, sentiment=…)` | a `stat` output: Coverage, Distinct uncoded answers, and with sentiment the Sentiment split and Net sentiment; with a version 2 codeframe also Coded by hand and Coded by rules, and the theme variable is multiple-choice (lists of codes) when the codeframe gives several themes an answer |
 | `output.export_file` | `siamang.io.export_file(data, path)` | `.R` writes the R bundle (CSV, dictionary, import script), `.json` the codebook alone |
@@ -303,7 +303,7 @@ correction=`) — so a stored flow, which sets none, renders the code it always
 did, and a builder shows each field only where it applies: Top N except in a
 histogram, Other except in a histogram or a donut, Confidence with the
 intervals on grouped bars, Significance letters with Show percent and Layout
-grouped (their Level and Multiple comparisons once they are ticked), Bins in a
+grouped (their Level and Multiple comparisons once they are checked), Bins in a
 histogram, Other below (%) in a donut; a histogram reads no By, Sort,
 Horizontal or Show values, a donut no By, Show, Split by or Horizontal. The
 checks: Top N with By is an error (`Top N keeps the answers given most, and with
@@ -321,7 +321,7 @@ set Show to percent.`, `Significance letters compare the groups of Split by —
 set Split by.`, `Significance letters are drawn on bars side by side (Layout
 grouped), not on stacks.` and `Significance letters compare percentages, as the
 Banner table's do — set Show to percent.` — the last five of bars only: a
-histogram or a donut draws no intervals or letters, and ticked ones left over
+histogram or a donut draws no intervals or letters, and checked ones left over
 from bars are not warned of there (the fields are not read). Bins that are not auto, a whole
 number from 1 to 100 or increasing edges are `PARAM_INVALID` before the run
 (`Parameter 'bins' of n: The bins' edges must increase from one to the next,
@@ -370,12 +370,12 @@ cannot draw fails that node, not the Save report or the preview after it.
 Every `visualize.*` node takes **`width`** and **`height`** in inches (2–30,
 default 10 × 6) and a **`palette`**; `visualize.heatmap` takes a `cmap` instead
 of a palette, and ignores it when it draws a correlation matrix. Every palette
-offers **`theme`** (a heatmap's `cmap` takes the word): the chart colours,
-text colour, grid and face of the Look of the Save report the chart is saved
+offers **`theme`** (a heatmap's `cmap` takes the word): the chart colors,
+text color, grid and face of the Look of the Save report the chart is saved
 through (`ReportTheme`'s `chart_*` fields, reporting reference §1b), which the
 report draws the chart in when it is rendered — the chart was drawn at its node
 before the Look was known, in the look `SIAMANG_REPORT_THEME` names, else the
-defaults, eight colours any two of which readers with protanopia or
+defaults, eight colors any two of which readers with protanopia or
 deuteranopia can tell apart. A named palette is drawn as it always was. These size the
 matplotlib figure itself rather than the picture of it, so the axis labels keep
 their proportion. Resolution is a field on the chart (`SurveyChart.dpi`,
@@ -396,7 +396,7 @@ the result suits) or `means`, `means_sd`, `interval`, `stacked`, `reach`,
 map, from any of its tables), `curves` (Price sensitivity, from its table or
 curves); `title`, `width`, `height` and `palette` as the other chart nodes (Key
 drivers — `importance` — the Perceptual map and Price sensitivity keep their
-own colours and title lines). `check_flow` reads what is
+own colors and title lines). `check_flow` reads what is
 connected before the run, from the node types and parameters upstream:
 
 - `RESULT_NOT_DRAWABLE` (error): `rc: A Result chart cannot draw the table
@@ -408,7 +408,7 @@ connected before the run, from the node types and parameters upstream:
   'scree'.` What an output draws follows its parameters: TURF's table draws
   `reach`, or `items` with `method: fixed`; MaxDiff's `scores` only with
   `method: counts`; Paired tests' McNemar and Cochran's Q tables `shares`; Code open answers'
-  `sentiment` only with `sentiment` ticked.
+  `sentiment` only with `sentiment` checked.
 - `RESULT_SOURCES` (warning): `rc: The results connected come from m, n; a
   Result chart draws one of them — the table output of Group means (m).`
 
@@ -423,10 +423,10 @@ connected item: `{"xtab": {"width": "75%", "align": "left"}}`, keyed like
 by `check_flow`, so a misspelled field or a width like `"wide"` is named before
 the run rather than raised inside it, and both reach only the **HTML**: the
 Markdown is the report's content and carries no layout — except the theme's
-chart colours, which colour the report's charts of palette `theme` in the
+chart colors, which color the report's charts of palette `theme` in the
 Markdown's figures and the HTML's alike. `check_flow` names a bad one as
 `PARAM_INVALID` (`Parameter 'theme' of save: chart_palette: 'purple' is not a
-hex colour such as '#2a78d6'.`, `… chart_text_color: '#cccccc' on the charts'
+hex color such as '#2a78d6'.`, `… chart_text_color: '#cccccc' on the charts'
 white background has a contrast of 1.6:1; text needs at least 4.5:1.`). A flow that names no
 theme leaves `SIAMANG_REPORT_THEME` to answer.
 

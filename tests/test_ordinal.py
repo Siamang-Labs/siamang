@@ -5,7 +5,7 @@ The reference values are quoted from R 4.4: ``MASS::polr`` 7.3-66 and
 ``housing`` (Venables & Ripley's *Modern Applied Statistics with S*, the
 satisfaction of 1,681 tenants, as frequencies) and ``wine`` (Randall 1989, the
 bitterness of 72 wine tastings) — and from statsmodels 0.15's
-``OrderedModel``. ``clm`` maximises to a gradient of 1e-8, as this module does,
+``OrderedModel``. ``clm`` maximizes to a gradient of 1e-8, as this module does,
 so its numbers are matched closely; ``polr`` stops ``optim`` earlier, so its
 printed values agree to about 1e-5.
 """
@@ -194,7 +194,7 @@ def test_the_sign_follows_polr_higher_answers_for_a_positive_coefficient():
 
 
 def test_the_array_fit_scaled_predictors_and_equal_weights():
-    """A predictor in thousands converges as one in units (the fit centres and
+    """A predictor in thousands converges as one in units (the fit centers and
     scales before BFGS and answers in the original units), and weights of 2
     are two copies of each respondent."""
 
@@ -285,7 +285,7 @@ def test_weighted_data_weighs_the_likelihood_and_names_the_weight():
     data = _survey(weighted=True)
     result = data.analysis.regression("satisfaction", ["trust", "region"], kind="ordinal")
     assert result.stats["weight"] == "w"
-    # The weights average 1 over everyone, and nearly so over those modelled
+    # The weights average 1 over everyone, and nearly so over those modeled
     # (294.8 over 290): nothing to say about their sum.
     assert "weights" not in result.stats
     tenfold = data.with_frame(data.frame.assign(w=data.frame["w"] * 10))

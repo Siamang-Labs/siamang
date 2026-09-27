@@ -402,7 +402,7 @@ the script's own static context plus `trigger`, `startedAt`,
 trigger, `question`. Scripts run as part of the survey page; `sandbox`
 is recorded but not applied. A seeded `randomize_options` gives each
 respondent their own stable order (seed + respondent id); a timed
-question's timer is cancelled when its page is left.
+question's timer is canceled when its page is left.
 
 ---
 
@@ -514,7 +514,7 @@ report = sg.Report(title="Trust").add(means, caption="Age by party")
 report.save("report.md")
 report.save_tables("report.xlsx")
 
-# A chart of palette="theme" takes the chart colours of the report it is in
+# A chart of palette="theme" takes the chart colors of the report it is in
 # (by default eight a reader with protanopia or deuteranopia can tell apart)
 from siamang.reporting import ReportTheme
 
@@ -590,7 +590,7 @@ Gabor-Granger). See
 — the bar chart's percentages, split and sort, Top N, intervals, significance
 letters, histogram and donut, the Likert chart, the Trend,
 `result_charts.chart()` for the chart of a result, and a report theme's chart
-colours (`palette="theme"`) — are in
+colors (`palette="theme"`) — are in
 [`wiki/Reporting-Charts.md`](wiki/Reporting-Charts.md); `Report.save_tables()`
 in [`wiki/Report-Document.md`](wiki/Report-Document.md#save_tables), and the
 tab book in [`wiki/Reporting-Tables.md`](wiki/Reporting-Tables.md#tab-book-excel).

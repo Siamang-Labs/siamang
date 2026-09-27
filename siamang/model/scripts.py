@@ -323,7 +323,7 @@ def answer_keys_written(script: Script, names: Iterable[str]) -> list[str]:
     (``=``, ``+=``, ``??=`` …), incremented or decremented, deleted, the
     target of a ``for (… of …)`` / ``for (… in …)``, an element of a
     destructuring pattern that is assigned (``[answers.panel, x] = …``,
-    ``({v: answers.panel} = …)``) or all of a parenthesised one
+    ``({v: answers.panel} = …)``) or all of a parenthesized one
     (``(answers.panel) = …``) — or when the value under it is changed in place:
     a property or an element of it assigned (``answers.panel.k = …``,
     ``answers.panel[0] = …``), an array method that changes it
@@ -405,7 +405,7 @@ def _is_written(
     assigned = member or not in_place
     if assigned and _for_head_before(code, start) and _FOR_TAIL.match(code, after):
         return True
-    # All of a parenthesised expression, one of its values, or an element of a
+    # All of a parenthesized expression, one of its values, or an element of a
     # destructuring pattern: written when that is.
     opener = _enclosing_opener(code, start)
     close = _closing(code, opener) if opener >= 0 else -1

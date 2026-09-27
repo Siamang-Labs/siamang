@@ -467,7 +467,7 @@ def test_maxdiff_conjoint_and_shares_are_drawn_from_their_tables(tmp_path):
     # Each chart says its base.
     for chart in (utilities, scores, importance, worths):
         assert any(text.get_text().startswith("Base: 160 respondents") for text in chart._ax.texts)
-    assert len({bar.get_facecolor() for bar in worths._ax.patches}) == 2  # one colour per attribute
+    assert len({bar.get_facecolor() for bar in worths._ax.patches}) == 2  # one color per attribute
     shares = result.output("c_sh")
     frame = result.output("sh", "table").to_frame()
     assert [bar.get_width() for bar in shares.plot().patches] == list(frame["share"])
@@ -523,10 +523,10 @@ def test_themes_are_drawn_and_a_missing_sentiment_is_explained_by_the_run(tmp_pa
         sources={"src": data}, cwd=tmp_path
     )
     assert [bar.get_width() for bar in shares.output("c").plot().patches] == [66.7, 33.3]
-    # Asked for sentiment without ticking it: the check says so.
+    # Asked for sentiment without checking it: the check says so.
     [issue] = check_flow(flow(with_sentiment, False, "sentiment"))
     assert issue.code == "RESULT_KIND" and issue.message.endswith("which draws 'shares'.")
-    # Ticked, but the codeframe has none — only the run can know, and says why.
+    # Checked, but the codeframe has none — only the run can know, and says why.
     failed = FlowRunner(flow(without, True, "sentiment")).run(
         sources={"src": data}, cwd=tmp_path, raise_on_error=False
     )

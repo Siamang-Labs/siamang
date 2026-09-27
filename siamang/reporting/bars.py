@@ -101,9 +101,9 @@ MAX_PANELS = 12
 #: a bar or a legend entry nobody reads (84 ages made a legend wider than the
 #: figure), and a histogram is what draws the distribution.
 MAX_VALUES = 30
-#: The colour of the answers combined as Other: none of the answers' own.
+#: The color of the answers combined as Other: none of the answers' own.
 OTHER_COLOUR = (0.72, 0.72, 0.72)
-#: The colour of error bars and of the letters over the bars.
+#: The color of error bars and of the letters over the bars.
 INK = "0.2"
 #: The text beside a donut — its base, the percentages of its thin slices —
 #: and the lines that join those percentages to their slices.
@@ -111,11 +111,11 @@ DONUT_INK = "0.15"
 LEADER = "0.55"
 
 
-# The colours above, or — while a chart of palette "theme" is drawn — the
-# report theme's (chart_theme): Other in its neutral grey, as the Likert
+# The colors above, or — while a chart of palette "theme" is drawn — the
+# report theme's (chart_theme): Other in its neutral gray, as the Likert
 # chart's neutral answer and the NPS's passives are; the whiskers, the letters
-# and the text beside a donut in its text colour; a leader line in its
-# secondary text colour.
+# and the text beside a donut in its text color; a leader line in its
+# secondary text color.
 def _other() -> Any:
     return chart_theme.neutral(OTHER_COLOUR)
 
@@ -142,8 +142,8 @@ class Bars:
     #: The series are the steps of a scale (ordinal and up), not categories.
     ordered: bool = False
     #: Each series' place in code order among all ``palette_size`` answers
-    #: drawn from (Top N's left out included): its colour follows the answer,
-    #: not the rank a sort or Top N gave it, so an answer has one colour in
+    #: drawn from (Top N's left out included): its color follows the answer,
+    #: not the rank a sort or Top N gave it, so an answer has one color in
     #: every chart of a report.
     colour_index: list[int] = field(default_factory=list)
     palette_size: int = 0
@@ -158,7 +158,7 @@ class Bars:
     #: The significance letters above each bar, ``marks[position][series]``.
     marks: list[list[str]] | None = None
     #: The bar (one series) or the series that combines the answers as Other,
-    #: drawn grey.
+    #: drawn gray.
     other_position: int | None = None
     other_series: int | None = None
 
@@ -361,8 +361,8 @@ def _few_values(chart: BarChart, frame: pd.DataFrame) -> None:
 
 def _palette_places(drawn: list[int], answers: int, ordered: bool) -> dict[str, Any]:
     """``colour_index`` and ``palette_size`` of answers ``drawn`` (their places
-    in code order among all ``answers`` given): an answer's colour is its place
-    among all of them, so that it keeps its colour whatever Top N or a donut's
+    in code order among all ``answers`` given): an answer's color is its place
+    among all of them, so that it keeps its color whatever Top N or a donut's
     Other leaves out. A number of more than :data:`MAX_VALUES` values, drawn
     with Top N, is the exception: its steps light to dark would be too close
     to tell apart (five ages among 74 read as one blue), so the answers drawn
@@ -395,7 +395,7 @@ def _label(data: SurveyData, name: str) -> str:
 
 
 def _answer_labels(data: SurveyData, name: str) -> dict[Any, str]:
-    """The codebook's labelled answers of ``name``, its missing codes left out."""
+    """The codebook's labeled answers of ``name``, its missing codes left out."""
 
     variable = _variable(data, name)
     if variable is None:
@@ -411,7 +411,7 @@ def _is_scale(data: SurveyData, name: str) -> bool:
 
 def _single_codes(data: SurveyData, name: str, answers: pd.Series) -> list[Any]:
     """The answers a bar is drawn for: those given, and on a scale (ordinal and
-    up) every labelled step too — an answer nobody gave is a finding there."""
+    up) every labeled step too — an answer nobody gave is a finding there."""
 
     codes: list[Any] = []
     labelled = list(_answer_labels(data, name)) if _is_scale(data, name) else []
@@ -422,7 +422,7 @@ def _single_codes(data: SurveyData, name: str, answers: pd.Series) -> list[Any]:
 
 
 def _multi_codes(data: SurveyData, name: str, series: pd.Series) -> list[Any]:
-    """A multiple-choice question's options: the labelled ones, as the
+    """A multiple-choice question's options: the labeled ones, as the
     Frequencies table lists them, else those named."""
 
     from siamang.data import multi
@@ -667,7 +667,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     groups_order = list(range(len(group_codes)))
     if ordered and chart.sort == "value":
         # The steps of a scale stay in their order — sorted by frequency, a
-        # stack's colour ramp and its top box scramble — and the groups go
+        # stack's color ramp and its top box scramble — and the groups go
         # largest first instead: by the top answer's share, or a stack's height.
         order = list(range(shown))
         key = values[:, shown - 1] if percent else counts.sum(axis=1)
@@ -967,7 +967,7 @@ def _tick_labels(labels: list[str], slot_pt: float) -> tuple[list[str], int, flo
     width = chars_in(room, upright)
     if width >= 5 and longest * upright * CHAR_WIDTH <= room:
         return [_group_label(text, width) for text in labels], 0, upright
-    # Turned 45°, two neighbouring labels are slot · sin 45° apart across
+    # Turned 45°, two neighboring labels are slot · sin 45° apart across
     # their lines: that many lines fit, each of at most TURNED_WIDTH characters.
     lines = int(slot_pt * 0.7071 / (size * 1.2))
     if lines < 1:
@@ -981,7 +981,7 @@ def _tick_labels(labels: list[str], slot_pt: float) -> tuple[list[str], int, flo
 
 
 def _crowded(labels: list[Any], renderer: Any, horizontal: bool, gap_pt: float = 0.0) -> bool:
-    """Whether two neighbouring tick labels overlap, or are closer than
+    """Whether two neighboring tick labels overlap, or are closer than
     ``gap_pt`` points (words of two labels side by side read as one)."""
 
     boxes = [label.get_window_extent(renderer) for label in labels if label.get_text()]
@@ -998,7 +998,7 @@ def _crowded(labels: list[Any], renderer: Any, horizontal: bool, gap_pt: float =
 
 
 #: The least room between two labels side by side under the bars, in ems of
-#: their size: closer, "metropolitan" and its neighbour's "(n = 4,249)" on one
+#: their size: closer, "metropolitan" and its neighbor's "(n = 4,249)" on one
 #: line read as one phrase.
 LABEL_GAP = 1.0
 
@@ -1082,8 +1082,8 @@ def _axis_titles(ax: Any, bars: Bars, horizontal: bool, title: str) -> None:
     x_text, y_text = (across, along) if horizontal else (along, across)
     ax.set_xlabel(wrap(x_text, chars_in(width, size)) if x_text else "")
     ax.set_ylabel(wrap(y_text, chars_in(height, size)) if y_text else "")
-    # Centred over the plot, the title may reach as far to either side of its
-    # centre as the figure goes on the nearer one.
+    # Centered over the plot, the title may reach as far to either side of its
+    # center as the figure goes on the nearer one.
     box = ax.get_position()
     centre = (box.x0 + box.x1) / 2.0
     room = 2.0 * min(centre, 1.0 - centre) * ax.figure.get_figwidth() * 72.0 - 8.0
@@ -1112,7 +1112,7 @@ def render(chart: BarChart, bars: Bars, *, across: bool = False) -> None:
 
     fig, ax = plt.subplots(figsize=chart.figsize)
     chart._fig, chart._ax = fig, ax
-    # Other is grey, and the answers' colours are the palette's without it.
+    # Other is gray, and the answers' colors are the palette's without it.
     plain = count - (bars.other_series is not None)
     palette = series_colours(chart.palette, max(plain, bars.palette_size), ordered=bars.ordered)
     colours = [palette[index] for index in (bars.colour_index or range(plain))]
@@ -1379,7 +1379,7 @@ def _write_values(
         if band_pt < size * 0.9:
             return None
     elif band_pt < widest + 2:
-        if band_pt < size * 1.15:  # turned values of neighbouring bars would touch
+        if band_pt < size * 1.15:  # turned values of neighboring bars would touch
             return None
         rotation = 90
     written: list[Any] = []
@@ -1816,11 +1816,11 @@ class Donut:
     legend_title: str
     ordered: bool
     #: Each slice's answer's place among the ``palette_size`` answers, as a
-    #: split of the same question colours it (Top N's and the small ones
+    #: split of the same question colors it (Top N's and the small ones
     #: combined as Other included).
     colour_index: list[int]
     palette_size: int
-    #: The slice that combines answers as Other, drawn grey.
+    #: The slice that combines answers as Other, drawn gray.
     other: int | None
     respondents: int
     weighted_base: float | None
@@ -2008,7 +2008,7 @@ def _place_donut(ax: Any) -> float:
     return scale
 
 
-#: How far the plot reaches from the centre, across and up, in radii: room
+#: How far the plot reaches from the center, across and up, in radii: room
 #: beside the ring for the percentages of thin slices.
 DONUT_REACH = (1.5, 1.25)
 
@@ -2086,7 +2086,7 @@ def _slice_labels(
             key=lambda label: -math.sin(label[0]),
         )
         ys = [min(top, elbow * math.sin(angle)) for angle, _ in labels]
-        for index in range(1, len(ys)):  # downwards, a line apart
+        for index in range(1, len(ys)):  # downward, a line apart
             ys[index] = min(ys[index], ys[index - 1] - step)
         if ys and ys[-1] < -top:  # past the bottom: the side up again
             ys[-1] = -top

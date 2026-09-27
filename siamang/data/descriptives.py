@@ -81,7 +81,7 @@ def describe(
 ) -> Descriptives:
     """N, missing, mean, SD, median, minimum and maximum of each of ``columns``.
 
-    ``by`` splits every variable by the groups of another (labelled from the
+    ``by`` splits every variable by the groups of another (labeled from the
     codebook, in its order; its own missing codes are no group). A
     multiple-choice ``by`` gives one group per option, of everyone who chose
     it: the groups overlap, and the stats say so. ``detail``
@@ -320,7 +320,7 @@ def _summary(
 
 
 def _display(value: Any) -> Any:
-    """An unlabelled group's code as it was entered: 3, not the 3.0 a column
+    """An unlabeled group's code as it was entered: 3, not the 3.0 a column
     with a blank in it turns every code into."""
 
     return int(value) if isinstance(value, float) and value.is_integer() else value

@@ -1868,7 +1868,7 @@ class BannerTable(SurveyTable):
 
 def banner_values(series: pd.Series, labels: dict[Any, Any]) -> list[Any]:
     """The values of a banner variable as its columns are ordered: the
-    codebook's labelled ones in its order, then the others by their text.
+    codebook's labeled ones in its order, then the others by their text.
 
     The Banner table's and the Tab book's order, which their letters follow
     (:func:`column_letter`); a Bar chart split by the variable names its groups

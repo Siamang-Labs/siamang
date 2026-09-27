@@ -1,6 +1,6 @@
 """Exploratory factor analysis: which items move together, and how strongly.
 
-Principal components (:func:`siamang.data.models.pca`) summarise all of the
+Principal components (:func:`siamang.data.models.pca`) summarize all of the
 items' variance. A factor analysis models only what the items *share*: each
 item is a weighted sum of a few common factors plus a part of its own, and the
 loadings say how much of each item each factor explains. It is what a scale is
@@ -10,7 +10,7 @@ checked with before its items are averaged into an index.
 and returns tables for a report and, when asked, the data with a score per
 factor; :func:`fit` is the same on a plain matrix.
 
-The items are standardised (the analysis is of their Pearson correlation
+The items are standardized (the analysis is of their Pearson correlation
 matrix). A respondent missing any item is left out (listwise), the codebook's
 missing codes counted as missing. The analysis is unweighted: on weighted data
 its statistics say so.
@@ -18,7 +18,7 @@ its statistics say so.
 Conventions — chosen to reproduce the ``factor_analyzer`` package and R's
 ``psych::fa`` (and ``factanal`` for maximum likelihood):
 
-- **Extraction.** ``minres`` minimises the sum of squared residual
+- **Extraction.** ``minres`` minimizes the sum of squared residual
   correlations over the uniquenesses (L-BFGS-B, bounds 0.005–1, started from
   1 − the squared multiple correlations), as ``factor_analyzer`` and
   ``psych::fa(fm="minres")``; here with the exact gradient, so it converges to
@@ -65,9 +65,9 @@ Conventions — chosen to reproduce the ``factor_analyzer`` package and R's
   ``−(n − 1 − (2p + 5)/6) ln |R|`` on ``p (p − 1)/2`` df — both exactly as
   ``factor_analyzer``. RMSR is the root mean square of the off-diagonal
   residual correlations.
-- **Scores.** The regression (Thurstone) method: the standardised items times
+- **Scores.** The regression (Thurstone) method: the standardized items times
   ``R⁻¹ S``, with ``S`` the structure matrix (the loadings, for an orthogonal
-  solution). The items are standardised with the sample SD (n − 1), as R's
+  solution). The items are standardized with the sample SD (n − 1), as R's
   ``scale()`` and ``psych::factor.scores``; ``factor_analyzer.transform`` uses
   the population SD, so its scores are √(n / (n − 1)) times these.
 
@@ -169,7 +169,7 @@ class FactorSolution:
 
     def scores(self, matrix: Any) -> np.ndarray:
         """Regression-method factor scores of the rows of ``matrix`` (the items
-        in the fitted order), standardised by the fitted means and SDs."""
+        in the fitted order), standardized by the fitted means and SDs."""
         z = (np.asarray(matrix, dtype=float) - self.means) / self.sds
         weights = np.linalg.solve(self.correlation, self.structure)
         return z @ weights
@@ -224,7 +224,7 @@ def analyze(
     ``read_later`` names the score variables a later step reads — a flow
     passes the ones the nodes downstream name. With the number of factors
     chosen by a rule, one of those the rule did not keep is added empty and
-    labelled why (``Factor 3 score (not made: the Kaiser criterion kept 2
+    labeled why (``Factor 3 score (not made: the Kaiser criterion kept 2
     factors)``), so the step finds a variable that says what happened rather
     than a KeyError; no other score is added.
     """
@@ -295,7 +295,7 @@ def analyze(
             # could make (one fewer than the items). One of those a later node
             # reads that the rule did not keep is made too, empty, and says why
             # — a node reading factor_2 after the rule kept one finds an empty
-            # variable labelled so, not a KeyError. Only those: every other
+            # variable labeled so, not a KeyError. Only those: every other
             # would be an empty column in the data, its exports and its tables.
             rule = "the Kaiser criterion" if solution.criterion == "kaiser" else "parallel analysis"
             kept = f"{rule} kept {m} {'factor' if m == 1 else 'factors'}"
@@ -820,7 +820,7 @@ def _varimax(
 def _promax(loadings: np.ndarray, power: int = PROMAX_POWER) -> tuple[np.ndarray, np.ndarray]:
     """Promax as factor_analyzer (and SPSS): Kaiser-normalized varimax, a target
     of the loadings raised to ``power`` keeping their sign, the least-squares
-    transformation towards it, de-normalized."""
+    transformation toward it, de-normalized."""
     scale = np.sqrt((loadings**2).sum(axis=1))
     scale[scale == 0] = 1.0
     normalized = loadings / scale[:, None]

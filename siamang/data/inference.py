@@ -83,7 +83,7 @@ def adjust_p(pvalues: Sequence[float] | np.ndarray, method: str = "holm") -> np.
     i-th smallest by m − i + 1 and keeps the order (step-down); ``fdr_bh``
     multiplies it by m / i and takes the running minimum from the largest
     (Benjamini-Hochberg). Adjusted values are capped at 1. A missing p (a pair
-    that could not be tested) stays missing and does not count towards m.
+    that could not be tested) stays missing and does not count toward m.
     """
 
     if method not in ADJUSTMENTS:

@@ -43,7 +43,7 @@ class Page:
     # Custom page kinds (None == ordinary question page).
     kind: str | None = None
     # HTML shown above the page's questions (on a content page it is the
-    # page; on a terminal page, the message). Author-trusted, not sanitised;
+    # page; on a terminal page, the message). Author-trusted, not sanitized;
     # {answer:x} / {label:x} are piped in, escaped.
     body: str | None = None
     redirect_url: str | None = None  # for redirect (or any terminal) pages

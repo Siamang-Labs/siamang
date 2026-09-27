@@ -298,7 +298,7 @@ class Report:
         name. :meth:`save` passes the file's stem, so two reports saved in one
         folder do not write each other's figures."""
         asset_dir = Path(asset_dir)
-        # The theme the charts of palette "theme" take their colours from: the
+        # The theme the charts of palette "theme" take their colors from: the
         # document's, or the one whatever runs this names — as the HTML's.
         look = self.theme or ReportTheme.from_env()
         lines: list[str] = []
@@ -352,10 +352,10 @@ class Report:
         # The figure is written at the theme's resolution when one is rendering
         # it; without a theme the chart's own `dpi` applies, as before.
         dpi = theme.figure_dpi if theme is not None else None
-        # A chart of palette "theme" is shown in the colours of the theme
+        # A chart of palette "theme" is shown in the colors of the theme
         # rendering it — drawn again from its parameters when it was drawn in
         # others at its node (chart_theme.in_report); any other chart as drawn.
-        # The figure (or a copy in the report's colours) is rendered once and
+        # The figure (or a copy in the report's colors) is rendered once and
         # let go: the next rendering of this report — the HTML after the
         # Markdown — writes the same bytes, and a report of many charts never
         # holds their figures all at once. One whose figure the caller asked

@@ -92,7 +92,7 @@ The dataset object and its derived tables. Documented in
 | `paired` | `from siamang.data import paired` | Wilcoxon signed-rank, McNemar, Friedman and Cochran's Q tests for answers from the same respondents. | [[Analysis]] |
 | `factor` | `from siamang.data import factor` | Exploratory factor analysis, with factor scores added to the data. | [[Analysis]] |
 | `descriptives` | `from siamang.data import descriptives` | N, missing, mean, SD, quartiles, skewness and kurtosis of numeric variables. | [[Analysis]] |
-| `bands` | `from siamang.data import bands` | A number cut into a labelled ordinal variable of bands. | [[Analysis]] |
+| `bands` | `from siamang.data import bands` | A number cut into a labeled ordinal variable of bands. | [[Analysis]] |
 | `drivers` | `from siamang.data import drivers` | Key drivers: each predictor's share of R² by Johnson's relative weights or the Shapley value. | [[Analysis]] |
 | `correspondence` | `from siamang.data import correspondence` | A perceptual map: correspondence analysis of a crosstab or a brand-image grid. | [[Analysis]] |
 | `pricing` | `from siamang.data import pricing` | Price sensitivity: Van Westendorp (with Newton-Miller-Smith) and Gabor-Granger. | [[Analysis]] |

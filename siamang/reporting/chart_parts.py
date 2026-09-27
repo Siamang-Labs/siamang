@@ -1,5 +1,5 @@
 """What the newer charts share: a footnote under the plot, text that wraps
-instead of running into its neighbours, and the colours of several series.
+instead of running into its neighbors, and the colors of several series.
 
 A survey chart is read away from the table it came from — pasted into a slide,
 mailed as a PNG — so what a table says under itself (the base, the weight, the
@@ -97,8 +97,8 @@ def axes_points(ax: Any) -> tuple[float, float]:
 
 
 def ink_on(colour: Any) -> str:
-    """Text colour that reads on a fill of ``colour``: white on dark, ink on light
-    (in a chart of the theme's colours, whichever of white and its text reads
+    """Text color that reads on a fill of ``colour``: white on dark, ink on light
+    (in a chart of the theme's colors, whichever of white and its text reads
     better — :meth:`~siamang.reporting.chart_theme.ChartColours.ink_on`)."""
 
     from matplotlib.colors import to_rgb
@@ -118,21 +118,21 @@ def ink_on(colour: Any) -> str:
 
 
 def series_colours(palette: str, count: int, *, ordered: bool = False) -> list[Any]:
-    """One colour per series from ``palette``, none of them repeated.
+    """One color per series from ``palette``, none of them repeated.
 
     The steps of an ordered scale (ordinal and up) are one hue, the palette's
-    first, light to dark: the order is in the colour, and neighbouring answers
-    look like neighbours. Categories that have no order take the palette's
-    colours in turn; a qualitative palette has eight or ten, and past them it
-    would start over. More categories than that take the palette's colours
-    again, lighter, then darker — each unlike its neighbours, as a hue wheel's
-    near neighbours (and its first and last colour) are not — and past three
+    first, light to dark: the order is in the color, and neighboring answers
+    look like neighbors. Categories that have no order take the palette's
+    colors in turn; a qualitative palette has eight or ten, and past them it
+    would start over. More categories than that take the palette's colors
+    again, lighter, then darker — each unlike its neighbors, as a hue wheel's
+    near neighbors (and its first and last color) are not — and past three
     times the palette, hues spaced over the wheel without closing it, their
     lightness alternating.
 
-    ``palette="theme"`` takes the report theme's colours
+    ``palette="theme"`` takes the report theme's colors
     (:meth:`~siamang.reporting.chart_theme.ChartColours.series`): its palette,
-    and for the steps of a scale its sequential colour.
+    and for the steps of a scale its sequential color.
     """
 
     import seaborn as sns
@@ -190,7 +190,7 @@ class Footnote:
     ``legend``, a figure legend placed between the plot and the notes when the
     figure is too narrow to hold it beside the plot — and may be called again
     after something was added. The notes are written at the bottom left, in a
-    small grey type.
+    small gray type.
 
     When what must be written around the plot leaves ``axes`` less than a
     readable height (long labels on a small figure), the figure grows taller
@@ -376,14 +376,14 @@ def thousands_axis(axis: Any) -> None:
 
 
 def fit_ticks(ax: Any, which: str = "x", gap: float = 0.5) -> None:
-    """Thin the ticks of ``ax``'s x (or y) axis until no two neighbouring
+    """Thin the ticks of ``ax``'s x (or y) axis until no two neighboring
     labels come closer than ``gap`` ems: the locator counts ticks, not the
     width of their labels, so on a narrow plot '0 50,000 100,000150,000'
     ran together. Ticks set one by one (a histogram's edges) keep every
     second, third … one; others are asked of matplotlib in fewer bins. The
     ticks found are then fixed: matplotlib would choose them again when the
     figure is saved, by the settings in force then — a chart in the theme's
-    colours is saved outside them, and took twice the ticks it was fitted
+    colors is saved outside them, and took twice the ticks it was fitted
     with. Axes that share the axis share the result."""
 
     from matplotlib.ticker import FixedLocator, MaxNLocator

@@ -237,9 +237,9 @@ def _wide_use(**kwargs) -> sg.MultiChoice:
 
 def test_a_wide_multichoice_offers_what_the_runtime_offers():
     """A wide MultiChoice's choice i is variable i. An option its condition
-    hides is never ticked and, never offered, is missing rather than 0 —
+    hides is never checked and, never offered, is missing rather than 0 —
     what the runtime stores — and an exclusive choice stands alone. The
-    watch used to be ticked by most non-owners, beside "None of these"."""
+    watch used to be checked by most non-owners, beside "None of these"."""
 
     from siamang.local_simulator import simulate_from_pages
 

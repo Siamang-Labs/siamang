@@ -1,7 +1,7 @@
 type: visualize.likert
 category: visualize
 title: Likert chart
-description: A battery of items on one ordered scale as diverging stacked bars centred on the neutral answer, with each item's top-2 and bottom-2 shares.
+description: A battery of items on one ordered scale as diverging stacked bars centered on the neutral answer, with each item's top-2 and bottom-2 shares.
 inputs:
   data: SurveyData
 outputs:
@@ -22,7 +22,7 @@ params:
     - side
     default: split
     label: Neutral answer
-    help: Split draws the middle answer of an odd scale half on either side of the centre; side draws it apart, in a panel at the right. An even scale has no neutral answer, and its centre falls between the two middle answers.
+    help: Split draws the middle answer of an odd scale half on either side of the center; side draws it apart, in a panel at the right. An even scale has no neutral answer, and its center falls between the two middle answers.
   sort:
     kind: enum
     values:
@@ -66,7 +66,7 @@ params:
     - theme
     default: RdBu
     label: Palette
-    help: A diverging palette, the low answers in its first colour; the neutral answer is grey. Theme takes the colours of the report the chart is saved in — the diverging pair of its Save report's Look (low end first), with its text colour, grid and font.
+    help: A diverging palette, the low answers in its first color; the neutral answer is gray. Theme takes the colors of the report the chart is saved in — the diverging pair of its Save report's Look (low end first), with its text color, grid and font.
 subtitle: '{items}'
 # Weighted when a weight is applied: the shares are sums of weights, n counts
 # respondents.

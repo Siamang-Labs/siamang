@@ -51,7 +51,7 @@ would buy at each of a set of prices — a variable per price. :func:`gabor_gran
 gives the demand at each price (the weighted share saying yes, by ``yes``
 codes: 1 for 0/1 variables, or a top-two box of a likelihood scale), the
 revenue per respondent (price × demand) with an index (the highest = 100), the
-arc elasticity between neighbouring prices, and the revenue-maximising price
+arc elasticity between neighboring prices, and the revenue-maximizing price
 among those asked. A respondent missing any price is left out (a sequential
 design that skips prices after a yes or a no should fill in the implied
 answers first); one who would buy at a higher price but not at a lower one is
@@ -107,14 +107,14 @@ CURVE_NAMES = {
     "too_expensive": "Too expensive",
 }
 
-#: The chart's colours: cheapness in blue, expensiveness in orange (a pair
-#: distinguishable with every common colour-vision deficiency); "too" solid,
+#: The chart's colors: cheapness in blue, expensiveness in orange (a pair
+#: distinguishable with every common color-vision deficiency); "too" solid,
 #: "not" dashed.
 CHEAP_COLOUR, EXPENSIVE_COLOUR = "#2a78d6", "#eb6834"
 _INK, _MUTED, _RULE, _BAND = "#333333", "#767676", "#bdbdbd", "#efefef"
 
 
-# These colours, or — in a Result chart of palette "theme" — the report
+# These colors, or — in a Result chart of palette "theme" — the report
 # theme's first two, its text, secondary text and grid.
 def _cheap() -> str:
     return chart_theme.series(CHEAP_COLOUR, 0)
@@ -548,7 +548,7 @@ def gabor_granger(
         "Counts as yes": _codes_text(data, questions, codes),
         "Prices": len(grid),
         "N": n,
-        "Revenue-maximising price": _number(grid[best]),
+        "Revenue-maximizing price": _number(grid[best]),
         "Would buy % at it": rounded(demand[best], 1),
         "Revenue per respondent at it": rounded(revenue[best], 2),
     }
@@ -908,7 +908,7 @@ def _stacked(
     step: float,
     marks: Sequence[tuple[float, float]] = (),
 ) -> None:
-    """Write each text centred at its price at height ``y``, one ``step`` lower
+    """Write each text centered at its price at height ``y``, one ``step`` lower
     for each text it would otherwise touch — or, on a panel too short for that,
     one text's height lower (with its white box), so that stacked names never
     run into each other, nor cover a point marked (``marks``, in data), nor

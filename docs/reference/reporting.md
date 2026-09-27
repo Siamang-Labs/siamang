@@ -191,10 +191,10 @@ can be set in the same type.
 | `figure_dpi` | 72–600 | what figures are written at (the pixels, not the size a figure is shown at) |
 | `caption_position` | `below` · `above` | |
 | `number_tables`, `number_figures`, `table_label`, `figure_label` | bool, str | `Table 1.` prefixes; off by default |
-| `chart_palette` | 2–12 hex colours | the series of a chart of `palette="theme"`, in order |
-| `chart_sequential` | a hex colour | magnitude (a heatmap of means) and the steps of an ordered scale |
-| `chart_diverging` | two hex colours | a scale's low end and high end (Likert, NPS, sentiment, correlations) |
-| `chart_text_color`, `chart_grid_color` | a hex colour | the charts' text (at least 4.5:1 on white) and grid lines |
+| `chart_palette` | 2–12 hex colors | the series of a chart of `palette="theme"`, in order |
+| `chart_sequential` | a hex color | magnitude (a heatmap of means) and the steps of an ordered scale |
+| `chart_diverging` | two hex colors | a scale's low end and high end (Likert, NPS, sentiment, correlations) |
+| `chart_text_color`, `chart_grid_color` | a hex color | the charts' text (at least 4.5:1 on white) and grid lines |
 | `chart_font` | a font stack | the charts' face: the first of the stack installed where they are drawn |
 | `custom_css` | CSS | appended last, so it wins — and checked by nothing |
 
@@ -205,47 +205,47 @@ notes read at about 9 px on screen and 6 pt on an A4 page. Its text reads at its
 own size when the chart is drawn at the measure's width — `figsize=(7.5, 4.5)`
 for 720 px — or the measure is widened to the chart's (`width="960px"`).
 
-**Chart colours.** The `chart_*` fields colour every chart whose palette is
+**Chart colors.** The `chart_*` fields color every chart whose palette is
 `"theme"` (a heatmap's `cmap="theme"`) — and no other, so a chart that names a
 palette of its own draws the picture it always drew. Their defaults
-(`siamang.reporting.chart_theme`) are chosen for readers with colour-vision
-deficiencies: eight colours, `#2a78d6 #eb6834 #335c00 #e08fff #29c2a3 #8f0a5c
+(`siamang.reporting.chart_theme`) are chosen for readers with color-vision
+deficiencies: eight colors, `#2a78d6 #eb6834 #335c00 #e08fff #29c2a3 #8f0a5c
 #cc4799 #5233a3`, any two of which are at least 9.5 apart in OKLab (×100) with
 protanopia and deuteranopia simulated (Machado, Oliveira & Fernandes 2009) and
-17 with full colour vision, each at least 2:1 on white — so a chart of up to
+17 with full color vision, each at least 2:1 on white — so a chart of up to
 eight series can put any two side by side — ordered so the first three are
 14.6 apart; a Trend of more than four lines gives each line's points a shape
 of its own too (and its legend entry);
 blue `#2a78d6` for magnitude; red `#e34948` to blue for a scale that diverges;
-text `#1a1a1a` and grid `#e0e0e0`. Colours are hex only (`#rgb` or `#rrggbb`):
+text `#1a1a1a` and grid `#e0e0e0`. Colors are hex only (`#rgb` or `#rrggbb`):
 they are drawn by matplotlib, not a browser. A list may be given as one string
-(`"#2a78d6, #eb6834"`); a palette or sequential colour under 1.3:1 on white
+(`"#2a78d6, #eb6834"`); a palette or sequential color under 1.3:1 on white
 (`#ffe8b2`) is refused, as a bar or a line in it all but disappears. Past the
-palette a chart takes its colours darker, then lighter as far as they keep 2:1
-on white (a colour already under that, a little darker instead), then hues
+palette a chart takes its colors darker, then lighter as far as they keep 2:1
+on white (a color already under that, a little darker instead), then hues
 spaced round the wheel, never one twice. An ordered scale's steps run from a
-tint of the sequential colour still 2:1 on white to the colour at half its
-lightness — from the colour darkened to 2:1 when it is lighter than that (a
+tint of the sequential color still 2:1 on white to the color at half its
+lightness — from the color darkened to 2:1 when it is lighter than that (a
 yellow, a light blue), and from its tint straight to its half when it is near
-black — each step its own colour; a diverging scale's arms from each end to a
-tint of it 45 % of the way to white, the neutral answer grey (`#bdbdbd`). A
-value written on a bar, a segment or a cell is white or the text colour,
+black — each step its own color; a diverging scale's arms from each end to a
+tint of it 45 % of the way to white, the neutral answer gray (`#bdbdbd`). A
+value written on a bar, a segment or a cell is white or the text color,
 whichever reads better — black where neither reaches 4.5:1, which one of white
 and black always does. Secondary text (the notes under a chart) is the text
-colour as light as still reads 4.5:1 on white. In the theme's colours a
+color as light as still reads 4.5:1 on white. In the theme's colors a
 `BoxPlot`'s boxes take the palette in the order they are drawn, undimmed, and a
 `ScatterPlot`'s groups in the codebook's order, its legend titled by the
 variable's label. A `BarChart`'s Other (`top`, a donut's small slices) is the
-neutral grey, none of the palette's; its error bars and significance letters,
-and a donut's base and the percentages beside its ring, are the text colour,
-the lines to those percentages the secondary text colour; a histogram's bars,
-in every panel, are the palette's first colour.
+neutral gray, none of the palette's; its error bars and significance letters,
+and a donut's base and the percentages beside its ring, are the text color,
+the lines to those percentages the secondary text color; a histogram's bars,
+in every panel, are the palette's first color.
 
 A chart is drawn when it is made (a flow draws it at its node, so what it
 cannot draw fails that node), and the report's theme is known only when the
 report is rendered. So a chart of palette `"theme"` is drawn at first in the
 theme `SIAMANG_REPORT_THEME` names, else the defaults; and `to_markdown`,
-`to_html` and `save` draw it again, from its parameters, in the chart colours of
+`to_html` and `save` draw it again, from its parameters, in the chart colors of
 the theme they render with whenever those differ
 (`siamang.reporting.chart_theme.in_report`) — a copy, kept for the next
 rendering; the chart itself keeps its picture. The Markdown's figures take the
@@ -313,13 +313,13 @@ Every chart component supports the following common interface:
 | :--- | :--- | :--- | :--- |
 | `data` | `SurveyData` | *Required* | The `SurveyData` container. |
 | `figsize` | `tuple[float, float]` | `(10, 6)` | Figure dimensions in inches `(width, height)`. |
-| `palette` | `str` | `"muted"` | Seaborn color palette name (e.g., `"muted"`, `"deep"`, `"pastel"`, `"colorblind"`), or `"theme"`: the chart colours, text colour, grid and face of the report theme (§1b, *Chart colours*). |
+| `palette` | `str` | `"muted"` | Seaborn color palette name (e.g., `"muted"`, `"deep"`, `"pastel"`, `"colorblind"`), or `"theme"`: the chart colors, text color, grid and face of the report theme (§1b, *Chart colors*). |
 | `title` | `str \| None` | `None` | Optional chart title. If `None`, automatically generated from variable labels. |
 | `weight_note` | `str \| None` | — | Read-only. `None` on unweighted data; otherwise `"weighted by '<column>'"` for a chart that draws weighted numbers, or `"unweighted (the weight '<column>' is not applied)"` for one that cannot. |
 
 #### Weighted data
 
-A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence with the weighted tables beside it. `BarChart` draws sums of weights (axis "Weighted count") or weighted means (axis "Weighted mean …"), and `HeatMap` with `by` draws weighted means (colour bar "Weighted mean"). `BoxPlot`, `ScatterPlot` and the correlation `HeatMap` have no standard weighted form: they draw the respondents as they are, and the title gets a second line, `unweighted (the weight '<column>' is not applied)` — kept under a title you set yourself too.
+A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence with the weighted tables beside it. `BarChart` draws sums of weights (axis "Weighted count") or weighted means (axis "Weighted mean …"), and `HeatMap` with `by` draws weighted means (color bar "Weighted mean"). `BoxPlot`, `ScatterPlot` and the correlation `HeatMap` have no standard weighted form: they draw the respondents as they are, and the title gets a second line, `unweighted (the weight '<column>' is not applied)` — kept under a title you set yourself too.
 
 #### Methods
 
@@ -340,7 +340,7 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
 
 Plots the counts or percentages of a categorical variable, its answers within each group of a second variable (`split`: the chart of a crosstab), or mean values of a continuous variable across groups (`by`) — or, as `layout="histogram"`, the distribution of a number, and as `layout="donut"`, one variable's answers as the parts of a whole. On weighted data the counts are sums of weights, the percentages weighted and the means weighted means.
 
-While `show`, `split` and `sort` keep their defaults, and none of `top`, `other`, `intervals`, `letters` or a histogram or donut layout is asked for, the chart is the one `BarChart` has always drawn. The other forms (`siamang.reporting.bars`) leave the codebook's missing codes out of the bars and say how many, and write under the plot the base (respondents who answered, and the weighted base), the weight, and for a multiple-choice question that its percentages are of respondents and add up to more than 100 %. They also draw a multiple-choice question, which the older chart could not (it raised `unhashable type: 'list'`); a multiple-choice question is drawn by them whatever the parameters. One series has one colour; the steps of an ordered scale (ordinal and up) are one hue light to dark; a colour belongs to its answer — its place among all the answers given — whatever `sort` does to the order and whatever Top N or a donut's Other leaves out, so one answer has one colour in every chart of a report. A number (interval or ratio, without value labels) with more than `MAX_VALUES` (30) values given is not drawn a bar, a slice, a series or a group each: `Age is a number with 84 different values given, and this chart draws a bar for each: layout='histogram' draws its distribution (or band it first with Bands).` (`… a slice for each …` for a donut; `Split by Age is a number with 84 different values given, a group for each: band it first (Bands) to compare its ranges.`); `by` draws its mean per group as before. With `top` only the N values given most are drawn, so N is what counts: `top=5` draws five ages of the 84 and Other, and `top=31` says `Age is a number with 84 different values given, and top=31 draws a bar for each of the 31 given most: give top=30 or fewer, or layout='histogram' draws its distribution (or band it first with Bands).` The steps of such a number's scale are then the drawn values' among themselves, light to dark in code order — among all 84 they would be too close to tell apart. A chart of a variable nobody answered says `No respondent answered X.` Long labels wrap, a word is never broken — one longer than its bar's room makes the labels smaller (to 8 pt) or, below that, turns them 45° in as many lines as two turned neighbours leave room for (at most 40 characters a line); vertical bars whose labels cannot be placed even so are drawn horizontally. Labels under vertical bars are fitted again to the plot as it is laid out (the value axis's title and ticks take their room from the figure's width): level ones keep an em apart and are made smaller or turned when they come closer, turned ones take as many lines as their measured spacing holds, and when neither can be read the bars are drawn across. A group's `(n = 1,613)` is never broken over two lines. A count axis (and a mean's of thousands, whose values read `41,646.65`) is thinned until its labels keep half an em apart, and the ticks found are kept for the save. Beside horizontal bars each label gets a row: the labels are tried at 11 pt in 28 % of the width, then smaller (to 8 pt) and wider (to 45 %), and when they still overlap the figure grows to a row per label's height. The axis titles wrap to the plot's length, and a split's value axis reads `% within each group` when `% within <Split by label>` would not fit on one line. The legend goes under the plot when the figure is narrower than 7.5 in or the legend is taller than the plot; and a figure grows taller when its labels, legend and notes would leave the plot less than 110 pt (or 40 % of the height asked) — it keeps its width.
+While `show`, `split` and `sort` keep their defaults, and none of `top`, `other`, `intervals`, `letters` or a histogram or donut layout is asked for, the chart is the one `BarChart` has always drawn. The other forms (`siamang.reporting.bars`) leave the codebook's missing codes out of the bars and say how many, and write under the plot the base (respondents who answered, and the weighted base), the weight, and for a multiple-choice question that its percentages are of respondents and add up to more than 100 %. They also draw a multiple-choice question, which the older chart could not (it raised `unhashable type: 'list'`); a multiple-choice question is drawn by them whatever the parameters. One series has one color; the steps of an ordered scale (ordinal and up) are one hue light to dark; a color belongs to its answer — its place among all the answers given — whatever `sort` does to the order and whatever Top N or a donut's Other leaves out, so one answer has one color in every chart of a report. A number (interval or ratio, without value labels) with more than `MAX_VALUES` (30) values given is not drawn a bar, a slice, a series or a group each: `Age is a number with 84 different values given, and this chart draws a bar for each: layout='histogram' draws its distribution (or band it first with Bands).` (`… a slice for each …` for a donut; `Split by Age is a number with 84 different values given, a group for each: band it first (Bands) to compare its ranges.`); `by` draws its mean per group as before. With `top` only the N values given most are drawn, so N is what counts: `top=5` draws five ages of the 84 and Other, and `top=31` says `Age is a number with 84 different values given, and top=31 draws a bar for each of the 31 given most: give top=30 or fewer, or layout='histogram' draws its distribution (or band it first with Bands).` The steps of such a number's scale are then the drawn values' among themselves, light to dark in code order — among all 84 they would be too close to tell apart. A chart of a variable nobody answered says `No respondent answered X.` Long labels wrap, a word is never broken — one longer than its bar's room makes the labels smaller (to 8 pt) or, below that, turns them 45° in as many lines as two turned neighbors leave room for (at most 40 characters a line); vertical bars whose labels cannot be placed even so are drawn horizontally. Labels under vertical bars are fitted again to the plot as it is laid out (the value axis's title and ticks take their room from the figure's width): level ones keep an em apart and are made smaller or turned when they come closer, turned ones take as many lines as their measured spacing holds, and when neither can be read the bars are drawn across. A group's `(n = 1,613)` is never broken over two lines. A count axis (and a mean's of thousands, whose values read `41,646.65`) is thinned until its labels keep half an em apart, and the ticks found are kept for the save. Beside horizontal bars each label gets a row: the labels are tried at 11 pt in 28 % of the width, then smaller (to 8 pt) and wider (to 45 %), and when they still overlap the figure grows to a row per label's height. The axis titles wrap to the plot's length, and a split's value axis reads `% within each group` when `% within <Split by label>` would not fit on one line. The legend goes under the plot when the figure is narrower than 7.5 in or the legend is taller than the plot; and a figure grows taller when its labels, legend and notes would leave the plot less than 110 pt (or 40 % of the height asked) — it keeps its width.
 
 #### Properties
 
@@ -357,10 +357,10 @@ In addition to base properties:
 | `layout` | `str` | `"grouped"` | With `split`: `"grouped"`, `"stacked"` (each group's total above its bar) or `"stacked_100"` (percentages, each group at 100 %). A multiple-choice `column` is drawn `"grouped"` only. `"histogram"` and `"donut"` are forms of their own (below). |
 | `sort` | `str` | `"code"` | `"code"` (codebook order) or `"value"` (largest first: the answer given most overall with `split`, the highest mean with `by`). |
 | `top` | `int \| None` | `None` | Only the `top` answers given most (with `split`, overall; the options named most for a multiple-choice question); of two given as often the first in code order. The note: `The 5 answers given most of 24 are drawn; the other 19 are left out.` (`… Other combines the other 19.`). Not with `by`, nor a histogram; a `ValueError` below 1. |
-| `other` | `bool` | `False` | With `top`: the rest as one grey bar (series), last — `Other`, or `Other (combined)` when an answer drawn is called Other; for a multiple-choice question the respondents who named any of the rest (`… Other is the respondents who named any of the other 3.`). A `ValueError` without `top`. |
-| `intervals` | `bool` | `False` | Error bars (whiskers with caps, dark grey) on bars side by side: a percentage's Wilson interval (`siamang.data.intervals.share_interval`: on Kish's effective base when weighted; each group's own base with `split`), a mean's `mean_interval` (Student's t; weighted, the linearization interval — Group means' when it leaves the missing codes out; its `auto` test counts them as answers). The value is written past the whisker. Note: `Error bars: 95 % confidence intervals (Wilson score[, on Kish's effective base]).` / `… of the mean (Student's t).` / `(weighted: the linearization interval).`, and `No interval for a group of one answer: …`. On counts: `Confidence intervals are drawn for percentages and for means by group; counts have none.` A stacked layout, a histogram or a donut is a `ValueError`. |
+| `other` | `bool` | `False` | With `top`: the rest as one gray bar (series), last — `Other`, or `Other (combined)` when an answer drawn is called Other; for a multiple-choice question the respondents who named any of the rest (`… Other is the respondents who named any of the other 3.`). A `ValueError` without `top`. |
+| `intervals` | `bool` | `False` | Error bars (whiskers with caps, dark gray) on bars side by side: a percentage's Wilson interval (`siamang.data.intervals.share_interval`: on Kish's effective base when weighted; each group's own base with `split`), a mean's `mean_interval` (Student's t; weighted, the linearization interval — Group means' when it leaves the missing codes out; its `auto` test counts them as answers). The value is written past the whisker. Note: `Error bars: 95 % confidence intervals (Wilson score[, on Kish's effective base]).` / `… of the mean (Student's t).` / `(weighted: the linearization interval).`, and `No interval for a group of one answer: …`. On counts: `Confidence intervals are drawn for percentages and for means by group; counts have none.` A stacked layout, a histogram or a donut is a `ValueError`. |
 | `confidence` | `float` | `0.95` | The intervals' level, between 0 and 1. |
-| `letters` | `bool` | `False` | With `split`, `show="percent"` and `layout="grouped"` (else a `ValueError`): each group labelled A, B, … in the Banner table's order over the split variable's groups alone (`North (A)`: `tables.banner_values` order — the codebook's — over its values in the data, `tables.column_letter`; the Tab book and the Banner table letter across the whole banner, so their letters for these columns are these only when the split variable is the banner's first), and in bold after each bar's value the letters of the groups whose share of that answer is significantly lower: `tables.proportion_letters`, the Banner table's two-sided z-test of column proportions with the pooled variance, on each group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The Tab book's letters for the same question and banner. Notes: `A letter over a bar names a group (its letter is under its name) whose share of that answer is significantly lower (two-sided z-test of column proportions, p < 0.05[, Bonferroni-corrected][, on Kish's effective base]) — the Banner table's and the Tab book's letters.`, `Not tested, fewer than 30 respondents who answered: West (D).`, `No letters: fewer than two groups have 30 respondents who answered, the least a group is tested on.`, `No group's share of any answer is significantly higher than another's.`, and when the bars are too narrow for their letters `The bars are too narrow to carry their significance letters: the Banner table and the Tab book show them.` |
+| `letters` | `bool` | `False` | With `split`, `show="percent"` and `layout="grouped"` (else a `ValueError`): each group labeled A, B, … in the Banner table's order over the split variable's groups alone (`North (A)`: `tables.banner_values` order — the codebook's — over its values in the data, `tables.column_letter`; the Tab book and the Banner table letter across the whole banner, so their letters for these columns are these only when the split variable is the banner's first), and in bold after each bar's value the letters of the groups whose share of that answer is significantly lower: `tables.proportion_letters`, the Banner table's two-sided z-test of column proportions with the pooled variance, on each group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The Tab book's letters for the same question and banner. Notes: `A letter over a bar names a group (its letter is under its name) whose share of that answer is significantly lower (two-sided z-test of column proportions, p < 0.05[, Bonferroni-corrected][, on Kish's effective base]) — the Banner table's and the Tab book's letters.`, `Not tested, fewer than 30 respondents who answered: West (D).`, `No letters: fewer than two groups have 30 respondents who answered, the least a group is tested on.`, `No group's share of any answer is significantly higher than another's.`, and when the bars are too narrow for their letters `The bars are too narrow to carry their significance letters: the Banner table and the Tab book show them.` |
 | `level` | `float` | `0.05` | The letters' significance level, between 0 and 1. |
 | `correction` | `str` | `"none"` | `"none"` or `"bonferroni"` (the level divided by the number of pairs of tested groups). |
 | `bins` | `str \| int \| list` | `"auto"` | `layout="histogram"`: `"auto"`/`None`/`""` — Freedman–Diaconis (`numpy.histogram_bin_edges(x, "fd")`; Sturges' when the IQR is 0; whole-number answers a whole width, at least 1, edges at half-numbers from the lowest); a whole number 1–100 (text or int) — equal bins over the range; two numbers or more (list, or text separated by commas, semicolons or spaces) — increasing edges, the last bin closed. Else a `ValueError` naming what Bins takes (`siamang.reporting.bars.parse_bins`). At most 100 bins (an automatic width that gives more is widened). |
@@ -368,7 +368,7 @@ In addition to base properties:
 
 **Histogram** (`layout="histogram"`, `siamang.reporting.bars.render_histogram`): the bars span their bins (white edges), counts (`Count` / `Weighted count`) or with `show="percent"` percent of the respondents who answered (`% of respondents[ (weighted)]`), the x axis thousands-separated and, for edges given, ticked at them (up to 25). With `split` (at most `MAX_PANELS` = 12 groups): one panel per group, sharing the bins (x) and the scale (y), in one column up to four groups and two past, each titled `North (n = 97)` at its left, the value axis `Count` / `Weighted count` / `% of the group` on the first column, the title over them all; the figure grows until every panel, as laid out under its wrapped title, is at least 72 pt tall; the shared x axis is thinned until its labels keep half an em apart (a histogram's edges keep every second, third … one). Notes: `Bins: 18 of width 4 (Freedman–Diaconis), each holding 4 whole numbers.` (`… 33 of width 7,090 (Freedman–Diaconis)`, `… 12 of equal width`, `… the edges given; each bin holds its left edge, the last its right edge too`, `; the width is of the answers as they are, the heights weighted`), `The bins differ in width: a bar's height is its count, not its density.`, `12 answers outside the bins (below 18 or above 65) not drawn[, but in the base].` Refused: a nominal or ordinal variable (`A histogram draws the distribution of a number, and Region is nominal: draw its answers as bars (layout='grouped').`), a multiple-choice one, an answer that is not a number, `by`, `top`, intervals or letters, more than 12 groups.
 
-**Donut** (`layout="donut"`, `render_donut`): a ring 0.38 of the radius wide, slices clockwise from 12 o'clock in `sort` order with Other (grey) last, white edges; each percentage (9 pt, `45.2%`) on its slice when its box fits inside the slice's ring both ways, else in a column beside the ring on the slice's side, joined to it by a line that leaves the ring outwards first, the labels of a side a line apart (`show_values=False`: none). In the hole: the respondents who answered (bold, sized to the hole), `respondents`, and on weighted data `weighted 1,498`. The legend names the slices beside the donut (a figure at least 7.5 in wide whose legend is no taller than the plot can be) or under it. A donut's plot is at least 55 % of the height asked. Notes: `The 6 answers given most of 24 have slices of their own; Other combines the other 18 — a donut's slices make a whole.`, `Other [also ]combines 4 answers under 3 % each: A, B, C and D.`, `Nobody answered Poor.` Refused: `split` (`… layout='stacked_100' shows the answers within each group.`), `by`, a multiple-choice question (`… its shares add up to more than 100 % and are not the parts of a whole: draw them as bars (layout='grouped').`), intervals or letters, and a donut every answer of which is under `min_slice` (`Each of the 40 answers to Forty drawn is under 3 % of the respondents who answered, so Other would fill the whole ring: draw them as bars (layout='grouped'), or lower min_slice.`).
+**Donut** (`layout="donut"`, `render_donut`): a ring 0.38 of the radius wide, slices clockwise from 12 o'clock in `sort` order with Other (gray) last, white edges; each percentage (9 pt, `45.2%`) on its slice when its box fits inside the slice's ring both ways, else in a column beside the ring on the slice's side, joined to it by a line that leaves the ring outwards first, the labels of a side a line apart (`show_values=False`: none). In the hole: the respondents who answered (bold, sized to the hole), `respondents`, and on weighted data `weighted 1,498`. The legend names the slices beside the donut (a figure at least 7.5 in wide whose legend is no taller than the plot can be) or under it. A donut's plot is at least 55 % of the height asked. Notes: `The 6 answers given most of 24 have slices of their own; Other combines the other 18 — a donut's slices make a whole.`, `Other [also ]combines 4 answers under 3 % each: A, B, C and D.`, `Nobody answered Poor.` Refused: `split` (`… layout='stacked_100' shows the answers within each group.`), `by`, a multiple-choice question (`… its shares add up to more than 100 % and are not the parts of a whole: draw them as bars (layout='grouped').`), intervals or letters, and a donut every answer of which is under `min_slice` (`Each of the 40 answers to Forty drawn is under 3 % of the respondents who answered, so Other would fill the whole ring: draw them as bars (layout='grouped'), or lower min_slice.`).
 
 #### Example
 
@@ -440,10 +440,10 @@ In addition to base properties:
 | `columns` | `list[str]` | `[]` | List of variables to include in the matrix. |
 | `by` | `str \| None` | `None` | If specified, plots grouped means of `columns` across categories of `by`. If `None`, plots a correlation matrix of `columns` by `method`, over the respondents who answered every one of them. |
 | `annot` | `bool` | `True` | If `True`, writes the data value in each cell. |
-| `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name (grouped-means mode only), or `"theme"`: the report theme's sequential colour for means and its diverging pair for a correlation matrix, with its text colour, grid and face (§1b). |
+| `cmap` | `str` | `"YlOrRd"` | Matplotlib colormap name (grouped-means mode only), or `"theme"`: the report theme's sequential color for means and its diverging pair for a correlation matrix, with its text color, grid and face (§1b). |
 | `vmin` | `float \| None` | `None` | Minimum value anchor for the colormap (grouped-means mode only). |
 | `vmax` | `float \| None` | `None` | Maximum value anchor for the colormap (grouped-means mode only). |
-| `method` | `str` | `"spearman"` | The correlation without `by`. `"spearman"` is drawn as it always was: unweighted, the answers read as they are (a missing code counts as an answer). `"pearson"` and `"kendall"` (tau-b) are drawn by `siamang.reporting.correlation_chart` from `inference.correlation_matrix(..., missing="listwise")` — the Correlation matrix table's numbers: the codebook's missing codes are left out, and the note under the plot gives N, the weight and the missing codes left out. Pearson is weighted on weighted data (colour bar `Weighted Pearson r`, `weight_note` `"weighted by 'w'"`); Kendall adds the unweighted line to its title. A pair that cannot be computed is a blank cell, named under the plot as the chart names its items (`Not computed (a blank cell): Trust × Constant: …`, or `1 × 3` when numbered); an item with the same answer from everyone has a blank diagonal too. Labels longer than 14 characters are numbered: rows `1. label`, columns `1`, `2`, …; the rows' labels are tried at 10 pt in a third of the width down to 8 pt in a half, the first whose rows fit the height grown by at most 60 %, and the plot is made tall enough for every row's wrapped label. The coefficients are written at the size their cells hold (at most 10 pt, "-0.03" in a cell); below 6 pt they are left out and the note says `The cells are too small to hold their coefficients: see the table.`; no gridlines cross the cells. Any other value is a `ValueError`. |
+| `method` | `str` | `"spearman"` | The correlation without `by`. `"spearman"` is drawn as it always was: unweighted, the answers read as they are (a missing code counts as an answer). `"pearson"` and `"kendall"` (tau-b) are drawn by `siamang.reporting.correlation_chart` from `inference.correlation_matrix(..., missing="listwise")` — the Correlation matrix table's numbers: the codebook's missing codes are left out, and the note under the plot gives N, the weight and the missing codes left out. Pearson is weighted on weighted data (color bar `Weighted Pearson r`, `weight_note` `"weighted by 'w'"`); Kendall adds the unweighted line to its title. A pair that cannot be computed is a blank cell, named under the plot as the chart names its items (`Not computed (a blank cell): Trust × Constant: …`, or `1 × 3` when numbered); an item with the same answer from everyone has a blank diagonal too. Labels longer than 14 characters are numbered: rows `1. label`, columns `1`, `2`, …; the rows' labels are tried at 10 pt in a third of the width down to 8 pt in a half, the first whose rows fit the height grown by at most 60 %, and the plot is made tall enough for every row's wrapped label. The coefficients are written at the size their cells hold (at most 10 pt, "-0.03" in a cell); below 6 pt they are left out and the note says `The cells are too small to hold their coefficients: see the table.`; no gridlines cross the cells. Any other value is a `ValueError`. |
 
 > **Note:** In correlation mode (`by=None`) the matrix is always drawn on a diverging `RdBu_r` scale centered at 0 over the range `[-1, 1]` (the theme's diverging pair with `cmap="theme"`); otherwise the `cmap`, `vmin`, and `vmax` properties are ignored. To restyle a correlation heatmap, work with the `matplotlib` Axes returned by `plot()`.
 
@@ -475,7 +475,7 @@ corr_chart.show()
 
 ### Battery of Items: `LikertChart`
 
-Diverging stacked bars of items that share one ordered scale (`siamang.reporting.likert`): each item's answers below the middle of the scale stack left of a centre line, those above it right; the top-2 and bottom-2 shares (one answer each on a scale of two or three: "Top box") are written at the ends of every bar, under the headers `Bottom-2` and `Top-2`. On weighted data the shares are sums of weights (`weight_note` `"weighted by 'w'"`), `n` counts respondents.
+Diverging stacked bars of items that share one ordered scale (`siamang.reporting.likert`): each item's answers below the middle of the scale stack left of a center line, those above it right; the top-2 and bottom-2 shares (one answer each on a scale of two or three: "Top box") are written at the ends of every bar, under the headers `Bottom-2` and `Top-2`. On weighted data the shares are sums of weights (`weight_note` `"weighted by 'w'"`), `n` counts respondents.
 
 #### Properties
 
@@ -484,13 +484,13 @@ In addition to base properties:
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `columns` | `list[str]` | `[]` | The items. Their scale is the codebook's: the value labels without the missing codes, the same for every item (compared by code and by label, case and spaces aside), else a `ValueError` naming two of them and their scales. An item without labels may give a `valid_range` of 2–11 whole numbers, or be asked by a `LikertScale` question of the data's questionnaire (its points, the ends named by its left and right labels). A multiple-choice item is refused. |
-| `neutral` | `str` | `"split"` | `"split"`: an odd scale's middle answer half on either side of the centre. `"side"`: drawn apart, in a panel at the right titled by its label. An even scale has none; its centre falls between the middle two answers. |
+| `neutral` | `str` | `"split"` | `"split"`: an odd scale's middle answer half on either side of the center. `"side"`: drawn apart, in a panel at the right titled by its label. An even scale has none; its center falls between the middle two answers. |
 | `sort` | `str` | `"top2"` | `"top2"`: the largest top-2 share first (ties: the smaller bottom-2, then the order given). `"listed"`: the order of `columns`. |
 | `show_values` | `bool` | `True` | Each answer's share (`23%`) inside its segment where it fits. |
-| `palette` | `str` | `"RdBu"` | A diverging palette; the neutral answer is grey (`#bdbdbd`). An even scale of four or more answers samples it two wider and drops the two middle (palest) colours. `"theme"`: the report theme's diverging pair, the low answers in its first colour. |
+| `palette` | `str` | `"RdBu"` | A diverging palette; the neutral answer is gray (`#bdbdbd`). An even scale of four or more answers samples it two wider and drops the two middle (palest) colors. `"theme"`: the report theme's diverging pair, the low answers in its first color. |
 | `table` | `pd.DataFrame` | — | Read-only: the numbers drawn, in chart order — `Item`, one column per answer (%), `Top-2`, `Bottom-2` (or `Top box`, `Bottom box`), `N`, and `Weighted N` on weighted data. |
 
-The title, when not given, is the words every item label starts with up to a separator (`: `, ` - `, ` – `, ` — `, `? `), and the rest of each label names its bar; without such a stem it is `"<n> items from <lowest label> to <highest label>"`, and one item's title is its label (its bar's row then reads `(n = …)`). The items' labels are tried at 11 pt in 0.3 of the width down to 8 pt in 0.45, the first whose rows fit the height grown by at most 60 %; a row is at most 60 pt tall, so few items make a shorter figure. The centre line runs behind the values, and the neutral answer's value has a grey box it hides behind. The note under the chart gives the base, the answers in the top-2 and bottom-2, the neutral answer's handling (`The neutral answer (3 = Neither) is split around the centre.` / `… is drawn apart, at the right.` / `No neutral answer: the centre falls between 2 = Fair and 3 = Good.`), the weight, `Left out as missing: …` for the codebook's missing codes, `Not on the scale, left out: …` for other values, and `No answer on the scale, not drawn: …` for an item nobody answered.
+The title, when not given, is the words every item label starts with up to a separator (`: `, ` - `, ` – `, ` — `, `? `), and the rest of each label names its bar; without such a stem it is `"<n> items from <lowest label> to <highest label>"`, and one item's title is its label (its bar's row then reads `(n = …)`). The items' labels are tried at 11 pt in 0.3 of the width down to 8 pt in 0.45, the first whose rows fit the height grown by at most 60 %; a row is at most 60 pt tall, so few items make a shorter figure. The center line runs behind the values, and the neutral answer's value has a gray box it hides behind. The note under the chart gives the base, the answers in the top-2 and bottom-2, the neutral answer's handling (`The neutral answer (3 = Neither) is split around the center.` / `… is drawn apart, at the right.` / `No neutral answer: the center falls between 2 = Fair and 3 = Good.`), the weight, `Left out as missing: …` for the codebook's missing codes, `Not on the scale, left out: …` for other values, and `No answer on the scale, not drawn: …` for an item nobody answered.
 
 #### Example
 
@@ -582,7 +582,7 @@ To make this reporting API extremely convenient, two accessors are attached dire
   letters, *, level=0.05, correction="none", min_base=30)` — each column's
   share (0–1) and the base the test uses, keyed alike, and each column's letter;
   it returns the letters each column beats — with the columns' order
-  `banner_values(series, labels)` (the codebook's labelled values present, then
+  `banner_values(series, labels)` (the codebook's labeled values present, then
   the others by their text) and `column_letter(index)` (A–Z, then `#27` …). The
   Tab book and the Bar chart's significance letters (`letters=True`) call the
   same functions.
@@ -646,17 +646,17 @@ takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 
 | Result | Kinds (the first is `auto`) | What is drawn |
 | :--- | :--- | :--- |
-| `GroupMeanTable` (Group means) | `means`, `means_sd` | each group's mean with its 95 % confidence interval (or ± 1 SD), each row labelled with its base (`North (n = 97)`); with a post-hoc test, the compact letter display — means sharing a letter do not differ at p < .05 (Piepho's insert-and-absorb, as R's `multcompView`; `letters(groups, different)`) |
-| `DescriptivesTable` | `means`, `means_sd` | each variable's mean with its base (`(n = …)`), one coloured series per group with `by`, the legend giving each group's base (`n = 90–97` when the variables' differ); variables whose means reach more than `SCALE_RATIO` (5) times one another's (an income and an age) take a panel each, on a scale of their own, a row per group named with its base, titled `Means by Region, each variable on its own scale` |
-| `TTestTable` (t-test) | `means`, `means_sd` | each group's or measurement's mean with its interval at the test's confidence, its row labelled with its base; a one-sample test draws its test value as a line; the test's difference and CI in a note |
+| `GroupMeanTable` (Group means) | `means`, `means_sd` | each group's mean with its 95 % confidence interval (or ± 1 SD), each row labeled with its base (`North (n = 97)`); with a post-hoc test, the compact letter display — means sharing a letter do not differ at p < .05 (Piepho's insert-and-absorb, as R's `multcompView`; `letters(groups, different)`) |
+| `DescriptivesTable` | `means`, `means_sd` | each variable's mean with its base (`(n = …)`), one colored series per group with `by`, the legend giving each group's base (`n = 90–97` when the variables' differ); variables whose means reach more than `SCALE_RATIO` (5) times one another's (an income and an age) take a panel each, on a scale of their own, a row per group named with its base, titled `Means by Region, each variable on its own scale` |
+| `TTestTable` (t-test) | `means`, `means_sd` | each group's or measurement's mean with its interval at the test's confidence, its row labeled with its base; a one-sample test draws its test value as a line; the test's difference and CI in a note |
 | Paired tests' `table` (Wilcoxon, Friedman) | `means`, `means_sd` | each measurement's mean (the row of differences is the test's) |
 | McNemar's and Cochran's Q's `table` | `shares` | the share saying yes to each, with Wilson's interval; the test's p in a note |
 | Proportion CI's stat | `interval` | the share as a number over its interval on a 0–100 % track, with the base (the effective base when weighted) |
 | `NpsTable` | `stacked` | detractors, passives and promoters in one 100 % bar, the score and its 95 % CI above it |
-| `TurfTable` of a search | `reach` | reach by portfolio size, each point labelled with its gain, and under it the option that size adds (`+ label`, by the table's `labels`); a best portfolio that is not the one before plus an option reads `a new set` and is listed in full in a note |
+| `TurfTable` of a search | `reach` | reach by portfolio size, each point labeled with its gain, and under it the option that size adds (`+ label`, by the table's `labels`); a best portfolio that is not the one before plus an option reads `a new set` and is listed in full in a note |
 | `TurfTable` of a fixed portfolio | `items` | each option's reach and what it reaches alone, the portfolio's reach as a line |
 | `MaxDiffTable` | `utilities`, `scores`, `shares` (a counting table: `scores`) | utilities with their 95 % Wald intervals against the reference item (the standard errors are the fit's: `maxdiff.utilities`), the counting scores, or the shares; the base in a note |
-| `ConjointTable` | `importance`, `partworths` | each attribute's importance; every level's part-worth, coloured by attribute, each attribute's levels in the design's order (the table sorts them by worth); the base in a note |
+| `ConjointTable` | `importance`, `partworths` | each attribute's importance; every level's part-worth, colored by attribute, each attribute's levels in the design's order (the table sorts them by worth); the base in a note |
 | `ShareTable` (Share of preference) | `shares` | each product's share |
 | PCA `variance` / `loadings`, `PcaResult` | `scree` / `loadings` | eigenvalues with the Kaiser line at 1 (the components kept filled, when the stat says how many); a diverging heatmap of the loadings |
 | Factor analysis `variance` / `loadings`, `FactorAnalysis` | `scree` / `loadings` | the same, with parallel analysis's random 95th percentile when it chose the number; loadings hidden in the table are blank |
@@ -664,7 +664,7 @@ takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 | Regression `table`, `RegressionResult` | `coefficients` | a forest of the coefficients with 95 % intervals, the intercept left out, the terms and the outcome by label (`table.attrs["labels"]`) — t with n − k df when the stat gives n (normal otherwise, and it says so); a note gives N and each nominal predictor's reference level (`compared with Region = North`, from `table.attrs["reference"]`); a logit's odds ratios on a log scale; the ordinal logit's odds ratios with the table's Wald intervals, its thresholds left out and a note saying which way the answers run |
 | `CorrelationMatrixTable` | `heatmap` | the lower triangle with the table's significance marks (on the adjusted p when adjusted), N in a note |
 | `ThemeTable` (Code open answers) | `shares`, `sentiment` | each theme's share of the coded answers and the coverage; the negative / neutral / positive split; titled by the question's label |
-| `DriverTable`, `KeyDrivers` (Key drivers) | `importance` | `drivers.plot`: each driver's share of R², largest first, a negative beta in the second colour |
+| `DriverTable`, `KeyDrivers` (Key drivers) | `importance` | `drivers.plot`: each driver's share of R², largest first, a negative beta in the second color |
 | `MapTable` (any of a Perceptual map's tables), `PerceptualMap` | `map` | `correspondence.plot`: the symmetric map of the first two dimensions; a map whose labels would overlap on the figure asked for is drawn taller (a fifth at a time, up to 1.2 × its width), and one still crowded numbers its points and lists their names under it (`numbered=True`) |
 | `PriceTable` (`table` or `curves`), `PriceSensitivity` | `curves` | `pricing.plot`: Van Westendorp's four curves, points and acceptable range (with the NMS trial curve below), or Gabor-Granger's demand over revenue; a chart of two panels is at least 6 inches tall |
 
@@ -684,11 +684,11 @@ plot's left edge), the axis titles and the notes under the plot are wrapped to
 the plot as it is laid out, so nothing runs past the figure and the PNG is the
 width asked for. Value labels sit beside their bar or whisker and the axis widens until
 they fit; legends sit between the title and the plot. NPS and sentiment keep a
-red–grey–blue of their own and the heatmaps a diverging scale centred on 0; the
-palette colours everything else. With `palette="theme"` every colour is the
-report theme's (§1b): the series, the diverging pair for the red–grey–blue and
+red–gray–blue of their own and the heatmaps a diverging scale centered on 0; the
+palette colors everything else. With `palette="theme"` every color is the
+report theme's (§1b): the series, the diverging pair for the red–gray–blue and
 the heatmaps, the text, the grid and the face — Key drivers, the Perceptual map
-and Price sensitivity included, in its first two colours.
+and Price sensitivity included, in its first two colors.
 
 **Registry.** A later analysis adds its result with
 `register(result_type, kinds, fn, *, accepts=None, name=None)` — `fn(result,
@@ -702,7 +702,7 @@ DataFrames); the last registration that accepts a result wins — and with
 node's parameters) tells `check_flow` what its output draws. A new kind is also
 a value of the node's `kind` enum. An analysis with a chart of its own draws it
 whole and hands the figure over with `chart.adopt(fig)`: its title (the Title
-given replaces its first line), weight line, colours and labels are kept as
+given replaces its first line), weight line, colors and labels are kept as
 drawn, and the chart does not lay it out again. The later analyses' renderers
 are in `siamang.reporting.method_charts`: Key drivers, the Perceptual map and
 Price sensitivity through their modules' `plot`, Cochran's Q and the ordinal
@@ -719,7 +719,7 @@ logit as above.
   code (one point per code, ordered by code, value labels on the axis) or a
   date — `datetime64`, or ISO 8601 text such as a platform snapshot's
   `created_at` — read in UTC and grouped by `period` (`day`, ISO `week`
-  Monday to Sunday labelled `2026-W22`, `month`, `quarter`, `year`), every
+  Monday to Sunday labeled `2026-W22`, `month`, `quarter`, `year`), every
   period between the first and the last on the axis. `measure` is
   `"percent"` choosing `codes` of `variable` (any of them for a
   multiple-choice question), its `"mean"`, or the `"count"` of respondents.

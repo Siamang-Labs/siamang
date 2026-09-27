@@ -109,7 +109,7 @@ def test_percent_is_of_the_answers_with_the_missing_code_left_out_and_said(tmp_p
     note = _footnote(chart)
     assert "Base: 6 respondents who answered." in note
     assert "Left out as missing: Answer: 1 (9 = Refused)." in note
-    # One series: one colour for every bar.
+    # One series: one color for every bar.
     assert len({tuple(p.get_facecolor()) for p in ax.patches}) == 1
     assert chart.weight_note is None
 
@@ -302,7 +302,7 @@ def test_an_ordered_scale_is_one_hue_light_to_dark(tmp_path):
     fills = [to_rgb(container.patches[0].get_facecolor()) for container in chart.plot().containers]
     lightness = [sum(colour) for colour in fills]
     assert len(set(fills)) == 5 and lightness == sorted(lightness, reverse=True)
-    # A labelled step nobody gave is drawn too (a scale's empty step is a finding):
+    # A labeled step nobody gave is drawn too (a scale's empty step is a finding):
     # nobody in Left said Excellent, nobody in Right said Poor.
     assert [len(container.patches) for container in chart.plot().containers] == [2] * 5
 
@@ -333,7 +333,7 @@ def test_means_by_group_largest_first_say_their_base():
 
 def test_the_defaults_draw_the_chart_they_always_drew():
     """The older chart: a bar per value found, the missing code among them, a
-    colour per bar, no footnote."""
+    color per bar, no footnote."""
 
     chart = _data().plot.bar("q")
     ax = chart.plot()
@@ -758,8 +758,8 @@ def test_a_legend_taller_than_the_plot_goes_under_it(tmp_path):
 
 
 def test_series_past_the_palette_are_all_different_and_the_wheel_does_not_close():
-    """Past 'muted''s ten colours, husl's wheel gave 13 series whose first and
-    last (#f77189, #f668be) and neighbours (#35ae97, #36abb0) looked alike."""
+    """Past 'muted''s ten colors, husl's wheel gave 13 series whose first and
+    last (#f77189, #f668be) and neighbors (#35ae97, #36abb0) looked alike."""
     from matplotlib.colors import to_hex, to_rgb
 
     from siamang.reporting.chart_parts import series_colours
@@ -813,7 +813,7 @@ def test_the_check_names_a_split_or_stack_of_several_answers(questionnaire_doc):
 
 def test_sorting_a_split_by_a_scale_keeps_the_scale_and_sorts_the_groups(tmp_path):
     """Largest first stacked Satisfied, Very satisfied, Neither, … from the
-    bottom: the colour ramp of the scale scrambled and its top box with it.
+    bottom: the color ramp of the scale scrambled and its top box with it.
     The answers keep the scale's order; the groups go largest first."""
     data = _data()
     variables = VariableMap()
@@ -953,7 +953,7 @@ def test_labels_under_bars_on_a_narrow_figure_are_turned_apart_or_drawn_across(t
 
 
 def test_level_labels_keep_an_em_apart_and_a_base_on_one_line(tmp_path):
-    """'metropolitan' and its neighbour's '(n = 4,249)' on one line, 4.5 pt
+    """'metropolitan' and its neighbor's '(n = 4,249)' on one line, 4.5 pt
     apart, read as one phrase; and turned labels broke '(n =' from '490)'.
     Labels side by side keep an em apart, and a group's base stays whole."""
     rng = np.random.default_rng(3)
@@ -1058,7 +1058,7 @@ def test_a_count_axis_on_a_small_figure_is_thinned_and_a_mean_separates_thousand
 
 
 def _value_tick_gaps(ax) -> list[float]:
-    """The room between neighbouring value-axis labels of horizontal bars,
+    """The room between neighboring value-axis labels of horizontal bars,
     in pixels, as drawn."""
 
     fig = ax.figure
@@ -1135,7 +1135,7 @@ def test_ticks_are_thinned_a_bin_at_a_time():
 
 def test_a_box_plot_in_the_theme_s_colours_keeps_its_value_title_clear_of_the_title(tmp_path):
     """A 40-character value label longer than the plot ran into the chart's
-    title; in the theme's colours it wraps to the plot's height (a named
+    title; in the theme's colors it wraps to the plot's height (a named
     palette draws as it always did)."""
     from siamang.reporting import chart_theme as ct
 

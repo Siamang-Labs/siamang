@@ -1274,7 +1274,7 @@ def _codebook_warnings(survey: Questionnaire) -> list[LintWarning]:
                         message=(
                             f"LikertScale question '{question_id}' has {question.points} points "
                             f"but variable '{bound.name}' labels {len(labelled)} of them; "
-                            "the unlabelled codes arrive with no text."
+                            "the unlabeled codes arrive with no text."
                         ),
                         location=question_id,
                     )

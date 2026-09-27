@@ -127,7 +127,7 @@ non-numeric weight counts 0.
 | `data.pricing` (Price sensitivity) | every curve, share and demand a share of the weights; N counts respondents |
 | `report.quality` / `themes` | count responses; `stats["Weight"]` says the weight is not applied |
 | `describe_variables()` | counts rows, adds `weighted_n_valid` |
-| `plot.bar`, `plot.heatmap(by=…)`, `plot.heatmap(method="pearson")`, `plot.likert` | weighted counts / percentages / means / coefficients, axis or colour bar labelled "Weighted …" or "(weighted)"; the Bar chart's intervals on shares and its letters on Kish's effective base |
+| `plot.bar`, `plot.heatmap(by=…)`, `plot.heatmap(method="pearson")`, `plot.likert` | weighted counts / percentages / means / coefficients, axis or color bar labeled "Weighted …" or "(weighted)"; the Bar chart's intervals on shares and its letters on Kish's effective base |
 | `plot.trend`, `write_tabbook` (the Tab book) | weighted points and cells — shares of the weights, weighted means, a count as the sum of the weights; the Trend's band and the Tab book's letters on Kish's effective base; the bases count respondents beside the weighted ones; `stats["Weight"]` |
 | `plot.boxplot`, `plot.scatter`, `plot.heatmap()` (Spearman, Kendall) | unweighted; the title's second line says so |
 | `report.descriptives` | mean, SD, median and quartiles weighted beside a `Weighted N` column; `stats` gives Kish's effective N and the design effect; N, Missing, skewness and kurtosis are not weighted |

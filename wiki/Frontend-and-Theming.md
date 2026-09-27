@@ -161,7 +161,7 @@ back, the dropdown opens — and so it is on a video or audio player (Space play
 pauses), on a `<summary>` (it opens its details) and on the like in a page's own HTML.
 On a radio button or a checkbox — where a click on a choice or a picture leaves the
 focus — and on a slider, Enter goes on and Space is the control's own: it checks the
-radio, ticks or unticks the box.
+radio, checks or unchecks the box.
 Right after a click, while the focus the mouse left on a button or a link is still
 there, Enter and Space go on: the key would otherwise click again, and a MaxDiff or
 conjoint pick, which a second click takes back, would be lost. Esc goes back when

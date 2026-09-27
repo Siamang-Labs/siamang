@@ -1,7 +1,7 @@
 type: prepare.bands
 category: prepare
 title: Bands
-description: Cut a number into bands — age into age groups, income into brackets — as a labelled ordinal variable; what falls outside every band is counted.
+description: Cut a number into bands — age into age groups, income into brackets — as a labeled ordinal variable; what falls outside every band is counted.
 inputs:
   data: SurveyData
 outputs:

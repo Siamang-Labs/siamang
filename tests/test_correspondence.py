@@ -236,7 +236,7 @@ def test_weights_weigh_the_cells_and_the_test_counts_respondents():
 
 
 def _brands() -> SurveyData:
-    """A row per respondent and brand rated; three attributes ticked 1/0."""
+    """A row per respondent and brand rated; three attributes checked 1/0."""
     frame = pd.DataFrame(
         {
             "brand": [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, np.nan],
@@ -261,7 +261,7 @@ def _brands() -> SurveyData:
 
 def test_an_attribute_grid_counts_ticks_per_brand():
     """Acme: modern 3, cheap 1, friendly 1; Globex 1, 4, 3; Initech 4, 1, 3 (a
-    blank is no tick; the respondent with no brand is left out)."""
+    blank is unchecked; the respondent with no brand is left out)."""
 
     result = correspondence.analyze(_brands(), "brand", attributes=["modern", "cheap", "friendly"])
     table = np.array([[3, 1, 1], [1, 4, 3], [4, 1, 3]])
@@ -273,14 +273,14 @@ def test_an_attribute_grid_counts_ticks_per_brand():
     assert "Chi-square" not in stats  # a respondent is in several cells
     assert list(result.columns.to_frame()["Attributes"]) == ["Modern", "Cheap", "Friendly"]
     assert list(result.rows.to_frame()["Brand"]) == ["Acme", "Globex", "Initech"]
-    # Any code but a yes — a 9 for Refused — is no tick.
+    # Any code but a yes — a 9 for Refused — counts as unchecked.
     refused = _brands().frame.assign(cheap=lambda f: f["cheap"].replace(1, 9))
     none = correspondence.analyze(
         _brands().with_frame(refused), "brand", attributes=["modern", "cheap", "friendly"],
         yes=1,
     )  # fmt: skip
     assert none.stats["Not in the map"] == "Cheap (nobody counted in them)"
-    # "No" as the tick is the complement's map.
+    # Counting "No" as checked is the complement's map.
     flipped = correspondence.analyze(
         _brands(), "brand", attributes=["modern", "cheap", "friendly"], yes=0
     )
@@ -319,7 +319,7 @@ def test_a_multiple_choice_column_counts_each_answer_and_skips_the_test():
 
 
 def test_a_blank_in_a_nullable_integer_column_is_no_answer():
-    """A snapshot and the platform's data hold labelled codes as Int64, a skipped
+    """A snapshot and the platform's data hold labeled codes as Int64, a skipped
     answer as pd.NA: the same respondents are left out as with NaN, and no
     "<NA>" row or column joins the map."""
 

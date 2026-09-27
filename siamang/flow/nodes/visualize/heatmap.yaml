@@ -17,7 +17,7 @@ params:
     - nominal
     - ordinal
     label: By
-    help: Each item's mean in each group of this variable (weighted when a weight is applied). With a named Colour map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Colour map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name.
+    help: Each item's mean in each group of this variable (weighted when a weight is applied). With a named Color map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Color map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name.
   method:
     kind: enum
     values:
@@ -47,7 +47,7 @@ params:
     kind: string
     default: YlOrRd
     label: Color map
-    help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colours of the report the chart is saved in — its Save report Look's sequential colour for the means, its diverging pair for a correlation matrix, with its text colour, grid and font.
+    help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colors of the report the chart is saved in — its Save report Look's sequential color for the means, its diverging pair for a correlation matrix, with its text color, grid and font.
 checks:
 - when: by & method!=spearman
   severity: warning

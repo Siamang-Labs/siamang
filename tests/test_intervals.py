@@ -99,7 +99,7 @@ def test_the_share_interval_is_wilsons_as_prop_test_gives_it():
 def test_a_weighted_share_takes_wilsons_interval_on_kishs_effective_base():
     """Six answers weighted 1, 3, 1, 2, 2, 2, the first, second and fifth a yes:
     the share is 6 / 11 and Kish's base (Σw)² / Σw² = 121 / 23 = 5.2609. Wilson's
-    interval at that base, by hand: centre (p + z²/2n) / (1 + z²/n), half-width
+    interval at that base, by hand: center (p + z²/2n) / (1 + z²/n), half-width
     z √(p(1 − p)/n + z²/4n²) / (1 + z²/n) → 0.202228729206 – 0.850313966386."""
     chose = [True, True, False, False, True, False]
     weights = [1.0, 3.0, 1.0, 2.0, 2.0, 2.0]

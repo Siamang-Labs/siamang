@@ -134,10 +134,10 @@ class ReportTheme:
     figure_label: str = "Figure"
 
     # ── charts ───────────────────────────────────────────────────────
-    # The colours and the face of every chart whose palette is "theme"
+    # The colors and the face of every chart whose palette is "theme"
     # (siamang.reporting.chart_theme) — and of no other, so a chart that names
     # a palette of its own keeps its picture. The defaults stay legible under
-    # protanopia and deuteranopia. Hex colours only: they are drawn by
+    # protanopia and deuteranopia. Hex colors only: they are drawn by
     # matplotlib, not by a browser.
     chart_palette: tuple[str, ...] = chart_theme.PALETTE  # the series, in order
     chart_sequential: str = chart_theme.SEQUENTIAL  # magnitude; an ordered scale's steps
@@ -153,7 +153,7 @@ class ReportTheme:
 
     # ── derived ──────────────────────────────────────────────────────
     def __post_init__(self) -> None:
-        # A list of colours arrives from JSON as a list (or from a text box as
+        # A list of colors arrives from JSON as a list (or from a text box as
         # one string); the theme holds a tuple, so it stays hashable and equal
         # to itself read back.
         for name in ("chart_palette", "chart_diverging"):

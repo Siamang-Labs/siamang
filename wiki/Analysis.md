@@ -475,9 +475,9 @@ scored.report.means("factor_1", by="it_role")
 | `rotation` | `"varimax"` (default, uncorrelated factors), `"promax"`, `"oblimin"` (correlated factors), `"none"` |
 | `sort`, `hide_below` | group the items by their main factor; blank the small loadings in the table |
 | `scores`, `into` | add regression-method scores `factor_1`, `factor_2`, … to the data |
-| `read_later` | score names a later step will read: when a rule chose the number of factors, each one it did not keep is added empty, labelled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)`, and named in `stats["Scores"]` — a flow passes the names its later nodes use |
+| `read_later` | score names a later step will read: when a rule chose the number of factors, each one it did not keep is added empty, labeled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)`, and named in `stats["Scores"]` — a flow passes the names its later nodes use |
 
-The items are analysed through their correlations (standardised). A respondent
+The items are analyzed through their correlations (standardized). A respondent
 missing any item is left out, the codebook's missing codes counted as missing.
 The numbers reproduce the `factor_analyzer` package and R's `psych::fa` (and
 `factanal` for maximum likelihood): each factor is signed so its loadings sum
@@ -498,7 +498,7 @@ factors. It is unweighted, and says so on weighted data.
 An outcome of ordered answers — very dissatisfied to very satisfied — is not a
 number an ordinary regression may average, nor a yes/no for a logit.
 `regression(..., kind="ordinal")` fits the proportional-odds (cumulative logit)
-model: one threshold between each pair of neighbouring answers and one
+model: one threshold between each pair of neighboring answers and one
 coefficient per predictor, the same at every cut. In a flow it is the
 **Regression** node with **Model** `ordinal`.
 
@@ -525,8 +525,8 @@ model.stats["order"], model.stats["pseudo_r_squared"], model.stats["lr_p"]
   the log-likelihood, McFadden's `pseudo_r_squared`, the likelihood-ratio test
   against the thresholds-only model (`lr_chi_square`, `lr_df`, `lr_p`) and
   `aic`. On `MASS::housing` they reproduce `polr` and `clm`.
-- **Who is modelled.** The codebook's missing codes are left out and counted
-  (`missing_codes`); a labelled answer nobody in the model gave is not a
+- **Who is modeled.** The codebook's missing codes are left out and counted
+  (`missing_codes`); a labeled answer nobody in the model gave is not a
   category, and `note` says so. A nominal predictor is dummy-coded against its
   first category, as in the other models.
 - **Weights** multiply each respondent's log-likelihood, as the node's logit
@@ -537,7 +537,7 @@ model.stats["order"], model.stats["pseudo_r_squared"], model.stats["lr_p"]
   logit), more than 20, text that is not a code, a predictor that does not
   vary, predictors that are a combination of each other. **Warned** in
   `warning`: a fit that did not converge, and a predictor that separates the
-  answers — its estimate runs off towards infinity and cannot be read.
+  answers — its estimate runs off toward infinity and cannot be read.
 - `kind="auto"` never picks the ordinal model, so an existing flow runs as it
   did. The proportional-odds assumption itself is not tested.
 - **In a report.** The Regression node's table is
@@ -562,7 +562,7 @@ Which of the attribute ratings matter most for overall satisfaction? A
 regression's coefficients answer another question — what happens when one
 rating moves and the others stay put — and when the ratings correlate, as
 ratings of one brand do, a coefficient can shrink or even flip sign because a
-neighbour took its share. `siamang.data.drivers.analyze` splits the model's R²
+neighbor took its share. `siamang.data.drivers.analyze` splits the model's R²
 between the predictors instead, so the shares add up to R² (100 %). The flow
 node is **Key drivers** (`analyze.drivers`).
 
@@ -587,7 +587,7 @@ correlation with the outcome (`r`), its standardized coefficient (`Beta`) with
 the regression's p, and its variance inflation factor (`VIF`); the statistics
 give R², adjusted R² and the F-test.
 
-- **Who is analysed.** A respondent missing the outcome or any predictor is
+- **Who is analyzed.** A respondent missing the outcome or any predictor is
   left out, the codebook's missing codes counted as missing. A nominal variable
   with more than two answers is refused — make a 0/1 variable per answer with
   Explode multiple choice or Derive; a 0/1 variable is used as it is.
@@ -604,8 +604,8 @@ give R², adjusted R² and the F-test.
 
 Which brands are seen as modern and which as good value? A table of counts says
 it cell by cell; a correspondence analysis draws it as a map, where a brand
-lies towards the attributes it gets more of than the average brand.
-`siamang.data.correspondence.analyze` builds the table and analyses it, and
+lies toward the attributes it gets more of than the average brand.
+`siamang.data.correspondence.analyze` builds the table and analyzes it, and
 `plot` draws the map. The flow node is **Perceptual map**
 (`analyze.correspondence`).
 
@@ -629,7 +629,7 @@ In a flow, connect any of the node's tables to a **Result chart** (Kind `map`).
 | **Table** (`layout`) | Cells |
 |----------------------|-------|
 | `crosstab` | the respondents in each pair of answers of **Rows** and **Columns**; a multiple-choice variable counts each answer chosen |
-| `attributes` | for each answer of **Rows**, the respondents who ticked each of the **Attributes** (0/1 variables; **Counts as yes** for other codes) |
+| `attributes` | for each answer of **Rows**, the respondents who checked each of the **Attributes** (0/1 variables; **Counts as yes** for other codes) |
 
 - **Reading the map.** Rows and columns are both in principal coordinates (a
   symmetric map, as `ca` and FactoMineR draw by default). The axes are the
@@ -638,7 +638,7 @@ In a flow, connect any of the node's tables to a **Result chart** (Kind `map`).
   the dimensions shown represent it; its **contribution** how much it shapes a
   dimension.
 - **Signs** are arbitrary in any correspondence analysis; here each dimension
-  points towards the row that contributes most to it, so a map may be the
+  points toward the row that contributes most to it, so a map may be the
   mirror image of another package's.
 - **Weights** make each cell a sum of weights. A crosstab of two single-answer
   questions also gets the chi-square test of independence, on the respondents'
@@ -669,7 +669,7 @@ pricing.plot(psm).savefig("psm.png")
 
 gg = pricing.gabor_granger(data, ["buy_499", "buy_699", "buy_899"], prices=[4.99, 6.99, 8.99],
                            yes=[4, 5])
-gg.stats["Revenue-maximising price"]
+gg.stats["Revenue-maximizing price"]
 ```
 
 **Van Westendorp's price sensitivity meter** asks four prices: too cheap (doubt
@@ -698,7 +698,7 @@ the prices with the highest trial and the highest revenue.
 **Gabor-Granger** asks at each of a set of prices whether the respondent would
 buy. The table gives the share who would at each price, the revenue per
 respondent (price × share) with an index, and the elasticity between
-neighbouring prices; the statistics give the revenue-maximising price among
+neighboring prices; the statistics give the revenue-maximizing price among
 those asked. Every respondent should answer every price: in a sequential design
 that stops asking after a no, fill in the implied answers first (Derive).
 
@@ -870,7 +870,7 @@ weighted data `stats["Weight"]` says the weight is not applied.
 variable per item, `<question>_score_<code>` by default, holding each
 respondent's counting score — best minus worst over the times the item was
 shown to *them*, from −1 to 1, blank where it was never shown. The variables are
-labelled `MaxDiff score: <item>`, interval, with a valid range of −1…1, so they
+labeled `MaxDiff score: <item>`, interval, with a valid range of −1…1, so they
 feed a crosstab, a cluster or a regression. The flow node is **MaxDiff scores**
 (`prepare.maxdiff_scores`); its `stat` names the respondents scored and the
 answers that could not be read against the design.
@@ -898,7 +898,7 @@ weights and the frequency a weighted mean — in the search too.
 ## Bands
 
 `siamang.data.bands.bands(data, "age", bins=[18, 30, 45, 76], into="age_band")`
-cuts a number into a labelled ordinal variable (`18 to under 30`, …) after
+cuts a number into a labeled ordinal variable (`18 to under 30`, …) after
 taking the codebook's missing codes out, so a 999 "Refused" never lands in the
 top band; `stats` counts every band and whatever fell outside. The flow node is
 **Bands** (`prepare.bands`). **Derive** takes `labels` for a formula that

@@ -1,15 +1,15 @@
-"""A chart in the report theme's colours: ``palette="theme"``.
+"""A chart in the report theme's colors: ``palette="theme"``.
 
-A chart names its colours by a palette of seaborn's (``"muted"``, ``"RdBu"``,
-a matplotlib colour map) — or by :data:`THEME`, which means *the colours of the
+A chart names its colors by a palette of seaborn's (``"muted"``, ``"RdBu"``,
+a matplotlib color map) — or by :data:`THEME`, which means *the colors of the
 report it is in*: the ``chart_*`` fields of
 :class:`~siamang.reporting.theme.ReportTheme` (a categorical palette, a
-sequential colour, a diverging pair, the text and grid colours and the font),
+sequential color, a diverging pair, the text and grid colors and the font),
 whose defaults are a set that stays legible under protanopia and deuteranopia
 (:data:`PALETTE`). Everything a chart asks of the theme is answered here, so a
 chart module names a role — the text, the grid, the first series, the low end
-of a diverging scale — and gets the theme's colour while a chart that reads the
-theme is drawn (:func:`drawing`), and the colour it has always used otherwise.
+of a diverging scale — and gets the theme's color while a chart that reads the
+theme is drawn (:func:`drawing`), and the color it has always used otherwise.
 A chart that names a palette of its own therefore draws the picture it always
 drew, byte for byte, and a stored flow keeps its pictures: the theme is an
 opt-in, never a new default.
@@ -19,14 +19,14 @@ there, so what it cannot draw fails its own node — and the report's theme is a
 parameter of the Save report downstream. So the theme a chart is drawn with at
 its node is the one ``SIAMANG_REPORT_THEME`` names (a platform's preview sets
 it to the flow's Save report look), else the default; and a report renders
-each chart that reads the theme in its own theme's colours: when those differ
+each chart that reads the theme in its own theme's colors: when those differ
 from the ones the chart was drawn with, it draws a copy of the chart from its
 parameters — a chart is a dataclass of them and its data — in the report's
-colours (:func:`in_report`). The chart at its node is left as it was drawn.
+colors (:func:`in_report`). The chart at its node is left as it was drawn.
 
-The colour arithmetic the rules need is here too: hex colours, the WCAG
+The color arithmetic the rules need is here too: hex colors, the WCAG
 contrast of text on a fill (:func:`contrast`, :meth:`ChartColours.ink_on`), and
-a simulation of the two common colour-vision deficiencies (Machado, Oliveira
+a simulation of the two common color-vision deficiencies (Machado, Oliveira
 and Fernandes 2009) with distances in OKLab (:func:`distance`), which is what
 the default palette is held to.
 """
@@ -46,19 +46,19 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from siamang.reporting.theme import ReportTheme
 
-#: The palette that means "the report theme's colours".
+#: The palette that means "the report theme's colors".
 THEME = "theme"
 
-# ─── the default colours ─────────────────────────────────────────────────────
+# ─── the default colors ─────────────────────────────────────────────────────
 
-#: Eight colours any two of which stay apart for a reader with protanopia or
+#: Eight colors any two of which stay apart for a reader with protanopia or
 #: deuteranopia — OKLab ΔE ≥ 9.5, simulated as :func:`distance` does — and with
-#: full colour vision (ΔE ≥ 17), each at least 2:1 on white: a chart of up to
+#: full color vision (ΔE ≥ 17), each at least 2:1 on white: a chart of up to
 #: eight series can put any two side by side, a Trend's lines cross, a donut's
 #: slices meet out of order. They were searched for over the sRGB cube (a grid
 #: of 26 steps a channel, OKLab lightness 0.42–0.78 and chroma 0.06–0.19),
-#: maximising the least of those distances with the first two fixed, and are
-#: ordered so that each prefix keeps its colours as far apart as it can (the
+#: maximizing the least of those distances with the first two fixed, and are
+#: ordered so that each prefix keeps its colors as far apart as it can (the
 #: first three ≥ 14.6 apart under both deficiencies). Blue and orange are the
 #: pair the engine's own analyses already draw with (Key drivers, the
 #: Perceptual map, Price sensitivity).
@@ -75,16 +75,16 @@ PALETTE = (
 #: One hue for magnitude and for the steps of an ordered scale, light to dark.
 SEQUENTIAL = "#2a78d6"
 #: The two ends of a diverging scale, low (negative, disagree, detractors)
-#: first: red and blue, which no common colour-vision deficiency confuses.
+#: first: red and blue, which no common color-vision deficiency confuses.
 DIVERGING = ("#e34948", "#2a78d6")
-#: The charts' text: the report's own text colour (``ReportTheme.text_color``).
+#: The charts' text: the report's own text color (``ReportTheme.text_color``).
 TEXT = "#1a1a1a"
 #: Grid lines: light enough to stay behind the data.
 GRID = "#e0e0e0"
 #: The middle answer of a scale — a Likert chart's neutral answer, the Net
-#: Promoter Score's passives, neutral sentiment: a grey, neither side.
+#: Promoter Score's passives, neutral sentiment: a gray, neither side.
 NEUTRAL = "#bdbdbd"
-#: The centre of a continuous diverging scale (a correlation of 0).
+#: The center of a continuous diverging scale (a correlation of 0).
 MIDPOINT = "#f2f2f2"
 #: What the charts are drawn on.
 BACKGROUND = "#ffffff"
@@ -94,16 +94,16 @@ INNER_TINT = 0.45
 #: The least WCAG contrast of text against what it is written on (AA, normal text).
 MIN_TEXT_CONTRAST = 4.5
 #: The least contrast of the lightest step of an ordered scale against the
-#: background, and of a colour a chart makes past its palette.
+#: background, and of a color a chart makes past its palette.
 MIN_STEP_CONTRAST = 2.0
-#: The least contrast of a theme's series or sequential colour against the
+#: The least contrast of a theme's series or sequential color against the
 #: charts' white: below it a bar or a line all but disappears (a pale cream,
 #: #ffe8b2, is 1.2:1; a brand yellow, #ffd166, 1.4:1, is kept).
 MIN_SERIES_CONTRAST = 1.3
 #: How far apart (OKLab ΔE × 100) the stops of an ordered scale's ramp must be
 #: to count as two.
 MIN_STEP_DISTANCE = 3.0
-#: The most colours a categorical palette may name: past a dozen, no two can
+#: The most colors a categorical palette may name: past a dozen, no two can
 #: be told apart reliably, and a chart past its palette makes lighter and
 #: darker ones of its own.
 MAX_PALETTE = 12
@@ -124,11 +124,11 @@ _GENERIC_FONTS = {
 }
 
 
-# ─── colour arithmetic ───────────────────────────────────────────────────────
+# ─── color arithmetic ───────────────────────────────────────────────────────
 
 
 def is_hex(value: Any) -> bool:
-    """Whether ``value`` is a colour as ``#rgb`` or ``#rrggbb``."""
+    """Whether ``value`` is a color as ``#rgb`` or ``#rrggbb``."""
 
     return isinstance(value, str) and bool(_HEX.match(value.strip()))
 
@@ -178,7 +178,7 @@ def luminance(colour: Any) -> float:
 
 
 def contrast(first: Any, second: Any) -> float:
-    """The WCAG contrast ratio of two colours, 1 to 21."""
+    """The WCAG contrast ratio of two colors, 1 to 21."""
 
     high, low = sorted((luminance(first), luminance(second)), reverse=True)
     return (high + 0.05) / (low + 0.05)
@@ -214,7 +214,7 @@ def _oklab(linear: Sequence[float]) -> tuple[float, float, float]:
 
 def seen(colour: Any, vision: str | None = None) -> tuple[float, float, float]:
     """``colour`` in OKLab as a reader with ``vision`` (``"protan"``,
-    ``"deutan"``, or None for full colour vision) sees it."""
+    ``"deutan"``, or None for full color vision) sees it."""
 
     linear = [_linear(channel) for channel in rgb(colour)]
     if vision is not None:
@@ -230,9 +230,9 @@ def seen(colour: Any, vision: str | None = None) -> tuple[float, float, float]:
 
 
 def distance(first: Any, second: Any, vision: str | None = None) -> float:
-    """How far apart two colours look: Euclidean distance in OKLab × 100, as a
-    reader with ``vision`` sees them (None: full colour vision). Under 6 two
-    colours are hard to tell apart; 8 and more is comfortable."""
+    """How far apart two colors look: Euclidean distance in OKLab × 100, as a
+    reader with ``vision`` sees them (None: full color vision). Under 6 two
+    colors are hard to tell apart; 8 and more is comfortable."""
 
     return 100.0 * math.dist(seen(first, vision), seen(second, vision))
 
@@ -247,7 +247,7 @@ def lightness(colour: Any) -> float:
 
 
 def colours_of(value: Any) -> tuple[str, ...] | Any:
-    """A list of colours as a theme stores it — a list, or one string of them
+    """A list of colors as a theme stores it — a list, or one string of them
     separated by commas or spaces (what a form's text box holds) — as a tuple;
     anything else is returned as it is, for :func:`problem` to name."""
 
@@ -270,16 +270,16 @@ def problem(
     """Why the chart fields of a theme cannot be used, or None."""
 
     def not_hex(name: str, value: Any) -> str:
-        return f"{name}: {value!r} is not a hex colour such as '#2a78d6'."
+        return f"{name}: {value!r} is not a hex color such as '#2a78d6'."
 
     if not isinstance(palette, tuple) or not all(isinstance(item, str) for item in palette):
-        return "chart_palette: expected a list of hex colours, e.g. ['#2a78d6', '#eb6834']."
+        return "chart_palette: expected a list of hex colors, e.g. ['#2a78d6', '#eb6834']."
     for item in palette:
         if not is_hex(item):
             return not_hex("chart_palette", item)
     if not 2 <= len(palette) <= MAX_PALETTE:
         return (
-            f"chart_palette: give between 2 and {MAX_PALETTE} colours, in the order the "
+            f"chart_palette: give between 2 and {MAX_PALETTE} colors, in the order the "
             f"series take them; got {len(palette)}."
         )
     normal = [hex_colour(item) for item in palette]
@@ -300,14 +300,14 @@ def problem(
         or not all(isinstance(item, str) for item in diverging)
     ):
         return (
-            "chart_diverging: give two colours, the low end first and the high end "
+            "chart_diverging: give two colors, the low end first and the high end "
             "second, e.g. ['#e34948', '#2a78d6']."
         )
     for item in diverging:
         if not is_hex(item):
             return not_hex("chart_diverging", item)
     if hex_colour(diverging[0]) == hex_colour(diverging[1]):
-        return "chart_diverging: the two ends are the same colour, so the scale would not diverge."
+        return "chart_diverging: the two ends are the same color, so the scale would not diverge."
     if not is_hex(text):
         return not_hex("chart_text_color", text)
     ratio = contrast(text, BACKGROUND)
@@ -367,12 +367,12 @@ def resolve_font(stack: str | None) -> str | None:
     return None
 
 
-# ─── the colours a chart is drawn in ─────────────────────────────────────────
+# ─── the colors a chart is drawn in ─────────────────────────────────────────
 
 
 @dataclass(frozen=True)
 class ChartColours:
-    """A theme's chart colours, resolved: what :func:`drawing` hands a chart."""
+    """A theme's chart colors, resolved: what :func:`drawing` hands a chart."""
 
     palette: tuple[str, ...] = PALETTE
     sequential: str = SEQUENTIAL
@@ -384,7 +384,7 @@ class ChartColours:
 
     @classmethod
     def of(cls, theme: ReportTheme | None) -> ChartColours:
-        """The chart colours of ``theme`` (None: the default theme's)."""
+        """The chart colors of ``theme`` (None: the default theme's)."""
 
         if theme is None:
             return cls()
@@ -399,7 +399,7 @@ class ChartColours:
 
     @functools.cached_property
     def muted(self) -> str:
-        """Secondary text (notes, headers): the text colour lightened as far
+        """Secondary text (notes, headers): the text color lightened as far
         as it still reads on the background (:data:`MIN_TEXT_CONTRAST`)."""
 
         low, high = 0.0, 1.0
@@ -431,7 +431,7 @@ class ChartColours:
         return settings
 
     def ink_on(self, fill: Any) -> str:
-        """The colour of text written on ``fill``: white or the theme's text,
+        """The color of text written on ``fill``: white or the theme's text,
         whichever reads better — black when neither reaches
         :data:`MIN_TEXT_CONTRAST`, which one of white and black always does."""
 
@@ -443,15 +443,15 @@ class ChartColours:
         return best
 
     def ordinal(self, count: int) -> list[str]:
-        """``count`` steps of the sequential colour, light to dark, each its
+        """``count`` steps of the sequential color, light to dark, each its
         own: the lightest still :data:`MIN_STEP_CONTRAST` against the
-        background, the darkest the colour at half its lightness.
+        background, the darkest the color at half its lightness.
 
-        A colour lighter than that itself — a yellow, a light blue, under 2:1 —
+        A color lighter than that itself — a yellow, a light blue, under 2:1 —
         cannot be the light end, nor stand between it and the dark one: the
-        scale then runs from the colour darkened just enough to the colour at
-        half its lightness. (It used to keep the colour for both light steps, so
-        three answers of five came out the same yellow.) A near-black colour,
+        scale then runs from the color darkened just enough to the color at
+        half its lightness. (It used to keep the color for both light steps, so
+        three answers of five came out the same yellow.) A near-black color,
         whose half is next to it, runs from its tint to its half."""
 
         if count == 1:
@@ -474,9 +474,9 @@ class ChartColours:
                     break
             stops = [light, mix(colour, "#000000", 0.5)]
         if len(stops) == 3:
-            # The colour between its tint and its shade, unless one of the two
-            # stretches is short (a near-black colour's shade): steps there
-            # would be all but the same colour.
+            # The color between its tint and its shade, unless one of the two
+            # stretches is short (a near-black color's shade): steps there
+            # would be all but the same color.
             first, second = distance(stops[0], stops[1]), distance(stops[1], stops[2])
             if min(first, second) < max(MIN_STEP_DISTANCE, (first + second) / 4):
                 stops = [stops[0], stops[2]]
@@ -485,11 +485,11 @@ class ChartColours:
         return _blend(stops, count)
 
     def series(self, count: int, *, ordered: bool = False) -> list[str]:
-        """``count`` colours, one per series, none repeated — the palette in
+        """``count`` colors, one per series, none repeated — the palette in
         its order; the steps of an ordered scale from :meth:`ordinal`. Past
-        the palette, its colours darker, then lighter — only as far as they
+        the palette, its colors darker, then lighter — only as far as they
         keep :data:`MIN_STEP_CONTRAST` on white (half-way to white left a
-        light palette's lines at 1.2:1, all but invisible), a colour too light
+        light palette's lines at 1.2:1, all but invisible), a color too light
         for any tint darker by a little instead — then hues spaced round the
         wheel (as :func:`~siamang.reporting.chart_parts.series_colours`)."""
 
@@ -511,9 +511,9 @@ class ChartColours:
         ]
 
     def diverging_steps(self, count: int) -> list[str]:
-        """``count`` colours from the low end to the high end: each arm from
+        """``count`` colors from the low end to the high end: each arm from
         its end to a tint of it :data:`INNER_TINT` of the way to white — the
-        inner tints of the two arms still apart for a colour-blind reader, and
+        inner tints of the two arms still apart for a color-blind reader, and
         2:1 on white — and the middle of an odd count :data:`MIDPOINT` (a
         Likert chart's neutral answer takes :data:`NEUTRAL` there)."""
 
@@ -524,7 +524,7 @@ class ChartColours:
         return low + ([MIDPOINT] if count % 2 else []) + high[::-1]
 
     def colormap(self, kind: str) -> Any:
-        """A continuous colour map: ``"sequential"`` from near white to dark,
+        """A continuous color map: ``"sequential"`` from near white to dark,
         or ``"diverging"`` from the low end through :data:`MIDPOINT` to the
         high end (each end darkened a little, so the extremes stand out)."""
 
@@ -551,7 +551,7 @@ class ChartColours:
 def _lighter(colour: str) -> str:
     """``colour`` up to half-way to white, as far as it keeps
     :data:`MIN_STEP_CONTRAST` on white; one already under that a little
-    darker, so it is still another colour."""
+    darker, so it is still another color."""
 
     if contrast(colour, BACKGROUND) < MIN_STEP_CONTRAST + 0.2:
         return mix(colour, "#000000", 0.2)
@@ -563,7 +563,7 @@ def _lighter(colour: str) -> str:
 
 
 def _blend(stops: list[str], count: int) -> list[str]:
-    """``count`` colours evenly along the lines between ``stops`` (in sRGB)."""
+    """``count`` colors evenly along the lines between ``stops`` (in sRGB)."""
 
     if count <= 0:
         return []
@@ -593,7 +593,7 @@ _LAST: tuple[Any, ChartColours] | None = None
 
 
 def from_env() -> ChartColours:
-    """The chart colours of the theme ``SIAMANG_REPORT_THEME`` names, else the
+    """The chart colors of the theme ``SIAMANG_REPORT_THEME`` names, else the
     default theme's: what a chart that reads the theme is drawn in outside a
     report (at its node)."""
 
@@ -610,20 +610,20 @@ _ACTIVE: contextvars.ContextVar[ChartColours | None] = contextvars.ContextVar(
 
 
 def reads_theme(chart: Any) -> bool:
-    """Whether ``chart`` takes its colours from the theme: its palette, or a
-    heatmap's colour map, is :data:`THEME`."""
+    """Whether ``chart`` takes its colors from the theme: its palette, or a
+    heatmap's color map, is :data:`THEME`."""
 
     return any(getattr(chart, name, None) == THEME for name in ("palette", "cmap"))
 
 
 def themed() -> ChartColours | None:
-    """The colours of the chart being drawn, when it reads the theme."""
+    """The colors of the chart being drawn, when it reads the theme."""
 
     return _ACTIVE.get()
 
 
 def current() -> ChartColours:
-    """The colours a palette of :data:`THEME` names just now: the chart's
+    """The colors a palette of :data:`THEME` names just now: the chart's
     being drawn, else those of the theme ``SIAMANG_REPORT_THEME`` names."""
 
     return _ACTIVE.get() or from_env()
@@ -631,12 +631,12 @@ def current() -> ChartColours:
 
 @contextlib.contextmanager
 def drawing(chart: Any) -> Iterator[ChartColours | None]:
-    """While ``chart`` is built: its colours, when it reads the theme — those
+    """While ``chart`` is built: its colors, when it reads the theme — those
     a report asked for (``chart._colours``), else :func:`from_env` — with the
     theme's text, grid and font as matplotlib's settings. Those are restored
-    afterwards, so a chart that reads the theme leaves nothing behind for the
+    afterward, so a chart that reads the theme leaves nothing behind for the
     next chart. A chart that does not read the theme is built as it always
-    was, and the role functions below answer it with its own colours."""
+    was, and the role functions below answer it with its own colors."""
 
     colours = (getattr(chart, "_colours", None) or from_env()) if reads_theme(chart) else None
     token = _ACTIVE.set(colours)
@@ -651,7 +651,7 @@ def drawing(chart: Any) -> Iterator[ChartColours | None]:
                 figure = getattr(chart, "_fig", None)
                 if figure is not None:
                     # Drawn once here: a tick matplotlib makes at the save
-                    # copies this one's colour and face, not the settings of
+                    # copies this one's color and face, not the settings of
                     # whatever is drawn after.
                     figure.draw_without_rendering()
     finally:
@@ -675,7 +675,7 @@ def set_theme(**kwargs: Any) -> None:
     sns.set_theme(**kwargs, rc=colours.rc())
 
 
-# The roles a chart module asks for. Each takes the colour the chart has always
+# The roles a chart module asks for. Each takes the color the chart has always
 # used and returns it unless the chart being drawn reads the theme.
 
 
@@ -695,7 +695,7 @@ def grid(default: Any) -> Any:
 
 
 def series(default: Any, index: int = 0) -> Any:
-    """The palette's ``index``-th colour (the first two: blue and orange)."""
+    """The palette's ``index``-th color (the first two: blue and orange)."""
 
     colours = themed()
     return default if colours is None else colours.palette[index % len(colours.palette)]
@@ -718,13 +718,13 @@ def neutral(default: Any) -> Any:
 
 def tint(default: Any, colour: Any, share: float) -> Any:
     """``colour`` moved ``share`` of the way to white (a lighter shade of a
-    theme's colour), or ``default``."""
+    theme's color), or ``default``."""
 
     return default if themed() is None else mix(colour, BACKGROUND, share)
 
 
 def cmap(default: Any, kind: str = "diverging") -> Any:
-    """``default`` (a colour map or its name), or the theme's ``kind`` of map."""
+    """``default`` (a color map or its name), or the theme's ``kind`` of map."""
 
     colours = themed()
     return default if colours is None else colours.colormap(kind)
@@ -736,7 +736,7 @@ def ink_on(fill: Any, default: Any) -> Any:
 
 
 def label_cells(ax: Any) -> None:
-    """In a chart of the theme's colours, each value seaborn wrote in a
+    """In a chart of the theme's colors, each value seaborn wrote in a
     heatmap's cell in the ink that reads on that cell (:meth:`ChartColours.ink_on`)."""
 
     colours = themed()
@@ -756,7 +756,7 @@ def label_cells(ax: Any) -> None:
 
 
 def color_palette(name: Any, count: int | None = None) -> Any:
-    """``seaborn.color_palette(name, count)``, or the theme's categorical colours."""
+    """``seaborn.color_palette(name, count)``, or the theme's categorical colors."""
 
     import seaborn as sns
 
@@ -767,7 +767,7 @@ def color_palette(name: Any, count: int | None = None) -> Any:
 
 
 def diverging_palette(name: Any, count: int) -> list[Any]:
-    """``count`` colours of the diverging palette ``name``, or of the theme's pair."""
+    """``count`` colors of the diverging palette ``name``, or of the theme's pair."""
 
     import seaborn as sns
 
@@ -778,7 +778,7 @@ def diverging_palette(name: Any, count: int) -> list[Any]:
 
 def palette_for(name: Any, levels: Sequence[Any]) -> Any:
     """What a seaborn plot's ``palette=`` takes: ``name``, or the theme's
-    colours for ``levels`` in their order."""
+    colors for ``levels`` in their order."""
 
     if name == THEME:
         return dict(zip(levels, current().series(max(len(levels), 1)), strict=False))
@@ -792,8 +792,8 @@ def in_report(chart: Any, theme: ReportTheme | None) -> Any:
     """``chart`` as a report in ``theme`` shows it.
 
     A chart that does not read the theme is itself. One that does is drawn in
-    the report theme's colours: built in them when it has not been drawn yet,
-    else — drawn at its node in other colours — a copy drawn from its
+    the report theme's colors: built in them when it has not been drawn yet,
+    else — drawn at its node in other colors — a copy drawn from its
     parameters, which is kept on the chart for the report's next rendering
     (its Markdown, then its HTML). The report renders the copy and releases
     its figure (``SurveyChart.release``), so what is kept is its picture, not

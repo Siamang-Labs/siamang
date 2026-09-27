@@ -1273,7 +1273,7 @@ def _method_problem(node_type: str, params: dict[str, Any]) -> str | None:
 
 
 def _answers(payload: dict[str, Any]) -> list[tuple[str, str]]:
-    """A codebook variable's labelled answers as ``(code, label)``, its missing
+    """A codebook variable's labeled answers as ``(code, label)``, its missing
     codes left out, in the order the questionnaire reads them (:func:`_labelled`).
     A missing code matches an answer by its text as the codebook writes it, so
     a missing 3.0 is the answer 3. The missing codes are the questionnaire's:
@@ -1458,7 +1458,7 @@ def _check_likert_scale(
     questionnaire: dict[str, Any],
     several_made: frozenset[str] = frozenset(),
 ) -> list[FlowIssue]:
-    """A Likert chart's items share one scale: the same labelled answers in the
+    """A Likert chart's items share one scale: the same labeled answers in the
     codebook, missing codes aside (``_answers``) — else the whole numbers of a
     valid range, else the points of the Likert scale question asking it — as
     the chart requires when it runs (``siamang.reporting.likert.likert_scale``),
@@ -1554,7 +1554,7 @@ def _likert_answers(
     payload: dict[str, Any], question: dict[str, Any] | None
 ) -> list[tuple[str, str]]:
     """What a Likert chart reads as a variable's scale, as the run reads it
-    (``likert._answers``): its labelled answers, else the whole numbers of its
+    (``likert._answers``): its labeled answers, else the whole numbers of its
     valid range (2 to 11 of them), else its Likert scale question's points."""
 
     answers = _answers(payload)
@@ -1769,7 +1769,7 @@ def _under_outputs(path: str) -> bool:
 
 
 def _whole_values(payload: dict[str, Any]) -> int | None:
-    """How many whole numbers the valid range of an unlabelled interval or
+    """How many whole numbers the valid range of an unlabeled interval or
     ratio variable holds — what a Bar chart would draw a bar each for — or
     None when the codebook does not say. The ends count when they are whole:
     [0, 29.5] holds 30 (0 to 29), [0.5, 30.5] holds 30 (1 to 30)."""

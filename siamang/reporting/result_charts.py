@@ -108,13 +108,13 @@ KINDS = (
 _INK = "#333333"
 _MUTED = "#767676"
 _TRACK = "#e6e6e6"
-# A diverging pair with a grey midpoint (red–grey–blue, safe for red–green
-# colour blindness): detractors, passives and promoters; negative, neutral and
+# A diverging pair with a gray midpoint (red–gray–blue, safe for red–green
+# color blindness): detractors, passives and promoters; negative, neutral and
 # positive sentiment.
 _NEGATIVE, _NEUTRAL, _POSITIVE = "#d6604d", "#bababa", "#4393c3"
 
 
-# The colours above, or — while a chart of palette "theme" is drawn — the
+# The colors above, or — while a chart of palette "theme" is drawn — the
 # report theme's text, secondary text, grid and diverging pair.
 def _ink() -> str:
     return chart_theme.text(_INK)
@@ -507,7 +507,7 @@ class ResultChart(SurveyChart):
         self._adopted = True
 
     def colors(self, n: int) -> list[Any]:
-        """``n`` colours of the chart's palette, in its order — never one twice:
+        """``n`` colors of the chart's palette, in its order — never one twice:
         past the palette's own, lighter and darker ones (``series_colours``)."""
         if sns is not None:
             from siamang.reporting.chart_parts import series_colours
@@ -1154,7 +1154,7 @@ def _descriptives_panels(
     data: Any,
 ) -> str:
     """A panel per variable, one above the other, each on its own scale; in a
-    panel a row per group (named with its base), in the group's colour."""
+    panel a row per group (named with its base), in the group's color."""
     from siamang.reporting.chart_parts import wrap as wrap_words
 
     per_panel = [

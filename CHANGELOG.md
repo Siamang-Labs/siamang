@@ -85,47 +85,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   come in the order of the themes. A version 1 codeframe is read and applied
   as before: the same variable, table, chart and generated code.
 
-- **Charts in the report theme's colours: `palette="theme"`.** A `ReportTheme`
-  names chart colours — `chart_palette` (a list of hex colours, the series in
+- **Charts in the report theme's colors: `palette="theme"`.** A `ReportTheme`
+  names chart colors — `chart_palette` (a list of hex colors, the series in
   order), `chart_sequential` (magnitude, and the steps of an ordered scale),
   `chart_diverging` (a pair, the low end first), `chart_text_color`,
   `chart_grid_color` and `chart_font` (a font stack; the first face installed
   is used) — and every chart can take them: the Bar chart in all its forms (a
-  histogram in the palette's first colour, a donut's slices in the palette,
-  Top N's Other in the neutral grey, error bars and significance letters in the
-  text colour), the Box plot, the Heatmap (`cmap="theme"`: the sequential
-  colour for means, the diverging pair for Spearman, Pearson and Kendall), the
+  histogram in the palette's first color, a donut's slices in the palette,
+  Top N's Other in the neutral gray, error bars and significance letters in the
+  text color), the Box plot, the Heatmap (`cmap="theme"`: the sequential
+  color for means, the diverging pair for Spearman, Pearson and Kendall), the
   Scatter plot, the Likert chart, the Trend and every Result chart, Key
   drivers, the Perceptual map and Price sensitivity included (their first two
-  colours, the NPS and sentiment's red–grey–blue from the diverging pair, the
+  colors, the NPS and sentiment's red–gray–blue from the diverging pair, the
   loadings and correlation heatmaps from it too). Each chart node's Palette
   offers `theme`.
   The defaults are a set a reader with protanopia or deuteranopia can tell
-  apart: eight colours (`#2a78d6 #eb6834 #335c00 #e08fff #29c2a3 #8f0a5c
+  apart: eight colors (`#2a78d6 #eb6834 #335c00 #e08fff #29c2a3 #8f0a5c
   #cc4799 #5233a3`) any two of which are at least 9.5 apart in OKLab (×100)
-  under Machado's simulation and 17 with full colour vision, each 2:1 on white,
+  under Machado's simulation and 17 with full color vision, each 2:1 on white,
   and blue–red for a scale that diverges; a Trend of more than four lines also
   gives each line's points a shape of its own. An ordered scale's steps are
-  each their own colour, a sequential colour lighter than 2:1 on white (a
-  yellow) included, and past the palette a chart's colours keep 2:1; a palette
-  or sequential colour under 1.3:1 on white is refused (`chart_palette:
+  each their own color, a sequential color lighter than 2:1 on white (a
+  yellow) included, and past the palette a chart's colors keep 2:1; a palette
+  or sequential color under 1.3:1 on white is refused (`chart_palette:
   '#ffe8b2' on the charts' white background has a contrast of 1.2:1; a bar or
   a line in it needs at least 1.3:1 to be seen.`). Text written on a fill is white or the theme's text,
   whichever reads better, black where neither reaches 4.5:1. The theme is an
   opt-in: a chart that names a palette of its own — every stored flow's — is
   drawn byte for byte as before. A chart is drawn at its node, before the Save
   report's Look is known, so a report draws each chart of palette `theme` again
-  from its parameters in its own theme's colours when they differ from the
+  from its parameters in its own theme's colors when they differ from the
   ones it was drawn with (`siamang.reporting.chart_theme.in_report`), in the
   Markdown's figures and the HTML's; at its node the chart takes the look
-  `SIAMANG_REPORT_THEME` names, else the defaults. In the theme's colours a Box
+  `SIAMANG_REPORT_THEME` names, else the defaults. In the theme's colors a Box
   plot's boxes take the palette in the order drawn, undimmed, and a Scatter
   plot's groups in the codebook's order under a legend titled by the
   variable's label. `check_flow` names a bad
-  chart colour in Save report's Look: `chart_palette: 'purple' is not a hex
-  colour such as '#2a78d6'.`, `chart_text_color: '#cccccc' on the charts' white
+  chart color in Save report's Look: `chart_palette: 'purple' is not a hex
+  color such as '#2a78d6'.`, `chart_text_color: '#cccccc' on the charts' white
   background has a contrast of 1.6:1; text needs at least 4.5:1.`, `chart_diverging:
-  give two colours, the low end first and the high end second, e.g. ['#e34948',
+  give two colors, the low end first and the high end second, e.g. ['#e34948',
   '#2a78d6'].`
 
 - **Result chart: Key drivers, Perceptual map, Price sensitivity, Cochran's Q
@@ -186,8 +186,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Likert chart.** `visualize.likert` and `data.plot.likert()`
   (`siamang.reporting.LikertChart`) draw a battery of items on one ordered scale
-  as diverging stacked bars centred on the neutral answer — split around the
-  centre, or drawn apart at the right — or, on an even scale, between the two
+  as diverging stacked bars centered on the neutral answer — split around the
+  center, or drawn apart at the right — or, on an even scale, between the two
   middle answers, with each item's top-2 and bottom-2 shares at the ends and
   the items in order of their top-2 share unless listed. Labels come from the
   codebook; the missing codes and values off the scale are left out and
@@ -202,7 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The two new ones are the Correlation matrix table's numbers over the
   respondents who answered every item: the codebook's missing codes left out
   and counted under the plot with N, Pearson weighted when a weight is applied
-  (colour bar "Weighted Pearson r"), Kendall saying the weight is not applied,
+  (color bar "Weighted Pearson r"), Kendall saying the weight is not applied,
   a pair that cannot be computed a blank cell with the reason. Long labels are
   numbered (`1. label` down, `1`, `2`, … across) and every row is as tall as its
   label. A Method with By is a warning: the heatmap then shows means.
@@ -211,7 +211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a donut.** `visualize.bar` and `data.plot.bar()` take `top` (*Top N*: only
   the N answers given most — with Split by, given most overall; for a
   multiple-choice question, the options named most) and `other` (*Combine the
-  rest as Other*: one grey bar, last, for the rest — for a multiple-choice
+  rest as Other*: one gray bar, last, for the rest — for a multiple-choice
   question the respondents who named any of them, not their sum); `intervals`
   and `confidence` (error bars: Wilson's interval on each percentage — Kish's
   effective base when weighted, the new `siamang.data.intervals.share_interval`
@@ -259,7 +259,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   respondents and add up to more than 100 %, which the chart says; its options
   overlap, so they are drawn side by side and never stacked. These forms leave
   the codebook's missing codes out of the bars and count them, and write the
-  base, the weight and each group's `n` on the chart. A colour belongs to its
+  base, the weight and each group's `n` on the chart. A color belongs to its
   answer whatever the order, an ordered scale is one hue light to dark, long
   labels wrap, and a small figure grows taller rather than squash its plot. At
   the defaults the chart and the node's code are what they were; the node's
@@ -417,7 +417,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SurveyDataReader` accepts `.parquet`.
 - **Tests chosen by hand, in the engine and in flows.** Until now a flow could
   only take the test Group means chose for it, the chi-square of a crosstab and
-  a Spearman correlation, and nothing compared the groups pairwise afterwards.
+  a Spearman correlation, and nothing compared the groups pairwise afterward.
   - **`siamang.data.inference`** (numpy and SciPy only; SciPy 1.11 is enough):
     Pearson (with a Fisher-z interval, and a weighted form whose p and interval
     are on Kish's effective base), Spearman and Kendall tau-b correlations and
@@ -520,7 +520,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loadings hideable), the eigenvalues and variance explained, the factor
   correlations, and KMO, Bartlett's test and RMSR; with `scores` it adds
   regression-method factor scores to the data as `factor_1`, `factor_2`, …
-  (labelled variables a later node can name). The numbers reproduce the
+  (labeled variables a later node can name). The numbers reproduce the
   `factor_analyzer` package and `psych::fa` / `factanal`; the conventions
   (sign, order, Kaiser normalization) are in the module's docstring. Maximum
   likelihood is started from 14 fixed points (factanal's, minres, 1 − SMC, 0.5
@@ -563,7 +563,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     codebook and named in `Not in the codebook, as expected`, not reported.
   - **MaxDiff scores** (`prepare.maxdiff_scores`,
     `siamang.data.maxdiff.with_scores`): one interval variable per item,
-    `<question>_score_<code>` unless a `prefix` is given, labelled `MaxDiff
+    `<question>_score_<code>` unless a `prefix` is given, labeled `MaxDiff
     score: <item>` with a valid range of −1…1 — each respondent's best minus
     worst over the times the item was shown to them, blank where it never was —
     so preferences feed Crosstab, Cluster and Regression. A `stat` output gives
@@ -594,7 +594,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     path. `siamang.io.export_file()` / `EXPORT_FORMATS` do the same outside a
     flow.
   - **Bands** (`prepare.bands`, `siamang.data.bands.bands`): a number cut into
-    a labelled ordinal variable (`18 to under 30`, …) after the codebook's
+    a labeled ordinal variable (`18 to under 30`, …) after the codebook's
     missing codes are taken out, with a `stat` of the count per band and what
     fell outside. **Derive** takes `labels` for a formula that yields codes.
 
@@ -650,13 +650,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `check_flow` refuses fewer than two drivers and more than 15 with Shapley
   before the run ("Key drivers splits R² between two or more predictors; 1 was
   given. …"). `drivers.plot(result)` draws the shares as horizontal bars,
-  largest first, a negative beta in a second colour, and returns the matplotlib
+  largest first, a negative beta in a second color, and returns the matplotlib
   Figure; the table (`DriverTable`) carries the result in `analysis`.
 
 - **Perceptual map** — `siamang.data.correspondence` and the flow node
   **`analyze.correspondence`**: simple correspondence analysis of a crosstab of
   two variables (a multiple-choice variable counts each answer) or of a
-  brand-image grid (per answer of **Rows**, the respondents ticking each 0/1
+  brand-image grid (per answer of **Rows**, the respondents checking each 0/1
   **Attribute**; **Counts as yes** for other codes), by the SVD of the
   standardized residuals as `ca::ca` and FactoMineR's `CA`: principal inertias
   and their share of the total, row and column principal coordinates, masses,
@@ -686,7 +686,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Newton-Miller-Smith** trial and revenue curves (calibration 5 → 0.7 … 1 → 0
   by default) and the prices of highest trial and revenue. **Gabor-Granger**:
   purchase intent at set prices gives the demand, revenue per respondent and
-  index, arc elasticities and the revenue-maximising price among those asked;
+  index, arc elasticities and the revenue-maximizing price among those asked;
   respondents answering yes at a higher price but no at a lower one are counted
   (`Not monotone`). Weighted shares; missing codes left out and counted.
   `check_flow` asks for what each method reads and checks the prices against
@@ -708,7 +708,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   column or ISO 8601 text as a platform snapshot writes it
   (`2026-05-25 09:00:00+00:00`, `2026-05-25T09:00:00.000Z`, `2026-05-25`),
   read in UTC and grouped by *Period* — `day`, `week` (ISO weeks, Monday to
-  Sunday, labelled `2026-W22`), `month` (`May 2026`), `quarter` (`2026 Q2`)
+  Sunday, labeled `2026-W22`), `month` (`May 2026`), `quarter` (`2026 Q2`)
   or `year`, every period between the first and the last on the axis. The
   *Measure* is the percent choosing the *Answer codes* (a list is a top-2
   box; for a multiple-choice question, any of them), the mean of a
@@ -727,7 +727,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Base`, `Weighted base`, `Effective base` and `Note`, whose statistics say
   what was measured, how time was read, the missing codes left out and the
   rows without a time or whose text is not a date (`Left out`). The chart is
-  drawn as the newer charts are: a colour of its own for every line however
+  drawn as the newer charts are: a color of its own for every line however
   many (past the palette's ten, lighter and darker ones), the bands of up to
   four lines (more would hide one another and the lines: "No bands: the 95%
   intervals of 13 lines would hide one another; the table gives each
@@ -900,7 +900,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`SurveyChart.png`, `SurveyChart.release`); `FlowRunner` renders each chart
   at its node and releases it, and a preview or a report at that resolution
   writes the kept picture without drawing again. A copy a report draws in its
-  own theme's colours is kept as its picture, not as an open figure. A chart
+  own theme's colors is kept as its picture, not as an open figure. A chart
   whose figure the caller asked for (`plot()`, `show()`) is left open. The
   figures are byte for byte those written before. Measured with one CPU and a
   512 MB memory limit: a 40-chart report went from killed at 19 s to written
@@ -931,12 +931,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `summary_fig_1.png` (characters other than letters, digits, `.`, `_` and `-`
   become `-`). `to_markdown` takes the `prefix` it uses (default none).
 
-- **An answer has one colour in every chart of a report.** The Bar chart's
-  split and donut coloured an answer by its place among the answers drawn,
+- **An answer has one color in every chart of a report.** The Bar chart's
+  split and donut colored an answer by its place among the answers drawn,
   so with Top N, or a donut's small slices combined as Other, every later
-  answer moved to another colour: one brand was orange in one chart and
-  magenta in the next. The colour is the answer's place among all the
-  answers given. A split without Top N is coloured as it was.
+  answer moved to another color: one brand was orange in one chart and
+  magenta in the next. The color is the answer's place among all the
+  answers given. A split without Top N is colored as it was.
 
 - **A number is not drawn a bar per value.** An age (16–99) drawn as percent
   bars, split by, or as a donut made a bar, a legend entry or a slice for each
@@ -953,7 +953,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   classic chart is drawn as it always was, and `check_flow` does not warn of
   it. With `top` only the N values given most are drawn, so N is what counts:
   `top=5` draws five ages and Other, their steps of the scale taken among the
-  five (among all 84 neighbours read as one colour); past 30, `… and top=31
+  five (among all 84 neighbors read as one color); past 30, `… and top=31
   draws a bar for each of the 31 given most: give top=30 or fewer, or
   layout='histogram' draws its distribution …` (`check_flow`: `… and Top N
   draws a bar for each of the 31 given most: set Top N to 30 or fewer, or
@@ -962,7 +962,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nothing to draw is said.** Percent bars of a variable nobody answered (every
   answer a missing code) drew an empty axis ticked `−0%`; they say `No
   respondent answered X.`, as the split and the donut do. A donut every answer
-  of which is under `min_slice` was one grey ring called Other; it says `Each
+  of which is under `min_slice` was one gray ring called Other; it says `Each
   of the 40 answers to Forty drawn is under 3 % of the respondents who
   answered, so Other would fill the whole ring: draw them as bars
   (layout='grouped'), or lower min_slice.`
@@ -975,7 +975,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   newer forms fitted the labels under vertical bars to 0.85 of the figure's
   width, but the value axis's title and ticks take their room first (229 of
   360 pt at 5 in): turned labels were drawn over one another, and level ones
-  ran together ("metropolitan (n = 4,249)" of two neighbours read as one
+  ran together ("metropolitan (n = 4,249)" of two neighbors read as one
   phrase). They are fitted again to the plot as laid out — level ones an em
   apart, turned ones in as many lines as their measured spacing holds — and
   the bars are drawn across when neither can be read. A group's `(n = …)` is
@@ -989,7 +989,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at 5 × 4 in had panels 24 pt tall under their wrapped titles: the figure
   grows until each is 72 pt. A mean of thousands reads `41,646.65` on the
   Bar chart and the Result charts' means (Group means, Descriptive
-  statistics, t-tests), its axis `40,000`. In the theme's colours the Box
+  statistics, t-tests), its axis `40,000`. In the theme's colors the Box
   plot's value title wraps to the plot's height (it ran into the title).
 
 - **Descriptive statistics of an income and an age take a panel each.** Their
@@ -999,7 +999,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a scale of their own, a row per group named with its base (`Means by
   Region, each variable on its own scale`).
 
-- **A Heatmap of means by group in the theme's colours leaves the missing
+- **A Heatmap of means by group in the theme's colors leaves the missing
   codes out and keeps its cells.** With `cmap="theme"`, By drew the classic
   form: twelve items of 60 characters made `tight_layout` fail and the
   heatmap a strip with its values on top of one another, and a 1–5 item's
@@ -1007,7 +1007,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the group's respondents who answered the item, as Group means gives it,
   the missing codes left out and counted; long items are numbered and
   wrapped, each group's base is under its name, and the base and the weight
-  are under the chart. A named colour map draws what it always drew; the By
+  are under the chart. A named color map draws what it always drew; the By
   help says that missing codes count as answers there.
 
 - **The Trend's Time offers the responses' timestamps, and names them on the
@@ -1040,7 +1040,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sorting a Bar chart split by a scale keeps the scale in order.** With
   Sort = value the answers of an ordinal scale were ordered by how often they
   were given — a 100 % stack read Satisfied, Very satisfied, Neither, … from
-  the bottom, its colour ramp and top box scrambled. The scale's answers now
+  the bottom, its color ramp and top box scrambled. The scale's answers now
   keep their order and the groups go largest first, by their share of the top
   answer (by their total, for counts), noted under the chart (`Groups in
   order of their share of Very satisfied; the answers keep the scale's
@@ -1069,9 +1069,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bar titled `1 item from Very dissatisfied to Very satisfied`, noted `Items
   in order of their top-2 share`: a row is at most 60 pt, one item is titled
   by its label (its row reads `(n = …)`), and the order note needs two. The
-  centre line ran through the neutral answer's value (`2|2%`); it runs
+  center line ran through the neutral answer's value (`2|2%`); it runs
   behind it. On an even scale the two middle answers were nearly white on
-  white (`#fddbc7`, `#d1e5f0` on 4-point RdBu); they keep a colour.
+  white (`#fddbc7`, `#d1e5f0` on 4-point RdBu); they keep a color.
 
 - **What a Likert or Bar chart cannot draw fails its own node, and the flow
   check says it first.** The charts are built lazily, so a chart node
@@ -1086,7 +1086,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drawn, its ends named `Not at all` and `Completely`.
 
 - **A Result chart of a table alone says how the weight was used.** A
-  Regression's, a PCA's, a Cluster's and TURF's chart learnt the weight only
+  Regression's, a PCA's, a Cluster's and TURF's chart learned the weight only
   from the Stat: with the table alone connected, a chart beside weighted
   tables had no weight line — and Cluster, whose k-means ignores the weight,
   did not say `unweighted (the weight 'w' is not applied)`. These tables now
@@ -1108,7 +1108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The Pearson and Kendall heatmap writes its coefficients at a size its
   cells hold.** It used seaborn's 12-pt annotations whatever the cell: with
-  14 items at 10 × 6 inches every neighbouring coefficient in a row ran
+  14 items at 10 × 6 inches every neighboring coefficient in a row ran
   together and the white `1.00` spilled out of its cell; at 6 × 4 inches the
   rows' labels, wrapped to five lines, grew the figure into a 6 × 17-inch
   strip. The coefficients are now at most 10 pt and fit their cell, or are
@@ -1157,13 +1157,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   MaxDiff utilities' `… against <reference item> at 0`) and the notes under
   the plot are wrapped to the plot as it is laid out.
 
-- **Many series get as many colours.** A Result chart took `n` colours of its
+- **Many series get as many colors.** A Result chart took `n` colors of its
   palette, which cycles past its ten: Descriptive statistics by 13 regions
-  drew Wales in North East's colour, and by 24 groups ten colours for 24
+  drew Wales in North East's color, and by 24 groups ten colors for 24
   series. The Bar chart switched to husl's wheel past the palette, whose
-  first and last colours (and neighbours) look alike, so the bottom and top
+  first and last colors (and neighbors) look alike, so the bottom and top
   segments of a 13-group stack could not be told apart. Both now take the
-  palette's own colours, then the same lighter, then darker (up to three
+  palette's own colors, then the same lighter, then darker (up to three
   times the palette), and past that hues spaced over the wheel without
   closing it, their lightness alternating.
 
@@ -1171,7 +1171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other.** With many categories or long labels (24 brands of 60 characters,
   13 regions) the turned labels under vertical bars ran into each other, and
   beside horizontal bars two- and three-line labels overlapped in a figure
-  that never grew (23 of 24 neighbours overlapped); the title could sit on
+  that never grew (23 of 24 neighbors overlapped); the title could sit on
   the first label. Labels beside horizontal bars now get a row each —
   smaller (to 8 pt) and wider first, else the figure grows to a row per
   label; vertical bars whose labels cannot be read under them, even turned,
@@ -1182,7 +1182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   note under the plot names the variable). A legend beside the plot that is
   taller than the plot (20 options of three lines) ran off the figure and
   over the notes; it is placed under the plot instead. Turned values of
-  neighbouring bars that would touch are left to the axis.
+  neighboring bars that would touch are left to the axis.
 
 - **A percent axis labels its ticks with their own values.** The Bar chart's
   percent axis (Show = percent, or a stacked split) printed its ticks without
@@ -1233,7 +1233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Frequencies table rounded each weighted N to one decimal and then took the
   percentages of those rounded numbers, so they could differ in the last digit
   from the Bar chart's and the Likert chart's (18.0 against 17.9) and, with
-  small weights, be wrong outright: weights normalised to sum to 1 over 1000
+  small weights, be wrong outright: weights normalized to sum to 1 over 1000
   respondents made every answer 20.0 %, and weights of 0.04, 0.04, 0.04 and
   0.34 gave 0.0 / 25.0 / 75.0 % instead of 8.7 / 17.4 / 73.9 %. The N column
   and the total still show one decimal; `%`, `Cumulative %` and the Weighted
@@ -1246,7 +1246,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A Perceptual map no longer maps a blank answer as a category.** On the
   data Studio runs flows on — a snapshot read by `read_snapshot`, the
-  platform's responses — labelled codes come back as nullable `Int64`, a
+  platform's responses — labeled codes come back as nullable `Int64`, a
   skipped answer as `pd.NA`, and the map counted it: a `<NA>` row or column,
   every respondent in N, `Excluded` 0, and a different inertia, chi-square and
   map than the same responses in memory. Any scalar NA is now no answer.
@@ -1312,7 +1312,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The correlation matrix's p adjustment names the pairs it adjusted.** The
   footer said `Bonferroni, over 3 pairs` while a pair with a constant variable
   had no p and was not one of the comparisons, so the printed Bonferroni p
-  equalled the raw one. It now counts the pairs with a p: `over the 1 pair
+  equaled the raw one. It now counts the pairs with a p: `over the 1 pair
   computed (of 3)`, or `over 3 pairs` when all were.
 
 - **A repeated index label no longer mixes up rows.** Descriptive statistics
@@ -1345,7 +1345,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the run; when the rule kept fewer, the node reading `factor_2` failed with
   `KeyError: "['factor_2'] not in index"`. The run now makes the ones a node
   downstream names (`factor.analyze(..., read_later=…)`, which the flow
-  template fills with `{read_after!r}`), empty, labelled `Factor 2 score (not
+  template fills with `{read_after!r}`), empty, labeled `Factor 2 score (not
   made: the Kaiser criterion kept 1 factor)` and listed in `Scores` (`…;
   factor_2 empty: the Kaiser criterion kept 1 factor`) — so a t-test of one
   reads "not run" beside that label — and no other: the data, its exports and
@@ -1422,7 +1422,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matrix has no conditions on its rows, so every row is asked). With some rows
   answered it says "Please answer every row." — the new
   `UIConfig.required_rows_text`, `{n}` being the rows left — and marks those
-  rows until each has an answer, in the error colour and with `aria-invalid` on
+  rows until each has an answer, in the error color and with `aria-invalid` on
   their cells; with none it says `required_text`, as before (a row a script set
   to `null` is not an answer). Only Next marks rows: leaving the matrix
   unanswered, or a script's message on it, shows the message alone. Leaving the
@@ -1483,7 +1483,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "none"), and the runtime left every key to any field it was on, as it does
   to a text field. On a radio button, a checkbox or a slider Enter now goes to
   the next page, as it does elsewhere outside a text field, with the choice
-  kept; Space stays the control's own (it checks the radio, ticks or unticks
+  kept; Space stays the control's own (it checks the radio, checks or unchecks
   the box), and Esc and the digits act as they do elsewhere.
 - `validate()` let a question whose id is not its answer key (id `q1`,
   variable `nps_1`) carry as its id a name the answers already hold something
@@ -1559,7 +1559,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `N respondents (W weighted)`; `analyze.conjoint_shares` gains a `stat` output.
 - The rest of the analysis now either uses the weight or says it does not.
   `BarChart` draws sums of weights / weighted means and `HeatMap` with `by`
-  weighted means (axis or colour bar "Weighted …"); `BoxPlot`, `ScatterPlot`
+  weighted means (axis or color bar "Weighted …"); `BoxPlot`, `ScatterPlot`
   and the correlation `HeatMap` get a second title line `unweighted (the weight
   'w' is not applied)`, exposed as `SurveyChart.weight_note`. `pca()` and
   `reliability()` take a `weight` and use the weighted covariance matrix (R's
@@ -1717,7 +1717,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ("not available when choices are separate variables") and gave it no
   choices. It now keeps the choices beside the variables — choice i on
   variable i — with their exclusive codes and, for a text-entry choice,
-  `other_code`, all of which the runtime honours in the wide layout.
+  `other_code`, all of which the runtime honors in the wide layout.
 - The `body` of an ordinary page with questions was never shown: the runtime
   rendered a body only on engine-kind `"content"` pages (and terminal ones),
   so an introduction above a page's questions silently disappeared. A body is
@@ -1768,7 +1768,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   itself). The "Select at least N more" hint under the options now also shows
   without `max_answers`, once the question is answered or when it is required,
   until an exclusive answer is picked.
-- `Script.timed_question`'s timer was never cancelled: a respondent who left
+- `Script.timed_question`'s timer was never canceled: a respondent who left
   the page before it ran out had Next pressed for them later, on whatever page
   was showing — the last one included, which submitted the survey. The runtime
   now cancels every timer kept in `answers.__timers__` whenever a page is left
@@ -1812,7 +1812,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   place in the document, counting the end pages: a survey ending on a thank-you
   and a screen-out page showed "Section 2 of 4" on its last question page and
   never reached "Final thoughts" or a full bar, and after `randomize_pages` the
-  labels travelled with the pages ("Section 3" shown second). The runtime now
+  labels traveled with the pages ("Section 3" shown second). The runtime now
   works them out from the pages the respondent answers — visible, in their
   order, without the end pages — and so does the bar's percentage; the page
   dots are one per such page. `UIConfig.show_section_numbers` and
@@ -1906,7 +1906,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The local server (`siamang preview`, `backend="local"`) answered the
   runtime's quota check with `LocalBackend.increment_quota`, which claimed a
   place in the cell for every respondent whose answer was checked — those who
-  dropped out afterwards or were screened out included — so a cell filled
+  dropped out afterward or were screened out included — so a cell filled
   before its completes reached the limit. `/quota-check` now only reads
   (`check_quota`, which takes a list and is full when any value's cell is),
   and `store_response` counts a completed response — anything but
@@ -1919,13 +1919,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The autosave of an interview that had ended was written back after it
   ended. It is written 2 s after the last answer, and ending the interview
   (Submit, a full quota on leaving a page or in the reply to a submission)
-  removed the saved answers without cancelling the save still pending from an
+  removed the saved answers without canceling the save still pending from an
   answer given just before — the usual case. The thank-you or quota-full
   screen was followed by a fresh `siamang_answers_<survey_id>`, the next visit
   within a day offered to resume the finished interview (a second completed
   response when accepted), and Studio's transport, which reads that key for
   partial responses, posted it as one. An ended interview now cancels the
-  pending save and writes none afterwards; a submission refused as a full
+  pending save and writes none afterward; a submission refused as a full
   quota also forgets the saved answers and the interview id, as a full quota
   found on leaving a page does.
 - Resuming a survey with `Script.randomize_pages` landed on the wrong page.
@@ -1984,7 +1984,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   non-UTF-8 locale labels were read in the wrong encoding. The script now finds
   its files beside itself under `Rscript` and `source()`, reads the CSV as UTF-8
   with only empty cells missing, keeps multiple-choice columns as text, gives an
-  unlabelled code a level of its own, leaves missing codes out of the levels and
+  unlabeled code a level of its own, leaves missing codes out of the levels and
   sets each column's `label` attribute. Its dictionary is now
   `<name>.dictionary.json` (was `<name>_dictionary.json`), the name every other
   export uses, so `read_snapshot("<name>.csv")` finds it.

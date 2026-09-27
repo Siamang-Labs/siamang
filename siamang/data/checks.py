@@ -1,7 +1,7 @@
 """The data against its codebook, as a table a flow can show before analysis.
 
 :meth:`SurveyData.validate` says *that* a variable has values outside its
-valid range or codes nobody labelled. Before anything is analysed a researcher
+valid range or codes nobody labeled. Before anything is analyzed a researcher
 also needs *how many* rows and *which* values — 99 in an age column is a
 missing code somebody forgot to declare, 7 on a five-point scale is a recode
 that went wrong, and the two need different fixes. :func:`check` runs the same
@@ -57,7 +57,7 @@ _GATHERED = ("MISSING_COLUMN", "EXTRA_COLUMN")
 #: Columns a response table carries beside the answers, which no codebook
 #: declares: the store's own (``id``, ``survey_id``, ``created_at``, …), the
 #: runtime's (``respondent_id``, ``__status``, the timing) and the platform's
-#: behavioural signals, and the ``duration_s`` and ``partial`` that Speeders adds.
+#: behavioral signals, and the ``duration_s`` and ``partial`` that Speeders adds.
 #: With the ``url_*`` link parameters they are not reported as extra columns.
 #: The response timestamps a platform's frame carries beside the answers, and
 #: what a chart calls them: no codebook declares them, so no label is found

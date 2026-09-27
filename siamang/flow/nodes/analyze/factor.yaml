@@ -19,7 +19,7 @@ params:
     - interval
     - ratio
     label: Items
-    help: Three or more, analysed as standardised scores (their correlations). A respondent missing any item is left out; the codebook's missing codes count as missing.
+    help: Three or more, analyzed as standardized scores (their correlations). A respondent missing any item is left out; the codebook's missing codes count as missing.
   n_factors:
     kind: int
     minimum: 1
@@ -99,7 +99,7 @@ template:
   code: |2
         scores=True,
         into={into!r},
-# Chosen by a rule, a score the rule did not keep is made, empty and labelled
+# Chosen by a rule, a score the rule did not keep is made, empty and labeled
 # why, only when a node downstream names it: read_after lists those names.
 - when: scores=True & n_factors=None
   code: |2
