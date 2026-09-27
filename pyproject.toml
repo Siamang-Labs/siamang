@@ -66,6 +66,7 @@ include = ["siamang*"]
 "siamang.frontend.templates.react" = ["*.tpl", "*.jsx", "fonts/*.woff2", "fonts/*.txt", "fonts/*.md"]
 "siamang.frontend.templates.react.dist" = ["*.js"]
 "siamang.frontend.templates.react.vendor" = ["*.js"]
+"siamang.reporting.assets.vega" = ["*.js", "LICENSE-*", "README.md"]
 
 [project.optional-dependencies]
 dev = [
