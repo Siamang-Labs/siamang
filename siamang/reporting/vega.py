@@ -25,7 +25,8 @@ A spec says what the picture says and nothing more:
 - a tooltip on every mark gives its label, its value written as the picture
   writes it, and its base;
 - where there are series, a click on the legend hides one (and a second click
-  shows it again; a double click shows them all);
+  shows it again; a double click on the chart shows them all in a report's
+  HTML and in Studio), the legend fading the entries of the series hidden;
 - a ``description`` says in words what the chart shows, for a screen reader.
 
 This module holds what the specs share (the look, the notes, the formats, the
@@ -41,6 +42,7 @@ import functools
 import json
 import math
 import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -64,10 +66,14 @@ PX_PER_INCH = 72.0
 #: The notes' size and line height, in pixels.
 NOTE_SIZE = 10.5
 NOTE_LINE = 14.0
-#: The name of the selection a legend click toggles.
-HIDDEN = "hidden"
+#: The name of the selection a legend click toggles: the series shown.
+SHOWN = "shown"
 #: How opaque a hidden series is: all but gone, still where it was.
 HIDDEN_OPACITY = 0.07
+#: The clicks the legend takes: on its entries only. Vega-Lite's legend
+#: binding also listens to a click anywhere in the view, and a click on a mark
+#: toggled once more the entry clicked last.
+LEGEND_CLICK = "click[event.item && indexof(event.item.mark.role, 'legend') >= 0]"
 
 # ─── the look ────────────────────────────────────────────────────────────────
 
@@ -172,7 +178,25 @@ NOTE_WIDTHS = (
     (36, 0.0),
 )
 #: The same for the title, in its bold face at 15 pixels (about 9 a character).
-TITLE_WIDTHS = ((90, 850.0), (72, 690.0), (60, 580.0), (48, 470.0), (38, 380.0), (30, 0.0))
+TITLE_WIDTHS = (
+    (90, 850.0),
+    (72, 690.0),
+    (60, 580.0),
+    (48, 470.0),
+    (38, 380.0),
+    (30, 300.0),
+    (24, 0.0),
+)
+
+
+#: The most a title's (and the notes') lines may take across: the width
+#: drawn at, less a margin — none where the chart is drawn outside a container
+#: that gives it its width (0 is no limit). A line wider than the chart's
+#: container made the chart narrower at each layout, the text as wide as ever.
+TEXT_LIMIT = {"expr": "containerSize()[0] > 0 ? max(120, containerSize()[0] - 24) : 0"}
+#: The subtitle a size smaller on a phone's width, where its lines (written
+#: for a column) would be cut.
+SUBTITLE_SIZE = {"expr": "containerSize()[0] > 0 && containerSize()[0] < 330 ? 10.5 : 12"}
 
 
 def _by_width(text: str, widths: tuple[tuple[int, float], ...]) -> dict[str, str] | str:
@@ -211,17 +235,29 @@ def notes_title(notes: list[str], look: Look) -> dict[str, Any] | None:
         "lineHeight": NOTE_LINE,
         "color": look.muted,
         "offset": 14,
+        "limit": TEXT_LIMIT,
     }
+
+
+def heading_text(text: str) -> str:
+    """A chart's title as one line."""
+
+    return " ".join(str(text).split())
 
 
 def title(text: str, subtitle: list[str] | None = None) -> dict[str, Any]:
     """A spec's ``title``, wrapped to the width the chart is drawn at, with
     its subtitle (the weight a chart does not apply)."""
 
-    heading = " ".join(str(text).split())
-    out: dict[str, Any] = {"text": _by_width(heading, TITLE_WIDTHS), "frame": "bounds"}
+    heading = heading_text(text)
+    out: dict[str, Any] = {
+        "text": _by_width(heading, TITLE_WIDTHS),
+        "frame": "bounds",
+        "limit": TEXT_LIMIT,
+    }
     if subtitle:
         out["subtitle"] = subtitle
+        out["subtitleFontSize"] = SUBTITLE_SIZE
     return out
 
 
@@ -234,6 +270,8 @@ def finish(
     description: str,
     subtitle: list[str] | None = None,
     kind: str,
+    respondents: bool = False,
+    least: float | None = None,
 ) -> dict[str, Any]:
     """The whole spec: ``main`` (a view, a layer or a concatenation) under its
     title, the notes at its foot, the look, and what it is for a screen reader.
@@ -244,7 +282,12 @@ def finish(
 
     ``kind`` names the chart in ``usermeta`` (``{"siamang": {"chart": …}}``),
     with the notes as a list — what a host that shows the chart needs besides
-    the drawing."""
+    the drawing. ``respondents`` marks a chart that plots each respondent (a
+    scatter plot, a box plot's points): ``"respondents": true``, which a host
+    that shows charts to the public reads to show such a chart's picture only.
+    ``least`` is the least height (pixels) its plot reads at — a row per label
+    as tall as its label's lines, a map or a donut its own height —
+    ``"least"``, for a host that shortens a chart to fit a box (a Live tile)."""
 
     look = look_of(chart)
     below = notes_title(notes, look)
@@ -260,8 +303,11 @@ def finish(
     spec["usermeta"] = {
         "siamang": {
             "chart": kind,
+            "title": heading_text(heading),
             "notes": [note for note in notes if note],
             "vega-lite": VERSIONS["vega-lite"],
+            **({"respondents": True} if respondents else {}),
+            **({"least": math.ceil(least)} if least is not None else {}),
         }
     }
     return spec
@@ -293,6 +339,17 @@ def thousands_axis() -> dict[str, Any]:
     """A count axis with its thousands separated (20,000), as the pictures'."""
 
     return {"format": ",~f"}
+
+
+#: The height of a line of a label (pixels) at the axes' label size.
+LABEL_LINE = 13.0
+
+
+def rows_least(rows: int, lines: int) -> float:
+    """The least height of a plot of ``rows`` rows, each labeled in ``lines``
+    lines: no label runs into its neighbor's."""
+
+    return float(rows * (max(lines, 1) * LABEL_LINE + 6.0))
 
 
 def base_text(n: int, weighted: float | None = None) -> str:
@@ -329,14 +386,26 @@ def multiline_labels() -> str:
     return "split(datum.label, '\\n')"
 
 
-def toggle(field: str) -> dict[str, Any]:
-    """The selection a click on the legend toggles: each click on an entry
-    hides its series or shows it again; a double click shows them all."""
+def toggle(field: str, values: list[Any]) -> dict[str, Any]:
+    """The selection a click on the legend toggles — the series shown, each of
+    ``values`` (the legend's entries) at first: a click on an entry hides its
+    series or shows it again.
+
+    The selection holds the series *shown*, so the legend's own styling — an
+    entry in the selection at full strength, one out of it faded — fades the
+    entries of the hidden series. Only a click on an entry toggles
+    (:data:`LEGEND_CLICK`). An empty selection hides nothing (:func:`shown`):
+    hiding the last series shown shows them all again. A double click on the
+    chart shows them all where the chart is drawn by the report's HTML or by
+    Studio, which put the selection back as it was drawn (a double click
+    written in the spec — Vega-Lite's ``clear`` — cost every chart its
+    legend's first click)."""
 
     return {
-        "name": HIDDEN,
+        "name": SHOWN,
+        "value": [{field: value} for value in dict.fromkeys(values)],
         "select": {"type": "point", "fields": [field], "toggle": "true"},
-        "bind": "legend",
+        "bind": {"legend": LEGEND_CLICK},
     }
 
 
@@ -344,7 +413,7 @@ def shown(value: Any = 1, hidden: Any = HIDDEN_OPACITY) -> dict[str, Any]:
     """An ``opacity`` encoding: ``value``, or ``hidden`` for a series hidden
     by a click on the legend (:func:`toggle`)."""
 
-    return {"condition": {"param": HIDDEN, "empty": False, "value": hidden}, "value": value}
+    return {"condition": {"param": SHOWN, "empty": True, "value": value}, "value": hidden}
 
 
 def tooltip(*fields: tuple[str, str]) -> list[dict[str, Any]]:
@@ -353,7 +422,7 @@ def tooltip(*fields: tuple[str, str]) -> list[dict[str, Any]]:
     return [{"field": field, "type": "nominal", "title": name} for field, name in fields]
 
 
-def listing(pairs: list[tuple[str, str]], limit: int = 12) -> str:
+def listing(pairs: Sequence[tuple[Any, Any]], limit: int = 12) -> str:
     """``"North 41.2%, South 30.1% and 3 more"`` for a description."""
 
     items = [f"{name} {value}" for name, value in pairs]
@@ -388,6 +457,21 @@ def library(name: str) -> str:
     if "</script" in lowered or "<!--" in text:
         raise ValueError(f"{name} cannot be written inside a <script> element as it is.")
     return text
+
+
+@functools.cache
+def notices() -> str:
+    """The notices of the vendored builds and of the modules they bundle —
+    each package's license, verbatim (``assets/vega/THIRD-PARTY-NOTICES.txt``)
+    — which a document that carries the builds carries too, as their
+    licenses ask of a copy given to someone else."""
+
+    text = (resources.files("siamang.reporting.assets.vega") / "THIRD-PARTY-NOTICES.txt").read_text(
+        "utf-8"
+    )
+    if "-->" in text or "<!--" in text or "--!>" in text:
+        raise ValueError("THIRD-PARTY-NOTICES.txt cannot be written inside an HTML comment.")
+    return text.strip()
 
 
 def libraries_size() -> int:
@@ -442,6 +526,7 @@ __all__ = [
     "notes_title",
     "libraries_size",
     "library",
+    "notices",
     "look_of",
     "script_json",
     "spec_path",

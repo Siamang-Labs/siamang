@@ -51,6 +51,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   save HTML* off a check warns), and a Live tile of a chart publishes the spec
   with it (`Tile.spec`). `siamang.reporting.vega` holds what the specs share and
   `write_spec` / `spec_path` for a host that writes a chart's picture itself.
+  A legend's selection (`shown`) holds the series shown, so the legend fades the
+  entries of the hidden ones, and only a click on an entry toggles; a double
+  click on a chart in a report shows every series again. Zoom takes the wheel
+  with Ctrl or Cmd held, or a pinch (Shift, which Windows and macOS turn into a
+  scroll across, did not zoom there). A tooltip has no row a mark lacks (a
+  Trend point's note is on the low-base points alone), a heatmap's written value
+  has its cell's tooltip, a mean by group's cell gives the base of its own mean,
+  and a Result chart's tooltip names its rows (Region, Term, Theme) and gives
+  its base (themes, sentiment, a proportion, PCA loadings; a cluster's as
+  `123 respondents (41.0 %)`). A scatter plot's and a box plot's points are
+  listed by group and value, not in the data's order, and their specs say
+  `usermeta.siamang.respondents`; every spec gives its `title`, and a chart
+  that cannot be drawn shorter than a height (a row per label as tall as its
+  label, a map, a donut) its `least`. `Report.interactive_figures(html, specs)`
+  draws a document's pictures from the specs written beside them (a report
+  combined from Markdown). The report lays
+  a chart out until it settles (a legend of more rows pushed the title above
+  the drawing), keeps titles within the chart's width, gives a phone's width
+  the room the menu's button kept, and writes a narrow map's names only where
+  they fit. A picture saved from a chart's menu is named by the report and the
+  chart (`to_html(..., name=)`), and the document carries the notices of the
+  libraries and of what they bundle (`vega.notices()`,
+  `assets/vega/THIRD-PARTY-NOTICES.txt`). A donut whose values all sit in its
+  slices draws no empty layer (Vega warned of an infinite extent).
 - **Coding open answers by hand and by rules: codeframe version 2.** A
   codeframe (`"schema_version": "2.0"`) codes each answer by the first of: a
   coder's decision for its fingerprint (`assignments`: a code, several codes, or

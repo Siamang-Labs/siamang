@@ -69,6 +69,8 @@ class DrawnResult:
     axes: Any = field(default=None, repr=False)
     #: A figure an analysis drew whole: its title lines are its own.
     adopted: bool = False
+    #: What a row is ("Region", "Term", "Theme"): its name in a tooltip.
+    row_title: str | None = None
 
     def spec(self, chart: Any) -> dict[str, Any]:  # pragma: no cover - each form has its own
         raise NotImplementedError
@@ -79,6 +81,7 @@ class DrawnResult:
         main: dict[str, Any],
         description: str,
         notes: list[str] | None = None,
+        least: float | None = None,
     ) -> dict[str, Any]:
         return vega.finish(
             chart,
@@ -88,6 +91,7 @@ class DrawnResult:
             notes=list(self.notes) if notes is None else notes,
             description=description,
             kind=getattr(chart, "drawn", "") or "result",
+            least=least,
         )
 
 
@@ -221,15 +225,17 @@ def _plain(label: str) -> str:
 
 
 def _base_in(*labels: Any) -> str | None:
-    """The base a label states — "North (n = 97)" is 97 respondents."""
+    """The base a label states — "North (n = 97)" is 97 respondents, and
+    "Cluster 2 (n = 123, 41.0 %)" 123 respondents (41.0 %)."""
 
     for label in labels:
         text = _one_line(label or "")
         # "North (n = 97)", or a panel's row that is its base alone, "n = 300".
         found = _WITH_BASE.match(text) or re.fullmatch(r"()n = ([\d,–]+)", text)
         if found:
-            count = found.group(2)
-            return f"{count} {'respondent' if count == '1' else 'respondents'}"
+            count, _, rest = found.group(2).partition(", ")
+            base = f"{count} {'respondent' if count == '1' else 'respondents'}"
+            return f"{base} ({rest})" if rest else base
     return None
 
 
@@ -356,11 +362,9 @@ def _row_axis(axis_labels: list[str], labels: list[str]) -> dict[str, Any]:
     }
 
 
-def _row_height(
-    chart: Any, labels: list[str], per_row: int = 1, *, least: float | None = None
-) -> float:
-    """The plot's height for a row per label, as tall as a row's label in its
-    narrow lines and as its series need."""
+def _row_pitch(labels: list[str], per_row: int = 1) -> float:
+    """A row's height: as tall as its label in its narrow lines, and as its
+    series need."""
 
     lines = max(
         (
@@ -369,9 +373,22 @@ def _row_height(
         ),
         default=1,
     )
-    pitch = max(28.0, lines * 13.0 + 10.0, per_row * 13.0 + 10.0)
+    return max(28.0, lines * 13.0 + 10.0, per_row * 13.0 + 10.0)
+
+
+def _row_height(
+    chart: Any, labels: list[str], per_row: int = 1, *, least: float | None = None
+) -> float:
+    """The plot's height for a row per label (:func:`_row_pitch`)."""
+
     low = _height(chart, 120.0, 240.0) if least is None else least
-    return float(max(low, len(labels) * pitch))
+    return float(max(low, len(labels) * _row_pitch(labels, per_row)))
+
+
+def _row_least(labels: list[str], per_row: int = 1) -> float:
+    """The least height of a plot of a row per label: each row its pitch."""
+
+    return float(len(labels) * _row_pitch(labels, per_row))
 
 
 def _axis_title(text: str | None) -> str | list[str] | None:
@@ -506,7 +523,7 @@ def _dot_rows(
     texts = [text for item in series for text in item["text"]]
     digits = _decimals(texts)
     percent = _percent_texts(texts)
-    rows = []
+    rows: list[dict[str, Any]] = []
     for item in series:
         for index, label in enumerate(labels):
             estimate = item["estimate"][index]
@@ -528,6 +545,7 @@ def _dot_rows(
                 "lower": lower,
                 "upper": upper,
                 "value": _amount(estimate, digits, percent) if estimate is not None else "none",
+                "note": _note_in(text, letters),
                 "interval": (
                     f"{_amount(lower, digits, percent)} to {_amount(upper, digits, percent)}"
                     if lower is not None and upper is not None
@@ -536,10 +554,13 @@ def _dot_rows(
                 "label_text": text,
                 "tip": upper if upper is not None else estimate,
                 "base": _base_in(label, item["label"]) or drawn.base or "",
-                "note": _note_in(text, letters),
                 "letters": letters,
                 "colour": item["colour"],
             }
+            # What the label says besides the value, "(reference)", with it:
+            # a tooltip row of its own would be empty for every other row.
+            if row["note"] and estimate is not None:
+                row["value"] = f"{row['value']} ({row['note']})"
             where = f"{name}, {row['series']}" if row["series"] else name
             row["description"] = f"{where}: {row['value']}" + (
                 f" ({row['interval']})" if row["interval"] != "none" else ""
@@ -607,7 +628,7 @@ def _dot_view(
     fade = {"opacity": vega.shown()} if many else {}
     intervals = any(row["interval"] != "none" for row in rows)
     value_title = _value_title(x_title or drawn.x_title)
-    tooltip = [("name", "Row")]
+    tooltip = [("name", drawn.row_title or "Row")]
     if many:
         tooltip.append(("series", drawn.legend_title or "Series"))
     tooltip.append(("value", value_title))
@@ -615,8 +636,6 @@ def _dot_view(
         tooltip.append(("interval", _interval_title(x_title or drawn.x_title)))
     if drawn.letters and any(drawn.letters):
         tooltip.append(("letters", "Letters (sharing one: no difference)"))
-    if any(row["note"] for row in rows):
-        tooltip.append(("note", "Note"))
     if any(row["base"] for row in rows):
         tooltip.append(("base", "Base"))
     tip = vega.tooltip(*tooltip)
@@ -681,7 +700,7 @@ def _dot_view(
         },
     }
     if many:
-        points["params"] = [vega.toggle("entry")]
+        points["params"] = [vega.toggle("entry", legend)]
     layers.append(points)
     if any(row["label_text"] for row in rows):
         layers.append(
@@ -717,6 +736,7 @@ def _dot_view(
 
 
 def dots_spec(chart: Any, drawn: DrawnDots) -> dict[str, Any]:
+    least: float | None = None
     if drawn.panels:
         views, rows = [], []
         for index, (title, labels, series, limits) in enumerate(drawn.panels):
@@ -743,6 +763,7 @@ def dots_spec(chart: Any, drawn: DrawnDots) -> dict[str, Any]:
             drawn.limits or (0.0, 1.0),
             x_title=drawn.x_title,
         )
+        least = _row_least(drawn.labels, len(drawn.series) if drawn.dodge else 1)
     items = [
         (f"{row['name']}, {row['series']}" if row["series"] else row["name"], row["value"])
         for row in rows
@@ -750,7 +771,7 @@ def dots_spec(chart: Any, drawn: DrawnDots) -> dict[str, Any]:
     ]
     what = "Profile chart" if drawn.lines else "Dot chart of estimates and their intervals"
     description = f"{what}: {vega.plain(drawn.heading)}. {vega.listing(items, 24)}."
-    return drawn._finish(chart, main, description)
+    return drawn._finish(chart, main, description, least=least)
 
 
 # ─── rows of bars (``_bars``, part-worths, Key drivers) ──────────────────────
@@ -841,13 +862,14 @@ def record_drivers(chart: Any, analysis: Any, *, heading: str) -> None:
         else None,
         details=[("Beta (standardized)", [f"{analysis.betas[index]:.3f}" for index in order])],
         value_title="Share of R²",
+        row_title="Driver",
     )
 
 
 def row_bars_spec(chart: Any, drawn: DrawnRowBars) -> dict[str, Any]:
     look = vega.look_of(chart)
     axis_labels = vega.unique([_row_label(label) for label in drawn.labels])
-    rows = []
+    rows: list[dict[str, Any]] = []
     for index, label in enumerate(drawn.labels):
         value = drawn.values[index]
         text = drawn.texts[index] if index < len(drawn.texts) else ""
@@ -889,7 +911,7 @@ def row_bars_spec(chart: Any, drawn: DrawnRowBars) -> dict[str, Any]:
     else:
         colour = {"field": "colour", "type": "nominal", "scale": None, "legend": None}
     fade = {"opacity": vega.shown()} if len(groups) > 1 else {}
-    tooltip = [("name", "Row")]
+    tooltip = [("name", drawn.row_title or "Row")]
     if len(groups) > 1:
         tooltip.append(("group", drawn.legend_title or "Group"))
     tooltip.append(("text", drawn.value_title or _value_title(drawn.x_title)))
@@ -925,7 +947,7 @@ def row_bars_spec(chart: Any, drawn: DrawnRowBars) -> dict[str, Any]:
         },
     }
     if len(groups) > 1:
-        bars["params"] = [vega.toggle("group")]
+        bars["params"] = [vega.toggle("group", groups)]
     layers: list[dict[str, Any]] = [bars]
     if drawn.reference is not None:
         layers.append(
@@ -963,7 +985,7 @@ def row_bars_spec(chart: Any, drawn: DrawnRowBars) -> dict[str, Any]:
     }
     items = [(row["name"], row["text"]) for row in rows if row["value"] is not None]
     description = f"Bar chart: {vega.plain(drawn.heading)}. {vega.listing(items, 24)}."
-    return drawn._finish(chart, main, description)
+    return drawn._finish(chart, main, description, least=_row_least(drawn.labels))
 
 
 # ─── stacks of shares (the Net Promoter Score, sentiment by theme) ──────────
@@ -989,6 +1011,9 @@ class DrawnStack(DrawnResult):
     #: A line over the bar (the score) and what an empty row says.
     headline: str | None = None
     empty: str | None = None
+    #: Each row's base, where its shares are of a number of its own (a
+    #: theme's sentiment, of the theme's answers).
+    bases: list[str] | None = None
 
     def spec(self, chart: Any) -> dict[str, Any]:
         return stack_spec(chart, self)
@@ -1007,7 +1032,7 @@ def stack_spec(chart: Any, drawn: DrawnStack) -> dict[str, Any]:
     one = drawn.labels is None
     labels = [""] if one else drawn.labels or []
     axis_labels = vega.unique([_row_label(label) for label in labels]) if not one else ["bar"]
-    rows = []
+    rows: list[dict[str, Any]] = []
     for index, (label, shares, texts) in enumerate(
         zip(labels, drawn.shares, drawn.texts, strict=True)
     ):
@@ -1031,7 +1056,10 @@ def stack_spec(chart: Any, drawn: DrawnStack) -> dict[str, Any]:
                     "ink": ink,
                     "inside": bool(share is not None and share >= drawn.least),
                     "text_px": _text_px(text),
-                    "base": _base_in(label) or drawn.base or "",
+                    "base": (drawn.bases[index] if drawn.bases else None)
+                    or _base_in(label)
+                    or drawn.base
+                    or "",
                     "description": (f"{_plain(label)}: " if label else "") + f"{name} {text}",
                 }
             )
@@ -1043,13 +1071,13 @@ def stack_spec(chart: Any, drawn: DrawnStack) -> dict[str, Any]:
         "axis": None if one else _row_axis(axis_labels, labels),
         "scale": {"paddingInner": 0.3},
     }
-    tooltip = [] if one else [("name", "Row")]
+    tooltip = [] if one else [("name", drawn.row_title or "Row")]
     tooltip += [("part", "Group" if one else "Part"), ("text", "Share")]
     if any(row["base"] for row in rows):
         tooltip.append(("base", "Base"))
     segments = {
         "mark": {"type": "bar", "stroke": "#ffffff", "strokeWidth": 1.5},
-        "params": [vega.toggle("entry")],
+        "params": [vega.toggle("entry", drawn.legend)],
         "encoding": {
             "x": {
                 "field": "start",
@@ -1160,7 +1188,8 @@ def stack_spec(chart: Any, drawn: DrawnStack) -> dict[str, Any]:
     description = (
         f"Stacked bar chart: {vega.plain(drawn.heading)}.{headline} {vega.listing(items, 30)}."
     )
-    return drawn._finish(chart, main, description)
+    least = 120.0 if one else _row_least(labels)
+    return drawn._finish(chart, main, description, least=least)
 
 
 # ─── TURF: each option's reach, and what it alone reaches ────────────────────
@@ -1196,7 +1225,7 @@ def overlay_spec(chart: Any, drawn: DrawnOverlay) -> dict[str, Any]:
     look = vega.look_of(chart)
     axis_labels = vega.unique([_row_label(label) for label in drawn.labels])
     reach_name, unique_name = drawn.names[:2]
-    rows = []
+    rows: list[dict[str, Any]] = []
     for index, label in enumerate(drawn.labels):
         reach, unique = drawn.reach[index], drawn.unique[index]
         common = {
@@ -1243,7 +1272,7 @@ def overlay_spec(chart: Any, drawn: DrawnOverlay) -> dict[str, Any]:
     layers: list[dict[str, Any]] = [
         {
             "mark": {"type": "bar"},
-            "params": [vega.toggle("series")],
+            "params": [vega.toggle("series", series)],
             "encoding": {
                 # The share only an option reaches over its reach, not after it.
                 "x": {
@@ -1315,7 +1344,7 @@ def overlay_spec(chart: Any, drawn: DrawnOverlay) -> dict[str, Any]:
     }
     items = [(row["name"], row["label_text"]) for row in rows if row.get("label_text")]
     description = f"Bar chart: {vega.plain(drawn.heading)}. {vega.listing(items, 24)}."
-    return drawn._finish(chart, main, description)
+    return drawn._finish(chart, main, description, least=_row_least(drawn.labels))
 
 
 # ─── a proportion and its interval ───────────────────────────────────────────
@@ -1330,6 +1359,8 @@ class DrawnProportion(DrawnResult):
     track: str
     #: The line under the number: the interval, its level and the base.
     line: str
+    #: What the interval is ("95 % confidence interval").
+    interval_title: str = "Confidence interval"
 
     def spec(self, chart: Any) -> dict[str, Any]:
         return proportion_spec(chart, self)
@@ -1355,7 +1386,7 @@ def proportion_spec(chart: Any, drawn: DrawnProportion) -> dict[str, Any]:
         "note": drawn.line,
         "description": f"{text}, {drawn.line}",
     }
-    x = {
+    x: dict[str, Any] = {
         "type": "quantitative",
         "scale": {"domain": [-2, 102], "nice": False},
         "axis": {
@@ -1365,7 +1396,9 @@ def proportion_spec(chart: Any, drawn: DrawnProportion) -> dict[str, Any]:
             "grid": False,
         },
     }
-    tooltip = vega.tooltip(("text", "Share"), ("interval", "Interval"), ("note", "Base"))
+    row["base"] = drawn.base or ""
+    fields = [("text", "Share"), ("interval", _one_line(drawn.interval_title).replace(" %", "%"))]
+    tooltip = vega.tooltip(*fields, *([("base", "Base")] if drawn.base else []))
     layers: list[dict[str, Any]] = [
         {
             "data": {"values": [{"from": 0, "to": 100}]},
@@ -1440,6 +1473,8 @@ def proportion_spec(chart: Any, drawn: DrawnProportion) -> dict[str, Any]:
         notes=notes,
         description=description,
         kind=getattr(chart, "drawn", "") or "interval",
+        # Its track and its number are drawn at their places: not shortened.
+        least=124,
     )
     return spec
 
@@ -1479,7 +1514,7 @@ def reach_spec(chart: Any, drawn: DrawnReach) -> dict[str, Any]:
     ticks = vega.unique(["\n".join(_tick_lines(tick, 18)) for tick in drawn.ticks])
     narrow = {tick: _tick_lines(raw, 9) for tick, raw in zip(ticks, drawn.ticks, strict=True)}
     count = max(len(ticks), 1)
-    rows = []
+    rows: list[dict[str, Any]] = []
     for index, tick in enumerate(ticks):
         reach, added = drawn.reach[index], drawn.added[index]
         size = drawn.ticks[index].split("\n")[0]
@@ -1500,7 +1535,7 @@ def reach_spec(chart: Any, drawn: DrawnReach) -> dict[str, Any]:
                 f"{_amount(reach, 1, True)}",
             }
         )
-    x = {
+    x: dict[str, Any] = {
         "field": "tick",
         "type": "nominal",
         "sort": ticks,
@@ -1625,7 +1660,7 @@ def scree_spec(chart: Any, drawn: DrawnScree) -> dict[str, Any]:
     eigen, kaiser = drawn.names[0], drawn.names[1]
     names = [eigen, kaiser] + ([drawn.names[2]] if drawn.random is not None else [])
     colours = [drawn.colour, drawn.ink] + ([drawn.muted] if drawn.random is not None else [])
-    points = []
+    points: list[dict[str, Any]] = []
     for index, value in enumerate(drawn.eigenvalues, start=1):
         kept = drawn.kept is not None and index <= drawn.kept
         points.append(
@@ -1655,7 +1690,7 @@ def scree_spec(chart: Any, drawn: DrawnScree) -> dict[str, Any]:
         "scale": {"domain": names, "range": colours},
         "legend": {**_legend_of(None, names), "symbolType": "stroke", "symbolStrokeWidth": 2},
     }
-    x = {
+    x: dict[str, Any] = {
         "field": "x",
         "type": "quantitative",
         "scale": {"domain": [0.5, count + 0.5], "nice": False, "zero": False},
@@ -1685,7 +1720,7 @@ def scree_spec(chart: Any, drawn: DrawnScree) -> dict[str, Any]:
         {
             "data": {"values": lines},
             "mark": {"type": "line", "strokeWidth": 1.8},
-            "params": [vega.toggle("series")],
+            "params": [vega.toggle("series", names)],
             "encoding": {
                 "x": x,
                 "y": y,
@@ -1747,10 +1782,10 @@ def scree_spec(chart: Any, drawn: DrawnScree) -> dict[str, Any]:
         "layer": layers,
     }
     items = [(f"{drawn.name} {row['x']}", row["text"]) for row in points]
-    kept = f", {drawn.kept} kept" if drawn.kept is not None else ""
+    kept_text = f", {drawn.kept} kept" if drawn.kept is not None else ""
     description = (
         f"Scree plot: {vega.plain(drawn.heading)}, eigenvalues of {count} "
-        f"{drawn.name.lower()}s{kept}. {vega.listing(items)}."
+        f"{drawn.name.lower()}s{kept_text}. {vega.listing(items)}."
     )
     return drawn._finish(chart, main, description)
 
@@ -1795,6 +1830,8 @@ def record_image(
     legend_title: str,
     value_title: str,
     column_title: str | None = None,
+    row_title: str = "Row",
+    column_name: str = "Column",
     notes: list[str] | None = None,
     blank: str | None = None,
     blank_text: str = "not computed",
@@ -1832,6 +1869,8 @@ def record_image(
             blank=None if blank is None else vega.hex_colour(blank),
             blank_text=blank_text,
             details=dict(details or {}),
+            row_title=row_title,
+            column_title=column_name,
         ),
     )
 
@@ -1865,7 +1904,7 @@ def record_map(chart: Any, analysis: Any, *, numbered: bool, heading: str) -> No
 
     solution = analysis.solution
     top = solution.dimensions
-    points = []
+    points: list[dict[str, Any]] = []
     sets = [str(analysis.row_title), str(analysis.column_title)]
     tables = [analysis.rows, analysis.columns]
     for part, (labels, principal, masses, table) in enumerate(
@@ -1942,6 +1981,60 @@ MAP_CHROME = 92.0
 
 #: The height of a line of a name on the map (pixels).
 MAP_LINE = 13.0
+#: The widths of a narrow map's container (pixels) from which its names are
+#: placed anew, each for the narrowest of its range: a name that would run
+#: into another, or over another's point, is left out there (its tooltip
+#: names the point).
+MAP_NAME_WIDTHS = (0.0, 360.0, 400.0, 440.0, 480.0)
+
+
+def _names_that_fit(
+    points: list[dict[str, Any]],
+    center: tuple[float, float],
+    spans: tuple[float, float],
+    height: float,
+) -> list[list[bool]]:
+    """For each point, whether its name — beside it, as a narrow map writes it
+    — is written at each of :data:`MAP_NAME_WIDTHS`: placed largest mass
+    first, a name is left out where it would cross a name placed before it or
+    another point, or run past the plot."""
+
+    cx, cy = center
+    x_span, y_span = spans
+    order = sorted(
+        range(len(points)),
+        key=lambda index: -(vega.number(points[index].get("mass")) or 0.0),
+    )
+    fits = [[False] * len(MAP_NAME_WIDTHS) for _ in points]
+    for bucket, least in enumerate(MAP_NAME_WIDTHS):
+        width = max(max(least, 300.0) - MAP_CHROME, 120.0)
+        per = max(x_span / width, y_span / height)
+        where = [
+            (width / 2.0 + (point["x"] - cx) / per, height / 2.0 - (point["y"] - cy) / per)
+            for point in points
+        ]
+        # A name is written over no other point: the points are the data.
+        marks = [(x - 5.0, y - 5.0, x + 5.0, y + 5.0) for x, y in where]
+        placed: list[tuple[float, float, float, float]] = []
+        for index in order:
+            point, (x, y) = points[index], where[index]
+            lines = point["label"]
+            across = max((_text_px(line) for line in lines), default=0.0)
+            top = y + point["ndy"]
+            left = x + point["ndx"] - (across if point["nalign"] == "right" else 0.0)
+            box = (left, top, left + across, top + len(lines) * MAP_LINE)
+            inside = box[0] >= 0 and box[1] >= 0 and box[2] <= width and box[3] <= height
+            clear = not any(
+                _overlap(box, other) for number, other in enumerate(marks) if number != index
+            ) and not any(_overlap(box, other) for other in placed)
+            if inside and clear:
+                placed.append(box)
+                fits[index][bucket] = True
+    return fits
+
+
+def _overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
+    return a[0] < b[2] + 1 and b[0] < a[2] + 1 and a[1] < b[3] + 1 and b[1] < a[3] + 1
 
 
 def _placed_names(ax: Any) -> list[tuple[float, float, bool]]:
@@ -1985,7 +2078,7 @@ def map_spec(chart: Any, drawn: DrawnMap) -> dict[str, Any]:
         {"expr": f"{cy!r} - {per} * {height!r} / 2"},
         {"expr": f"{cy!r} + {per} * {height!r} / 2"},
     ]
-    points = []
+    points: list[dict[str, Any]] = []
     for point in drawn.points:
         right = point["x"] > cx + (x_high - x_low) / 6.0
         # Beside its point: right of it, or left of it in the map's right
@@ -2007,6 +2100,16 @@ def map_spec(chart: Any, drawn: DrawnMap) -> dict[str, Any]:
                 "base": drawn.base or "",
             }
         )
+    # A narrow map writes the names that fit beside their points at its width.
+    for point, fit in zip(
+        points,
+        _names_that_fit(points, (cx, cy), (x_span, y_span), height),
+        strict=True,
+    ):
+        point["fit"] = fit
+    bucket = "0"
+    for number, least in enumerate(MAP_NAME_WIDTHS[1:], start=1):
+        bucket = f"(containerSize()[0] >= {least:g} ? {number} : {bucket})"
     narrow = f"containerSize()[0] < {NARROW}"
     colour = {
         "field": "set",
@@ -2020,7 +2123,7 @@ def map_spec(chart: Any, drawn: DrawnMap) -> dict[str, Any]:
         "type": "nominal",
         "scale": {"domain": drawn.sets, "range": ["circle", "triangle-up"]},
     }
-    x = {
+    x: dict[str, Any] = {
         "field": "x",
         "type": "quantitative",
         "scale": {"domain": x_domain, "nice": False, "zero": False},
@@ -2081,7 +2184,7 @@ def map_spec(chart: Any, drawn: DrawnMap) -> dict[str, Any]:
                 "opacity": 1,
                 "clip": True,
             },
-            "params": [vega.toggle("set"), _zoom()],
+            "params": [vega.toggle("set", drawn.sets), _zoom()],
             "encoding": {
                 "x": x,
                 "y": y,
@@ -2103,7 +2206,9 @@ def map_spec(chart: Any, drawn: DrawnMap) -> dict[str, Any]:
                 "lineHeight": MAP_LINE,
                 "color": look.text,
                 "clip": True,
-                "text": {"expr": "names ? datum.label : ''"},
+                "text": {
+                    "expr": f"names && (!({narrow}) || datum.fit[{bucket}]) ? datum.label : ''"
+                },
             },
             "encoding": {
                 "x": {"field": "x", "type": "quantitative"},
@@ -2131,7 +2236,8 @@ def map_spec(chart: Any, drawn: DrawnMap) -> dict[str, Any]:
         + (f" and {len(items) - 30} more" if len(items) > 30 else "")
         + "."
     )
-    spec = drawn._finish(chart, main, description, notes)
+    # One scale on both axes: a shorter plot is a map squashed.
+    spec = drawn._finish(chart, main, description, notes, least=height)
     # A box under the map that writes the names by the points, or leaves them
     # to the tooltips.
     spec["params"] = [
@@ -2237,7 +2343,7 @@ def record_prices(chart: Any, analysis: Any, *, heading: str) -> None:
         }
         for key, colour, style in pricing._LINES
     ]
-    points = []
+    points: list[dict[str, Any]] = []
     for key, _, _ in pricing.POINTS:
         price = analysis.points.get(key)
         if price is None:
@@ -2343,7 +2449,7 @@ def van_westendorp_spec(chart: Any, drawn: DrawnPrices) -> dict[str, Any]:
                     "text": _amount(value, 1, True),
                 }
             )
-    wide = []
+    wide: list[dict[str, Any]] = []
     for index, (price, text) in enumerate(zip(drawn.prices, drawn.price_texts, strict=True)):
         row: dict[str, Any] = {"price": price, "price_text": text, "base": drawn.base or ""}
         for number, curve in enumerate(drawn.curves):
@@ -2358,14 +2464,7 @@ def van_westendorp_spec(chart: Any, drawn: DrawnPrices) -> dict[str, Any]:
     _staggered(second, span)
     for point in marked:
         point["text"] = _amount(point["value"], 1, True)
-        point["price_text"] = next(
-            (
-                text
-                for price, text in zip(drawn.prices, drawn.price_texts, strict=True)
-                if price == point["price"]
-            ),
-            f"{point['price']:g}",
-        )
+        point["price_text"] = _price_text(drawn, point["price"])
     x = _price_axis(drawn, drawn.x_title)
     if drawn.trial is not None:
         # The prices are written under the trial curve's panel, which shares them.
@@ -2428,7 +2527,7 @@ def van_westendorp_spec(chart: Any, drawn: DrawnPrices) -> dict[str, Any]:
         {
             "data": {"values": lines},
             "mark": {"type": "line", "strokeWidth": 2},
-            "params": [vega.toggle("curve")],
+            "params": [vega.toggle("curve", names)],
             "encoding": {
                 "x": x,
                 "y": y,
@@ -2594,9 +2693,9 @@ def _price_points(
 
 def gabor_granger_spec(chart: Any, drawn: DrawnPrices) -> dict[str, Any]:
     demand, revenue = drawn.demand or [], drawn.revenue or []
-    step = min(np.diff(drawn.prices)) if len(drawn.prices) > 1 else 1.0
+    step = float(np.min(np.diff(drawn.prices))) if len(drawn.prices) > 1 else 1.0
     line, best_colour, lighter = (drawn.colours + ["#2a78d6", "#eb6834", "#f5b48f"])[:3]
-    rows = []
+    rows: list[dict[str, Any]] = []
     for price, text, share, money in zip(
         drawn.prices, drawn.price_texts, demand, revenue, strict=True
     ):

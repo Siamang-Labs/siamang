@@ -70,9 +70,9 @@ def draw(chart: HeatMap) -> None:
     matrix = result.coefficients.copy()
     # An item that correlates with nothing (the same answer from everyone) has
     # no correlation with itself either: its diagonal is blank, as its row is.
-    complete = source[columns].dropna()  # listwise, as the coefficients
+    listwise = source[columns].dropna()  # as the coefficients
     for name in columns:
-        if complete[name].nunique() < 2:
+        if listwise[name].nunique() < 2:
             matrix.loc[name, name] = np.nan
     matrix.index = rows
     matrix.columns = [str(index) for index in range(1, len(labels) + 1)] if numbered else rows
@@ -157,6 +157,8 @@ def draw(chart: HeatMap) -> None:
         bases=lambda: [base_text(complete)],
         annotate=bool(written),
         kind="correlation",
+        row_title="Variable",
+        column_title="With",
     )
 
 
@@ -316,7 +318,19 @@ def draw_means(chart: HeatMap) -> None:
         x_title=by_label,
         value_title="Weighted mean" if weighted else "Mean",
         bases=lambda: group_bases(frame[by], weights, order, text=True),
+        # A cell's mean is of the group's respondents who answered its item:
+        # its base is theirs, not the group's.
+        cell_bases=lambda: [
+            group_bases(
+                part[by],
+                None if weights is None else weights.loc[part.index],
+                order,
+                text=True,
+            )
+            for part in (frame[[name, by]].dropna() for name in columns)
+        ],
         annotate=bool(written),
+        row_title="Item",
     )
 
 

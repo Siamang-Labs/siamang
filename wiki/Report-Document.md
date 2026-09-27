@@ -98,6 +98,7 @@ def to_html(
     embed_images: bool = True,
     asset_dir=".",
     interactive: bool = False,
+    name: str | None = None,
 ) -> str: ...
 ```
 
@@ -108,13 +109,24 @@ library with the `tables` extension, images embedded inline); with
 With `interactive=True` (a document only) each chart that has an interactive
 form (`SurveyChart.vega_lite()`, see [[Reporting Charts|Reporting-Charts]]) is
 drawn in the reader's browser: a tooltip on every bar, point and cell with its
-value and base, a legend whose entries hide and show their series, zoom where it
-helps. The document carries the libraries that draw them — Vega, Vega-Lite and
-Vega-Embed, vendored with the engine, about 0.8 MB, written in once however many
-charts there are and never loaded from anywhere — so it opens offline and can be
-mailed as it is. Each chart's picture stays in it: shown to a reader without
-scripts, printed, and shown if a chart cannot be drawn. The charts' menu saves a
-chart as PNG or SVG (no editor, no source view).
+value and base, a legend whose entries hide and show their series (a double
+click on the chart shows them all again), zoom where it helps (hold Ctrl — Cmd
+on a Mac — and scroll, or pinch). The document carries the libraries that draw
+them — Vega, Vega-Lite and Vega-Embed, vendored with the engine, about 0.8 MB,
+written in once however many charts there are and never loaded from anywhere —
+with their licenses' notices in a comment before them, so it opens offline and
+can be mailed as it is. Each chart's picture stays in it: shown to a reader
+without scripts, printed, and shown if a chart cannot be drawn. The charts' menu
+saves a chart as PNG or SVG (no editor, no source view), named by the report
+and the chart's title — `key_tables-life-satisfaction-by-age-group.png` — where
+`name` is the report's file name without its extension (`save` passes it; by
+default the report's title).
+
+`Report.interactive_figures(html, specs, name="report")` takes a document
+`to_html(standalone=True)` wrote whose charts are pictures — a report combined
+from Markdown — and draws each picture whose `src` is a key of `specs` from
+that Vega-Lite spec, as `interactive=True` draws a chart (the libraries once,
+the picture kept for print); pictures without a spec stay pictures.
 
 ### `save`
 

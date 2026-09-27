@@ -585,9 +585,14 @@ def _stats_of(item: Any) -> dict[str, Any]:
         return item
     if isinstance(item, pd.DataFrame):
         # A table an analysis returns bare (a regression's, a PCA's, a
-        # cluster's, TURF's) carries its weight in attrs, as its stat does.
+        # cluster's, TURF's) carries its weight in attrs, as its stat does,
+        # and — a PCA's — the respondents it counted.
         weight = item.attrs.get("weight")
-        return {"Weight": weight} if isinstance(weight, str) and weight else {}
+        found: dict[str, Any] = {"Weight": weight} if isinstance(weight, str) and weight else {}
+        n = item.attrs.get("n")
+        if isinstance(n, int) and not isinstance(n, bool):
+            found["n"] = n
+        return found
     try:
         stats = getattr(item, "stats", None)
     except Exception:  # noqa: BLE001 - a table that cannot build has nothing to say
@@ -971,6 +976,7 @@ def _draw_group_means(table: Any, chart: ResultChart) -> str:
             }
         ],
     )
+    result_specs.note(chart, row_title=by_label)
     column = _get_label(table.data, table.column)
     weighted = table.data.weight is not None
     ax.set_xlabel(_means_axis(chart, f"{'Weighted mean' if weighted else 'Mean'}"), color=_ink())
@@ -1130,6 +1136,7 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
             }
         )
     ax, _ = _dots(chart, shown, series, legend_title=by_label)
+    result_specs.note(chart, row_title="Variable")
     weighted = data.weight is not None
     ax.set_xlabel(_means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_ink())
     _mean_axis_thousands(ax)
@@ -1273,6 +1280,7 @@ def _descriptives_panels(
         _means_axis(chart, "Weighted mean" if weighted else "Mean"), color=_ink()
     )
     result_specs.record_panels(chart, axes[-1][0], drawn, by_label)
+    result_specs.note(chart, row_title=by_label or "Variable")
     what = "Means" if by_label is None else f"Means by {by_label}"
     return f"{what}, each variable on its own scale"
 
@@ -1342,6 +1350,7 @@ def _draw_ttest(table: Any, chart: ResultChart) -> str:
         ],
         reference=float(table.mu) if table.kind == "one_sample" else None,
     )
+    result_specs.note(chart, row_title=first)
     ax.set_xlabel(_means_axis(chart, "Mean", confidence), color=_ink())
     _mean_axis_thousands(ax)
     ci = f"{confidence * 100:g}% CI"
@@ -1400,6 +1409,7 @@ def _draw_paired(table: Any, chart: ResultChart) -> str:
             }
         ],
     )
+    result_specs.note(chart, row_title="Variable")
     ax.set_xlabel(_means_axis(chart, "Mean"), color=_ink())
     _mean_axis_thousands(ax)
     stats = table.stats
@@ -1448,6 +1458,7 @@ def _draw_mcnemar(table: Any, chart: ResultChart) -> str:
             }
         ],
     )
+    result_specs.note(chart, row_title="Question")
     ax.set_xlim(0, 100)
     ax.set_xlabel("Share saying yes (%) with its 95 % confidence interval (Wilson)", color=_ink())
     stats = table.stats
@@ -1508,6 +1519,10 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
         colour=color,
         track=_track(),
         line=f"{interval} {low:.1f} – {high:.1f} %, {base_text}",
+        interval_title=interval[:1].upper() + interval[1:],
+        base=f"{base:,.1f} (effective base)"
+        if weighted
+        else f"{int(round(base)):,} {'respondent' if int(round(base)) == 1 else 'respondents'}",
     )
     variable = getattr(result, "variable_label", None)
     if variable:
@@ -1802,18 +1817,21 @@ def _draw_maxdiff(table: Any, chart: ResultChart) -> str:
             color=_ink(),
         )
         _base_note(ax, stats, size)
+        result_specs.note(chart, row_title="Item")
         return f"MaxDiff utilities: {question}"
     if chart.drawn == "shares":
         values = frame["Share %"].to_numpy(dtype=float)
         ax, _, size = _bars(chart, labels, values, [_percent(v) for v in values], color=color)
         ax.set_xlabel("Share of picks if every item were offered at once (%)", color=_ink())
         _base_note(ax, stats, size)
+        result_specs.note(chart, row_title="Item")
         return f"MaxDiff shares: {question}"
     values = frame["Score"].to_numpy(dtype=float)
     digits = _digits(values)
     ax, _, size = _bars(chart, labels, values, [_number(v, digits) for v in values], color=color)
     ax.set_xlabel("Counting score: (best − worst) / shown", color=_ink())
     _base_note(ax, stats, size)
+    result_specs.note(chart, row_title="Item")
     return f"MaxDiff scores: {question}"
 
 
@@ -1842,6 +1860,7 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
             [_percent(value) for value in importance],
             color=chart.colors(1)[0],
         )
+        result_specs.note(chart, row_title="Attribute")
         ax.set_xlabel("Importance: the attribute's share of the decision (%)", color=_ink())
         _base_note(ax, stats, size, "Of the levels tested, not of the attribute in general.")
         return f"Attribute importance: {question}"
@@ -1891,7 +1910,7 @@ def _draw_conjoint(table: Any, chart: ResultChart) -> str:
         reference=0.0,
         groups=groups,
     )
-    result_specs.note(chart, legend_title="Attribute")
+    result_specs.note(chart, legend_title="Attribute", row_title="Level")
     ax.set_xlabel("Part-worth, against each attribute's first level at 0", color=_ink())
     _base_note(ax, stats, size)
     return f"Part-worths: {question}"
@@ -1907,6 +1926,7 @@ def _draw_shares(table: Any, chart: ResultChart) -> str:
         [_percent(value) for value in values],
         color=chart.colors(1)[0],
     )
+    result_specs.note(chart, row_title="Product")
     ax.set_xlabel("Share of preference (%)", color=_ink())
     _mark_note(ax, str(table.stats.get("Note", "")).capitalize() + ".", size)
     return "Share of preference"
@@ -2037,7 +2057,13 @@ def _scree(
     return "Scree plot"
 
 
-def _loadings(chart: ResultChart, items: list[str], columns: list[str], values: np.ndarray) -> str:
+def _loadings(
+    chart: ResultChart,
+    items: list[str],
+    columns: list[str],
+    values: np.ndarray,
+    column_name: str = "Component",
+) -> str:
     from matplotlib.colors import TwoSlopeNorm
 
     wrapped, size, height = fit_rows(chart.figsize, items)
@@ -2098,6 +2124,8 @@ def _loadings(chart: ResultChart, items: list[str], columns: list[str], values: 
         annotate=annotate,
         legend_title="Loading",
         value_title="Loading",
+        row_title="Item",
+        column_name=column_name,
         blank="#f4f4f4" if np.isnan(values).any() else None,
         blank_text="left blank in the table (a small loading)",
     )
@@ -2158,6 +2186,7 @@ def _draw_factor_loadings(table: Any, chart: ResultChart) -> str:
         [str(label) for label in frame["Label"]],
         columns,
         frame[columns].to_numpy(dtype=float),
+        column_name="Factor",
     )
     stats = table.stats
     method = ", ".join(str(stats[key]) for key in ("Extraction", "Rotation") if stats.get(key))
@@ -2208,7 +2237,7 @@ def _draw_profile(
         ax.plot(
             item["estimate"], range(len(items)), "-", color=item["color"], linewidth=1.6, zorder=2
         )
-    result_specs.note(chart, lines=True)
+    result_specs.note(chart, lines=True, row_title="Item")
     ax.set_xlabel("Mean of the cluster's members on each item", color=_ink())
     return "Cluster profiles"
 
@@ -2279,6 +2308,7 @@ def _forest(frame: pd.DataFrame, chart: ResultChart, stats: dict[str, Any], note
         ],
         reference=1.0 if logit else 0.0,
     )
+    result_specs.note(chart, row_title="Term")
     if logit:
         from matplotlib.ticker import FuncFormatter, LogLocator
 
@@ -2431,6 +2461,8 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
         annotate=annotate,
         legend_title="Coefficient",
         value_title="Coefficient",
+        row_title="Variable",
+        column_name="With",
         notes=[marks],
         details={
             "p": [[_p_text(p[i, j]) if j < i else "" for j in range(count)] for i in range(count)]
@@ -2485,6 +2517,17 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
     known = getattr(data, "variables", None)
     if known is not None and variable in known and known[variable].label:
         variable = known[variable].label  # the question, not its column
+    # What a theme's share is of: the coded answers (a version 1 codeframe),
+    # or the respondents who answered (version 2, which counts respondents).
+    by_respondent = getattr(table.codeframe, "version", 1) >= 2
+    counts = themes["N"].to_numpy()
+
+    def counted(n: Any) -> str:
+        n = int(n)
+        if by_respondent:
+            return f"{n:,} {'respondent' if n == 1 else 'respondents'}"
+        return f"{n:,} {'answer' if n == 1 else 'answers'}"
+
     if chart.drawn == "sentiment":
         ax, y, size = chart.rows(labels, legend=["Negative", "Neutral", "Positive"])
         start = np.zeros(len(themes))
@@ -2552,10 +2595,12 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
             ],
             least=8.0,
             empty="no answer here has a sentiment",
+            # A theme's sentiment is of its own answers.
+            bases=[counted(n) for n in counts],
         )
+        result_specs.note(chart, row_title="Theme")
         return f"Sentiment by theme: {variable}"
     values = themes["%"].to_numpy(dtype=float)
-    counts = themes["N"].to_numpy()
     ax, _, size = _bars(
         chart,
         labels,
@@ -2569,6 +2614,15 @@ def _draw_themes(table: Any, chart: ResultChart) -> str:
         else "Share of the coded answers (%), with the number of answers",
         color=_ink(),
     )
+    frame = table.to_frame()
+    coded = frame.loc[frame["Theme"].astype(str) == "Coded", "N"]
+    if by_respondent and stats.get("Answered") is not None:
+        base: str | None = counted(stats["Answered"])
+    elif not by_respondent and len(coded):
+        base = f"{int(coded.iloc[0]):,} coded {'answer' if int(coded.iloc[0]) == 1 else 'answers'}"
+    else:
+        base = None
+    result_specs.note(chart, row_title="Theme", base=base)
     coverage = stats.get("Coverage")
     if coverage:
         _mark_note(ax, f"Coverage: {coverage}.", size)
