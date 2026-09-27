@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Interactive charts.** Every chart of `siamang.reporting` but a Result chart
+  says what it draws as a Vega-Lite 6 spec (`SurveyChart.vega_lite()`), drawn
+  from the numbers its picture is drawn from: inline data of only what the chart
+  draws (a scatter plot's points and a box plot's outliers are the plotted
+  values, nothing else), the picture's title, axis titles, notes and colors with
+  the report Look's text, grid and font, a tooltip on every mark with its value
+  as the picture writes it and its base, a legend whose entries hide and show
+  their series, zoom where it helps, and a description for a screen reader —
+  every form of the Bar chart (percent, Split by grouped, stacked and 100 %,
+  Top N with Other, error bars, significance letters, histogram, donut), the
+  Likert chart, the heatmaps, the box plot, the scatter plot and the Trend.
+  `Report.to_html(standalone=True, interactive=True)` and
+  `Report.save("r.html", interactive=True)` draw them in the reader's browser
+  with Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0, vendored in
+  `siamang/reporting/assets/vega` (BSD-3-Clause, with their licenses and a
+  README naming the npm sources) and written into the document once, never
+  loaded from anywhere; each chart's picture stays for print and for readers
+  without scripts. `save("r.md", interactive=True)` writes each figure's spec
+  beside it (`r_fig_3.vl.json`). Save report has **Interactive charts in HTML**
+  (`interactive`, off: a stored flow renders the code it always did; with *Also
+  save HTML* off a check warns), and a Live tile of a chart publishes the spec
+  with it (`Tile.spec`). `siamang.reporting.vega` holds what the specs share and
+  `write_spec` / `spec_path` for a host that writes a chart's picture itself.
 - **Coding open answers by hand and by rules: codeframe version 2.** A
   codeframe (`"schema_version": "2.0"`) codes each answer by the first of: a
   coder's decision for its fingerprint (`assignments`: a code, several codes, or

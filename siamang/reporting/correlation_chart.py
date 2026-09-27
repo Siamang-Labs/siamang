@@ -133,9 +133,31 @@ def draw(chart: HeatMap) -> None:
     # Each row as tall as its label.
     footnote = Footnote(fig, notes, axes=ax, least=len(rows) * (lines * size * 1.2 + 4.0))
     footnote.apply()
-    if chart.annot and not _annotate(ax, matrix.to_numpy(dtype=float)):
+    written = chart.annot and _annotate(ax, matrix.to_numpy(dtype=float))
+    if chart.annot and not written:
         footnote.add("The cells are too small to hold their coefficients: see the table.")
         footnote.apply()
+    from siamang.reporting.chart_specs import record_matrix
+    from siamang.reporting.vega import base_text
+
+    record_matrix(
+        chart,
+        ax,
+        matrix.to_numpy(dtype=float),
+        rows=list(rows),
+        columns=list(matrix.columns),
+        row_names=labels,
+        column_names=labels,
+        text=lambda value: f"{value:.2f}",
+        title=chart.title or f"{name} Correlation Matrix",
+        subtitle=None if weighted or not chart._weight_note else [chart._weight_note],
+        notes=footnote.notes,
+        legend_title=f"{'Weighted ' if weighted else ''}{name} {symbol}",
+        value_title=f"{'Weighted ' if weighted else ''}{name} {symbol}",
+        bases=lambda: [base_text(complete)],
+        annotate=bool(written),
+        kind="correlation",
+    )
 
 
 def draw_means(chart: HeatMap) -> None:
@@ -273,9 +295,29 @@ def draw_means(chart: HeatMap) -> None:
         fontsize=min(size, name_size),
     )
     footnote.apply()
-    if chart.annot and not _annotate(ax, matrix.to_numpy(dtype=float), mean=True):
+    written = chart.annot and _annotate(ax, matrix.to_numpy(dtype=float), mean=True)
+    if chart.annot and not written:
         footnote.add("The cells are too small to hold their means: see the Group means table.")
         footnote.apply()
+    from siamang.reporting.chart_specs import group_bases, record_matrix
+
+    record_matrix(
+        chart,
+        ax,
+        matrix.to_numpy(dtype=float),
+        rows=list(rows),
+        columns=groups,
+        row_names=labels,
+        text=lambda value: f"{value:,.2f}",
+        title=title,
+        notes=footnote.notes,
+        legend_title=("Weighted mean" if weighted else "Mean")
+        + (f" {in_sentence(shared)}" if shared else ""),
+        x_title=by_label,
+        value_title="Weighted mean" if weighted else "Mean",
+        bases=lambda: group_bases(frame[by], weights, order, text=True),
+        annotate=bool(written),
+    )
 
 
 def _row_labels(texts: list[str], figsize: tuple[float, float]) -> tuple[float, list[str]]:

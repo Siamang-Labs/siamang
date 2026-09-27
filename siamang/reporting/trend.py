@@ -936,8 +936,20 @@ class TrendChart(SurveyChart):
             else:
                 below = legend_below(fig, handles, names, points.group_title, figure_pt)
 
-        footnote = Footnote(
-            fig, _notes(points, count, drawn_band, self.band), legend=below, axes=ax
+        notes = _notes(points, count, drawn_band, self.band)
+        footnote = Footnote(fig, notes, legend=below, axes=ax)
+        from siamang.reporting.chart_specs import record_trend
+
+        record_trend(
+            self,
+            points=points,
+            colours=colours,
+            banded=banded,
+            shapes=count > MAX_BANDS,
+            title=title,
+            notes=notes,
+            ylabel=ylabel,
+            ax=ax,
         )
         _fit_titles(ax, title, points.xlabel, ylabel)
         _fit_ticks(fig, ax, points.periods)

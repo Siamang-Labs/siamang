@@ -8,6 +8,11 @@ script runs unchanged from the command line; a platform, a test or
     with live.capture() as tiles:
         run_the_flow()
     tiles  # -> [Tile(node="tile_n", kind="number", label="Clean respondents", value=1198)]
+
+A chart tile carries the chart (``value``, whose picture a platform saves) and,
+when the chart has an interactive form, its Vega-Lite spec (``spec``:
+``SurveyChart.vega_lite()``, see :mod:`siamang.reporting.vega`), which a
+dashboard draws with a tooltip on every mark — the picture when it cannot.
 """
 
 from __future__ import annotations
@@ -26,6 +31,9 @@ class Tile:
     kind: str
     label: str
     value: Any
+    #: A chart tile's Vega-Lite spec, or None (another kind, or a chart
+    #: without an interactive form).
+    spec: dict[str, Any] | None = None
 
 
 Sink = Callable[[Tile], None]
@@ -54,10 +62,33 @@ def publish(
         value = int(len(frame))
     elif metric != "value":
         raise ValueError(f"Unknown tile metric {metric!r}; expected 'value' or 'rows'.")
-    tile = Tile(node=node, kind=kind, label=label, value=value)
+    tile = Tile(node=node, kind=kind, label=label, value=value, spec=_spec(kind, value))
     for sink in list(_sinks):
         sink(tile)
     return tile
+
+
+def _spec(kind: str, value: Any) -> dict[str, Any] | None:
+    """A chart tile's Vega-Lite spec — None for another kind, a chart without
+    one, and a spec that could not be made: a tile never fails the run, and
+    its picture is still there."""
+
+    make = getattr(value, "vega_lite", None) if kind == "chart" else None
+    if not callable(make):
+        return None
+    try:
+        spec = make()
+    except Exception as exc:  # noqa: BLE001 - the picture is kept, and the warning says why
+        import warnings
+
+        warnings.warn(
+            f"Live tile chart: no interactive chart ({type(exc).__name__}: {exc}); "
+            "its picture is kept.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+        return None
+    return spec if isinstance(spec, dict) else None
 
 
 def add_sink(sink: Sink) -> None:

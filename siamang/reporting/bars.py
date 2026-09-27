@@ -161,6 +161,9 @@ class Bars:
     #: drawn gray.
     other_position: int | None = None
     other_series: int | None = None
+    #: Each position's base as a tooltip gives it ("1,234 respondents"), in
+    #: the positions' order: what the interactive chart says of every bar.
+    base_texts: list[str] = field(default_factory=list)
 
 
 def is_classic(chart: BarChart) -> bool:
@@ -451,6 +454,14 @@ def _answered(series: pd.Series, is_multi: bool) -> np.ndarray:
     return (multi.responded(series) if is_multi else series.notna()).to_numpy(dtype=bool)
 
 
+def _base_text(n: int, weighted: float | None) -> str:
+    """A bar's base as its tooltip gives it (siamang.reporting.vega)."""
+
+    from siamang.reporting.vega import base_text
+
+    return base_text(n, weighted)
+
+
 def _base(n: int, weighted: float | None, whom: str) -> str:
     text = f"Base: {n:,} {'respondent' if n == 1 else 'respondents'} {whom}"
     return text + (f" (weighted: {weighted:,.1f})." if weighted is not None else ".")
@@ -605,6 +616,7 @@ def _distribution(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | No
         lower=None if lower is None else lower.reshape(-1, 1),
         upper=None if upper is None else upper.reshape(-1, 1),
         other_position=len(names) - 1 if other is not None else None,
+        base_texts=[_base_text(int(answered.sum()), base if weighted else None)] * len(names),
     )
 
 
@@ -750,6 +762,10 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         upper=None if upper is None else upper[groups_order][:, series_order],
         marks=marks,
         other_series=shown if other is not None else None,
+        base_texts=[
+            _base_text(sizes[index], float(bases[index]) if weighted else None)
+            for index in groups_order
+        ],
     )
 
 
@@ -855,12 +871,13 @@ def _means(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         if is_multi
         else sorted(pd.unique(groups[answered]), key=code_order)
     )
-    means, names, bounds, single = [], [], [], []
+    means, names, bounds, single, group_bases = [], [], [], [], []
     for code in codes:
         member = _chose(groups, code, is_multi) & answered
         if not member.any():
             continue  # a group nobody is in has no mean
         total = float(weight[member].sum())
+        group_bases.append(_base_text(int(member.sum()), total if weights is not None else None))
         means.append(
             float((weight[member] * values[member]).sum() / total) if total > 0 else np.nan
         )
@@ -917,6 +934,7 @@ def _means(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
         notes=notes,
         lower=lower,
         upper=upper,
+        base_texts=[group_bases[i] for i in order],
     )
 
 
@@ -1119,6 +1137,9 @@ def render(chart: BarChart, bars: Bars, *, across: bool = False) -> None:
     other = _other()
     if bars.other_series is not None:
         colours.insert(bars.other_series, other)
+    from siamang.reporting.chart_specs import record_bars
+
+    record_bars(chart, bars, colours, other, horizontal)
     at = np.arange(positions, dtype=float)
     if bars.stacked or count == 1:
         thickness, offsets = 0.7, [0.0] * count
@@ -1464,6 +1485,8 @@ class Histogram:
     #: The edges were given: the axis is ticked at them.
     explicit: bool = False
     notes: list[str] = field(default_factory=list)
+    #: Each panel's base as a tooltip gives it.
+    base_texts: list[str] = field(default_factory=list)
 
 
 _BINS_HELP = (
@@ -1636,16 +1659,22 @@ def _histogram(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None)
             return counts / base * 100.0 if base > 0 else np.zeros(len(counts))
         return counts
 
-    heights, panels = [], []
+    heights, panels, panel_bases = [], [], []
+    weighted = weights is not None
     if groups is None:
         heights.append(tally(answered))
         panels.append("")
+        panel_bases.append(
+            _base_text(int(answered.sum()), float(weight[answered].sum()) if weighted else None)
+        )
     else:
         for code in group_codes:
             member = answered & _chose(groups, code, False)
             heights.append(tally(member))
             panels.append(f"{_name_of(data, str(chart.split), code)} (n = {int(member.sum()):,})")
-    weighted = weights is not None
+            panel_bases.append(
+                _base_text(int(member.sum()), float(weight[member].sum()) if weighted else None)
+            )
     if percent:
         axis = ("% of respondents" if groups is None else "% within each group") + (
             " (weighted)" if weighted else ""
@@ -1693,6 +1722,7 @@ def _histogram(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None)
         title=chart.title or (f"{label} by {by_label}" if groups is not None else label),
         explicit=explicit,
         notes=notes,
+        base_texts=panel_bases,
     )
 
 
@@ -1710,6 +1740,9 @@ def render_histogram(chart: BarChart, histogram: Histogram) -> None:
     chart_theme.set_theme(style="whitegrid", palette=chart.palette)
     panels = len(histogram.heights)
     colour = series_colours(chart.palette, 1)[0]
+    from siamang.reporting.chart_specs import record_histogram
+
+    record_histogram(chart, histogram, colour)
     edges = histogram.edges
     widths = np.diff(edges)
     if panels == 1:
@@ -1926,6 +1959,9 @@ def render_donut(chart: BarChart, donut: Donut) -> None:
     colours = [palette[index] for index in donut.colour_index]
     if donut.other is not None:
         colours.insert(donut.other, _other())
+    from siamang.reporting.chart_specs import record_donut
+
+    record_donut(chart, donut, colours)
     wedges, _ = ax.pie(
         donut.shares,
         colors=colours,

@@ -43,6 +43,20 @@ figure is built lazily on first use.
 | `plot()` | `matplotlib.axes.Axes` | Build and return the Axes for further tweaking. |
 | `show()` | `None` | Display inline (Jupyter) or in a window. |
 | `save(path, dpi=150)` | `Path` | Write to file (the directory must already exist); `bbox_inches="tight"`. |
+| `vega_lite()` | `dict \| None` | The chart as a Vega-Lite 6 spec a browser draws interactively (see below), or `None` for a chart without one (a Result chart). |
+
+**Interactive form.** `vega_lite()` says what the picture says, drawn from the
+same numbers: inline data of only what the chart draws (counts, percentages,
+means, intervals, bins, a heatmap's cells, a box's five numbers — a scatter
+plot's points and a box plot's outliers are the respondents' values it plots,
+without ids or other answers), the title, the axis titles, the notes (base,
+weight, missing codes) at its foot, the picture's colors with the report Look's
+text, grid and font, a tooltip on every mark with its value as the picture
+writes it and its base, a legend that hides and shows its series, zoom on a
+scatter plot and on a long Trend, and a description for a screen reader. Every
+chart on this page has one: each form of `BarChart` (histogram and donut too),
+`LikertChart`, `HeatMap`, `BoxPlot`, `ScatterPlot`, `TrendChart`. A report shows
+them with `to_html(..., interactive=True)` ([[Report Document|Report-Document]]).
 
 **Weighted data.** After `with_weight(...)` a chart never disagrees in silence
 with the weighted tables beside it. `BarChart` draws sums of weights (axis

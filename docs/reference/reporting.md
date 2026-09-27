@@ -169,6 +169,31 @@ theme = ReportTheme(font_preset="academic", page="a4", number_tables=True)
 Report(title="Satisfaction 2026", theme=theme).text("…").save("report.html")
 ```
 
+**Interactive charts.** `to_html(standalone=True, interactive=True)` (and
+`save("report.html", interactive=True)`) draws each chart that has an
+interactive form (`SurveyChart.vega_lite()`) in the reader's browser: a
+tooltip on every bar, point and cell with its value and base, a legend whose
+entries hide and show their series, zoom where it helps. The document carries
+the libraries that draw them — Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed
+7.3.0, vendored in `siamang/reporting/assets/vega` with their BSD-3-Clause
+licenses, about 0.8 MB, written in **once** however many charts there are and
+never loaded from a CDN or any other address — and each chart's spec in a
+`<script type="application/json">`. Each chart's picture stays: in a
+`<noscript>` for a reader without scripts, and put back by the page for
+printing (`@media print` shows the picture, not the drawing) and for a chart
+that cannot be drawn. The charts' menu saves a chart as PNG or SVG and offers
+nothing else — no editor, which would send the chart and its numbers to a web
+site, and no view of the source. The Markdown, the Excel workbook and a report
+saved without `interactive` are what they always were; `save("report.md",
+interactive=True)` writes the same Markdown and each figure's spec beside it
+(`report_fig_3.png`, `report_fig_3.vl.json`). `siamang.reporting.vega` has
+`write_spec(chart, path)` and `spec_path(picture)` (`fig_3.png` →
+`fig_3.vl.json`) for a host that writes a chart's picture itself, and
+`library(name)` / `LIBRARIES` for one that draws the specs with the vendored
+builds; a page that embeds a spec with Vega-Embed lays it out once more after
+it is drawn (`view.resize().runAsync()`), which the notes' and a legend's
+lines, chosen for the width drawn at, need.
+
 The theme is the same shape as the questionnaire's `UIConfig`: **one named preset
 plus tokens you may override**, stored sparsely (`to_dict()` writes only what
 differs from the defaults). `academic`, `modern` and `humanist` name the same
@@ -331,6 +356,8 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
   Saves the plot to a file (`bbox_inches="tight"`). The destination directory must already exist.
 * **`png(dpi: int | None = None) -> bytes`**:
   The chart as PNG bytes at `dpi` (default: the chart's `dpi`), the bytes `save` writes to a `.png`.
+* **`vega_lite() -> dict | None`**:
+  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`), or `None` for a chart without an interactive form (a Result chart). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. Its data is inline and holds only what the chart draws: counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. It has the picture's title (and the weight line as its subtitle), axis titles and notes (the base, the weight, the missing codes left out) at its foot, the colors the picture was drawn in with the report Look's text, grid and font, a tooltip on every mark (its label, its value written as the picture writes it, its base), a legend whose entries hide and show their series (a double click shows them all), zoom and pan on a scatter plot and a Trend of more than 24 periods (Shift and the wheel zoom, so a page scrolls past), and a `description` for a screen reader. Each form: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn) and `TrendChart` (lines, bands, hollow low-base points, gaps). `usermeta.siamang` names the chart and lists its notes.
 * **`release() -> None`**:
   Closes the figure and lets go of it, keeping the PNGs rendered so far. A figure holds its drawing (megabytes at 150 dpi) for as long as the chart refers to it, closed or not. After `release`, `png` and `save` to a `.png` at a resolution rendered before write those bytes without drawing; `plot`, `show`, another resolution or format draw the chart again from its parameters. A `Report` releases each chart once it has written it (but one whose figure was asked for with `plot()` or `show()`), and `FlowRunner` each chart once its node has rendered it.
 
