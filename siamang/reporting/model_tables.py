@@ -7,7 +7,7 @@ and a script read those columns. Put in a report as they are, they printed
 pandas' column names, variable names instead of the codebook's labels, six
 significant digits (``1.94157e-45``), ``None`` in the odds ratio of an ordinal
 model's thresholds, and the model's statistics nowhere. The tables here are
-the same numbers for a reader: labelled from the codebook, rounded as the
+the same numbers for a reader: labeled from the codebook, rounded as the
 other analyses' tables are, with the model's statistics under them.
 
 :class:`RegressionTable` keeps the :class:`~siamang.data.models.RegressionResult`
@@ -146,7 +146,7 @@ def regression_table(result: RegressionResult, data: SurveyData) -> RegressionTa
             )
         rows.append(row)
     frame = pd.DataFrame(rows)
-    # A logit's outcome is "y = the answer modelled".
+    # A logit's outcome is "y = the answer modeled".
     y, _, answer = str(stats.get("outcome", "")).partition(" = ")
     outcome = labels.get(y, y) + (f" = {answer}" if answer else "")
     footer: dict[str, Any] = {}

@@ -418,7 +418,7 @@ def test_turf_draws_the_reach_curve_and_each_options_reach():
 
 
 def test_turf_names_each_option_without_the_question_they_share():
-    """Exploded options are labelled "Question: option"; the question on
+    """Exploded options are labeled "Question: option"; the question on
     every tick left no room for the option."""
     labels = {name: f"Features they would use: Feature {name.upper()}" for name in "abcd"}
     search = turf.turf(_turf_frame(), ["a", "b", "c", "d"], max_size=2, labels=labels)

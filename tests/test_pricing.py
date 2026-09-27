@@ -353,26 +353,26 @@ def test_the_van_westendorp_chart_draws_the_curves_and_names_the_points(tmp_path
 
 
 def test_the_price_axis_names_the_unit_the_questions_share():
-    """ "Too cheap (£ a month)" and the other three: the axis says "Price
-    (£ a month)" rather than "Price". Labels that do not share one keep
+    """ "Too cheap ($ a month)" and the other three: the axis says "Price
+    ($ a month)" rather than "Price". Labels that do not share one keep
     "Price"."""
 
-    def labelled(last: str) -> SurveyData:
+    def labeled(last: str) -> SurveyData:
         variables = VariableMap()
         variables.add_many(
             [
-                Variable("tc", "ratio", label="Too cheap (£ a month)"),
-                Variable("ch", "ratio", label="A bargain (£ a month)"),
-                Variable("ex", "ratio", label="Getting expensive (£ a month)"),
+                Variable("tc", "ratio", label="Too cheap ($ a month)"),
+                Variable("ch", "ratio", label="A bargain ($ a month)"),
+                Variable("ex", "ratio", label="Getting expensive ($ a month)"),
                 Variable("te", "ratio", label=f"Too expensive ({last})"),
             ]
         )
         return SurveyData(frame=_two().frame, variables=variables)
 
-    result = pricing.van_westendorp(labelled("£ a month"), **QUESTIONS)
-    assert result.unit == "£ a month"
-    assert pricing.plot(result).axes[0].get_xlabel() == "Price (£ a month)"
-    assert pricing.van_westendorp(labelled("£ a year"), **QUESTIONS).unit is None
+    result = pricing.van_westendorp(labeled("$ a month"), **QUESTIONS)
+    assert result.unit == "$ a month"
+    assert pricing.plot(result).axes[0].get_xlabel() == "Price ($ a month)"
+    assert pricing.van_westendorp(labeled("$ a year"), **QUESTIONS).unit is None
     plain = pricing.van_westendorp(_two(), **QUESTIONS)
     assert plain.unit is None and pricing.plot(plain).axes[0].get_xlabel() == "Price"
 
