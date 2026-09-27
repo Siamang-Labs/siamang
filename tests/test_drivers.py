@@ -373,7 +373,7 @@ def test_the_chart_draws_every_driver_largest_first(tmp_path):
     tops = sorted(bars, key=lambda bar: bar.get_y())
     assert [round(bar.get_width(), 1) for bar in tops] == list(table["% of R²"])
     assert [label.get_text() for label in ax.get_yticklabels()] == list(table["Driver"])
-    # Agriculture's beta is negative: its bar is the second colour, with a legend.
+    # Agriculture's beta is negative: its bar is the second color, with a legend.
     colours = {bar.get_facecolor()[:3] for bar in bars}
     assert len(colours) == 2
     negative = [bar for bar in tops if bar.get_facecolor()[:3] != tops[0].get_facecolor()[:3]]
@@ -408,7 +408,7 @@ def test_the_chart_wraps_long_labels_and_grows_with_the_drivers():
     result = drivers.analyze(SurveyData(frame=frame, variables=variables), "y", list(frame)[:14])
     fig = drivers.plot(result)
     ax, bars = _bars(fig)
-    assert len(bars) == 14 and ax.get_legend() is None  # every beta positive: one colour
+    assert len(bars) == 14 and ax.get_legend() is None  # every beta positive: one color
     assert fig.get_size_inches()[1] > 6  # taller than the default for fourteen rows
     labels = [label.get_text() for label in ax.get_yticklabels()]
     assert all(1 < label.count("\n") + 1 <= 3 for label in labels)

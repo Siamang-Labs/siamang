@@ -1,4 +1,4 @@
-"""Tables that summarize the data before it is analysed.
+"""Tables that summarize the data before it is analyzed.
 
 :class:`DescriptivesTable` is the descriptive statistics of numeric variables
 (:mod:`siamang.data.descriptives`) and :class:`DataCheckTable` the data checked

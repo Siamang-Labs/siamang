@@ -156,9 +156,9 @@ q_sources = sg.MultiChoice("Where do you get news from?", vars=sources)
 
 In **wide** mode each variable is stored under its own name: `1` when its option is
 chosen, `0` when the question is answered and it is not, and nothing at all while the
-question is unanswered (unticking every option clears them) — nor for an option its
+question is unanswered (unchecking every option clears them) — nor for an option its
 own `show_if` / `hide_if` hid from the respondent, who was never offered it (an answer
-given afterwards — on the same page, say, by a click, a Likert digit key or a script —
+given afterward — on the same page, say, by a click, a Likert digit key or a script —
 that offers the option makes it `0`, one that hides it clears it; a condition on another
 wide question's variable reads that question's `0` or nothing as it is now). Nothing is stored under the question's id. A condition or a quota therefore reads `src_tv = 1`. The options
 come from `choices` when there is one per variable — choice *i* is variable *i*, and
@@ -198,7 +198,7 @@ else. `{label:x}` of an Other answer pipes the text typed.
 ```python
 fruit = sg.Variable("fruit", scale="nominal",
                     labels={1: "Apple", 2: "Pear", 96: "Other", 97: "None of these"})
-q_fruit = sg.SingleChoice("Favourite fruit?", var=fruit,
+q_fruit = sg.SingleChoice("Favorite fruit?", var=fruit,
                           choices=[sg.Option(1, "Apple"), sg.Option(2, "Pear")],
                           other_specify=True, none_of_above=True,
                           metadata={"other_code": 96, "none_code": 97})
@@ -208,7 +208,7 @@ q_fruit = sg.SingleChoice("Favourite fruit?", var=fruit,
 `other_code` may name one of the question's own choices: that choice then *is* the
 Other option (it gets the text box, and no second "Other" is added). Label every
 added code in the codebook — `lint()` reports `ADDED_CODE_WITHOUT_LABEL` for an
-unlabelled Other or None code and `NA_STORED_AS_TEXT` for an N/A with no
+unlabeled Other or None code and `NA_STORED_AS_TEXT` for an N/A with no
 `not_applicable` code (strict lint). `validate()` refuses a code that is not a number or a string,
 a "None of the above" whose code is already an answer's, a question whose choices
 already use the *default* Other code, and an Other text key that is another
@@ -375,7 +375,7 @@ so a codebook `{1: …, 5: …, 9: "Refused"}` stores 9 for "Refused" — less t
 (when every header names exactly one); else, with the codebook's declared missing
 codes set apart, a header naming one of them (say "Don't know") takes its code and
 the others line up in order with the remaining labels (when there are as many of
-each), so a labelled N/A −1 or refusal 77 does not shift `0` … `10` — nor does a
+each), so a labeled N/A −1 or refusal 77 does not shift `0` … `10` — nor does a
 don't know −8 the codebook lists first, as SPSS-origin codebooks do; else the label
 in the same position (when there are as many labels as headers: headers `0` … `10`
 over labels coded 0 … 10 store 0 … 10); else 1, 2, 3 … in column order, which is
@@ -385,7 +385,7 @@ A **required** matrix needs an answer in every row — a row answered "Not appli
 has one; a row a script set to `null` has none. A matrix has no conditions on its rows,
 so every row is asked whenever the matrix is. Answered in some rows but not all, Next is
 refused with "Please answer every row." (`UIConfig.required_rows_text`) and the rows left
-are marked until each has an answer — in the error colour, and with `aria-invalid` on
+are marked until each has an answer — in the error color, and with `aria-invalid` on
 their cells for screen readers; with no row answered the message is the usual
 `required_text`. Only Next marks rows: leaving the matrix unanswered, or a script's
 message on it, shows the message alone. A `Script.timed_question`'s automatic Next is

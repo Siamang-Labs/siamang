@@ -117,11 +117,11 @@ Markdown and its HTML; its figure is then closed and let go
 all at once. A chart whose figure you asked for (`plot()`, `show()`) is left
 open, as you may still be changing it.
 
-A chart of `palette="theme"` is written in the chart colours of the report's
+A chart of `palette="theme"` is written in the chart colors of the report's
 `ReportTheme` (`chart_palette`, `chart_diverging`, … — see
 [[Reporting Charts|Reporting-Charts]]), in the Markdown's figures and the
 HTML's alike: drawn again from its parameters when it was drawn in other
-colours. Any other chart is written as it was drawn.
+colors. Any other chart is written as it was drawn.
 
 ### `save_tables`
 

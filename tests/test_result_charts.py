@@ -2,7 +2,7 @@
 
 Each chart is built from a result with known numbers and then read back from the
 figure: the rows and their order, where each point and whisker sits, the bars'
-lengths, the colours, the labels — so a chart that draws the wrong number, or
+lengths, the colors, the labels — so a chart that draws the wrong number, or
 draws it where it cannot be read, fails here rather than in a report. The
 intervals it draws are checked against R and against an independent survey
 package, quoted.
@@ -768,8 +768,8 @@ def test_odds_ratio_axes_name_minor_ticks_only_when_the_range_is_narrow():
 
 
 def test_more_series_than_the_palette_holds_never_share_a_colour():
-    """Descriptives by 24 groups drew 10 colours for 24 series ('muted' cycles):
-    past its ten, the palette's colours come again lighter, then darker."""
+    """Descriptives by 24 groups drew 10 colors for 24 series ('muted' cycles):
+    past its ten, the palette's colors come again lighter, then darker."""
     from matplotlib.colors import to_hex
 
     rng = np.random.default_rng(2)
@@ -790,7 +790,7 @@ def test_more_series_than_the_palette_holds_never_share_a_colour():
     legend = chart._ax.get_legend()
     assert len(markers) == len(legend.get_texts()) == 24
     assert len({to_hex(line.get_color()) for line in markers}) == 24
-    # Within the palette, the palette's own colours as before.
+    # Within the palette, the palette's own colors as before.
     assert [to_hex(c) for c in chart.colors(3)] == [
         to_hex(c) for c in __import__("seaborn").color_palette("muted", 3)
     ]

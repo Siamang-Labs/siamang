@@ -279,7 +279,7 @@ def test_gabor_granger_by_hand():
     assert "| 5 | Would buy at 5 | 90.0 | 4.5 | 64.3 |  |" in result.table.to_markdown()
     stats = result.stats
     assert stats["Method"] == "Gabor-Granger" and stats["Counts as yes"] == "1 = Yes"
-    assert stats["Revenue-maximising price"] == 10 and stats["Would buy % at it"] == 70.0
+    assert stats["Revenue-maximizing price"] == 10 and stats["Would buy % at it"] == 70.0
     assert stats["N"] == 10 and stats["Excluded"] == 1 and stats["Not monotone"] == 1
     assert "Missing codes" in stats and json.dumps(stats)
     assert result.points == {"revenue": 10.0}

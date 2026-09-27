@@ -479,7 +479,7 @@ class PlotAccessor:
         palette: str = "RdBu",
         title: str | None = None,
     ) -> Any:
-        """Diverging stacked bars of items on one ordered scale, centred on the
+        """Diverging stacked bars of items on one ordered scale, centered on the
         neutral answer (``neutral="split"``, or ``"side"`` to draw it apart),
         top-2 and bottom-2 shares at the ends, the largest top-2 first unless
         ``sort="listed"``. See :class:`~siamang.reporting.likert.LikertChart`."""

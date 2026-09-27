@@ -107,7 +107,7 @@ def test_shares_top_and_bottom_two_and_the_order_by_top_two(tmp_path):
         "Top-2: 4 = Agree, 5 = Strongly agree; bottom-2: 1 = Strongly disagree, 2 = Disagree."
         in note
     )
-    assert "The neutral answer (3 = Neither) is split around the centre." in note
+    assert "The neutral answer (3 = Neither) is split around the center." in note
     assert "Left out as missing: Service: the staff were friendly: 1 (9 = Don't know)." in note
     assert "Not on the scale, left out: Service: fair prices: 1 (0)." in note
     assert "Items in order of their top-2 share." in note
@@ -123,7 +123,7 @@ def test_the_bars_diverge_from_the_neutral_answer_split_around_the_centre():
     assert _segments(chart, 3)[0] == (12.5, 25.0)
     assert _segments(chart, 4)[0] == (37.5, 25.0)
     assert chart.table["Item"].tolist() == ["the staff were friendly", "fair prices"]
-    # Diverging colours with a grey middle: five of them, red below, blue above.
+    # Diverging colors with a gray middle: five of them, red below, blue above.
     from matplotlib.colors import to_hex, to_rgb
 
     fills = [to_rgb(c.patches[0].get_facecolor()) for c in chart.plot().containers]
@@ -142,8 +142,8 @@ def test_the_neutral_answer_apart_is_drawn_in_a_panel_at_the_right(tmp_path):
     chart.save(tmp_path / "side.png")
     main, aside = chart.plot().figure.axes[:2]
     assert len(main.containers) == 4  # the neutral answer is not on the main axes
-    assert _segments(chart, 1)[0] == (-12.5, 12.5)  # Disagree from the centre
-    assert _segments(chart, 2)[0] == (0.0, 25.0)  # Agree from the centre
+    assert _segments(chart, 1)[0] == (-12.5, 12.5)  # Disagree from the center
+    assert _segments(chart, 2)[0] == (0.0, 25.0)  # Agree from the center
     neutral = [round(p.get_width(), 3) for p in aside.patches]
     assert neutral == [25.0, 11.111]
     assert aside.get_title() == "Neither"
@@ -162,7 +162,7 @@ def test_an_even_scale_centres_between_its_middle_answers():
     assert _segments(chart, 1)[0] == (-20.0, 20.0)  # Fair: 1 of 5, left of 0
     assert _segments(chart, 2)[0] == (0.0, 20.0)  # Good: right of 0
     assert chart.table["Top-2"].tolist() == [60.0, 40.0]
-    assert "No neutral answer: the centre falls between 2 = Fair and 3 = Good." in _footnote(chart)
+    assert "No neutral answer: the center falls between 2 = Fair and 3 = Good." in _footnote(chart)
 
 
 def test_a_three_point_scale_has_a_top_and_bottom_box_of_one_answer():

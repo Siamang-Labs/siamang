@@ -155,7 +155,7 @@ Writes a three-file bundle into the target directory and returns the `Path` to
 the R script:
 
 - `import_survey.csv` — the responses;
-- `import_survey.dictionary.json` — full `VariableMap` serialisation, named
+- `import_survey.dictionary.json` — full `VariableMap` serialization, named
   like a snapshot's dictionary so `read_snapshot("import_survey.csv")` finds it;
 - `import_survey.R` — an R script that reads the CSV (as UTF-8) and the
   dictionary (via `jsonlite`), replaces missing-value codes with `NA`, applies

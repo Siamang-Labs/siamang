@@ -88,7 +88,7 @@ def test_key_drivers_draw_the_chart_their_module_draws():
     assert widths == pytest.approx(sorted(result.percent, reverse=True))
     assert sum(widths) == pytest.approx(100.0)
     assert [text.get_text() for text in ax.texts] == [f"{value:.1f} %" for value in widths]
-    # The waiting time's beta is negative: its bar is the second colour.
+    # The waiting time's beta is negative: its bar is the second color.
     colours = {
         label: bar.get_facecolor() for label, bar in zip(_ticks(ax), ax.patches, strict=True)
     }
@@ -289,7 +289,7 @@ def test_gabor_granger_draws_demand_over_revenue():
     assert list(line.get_xdata()) == [5, 10] and list(line.get_ydata()) == [75.0, 25.0]
     bars = revenue_ax.patches
     assert [bar.get_height() for bar in bars] == pytest.approx([3.75, 2.5])
-    # The best price in the full colour, the other lighter.
+    # The best price in the full color, the other lighter.
     assert bars[0].get_facecolor() == matplotlib.colors.to_rgba(pricing.EXPENSIVE_COLOUR)
     assert bars[1].get_facecolor() != bars[0].get_facecolor()
     assert "highest revenue at 5" in [text.get_text() for text in demand_ax.texts]

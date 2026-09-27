@@ -3,7 +3,7 @@
 A regression's coefficients answer "what happens to the outcome when this
 predictor moves and the others do not" — which is not the question a driver
 analysis asks. When the predictors correlate, as ratings of one brand always
-do, a coefficient can be small because a neighbour took its share, or even
+do, a coefficient can be small because a neighbor took its share, or even
 change sign. Relative importance splits the model's R² between the predictors
 instead: each gets the part of the explained variance it accounts for, alone
 and together with the others, and the parts add up to R².
@@ -32,7 +32,7 @@ and its variance inflation factor (VIF = the diagonal of ``Rxx⁻¹``). The
 statistics give R², adjusted R² and the regression's F-test. Importance is also
 shown as a percentage of R², so the shares add up to 100 %.
 
-**Who is analysed.** A respondent missing the outcome or any predictor is left
+**Who is analyzed.** A respondent missing the outcome or any predictor is left
 out (listwise), the codebook's missing codes counted as missing, and the
 statistics say how many (:func:`siamang.data.listwise.listwise`). A nominal
 variable with more than two answers has no amounts to weigh and is refused with
@@ -85,8 +85,8 @@ SHAPLEY_LIMIT = 15
 #: A variance inflation factor at or above this is warned in the statistics.
 VIF_WARNING = 10.0
 
-#: The chart's colours: the first two slots of a categorical palette that is
-#: distinguishable with every common colour-vision deficiency.
+#: The chart's colors: the first two slots of a categorical palette that is
+#: distinguishable with every common color-vision deficiency.
 POSITIVE, NEGATIVE = "#2a78d6", "#eb6834"
 _INK, _MUTED = "#333333", "#767676"
 
@@ -267,7 +267,7 @@ def analyze(
     if flat:
         what = "is" if len(flat) == 1 else "are"
         raise ValueError(
-            f"{', '.join(flat)} {what} the same for every respondent analysed, so there is "
+            f"{', '.join(flat)} {what} the same for every respondent analyzed, so there is "
             "no variance to explain or to explain it with; leave it out."
         )
     correlation = _correlations(matrix, weights)
@@ -413,7 +413,7 @@ def _weights(data: SurveyData, rows: Any) -> np.ndarray | None:
     if np.any(values < 0):
         raise ValueError(f"The weight column {column!r} has negative values.")
     if values.sum() <= 0:
-        raise ValueError(f"The weights in {column!r} of the respondents analysed sum to zero.")
+        raise ValueError(f"The weights in {column!r} of the respondents analyzed sum to zero.")
     return values
 
 
@@ -465,7 +465,7 @@ def plot(
 
     from siamang.reporting import chart_theme
 
-    # The report theme's first two colours, text and grid in a Result chart
+    # The report theme's first two colors, text and grid in a Result chart
     # of palette "theme"; these otherwise.
     up, down = chart_theme.series(POSITIVE, 0), chart_theme.series(NEGATIVE, 1)
     ink, rule = chart_theme.text(_INK), chart_theme.grid("#e6e6e6")

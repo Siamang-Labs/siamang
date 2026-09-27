@@ -1771,7 +1771,7 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   opacity: 0.5;
 }
 .siamang-step-dot[disabled]:hover { border-color: var(--siamang-border); }
-/* The page being answered: not a place to go, but not greyed out either. */
+/* The page being answered: not a place to go, but not grayed out either. */
 .siamang-step-dot.is-active[disabled] {
   cursor: default;
   opacity: 1;

@@ -59,8 +59,8 @@ Once `with_weight()` is set (the flow's **Apply weight** node), a result either 
 | `siamang.data.pricing` | Every Van Westendorp curve, NMS trial and Gabor-Granger demand is a share of the weights; N counts respondents. Stats: `Weight`, `Weighted N`. |
 | `report.quality`, `report.themes` | Count responses and answers. Stats: `Weight`: `unweighted (the weight 'w' is not applied)`. |
 | `describe_variables()` | Counts rows, and adds `weighted_n_valid`, the weights of the rows with a value. |
-| `plot.bar`, `plot.heatmap(by=…)` | Weighted counts, percentages (also with `split`) and weighted means; the axis (or colour bar) says "Weighted" or "(weighted)". The Bar chart's histogram is weighted counts or percentages (its automatic bin width from the answers as they are), its donut weighted shares with the weighted base in the middle, its error bars Wilson's on Kish's effective base (percentages) and the linearization interval (means), its significance letters on Kish's effective base. |
-| `plot.heatmap(method="pearson")` without `by` | Weighted Pearson coefficients (colour bar "Weighted Pearson r"), as `report.correlation_matrix` weights them. |
+| `plot.bar`, `plot.heatmap(by=…)` | Weighted counts, percentages (also with `split`) and weighted means; the axis (or color bar) says "Weighted" or "(weighted)". The Bar chart's histogram is weighted counts or percentages (its automatic bin width from the answers as they are), its donut weighted shares with the weighted base in the middle, its error bars Wilson's on Kish's effective base (percentages) and the linearization interval (means), its significance letters on Kish's effective base. |
+| `plot.heatmap(method="pearson")` without `by` | Weighted Pearson coefficients (color bar "Weighted Pearson r"), as `report.correlation_matrix` weights them. |
 | `plot.likert` | Weighted shares of each answer ("% of respondents (weighted)"); `n` counts respondents. |
 | `plot.trend` | Weighted points: a percent of the weights, a weighted mean, and for `measure="count"` the sum of the weights; the band (Wilson's interval for a percent, the t interval for a mean) on Kish's effective base. The note under the chart gives the weighted base, and the table each point's `Base` (respondents) beside its `Weighted base` and `Effective base`. Stats: `Weight`. |
 | `reporting.tabbook.write_tabbook` | Each cell a sum of weights and each percentage of those sums, as `report.freq` and `report.crosstab` compute them; the weighted base beside the unweighted one; the mean and SD weighted; the significance letters on Kish's effective base. Stat and Notes sheet: `Weight`. |
@@ -207,7 +207,7 @@ These two compute with [`siamang.data.inference`](#siamangdatainference) and, un
 
 ### Models
 
-* **`regression(y: str, predictors: list[str], *, kind: str = "auto")`**: OLS, or a logit for a two-valued outcome; weighted (WLS / weighted logit) when the data is, with `stats["weight"]` naming the column. `kind="ordinal"` fits the proportional-odds model of three to 20 ordered answers (`siamang.data.ordinal.ordinal_regression`; `auto` never chooses it; an outcome the codebook calls nominal is refused — `ordinal.outcome_problem` says why, and `check_flow` says it before the run): `logit P(y ≤ j) = θⱼ − xβ` as `MASS::polr` — a positive coefficient makes the higher answers more likely. `table`: `term`, `type` (`coefficient`, then `threshold`, named `Low / Medium` — polr's `Low|Medium` without the pipe a Markdown table would split on), `estimate`, `std_error`, `statistic` (z), `p_value`, and for the coefficients `odds_ratio` with its Wald interval `odds_ratio_lower` / `odds_ratio_upper` (`exp(confint.default(fit))`; blank for the thresholds). `stats`: `model` (`ordinal logit (proportional odds)`), `outcome`, `categories`, `order` (`Low < Medium < High`), `n`, `log_likelihood`, `pseudo_r_squared` (McFadden), `lr_chi_square`, `lr_df`, `lr_p`, `aic`, `converged`, `coefficients` (the sign convention), `interval`, and when they apply `note` (a labelled answer nobody gave), `warning` (no convergence; separation), `missing_codes` (the codebook's missing codes are left out), `weight`, `weights` (their sum, when they do not average about 1: they are frequency weights, as the logit's and `polr`'s). Maximum likelihood by BFGS on the exact gradient, polished by Newton steps on the exact Hessian; SEs from the observed information. `ordinal.fit(x, answer, weights)` is the same on plain arrays (`OrdinalFit`).
+* **`regression(y: str, predictors: list[str], *, kind: str = "auto")`**: OLS, or a logit for a two-valued outcome; weighted (WLS / weighted logit) when the data is, with `stats["weight"]` naming the column. `kind="ordinal"` fits the proportional-odds model of three to 20 ordered answers (`siamang.data.ordinal.ordinal_regression`; `auto` never chooses it; an outcome the codebook calls nominal is refused — `ordinal.outcome_problem` says why, and `check_flow` says it before the run): `logit P(y ≤ j) = θⱼ − xβ` as `MASS::polr` — a positive coefficient makes the higher answers more likely. `table`: `term`, `type` (`coefficient`, then `threshold`, named `Low / Medium` — polr's `Low|Medium` without the pipe a Markdown table would split on), `estimate`, `std_error`, `statistic` (z), `p_value`, and for the coefficients `odds_ratio` with its Wald interval `odds_ratio_lower` / `odds_ratio_upper` (`exp(confint.default(fit))`; blank for the thresholds). `stats`: `model` (`ordinal logit (proportional odds)`), `outcome`, `categories`, `order` (`Low < Medium < High`), `n`, `log_likelihood`, `pseudo_r_squared` (McFadden), `lr_chi_square`, `lr_df`, `lr_p`, `aic`, `converged`, `coefficients` (the sign convention), `interval`, and when they apply `note` (a labeled answer nobody gave), `warning` (no convergence; separation), `missing_codes` (the codebook's missing codes are left out), `weight`, `weights` (their sum, when they do not average about 1: they are frequency weights, as the logit's and `polr`'s). Maximum likelihood by BFGS on the exact gradient, polished by Newton steps on the exact Hessian; SEs from the observed information. `ordinal.fit(x, answer, weights)` is the same on plain arrays (`OrdinalFit`).
 * **`pca(items: list[str], *, n_components: int | None = None, standardize: bool = True)`**: loadings and explained variance. On weighted data the components are those of the weighted covariance (standardized: correlation) matrix, `Σ pᵢ (xᵢ − m)(xᵢ − m)ᵀ / (1 − Σ pᵢ²)` with `pᵢ = wᵢ / Σw` — R's `cov.wt` — so equal weights give the unweighted result exactly. `stats["n"]` stays the rows analyzed; `stats["weight"]` names the column.
 * **`reliability(items: list[str])`**: Cronbach's alpha, item means, item–total correlations and alpha if deleted — all from the same weighted moments on weighted data, with `stats["weight"]`.
 * `SurveyData.cluster(items, *, k, into, seed, standardize, number_by)` is k-means on the respondents as they are, the best of ten k-means++ starts drawn from `seed` (the smallest within-cluster sum of squares), so the segments do not turn on the order the rows are stored in; on weighted data `stats["weight"]` says the weight is not applied. The clusters are numbered by size, largest first, or with `number_by` (one of `items`) by that item's mean, lowest first (`stats["numbered_by"]` says so): segments of close sizes swap numbers when a few respondents come or go, and a name given to a number then lands on the other segment. A Frequencies table of the cluster variable on the weighted data gives the segments' weighted sizes.
@@ -225,7 +225,7 @@ These two compute with [`siamang.data.inference`](#siamangdatainference) and, un
 
 Significance tests, post-hoc comparisons and correlations on plain arrays, with numpy and SciPy only (SciPy 1.11 or later). The tables and the flow nodes that let a test be chosen by hand are built on it.
 
-* **`adjust_p(pvalues, method="holm") -> np.ndarray`**: `"none"`, `"bonferroni"`, `"holm"` or `"fdr_bh"` (Benjamini-Hochberg), as R's `p.adjust`; a missing p stays missing and does not count towards m.
+* **`adjust_p(pvalues, method="holm") -> np.ndarray`**: `"none"`, `"bonferroni"`, `"holm"` or `"fdr_bh"` (Benjamini-Hochberg), as R's `p.adjust`; a missing p stays missing and does not count toward m.
 * **`correlate(x, y, *, method="pearson", weights=None, confidence=0.95) -> dict`** and **`correlation_matrix(frame, columns, *, method="spearman", missing="pairwise", adjust="none", weights=None) -> CorrelationMatrix`** (`coefficients`, `p_values`, `p_adjusted`, `n` as square frames, `notes`, `pairs()`).
 * **`ttest_independent(a, b, *, equal_var=False, confidence=0.95, names=…)`**, **`ttest_paired(x, y, …)`**, **`ttest_one_sample(x, mu, …)`** `-> TTest` (`method`, `t`, `df`, `p_value`, `difference`, `lower`, `upper`, `cohens_d`, `hedges_g`). Cohen's d is the difference over the pooled SD for two groups (Hedges' g = d · (1 − 3 / (4(n₁ + n₂) − 9))), d_z for paired data.
 * **`anova(samples)`**, **`welch_anova(samples, names)`**, **`kruskal(samples)`**, **`mannwhitney(a, b)`** `-> GroupTest` (`method`, `symbol`, `statistic`, `p_value`, `df`, `df2`, `effect_name`, `effect`: η², η², ε² = H / (N − 1), rank-biserial r = 2U / (n₁n₂) − 1).
@@ -349,7 +349,7 @@ Tidy-frame descriptives for scripts that do not go through `SurveyData`:
 |----------|---------|-------|
 | `descriptives.describe(frame, columns, *, variables=None, weight=None, by=None, detail=False)` | `Descriptives(table, stats)` | N, Missing, Mean, SD, Min, Median, Max (+ Q1, Q3 type 7, bias-corrected skewness G1 and excess kurtosis G2 with `detail`), per group with `by` (a multiple-choice `by`: one overlapping group per option, and `stats["Groups"]` says so). Declared missing codes and non-numbers count as missing; weighted mean/SD/median/quartiles; undefined cells NaN. `weighted_quantile(values, weights, q)` is the smallest value whose cumulative weight reaches `q`. |
 | `checks.check(data, variables=None)` | `DataCheck(table, stats)` | See `validate` above. |
-| `maxdiff.with_scores(data, question, *, prefix=None)` | `ScoredData(data, stats, names)` | One interval variable per item, `<prefix><code>` (default `<question>_score_`, `score_names()`), labelled `MaxDiff score: <item>`, valid range −1…1: best − worst over times shown to that respondent, NaN where never shown. Refuses to overwrite a column it did not write. |
+| `maxdiff.with_scores(data, question, *, prefix=None)` | `ScoredData(data, stats, names)` | One interval variable per item, `<prefix><code>` (default `<question>_score_`, `score_names()`), labeled `MaxDiff score: <item>`, valid range −1…1: best − worst over times shown to that respondent, NaN where never shown. Refuses to overwrite a column it did not write. |
 | `turf.turf(frame, items, *, max_size=3, method="best", weight=None, include=None, labels=None)` | `TurfTable` (`method` `best` or `greedy`) | The best (or greedy) portfolio of each size: `size`, `items` (column names), `reach`, `reach_percent`, `incremental`, `incremental_percent`, `frequency`; `base`. `labels` (column → label; `turf.labels_of(data, items)` reads them from the codebook) travel as `table.labels`, which the Result chart names the options by. |
 | `turf.evaluate(frame, portfolio, *, items=None, weight=None, labels=None)` | `TurfTable` (`method == "fixed"`) | Per option `reach`, `reach_percent`, `unique`, `unique_percent`, `frequency`; a `(portfolio)` row with the portfolio's reach and frequency. `items` sets the base; an empty portfolio reads all items. |
 | `bands.bands(data, column, *, bins, into, labels=None, right=False, label=None)` | `Banded(data, stats)` | `SurveyData.recode` after taking the column's missing codes out; default labels `18 to under 30` (`band_labels`); stats count each band and what fell outside. |
@@ -445,8 +445,8 @@ respondents × items matrix.
 | `method` | `minres` (factor_analyzer, `psych::fa`), `principal` (iterated principal axis as `psych::fa(fm="pa")`: SMC start, stops when the communalities' sum moves by < 0.001, 50 steps at most), `ml` (`factanal`'s objective; adds `Fit chi-square`, `Fit df`, `Fit p`; started from `factanal`'s start, the minres solution, 1 − SMC, 0.5 and `ML_RANDOM_STARTS` (10) points from the fixed `ML_SEED`, keeping the lowest objective) |
 | `rotation` | `varimax` (Kaiser-normalized, R's algorithm), `promax` (power 4, Kaiser-normalized as factor_analyzer and SPSS), `oblimin` (direct quartimin, γ = 0, as GPArotation), `none` |
 | `sort`, `hide_below` | order the items by the factor they load on most; blank loadings below the value in the table |
-| `scores`, `into` | add regression-method scores `<into>1`, `<into>2`, … (interval, labelled), missing for respondents left out |
-| `read_later` | score names a later step reads (a flow passes those its nodes downstream name): with `n_factors=None`, each the rule did not keep is added empty, labelled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)` and named in `stats["Scores"]` (`…; factor_3 empty: the Kaiser criterion kept 2 factors`); no other score is added |
+| `scores`, `into` | add regression-method scores `<into>1`, `<into>2`, … (interval, labeled), missing for respondents left out |
+| `read_later` | score names a later step reads (a flow passes those its nodes downstream name): with `n_factors=None`, each the rule did not keep is added empty, labeled `Factor 3 score (not made: the Kaiser criterion kept 2 factors)` and named in `stats["Scores"]` (`…; factor_3 empty: the Kaiser criterion kept 2 factors`); no other score is added |
 
 `FactorAnalysis` holds `loadings` (Variable, Label, Factor 1…, Communality,
 Uniqueness, MSA), `variance` (every eigenvalue with its % and cumulative %,
@@ -461,7 +461,7 @@ eigenvalues, KMO per item, …).
 
 Every factor is signed so its loadings sum positive and the factors are ordered
 by their sum of squared loadings; the communalities come from the unrotated
-solution, which a rotation does not change. Scores standardise the items with
+solution, which a rotation does not change. Scores standardize the items with
 the sample SD (R's `scale()`; `factor_analyzer.transform` uses the population
 SD). Refused with the reason: fewer than three items, no more complete
 respondents than items, an item without variance, a singular correlation matrix
@@ -528,7 +528,7 @@ and the unrounded numbers in the predictors' order: `correlations`, `betas`,
 `importance` (summing to `r_squared`), `percent`, `vif`. `plot(result, *,
 title=None, figsize=None, ax=None)` draws the shares as horizontal bars, largest
 on top, blue for a positive beta and orange for a negative one (a legend when
-both occur), each labelled with its percentage; the title names the outcome,
+both occur), each labeled with its percentage; the title names the outcome,
 then the method, R² and N, and a line the weight — wrapped to the room from the
 plot's left edge. Labels wrap at a third of the width (three lines, then an
 ellipsis), many rows get a smaller font, and a figure too short for its rows
@@ -562,8 +562,8 @@ set. It returns the matplotlib `Figure`.
 — the `analyze.correspondence` node. Give `column` for a crosstab (the
 respondents in each pair of answers; a multiple-choice variable counts each
 answer chosen) or `attributes` for a brand-image grid (per answer of `row`, the
-respondents who ticked each 0/1 attribute; `yes` is the code or codes of a
-tick, empty for 0/1; a blank is no tick). `ca(table) -> CorrespondenceSolution`
+respondents who checked each 0/1 attribute; `yes` is the code or codes that
+count as checked, empty for 0/1; a blank is unchecked). `ca(table) -> CorrespondenceSolution`
 is the analysis of a plain table of counts.
 
 Simple CA as `ca::ca` and FactoMineR's `CA`: the SVD of the standardized
@@ -665,7 +665,7 @@ listwise), yes by `yes` (empty: 1 for 0/1; a list for a top-two box). `table`:
 Price (ascending), Question, Would buy %, Revenue per respondent (price ×
 share), Revenue index (highest = 100), Elasticity (arc elasticity from the
 price before). Stats `Method`, `Counts as yes`, `Prices`, `N`,
-`Revenue-maximising price` (among the prices asked), `Would buy % at it`,
+`Revenue-maximizing price` (among the prices asked), `Would buy % at it`,
 `Revenue per respondent at it`, `Not monotone` (yes at a higher price, no at a
 lower one: counted, kept as answered), `Weight`, `Weighted N`, `Excluded`,
 `Missing codes`. `curves` is the same table.

@@ -1,7 +1,7 @@
 type: analyze.correspondence
 category: analyze
 title: Perceptual map
-description: Correspondence analysis of a crosstab, or of the attributes ticked for each brand — the dimensions and their share of the inertia, and where each row and column lies on the map, with contributions and quality.
+description: Correspondence analysis of a crosstab, or of the attributes checked for each brand — the dimensions and their share of the inertia, and where each row and column lies on the map, with contributions and quality.
 inputs:
   data: SurveyData
 outputs:
@@ -17,7 +17,7 @@ params:
     - attributes
     default: crosstab
     label: Table
-    help: crosstab counts the respondents in each pair of answers of Rows and Columns (a multiple-choice variable counts each answer chosen). attributes counts, for each answer of Rows — the brand, in data with a row per respondent and brand — the respondents who ticked each of the Attributes.
+    help: crosstab counts the respondents in each pair of answers of Rows and Columns (a multiple-choice variable counts each answer chosen). attributes counts, for each answer of Rows — the brand, in data with a row per respondent and brand — the respondents who checked each of the Attributes.
   row:
     kind: variable
     required: true
@@ -36,11 +36,11 @@ params:
   attributes:
     kind: variables
     label: Attributes
-    help: 'Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank or a missing code is no tick.'
+    help: 'Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank or a missing code counts as unchecked.'
   yes_codes:
     kind: json
     label: Counts as yes (attributes)
-    help: The code, or a list of codes, that counts as ticking an attribute. Empty works for 0/1 variables.
+    help: The code, or a list of codes, that counts as checking an attribute. Empty works for 0/1 variables.
   dimensions:
     kind: int
     default: 2
@@ -58,7 +58,7 @@ checks:
   message: A crosstab map crosses Rows with Columns — choose the Columns variable.
 - when: layout=attributes
   require: attributes
-  message: An attribute map counts the Attributes ticked for each answer of Rows — choose two or more attribute variables.
+  message: An attribute map counts the Attributes checked for each answer of Rows — choose two or more attribute variables.
 - when: layout=crosstab & yes_codes
   severity: warning
   message: Counts as yes is read only with Table = attributes — set it, or clear Counts as yes.
@@ -72,7 +72,7 @@ template:
       {in.data},
       {row!r},
 # A crosstab reads Columns, an attribute map its Attributes and what counts
-# as a tick: the fragments continue the call above.
+# as checked: the fragments continue the call above.
 - when: layout=crosstab
   code: |2
         column={column!r},

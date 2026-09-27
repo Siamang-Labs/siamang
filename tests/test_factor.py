@@ -226,7 +226,7 @@ def test_number_of_factors_by_kaiser_and_by_parallel_analysis():
 
 
 def test_regression_scores_match_factor_analyzer_with_the_sample_sd():
-    """factor_analyzer.transform standardises with the population SD; with the
+    """factor_analyzer.transform standardizes with the population SD; with the
     sample SD (R's scale()) its scores shrink by √((n − 1) / n)."""
 
     x = _items()
@@ -451,7 +451,7 @@ def test_scores_a_rule_did_not_keep_are_empty_and_say_why():
     """With the number chosen by a rule, check_flow lets a later node name every
     score the analysis could make (one fewer than the items), since the number
     is known only after the run. A score a later step reads (``read_later``, what
-    a flow passes) that the rule did not keep is made empty and labelled, so a
+    a flow passes) that the rule did not keep is made empty and labeled, so a
     node reading it gets an empty variable that says why — not a KeyError
     "['factor_3'] not in index". No other is made: 0147 added every one, so 20
     items with three factors kept put 16 empty columns into the data, its
@@ -482,7 +482,7 @@ def test_scores_a_rule_did_not_keep_are_empty_and_say_why():
 def test_a_flow_makes_an_unkept_score_only_where_a_later_node_reads_it(tmp_path, monkeypatch):
     """The flow passes the scores the nodes downstream name (``read_after``):
     none when nothing reads one, factor_3 alone when a Group means reads it —
-    which then finds the empty, labelled variable and runs."""
+    which then finds the empty, labeled variable and runs."""
     from pathlib import Path
 
     from siamang.flow import FlowRunner, generate_flow

@@ -368,7 +368,7 @@ def test_price_sensitivity_node_runs_both_methods_weighted(tmp_path):
     stat = result.output("gg", "stat")
     assert stat["Method"] == "Gabor-Granger" and stat["Prices"] == 4
     report = (tmp_path / "outputs" / "prices.md").read_text("utf-8")
-    assert "Optimal price point (OPP)" in report and "Revenue-maximising price" in report
+    assert "Optimal price point (OPP)" in report and "Revenue-maximizing price" in report
     assert "nan" not in report and json.dumps(stat)
     # The check: prices against questions, all four questions, and a
     # calibration without the questions it calibrates.
@@ -395,7 +395,7 @@ def test_price_sensitivity_node_runs_both_methods_weighted(tmp_path):
 
 
 def test_perceptual_map_reads_a_snapshot_as_the_simulated_data(questionnaire_doc, survey, tmp_path):
-    """Studio runs flows on snapshots and platform data, whose labelled codes
+    """Studio runs flows on snapshots and platform data, whose labeled codes
     come back as nullable Int64 with pd.NA for a skipped answer: the map of the
     data read from a snapshot is the map of the same responses in memory."""
     from siamang.io import write_snapshot

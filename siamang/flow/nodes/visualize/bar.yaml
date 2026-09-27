@@ -51,7 +51,7 @@ params:
     - value
     default: code
     label: Sort
-    help: Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colours follow the answer, not its place — the same in a Top N chart and a donut of the same question. Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot.
+    help: Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colors follow the answer, not its place — the same in a Top N chart and a donut of the same question. Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot.
   horizontal:
     kind: bool
     default: false
@@ -71,7 +71,7 @@ params:
     kind: bool
     default: false
     label: Combine the rest as Other
-    help: With Top N, one more bar for the answers after the top N — for a multiple-choice question, the respondents who named any of them — drawn grey and last. Off, the rest are left out; the note under the chart says how many.
+    help: With Top N, one more bar for the answers after the top N — for a multiple-choice question, the respondents who named any of them — drawn gray and last. Off, the rest are left out; the note under the chart says how many.
   intervals:
     kind: bool
     default: false
@@ -142,7 +142,7 @@ params:
     - theme
     default: muted
     label: Palette
-    help: Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart), with its text colour, grid and font. The others are seaborn's palettes.
+    help: Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes.
 subtitle:
 - when: layout=donut
   text: '{variable}'

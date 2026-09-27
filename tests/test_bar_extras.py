@@ -1172,14 +1172,14 @@ def test_the_node_checks_what_the_newer_forms_refuse(questionnaire_doc):
     ]
 
 
-# ─── one colour per answer, a number as bars, nothing to draw ────────────────
+# ─── one color per answer, a number as bars, nothing to draw ────────────────
 
 
 def test_an_answer_keeps_its_colour_in_top_n_and_in_the_donut():
-    """Colours were given by the place among the answers drawn: with Top N or
+    """Colors were given by the place among the answers drawn: with Top N or
     a donut's small slices left out, every later answer moved to another
-    colour, so one brand was orange in one chart of a report and magenta in
-    the next. An answer's colour is its place among all the answers given."""
+    color, so one brand was orange in one chart of a report and magenta in
+    the next. An answer's color is its place among all the answers given."""
     from matplotlib.colors import to_hex
 
     from siamang.reporting import chart_theme as ct
@@ -1198,7 +1198,7 @@ def test_an_answer_keeps_its_colour_in_top_n_and_in_the_donut():
     everything = legend(data.plot.bar("q", show="percent", split="g", palette="theme"))
     top = legend(data.plot.bar("q", show="percent", split="g", top=3, palette="theme"))
     donut = legend(data.plot.bar("q", layout="donut", top=3, other=True, palette="theme"))
-    # A–F were given (G never): each takes the palette's colour of its code's place.
+    # A–F were given (G never): each takes the palette's color of its code's place.
     expected = dict(zip("ABCDEF", ct.PALETTE, strict=False))
     assert everything == expected
     assert top == {name: expected[name] for name in ("B", "C", "D")}
@@ -1221,7 +1221,7 @@ def test_percent_bars_of_no_answer_say_so():
 
 
 def test_a_donut_every_answer_of_which_is_under_min_slice_is_refused():
-    """40 answers of 2.5 % each were combined into one grey ring called
+    """40 answers of 2.5 % each were combined into one gray ring called
     Other; a donut whose every slice would be Other says so."""
     frame = pd.DataFrame({"x": np.arange(1, 41)})
     variables = VariableMap()
@@ -1292,7 +1292,7 @@ def test_a_number_of_many_values_is_not_drawn_a_bar_each():
     donut = data.plot.bar("age", layout="donut", top=5, min_slice=0).plot()
     assert len(donut.patches) == 6
     # The five ages take five steps of the scale among themselves, light to
-    # dark in code order: among all 74, neighbours would read as one colour.
+    # dark in code order: among all 74, neighbors would read as one color.
     from matplotlib.colors import to_rgb
 
     lightness = [sum(to_rgb(patch.get_facecolor())) for patch in donut.patches[:5]]

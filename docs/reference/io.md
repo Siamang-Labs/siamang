@@ -138,7 +138,7 @@ RScriptWriter().write(data, path="political_trust_R/")
 Writes a three-file bundle into the target directory:
 
 - `import_survey.csv` — the responses.
-- `import_survey.dictionary.json` — full `VariableMap` serialisation (the name
+- `import_survey.dictionary.json` — full `VariableMap` serialization (the name
   a snapshot's dictionary has, so `read_snapshot` finds it beside the CSV).
 - `import_survey.R` — an R script (using `jsonlite`) that reads the CSV as
   UTF-8 (`na.strings = ""`, so a text answer "NA" stays an answer), replaces

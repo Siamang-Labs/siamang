@@ -592,7 +592,7 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
       if (!nav) return;
       // A radio or a checkbox (a choice, a picture choice, a conjoint's
       // "none") and a slider have keys of their own - Space checks the radio
-      // or ticks the box, the arrows move - but not Enter, which goes on, as
+      // or the box, the arrows move - but not Enter, which goes on, as
       // it does anywhere outside a text field: a click on a choice leaves the
       // focus on it, and Enter there did nothing. Every other field keeps
       // all its keys.

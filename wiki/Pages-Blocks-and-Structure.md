@@ -73,7 +73,7 @@ pages remain navigable.
 ### Page bodies
 
 `body` is **HTML** — `<p>`, `<b>`, `<a href="…">`, `<ul>` — not Markdown, and it is
-inserted as written (it is the author's, not sanitised). It is shown on every kind of
+inserted as written (it is the author's, not sanitized). It is shown on every kind of
 page: above the questions on an ordinary page, alone on a content page, as the message
 of a terminal page. `{answer:x}` / `{var:x}` / `{label:x}` pipe earlier answers into
 it — and into the page's `title` — on every kind of page, terminal ones included (see

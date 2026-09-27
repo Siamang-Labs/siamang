@@ -109,7 +109,7 @@ class SurveyChart:
     figsize : tuple[float, float]
         Figure size in inches (width, height).
     palette : str
-        Seaborn/matplotlib color palette name, or ``"theme"``: the colours of
+        Seaborn/matplotlib color palette name, or ``"theme"``: the colors of
         the report theme the chart is shown in (:mod:`siamang.reporting.chart_theme`).
     title : str | None
         Override the auto-generated title.
@@ -126,8 +126,8 @@ class SurveyChart:
     _fig: Any = field(init=False, repr=False, default=None)
     _ax: Any = field(init=False, repr=False, default=None)
     _weight_note: str | None = field(init=False, repr=False, default=None)
-    #: With ``palette="theme"``: the chart colours to draw in, which a report
-    #: sets (``chart_theme.in_report``); the colours the chart was drawn in;
+    #: With ``palette="theme"``: the chart colors to draw in, which a report
+    #: sets (``chart_theme.in_report``); the colors the chart was drawn in;
     #: and the copy a report drew in its own when those differ.
     _colours: Any = field(init=False, repr=False, default=None)
     _drawn_with: Any = field(init=False, repr=False, default=None)
@@ -468,7 +468,7 @@ class BoxPlot(SurveyChart):
             order = None
 
         if sns:
-            # In the theme's colours the groups take the palette in the order
+            # In the theme's colors the groups take the palette in the order
             # they are drawn, undimmed; any other palette as it always did.
             themed = chart_theme.themed() is not None
             levels = order or list(pd.unique(frame["_group"]))
@@ -504,7 +504,7 @@ class BoxPlot(SurveyChart):
         plt.xticks(rotation=30, ha="right")
         plt.tight_layout()
         if sns and chart_theme.themed() is not None:
-            # In the theme's colours (an opt-in, so the others draw as they
+            # In the theme's colors (an opt-in, so the others draw as they
             # always did) the value axis's title wraps to the plot's height:
             # longer, it ran into the chart's title.
             from siamang.reporting.chart_parts import axes_points, chars_in, font_size, wrap
@@ -564,8 +564,8 @@ class HeatMap(SurveyChart):
             draw(self)
             return
         if self.by is not None and self.cmap == "theme":
-            # In the theme's colours (an opt-in) the means leave the missing
-            # codes out and the layout holds long labels; a named colour map
+            # In the theme's colors (an opt-in) the means leave the missing
+            # codes out and the layout holds long labels; a named color map
             # draws what it always drew.
             from siamang.reporting.correlation_chart import draw_means
 
@@ -610,7 +610,7 @@ class HeatMap(SurveyChart):
                 vmax=self.vmax,
                 ax=ax,
                 linewidths=0.5,
-                # Unweighted, the colour bar stays unlabelled as it always was.
+                # Unweighted, the color bar stays unlabeled as it always was.
                 cbar_kws={"label": "Weighted mean"} if weights is not None else None,
             )
             chart_theme.label_cells(ax)
@@ -702,7 +702,7 @@ class ScatterPlot(SurveyChart):
         scatter_kwargs = dict(data=frame, x=self.x, y=self.y, ax=ax, alpha=0.7)
         themed = chart_theme.themed() is not None
         if hue_col:
-            # In the theme's colours the groups take the palette in the
+            # In the theme's colors the groups take the palette in the
             # codebook's order, and the legend is titled by the variable.
             codes = sorted(frame[self.hue].unique(), key=code_order)
             levels = [frame.loc[frame[self.hue] == code, hue_col].iloc[0] for code in codes]
@@ -721,7 +721,7 @@ class ScatterPlot(SurveyChart):
                 y=self.y,
                 ax=ax,
                 scatter=False,
-                # With the theme's colours, its second: the first is the points'.
+                # With the theme's colors, its second: the first is the points'.
                 color=chart_theme.series("red", 1),
                 line_kws={"linewidth": 1.5},
             )

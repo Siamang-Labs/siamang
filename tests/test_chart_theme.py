@@ -1,14 +1,14 @@
-"""Charts in the report theme's colours: ``palette="theme"``.
+"""Charts in the report theme's colors: ``palette="theme"``.
 
-The colour arithmetic is checked against reference values (WCAG's contrast of
+The color arithmetic is checked against reference values (WCAG's contrast of
 known pairs, Machado 2009's matrices, the OKLab distances the data-viz palette
 validator reports for the default palette); the default palette against the
-colour-vision rules it is chosen for; a theme's chart fields against the
+color-vision rules it is chosen for; a theme's chart fields against the
 messages that name a bad one. Then every chart form is drawn in the theme's
-colours and read back from the figure — its bars, segments, lines, cells, text,
+colors and read back from the figure — its bars, segments, lines, cells, text,
 grid and face — and a chart that names a palette of its own is drawn byte for
 byte as it was, whatever theme is about. A report draws a chart of palette
-"theme" in its own theme's colours, and a flow does so through its Save
+"theme" in its own theme's colors, and a flow does so through its Save
 report's Look, run and generated.
 """
 
@@ -63,12 +63,12 @@ def _hex(colour) -> str:
     return to_hex(colour, keep_alpha=False)
 
 
-# ─── colour arithmetic ───────────────────────────────────────────────────────
+# ─── color arithmetic ───────────────────────────────────────────────────────
 
 
 def test_contrast_and_luminance_are_wcag_s():
     """WCAG 2.x: black on white 21:1; #777777 on white 4.48:1 (the classic
-    just-fails-AA grey); a colour against itself 1:1."""
+    just-fails-AA gray); a color against itself 1:1."""
 
     assert ct.contrast("#000000", "#ffffff") == pytest.approx(21.0)
     assert ct.contrast("#777777", "#ffffff") == pytest.approx(4.478, abs=0.001)
@@ -95,21 +95,21 @@ def test_the_simulation_is_machado_2009_in_oklab():
     assert ct.distance("#2a78d6", "#e34948", "protan") == pytest.approx(21.6, abs=0.05)
 
 
-# ─── the default colours ─────────────────────────────────────────────────────
+# ─── the default colors ─────────────────────────────────────────────────────
 
-#: OKLab ΔE × 100 below which two colours are hard to tell apart (the
+#: OKLab ΔE × 100 below which two colors are hard to tell apart (the
 #: validator's target is 8, its floor with other cues 6), and the least between
-#: neighbours with full colour vision.
+#: neighbors with full color vision.
 CVD_TARGET, NORMAL_FLOOR = 8.0, 15.0
 
 
 def test_the_default_palette_is_safe_for_colour_blind_readers():
-    """Any two of the eight colours stay apart under protanopia and
-    deuteranopia (and with full colour vision), not only neighbours: a Trend's
+    """Any two of the eight colors stay apart under protanopia and
+    deuteranopia (and with full color vision), not only neighbors: a Trend's
     lines cross, a donut's slices and a split's bars meet in any order. The
-    palette used to hold only for neighbours and the first three — orange and
-    green were 3.2 apart for a colour-blind reader, orange and red 7.1 for
-    anyone. Each colour is at least 2:1 on white, and the first three, which
+    palette used to hold only for neighbors and the first three — orange and
+    green were 3.2 apart for a color-blind reader, orange and red 7.1 for
+    anyone. Each color is at least 2:1 on white, and the first three, which
     most charts use, are the furthest apart."""
 
     palette = ReportTheme().chart_palette
@@ -131,10 +131,10 @@ def test_the_default_palette_is_safe_for_colour_blind_readers():
 
 def test_a_light_sequential_colour_still_gives_every_step_its_own_colour():
     """A yellow or a light blue is under 2:1 on white itself, so no tint of it
-    could be the light end and the colour stood for the two lightest steps: a
-    5-point scale in brand gold #ffb703 had three answers in one colour. The
-    scale runs from the colour darkened to 2:1 to its half now, and a
-    near-black colour from its tint to its half."""
+    could be the light end and the color stood for the two lightest steps: a
+    5-point scale in brand gold #ffb703 had three answers in one color. The
+    scale runs from the color darkened to 2:1 to its half now, and a
+    near-black color from its tint to its half."""
 
     for sequential in ("#ffb703", "#ffd166", "#8ecae6", "#2a78d6", "#111111", "#000000"):
         colours = ct.ChartColours(sequential=sequential)
@@ -156,9 +156,9 @@ def test_a_light_sequential_colour_still_gives_every_step_its_own_colour():
 
 
 def test_colours_past_the_palette_stay_visible_and_a_faint_one_is_refused():
-    """Past the palette a chart took its colours half-way to white: a brand
+    """Past the palette a chart took its colors half-way to white: a brand
     palette opening on #ffd166 made its fifth line #ffe8b2, 1.2:1 on white. The
-    colours it makes keep 2:1 now, and a theme naming one under 1.3:1 is
+    colors it makes keep 2:1 now, and a theme naming one under 1.3:1 is
     refused in words."""
 
     colours = ct.ChartColours(palette=("#ffd166", "#06d6a0", "#118ab2", "#ef476f"))
@@ -182,7 +182,7 @@ def test_the_steps_of_a_scale_read_in_order():
     """An ordered scale's steps are one hue, light to dark: the lightness
     falls step by step (by at least 0.06 in OKLab up to seven steps), the
     lightest still 2:1 on white. A diverging scale's two arms stay apart for
-    colour-blind readers at every step."""
+    color-blind readers at every step."""
 
     colours = ct.ChartColours()
     for count in range(2, 10):
@@ -203,7 +203,7 @@ def test_the_steps_of_a_scale_read_in_order():
             lightness = [ct.lightness(step) for step in arm]
             assert lightness == sorted(lightness)  # lighter toward the middle
             assert ct.contrast(arm[-1], ct.BACKGROUND) >= ct.MIN_STEP_CONTRAST
-            assert ct.distance(arm[-1], ct.NEUTRAL) >= CVD_TARGET  # not the neutral grey
+            assert ct.distance(arm[-1], ct.NEUTRAL) >= CVD_TARGET  # not the neutral gray
         for vision in ct.VISIONS:
             for left, right in zip(low, high, strict=True):
                 assert ct.distance(left, right, vision) >= 10, (count, left, right)
@@ -214,8 +214,8 @@ def test_the_steps_of_a_scale_read_in_order():
 def test_text_on_any_fill_reads():
     """The value written on a bar, a segment or a cell is in white or the
     theme's text, whichever reads better, black when neither reaches 4.5:1 —
-    and one of white and black always does. Checked on every colour a theme
-    chart fills with, and on colours drawn at random."""
+    and one of white and black always does. Checked on every color a theme
+    chart fills with, and on colors drawn at random."""
 
     for colours in (ct.ChartColours(), ct.ChartColours.of(CUSTOM)):
         fills = [
@@ -256,7 +256,7 @@ def test_more_series_than_the_palette_never_repeat_a_colour():
 
 
 def test_chart_colours_are_stored_sparsely_and_read_back():
-    """A theme stores only what was chosen; a list of colours comes from JSON
+    """A theme stores only what was chosen; a list of colors comes from JSON
     as a list, or from a text box as one string, and is a tuple in the theme."""
 
     assert ReportTheme().to_dict() == {}
@@ -274,14 +274,14 @@ def test_chart_colours_are_stored_sparsely_and_read_back():
 @pytest.mark.parametrize(
     ("kwargs", "says"),
     [
-        ({"chart_palette": ["blue", "#eb6834"]}, "chart_palette: 'blue' is not a hex colour"),
-        ({"chart_palette": ["#2a78d6"]}, "give between 2 and 12 colours, .* got 1"),
+        ({"chart_palette": ["blue", "#eb6834"]}, "chart_palette: 'blue' is not a hex color"),
+        ({"chart_palette": ["#2a78d6"]}, "give between 2 and 12 colors, .* got 1"),
         ({"chart_palette": ["#2a78d6"] * 13}, "give between 2 and 12"),
         ({"chart_palette": ["#fff", "#FFFFFF"]}, "'#FFFFFF' is given twice"),
-        ({"chart_palette": 5}, "chart_palette: expected a list of hex colours"),
+        ({"chart_palette": 5}, "chart_palette: expected a list of hex colors"),
         ({"chart_sequential": "rgb(0,0,0)"}, "chart_sequential: 'rgb"),
-        ({"chart_diverging": ["#e34948"]}, "chart_diverging: give two colours, the low end first"),
-        ({"chart_diverging": ["#e34948", "#E34948"]}, "the two ends are the same colour"),
+        ({"chart_diverging": ["#e34948"]}, "chart_diverging: give two colors, the low end first"),
+        ({"chart_diverging": ["#e34948", "#E34948"]}, "the two ends are the same color"),
         ({"chart_diverging": ["#e34948", "navy"]}, "chart_diverging: 'navy' is not a hex"),
         ({"chart_text_color": "#cccccc"}, r"contrast of 1\.6:1; text needs at least 4\.5:1"),
         ({"chart_text_color": "#20304"}, "chart_text_color: '#20304' is not a hex"),
@@ -354,7 +354,7 @@ def _data() -> SurveyData:
 
 def _forms(data: SurveyData, palette: str) -> dict:
     """Every chart form, drawn with ``palette`` (a Likert chart's own default
-    for "muted", a heatmap's colour map for the heatmaps)."""
+    for "muted", a heatmap's color map for the heatmaps)."""
     likert = "RdBu" if palette == "muted" else palette
     cmap = "YlOrRd" if palette == "muted" else palette
     weighted = data.with_weight("w")
@@ -412,7 +412,7 @@ def test_a_chart_with_its_own_palette_is_drawn_as_it_was_whatever_the_theme(tmp_
     """The theme is an opt-in: a chart that names a palette of its own —
     every stored flow's — is drawn byte for byte the same with a house style
     about (SIAMANG_REPORT_THEME) and in a report of a theme with other chart
-    colours, and leaves matplotlib's settings as a chart always did."""
+    colors, and leaves matplotlib's settings as a chart always did."""
 
     data = _data()
     plain = {name: _png(make()) for name, make in _forms(data, "muted").items()}
@@ -432,9 +432,9 @@ def _facecolours(ax) -> list[str]:
 
 
 def test_every_form_takes_the_theme_s_colours_text_grid_and_face():
-    """Drawn with palette "theme" — here a report theme's other colours — each
-    form fills with the theme's colours and writes in its text colour and
-    face, its grid in the grid colour."""
+    """Drawn with palette "theme" — here a report theme's other colors — each
+    form fills with the theme's colors and writes in its text color and
+    face, its grid in the grid color."""
 
     data = _data()
     colours = ct.ChartColours.of(CUSTOM)
@@ -471,7 +471,7 @@ def test_the_bars_likert_heatmaps_and_results_take_each_their_kind_of_colour():
     assert [_hex(c.patches[0].get_facecolor()) for c in ax.containers] == list(colours.series(5))
     ax = drawn("bar_scale")._ax
     assert [_hex(c.patches[0].get_facecolor()) for c in ax.containers] == colours.ordinal(5)
-    # Likert: the diverging pair, the neutral answer grey.
+    # Likert: the diverging pair, the neutral answer gray.
     ax = drawn("likert")._ax
     fills = [_hex(c.patches[0].get_facecolor()) for c in ax.containers]
     steps = colours.diverging_steps(5)
@@ -492,7 +492,7 @@ def test_the_bars_likert_heatmaps_and_results_take_each_their_kind_of_colour():
     # Trend: a line per group in the palette's order.
     ax = drawn("trend")._ax
     assert [_hex(line.get_color()) for line in ax.lines[:3]] == list(colours.palette[:3])
-    # Result charts: the series; the NPS in the diverging pair around grey.
+    # Result charts: the series; the NPS in the diverging pair around gray.
     ax = drawn("result_means")._ax
     assert {_hex(line.get_color()) for line in ax.lines if line.get_marker() == "o"} == {"#7b3294"}
     ax = drawn("result_nps")._ax
@@ -500,13 +500,13 @@ def test_the_bars_likert_heatmaps_and_results_take_each_their_kind_of_colour():
 
 
 def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
-    """Top N's Other is the theme's neutral grey — the grey of the Likert
+    """Top N's Other is the theme's neutral gray — the gray of the Likert
     chart's neutral answer and the NPS's passives — and none of the palette's;
-    error bars and significance letters are in its text colour; a histogram's
-    bars, in every panel, are its first colour over its grid; a donut's slices
-    take the palette and Other the grey, its base and the percentages beside
-    the ring its text colour, the lines to them its secondary text colour.
-    With a palette of their own they keep their grey and their ink."""
+    error bars and significance letters are in its text color; a histogram's
+    bars, in every panel, are its first color over its grid; a donut's slices
+    take the palette and Other the gray, its base and the percentages beside
+    the ring its text color, the lines to them its secondary text color.
+    With a palette of their own they keep their gray and their ink."""
 
     from matplotlib.container import BarContainer, ErrorbarContainer
     from matplotlib.patches import Wedge
@@ -525,21 +525,21 @@ def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
             _hex(c.patches[0].get_facecolor()) for c in ax.containers if isinstance(c, BarContainer)
         ]
 
-    # Top N: the answers in the first colour, Other grey; with Split by, Other
-    # is a series of its own, grey after the answers' colours.
+    # Top N: the answers in the first color, Other gray; with Split by, Other
+    # is a series of its own, gray after the answers' colors.
     top = drawn(data.plot.bar("region", show="percent", top=3, other=True, palette="theme"))
     assert _facecolours(top._ax) == [colours.palette[0]] * 3 + [ct.NEUTRAL]
     split = drawn(
         data.plot.bar("region", split="age", show="percent", top=2, other=True, palette="theme")
     )
-    # Each kept answer in the colour of its code's place, as without Top N.
+    # Each kept answer in the color of its code's place, as without Top N.
     kept = sorted(data.frame["region"].value_counts().index[:2])
     assert series(split._ax) == [*(colours.series(5)[code - 1] for code in kept), ct.NEUTRAL]
     assert ct.NEUTRAL not in colours.series(12)
     plain = data.plot.bar("region", show="percent", top=3, other=True)
     assert plain.plot().patches[3].get_facecolor()[:3] == pytest.approx(bars.OTHER_COLOUR)
 
-    # Error bars: whiskers and caps in the text colour.
+    # Error bars: whiskers and caps in the text color.
     ci = drawn(
         data.plot.bar("region", split="age", show="percent", intervals=True, palette="theme")
     )
@@ -559,7 +559,7 @@ def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
     ).lines[2]
     assert {_hex(colour) for colour in whiskers.get_colors()} == {_hex(bars.INK)}
 
-    # Significance letters: bold, in the text colour (Left's 60 % yes is
+    # Significance letters: bold, in the text color (Left's 60 % yes is
     # higher than Right's 40 %, z = 2.83).
     frame = pd.DataFrame(
         {"q": [1] * 60 + [2] * 40 + [1] * 40 + [2] * 60, "g": [1] * 100 + [2] * 100}
@@ -593,7 +593,7 @@ def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
             assert gap * points == pytest.approx(4.0, abs=0.75), palette
             assert letter.get_fontname() == value.get_fontname()
 
-    # A histogram: its first colour, in one plot or a panel per group.
+    # A histogram: its first color, in one plot or a panel per group.
     for chart in (
         data.plot.bar("income", layout="histogram", palette="theme"),
         data.plot.bar("score", layout="histogram", split="region", palette="theme"),
@@ -608,8 +608,8 @@ def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
         assert _hex(fig.texts[-1].get_color()) == colours.muted  # the notes
 
     # A donut: the answers kept in the palette in code order (the fifth past
-    # CUSTOM's four a lighter first), Other grey; thin slices' percentages
-    # beside the ring, in the text colour, joined by lines in the secondary one.
+    # CUSTOM's four a lighter first), Other gray; thin slices' percentages
+    # beside the ring, in the text color, joined by lines in the secondary one.
     donut = drawn(
         _channels((30, 20, 1, 1, 1, 1, 1, 1)).plot.bar(
             "c", layout="donut", top=5, min_slice=0, figsize=(6, 4), palette="theme"
@@ -643,7 +643,7 @@ def test_the_bar_chart_s_newer_options_take_the_theme_s_colours():
 
 def test_box_and_scatter_groups_take_the_palette_in_their_order():
     """A box plot's groups take the palette in the order they are drawn, at
-    full strength (seaborn dims a box's colour otherwise); a scatter plot's in
+    full strength (seaborn dims a box's color otherwise); a scatter plot's in
     the codebook's order, its legend titled by the variable, not "_hue"."""
 
     data = _data()
@@ -705,9 +705,9 @@ def test_a_report_draws_its_theme_charts_in_its_colours_and_leaves_the_chart_as_
     tmp_path,
 ):
     """Drawn at its node before the theme is known, a chart of palette "theme"
-    is drawn again from its parameters in the report's colours — once for the
+    is drawn again from its parameters in the report's colors — once for the
     report's Markdown and HTML both — and the chart itself keeps its picture.
-    A report whose theme names the same chart colours uses the chart as it is."""
+    A report whose theme names the same chart colors uses the chart as it is."""
 
     data = _data()
     chart = data.plot.bar("region", split="age", palette="theme")
@@ -727,19 +727,19 @@ def test_a_report_draws_its_theme_charts_in_its_colours_and_leaves_the_chart_as_
     assert _png(chart) == at_node
     assert _hex(copy.plot().containers[0].patches[0].get_facecolor()) == "#7b3294"
 
-    # The PNG the Markdown refers to is the report's colours: its first series'
-    # colour fills pixels, the default palette's does not.
+    # The PNG the Markdown refers to is the report's colors: its first series'
+    # color fills pixels, the default palette's does not.
     pixels = (plt.imread(tmp_path / "r_fig_0.png")[..., :3] * 255).round().astype(int)
     found = {tuple(p) for p in pixels.reshape(-1, 3)}
     assert (0x7B, 0x32, 0x94) in found and (0x2A, 0x78, 0xD6) not in found
     assert "data:image/png;base64," in (tmp_path / "r.html").read_text("utf-8")
 
-    # The same chart colours: no second drawing.
+    # The same chart colors: no second drawing.
     same = Report(title="R", theme=ReportTheme(font_preset="modern")).add(chart)
     same.to_markdown(tmp_path / "same")
     assert ct.in_report(chart, ReportTheme(font_preset="modern")) is chart
 
-    # A chart never drawn is drawn in the report's colours in the first place.
+    # A chart never drawn is drawn in the report's colors in the first place.
     fresh = data.plot.bar("region", palette="theme")
     assert ct.in_report(fresh, CUSTOM) is fresh
     assert _facecolours(fresh._ax)[0] == "#7b3294"
@@ -816,7 +816,7 @@ def _flow(theme: dict) -> dict:
 
 def test_a_flow_s_charts_take_its_save_report_look(tmp_path):
     """Checked, run and generated: every chart node offers "theme", the Save
-    report's Look carries the chart colours, the run's report draws its charts
+    report's Look carries the chart colors, the run's report draws its charts
     in them, and the generated script writes the same report."""
 
     from siamang.codegen import generate_questionnaire
@@ -842,14 +842,14 @@ def test_a_flow_s_charts_take_its_save_report_look(tmp_path):
     bad = _flow({"chart_palette": ["#7b3294", "purple"]})
     [issue] = check_flow(bad, questionnaire=document)
     assert issue.severity == "error" and issue.node == "save"
-    assert "chart_palette: 'purple' is not a hex colour such as '#2a78d6'." in issue.message
+    assert "chart_palette: 'purple' is not a hex color such as '#2a78d6'." in issue.message
 
     runner_dir, script_dir = tmp_path / "runner", tmp_path / "script"
     result = FlowRunner(flow, questionnaire=survey, questionnaire_document=document).run(
         cwd=runner_dir
     )
     assert result.ok
-    # At the node, before the Save report: the default theme's colours.
+    # At the node, before the Save report: the default theme's colors.
     bar = result.output("bar")
     assert bar._fig is None  # the run renders each chart and releases its figure
     assert _hex(bar.plot().containers[0].patches[0].get_facecolor()) == ct.PALETTE[0]
@@ -858,7 +858,7 @@ def test_a_flow_s_charts_take_its_save_report_look(tmp_path):
         assert chart._redrawn is not None and chart._redrawn._drawn_with.palette == tuple(
             CUSTOM.chart_palette
         ), node
-    # The donut's Other slice is the theme's grey, the histogram's bars its first colour.
+    # The donut's Other slice is the theme's gray, the histogram's bars its first color.
     fills = [_hex(p.get_facecolor()) for p in result.output("donut")._redrawn.plot().patches]
     assert fills == ["#7b3294", "#008837", ct.NEUTRAL]
     hist = result.output("hist")._redrawn.plot().figure

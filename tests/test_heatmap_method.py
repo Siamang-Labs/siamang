@@ -87,7 +87,7 @@ def test_pearson_leaves_the_missing_code_out_and_says_so(tmp_path):
     assert [t.get_text() for t in ax.get_yticklabels()] == ["Trust", "Liking", "Price"]
     assert [t.get_text() for t in ax.get_xticklabels()] == ["Trust", "Liking", "Price"]
     assert [t.get_text() for t in ax.texts][:3] == ["1.00", "0.80", "-0.80"]
-    assert ax.figure.axes[-1].get_ylabel() == "Pearson r"  # the colour bar
+    assert ax.figure.axes[-1].get_ylabel() == "Pearson r"  # the color bar
     note = _footnote(chart)
     assert "N = 5 respondents who answered every item (listwise)." in note
     assert "Left out as missing: Trust: 1 (9 = Refused)." in note
@@ -164,7 +164,7 @@ def _items(count: int) -> SurveyData:
 
 def test_the_coefficients_fit_their_cells_or_are_left_to_the_table(tmp_path):
     """14 items at 10 × 6 in wrote 12-pt coefficients into 48-pt cells, 13 of
-    13 neighbours running together; the size now follows the cell."""
+    13 neighbors running together; the size now follows the cell."""
     chart = _items(14).plot.heatmap([f"s{i}" for i in range(1, 15)], method="pearson")
     chart.save(tmp_path / "fourteen.png")
     ax = chart.plot()
@@ -304,7 +304,7 @@ def test_the_heatmap_node_checks_generates_and_runs(questionnaire_doc, tmp_path)
     ]
 
 
-# ─── means by group in the theme's colours ───────────────────────────────────
+# ─── means by group in the theme's colors ───────────────────────────────────
 
 AGREEMENT = {1: "Strongly disagree", 2: "Disagree", 3: "Neutral", 4: "Agree", 5: "Strongly agree"}
 
@@ -344,7 +344,7 @@ def _mean_cells(ax) -> dict[tuple[str, str], str]:
 
 def test_means_by_group_in_the_theme_s_colours_leave_the_missing_codes_out():
     """The classic form averaged 99 = Not applicable into a 1–5 item's mean
-    (42.00, 23.40); in the theme's colours each cell is the mean of the
+    (42.00, 23.40); in the theme's colors each cell is the mean of the
     group's respondents who answered the item — Group means' numbers."""
     data = _rated()
     ax = data.plot.heatmap(["q1", "q2"], by="g", cmap="theme").plot()
@@ -364,7 +364,7 @@ def test_means_by_group_in_the_theme_s_colours_leave_the_missing_codes_out():
     # Weighted: each item's weighted mean (q1 in A: (1 + 4 + 3 + 4 + 5) / 6).
     weighted = data.with_weight("w").plot.heatmap(["q1"], by="g", cmap="theme").plot()
     assert _mean_cells(weighted)[("1. Staff were helpful", "A")] == f"{(1 + 4 + 3 + 4 + 5) / 6:.2f}"
-    # A named colour map draws what it always drew: 99 counted.
+    # A named color map draws what it always drew: 99 counted.
     classic = data.plot.heatmap(["q1", "q2"], by="g").plot()
     assert "42.00" in {text.get_text() for text in classic.texts}
 

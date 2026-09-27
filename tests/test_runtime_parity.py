@@ -112,7 +112,7 @@ def _texts(*names):
 
 class TestNestedBlockPayload:
     """A nested block's conditions and shuffle reach the runtime: they used to
-    be flattened away, while the model and the simulator honour them."""
+    be flattened away, while the model and the simulator honor them."""
 
     def _page(self, *items):
         route = sg.Variable("route", scale="nominal", labels={1: "A", 2: "B"})

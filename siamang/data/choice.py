@@ -145,7 +145,7 @@ def mnl(sets: ChoiceSets, *, max_iter: int = 200, shares: bool = True) -> MnlRes
 
     Weighted sets (``sets.weight``) are rescaled to sum to Kish's effective
     number of sets, (Σw)² / Σw², before fitting. The estimates do not change —
-    the likelihood is maximised at the same place whatever the weights' scale —
+    the likelihood is maximized at the same place whatever the weights' scale —
     but the standard errors do: weights of mean 1 would report the precision of
     the raw sample, which weighting has made smaller, and population-sized
     weights would report the precision of a census. Equal weights give exactly

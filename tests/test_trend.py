@@ -87,7 +87,7 @@ def _row(points, period, group=None):
 
 def test_percent_over_waves_by_hand():
     points = trend(_waves(), "wave", measure="percent", variable="sat", codes=[4, 5])
-    # Ordered by code, labelled by the codebook.
+    # Ordered by code, labeled by the codebook.
     assert points.periods == ["Spring", "Summer", "Winter"]
     # Spring: answers 4, 5, 2, 3 (the 9 is "Don't know", out of the base): 2 of 4.
     spring = _row(points, "Spring")
@@ -854,7 +854,7 @@ def test_every_measure_runs_weighted(questionnaire_doc, survey, params, column, 
 
 
 def test_past_four_lines_each_line_s_points_take_a_shape_of_their_own():
-    """Colour alone does not keep six or more lines apart for every reader,
+    """Color alone does not keep six or more lines apart for every reader,
     and past the palette two lines are two shades of one hue: past four lines
     (where the bands stop) each line's points, and its legend entry, take a
     shape of their own. Up to four, circles as before."""

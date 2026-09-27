@@ -3,7 +3,7 @@
 An outcome of ordered answers — dissatisfied to satisfied, never to always — is
 neither a number an ordinary regression may average nor a yes/no a logit can
 take. The proportional-odds model (McCullagh 1980) keeps the order and nothing
-more: for each cut between two neighbouring answers ``j | j + 1``
+more: for each cut between two neighboring answers ``j | j + 1``
 
     logit P(y ≤ j | x) = θⱼ − xᵀβ,
 
@@ -16,22 +16,22 @@ Conventions:
 
 - **Sign.** ``θⱼ − xᵀβ``, as R's ``MASS::polr`` and ``ordinal::clm``, Stata's
   ``ologit``, SPSS's PLUM and statsmodels' ``OrderedModel``: a positive
-  coefficient moves the respondents towards the *higher* answers, and
+  coefficient moves the respondents toward the *higher* answers, and
   ``exp(β)`` is the odds ratio of answering above any cut rather than at or
   below it. Some texts write ``θⱼ + xᵀβ``; their coefficients have the other
   sign.
 - **Answers.** The outcome's codes in numeric order; the codebook's missing
   codes are left out (and counted), as in every method chosen by hand. Only
   the answers someone gave are categories — an answer nobody gave has no cut to
-  estimate — and the statistics name any labelled answer that is missing.
+  estimate — and the statistics name any labeled answer that is missing.
 - **Predictors.** Numbers as they are; a nominal predictor as dummy columns
   against its first (lowest) category, as the other models of the node do
   (:func:`siamang.data.models.design_matrix`). There is no intercept: the
   thresholds take its place.
-- **Estimation.** The weighted log-likelihood is maximised with SciPy's BFGS
+- **Estimation.** The weighted log-likelihood is maximized with SciPy's BFGS
   on the exact (analytic) gradient, with the thresholds written as the first
   one and the logarithms of the gaps between them so their order holds, and on
-  centred and scaled predictors so their units do not slow it down; the
+  centered and scaled predictors so their units do not slow it down; the
   optimum is then polished by Newton steps on the exact Hessian in the
   original units. The standard errors are the square roots of the diagonal of
   the inverse observed information (that Hessian), z = estimate / SE, p from
@@ -56,7 +56,7 @@ is then the logit) or more than :data:`MAX_CATEGORIES`, text that is not a
 code, no complete rows, a predictor that does not vary, predictors that are a
 combination of each other. Warned in the statistics: a fit that did not
 converge, and a predictor that separates the answers — its estimate runs off
-towards infinity, and neither it nor its standard error can be read.
+toward infinity, and neither it nor its standard error can be read.
 
 The proportional-odds assumption itself (one β for every cut) is not tested
 here; the Brant test or a partial-proportional-odds model would.
@@ -87,7 +87,7 @@ SEPARATION_EFFECT = 10.0
 SEPARATION_SE = 1e3
 
 #: The statistics say what the weights sum to when their mean over the
-#: respondents modelled is further than this from 1.
+#: respondents modeled is further than this from 1.
 WEIGHT_SUM_TOLERANCE = 0.1
 
 MODEL_NAME = "ordinal logit (proportional odds)"
@@ -127,7 +127,7 @@ def _density(z: np.ndarray) -> np.ndarray:
 
 
 def _between(upper: np.ndarray, lower: np.ndarray) -> np.ndarray:
-    """F(upper) − F(lower) without cancelling: above 0 it is F(−lower) − F(−upper)."""
+    """F(upper) − F(lower) without canceling: above 0 it is F(−lower) − F(−upper)."""
     high = lower > 0
     out = _cdf(upper) - _cdf(lower)
     out[high] = _cdf(-lower[high]) - _cdf(-upper[high])
@@ -247,7 +247,7 @@ def fit(x: Any, answer: Any, weights: Any = None) -> OrdinalFit:
     theta0, ll0 = _null(answer, w, categories)
     cuts = categories - 1
 
-    # BFGS on centred, scaled predictors, the thresholds as the first one and
+    # BFGS on centered, scaled predictors, the thresholds as the first one and
     # the logarithms of the gaps: every step keeps them in order.
     centre = (w @ x) / w.sum() if k else np.zeros(0)
     scale = np.sqrt(np.maximum((w @ (x - centre) ** 2) / w.sum(), 0.0)) if k else np.zeros(0)
@@ -528,7 +528,7 @@ def ordinal_regression(
         warnings.append(
             f"{', '.join(separated)} {'separates' if len(separated) == 1 else 'separate'} the "
             "answers — some answer is predicted (almost) perfectly — so the estimate runs off "
-            "towards infinity and neither it nor any standard error can be read; merge sparse "
+            "toward infinity and neither it nor any standard error can be read; merge sparse "
             "answers or leave the predictor out"
         )
     else:
@@ -583,7 +583,7 @@ def ordinal_regression(
 
 
 def outcome_problem(name: str, scale: str | None, answers: Sequence[Any] = ()) -> str | None:
-    """Why the variable labelled ``name``, of ``scale``, cannot be an ordinal
+    """Why the variable labeled ``name``, of ``scale``, cannot be an ordinal
     model's outcome, or None: a nominal variable's answers (``answers``, their
     labels) have no order the thresholds could follow — the model would read
     one from the codes (Capital < North < South) and report it as found."""

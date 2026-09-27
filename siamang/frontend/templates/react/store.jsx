@@ -167,7 +167,7 @@ function itemAnswerKeys(q) {
 }
 
 /* An assembled value keeps its identity while its parts are unchanged, so a
-   memoised question does not re-render on every change elsewhere. */
+   memoized question does not re-render on every change elsewhere. */
 const __itemValueCache = new WeakMap();
 function stableItemValue(q, value) {
   const sig = JSON.stringify(value === undefined ? null : value);
@@ -266,7 +266,7 @@ function hasGatedOptions(q) {
    condition, as those conditions read `answers` now. answerUpdates decides
    0 or missing when the question is answered, but an answer given after it —
    on the same page, or back on an earlier one — can offer an option the
-   respondent left unticked (0, not missing) or take one away (missing, not
+   respondent left unchecked (0, not missing) or take one away (missing, not
    0). A chosen option stays 1. Only the keys that change are returned.
 
    A condition may read another wide question's 0 or missing ("bought"

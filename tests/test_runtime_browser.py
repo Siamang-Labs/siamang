@@ -185,7 +185,7 @@ _NEXT = """
 # `reload(ready)` loads the page again and `visit(query, ready)` loads it with
 # another query string (`?rid=…`, see _RID_FROM_URL); both wait until the
 # *new* document shows `ready`. The old document is marked first, so nothing
-# read afterwards can come from the interview that was on screen before.
+# read afterward can come from the interview that was on screen before.
 _RELOAD = """
     const fresh = async (ready) => {
         await page.waitForFunction(() => !window.__stale, null, { timeout: 10000 });
@@ -270,8 +270,8 @@ def test_a_matrix_cell_stores_its_columns_code_not_its_position(tmp_path):
 
 
 def test_a_labelled_na_code_leaves_the_scale_columns_where_they_are(tmp_path):
-    """The ESS scale, labelled "No trust at all" … "Complete trust" under
-    headers "0" … "10", with the N/A column's code declared and labelled: the
+    """The ESS scale, labeled "No trust at all" … "Complete trust" under
+    headers "0" … "10", with the N/A column's code declared and labeled: the
     headers still store 0 … 10, and N/A its code."""
 
     document = _trust_matrix_document()
@@ -1703,7 +1703,7 @@ def test_after_a_click_on_a_choice_enter_goes_on_and_space_is_its_own(tmp_path):
     but Tab was ignored there: Enter did not go on, though it does anywhere
     else outside a text field - "click a picture, press Enter" stayed on the
     page. Enter now goes on with the choice kept; Space stays the radio's or
-    the box's own (it checks the radio, ticks or unticks the box)."""
+    the box's own (it checks the radio, checks or unchecks the box)."""
 
     scenario = (
         _MATRIX_KEYS
@@ -2123,7 +2123,7 @@ def test_a_wide_multichoice_left_empty_writes_nothing(tmp_path):
     scenario = (
         """
         await page.click("text=Acme");
-        await page.click("text=Acme");   // unticked again: the question is unanswered
+        await page.click("text=Acme");   // unchecked again: the question is unanswered
     """
         + _NEXT
         + _STATE
@@ -2242,8 +2242,8 @@ def _aware_bought_one_page() -> dict[str, Any]:
 @pytest.mark.parametrize("globex", ["offered after", "hidden after"])
 def test_a_wide_option_follows_an_answer_given_after_it(tmp_path, globex):
     """The answer that offers or hides a wide option can come after the wide
-    question was answered — on the same page here. Globex offered afterwards
-    and left unticked is 0, not missing; hidden afterwards it is missing, not
+    question was answered — on the same page here. Globex offered afterward
+    and left unchecked is 0, not missing; hidden afterward it is missing, not
     the 0 it had while it was offered."""
 
     aware, bought = "page.locator('text=Acme').nth(0)", "page.locator('text=Acme').nth(1)"
@@ -2277,7 +2277,7 @@ def test_a_wide_option_follows_an_answer_given_after_it(tmp_path, globex):
 
 def _chained_gates_document() -> dict[str, Any]:
     """One page: a region; "aware" offers Globex in the North only; "bought"
-    offers Globex to those shown it in "aware" who left it unticked
+    offers Globex to those shown it in "aware" who left it unchecked
     (aware_globex = 0) — a condition on another wide question's 0."""
 
     document = _aware_bought_one_page()
@@ -2367,7 +2367,7 @@ def _likert_gate_document(start: int = 1) -> dict[str, Any]:
 
 
 def test_a_likert_answered_with_a_digit_key_settles_a_wide_option_too(tmp_path):
-    """sat 2 offers Price, left unticked (0); the key "5" then answers sat
+    """sat 2 offers Price, left unchecked (0); the key "5" then answers sat
     and Price is no longer offered, so imp_price is missing — as when 5 is
     clicked. The key wrote past the answer handling and left the 0."""
 
@@ -2866,7 +2866,7 @@ _AFTER_THE_AUTOSAVE = (
 
 def test_a_full_quota_leaves_no_autosave_behind(tmp_path):
     """The answer is given just before Next, so its autosave is still pending
-    when the quota ends the interview: it must not be written afterwards."""
+    when the quota ends the interview: it must not be written afterward."""
 
     init = 'window.__T = { full: [["gender", 1]] };'
     scenario = (
@@ -3588,7 +3588,7 @@ def test_a_timed_questions_timer_ends_with_its_page(tmp_path):
     assert submitted["a"] == "x" and submitted["b"] == "y"
 
 
-# ── Seeded randomisation ─────────────────────────────────────────────────────
+# ── Seeded randomization ─────────────────────────────────────────────────────
 
 # The transport's respondent id comes from the page's query string
 # (`index.html?rid=r2`, as a panel link carries it), so a scenario changes

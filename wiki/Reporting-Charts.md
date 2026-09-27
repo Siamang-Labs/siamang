@@ -31,8 +31,8 @@ figure is built lazily on first use.
 
 - **`figsize`** — `(width, height)` in inches, default `(10, 6)`.
 - **`palette`** — seaborn palette name, default `"muted"` (e.g. `"deep"`,
-  `"pastel"`, `"colorblind"`), or `"theme"`: the colours of the report the
-  chart is shown in (see [Colours from the report theme](#colours-from-the-report-theme)).
+  `"pastel"`, `"colorblind"`), or `"theme"`: the colors of the report the
+  chart is shown in (see [Colors from the report theme](#colors-from-the-report-theme)).
 - **`title`** — override the auto-generated title (default `None` → derived from
   variable labels).
 
@@ -48,8 +48,8 @@ figure is built lazily on first use.
 with the weighted tables beside it. `BarChart` draws sums of weights (axis
 "Weighted count"), weighted percentages ("% of respondents (weighted)") or
 weighted means ("Weighted mean …"), and `HeatMap` with `by`
-draws weighted means (colour bar "Weighted mean"). `HeatMap` with `method="pearson"` draws weighted
-coefficients (colour bar "Weighted Pearson r"), and `LikertChart` weighted
+draws weighted means (color bar "Weighted mean"). `HeatMap` with `method="pearson"` draws weighted
+coefficients (color bar "Weighted Pearson r"), and `LikertChart` weighted
 shares ("% of respondents (weighted)"). `BoxPlot`, `ScatterPlot` and
 the Spearman or Kendall correlation `HeatMap` have no standard weighted form, so they draw the
 respondents as they are and add a second title line, `unweighted (the weight
@@ -98,7 +98,7 @@ chart of a crosstab. `layout="histogram"` draws a **histogram** of a number,
   for a multiple-choice question, the options named most). Two answers given
   as often: the first in code order is kept. The note under the chart says how
   many of how many are drawn. Not with `by`.
-- **`other`** — with `top`: one more bar, grey and last whatever the sort, for
+- **`other`** — with `top`: one more bar, gray and last whatever the sort, for
   the rest — for a multiple-choice question the share of respondents who named
   **any** of them, not the sum of their shares. Off (the default), the rest are
   left out.
@@ -126,13 +126,13 @@ chart of a crosstab. `layout="histogram"` draws a **histogram** of a number,
   across the whole banner: a third variable's groups are K–O there).
 - **`sort`** — `"code"` (the codebook's order, the default) or `"value"` (the
   largest bar first; with `split`, the answer given most overall; with `by`,
-  the highest mean). A colour belongs to its answer, not to its place, so a
-  sorted chart and an unsorted one colour the same answer alike. When the
+  the highest mean). A color belongs to its answer, not to its place, so a
+  sorted chart and an unsorted one color the same answer alike. When the
   answers split into groups are a scale (ordinal and up), they keep its order
   and the groups go largest first instead: by their share of the top answer
   (by their total, for counts), as the note under the chart says. Any value
   but the defaults of `show`, `split` and `sort` draws the newer chart below,
-  so changing only `sort` also changes the look (colours, labels, notes).
+  so changing only `sort` also changes the look (colors, labels, notes).
 
 At the defaults (`show="count"`, no `split`, `sort="code"`, and none of `top`,
 `other`, `intervals`, `letters`, a histogram or a donut) the chart is the one
@@ -143,7 +143,7 @@ it has always been, picture for picture. The newer forms also:
 - write under the plot the base (`Base: 571 respondents who answered
   (weighted: 742.7).`), the weight, and for a split each group's `n` under its
   name;
-- draw one colour for a single series, and the steps of an ordered scale
+- draw one color for a single series, and the steps of an ordered scale
   (ordinal and up) in one hue, light to dark;
 - wrap long labels, put the legend under the plot when the figure is too narrow
   for it beside (or it is taller than the plot), and let a small figure grow
@@ -182,7 +182,7 @@ clockwise from the top in the order `sort` gives, each slice's percentage on it
 or, when the slice is too thin to hold it, beside the ring in a column joined to
 its slice by a line (the labels of a side a line apart), the base in the middle
 ("1,200 respondents", and the weighted base). Slices under **`min_slice`** %
-(3) are combined as a grey Other when there are two or more of them (0 keeps
+(3) are combined as a gray Other when there are two or more of them (0 keeps
 every slice); with `top`, the answers after the top N are always combined as
 Other — a donut's slices make a whole. The answers are named in a legend beside
 the donut, or under it on a narrow figure or when it is taller than the plot. A
@@ -265,7 +265,7 @@ diverging `RdBu_r` scale centered at 0) — Spearman's by default.
   such as 9 = Refused counts as an answer), `"pearson"` or `"kendall"` (tau-b).
   Pearson and Kendall are the Correlation matrix table's numbers with
   `missing="listwise"`: the codebook's missing codes are left out and counted
-  under the plot with N, Pearson's r is weighted on weighted data (colour bar
+  under the plot with N, Pearson's r is weighted on weighted data (color bar
   "Weighted Pearson r"), and Kendall says under its title that the weight is
   not applied. A pair that cannot be computed is a blank cell (an item with the
   same answer from everyone, its own diagonal too), and the note says why,
@@ -300,7 +300,7 @@ LikertChart(data, columns=[], neutral="split", sort="top2", show_values=True,
 
 A battery of items on one ordered scale — agree–disagree statements, ratings —
 as **diverging stacked bars**: each item is a bar whose answers below the
-middle of the scale stack to the left of a centre line and those above it to
+middle of the scale stack to the left of a center line and those above it to
 the right, so a battery's lean reads at a glance. The shares of the two
 answers at either end (**top-2** and **bottom-2**; the top and bottom answer
 alone on a scale of two or three) are written at the ends of every bar.
@@ -316,20 +316,20 @@ alone on a scale of two or three) are written at the ends of every bar.
   numbers instead, or be asked by a Likert scale question (its points, the
   ends named by its end labels).
 - **`neutral`** — `"split"` (the middle answer of an odd scale half on either
-  side of the centre, the default) or `"side"` (apart, in a panel at the right).
-  An even scale has no neutral answer; its centre falls between the middle two.
+  side of the center, the default) or `"side"` (apart, in a panel at the right).
+  An even scale has no neutral answer; its center falls between the middle two.
 - **`sort`** — `"top2"` (the largest top-2 share first, the default) or
   `"listed"`.
 - **`show_values`** — each answer's share in its segment where it fits.
 - **`palette`** — a diverging palette (`"RdBu"`, `"BrBG"`, `"PuOr"`, `"RdYlBu"`,
-  `"PiYG"`, `"coolwarm"`); the low answers take its first colour, the neutral
-  answer is grey, and an even scale's two middle answers keep a colour (the
+  `"PiYG"`, `"coolwarm"`); the low answers take its first color, the neutral
+  answer is gray, and an even scale's two middle answers keep a color (the
   palette is sampled two wider and its two palest dropped).
 
 The item labels are fitted to the figure — smaller and wider on a narrow one —
 before the chart grows taller, and a row is no taller than its label (at most
 60 pt): one item draws one bar, titled by its label, its row showing its base.
-The centre line runs behind the neutral answer's value.
+The center line runs behind the neutral answer's value.
 
 Codes run low to high, left to right: recode a scale written the other way
 (1 = Strongly agree) first. The codebook's missing codes and any value not on
@@ -373,9 +373,9 @@ data.plot.scatter("age", "autonomy", hue="remote_freq").show()
 
 ---
 
-## Colours from the report theme
+## Colors from the report theme
 
-`palette="theme"` (a `HeatMap`'s `cmap="theme"`) colours a chart from the
+`palette="theme"` (a `HeatMap`'s `cmap="theme"`) colors a chart from the
 `ReportTheme` of the report it is in: its `chart_palette` (the series, in
 order), `chart_sequential` (a heatmap of means, the steps of an ordered scale),
 `chart_diverging` (a Likert chart, the Net Promoter Score and sentiment, the
@@ -383,9 +383,9 @@ correlation and loadings heatmaps — low end first), `chart_text_color`,
 `chart_grid_color` and `chart_font`. Every chart takes it: `BarChart` in all
 its forms, `BoxPlot`, `HeatMap`, `ScatterPlot`, `LikertChart`, `TrendChart`
 and every Result chart, Key drivers, the Perceptual map and Price sensitivity
-included. A bar chart's Other (Top N, a donut's small slices) stays grey — the
-grey of a Likert chart's neutral answer — its error bars and significance
-letters take the text colour, and a histogram the palette's first colour.
+included. A bar chart's Other (Top N, a donut's small slices) stays gray — the
+gray of a Likert chart's neutral answer — its error bars and significance
+letters take the text color, and a histogram the palette's first color.
 
 ```python
 from siamang.reporting import Report, ReportTheme
@@ -399,20 +399,20 @@ chart = data.plot.bar("region", split="age", palette="theme")
 Report(title="Brands", theme=theme).add(chart).save("out/report.html")
 ```
 
-Without a theme's colours the defaults apply, and they are chosen for readers
-with colour-vision deficiencies: eight colours any two of which stay apart with
+Without a theme's colors the defaults apply, and they are chosen for readers
+with color-vision deficiencies: eight colors any two of which stay apart with
 protanopia and deuteranopia (a Trend of more than four lines also gives each
 line's points a shape), blue for magnitude and red to blue for a scale that
-diverges. An ordered scale's steps are each their own colour, a light
-sequential colour such as a yellow included; a palette colour under 1.3:1 on
+diverges. An ordered scale's steps are each their own color, a light
+sequential color such as a yellow included; a palette color under 1.3:1 on
 white is refused. A value written on a bar is white or the
-text colour, whichever reads better (4.5:1 at least). Colours are hex
+text color, whichever reads better (4.5:1 at least). Colors are hex
 (`#2a78d6`); a theme with a bad one is refused, naming it — `chart_palette:
-'purple' is not a hex colour such as '#2a78d6'.`
+'purple' is not a hex color such as '#2a78d6'.`
 
 A chart is drawn when it is made, before the report and its theme exist: it
 takes the look `SIAMANG_REPORT_THEME` names, else the defaults, and the report
-draws it again from its parameters in its own theme's colours when they differ
+draws it again from its parameters in its own theme's colors when they differ
 (the chart you hold keeps its picture). A chart that names a palette of its own
 is never touched by a theme, so a stored flow keeps its pictures.
 
@@ -544,7 +544,7 @@ def trend(time, *, period="month", measure="percent", variable=None, codes=None,
   Times with a zone are read in UTC; text that is not a date is left out and
   counted.
 - **`period`** — for dates: `day`, `week`, `month`, `quarter` or `year`. A
-  week is an ISO week, Monday to Sunday, labelled by its ISO year and number
+  week is an ISO week, Monday to Sunday, labeled by its ISO year and number
   (`2026-W01` runs from Monday 29 December 2025). Every period between the
   first and the last is on the axis; an empty one is a gap.
 - **`measure`** — `"percent"` of those who answered `variable` who gave one of
@@ -570,7 +570,7 @@ gains `Weighted base` and `Effective base`; the codebook's missing codes are
 left out of every base and named in the table's statistics.
 
 **Long labels, many lines, small figures.** The Trend is drawn as the Bar
-chart's newer forms are: every line has a colour of its own (past the
+chart's newer forms are: every line has a color of its own (past the
 palette's ten, lighter and darker ones); the value axis ticks whole percents,
 or separates thousands of a count or a mean (`20,000`); a period's label is
 level, wrapped to the room between two ticks, when every word fits it, and

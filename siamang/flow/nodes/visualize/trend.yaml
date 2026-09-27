@@ -28,7 +28,7 @@ params:
     - year
     default: month
     label: Period
-    help: How dates are grouped into points. A week is an ISO week, Monday to Sunday, labelled by its ISO year and number (2026-W22). Every period between the first and the last is on the axis, an empty one as a gap. Not used for a wave code.
+    help: How dates are grouped into points. A week is an ISO week, Monday to Sunday, labeled by its ISO year and number (2026-W22). Every period between the first and the last is on the axis, an empty one as a gap. Not used for a wave code.
   measure:
     kind: enum
     values:
@@ -93,7 +93,7 @@ params:
     - theme
     default: muted
     label: Palette
-    help: Theme takes the colours of the report the chart is saved in — the chart colours of its Save report's Look (by default eight colours any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text colour, grid and font. The others are seaborn's palettes.
+    help: Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text color, grid and font. The others are seaborn's palettes.
 subtitle:
 - when: measure=percent
   text: '{variable} = {codes} over {time}'

@@ -1,10 +1,10 @@
 """Likert chart: a battery of items on one ordered scale as diverging bars.
 
 Each item is one bar. Its answers below the middle of the scale stack to the
-left of a centre line, those above it to the right, so an item's lean is its
+left of a center line, those above it to the right, so an item's lean is its
 bar's position and a battery reads at a glance. The middle is the neutral
 answer of an odd scale (``neutral="split"`` draws it half on either side of the
-centre, ``"side"`` apart in a panel of its own at the right) or, on an even
+center, ``"side"`` apart in a panel of its own at the right) or, on an even
 scale, the line between the two middle answers. The shares of the two answers
 at either end — the top-2 and bottom-2 boxes, one answer each on a scale of two
 or three — are written at the ends of every bar, and ``sort="top2"`` puts the
@@ -47,7 +47,7 @@ from siamang.reporting.charts import SurveyChart
 
 NEUTRALS = ("split", "side")
 SORTS = ("top2", "listed")
-#: A neutral answer's colour: a grey, so the middle reads as neither side.
+#: A neutral answer's color: a gray, so the middle reads as neither side.
 NEUTRAL_GREY = "#bdbdbd"
 
 
@@ -85,9 +85,9 @@ class LikertChart(SurveyChart):
     columns : list[str]
         The items, each with one answer per respondent on the same scale.
     neutral : str
-        ``"split"`` (the neutral answer half on either side of the centre) or
+        ``"split"`` (the neutral answer half on either side of the center) or
         ``"side"`` (apart, at the right). A scale with an even number of
-        answers has none, and the centre falls between its middle two.
+        answers has none, and the center falls between its middle two.
     sort : str
         ``"top2"`` (the largest top-2 share first) or ``"listed"``.
     show_values : bool
@@ -342,7 +342,7 @@ class LikertChart(SurveyChart):
                     zorder=4,
                 )
                 if code == scale.neutral and target is ax:
-                    # The centre line runs behind the neutral answer's value.
+                    # The center line runs behind the neutral answer's value.
                     label.set_bbox({"facecolor": colours[code], "edgecolor": "none", "pad": 1.0})
 
 
@@ -380,7 +380,7 @@ def likert_scale(data: Any, columns: list[str]) -> Scale:
 
 
 def _answers(data: Any, name: str) -> dict[Any, str]:
-    """An item's labelled answers without its missing codes, else the whole
+    """An item's labeled answers without its missing codes, else the whole
     numbers of its valid range, else the points of the Likert scale question
     that asks it (``Not at all``, ``2``, … ``6``, ``Completely``)."""
 
@@ -510,16 +510,16 @@ def _fallback_title(columns: list[str], scale: Scale) -> str:
 
 
 def _colours(palette: str, scale: Scale) -> dict[Any, Any]:
-    """A diverging palette over the scale, its neutral answer grey (``"theme"``:
+    """A diverging palette over the scale, its neutral answer gray (``"theme"``:
     the report theme's diverging pair)."""
 
     from siamang.reporting import chart_theme
 
     count = len(scale.codes)
     if scale.neutral is None and count >= 4:
-        # An even scale has no middle colour: the two middle ones of a palette
+        # An even scale has no middle color: the two middle ones of a palette
         # of as many are nearly white, and "Agree" vanished. Sampled two wider
-        # with the two middle ones dropped, the inner answers keep a colour.
+        # with the two middle ones dropped, the inner answers keep a color.
         wide = chart_theme.diverging_palette(palette, count + 2)
         colours = wide[: count // 2] + wide[count // 2 + 2 :]
     else:
@@ -595,11 +595,11 @@ def _count(chart: LikertChart, columns: list[str], scale: Scale) -> dict[str, An
     ]
     if scale.neutral is None:
         notes.append(
-            "No neutral answer: the centre falls between "
+            "No neutral answer: the center falls between "
             f"{listed([scale.negative[-1]])} and {listed([scale.positive[0]])}."
         )
     elif chart.neutral == "split":
-        notes.append(f"The neutral answer ({listed([scale.neutral])}) is split around the centre.")
+        notes.append(f"The neutral answer ({listed([scale.neutral])}) is split around the center.")
     else:
         notes.append(
             f"The neutral answer ({listed([scale.neutral])}) is drawn apart, at the right."

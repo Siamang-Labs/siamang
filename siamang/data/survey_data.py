@@ -563,7 +563,7 @@ class SurveyData:
 
         The segmentation is drawn on the respondents as they are, never on the
         weight: on weighted data ``stats["weight"]`` says it is not applied.
-        Weight the segments afterwards — a Frequencies table of ``into`` on
+        Weight the segments afterward — a Frequencies table of ``into`` on
         the weighted data gives their weighted sizes."""
         from siamang.data.models import kmeans
 

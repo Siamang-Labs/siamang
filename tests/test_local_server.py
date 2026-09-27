@@ -2,7 +2,7 @@
 
 `/quota-check` used to answer with `LocalBackend.increment_quota`, which
 claimed a place in the cell for every respondent whose answer was checked —
-those who dropped out afterwards or were screened out included — so cells
+those who dropped out afterward or were screened out included — so cells
 filled with people who never completed. A check now only reads the counter,
 and `store_response` counts a completed response in every cell it fills.
 """

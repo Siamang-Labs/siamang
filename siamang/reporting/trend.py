@@ -17,7 +17,7 @@ Live screen and the chart can never disagree.
 * a date or datetime column — a ``datetime64`` column, or text in ISO 8601 as a
   platform snapshot writes it (``2026-05-25 09:00:00+00:00``, a runtime's
   ``2026-05-25T09:00:00.000Z``, a date question's ``2026-05-25``) — is grouped
-  by ``period``: ``day``, ``week`` (ISO weeks, Monday to Sunday, labelled by
+  by ``period``: ``day``, ``week`` (ISO weeks, Monday to Sunday, labeled by
   ISO year and week number: ``2026-W22``), ``month``, ``quarter`` or ``year``.
   Times with a time zone are read in UTC. Every period between the first and
   the last is on the axis, an empty one as a gap.
@@ -84,7 +84,7 @@ MAX_POINTS = 500
 #: another and the lines, and the table gives each point's interval.
 MAX_BANDS = 4
 #: Past ``MAX_BANDS`` lines each line's points also take a shape of their own
-#: (in the legend too): colour alone does not keep six or more lines apart for
+#: (in the legend too): color alone does not keep six or more lines apart for
 #: every reader, and past the palette two lines are two shades of one hue.
 MARKERS = ("o", "s", "^", "D", "v", "P", "X", "*", "p", "h", "<", ">")
 
@@ -541,7 +541,7 @@ def _time_axis(
     named = f"{label} ({name})" if label != name else name
     note = f"{named}, by {period}"
     if period == "week":
-        note += " — ISO weeks, Monday to Sunday, labelled by ISO year and week number"
+        note += " — ISO weeks, Monday to Sunday, labeled by ISO year and week number"
     return keys, axis, note, True, not_dates
 
 
@@ -772,7 +772,7 @@ class TrendChart(SurveyChart):
     past ``MAX_BANDS`` lines the table gives the intervals instead).
 
     The chart is drawn as the newer charts are (:mod:`siamang.reporting.chart_parts`):
-    a colour per line however many there are, whole percents or thousands
+    a color per line however many there are, whole percents or thousands
     separated on the value axis, the period labels level or slanted as they fit
     the plot, the title, axis titles and legend wrapped (the legend under the
     plot on a narrow figure or when it is taller than the plot), and the base,
@@ -834,7 +834,7 @@ class TrendChart(SurveyChart):
         figure_pt = self.figsize[0] * 72.0
 
         count = len(points.groups)
-        # One colour per line, none repeated however many lines there are.
+        # One color per line, none repeated however many lines there are.
         colours = series_colours(self.palette, max(count, 1))
         positions = np.arange(len(points.periods))
         # Many periods (a year by day) are a line; its markers shrink with them.
@@ -1055,8 +1055,8 @@ def _fit_titles(ax: Any, title: str, xlabel: str, ylabel: str) -> None:
     size = font_size("axes.labelsize")
     ax.set_xlabel(wrap(xlabel, chars_in(width, size)))
     ax.set_ylabel(wrap(ylabel, chars_in(height, size)))
-    # Centred over the plot, the title may reach as far to either side of its
-    # centre as the figure goes on the nearer one.
+    # Centered over the plot, the title may reach as far to either side of its
+    # center as the figure goes on the nearer one.
     box = ax.get_position()
     centre = (box.x0 + box.x1) / 2.0
     room = 2.0 * min(centre, 1.0 - centre) * ax.figure.get_figwidth() * 72.0 - 8.0
@@ -1076,7 +1076,7 @@ def _fit_ticks(fig: Any, ax: Any, periods: list[str]) -> None:
     """The period labels as they fit the axis drawn: level, each on as few
     lines as the room between two ticks allows (measured, not guessed), when
     every word fits it; slanted otherwise, in as many lines as fit between two
-    slanted neighbours — every label while they fit, else every second,
+    slanted neighbors — every label while they fit, else every second,
     third … label."""
 
     from matplotlib.font_manager import FontProperties
@@ -1096,7 +1096,7 @@ def _fit_ticks(fig: Any, ax: Any, periods: list[str]) -> None:
         ) * (72.0 / fig.dpi)
 
     slot = axes_points(ax)[0] / count
-    room = slot - 6.0  # a gap between neighbours
+    room = slot - 6.0  # a gap between neighbors
     ax.set_xticks(np.arange(count))
     words = [word for label in periods for word in label.split()] or [""]
     if max(widest(word) for word in dict.fromkeys(words)) <= room:
@@ -1120,8 +1120,8 @@ def _fit_ticks(fig: Any, ax: Any, periods: list[str]) -> None:
         if fitted is not None:
             step, slanted = tried, fitted
             break
-    # Only the labelled periods keep a tick (and a grid line): a line per day
-    # of a year is a grey wash, not a grid.
+    # Only the labeled periods keep a tick (and a grid line): a line per day
+    # of a year is a gray wash, not a grid.
     shown = list(range(0, count, step))
     ax.set_xticks(shown)
     ax.set_xticklabels(

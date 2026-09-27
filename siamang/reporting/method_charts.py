@@ -30,7 +30,7 @@ Ordinal logit (Regression) coefficients the coefficients' odds ratios with
 ========================== ============ ======================================
 
 The three figures drawn by the analyses keep their own title (the Title given
-replaces its first line), weight line and colour-blind-safe colours, so the
+replaces its first line), weight line and color-blind-safe colors, so the
 Palette is not read for them; their labels are placed for the figure's final
 layout, which the chart therefore does not lay out again
 (:meth:`ResultChart.adopt`).

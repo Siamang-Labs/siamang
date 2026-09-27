@@ -3,7 +3,7 @@
 Which brands are seen as modern and which as cheap, which regions use which
 channels: a table of counts says it cell by cell, and a correspondence analysis
 (CA) draws it. Rows (brands) and columns (attributes) become points on a map
-where a row lies towards the columns it has more of than the average row, and
+where a row lies toward the columns it has more of than the average row, and
 the axes are the dimensions that carry most of the table's departure from
 independence (its *inertia*, χ² / n).
 
@@ -14,10 +14,10 @@ independence (its *inertia*, χ² / n).
   (Region × Brand used). A multiple-choice variable counts each answer chosen,
   so a respondent can be in several cells;
 - **attributes**: for each answer of the row variable (the brand, in data with
-  a row per respondent and brand), the respondents who ticked each of a set of
+  a row per respondent and brand), the respondents who checked each of a set of
   0/1 attribute variables — the usual brand-image grid. ``yes`` names the codes
-  that count as a tick (empty: 1, for 0/1 variables); anything else — a blank,
-  a missing code — is no tick.
+  that count as checked (empty: 1, for 0/1 variables); anything else — a blank,
+  a missing code — counts as unchecked.
 
 :func:`ca` runs the analysis on a plain table and :func:`plot` draws the map.
 
@@ -35,7 +35,7 @@ have the singular value decomposition ``S = U Σ Vᵀ``:
 - a row's **contribution** to dimension k is ``rᵢ φᵢₖ²`` (the rows' add up to
   100 % per dimension; ``ca`` prints them per mil, FactoMineR in %), its
   **cos²** ``fᵢₖ² / Σₖ fᵢₖ²`` (the share of its squared distance from the
-  centre along k; ``ca``'s "cor"), its **quality** the sum of the cos² of the
+  center along k; ``ca``'s "cor"), its **quality** the sum of the cos² of the
   dimensions shown, and its **inertia** ``rᵢ Σₖ fᵢₖ²`` as a share of the total;
   the same for the columns.
 
@@ -79,13 +79,13 @@ LAYOUTS = ("crosstab", "attributes")
 #: The most dimensions the tables show.
 MAX_DIMENSIONS = 10
 
-#: The map's colours: rows and columns, a pair distinguishable with every
-#: common colour-vision deficiency; the labels are in ink.
+#: The map's colors: rows and columns, a pair distinguishable with every
+#: common color-vision deficiency; the labels are in ink.
 ROW_COLOUR, COLUMN_COLOUR = "#2a78d6", "#eb6834"
 _INK, _MUTED, _RULE = "#333333", "#767676", "#bdbdbd"
 
 
-# These colours, or — in a Result chart of palette "theme" — the report
+# These colors, or — in a Result chart of palette "theme" — the report
 # theme's first two, its text, secondary text and grid.
 def _rows() -> str:
     return chart_theme.series(ROW_COLOUR, 0)
@@ -266,7 +266,7 @@ def analyze(
     dimensions: int = 2,
 ) -> PerceptualMap:
     """Correspondence analysis of ``row`` by ``column`` (a crosstab) or by the
-    ``attributes`` ticked for each answer of ``row`` — the ``analyze.correspondence``
+    ``attributes`` checked for each answer of ``row`` — the ``analyze.correspondence``
     node. Exactly one of ``column`` and ``attributes`` is given. ``dimensions``
     is how many dimensions the tables show (the map draws the first two).
     See the module's docstring."""
@@ -495,7 +495,7 @@ def _code_label(data: SurveyData, name: str, code: Any) -> str:
 
 
 def _yes(data: SurveyData, attributes: list[str], yes: Any, answered: np.ndarray) -> list[Any]:
-    """The codes that count as a tick; empty is 1 for 0/1 attributes."""
+    """The codes that count as checked; empty is 1 for 0/1 attributes."""
     if yes is not None and yes != [] and yes != "":
         return list(yes) if isinstance(yes, list | tuple | set) else [yes]
     listed = [name for name in attributes if multi.is_multi(data.frame[name])]
@@ -512,7 +512,7 @@ def _yes(data: SurveyData, attributes: list[str], yes: Any, answered: np.ndarray
         return [1]
     shown = ", ".join(str(value) for value in _sorted(values)[:8])
     raise ValueError(
-        f"The attributes hold {shown}: name the code (or codes) that counts as ticking an "
+        f"The attributes hold {shown}: name the code (or codes) that counts as checking an "
         "attribute in Counts as yes — `yes` outside a flow."
     )
 
@@ -611,10 +611,10 @@ def plot(
 ) -> Any:
     """The symmetric map of ``result`` on two of its dimensions (default the
     first two): rows as blue circles, columns as orange triangles, each
-    labelled in ink beside its point where the label overlaps nothing — or, when
+    labeled in ink beside its point where the label overlaps nothing — or, when
     every spot beside it is taken, a little further out with a line back to it.
     The axes keep one scale (a unit is as long across as up), cross at the
-    centre (the average profile) and say how much of the inertia each carries.
+    center (the average profile) and say how much of the inertia each carries.
     A table of one dimension is drawn on a line.
 
     A map too crowded for its names to lie apart (``numbered=None``, the
