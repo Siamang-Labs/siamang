@@ -443,6 +443,190 @@ def test_a_matrix_that_misses_the_condition_skips_the_gated_page(tmp_path):
     assert "trust" not in submitted
 
 
+def _agree_matrix_document() -> dict[str, Any]:
+    """Seven statements on the five-point agreement scale, the widest matrix a
+    phone commonly gets."""
+
+    scale = ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"]
+    labels = [{"code": code, "label": label} for code, label in enumerate(scale, start=1)]
+    names = [f"s{i}" for i in range(1, 8)]
+    return {
+        "schema_version": "1.0",
+        "title": "Phone",
+        "variables": {
+            name: {"scale": "ordinal", "label": name, "labels": labels} for name in names
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "Matrix",
+                        "id": "agree",
+                        "text": "How much do you agree with each of these?",
+                        "var": names,
+                        "subquestions": [
+                            f"Statement number {i}, long enough to wrap on a phone"
+                            for i in range(1, 8)
+                        ],
+                        "column_labels": scale,
+                    }
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+def test_on_a_phone_a_matrix_row_is_a_card_with_every_answer_on_screen(tmp_path):
+    """At 390 px the table was 453 px in a 344 px box, scrolling sideways with
+    nothing to say so: Agree and Strongly agree were off screen. Each row is a
+    card now, its answers in one row under their own labels, all on screen, and
+    a label answers as its circle does. On a wide screen nothing changes."""
+
+    scenario = """
+        const measure = () => page.evaluate(() => {
+            const wrapper = document.querySelector(".sd-matrix-wrapper");
+            const labels = [...document.querySelectorAll(
+                "table.sd-matrix tbody tr:first-child .sd-matrix__col-label")];
+            return {
+                overflow: wrapper.scrollWidth - wrapper.clientWidth,
+                header: getComputedStyle(document.querySelector("table.sd-matrix thead")).display,
+                labels: labels.map((l) => getComputedStyle(l).display === "none" ? null : l.textContent),
+                offscreen: [...document.querySelectorAll("button.sd-matrix__cell")].filter(
+                    (b) => b.getBoundingClientRect().right > window.innerWidth).length,
+            };
+        });
+        const wide = await measure();
+        await page.setViewportSize({ width: 390, height: 844 });
+        const phone = await measure();
+        return { wide, phone };
+    """
+    state = run_in_browser(_agree_matrix_document(), scenario, tmp_path)
+    assert state["wide"]["header"] != "none"
+    assert state["wide"]["labels"] == [None] * 5
+    assert state["phone"]["header"] == "none"
+    assert state["phone"]["overflow"] <= 0 and state["phone"]["offscreen"] == 0
+    assert state["phone"]["labels"] == [
+        "Strongly disagree",
+        "Disagree",
+        "Neutral",
+        "Agree",
+        "Strongly agree",
+    ]
+
+
+def test_a_matrix_answered_by_its_labels_on_a_phone_stores_the_codes(tmp_path):
+    scenario = (
+        """
+        await page.setViewportSize({ width: 390, height: 844 });
+        const rows = await page.$$("table.sd-matrix tbody tr");
+        for (const [i, row] of rows.entries()) {
+            await (await row.$$(".sd-matrix__col-label"))[i % 5].click();
+        }
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_agree_matrix_document(), scenario, tmp_path)
+    (submitted,) = state["submitted"]
+    assert [submitted[f"s{i}"] for i in range(1, 8)] == [1, 2, 3, 4, 5, 1, 2]
+
+
+# ── Slider ───────────────────────────────────────────────────────────────────
+
+
+def _slider_document() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "title": "Slider",
+        "variables": {"likely": {"scale": "interval", "label": "Likely", "valid_range": [0, 10]}},
+        "pages": [
+            {
+                "name": "p1",
+                "items": [
+                    {
+                        "type": "NumericInput",
+                        "id": "likely",
+                        "var": "likely",
+                        "text": "How likely?",
+                        "display": "slider",
+                        "step": 1,
+                    }
+                ],
+            },
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+_SLIDER = """
+    const shown = () => page.evaluate(() => ({
+        value: document.querySelector(".siamang-slider__value").textContent,
+        untouched: document.querySelector(".siamang-slider").classList.contains("is-untouched"),
+        active: document.querySelectorAll(".siamang-slider__tick.is-active").length,
+        valuetext: document.querySelector(".siamang-slider__input").getAttribute("aria-valuetext"),
+    }));
+"""
+
+
+def test_an_untouched_slider_reads_as_unanswered_and_stores_nothing(tmp_path):
+    """The thumb starts in the middle, but nothing is stored until it is moved:
+    it showed the middle (5) in bold as if answered, and someone who agreed
+    with it went on with a blank. It reads "—" now, and stays blank."""
+
+    scenario = (
+        _SLIDER
+        + "const before = await shown();"
+        + _NEXT
+        + _STATE.replace("return {", "return { before,")
+    )
+    state = run_in_browser(_slider_document(), scenario, tmp_path)
+    assert state["before"] == {
+        "value": "—",
+        "untouched": True,
+        "active": 0,
+        "valuetext": "Not answered",
+    }
+    (submitted,) = state["submitted"]
+    assert "likely" not in submitted
+
+
+def test_a_slider_answers_where_it_is_let_go_even_at_its_start(tmp_path):
+    """A click on the thumb where it waits changes no value, so no change event
+    comes: letting go answers the value it shows. Moved, it answers as before."""
+
+    let_go = (
+        _SLIDER
+        + """
+        const box = await (await page.$(".siamang-slider__input")).boundingBox();
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        const middle = await shown();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { middle,")
+    )
+    state = run_in_browser(_slider_document(), let_go, tmp_path / "let_go")
+    assert state["middle"]["value"] == "5" and not state["middle"]["untouched"]
+    assert state["middle"]["active"] == 1 and state["middle"]["valuetext"] is None
+    (submitted,) = state["submitted"]
+    assert submitted["likely"] == 5
+    moved = (
+        _SLIDER
+        + """
+        await page.focus(".siamang-slider__input");
+        await page.keyboard.press("ArrowRight");
+        const moved = await shown();
+    """
+        + _NEXT
+        + _STATE.replace("return {", "return { moved,")
+    )
+    state = run_in_browser(_slider_document(), moved, tmp_path / "moved")
+    assert state["moved"]["value"] == "6"
+    (submitted,) = state["submitted"]
+    assert submitted["likely"] == 6
+
+
 def test_saved_answers_from_the_nested_layout_resume_in_the_flat_one(tmp_path):
     """A respondent who resumes after a redeploy: the old runtime kept the
     matrix nested under its key, and a cell as its position."""

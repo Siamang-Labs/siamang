@@ -748,6 +748,9 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   background: var(--siamang-accent);
   box-shadow: inset 0 0 0 3px var(--siamang-surface);
 }
+/* A column's label under each answer: shown only on a narrow screen, where a
+   row is a card and the header row is gone (see the media query below). */
+.sd-matrix__col-label { display: none; }
 /* A chosen cell's inner ring would hide the focus ring, and the arrow keys
    leave the focus on a chosen cell: it carries both (so does a MaxDiff pick). */
 .sd-matrix__cell.is-selected:focus-visible,
@@ -1551,6 +1554,9 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   accent-color: var(--siamang-accent);
   cursor: pointer;
 }
+/* Not answered yet: the thumb waits, faded, and nothing reads as chosen. */
+.siamang-slider.is-untouched .siamang-slider__input { opacity: 0.55; }
+.siamang-slider.is-untouched .siamang-slider__input:focus-visible { opacity: 1; }
 .siamang-slider__value {
   text-align: center;
   font-family: var(--siamang-ui-font);
@@ -1886,7 +1892,45 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   .sd-navigation .sd-btn { width: 100%; }
   .sd-choices--buttons { flex-direction: column; }
   .sd-choices--buttons .sd-radio { width: 100%; }
-  .sd-matrix thead th:first-child { min-width: 120px; }
+  /* A matrix wider than the phone scrolled sideways with nothing to say so,
+     and the answers on the right (Often, Always; Agree, Strongly agree) were
+     off screen: each row is a card instead, its statement on top and its
+     answers in one row under their own labels. */
+  .sd-matrix-wrapper { overflow-x: visible; margin: 0; padding: 0; }
+  .sd-matrix, .sd-matrix tbody { display: block; }
+  .sd-matrix thead { display: none; }
+  .sd-matrix tbody tr {
+    display: grid;
+    grid-template-columns: repeat(var(--sd-matrix-cols, 5), minmax(0, 1fr));
+    column-gap: 2px;
+    row-gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--siamang-border) 60%, transparent);
+  }
+  .sd-matrix tbody tr:last-child { border-bottom: none; }
+  .sd-matrix tbody td {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border-bottom: none;
+    min-width: 0;
+  }
+  .sd-matrix tbody td:first-child {
+    grid-column: 1 / -1;
+    align-items: flex-start;
+  }
+  .sd-matrix__col-label {
+    display: block;
+    font-family: var(--siamang-ui-font);
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: var(--siamang-muted);
+    text-align: center;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
   .sd-completedpage__meta { flex-direction: column; gap: 14px; }
   .sd-radio, .sd-checkbox {
     padding: 14px 12px;
