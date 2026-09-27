@@ -15,6 +15,7 @@ from siamang.frontend.runtime.base import RuntimeAdapter, RuntimeRenderContext
 from siamang.frontend.runtime.surveyjs import SurveyJSRuntime
 from siamang.frontend.schema import SurveySchema
 from siamang.frontend.theme.css import compile_css
+from siamang.frontend.theme.fonts import font_assets
 from siamang.frontend.theme.ui_config import UIConfig
 
 if TYPE_CHECKING:
@@ -80,6 +81,11 @@ class FrontendBuilder:
             "manifest.json": json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True),
         }
         for name, content in self.runtime.static_assets().items():
+            files.setdefault(name, content)
+        # The typefaces the stylesheet declares, served with the survey rather
+        # than from a font CDN: the files its @font-face rules use under fonts/,
+        # and each family's license.
+        for name, content in font_assets(css).items():
             files.setdefault(name, content)
 
         bundle = SurveyBundle(files=files, manifest=manifest)

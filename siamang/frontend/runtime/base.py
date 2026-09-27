@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from siamang.frontend.schema import SurveySchema
+from siamang.frontend.theme.fonts import FONT_BASE
 from siamang.frontend.theme.ui_config import UIConfig
 
 if TYPE_CHECKING:
@@ -21,6 +22,12 @@ class RuntimeRenderContext:
     client side (the React runtime) need direct access to the live
     :class:`Questionnaire` objects. SurveyJS-style runtimes work from the
     already-compiled :class:`SurveySchema` alone.
+
+    ``font_base`` is where the stylesheet's ``@font-face`` rules find the
+    bundled typefaces (:mod:`siamang.frontend.theme.fonts`): ``fonts/`` next to
+    the stylesheet in a bundle. A host that puts the stylesheet somewhere else
+    — inline in a page it serves — passes the URL (ending in ``/``) it serves
+    the files at.
     """
 
     schema: SurveySchema
@@ -29,6 +36,7 @@ class RuntimeRenderContext:
     env_src: str = "env.js"
     survey_id: str | None = None
     survey: Questionnaire | None = None
+    font_base: str = FONT_BASE
 
 
 class RuntimeAdapter(ABC):

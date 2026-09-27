@@ -16,6 +16,7 @@ focus states — not a flashy product onboarding flow.
 
 from __future__ import annotations
 
+from siamang.frontend.theme.fonts import FONT_BASE, font_face_css
 from siamang.frontend.theme.ui_config import UIConfig
 
 _DENSITY_SPACING = {
@@ -454,8 +455,12 @@ button:focus-visible {{
 """
 
 
-def compile_css(ui: UIConfig) -> str:
-    """Return a CSS string for ``ui``. ``custom_css`` is appended last."""
+def compile_css(ui: UIConfig, *, font_base: str = FONT_BASE) -> str:
+    """Return a CSS string for ``ui``. ``custom_css`` is appended last.
+
+    The bundled typefaces its font stacks name are declared first, their files
+    at ``font_base`` (see :mod:`siamang.frontend.theme.fonts`).
+    """
 
     density = _density_vars(ui.density)
     base = _CSS_TEMPLATE.format(
@@ -478,6 +483,11 @@ def compile_css(ui: UIConfig) -> str:
         gap_control=density["control"],
         gap_page=density["page"],
     )
+    faces = font_face_css(
+        ui.font_family, ui.effective_heading_font, ui.mono_font_family, base=font_base
+    )
+    if faces:
+        base = faces + "\n" + base
     if ui.custom_css:
         return base + "\n/* user overrides */\n" + ui.custom_css
     return base

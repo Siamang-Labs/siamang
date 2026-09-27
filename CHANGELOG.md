@@ -798,6 +798,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`siamang.io.excel_text`): a label, an answer or a banner name that begins
   with `=` is never a formula, and its links quote a sheet's name.
 
+### Changed
+
+- **The survey's typefaces come with the survey, not from Google Fonts.** Every
+  compiled survey linked `fonts.googleapis.com` and so fetched its fonts from
+  `fonts.gstatic.com`: each respondent's address and browser went to Google as
+  the page opened, before they had read a word — and so did every preview and
+  shared link of a platform built on the runtime. The families of the font
+  presets — Source Serif 4, Inter and Nunito, SIL Open Font License 1.1 — now
+  ship in the package (`siamang/frontend/templates/react/fonts/`: the Google
+  Fonts variable fonts in their `latin`, `latin-ext` and `cyrillic` subsets,
+  Source Serif 4 with its optical-size axis as the old request had it; 564 KB
+  of woff2, the README there gives their source, versions and checksums). The
+  stylesheet declares with `@font-face` the bundled families its font stacks
+  name, pointing at `fonts/` next to it, and `FrontendBuilder` puts exactly the
+  files those rules use in the bundle with each family's license text: 469 KB
+  for the `academic` preset, 152 KB for `modern`, 95 KB for `humanist`; a
+  respondent downloads only the subsets the page's text needs (for an English
+  page the two `latin` files, 171 KB). Both runtimes do it, and neither page
+  links or preconnects to a font CDN any longer. A family that is not bundled
+  (a stack of `"Roboto", sans-serif`) was never fetched and still is not: it is
+  used where the device has it. A host that serves the page another way
+  passes where it serves the files as `RuntimeRenderContext.font_base` (or
+  `compile_css(ui, font_base=...)`) and serves them with
+  `siamang.frontend.theme.fonts.font_file()`.
+
+### Removed
+
+- `UIConfig.effective_google_fonts_url` and the `"google_fonts"` URL of each
+  `FONT_PRESETS` entry: nothing loads the survey's fonts from Google Fonts any
+  more (see Changed).
+
 ### Fixed
 
 - **A time with a time zone goes to Excel in UTC.** A workbook cell holds no

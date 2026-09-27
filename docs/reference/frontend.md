@@ -101,6 +101,8 @@ When building, the returned bundle contains five base files:
 
 A runtime may add its own static assets on top: `ReactRuntime` contributes `bundle.js` plus vendored React files under `vendor/`, while `SurveyJSRuntime` adds none.
 
+The typefaces come with the bundle too: under `fonts/`, the woff2 files the stylesheet's `@font-face` rules use and the SIL Open Font License text of each family (see [Typography](#2-typography)). Nothing in a compiled survey is fetched from a font CDN.
+
 ---
 
 ## `UIConfig` — The Design System
@@ -125,7 +127,9 @@ All colors are specified as standard CSS hex color codes (e.g., `"#2c5f8a"`).
 
 ### 2. Typography
 
-Siamang features an integrated web-font loader. By default, it loads high-quality typography from the Google Fonts CDN [2].
+The typefaces of the font presets — **Source Serif 4**, **Inter** and **Nunito**, all under the SIL Open Font License 1.1 — ship with the package (`siamang/frontend/templates/react/fonts/`: the Google Fonts variable fonts in their `latin`, `latin-ext` and `cyrillic` subsets) and are served with the survey, from its own host. The stylesheet declares with `@font-face` the bundled families that its font stacks name — the preset's, or one of the three named in a stack of your own, case-insensitively — pointing at `fonts/` next to it, and the bundle carries exactly those files with their licenses (`academic` 469 KB, `modern` 152 KB, `humanist` 95 KB; a respondent downloads only the subsets the page's text uses, for an English page the two `latin` files). Nothing is requested from Google Fonts or any other font CDN. A family that is not bundled — `font_family='"Roboto", sans-serif'` — is used where the respondent's device has it installed, and the next family of the stack otherwise; the runtime never fetched such a family and does not now. To use another web font, declare it yourself with `@font-face` in `custom_css`, on a host of your choosing.
+
+A host that serves the survey page another way than the bundle — Studio's preview puts the stylesheet inline in a page of its own — passes the URL it serves the files at as `RuntimeRenderContext(font_base=...)` (or `compile_css(ui, font_base=...)`) and serves them with `siamang.frontend.theme.fonts.font_file(name)` (the names are `fonts.FONT_FILES`).
 
 | Property | Default | Description |
 | :--- | :--- | :--- |
@@ -271,6 +275,8 @@ All runtimes inherit from this base class, which defines the interface for gener
   Renders the `closed.html` page displayed when a survey is inactive or full.
 * **`render_style_css(ui: UIConfig) -> str`**:
   Compiles the active `UIConfig` into a CSS stylesheet string.
+
+`RuntimeRenderContext` carries what a runtime renders with: `schema`, `ui`, `css_href` (`"style.css"`), `env_src` (`"env.js"`), `survey_id`, `survey`, and `font_base` (`"fonts/"`) — where the stylesheet's `@font-face` rules find the bundled typefaces, relative to the stylesheet; a host that inlines the stylesheet passes the URL (ending in `/`) it serves them at.
 * **`get_client_js(client: BackendClientTemplate, env: ClientEnv) -> str`**:
   Compiles the selected backend client adapter into JavaScript.
 

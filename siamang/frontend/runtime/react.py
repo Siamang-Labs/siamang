@@ -19,6 +19,7 @@ from typing import Any
 
 from siamang.frontend.compiler.react import compile_react_payload
 from siamang.frontend.runtime.base import RuntimeAdapter, RuntimeRenderContext
+from siamang.frontend.theme.fonts import font_face_css
 
 _CLOSED_REASONS = {
     "deadline": (
@@ -156,7 +157,6 @@ class ReactRuntime(RuntimeAdapter):
             pages_json=json.dumps(payload["PAGES"], ensure_ascii=False),
             analytics_script=analytics_script,
             scripts_block=scripts_block,
-            google_fonts_url=html.escape(context.ui.effective_google_fonts_url),
         )
 
     def render_closed_page(self, context: RuntimeRenderContext, reason: str) -> str:
@@ -199,6 +199,17 @@ class ReactRuntime(RuntimeAdapter):
             "warn": ui.warn_color,
         }
         css = self._style_template.substitute(tokens)
+        # The typefaces the stacks name, from the survey's own host (the
+        # bundle's fonts/ — FrontendBuilder ships the files these rules use).
+        faces = font_face_css(
+            ui.effective_body_font,
+            ui.effective_heading_font,
+            ui.effective_ui_font,
+            ui.mono_font_family,
+            base=context.font_base,
+        )
+        if faces:
+            css = faces + "\n" + css
         if ui.custom_css:
             css = css + "\n/* user overrides */\n" + ui.custom_css
         return css
