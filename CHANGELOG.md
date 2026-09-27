@@ -724,6 +724,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A frequency table of codes with a stray text among them.** Frequencies
+  sorted a column's values as they came, and a column holding codes and a
+  text as well (1, 2, 3 and "25-34", which an earlier runtime or an import
+  can leave) could not be sorted: the table raised `TypeError: '<' not
+  supported between instances of 'str' and 'int'` and stopped the report it
+  was in. Numbers now come by their value (a number written as text among
+  them), then the other texts in order.
+
 - **Clusters can be numbered by an item's mean.** k-means numbers its
   clusters by size, and a flow names them by number with Derive. Two
   segments of close sizes swapped numbers when a few respondents came or
