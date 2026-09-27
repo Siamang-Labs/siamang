@@ -7,11 +7,11 @@ in the **Email invitations** panel.
 
 > **Plan.** Email invitations are included from **Plus**. An organization on the
 > unpaid **trial** cannot use them at all — neither import contacts nor send —
-> until the first payment: the panel reads "Personal links by email — unlock
-> with your first payment." with **Choose a plan**. On **Free** it reads
-> "Personal links by email — included from Plus." with **Upgrade to Plus**.
-> Invitations are sent from Studio's shared sending domain, which is why they
-> are not available without a paid plan.
+> until a plan is bought: the panel reads "Personal links by email — unlock
+> once a plan is bought." with **Choose a plan**, which opens Settings →
+> Billing. On **Free** it reads "Personal links by email — included from
+> Plus." with **Upgrade to Plus**. Invitations are sent from Studio's shared
+> sending domain, which is why they are not available without a plan.
 
 ---
 
