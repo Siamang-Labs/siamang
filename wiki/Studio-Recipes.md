@@ -321,10 +321,16 @@ ended on a screen-out or a full quota — sees "You have already taken part"
 instead of the questionnaire. No new Save or rebuild is needed, but a survey
 published before this option existed needs one republish.
 
-It is checked in the respondent's browser only: a private window, cleared
-browser data or another device can answer again, and people sharing one
-browser count as one. For one answer per person, use email invitations or a
-panel provider's own checks.
+It is checked in the respondent's browser only: cleared browser data, a
+private window, another browser or another device can answer again, and
+people sharing one browser count as one. For one answer per person, use email
+invitations or a panel provider's own checks.
+
+The survey page keeps a mark in the respondent's browser, and the mark stays
+after they answer — the survey's other browser data is cleared after a week,
+the mark is not — so mention it in your survey's consent text. For
+respondents in the EU, where keeping such a mark on a device needs their
+consent, unique invitation links are more reliable.
 → [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
 
 ### Field a study on Prolific

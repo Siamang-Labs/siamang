@@ -206,7 +206,11 @@ edit.
 - **Restart** ("Restart the preview from page 1") starts over, with a new draw
   of every shuffle.
 - Submitting shows "Preview submitted — answers are not stored". Nothing is
-  saved anywhere.
+  saved anywhere, the browser's storage included: the preview keeps its state
+  in memory, so reloading Studio starts it over.
+- The survey's fonts come from Studio, never from Google Fonts or another font
+  service, and the captcha never runs in a preview. The same holds for the
+  Walkthrough and share-preview links.
 - A document that cannot be built shows "Could not build the preview…" and
   "Fix the document to render the preview."
 
@@ -364,7 +368,8 @@ Studio account.
 - You can create up to **50 links per day**. Beyond that: "at most 50 shared
   previews per day; reuse an existing link".
 - It is a plain respondent page, without the Walkthrough panel. Submitting
-  shows the completion screen, but nothing is stored.
+  shows the completion screen, but nothing is stored — not even in the
+  visitor's browser: a reload starts over and leaves nothing behind.
 
 Use it for wording review and client sign-off. For a real pilot that records
 answers, publish to the `pilot` environment
@@ -393,6 +398,9 @@ Quotas are not checked.
   Answering to the end shows the survey's normal completion page (or end
   page); nothing is stored. A preview built before this change ended on
   **Submission failed** instead; preview the Save again to rebuild it.
+- Being a real build, it keeps progress in your browser as a live survey does
+  (reloading an unfinished run offers **Resume**; see
+  [Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage)).
 - Previews are removed automatically after **7 days**. **History** can
   preview any earlier Save the same way.
 

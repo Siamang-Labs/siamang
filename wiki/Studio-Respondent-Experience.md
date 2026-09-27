@@ -11,6 +11,10 @@ consent text, and use it to answer respondents' questions.
 
 - Respondents need **no account**. The survey is served from the survey host
   (`study.siamang.org`), which shares no cookies or session with the Studio app.
+- Everything the page needs, its fonts included, comes from the survey host:
+  nothing is requested from Google Fonts or another font service, and the
+  [captcha](Studio-Distribution-Channels#captcha), when it is on, loads only at
+  submit. Opening the link writes nothing to the browser.
 - Published surveys ask search engines not to index them.
 - A link whose first build has not finished yet shows a plain "not found" page.
 - A closed environment shows "This survey is closed — The researchers have
@@ -167,19 +171,23 @@ statement, when you set them.
 
 ## Saving progress
 
-Respondents can leave and come back — **in the same browser, within 24
-hours**.
+Respondents can leave and come back — **in the same browser, within a
+week**.
 
+- **Nothing before they start.** Opening the link writes nothing to the
+  browser. The survey keeps something there only once the respondent starts:
+  their first answer, their first move to another page, **Resume** or **Start
+  over** (the light/dark button keeps only that choice).
 - **In the browser.** Two seconds after each answer the survey saves the
   answers in the browser's own storage (a small **Saving…** indicator
-  appears). The saved answers are kept for 24 hours.
-- **Coming back.** Reopening the link in that browser within 24 hours shows a
-  banner: "We saved your progress from earlier. Would you like to resume?"
-  with **Resume** (back to the page they left, along the path they took — in
-  the same page order if your pages are shuffled) and **Start over**. After 24
-  hours, or in another browser or device, they start from the beginning. Each
-  survey keeps its own saved progress, so answers saved for one survey are
-  never offered in another.
+  appears). The saved answers are kept for 7 days after the last answer.
+- **Coming back.** Reopening the link in that browser within 7 days of their
+  last answer shows a banner: "We saved your progress from earlier. Would you
+  like to resume?" with **Resume** (back to the page they left, along the path
+  they took — in the same page order if your pages are shuffled) and **Start
+  over**. After 7 days, or in another browser or device, they start from the
+  beginning. Each survey keeps its own saved progress, so answers saved for
+  one survey are never offered in another.
 - **Once it is over.** When the interview is submitted, or ended by a full
   quota, the browser keeps no saved progress: reopening the link starts a new
   interview rather than offering to resume the finished one.
@@ -200,7 +208,9 @@ hours**.
 
 > **Note.** A survey published before the current runtime sends no partial
 > responses and keeps one saved-progress slot shared by every survey on the
-> survey host. Republish it to get the behavior above (see
+> survey host. A survey published before this update keeps saved progress for
+> 24 hours and writes to the browser as the page opens. Republish it to get the
+> behavior above (see
 > [Republishing](Studio-Publishing-and-Environments#republishing)); progress
 > saved by the older build cannot be resumed in the new one.
 
@@ -275,10 +285,17 @@ We could not save your responses. Attempt 1 of 3.
 
 - **Try again** sends the answers again.
 - **Save locally and finish** shows the thank-you page, but the answers are
-  **only kept in that browser** (for 24 hours) — they are **not submitted**; at
+  **only kept in that browser** (for 7 days) — they are **not submitted**; at
   most the progress the survey saved along the way reaches you, as a partial
   response. If a respondent tells you they used it, ask them to reopen the
-  link in the same browser within 24 hours, **Resume**, and submit again.
+  link in the same browser within 7 days, **Resume**, and submit again.
+- With the [captcha](Studio-Distribution-Channels#captcha) on, when the check
+  could not run in the respondent's browser and the survey has already taken
+  its few unchecked responses an hour from their network, the dialog says why
+  instead: "The security check that protects this survey could not run in
+  your browser, so your answers could not be saved. If an ad blocker, a
+  browser extension or your network blocks challenges.cloudflare.com, allow
+  it and try again."
 - After the third failed attempt: "Submission error — We could not save your
   responses. Please refresh and try again."
 
@@ -305,9 +322,9 @@ leave a page.
 A **preview** never shows these notices: it carries the banner "Preview —
 answers are not stored" and ends on the survey's normal completion page.
 
-A paused respondent's answers stay in their browser for 24 hours: if you resume
-collection within that time and they reopen the link, they can pick up where
-they left off. While a survey is paused, closed or past its closing date,
+A paused respondent's answers stay in their browser for 7 days after their last
+answer: if you resume collection within that time and they reopen the link,
+they can pick up where they left off. While a survey is paused, closed or past its closing date,
 progress of unfinished interviews is not saved to your database either. If the
 survey page cannot reach Studio as it opens, it opens normally, and the
 submission is still checked.
@@ -343,13 +360,19 @@ or which access code was entered. (Network addresses are used briefly to limit
 abuse, and are not stored with responses. With the captcha on, the address is
 also passed to Cloudflare to verify the check — see below.)
 
-**In the respondent's browser**, the survey keeps the autosaved answers (24
-hours, removed once the interview is submitted or ended by a full quota), the
-random respondent id of an interview in progress, the time an interview in
-this browser last ended, and the light/dark choice. With
+**In the respondent's browser**, the survey keeps nothing until the
+respondent starts. From then on it keeps the autosaved answers (removed once
+the interview is submitted or ended by a full quota), the random respondent id
+of an interview in progress, the time an interview in this browser last ended,
+when the survey last wrote there, and the light/dark choice if they press the
+button. All of it goes once the survey has not written there for 7 days. With
 [One response per browser](Studio-Distribution-Channels#one-response-per-browser)
-on, it also notes that this browser has answered. Nothing of this is sent to
-Studio beyond the responses themselves.
+on, it also keeps a mark that this browser has answered, which is **not**
+cleared after a week and stays until the respondent clears their browser
+data — mention it in your consent text. It sets no cookies, and nothing of
+this is sent to Studio beyond the responses themselves. The full list, and
+what to say in your consent text, is under
+[Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage).
 
 **Identifiable responses.** A response becomes linked to a person when the link
 carried something personal: an [[email invitation|Studio-Email-Invitations]]
@@ -357,10 +380,12 @@ token (`url_inv`, which Studio matches to the contact), a panel id, or a
 parameter you added yourself. Say so in your consent text.
 
 **Captcha.** With the [captcha](Studio-Distribution-Channels#captcha) on, the
-page loads Cloudflare Turnstile, which checks the browser invisibly when the
-respondent submits. Cloudflare sees each respondent's IP address and browser,
-and Studio sends Cloudflare the respondent's IP address with the token to
-verify it. Name Cloudflare Turnstile in your privacy notice.
+page loads Cloudflare Turnstile when the respondent submits — not before — and
+it checks the browser invisibly. Cloudflare sees the IP address and browser of
+each respondent who sends their answers, and Studio sends Cloudflare the
+respondent's IP address with the token to verify it. Name Cloudflare Turnstile
+in your privacy notice. A survey published before this update loads it as the
+page opens, until you republish it.
 
 See also [[Security and Privacy|Studio-Security-and-Privacy]].
 

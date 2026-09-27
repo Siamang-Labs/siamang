@@ -356,8 +356,9 @@ While an environment is paused, the page stays up, but someone who opens the
 link sees "This survey is paused — The researchers have paused collection.
 Please try again later." instead of the questionnaire. Someone who was
 already answering when you paused can go on, and meets the same notice when
-they submit. Their answers stay in their browser for 24 hours, so someone who
-returns after you resume can pick up where they left off (same browser only).
+they submit. Their answers stay in their browser for 7 days after their last
+answer, so someone who returns after you resume can pick up where they left off
+(same browser only).
 Progress of unfinished interviews is not recorded during a pause, so the
 drop-off funnel has a gap for that period.
 

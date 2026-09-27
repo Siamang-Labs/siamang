@@ -112,8 +112,9 @@ change it in your profile.
 A small Cloudflare Turnstile check may appear on the sign-up, sign-in and
 reset forms. The form's button stays disabled until the check has passed. If
 an attempt fails (a wrong password, say), the check resets and you solve it
-again for the next try. The check is loaded from Cloudflare (see
-[[Security and Privacy|Studio-Security-and-Privacy]]).
+again for the next try. The check is loaded from Cloudflare when one of those
+forms opens, not on the first, email step (see
+[Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage)).
 
 ### Confirm your email
 

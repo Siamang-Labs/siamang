@@ -96,10 +96,10 @@ and edit locks, API keys.
 | Response cap | the tighter of the environment's cap (counted in that environment) and the plan's (Free: 1,000 per project, all environments together); counts completed interviews only — screen-outs and partials never count, and a screen-out is recorded even when the cap is full; checked when the survey page opens and when a respondent submits |
 | Quota cell | closes at its limit of completed interviews; checked when the respondent leaves a page; a check that gets no answer within 4 seconds lets the respondent go on; previews never check |
 | Closing date | the earlier of the questionnaire's `deadline` and the environment's `closes_at` as of the published Save, or a date set in the card's **Closing date** panel (applies at once); once it passes, the page shows the closed notice as it opens, and submissions and progress saves are refused (a date without a time zone is read as UTC) |
-| One per browser | off by default; one interview per browser per environment, remembered in the respondent's browser |
+| One per browser | off by default; one interview per browser per environment, remembered by a mark in the respondent's browser that is not cleared after a week (it stays until they clear their browser data) |
 | Preview deployments | removed automatically after 7 days |
 | URL parameters stored per response | the first 8; names lower-cased, up to 40 characters; values up to 200 characters |
-| Browser autosave for respondents | 24 hours, same browser only, one per survey; cleared once the interview is submitted or ended by a full quota |
+| Browser autosave for respondents | 7 days after the last answer, same browser only, one per survey; nothing is kept before the respondent starts; cleared once the interview is submitted or ended by a full quota. Everything else a survey keeps in the browser also goes after 7 days without a write, except the One per browser mark |
 | Submit retries | 3 attempts |
 | Redirect delays | completion 5 s; terminal page 5 s by default; quota-full and full-cap 3 s; closed notice to the environment's post-close redirect 3 s |
 | Access codes | format `PREFIX-NNNN` (prefix up to 8 characters, 10,000 codes per prefix); 1–5,000 generated at a time |

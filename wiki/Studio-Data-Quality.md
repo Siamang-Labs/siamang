@@ -176,6 +176,12 @@ Forged or replayed tokens are refused and never stored. In the Data tab, the
 in an export or a flow, filter on the `captcha` column. `unavailable` is not
 proof of a bot — treat it as one signal among several.
 
+> **Note.** A survey published with the captcha on before this update never
+> sent its token, so every response it stored reads `unavailable`, real
+> respondents included. Those verdicts tell you nothing; republish the
+> environment to get real ones (see
+> [Captcha](Studio-Distribution-Channels#captcha)).
+
 ---
 
 ## Behavioral signals

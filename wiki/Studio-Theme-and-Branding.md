@@ -93,7 +93,11 @@ colors get a readout. A named color or `rgb(…)` shows none.
 | **Font preset** | **academic** (Source Serif 4 for text, Inter for buttons and labels), **humanist** (Nunito), **modern** (Inter) | academic |
 | **Density** ("type size, leading and the air between questions") | **comfortable**, **compact**, **spacious** | comfortable |
 
-The fonts load from Google Fonts. To use your own typefaces, see
+The preset fonts (Source Serif 4, Inter and Nunito) come with the survey and
+load from the survey host — nothing is requested from Google Fonts or another
+font service. The Builder's preview, the Walkthrough and share-preview links
+load them from Studio. A survey published before this update loads them from
+Google Fonts until you republish it. To use your own typefaces, see
 [Measurements and typefaces](#measurements-and-typefaces).
 
 ### Question style and progress
@@ -447,8 +451,12 @@ defaults until you publish it again.
 
 The values are CSS: sizes with units, typefaces as font stacks
 (`"Georgia", serif`). The font preset covers all four typefaces until you set
-one here. A typeface you name must be available to respondents, either
-installed on their device or loaded by your custom CSS.
+one here. Name Source Serif 4, Inter or Nunito in any of these fields and the
+survey brings that font along. Any other typeface must be available to
+respondents, either installed on their device or loaded by your custom CSS —
+and a font your CSS loads from another site shows each respondent's IP address
+to that site, so name it in your privacy notice (see
+[Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage)).
 
 ### Custom CSS *(Plus)*
 
