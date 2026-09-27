@@ -49,11 +49,15 @@ figure is built lazily on first use.
 same numbers: inline data of only what the chart draws (counts, percentages,
 means, intervals, bins, a heatmap's cells, a box's five numbers — a scatter
 plot's points and a box plot's outliers are the respondents' values it plots,
-without ids or other answers), the title, the axis titles, the notes (base,
-weight, missing codes) at its foot, the picture's colors with the report Look's
-text, grid and font, a tooltip on every mark with its value as the picture
-writes it and its base, a legend that hides and shows its series, zoom on a
-scatter plot and on a long Trend, and a description for a screen reader. Every
+without ids or other answers, listed by group and value so that no point's
+place in the list is a key to a respondent in another chart), the title, the
+axis titles, the notes (base, weight, missing codes) at its foot, the picture's
+colors with the report Look's text, grid and font, a tooltip on every mark with
+its value as the picture writes it and its base, a legend that hides and shows
+its series (a hidden series' entry faded; a double click on the chart, in a
+report or in Studio, shows them all), zoom on a scatter plot and on a long
+Trend (hold Ctrl — Cmd on a Mac — and scroll, or pinch; drag to move; double
+click to reset), and a description for a screen reader. Every
 chart on this page has one: each form of `BarChart` (histogram and donut too),
 `LikertChart`, `HeatMap`, `BoxPlot`, `ScatterPlot`, `TrendChart`, and every kind
 of Result chart (below). A report shows them with `to_html(..., interactive=True)`
@@ -538,8 +542,11 @@ of its picture: a tooltip on each point, bar, segment or cell with its value as
 the picture writes it, its interval and its base; a legend that hides a group
 (the groups of Descriptive statistics, a cluster, a conjoint attribute, a
 sentiment, a price curve); odds ratios on a log axis; a correlation's p in its
-cell's tooltip. The **Perceptual map** keeps one scale on both axes, names each
-point where the picture did, zooms (Shift and the wheel) and pans, and has a
+cell's tooltip. Each tooltip names what a row is (Region, Term, Theme, Item)
+and gives its base. The **Perceptual map** keeps one scale on both axes, names
+each point where the picture did (in a narrow chart, only the names that fit
+beside their points without running into another name or covering another
+point), zooms (Ctrl or Cmd and the wheel, or a pinch) and pans, and has a
 **Names on the map** box — unticked for a map too crowded to name its points,
 whose names its tooltips then give. **Van Westendorp**'s chart draws a line at
 the price the pointer is nearest and gives every curve's share there. In a

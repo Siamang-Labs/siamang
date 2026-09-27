@@ -250,7 +250,8 @@ class SurveyChart:
         drawn = self._drawn
         if drawn is None:
             return None
-        return drawn.spec(self)
+        spec: dict[str, Any] = drawn.spec(self)
+        return spec
 
     def _auto_title(self, *parts: str) -> str:
         """Generate a title from variable labels."""
@@ -684,6 +685,7 @@ class HeatMap(SurveyChart):
                 value_title="Weighted mean" if weights is not None else "Mean",
                 bases=lambda: group_bases(frame[self.by], weights, codes, text=True),
                 annotate=self.annot,
+                row_title="Item",
             )
 
         else:
@@ -722,6 +724,8 @@ class HeatMap(SurveyChart):
                 bases=lambda: [base_text(len(frame))],
                 annotate=self.annot,
                 kind="correlation",
+                row_title="Variable",
+                column_title="With",
             )
 
         plt.tight_layout()

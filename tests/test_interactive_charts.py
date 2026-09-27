@@ -131,6 +131,17 @@ def _survey(weighted: bool = False) -> SurveyData:
     return data.with_weight("w") if weighted else data
 
 
+def _with_gaps() -> SurveyData:
+    """The weighted survey with a quarter of the second item unanswered: a
+    means heatmap's cell then counts fewer respondents than its group."""
+
+    data = _survey(weighted=True)
+    frame = data.frame.copy()
+    gaps = np.random.default_rng(11).random(len(frame)) < 0.25
+    frame.loc[gaps, "t2"] = np.nan
+    return SurveyData(frame=frame, variables=data.variables).with_weight("w")
+
+
 def _charts() -> dict[str, Any]:
     """Every chart form with an interactive one, by name."""
 
@@ -155,12 +166,17 @@ def _charts() -> dict[str, Any]:
             w, column="age", layout="histogram", split="region", show="percent"
         ),
         "donut": BarChart(w, column="sat", layout="donut", palette="theme"),
+        # Every slice holds its own value: no value is written outside the ring.
+        "donut_inside": BarChart(d, column="region", layout="donut"),
         "likert": LikertChart(d, columns=["t1", "t2", "t3"]),
         "likert_side": LikertChart(w, columns=["t1", "t2", "t3"], neutral="side", palette="theme"),
         "heatmap_spearman": HeatMap(w, columns=["t1", "t2", "t3", "age"]),
         "heatmap_pearson": HeatMap(w, columns=["t1", "t2", "t3", "age"], method="pearson"),
         "heatmap_means": HeatMap(d, columns=["t1", "t2", "t3"], by="region"),
         "heatmap_means_theme": HeatMap(w, columns=["t1", "t2", "t3"], by="region", cmap="theme"),
+        "heatmap_means_gaps": HeatMap(
+            _with_gaps(), columns=["t1", "t2", "t3"], by="region", cmap="theme"
+        ),
         "boxplot": BoxPlot(d, column="income", by="region"),
         "boxplot_points": BoxPlot(w, column="age", by="region", show_points=True, palette="theme"),
         "scatter": ScatterPlot(d, x="age", y="income"),
@@ -486,8 +502,10 @@ def test_scatter_points_are_the_points_drawn(charts, specs):
         ax = charts[name].plot()
         offsets = ax.collections[0].get_offsets()
         rows = _main(specs[name])["layer"][0]["data"]["values"]
-        assert [(row["x"], row["y"]) for row in rows] == pytest.approx(
-            [tuple(point) for point in offsets.tolist()]
+        # The same points, each once (in an order of their own: see
+        # test_charts_that_plot_respondents_carry_only_the_plotted_values).
+        assert sorted((row["x"], row["y"]) for row in rows) == pytest.approx(
+            sorted(tuple(point) for point in offsets.tolist())
         )
     line = _main(specs["scatter"])["layer"][1]["data"]["values"]
     fitted = charts["scatter"].plot().lines[-1]
@@ -516,6 +534,169 @@ def test_trend_points_are_the_table_s_and_gaps_stay_gaps(charts, specs):
     assert hollow and hollow[0]["mark"]["fill"] == "#ffffff"
 
 
+def _found(spec: Any, key: str) -> list[Any]:
+    """Every value of ``key`` anywhere in ``spec``."""
+
+    found = []
+    if isinstance(spec, dict):
+        for name, value in spec.items():
+            if name == key:
+                found.append(value)
+            found += _found(value, key)
+    elif isinstance(spec, list):
+        for item in spec:
+            found += _found(item, key)
+    return found
+
+
+def _units(spec: Any) -> list[dict[str, Any]]:
+    """Every view or layer of ``spec`` that has params."""
+
+    units = []
+    if isinstance(spec, dict):
+        if isinstance(spec.get("params"), list):
+            units.append(spec)
+        for value in spec.values():
+            units += _units(value)
+    elif isinstance(spec, list):
+        for item in spec:
+            units += _units(item)
+    return units
+
+
+def test_a_legend_toggles_the_series_shown_and_fades_the_hidden_ones(specs):
+    """A legend's selection holds the series shown — every entry at first — so
+    Vega-Lite's legend fades the entries out of it, those of the series
+    hidden (a selection of the hidden series faded the ones still shown).
+    Only a click on an entry toggles (a click on a mark toggled the entry
+    clicked last once more)."""
+
+    toggled = set()
+    for name, spec in specs.items():
+        for unit in _units(spec):
+            for param in unit["params"]:
+                if param.get("name") != vega.SHOWN:
+                    continue
+                toggled.add(name)
+                field = param["select"]["fields"][0]
+                assert param["bind"] == {"legend": vega.LEGEND_CLICK}, name
+                # No clear (a double click) in the spec: it cost the legend its
+                # first click. The report's page shows every series on one.
+                assert set(param["select"]) == {"type", "fields", "toggle"}, name
+                legends = [
+                    channel
+                    for channel in unit["encoding"].values()
+                    if isinstance(channel, dict)
+                    and channel.get("field") == field
+                    and channel.get("legend") is not None
+                ]
+                domain = legends[0]["scale"]["domain"]
+                assert [entry[field] for entry in param["value"]] == domain, name
+        # A series is drawn while it is in the selection, or when none is
+        # (the double click empties it).
+        for condition in _found(spec, "condition"):
+            if isinstance(condition, dict) and condition.get("param") == vega.SHOWN:
+                assert condition["empty"] is True, name
+    assert {"bar_split_letters", "donut", "likert", "scatter_hue", "trend_by"} <= toggled
+    assert "hidden" not in json.dumps(specs)
+
+
+def test_a_trend_point_s_note_is_in_its_own_tooltip_alone(specs):
+    """Only a point of a low base has a note: a tooltip that asks every point
+    for one says "Note: undefined" over the others."""
+
+    hollow_seen = False
+    for name in ("trend", "trend_by", "trend_waves", "trend_daily"):
+        for layer in _main(specs[name])["layer"]:
+            tooltip = layer.get("encoding", {}).get("tooltip")
+            if not tooltip:
+                continue
+            titles = [entry["title"] for entry in tooltip]
+            hollow = layer["mark"].get("filled") is False
+            hollow_seen |= hollow
+            assert ("Note" in titles) == hollow, (name, titles)
+            if hollow:
+                rows = [
+                    row for row in _rows(specs[name]) if row["low"] and row["value"] is not None
+                ]
+                assert rows and all(row.get("note") for row in rows), name
+    assert hollow_seen
+
+
+def test_a_means_heatmap_cell_gives_the_base_of_its_own_mean(specs):
+    """A cell's mean is of the group's respondents who answered its item: its
+    base is theirs, not the group's (which the picture writes under the
+    group's name)."""
+
+    frame = _with_gaps().frame
+    groups = {"North": 1, "South": 2, "East": 3, "Capital metropolitan area": 4}
+    items = {"Acme": "t1", "Globex": "t2", "Initech": "t3"}
+    rows = _rows(specs["heatmap_means_gaps"])
+    assert len(rows) == 12
+    for row in rows:
+        item, code = items[row["row_name"]], groups[row["column_name"]]
+        part = frame[[item, "region", "w"]].dropna()
+        mine = part[part["region"] == code]
+        assert row["base"] == vega.base_text(len(mine), float(mine["w"].sum())), row
+    bases = {(row["row_name"], row["column_name"]): row["base"] for row in rows}
+    assert bases[("Globex", "North")] != bases[("Acme", "North")]
+    # The tooltip names what a row and a column are.
+    titles = [
+        entry["title"]
+        for entry in _main(specs["heatmap_means_gaps"])["layer"][0]["encoding"]["tooltip"]
+    ]
+    assert titles[:2] == ["Item", "Region"] and titles[-1] == "Base"
+    spearman = _main(specs["heatmap_spearman"])["layer"][0]["encoding"]["tooltip"]
+    assert [entry["title"] for entry in spearman][:2] == ["Variable", "With"]
+
+
+def test_a_heatmap_s_printed_value_has_its_cell_s_tooltip(specs):
+    """The value written in a cell is where the pointer goes: it has the
+    cell's tooltip (a text without one took the pointer from the cell)."""
+
+    for name in ("heatmap_spearman", "heatmap_pearson", "heatmap_means", "heatmap_means_theme"):
+        layers = _main(specs[name])["layer"]
+        cells = layers[0]["encoding"]["tooltip"]
+        texts = [layer for layer in layers if layer["mark"]["type"] == "text"]
+        valued = [layer for layer in texts if "!isValid" not in json.dumps(layer["transform"])]
+        assert valued and all(layer["encoding"]["tooltip"] == cells for layer in valued), name
+
+
+def test_a_donut_writes_a_value_layer_only_for_slices_it_holds(specs):
+    """A layer of values with no slice to write stacks an empty angle, which
+    Vega warns of: a donut whose slices all hold their values has no layer
+    for the values outside the ring."""
+
+    def filters(name: str) -> list[str]:
+        return [
+            layer.get("transform", [{}])[0].get("filter", "")
+            for layer in _main(specs[name])["layer"]
+        ]
+
+    assert "datum.inside" in filters("donut_inside")
+    assert "!datum.inside" not in filters("donut_inside")
+    assert {"datum.inside", "!datum.inside"} <= set(filters("donut"))
+
+
+def test_zoom_takes_the_wheel_with_ctrl_or_cmd_held(specs):
+    """Vega-Lite zooms by the wheel's vertical delta, which Shift turns
+    sideways on Windows and macOS: the wheel zooms with Ctrl or Cmd (and a
+    trackpad's pinch), and the hint says so."""
+
+    zoomed = 0
+    for name, spec in specs.items():
+        for unit in _units(spec):
+            for param in unit["params"]:
+                if param.get("name") == "zoom":
+                    zoomed += 1
+                    zoom = param["select"]["zoom"]
+                    assert zoom == "wheel![event.ctrlKey || event.metaKey]", name
+                    notes = " ".join(spec["usermeta"]["siamang"]["notes"])
+                    assert "hold Ctrl (Cmd on a Mac) and scroll, or pinch, to zoom" in notes
+                    assert "Shift" not in notes, name
+    assert zoomed >= 3  # the scatter plots and the daily Trend
+
+
 # ─── nothing but what the chart draws ────────────────────────────────────────
 
 #: The charts that plot respondents themselves, and the fields their points carry.
@@ -537,7 +718,7 @@ def test_no_respondent_row_reaches_a_spec(specs):
         assert rows < N / 2, (name, rows)
 
 
-def test_charts_that_plot_respondents_carry_only_the_plotted_values(specs):
+def test_charts_that_plot_respondents_carry_only_the_plotted_values(charts, specs):
     for name, fields in PLOTTED.items():
         rows = _main(specs[name])["layer"][0]["data"]["values"]
         assert len(rows) == N
@@ -550,6 +731,33 @@ def test_charts_that_plot_respondents_carry_only_the_plotted_values(specs):
     assert len(points) == 1 and len(points[0]) == N
     outliers = _main(specs["boxplot"])["layer"][3]["data"]["values"]
     assert outliers and all(set(row) == {"group", "name", "value", "text"} for row in outliers)
+    # A point's place in the list is no key to a respondent: the points are
+    # in the order of their values (by group), not of the data — else two
+    # charts of the data joined by place would rebuild each respondent's
+    # answers (age, income and region from one, age and satisfaction from
+    # another).
+    frame = _survey().frame
+    scatter = _main(specs["scatter_hue"])["layer"][0]["data"]["values"]
+    levels = charts["scatter_hue"]._drawn.levels
+    key = [(levels.index(row["group"]), row["x"], row["y"]) for row in scatter]
+    assert key == sorted(key)
+    in_frame = list(zip(frame["age"], frame["income"], strict=True))
+    assert [(row["x"], row["y"]) for row in scatter] != in_frame
+    boxes = points[0]
+    groups = charts["boxplot_points"]._drawn.groups
+    axis = _box_axis(specs["boxplot_points"])
+    names = {group: label for group, label in zip(groups, axis, strict=True)}
+    order = [(list(names.values()).index(row["group"]), row["value"]) for row in boxes]
+    assert order == sorted(order)
+    # A host that shows charts to the public can tell these charts apart.
+    flagged = {
+        name for name, spec in specs.items() if spec["usermeta"]["siamang"].get("respondents")
+    }
+    assert flagged == {"scatter", "scatter_hue", "boxplot_points"}
+
+
+def _box_axis(spec: dict[str, Any]) -> list[str]:
+    return _main(spec)["encoding"]["x"]["sort"]
 
 
 # ─── the report ──────────────────────────────────────────────────────────────
@@ -575,6 +783,12 @@ LIBRARY_STRINGS = {
     "https://github.com/vega/vega-lite/issues/2415",
     "https://github.com/Starcounter-Jack/JSON-Patch",
 }
+#: The addresses in the libraries' notices: words of two licenses' texts.
+NOTICE_STRINGS = {
+    "https://github.com/scijs/integrate-adaptive-simpson",
+    "http://www.apache.org/licenses/LICENSE-2.0",
+    "http://unlicense.org",
+}
 
 
 def test_an_interactive_report_carries_the_libraries_once_and_no_address(charts, tmp_path):
@@ -594,7 +808,24 @@ def test_an_interactive_report_carries_the_libraries_once_and_no_address(charts,
     assert not re.search(r"""(src|href)\s*=\s*["']?(https?:)?//""", html, re.IGNORECASE)
     assert not re.search(r"url\(\s*['\"]?(https?:)?//", html, re.IGNORECASE)
     libraries = "".join(vega.library(name) for name in vega.LIBRARIES)
-    outside = html
+    # The libraries' notices, once, before them: every license of the builds
+    # and of what they bundle, as their licenses ask of a copy given away.
+    notices = vega.notices()
+    assert html.count(f"<!--\n{notices}\n-->") == 1
+    assert html.index(notices) < html.index('<script data-library="vega">')
+    for line in (
+        "Copyright (c) 2015-2023, University of Washington Interactive Data Lab",
+        "Copyright (c) 2015, University of Washington Interactive Data Lab.",
+        "Copyright 2010-2023 Mike Bostock",
+        "Copyright (c) 2013, 2014, 2020 Joachim Wester",
+        "Copyright (c) Isaac Z. Schlueter and Contributors",
+        "vega 6.4.0",
+        "vega-lite 6.4.3",
+        "vega-embed 7.3.0",
+    ):
+        assert line in notices, line
+    assert set(re.findall(r"https?://[^\s\"'<>)]+", notices)) <= NOTICE_STRINGS
+    outside = html.replace(notices, "")
     for name in vega.LIBRARIES:
         outside = outside.replace(vega.library(name), "")
     assert not re.search(r"https?://", outside), re.findall(r"https?://\S{0,60}", outside)[:3]
@@ -606,9 +837,31 @@ def test_an_interactive_report_carries_the_libraries_once_and_no_address(charts,
     assert "editor: false" in html and "source: false" in html
     # The libraries' licenses ship beside them.
     folder = Path(vega.__file__).parent / "assets" / "vega"
-    for name in ("LICENSE-vega", "LICENSE-vega-lite", "LICENSE-vega-embed", "README.md"):
+    for name in (
+        "LICENSE-vega",
+        "LICENSE-vega-lite",
+        "LICENSE-vega-embed",
+        "README.md",
+        "THIRD-PARTY-NOTICES.txt",
+    ):
         assert (folder / name).is_file()
     assert vega.libraries_size() < 1_000_000
+    # A chart's menu saves its picture by the report's name and its title.
+    files = re.findall(r'data-file="([^"]+)"', html)
+    assert files[0] == "interactive-overall-satisfaction-by-region" and len(set(files)) == len(
+        files
+    )
+
+
+def test_a_saved_report_names_its_charts_pictures_by_its_file(charts, tmp_path):
+    report = _report(charts, ["bar_classic", "likert"])
+    report.save(tmp_path / "key_tables.html", interactive=True)
+    html = (tmp_path / "key_tables.html").read_text("utf-8")
+    assert re.findall(r'data-file="([^"]+)"', html) == [
+        "key_tables-overall-satisfaction",
+        "key_tables-trust",
+    ]
+    assert 'getAttribute("data-file")' in html
 
 
 def test_defaults_are_unchanged(charts, tmp_path):
@@ -648,6 +901,36 @@ def test_defaults_are_unchanged(charts, tmp_path):
     assert 'class="siamang-chart"' in (tmp_path / "live" / "r.html").read_text("utf-8")
     with pytest.raises(ValueError, match="standalone=True"):
         report.to_html(interactive=True)
+
+
+def test_a_document_of_pictures_draws_those_with_a_spec_beside_them(charts, tmp_path):
+    """A report combined from Markdown (Studio's Run all) has its charts as
+    pictures; with each figure's spec written beside it, the pictures that
+    have one are drawn interactively — the libraries once, each picture kept."""
+
+    report = _report(charts, ["bar_classic", "likert"])
+    report.save(tmp_path / "flow" / "r.md", interactive=True)
+    markdown = (tmp_path / "flow" / "r.md").read_text("utf-8")
+    combined = Report.combine(
+        [Report(title="First flow").markdown(markdown), Report(title="Second").text("No chart.")],
+        title="Study",
+    )
+    html = combined.to_html(standalone=True)
+    pictures = re.findall(r'src="(r_fig_\d+\.png)"', html)
+    assert pictures == ["r_fig_1.png", "r_fig_3.png"]
+    specs = {"r_fig_1.png": json.loads((tmp_path / "flow" / "r_fig_1.vl.json").read_text("utf-8"))}
+    drawn = Report.interactive_figures(html, specs, name="report")
+    assert drawn.count('class="siamang-chart"') == 1
+    assert drawn.count('<script data-library="vega-embed">') == 1
+    assert drawn.count(vega.notices()) == 1 and ".siamang-chart-picture" in drawn
+    # The picture with a spec is in its chart's container (not in a <p>), kept
+    # for print and a reader without scripts; the other stays a picture.
+    assert '<noscript><img alt="Chart bar_classic" src="r_fig_1.png" /></noscript>' in drawn
+    assert '<p><img alt="Chart likert" src="r_fig_3.png" /></p>' in drawn
+    assert re.search(r'data-file="report-overall-satisfaction"', drawn)
+    # Nothing to draw: the document as it was.
+    assert Report.interactive_figures(html, {}) == html
+    assert Report.interactive_figures(html, {"elsewhere.png": specs["r_fig_1.png"]}) == html
 
 
 def test_a_chart_whose_spec_fails_keeps_its_picture(charts, monkeypatch):
@@ -769,6 +1052,80 @@ const [pageFile, outFile, shots] = process.argv.slice(2);
 let chromium;
 try { ({ chromium } = require("playwright")); }
 catch (e) { console.log(JSON.stringify({ skip: "playwright is not installed" })); process.exit(0); }
+const drawn = () => {
+  const all = document.querySelectorAll(".siamang-chart").length;
+  return all > 0 && all === document.querySelectorAll(".siamang-chart-live, .siamang-chart-failed").length;
+};
+// Each chart as drawn: its marks by type, its written values, how far any
+// text reaches past the drawing's edges (on every side), its name.
+const read = () => Array.from(document.querySelectorAll(".siamang-chart")).map((box) => {
+  const marks = {}, texts = [];
+  const svg = box.querySelector(".siamang-chart-view svg");
+  let over = 0;
+  if (svg) {
+    svg.querySelectorAll("g.role-mark").forEach((group) => {
+      const cls = group.getAttribute("class");
+      if (/(^| )notes_/.test(cls)) return;
+      const type = cls.split(" ")[0].replace("mark-", "");
+      marks[type] = (marks[type] || 0) + group.children.length;
+    });
+    const edge = svg.getBoundingClientRect();
+    svg.querySelectorAll("text").forEach((text) => {
+      const r = text.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      over = Math.max(over, r.bottom - edge.bottom, r.right - edge.right, edge.left - r.left, edge.top - r.top);
+    });
+    svg.querySelectorAll("g.mark-text.role-mark text").forEach((text) => {
+      if (text.textContent.trim()) texts.push(text.textContent.trim());
+    });
+  }
+  return {
+    name: box.getAttribute("data-name"),
+    live: box.classList.contains("siamang-chart-live"),
+    marks, texts, over,
+    label: svg ? (svg.getAttribute("aria-label") || "") : "",
+    width: svg ? svg.getBoundingClientRect().width : 0,
+  };
+});
+// Every tooltip a chart's marks carry, as Vega encoded it on each item: a
+// value that reads "undefined", "NaN", "null" or nothing is a field the row
+// does not have.
+const tooltips = () => Array.from(document.querySelectorAll(".siamang-chart")).map((box) => {
+  const seen = new Set(), bad = [], keys = [];
+  box.querySelectorAll(".siamang-chart-view svg *").forEach((el) => {
+    const item = el.__data__;
+    if (!item || item.tooltip == null || typeof item.tooltip !== "object") return;
+    const text = JSON.stringify(item.tooltip);
+    if (seen.has(text)) return;
+    seen.add(text);
+    keys.push(Object.keys(item.tooltip).join("|"));
+    for (const [key, value] of Object.entries(item.tooltip)) {
+      if (["undefined", "NaN", "null", ""].includes(String(value).trim())) bad.push(key + ": " + String(value));
+    }
+  });
+  return { name: box.getAttribute("data-name"), bad, keys: Array.from(new Set(keys)) };
+});
+// A value written on a mark must not take the pointer from the mark under
+// it: where the pointer is over a written value, the element it finds has a
+// tooltip whenever an element under it has one.
+const covered = (name) => {
+  const box = document.querySelector('.siamang-chart[data-name="' + name + '"]');
+  const out = [];
+  box.querySelectorAll(".siamang-chart-view svg g.mark-text.role-mark text").forEach((text) => {
+    if (!text.textContent.trim() || text.getAttribute("opacity") === "0") return;
+    const r = text.getBoundingClientRect();
+    if (!r.width || r.top < 0 || r.bottom > innerHeight) return;
+    const stack = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const tip = (el) => el && el.__data__ && el.__data__.tooltip != null;
+    const top = stack.find((el) => el.__data__ !== undefined);
+    if (top && !tip(top) && stack.some((el) => el !== top && tip(el))) out.push(text.textContent.trim());
+  });
+  return out;
+};
+const tipText = () => {
+  const el = document.getElementById("vg-tooltip-element");
+  return el && el.classList.contains("visible") ? el.innerText : "";
+};
 (async () => {
   let browser;
   try {
@@ -788,80 +1145,98 @@ catch (e) { console.log(JSON.stringify({ skip: "playwright is not installed" }))
       if (!url.startsWith("file:") && !url.startsWith("data:")) requests.push(url);
     });
     await page.goto("file://" + pageFile);
-    await page.waitForFunction(() => {
-      const all = document.querySelectorAll(".siamang-chart").length;
-      const done = document.querySelectorAll(".siamang-chart-live, .siamang-chart-failed").length;
-      return all > 0 && all === done;
-    }, null, { timeout: 60000 });
-    const charts = await page.evaluate(() => Array.from(document.querySelectorAll(".siamang-chart")).map((box) => {
-      const marks = {};
-      box.querySelectorAll(".siamang-chart-view svg g.role-mark").forEach((group) => {
-        const cls = group.getAttribute("class");
-        if (/(^| )notes_/.test(cls)) return;
-        const type = cls.split(" ")[0].replace("mark-", "");
-        marks[type] = (marks[type] || 0) + group.children.length;
-      });
-      const svg = box.querySelector(".siamang-chart-view svg");
-      // How far the drawing reaches past the picture's edges: nothing is cut.
-      let over = 0;
-      if (svg) {
-        const edge = svg.getBoundingClientRect();
-        svg.querySelectorAll("text").forEach((text) => {
-          const r = text.getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) return;
-          over = Math.max(over, r.bottom - edge.bottom, r.right - edge.right, edge.left - r.left);
-        });
-      }
-      const texts = [];
-      box.querySelectorAll(".siamang-chart-view svg g.mark-text.role-mark text").forEach((text) => {
-        if (text.textContent.trim()) texts.push(text.textContent.trim());
-      });
-      return {
-        name: box.getAttribute("data-name"),
-        live: box.classList.contains("siamang-chart-live"),
-        marks,
-        texts,
-        over,
-        label: svg ? (svg.getAttribute("aria-label") || "") : "",
-        width: box.getBoundingClientRect().width,
-      };
-    }));
-    // A tooltip: over the first bar of the first chart.
-    let tooltip = "";
-    const bar = await page.$(".siamang-chart .siamang-chart-view svg g.mark-rect.role-mark path");
-    if (bar) {
-      const box = await bar.boundingBox();
+    await page.waitForFunction(drawn, null, { timeout: 60000 });
+    const charts = await page.evaluate(read);
+    const tips = await page.evaluate(tooltips);
+    const view = (name) => '.siamang-chart[data-name="' + name + '"] .siamang-chart-view svg';
+    const boxes = await page.$$(".siamang-chart");
+    const hidden = {};
+    for (const box of boxes) {
+      const name = await box.getAttribute("data-name");
+      await box.scrollIntoViewIfNeeded();
+      const found = await page.evaluate(covered, name);
+      if (found.length) hidden[name] = found;
+    }
+    // A tooltip: over the first bar of the first chart, and over a value
+    // written in a heatmap's cell.
+    const hover = async (selector) => {
+      const target = await page.$(selector);
+      if (!target) return "";
+      await target.scrollIntoViewIfNeeded();
+      const box = await target.boundingBox();
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(100);
       await page.mouse.move(box.x + box.width / 2, box.y + Math.min(box.height / 2, 10));
       await page.waitForTimeout(300);
-      tooltip = await page.evaluate(() => {
-        const el = document.getElementById("vg-tooltip-element");
-        return el ? el.innerText : "";
-      });
-    }
-    // The legend: a click hides a series, a second click shows it again.
+      return page.evaluate(tipText);
+    };
+    const tooltip = await hover(".siamang-chart .siamang-chart-view svg g.mark-rect.role-mark path");
+    const cellValue = await hover(view("heatmap_means_gaps") + " g.mark-text.role-mark text");
+    // The legend: a click hides a series and fades its entry, a second click
+    // shows it again; a click on a bar changes nothing; a double click shows
+    // every series.
     let legend = null;
-    const split = '.siamang-chart[data-name="bar_split_letters"] .siamang-chart-view svg';
+    const split = view("bar_split_letters");
     const entry = await page.$(split + " g.role-legend-symbol path");
     if (entry) {
       await entry.scrollIntoViewIfNeeded();
-      const first = () => page.evaluate((root) => {
-        const group = document.querySelector(root + " g.mark-rect.role-mark");
-        return Array.from(group.children).map((p) => p.getAttribute("opacity") || "1");
-      }, split);
-      const before = await first();
-      await entry.click();
-      await page.waitForTimeout(200);
-      const hidden = await first();
-      await entry.click();
-      await page.waitForTimeout(200);
-      const shown = await first();
-      legend = { before, hidden, shown };
+      const state = () => page.evaluate((root) => ({
+        bars: Array.from(document.querySelector(root + " g.mark-rect.role-mark").children).map((p) => p.getAttribute("opacity") || "1"),
+        entries: Array.from(document.querySelectorAll(root + " g.role-legend-symbol path")).map((p) => p.getAttribute("opacity") || "1"),
+      }), split);
+      // A click straight at the entry, the page's first: no hover before it.
+      const click = async (el) => { const b = await el.boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); };
+      const before = await state();
+      await click(entry);
+      const hiddenOne = await state();
+      const bar = (await page.$$(split + " g.mark-rect.role-mark path"))[hiddenOne.bars.findIndex((o) => o === "1")];
+      await click(bar);
+      const afterBar = await state();
+      await click(entry);
+      const shown = await state();
+      const entries = await page.$$(split + " g.role-legend-symbol path");
+      await click(entries[0]);
+      await click(entries[1]);
+      const twoHidden = await state();
+      const plot = await bar.boundingBox();
+      await page.mouse.dblclick(plot.x + plot.width / 2, plot.y + plot.height / 2);
+      await page.waitForTimeout(250);
+      legend = { before, hidden: hiddenOne, afterBar, shown, twoHidden, reset: await state() };
+    }
+    // Zoom: a wheel with Ctrl held zooms the scatter plot, a plain wheel
+    // does not (the page scrolls on); a double click resets it.
+    let zoom = null;
+    const scatter = await page.$(view("scatter"));
+    if (scatter) {
+      await scatter.scrollIntoViewIfNeeded();
+      const axis = () => page.evaluate((root) => Array.from(document.querySelectorAll(root + " g.role-axis-label text")).map((t) => t.textContent).sort().join(","), view("scatter"));
+      const frame = await page.evaluate((root) => {
+        let best = null, area = 0;
+        document.querySelectorAll(root + " path.background").forEach((p) => { const r = p.getBoundingClientRect(); if (r.width * r.height > area) { area = r.width * r.height; best = { x: r.x, y: r.y, width: r.width, height: r.height }; } });
+        return best;
+      }, view("scatter"));
+      const cx = frame.x + frame.width / 2, cy = frame.y + frame.height / 2;
+      const wheel = (init) => page.evaluate(([x, y, init]) => {
+        const el = document.elementFromPoint(x, y);
+        el.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, clientX: x, clientY: y, ...init }));
+      }, [cx, cy, init]);
+      const before = await axis();
+      await wheel({ deltaY: -240 }); await page.waitForTimeout(250);
+      const plain = await axis();
+      await wheel({ deltaY: -240, shiftKey: true, deltaX: 0 }); await page.waitForTimeout(250);
+      const shift = await axis();
+      await wheel({ deltaY: -240, ctrlKey: true }); await page.waitForTimeout(250);
+      const ctrl = await axis();
+      await page.mouse.dblclick(cx, cy); await page.waitForTimeout(250);
+      await wheel({ deltaY: -240, metaKey: true }); await page.waitForTimeout(250);
+      const meta = await axis();
+      await page.mouse.dblclick(cx, cy); await page.waitForTimeout(250);
+      zoom = { before, plain, shift, ctrl, meta, reset: await axis() };
     }
     if (shots) {
-      const boxes = await page.$$(".siamang-chart");
-      for (let i = 0; i < boxes.length; i++) {
-        const name = await boxes[i].getAttribute("data-name");
-        await boxes[i].screenshot({ path: shots + "/" + name + ".png" });
+      for (const box of boxes) {
+        const name = await box.getAttribute("data-name");
+        await box.screenshot({ path: shots + "/" + name + ".png" });
       }
     }
     await page.emulateMedia({ media: "print" });
@@ -869,30 +1244,16 @@ catch (e) { console.log(JSON.stringify({ skip: "playwright is not installed" }))
       getComputedStyle(box.querySelector(".siamang-chart-view")).display,
       getComputedStyle(box.querySelector(".siamang-chart-picture")).display,
     ]));
-    // A phone's width: every chart laid out again, nothing cut.
+    // A phone's widths: every chart laid out again, nothing cut.
     await page.emulateMedia({ media: "screen" });
-    await page.setViewportSize({ width: 400, height: 900 });
-    await page.reload();
-    await page.waitForFunction(() => {
-      const all = document.querySelectorAll(".siamang-chart").length;
-      return all > 0 && all === document.querySelectorAll(".siamang-chart-live, .siamang-chart-failed").length;
-    }, null, { timeout: 60000 });
-    const narrow = await page.evaluate(() => Array.from(document.querySelectorAll(".siamang-chart")).map((box) => {
-      const svg = box.querySelector(".siamang-chart-view svg");
-      const edge = svg.getBoundingClientRect();
-      let over = 0;
-      svg.querySelectorAll("text").forEach((text) => {
-        const r = text.getBoundingClientRect();
-        if (r.width === 0 || r.height === 0) return;
-        over = Math.max(over, r.bottom - edge.bottom, r.right - edge.right, edge.left - r.left);
-      });
-      const texts = [];
-      box.querySelectorAll(".siamang-chart-view svg g.mark-text.role-mark text").forEach((text) => {
-        if (text.textContent.trim()) texts.push(text.textContent.trim());
-      });
-      return { name: box.getAttribute("data-name"), over, width: edge.width, texts };
-    }));
-    fs.writeFileSync(outFile, JSON.stringify({ charts, logs, requests, tooltip, legend, printed, narrow }));
+    const narrow = {};
+    for (const width of [400, 360, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.reload();
+      await page.waitForFunction(drawn, null, { timeout: 60000 });
+      narrow[width] = await page.evaluate(read);
+    }
+    fs.writeFileSync(outFile, JSON.stringify({ charts, tips, hidden, logs, requests, tooltip, cellValue, legend, zoom, printed, narrow }));
     console.log(JSON.stringify({ ok: true }));
   } finally {
     await browser.close();
@@ -939,6 +1300,8 @@ def drawn(charts, tmp_path_factory) -> dict[str, Any]:
 
 
 def test_every_chart_is_drawn_without_an_error_or_a_request(drawn, charts):
+    # No error and no warning — a donut whose values all sit in its slices
+    # warned of an empty layer's infinite extent.
     assert drawn["logs"] == []
     assert drawn["requests"] == []
     assert [chart["name"] for chart in drawn["charts"]] == list(charts)
@@ -947,12 +1310,14 @@ def test_every_chart_is_drawn_without_an_error_or_a_request(drawn, charts):
     ]
     # Printed, each chart is its picture.
     assert all(state == ["none", "block"] for state in drawn["printed"])
-    # No text runs past the drawing's edges (the notes' last line, a legend),
-    # in a report's column or at a phone's width.
+    # No text runs past the drawing's edges (the notes' last line, a legend,
+    # the title's first line above it), in a report's column or at a phone's
+    # widths, down to 320 pixels.
     assert [(c["name"], c["over"]) for c in drawn["charts"] if c["over"] > 1] == []
-    narrow = [(c["name"], round(c["over"])) for c in drawn["narrow"] if c["over"] > 1]
-    assert narrow == [], narrow
-    assert all(c["width"] <= 400 for c in drawn["narrow"])
+    for width, laid in drawn["narrow"].items():
+        narrow = [(c["name"], round(c["over"])) for c in laid if c["over"] > 1]
+        assert narrow == [], (width, narrow)
+        assert all(c["width"] <= int(width) for c in laid), width
 
 
 def _expected_marks(name: str, chart: Any, spec: dict[str, Any]) -> dict[str, int]:
@@ -967,7 +1332,7 @@ def _expected_marks(name: str, chart: Any, spec: dict[str, Any]) -> dict[str, in
         return {"rect": len(rows)}
     if name == "histogram_split":
         return {"rect": sum(len(panel["data"]["values"]) for panel in _main(spec)["vconcat"])}
-    if name == "donut":
+    if name.startswith("donut"):
         return {"arc": len(rows)}
     if name.startswith("likert"):
         return {"rect": len(rows), "rule": 1}
@@ -996,7 +1361,7 @@ def test_every_chart_draws_the_marks_its_numbers_call_for(drawn, charts, specs):
 
 def test_values_are_written_where_the_bars_hold_them(drawn, specs):
     wide = {chart["name"]: chart["texts"] for chart in drawn["charts"]}
-    narrow = {chart["name"]: chart["texts"] for chart in drawn["narrow"]}
+    narrow = {chart["name"]: chart["texts"] for chart in drawn["narrow"]["400"]}
     for name in ("bar_percent", "bar_split_letters", "bar_classic", "bar_means_intervals"):
         values = [row["text"] for row in _rows(specs[name]) if row["value"] is not None]
         assert sorted(text for text in wide[name] if text in values) == sorted(values), name
@@ -1013,17 +1378,61 @@ def test_values_are_written_where_the_bars_hold_them(drawn, specs):
     )
 
 
-def test_a_chart_reads_aloud_and_its_tooltip_gives_the_value_and_the_base(drawn):
+def test_a_chart_reads_aloud_and_its_tooltips_give_the_value_and_the_base(drawn):
     for chart in drawn["charts"]:
         assert chart["label"].startswith(
             ("Bar", "Stacked", "Histogram", "Donut", "Likert", "Heatmap", "Box", "Scatter", "Trend")
         ), chart
     assert "Base" in drawn["tooltip"] and "respondents" in drawn["tooltip"]
+    # Every tooltip of every mark: no field a row lacks ("Note: undefined"
+    # over every point of a Trend but those of a low base), and a base on
+    # every mark but a respondent's own point and an outlier.
+    assert {tip["name"]: tip["bad"] for tip in drawn["tips"] if tip["bad"]} == {}
+    for tip in drawn["tips"]:
+        assert tip["keys"], tip["name"]
+        for keys in tip["keys"]:
+            if tip["name"].startswith("scatter") or keys.endswith("|Outlier"):
+                continue
+            assert "Base" in keys.split("|"), (tip["name"], keys)
+    trend = next(tip for tip in drawn["tips"] if tip["name"] == "trend_by")
+    assert any("Note" in keys.split("|") for keys in trend["keys"])
+    assert any("Note" not in keys.split("|") for keys in trend["keys"])
 
 
-def test_a_click_on_the_legend_hides_a_series_and_a_second_shows_it(drawn):
+def test_a_value_written_on_a_mark_leaves_the_mark_its_tooltip(drawn):
+    """The pointer over a cell's printed value, a segment's share or a
+    slice's percentage finds the mark's tooltip (a heatmap's value took the
+    pointer and showed none)."""
+
+    assert drawn["hidden"] == {}
+    tip = drawn["cellValue"]
+    assert "Item" in tip and "Base" in tip and "respondents" in tip, tip
+
+
+def test_a_click_on_the_legend_hides_a_series_and_fades_its_entry(drawn):
     legend = drawn["legend"]
     assert legend is not None
-    assert set(legend["before"]) == {"1"}
-    assert set(legend["hidden"]) != {"1"} and any(float(value) < 0.2 for value in legend["hidden"])
-    assert legend["shown"] == legend["before"]
+    before, hidden = legend["before"], legend["hidden"]
+    assert set(before["bars"]) == {"1"} and set(before["entries"]) == {"1"}
+    # Hidden: its bars all but gone, its legend entry faded — the others' not.
+    assert any(float(value) < 0.2 for value in hidden["bars"])
+    assert [float(value) < 1 for value in hidden["entries"]] == [True] + [False] * (
+        len(before["entries"]) - 1
+    )
+    # A click on a bar is no click on the legend.
+    assert legend["afterBar"] == hidden
+    assert legend["shown"] == before
+    faded = [float(value) < 1 for value in legend["twoHidden"]["entries"]]
+    assert faded[:2] == [True, True] and not any(faded[2:])
+    # A double click shows every series.
+    assert legend["reset"] == before
+
+
+def test_the_wheel_zooms_with_ctrl_or_cmd_held(drawn):
+    zoom = drawn["zoom"]
+    assert zoom is not None
+    # A plain wheel scrolls the page past the chart; Shift, which Windows and
+    # macOS turn into a scroll across, is not asked for.
+    assert zoom["plain"] == zoom["before"] and zoom["shift"] == zoom["before"]
+    assert zoom["ctrl"] != zoom["before"] and zoom["meta"] != zoom["before"]
+    assert zoom["reset"] == zoom["before"]

@@ -215,6 +215,11 @@ _INTERACTIVE_CSS = """
 /* A chart's own control (a map's Names on the map), in the page's face. */
 .siamang-chart .vega-bindings { font-family: inherit; font-size: 12px; margin: 2px 0 0 8px; }
 .siamang-chart .vega-bind-name { margin-right: 4px; }
+/* On a phone the chart takes the width its menu kept free beside it, and the
+   menu's button sits over it. */
+@media (max-width: 520px) {
+  .siamang-chart .vega-embed.has-actions { padding-right: 0; padding-top: 30px; }
+}
 @media print {
   .siamang-chart-view { display: none !important; }
   .siamang-chart-picture { display: block !important; }
@@ -232,6 +237,21 @@ _EMBED_SCRIPT = """(function () {
     mode: "vega-lite",
     actions: { export: { png: true, svg: true }, source: false, compiled: false, editor: false }
   };
+  // Laid out again at the width drawn until nothing moves: the notes, the
+  // title and a legend take the lines and columns that width gives them,
+  // which a layout measures only once it is drawn — and a legend of more rows
+  // pushed the title above the drawing when the chart was laid out only once.
+  function settle(view, left) {
+    var size = function () {
+      var svg = view.container() && view.container().querySelector("svg");
+      var drawn = svg ? svg.getAttribute("width") + "x" + svg.getAttribute("height") : "";
+      return view.origin().join(",") + ":" + drawn;
+    };
+    var before = size();
+    return view.resize().runAsync().then(function () {
+      return left > 1 && size() !== before ? settle(view, left - 1) : view;
+    });
+  }
   var boxes = document.querySelectorAll(".siamang-chart");
   Array.prototype.forEach.call(boxes, function (box) {
     var fallback = box.querySelector("noscript");
@@ -246,16 +266,24 @@ _EMBED_SCRIPT = """(function () {
       box.classList.add("siamang-chart-failed");
       return;
     }
-    var settings = { downloadFileName: box.getAttribute("data-name") || "chart" };
+    var settings = {
+      downloadFileName: box.getAttribute("data-file") || box.getAttribute("data-name") || "chart"
+    };
     for (var key in options) { settings[key] = options[key]; }
     vegaEmbed(box.querySelector(".siamang-chart-view"), spec, settings).then(function (result) {
-      // Laid out once more at the width drawn: the notes and a legend take
-      // the lines and columns that width gives them, which the first layout
-      // does not measure.
-      return result.view.resize().runAsync().then(function () { return result; });
+      return settle(result.view, 6).then(function () { return result; });
     }).then(function (result) {
+      // A double click on the chart shows every series its legend hid: the
+      // series shown put back as they were drawn.
+      var view = result.view;
+      var drawn = view.getState({
+        signals: function () { return false; },
+        data: function (name) { return name === "shown_store"; },
+        recurse: true
+      });
+      view.addEventListener("dblclick", function () { view.setState(drawn); });
       // The chart's description is its name for a screen reader.
-      var svg = result.view.container() && result.view.container().querySelector("svg");
+      var svg = view.container() && view.container().querySelector("svg");
       if (svg && spec.description) {
         svg.setAttribute("role", "graphics-document document");
         svg.setAttribute("aria-label", spec.description);
@@ -269,14 +297,38 @@ _EMBED_SCRIPT = """(function () {
 })();"""
 
 
-def _interactive_chart(picture: str, spec: dict[str, object], name: str) -> str:
+def _slug(text: object, limit: int = 60) -> str:
+    """``text`` as a file name's part: its letters and digits, lowercase, the
+    rest a hyphen — "Life satisfaction by age group" is
+    ``life-satisfaction-by-age-group``."""
+
+    slug = re.sub(r"[^a-z0-9]+", "-", str(text or "").lower()).strip("-")
+    return slug[:limit].rstrip("-")
+
+
+def _download_name(report: str, spec: dict[str, object], number: int) -> str:
+    """What a picture saved from a chart's menu is called: the report's name
+    and the chart's title (``key_tables-life-satisfaction-by-age-group``), so
+    the charts of two reports do not all save as ``figure-1``."""
+
+    meta = spec.get("usermeta")
+    siamang = meta.get("siamang") if isinstance(meta, dict) else None
+    heading = siamang.get("title") if isinstance(siamang, dict) else None
+    chart = _slug(heading) or f"figure-{number}"
+    # The report's part as its file is named (``key_tables``), else its title's.
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "-", str(report or "")).strip("-.")[:40]
+    return "-".join(part for part in (stem, chart) if part)
+
+
+def _interactive_chart(picture: str, spec: dict[str, object], name: str, file: str = "") -> str:
     """A chart drawn in the reader's browser: its view, its picture for a
     reader without scripts and for print, and its spec (``$schema`` left out:
-    the page names the mode itself, and no address)."""
+    the page names the mode itself, and no address). ``file`` names the
+    pictures a reader saves from its menu."""
 
     inline = {key: value for key, value in spec.items() if key != "$schema"}
     return (
-        f'<div class="siamang-chart" data-name="{_esc(name)}">'
+        f'<div class="siamang-chart" data-name="{_esc(name)}" data-file="{_esc(file or name)}">'
         '<div class="siamang-chart-view"></div>'
         f"<noscript>{picture}</noscript>"
         '<script type="application/json" class="siamang-chart-spec">'
@@ -285,11 +337,18 @@ def _interactive_chart(picture: str, spec: dict[str, object], name: str) -> str:
     )
 
 
+#: A picture of a document, alone in its paragraph or not, by its ``src``.
+_PICTURE = re.compile(
+    r'(?P<open><p>\s*)?(?P<img><img\b[^>]*?\bsrc="(?P<src>[^"]+)"[^>]*>)(?(open)\s*</p>)'
+)
+
+
 def _interactive_scripts() -> str:
     """The chart libraries, once for the whole document, and what draws the
     charts with them."""
 
-    parts = [
+    parts = [f"<!--\n{vega.notices()}\n-->\n"]
+    parts += [
         f'<script data-library="{name.removesuffix(".min.js")}">\n{vega.library(name)}\n</script>\n'
         for name in vega.LIBRARIES
     ]
@@ -535,6 +594,7 @@ class Report:
         embed_images: bool = True,
         asset_dir: str | Path = ".",
         interactive: bool = False,
+        name: str | None = None,
     ) -> str:
         """The report as HTML.
 
@@ -559,7 +619,10 @@ class Report:
         what is printed, and what is shown if a chart cannot be drawn. The
         charts' menu saves a chart as PNG or SVG; it offers no editor and no
         view of the source, which would send the chart elsewhere or show the
-        reader code.
+        reader code. A picture saved so is named by the report — ``name``,
+        the file's name without its extension (:meth:`save` passes it), else
+        the report's title — and the chart's title:
+        ``key_tables-life-satisfaction-by-age-group.png``.
         """
 
         import markdown as md_lib
@@ -577,7 +640,13 @@ class Report:
         # house style without editing the flow (as SIAMANG_PROVENANCE does for
         # the footer). Unset, that is the defaults.
         theme = _as_theme(theme) or self.theme or ReportTheme.from_env()
-        blocks = self._html_blocks(theme, Path(asset_dir), embed_images, interactive=interactive)
+        blocks = self._html_blocks(
+            theme,
+            Path(asset_dir),
+            embed_images,
+            interactive=interactive,
+            name=name if name is not None else (_slug(self.title, 40) or "report"),
+        )
         body = "\n".join(blocks)
         title = _esc(self.title or "Report")
         drawn = interactive and any(_INTERACTIVE_MARK in block for block in blocks)
@@ -594,7 +663,13 @@ class Report:
         )
 
     def _html_blocks(
-        self, theme: ReportTheme, asset_dir: Path, embed: bool, *, interactive: bool = False
+        self,
+        theme: ReportTheme,
+        asset_dir: Path,
+        embed: bool,
+        *,
+        interactive: bool = False,
+        name: str = "report",
     ) -> list[str]:
         import markdown as md_lib
 
@@ -611,6 +686,7 @@ class Report:
             out.append(f'<p class="siamang-figcaption">{_esc(self.description)}</p>')
 
         tables = figures = 0
+        files: set[str] = set()
         for i, (kind, payload) in enumerate(self._blocks):
             if kind == "md":
                 assert isinstance(payload, str)
@@ -642,7 +718,11 @@ class Report:
                 alt = _esc(caption or "")
                 inner = f'<img src="{ref}" alt="{alt}">'
                 if spec is not None:
-                    inner = _interactive_chart(inner, spec, f"figure-{figures}")
+                    file = _download_name(name, spec, figures)
+                    # Two charts of one title save as two pictures.
+                    file = file if file not in files else f"{file}-{figures}"
+                    files.add(file)
+                    inner = _interactive_chart(inner, spec, f"figure-{figures}", file)
                 out.append(
                     _figure(
                         inner,
@@ -697,7 +777,11 @@ class Report:
             # by a person, so it carries its own stylesheet and its own images.
             path.write_text(
                 self.to_html(
-                    theme=theme, standalone=True, embed_images=True, interactive=interactive
+                    theme=theme,
+                    standalone=True,
+                    embed_images=True,
+                    interactive=interactive,
+                    name=path.stem,
                 ),
                 encoding="utf-8",
             )
@@ -742,6 +826,45 @@ class Report:
                 merged._blocks.append(("md", f"*{r.description}*"))
             merged._blocks.extend(r._blocks)
         return merged
+
+    @staticmethod
+    def interactive_figures(
+        html: str, specs: Mapping[str, dict[str, object]], *, name: str = "report"
+    ) -> str:
+        """``html`` — a document :meth:`to_html` wrote (``standalone=True``) —
+        with each picture whose ``src`` is a key of ``specs`` drawn in the
+        reader's browser from that Vega-Lite spec, as ``interactive=True``
+        draws a chart: the picture in a chart's container, kept for print and
+        for a reader without scripts, and the libraries, their notices, the
+        page's script and style once. For a document whose charts came back as
+        pictures — a report combined from Markdown (Studio's Run all), each
+        figure's spec written beside its picture by ``save(..., interactive=True)``
+        (``report_fig_3.png``, ``report_fig_3.vl.json``). A picture alone in
+        its paragraph takes the paragraph's place. ``html`` is returned as it
+        is when no picture has a spec. ``name`` names the pictures a reader
+        saves from a chart's menu, as :meth:`to_html`'s does."""
+
+        count = 0
+        files: set[str] = set()
+
+        def draw(match: re.Match[str]) -> str:
+            nonlocal count
+            spec = specs.get(match.group("src"))
+            if not isinstance(spec, dict):
+                return match.group(0)
+            count += 1
+            file = _download_name(name, spec, count)
+            file = file if file not in files else f"{file}-{count}"
+            files.add(file)
+            return _interactive_chart(match.group("img"), spec, f"picture-{count}", file)
+
+        drawn = _PICTURE.sub(draw, html)
+        if not count or "</style>" not in drawn or "</body>" not in drawn:
+            return html
+        head, _, rest = drawn.partition("</style>")
+        drawn = f"{head}{_INTERACTIVE_CSS}</style>{rest}"
+        body, _, tail = drawn.rpartition("</body>")
+        return f"{body}{_interactive_scripts()}</body>{tail}"
 
     # ── tables to Excel ───────────────────────────────────────────
     def save_tables(self, path: str | Path) -> Path:

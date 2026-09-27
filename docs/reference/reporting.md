@@ -173,26 +173,40 @@ Report(title="Satisfaction 2026", theme=theme).text("…").save("report.html")
 `save("report.html", interactive=True)`) draws each chart that has an
 interactive form (`SurveyChart.vega_lite()`) in the reader's browser: a
 tooltip on every bar, point and cell with its value and base, a legend whose
-entries hide and show their series, zoom where it helps. The document carries
-the libraries that draw them — Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed
-7.3.0, vendored in `siamang/reporting/assets/vega` with their BSD-3-Clause
-licenses, about 0.8 MB, written in **once** however many charts there are and
-never loaded from a CDN or any other address — and each chart's spec in a
+entries hide and show their series (a double click on the chart shows them
+all again), zoom where it helps. The document carries the libraries that draw
+them — Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0, vendored in
+`siamang/reporting/assets/vega` with their BSD-3-Clause licenses, about 0.8 MB,
+written in **once** however many charts there are and never loaded from a CDN
+or any other address — with their notices before them in an HTML comment
+(`vega.notices()`: the license of every library the builds bundle, verbatim,
+as the licenses ask of a copy given to someone), and each chart's spec in a
 `<script type="application/json">`. Each chart's picture stays: in a
 `<noscript>` for a reader without scripts, and put back by the page for
 printing (`@media print` shows the picture, not the drawing) and for a chart
 that cannot be drawn. The charts' menu saves a chart as PNG or SVG and offers
 nothing else — no editor, which would send the chart and its numbers to a web
-site, and no view of the source. The Markdown, the Excel workbook and a report
+site, and no view of the source; the picture saved is named by the report and
+the chart's title, `key_tables-life-satisfaction-by-age-group.png` (`to_html`'s
+`name`, the file's stem that `save` passes, else the report's title). On a
+phone's width (under 520 pixels) the menu's button sits over the chart and the
+chart takes the width beside it. The Markdown, the Excel workbook and a report
 saved without `interactive` are what they always were; `save("report.md",
 interactive=True)` writes the same Markdown and each figure's spec beside it
 (`report_fig_3.png`, `report_fig_3.vl.json`). `siamang.reporting.vega` has
-`write_spec(chart, path)` and `spec_path(picture)` (`fig_3.png` →
+`Report.interactive_figures(html, specs, name=)` draws the pictures of a
+document `to_html(standalone=True)` wrote whose charts came back as pictures —
+a report combined from Markdown, each figure's spec written beside it — from
+their specs (`specs` by the picture's `src`), the libraries once and each
+picture kept. `write_spec(chart, path)` and `spec_path(picture)` (`fig_3.png` →
 `fig_3.vl.json`) for a host that writes a chart's picture itself, and
 `library(name)` / `LIBRARIES` for one that draws the specs with the vendored
-builds; a page that embeds a spec with Vega-Embed lays it out once more after
-it is drawn (`view.resize().runAsync()`), which the notes' and a legend's
-lines, chosen for the width drawn at, need.
+builds; a page that embeds a spec with Vega-Embed lays it out again after it
+is drawn (`view.resize().runAsync()`) until nothing moves — the notes', the
+title's and a legend's lines are chosen for the width drawn at, and a legend
+that took more rows there pushed the title above the drawing when the chart
+was laid out once only — and on a double click puts the legend's selection
+(`shown_store`) back as it was drawn.
 
 The theme is the same shape as the questionnaire's `UIConfig`: **one named preset
 plus tokens you may override**, stored sparsely (`to_dict()` writes only what
@@ -357,7 +371,7 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
 * **`png(dpi: int | None = None) -> bytes`**:
   The chart as PNG bytes at `dpi` (default: the chart's `dpi`), the bytes `save` writes to a `.png`.
 * **`vega_lite() -> dict | None`**:
-  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`), or `None` for a chart without an interactive form (a Result chart whose renderer, registered by a later node, draws a figure of its own). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. Its data is inline and holds only what the chart draws: counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. It has the picture's title (and the weight line as its subtitle), axis titles and notes (the base, the weight, the missing codes left out) at its foot, the colors the picture was drawn in with the report Look's text, grid and font, a tooltip on every mark (its label, its value written as the picture writes it, its base), a legend whose entries hide and show their series (a double click shows them all), zoom and pan on a scatter plot and a Trend of more than 24 periods (Shift and the wheel zoom, so a page scrolls past), and a `description` for a screen reader. Each form: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn), `TrendChart` (lines, bands, hollow low-base points, gaps) and every kind of `ResultChart` (section 4). `usermeta.siamang` names the chart (a Result chart: its kind, `means`, `scree`, …) and lists its notes.
+  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`), or `None` for a chart without an interactive form (a Result chart whose renderer, registered by a later node, draws a figure of its own). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. Its data is inline and holds only what the chart draws: counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. It has the picture's title (and the weight line as its subtitle), axis titles and notes (the base, the weight, the missing codes left out) at its foot, the colors the picture was drawn in with the report Look's text, grid and font, a tooltip on every mark (its label, its value written as the picture writes it, its base — a mean by group's cell the base of the respondents who answered its item; a row only a mark has, such as a low-base point's note, on that mark alone), a legend whose entries hide and show their series (the selection `shown` holds the series shown, every entry at first, so the legend fades the entries of the series hidden; only a click on an entry toggles; a page that draws the chart shows them all again on a double click), zoom and pan on a scatter plot and a Trend of more than 24 periods (Ctrl or Cmd and the wheel, or a trackpad's pinch, zoom, so a page scrolls past; Shift, which Windows and macOS turn into a scroll across, did not zoom there), and a `description` for a screen reader. A scatter plot's and a box plot's points are listed by group and value, not in the data's order — a point's place in the list is no key to the same respondent in another chart of the data. A title's (and the notes') lines never run wider than the chart's container, and a subtitle is a size smaller under 330 pixels. Each form: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn), `TrendChart` (lines, bands, hollow low-base points, gaps) and every kind of `ResultChart` (section 4). `usermeta.siamang` names the chart (a Result chart: its kind, `means`, `scree`, …), gives its title as one line (`title`) and lists its notes; a chart that plots each respondent (a scatter plot, a box plot with its points) also says `"respondents": true`, which a host that shows charts to the public reads to show such a chart's picture only; and `least` is the least height (pixels) its plot reads at — a row per label as tall as its label's lines (a Likert chart, a heatmap, horizontal bars, a Result chart's rows), a map, a donut and a proportion their own height — for a host that shortens a chart to fit a box (a Studio Live tile).
 * **`release() -> None`**:
   Closes the figure and lets go of it, keeping the PNGs rendered so far. A figure holds its drawing (megabytes at 150 dpi) for as long as the chart refers to it, closed or not. After `release`, `png` and `save` to a `.png` at a resolution rendered before write those bytes without drawing; `plot`, `show`, another resolution or format draw the chart again from its parameters. A `Report` releases each chart once it has written it (but one whose figure was asked for with `plot()` or `show()`), and `FlowRunner` each chart once its node has rendered it.
 
@@ -744,9 +758,12 @@ relative weights, R² = 0.452, N = 240`) as the subtitle, the axis titles, and t
 notes under the plot at its foot. Its data holds what the picture draws — no
 Result chart plots respondents. Each form: a point and a line per estimate and
 interval, its value beside it as the picture writes it, the tooltip giving the
-row, the series, the value, the interval (`95% confidence interval`, `± 1 SD`),
-the post-hoc letters, a note the picture's label carries (`reference`) and the
-base (a row's `(n = 97)`, else the result's N or `Base`); a series per group
+row by what it is (`Region`, `Variable`, `Question`, `Item`, `Term`, `Theme`,
+`Driver`), the series, the value (with a note the picture's label carries,
+`0.00 (reference)`), the interval (`95% confidence interval`, `± 1 SD`), the
+post-hoc letters and the base (a row's `(n = 97)` — a cluster's
+`(n = 123, 41.0 %)` is `123 respondents (41.0 %)` — else the result's N or
+`Base`); a series per group
 with a legend that hides it; Descriptive statistics' panels, a scale each; a
 profile's lines; odds ratios on a log axis ticked 0.5, 1, 2. Bars from 0, the
 value past each end (left of a negative one); the part-worths colored by
@@ -759,12 +776,20 @@ reach under what each reaches alone, the portfolio's line; scree plots with
 Kaiser's line (dashed in the legend too), the random data's line of a parallel
 analysis, the components kept filled; loadings and correlation heatmaps in the
 picture's color map, a factor analysis's hidden loadings blank, a
-correlation's marks in its cell and its p (`< .001`) in the tooltip. The
-Perceptual map keeps one scale on both axes at whatever width it is drawn,
-writes each name where the picture placed it (with its line back to a point
-far out), and at a narrow width beside its point; a box under it, **Names on
-the map**, writes or hides the names — off at first for a map the picture had
-to number — and the map zooms (Shift and the wheel) and pans. Van
+correlation's marks in its cell and its p (`< .001`) in the tooltip (a value
+written in a cell has its cell's tooltip; the upper half, which mirrors the
+lower, is neither pointed at nor read aloud). Themes give the coded answers
+(a version 2 codeframe: the respondents who answered) as the base, sentiment
+each theme's own answers, a proportion its base (`270.0 (effective base)`
+weighted) with its interval named, and the loadings of a PCA given alone the
+respondents it counted. The Perceptual map keeps one scale on both axes at
+whatever width it is drawn, writes each name where the picture placed it (with
+its line back to a point far out), and at a narrow width beside its point —
+only the names that fit there, largest mass first: one that would run into
+another name, cover another point or run past the plot is left out, its
+tooltip naming the point; a box under it, **Names on the map**, writes or
+hides the names — off at first for a map the picture had to number — and the
+map zooms (Ctrl or Cmd and the wheel, or a pinch) and pans. Van
 Westendorp's curves, points and range of acceptable prices, the points' names
 over the curves; pointing at the chart draws a line at the nearest price and
 gives every curve's share there; the NMS trial curve in a panel under it on

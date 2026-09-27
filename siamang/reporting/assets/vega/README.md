@@ -47,10 +47,23 @@ What a report does to the files when it copies them in: the last line of
 is left out (a browser's developer tools would otherwise ask for a `.map` file
 that is not there). Nothing else is changed.
 
-The builds bundle the libraries' own dependencies — the `d3-*` modules and
-`topojson-client` (ISC) in Vega; `vega-util`, `vega-expression` and
-`vega-event-selector` (BSD-3-Clause) in Vega-Lite; `vega-themes`,
-`vega-tooltip` (BSD-3-Clause), `fast-json-patch`,
-`json-stringify-pretty-compact` (MIT) and `semver` (ISC) in Vega-Embed — as
-the Vega project distributes them in these builds, each under its own
-permissive license.
+The builds bundle the libraries' own dependencies — the `vega-*` modules, the
+`d3-*` modules, `delaunator`, `internmap`, `robust-predicates` and
+`topojson-client` in Vega; `vega-util`, `vega-expression` and
+`vega-event-selector` in Vega-Lite; `vega-interpreter`, `vega-themes`,
+`vega-tooltip`, `vega-schema-url-parser`, `fast-json-patch`,
+`json-stringify-pretty-compact`, `semver` and `tslib` in Vega-Embed — as the
+Vega project distributes them in these builds, each under its own permissive
+license (BSD-3-Clause, ISC, MIT, 0BSD, the Unlicense).
+
+`THIRD-PARTY-NOTICES.txt` holds every one of those licenses verbatim, the
+packages with the same text listed together; a report with interactive charts
+carries it too, as an HTML comment before the libraries (`vega.notices()`), so
+a copy mailed to a client reproduces the notices the licenses ask for. It is
+written from the packages npm installs (the command-line tools and type
+declarations they depend on are not in the builds, and are left out):
+
+```bash
+npm install --ignore-scripts vega@6.4.0 vega-lite@6.4.3 vega-embed@7.3.0
+# each node_modules/<package>/LICENSE*, grouped by identical text
+```

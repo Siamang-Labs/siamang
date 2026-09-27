@@ -367,6 +367,8 @@ def pca(
     if weight:
         stats["weight"] = weight
         loadings.attrs["weight"] = variance.attrs["weight"] = weight  # for a chart of either
+    # The respondents counted, for a chart of either given alone (its base).
+    loadings.attrs["n"] = variance.attrs["n"] = int(len(data))
     return PcaResult(loadings=loadings, variance=variance, stats=stats)
 
 

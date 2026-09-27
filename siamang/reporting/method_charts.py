@@ -214,6 +214,7 @@ def _draw_cochran(table: Any, chart: ResultChart) -> str:
             }
         ],
     )
+    result_specs.note(chart, row_title="Question")
     ax.set_xlim(0, 100)
     ax.set_xlabel("Share saying yes (%) with its 95 % confidence interval (Wilson)", color=_ink())
     _mark_note(

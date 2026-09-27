@@ -668,7 +668,10 @@ def test_bars_are_the_bars_drawn(charts, specs, name):
 def test_a_color_that_stands_for_something_has_its_legend(specs):
     worths = _main(specs["conjoint_partworths"])["layer"][0]
     assert worths["encoding"]["color"]["legend"]["title"] == "Attribute"
-    assert worths["params"][0]["bind"] == "legend"
+    assert worths["params"][0]["bind"] == {"legend": vega.LEGEND_CLICK}
+    assert [entry["group"] for entry in worths["params"][0]["value"]] == worths["encoding"][
+        "color"
+    ]["scale"]["domain"]
     drivers_bars = _main(specs["drivers"])["layer"][0]
     assert drivers_bars["encoding"]["color"]["scale"]["domain"] == [
         "positive beta",
@@ -746,6 +749,126 @@ def test_a_correlation_matrix_writes_its_marks_and_says_its_p(specs):
         if "!isValid" in json.dumps(layer)
     ]
     assert blank and blank[0]["mark"]["color"] == "#f4f4f4"
+
+
+def _tooltip_titles(spec: dict[str, Any]) -> list[str]:
+    titles: list[str] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            encoding = node.get("encoding")
+            if isinstance(encoding, dict) and isinstance(encoding.get("tooltip"), list):
+                titles.extend(entry["title"] for entry in encoding["tooltip"])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(spec)
+    return titles
+
+
+#: What a row of each chart is, as its tooltip names it.
+ROW_TITLES = {
+    "means": "Region",
+    "means_letters": "Region",
+    "means_sd": "Region",
+    "descriptives": "Variable",
+    "descriptives_panels": "Variable",
+    "ttest": "Region",
+    "paired": "Variable",
+    "mcnemar": "Question",
+    "cochran": "Question",
+    "maxdiff_utilities": "Item",
+    "maxdiff_scores": "Item",
+    "maxdiff_shares": "Item",
+    "conjoint_importance": "Attribute",
+    "conjoint_partworths": "Level",
+    "shares": "Product",
+    "profile": "Item",
+    "coefficients": "Term",
+    "odds_ratios": "Term",
+    "ordinal": "Term",
+    "themes": "Theme",
+    "sentiment": "Theme",
+    "drivers": "Driver",
+    "correlations": "Variable",
+    "loadings": "Item",
+    "factor_loadings": "Item",
+}
+
+
+def test_every_tooltip_names_its_row_and_gives_the_base(specs):
+    """A row is named by what it is (Region, Term, Theme), never "Row"; every
+    chart's tooltip has its base; no row of a tooltip is one only some rows
+    have (a Note)."""
+
+    for name, spec in specs.items():
+        titles = _tooltip_titles(spec)
+        assert "Row" not in titles and "Column" not in titles, (name, titles)
+        assert "Note" not in titles, (name, titles)
+        assert "Base" in titles, (name, titles)
+        if name in ROW_TITLES:
+            assert ROW_TITLES[name] in titles, (name, titles)
+    assert {"Component", "Factor", "With"} <= {
+        title
+        for name in ("loadings", "factor_loadings", "correlations")
+        for title in _tooltip_titles(specs[name])
+    }
+    # The reference utility says so in its value.
+    reference = [row for row in _rows(specs["maxdiff_utilities"]) if row["note"]]
+    assert [row["value"].endswith("(reference)") for row in reference] == [True]
+
+
+def test_each_base_is_the_number_behind_its_value(specs):
+    # A cluster's base as a base reads, its share after it.
+    profile = {row["base"] for row in _spec_rows(specs["profile"])}
+    assert all(re.fullmatch(r"\d[\d,]* respondents \(\d+\.\d %\)", base) for base in profile)
+    # A proportion's base, and its interval under its own name.
+    proportion = _rows(specs["proportion"])[0]
+    assert proportion["base"] == "270.0 (effective base)"
+    titles = _tooltip_titles(specs["proportion"])
+    assert "95% confidence interval" in titles and "Interval" not in titles
+    # A theme's share is of the coded answers; its sentiment of its own answers.
+    assert {row["base"] for row in _rows(specs["themes"])} == {"24 coded answers"}
+    sentiment = {row["name"]: row["base"] for row in _rows(specs["sentiment"])}
+    assert sentiment == {
+        "Charging takes too long at the public stations": "9 answers",
+        "Price": "9 answers",
+        "Friendly staff": "6 answers",
+    }
+    # The components of a PCA given alone: the respondents it counted.
+    assert {row["base"] for row in _rows(specs["loadings"])} == {"300 respondents"}
+
+
+def test_a_correlation_matrix_reads_aloud_only_the_cells_it_draws(specs):
+    """The upper half mirrors the lower: it is neither read nor pointed at."""
+
+    spec = specs["correlations"]
+    assert "not computed" not in spec["description"]
+    rows = _rows(spec)
+    drawn = [row for row in rows if row["value"] is not None]
+    assert spec["description"].count(" × ") == len(drawn) == 10
+    # The diagonal's dash has no tooltip of its own; a coefficient's has.
+    texts = [layer for layer in _main(spec)["layer"] if layer["mark"]["type"] == "text"]
+    assert [("tooltip" in layer["encoding"]) for layer in texts] == [True, False]
+
+
+def test_a_price_point_s_price_is_written_as_the_picture_writes_it(specs):
+    from siamang.data import pricing
+
+    for name in ("van_westendorp", "van_westendorp_nms"):
+        points = [
+            row
+            for values in _datasets(specs[name])
+            for row in values
+            if "price_text" in row and "level" in row
+        ]
+        assert points, name
+        for point in points:
+            assert point["price_text"] == pricing._price(point["price"]), point
+            assert not re.search(r"\.\d{3}", point["price_text"]), point
 
 
 def test_a_map_is_its_points_and_names_them_where_the_picture_did(charts, specs):
@@ -920,6 +1043,51 @@ const read = () => Array.from(document.querySelectorAll(".siamang-chart")).map((
     marks, texts, over,
   };
 });
+// Every tooltip a chart's marks carry, as Vega encoded it on each item.
+const tooltipsOf = () => Array.from(document.querySelectorAll(".siamang-chart")).map((box) => {
+  const seen = new Set(), bad = [], keys = [];
+  box.querySelectorAll(".siamang-chart-view svg *").forEach((el) => {
+    const item = el.__data__;
+    if (!item || item.tooltip == null || typeof item.tooltip !== "object") return;
+    const text = JSON.stringify(item.tooltip);
+    if (seen.has(text)) return;
+    seen.add(text);
+    keys.push(Object.keys(item.tooltip).join("|"));
+    for (const [key, value] of Object.entries(item.tooltip)) {
+      if (["undefined", "NaN", "null", ""].includes(String(value).trim())) bad.push(key + ": " + String(value));
+    }
+  });
+  return { name: box.getAttribute("data-name"), bad, keys: Array.from(new Set(keys)) };
+});
+// Where the pointer is over a written value, the element it finds has a
+// tooltip whenever an element under it has one.
+const covered = (name) => {
+  const box = document.querySelector('.siamang-chart[data-name="' + name + '"]');
+  const out = [];
+  box.querySelectorAll(".siamang-chart-view svg g.mark-text.role-mark text").forEach((text) => {
+    if (!text.textContent.trim() || text.getAttribute("opacity") === "0") return;
+    const r = text.getBoundingClientRect();
+    if (!r.width || r.top < 0 || r.bottom > innerHeight) return;
+    const stack = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const tip = (el) => el && el.__data__ && el.__data__.tooltip != null;
+    const top = stack.find((el) => el.__data__ !== undefined);
+    if (top && !tip(top) && stack.some((el) => el !== top && tip(el))) out.push(text.textContent.trim());
+  });
+  return out;
+};
+// The names written on a map that run into each other.
+const clashes = (name) => {
+  const box = document.querySelector('.siamang-chart[data-name="' + name + '"]');
+  const rects = Array.from(box.querySelectorAll(".siamang-chart-view svg g.mark-text.role-mark text"))
+    .filter((t) => t.textContent.trim())
+    .map((t) => [t.textContent.trim(), t.getBoundingClientRect()]);
+  const out = [];
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const [a, ra] = rects[i], [b, rb] = rects[j];
+    if (ra.left < rb.right - 1 && rb.left < ra.right - 1 && ra.top < rb.bottom - 1 && rb.top < ra.bottom - 1) out.push(a + " / " + b);
+  }
+  return { names: rects.length, clashes: out };
+};
 (async () => {
   let browser;
   try {
@@ -941,6 +1109,14 @@ const read = () => Array.from(document.querySelectorAll(".siamang-chart")).map((
     await page.goto("file://" + pageFile);
     await page.waitForFunction(drawn, null, { timeout: 90000 });
     const charts = await page.evaluate(read);
+    const tips = await page.evaluate(tooltipsOf);
+    const hidden = {};
+    for (const box of await page.$$(".siamang-chart")) {
+      const name = await box.getAttribute("data-name");
+      await box.scrollIntoViewIfNeeded();
+      const found = await page.evaluate(covered, name);
+      if (found.length) hidden[name] = found;
+    }
     const view = (name) => '.siamang-chart[data-name="' + name + '"] .siamang-chart-view svg';
     const tooltip = async (name, selector, where) => {
       const target = await page.$(view(name) + " " + selector);
@@ -1003,12 +1179,24 @@ const read = () => Array.from(document.querySelectorAll(".siamang-chart")).map((
         await boxes[i].screenshot({ path: shots + "/" + name + ".png" });
       }
     }
-    // A phone's width: every chart laid out again, nothing cut.
-    await page.setViewportSize({ width: 400, height: 900 });
+    // A phone's widths: every chart laid out again, nothing cut, and a map's
+    // names — the crowded one's too, ticked — none over another.
+    const narrow = {}, maps = {};
+    for (const width of [400, 360, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.reload();
+      await page.waitForFunction(drawn, null, { timeout: 90000 });
+      narrow[width] = await page.evaluate(read);
+      const tick = await page.$('.siamang-chart[data-name="map_crowded"] input[type="checkbox"]');
+      await tick.click();
+      await page.waitForTimeout(300);
+      maps[width] = { map: await page.evaluate(clashes, "map"), crowded: await page.evaluate(clashes, "map_crowded") };
+    }
+    await page.setViewportSize({ width: 900, height: 1000 });
     await page.reload();
     await page.waitForFunction(drawn, null, { timeout: 90000 });
-    const narrow = await page.evaluate(read);
-    fs.writeFileSync(outFile, JSON.stringify({ charts, narrow, logs, requests, tooltips, legend, names }));
+    maps.wide = { map: await page.evaluate(clashes, "map") };
+    fs.writeFileSync(outFile, JSON.stringify({ charts, narrow, maps, tips, hidden, logs, requests, tooltips, legend, names }));
     console.log(JSON.stringify({ ok: true }));
   } finally {
     await browser.close();
@@ -1057,10 +1245,13 @@ def test_every_result_chart_is_drawn_without_an_error_or_a_request(drawn, charts
     assert drawn["requests"] == []
     assert [chart["name"] for chart in drawn["charts"]] == list(charts)
     assert [chart["name"] for chart in drawn["charts"] if not chart["live"]] == []
-    # Nothing runs past the drawing's edges, at a report's width or a phone's.
+    # Nothing runs past the drawing's edges, at a report's width or a phone's
+    # (a title whose legend took more rows at the width drawn ran above it).
     assert [(c["name"], round(c["over"])) for c in drawn["charts"] if c["over"] > 1] == []
-    assert [(c["name"], round(c["over"])) for c in drawn["narrow"] if c["over"] > 1] == []
-    assert all(0 < c["width"] <= 400 for c in drawn["narrow"])
+    for width, laid in drawn["narrow"].items():
+        narrow = [(c["name"], round(c["over"])) for c in laid if c["over"] > 1]
+        assert narrow == [], (width, narrow)
+        assert all(0 < c["width"] <= int(width) for c in laid), width
 
 
 def _expected_marks(name: str, spec: dict[str, Any]) -> dict[str, int]:
@@ -1116,6 +1307,31 @@ def test_a_result_chart_reads_aloud_and_its_tooltips_give_value_and_base(drawn):
     assert "Revenue per respondent" in tips["gabor_granger"]
     assert "Dimension 1" in tips["map"] and "Mass" in tips["map"]
     assert "Share" in tips["nps"] and "300 respondents" in tips["nps"]
+
+
+def test_every_tooltip_has_every_field_it_names(drawn):
+    """No tooltip row reads "undefined", "null" or nothing: a Note row every
+    row lacked but one, a base left empty."""
+
+    assert {tip["name"]: tip["bad"] for tip in drawn["tips"] if tip["bad"]} == {}
+    assert all(tip["keys"] for tip in drawn["tips"]), [t["name"] for t in drawn["tips"]]
+
+
+def test_a_value_written_on_a_mark_leaves_the_mark_its_tooltip(drawn):
+    assert drawn["hidden"] == {}
+
+
+def test_a_narrow_map_writes_only_the_names_that_fit(drawn):
+    """At a phone's width the names were written beside their points and ran
+    into each other: those that would, or would cover another point, are
+    left out (the tooltip names every point). A crowded map's names, ticked,
+    may all be (its picture numbers its points)."""
+
+    for width in ("400", "360", "320"):
+        for name, clashes in drawn["maps"][width].items():
+            assert clashes["clashes"] == [], (width, name, clashes)
+        assert drawn["maps"][width]["map"]["names"] > 0, width
+    assert drawn["maps"]["wide"]["map"]["names"] > 0
 
 
 def test_a_legend_click_hides_a_series_and_a_crowded_map_names_on_a_tick(drawn, specs):
