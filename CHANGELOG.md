@@ -724,6 +724,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **k-means keeps the best of ten starts.** `kmeans` (Cluster (k-means),
+  `SurveyData.cluster`) ran from one k-means++ seeding, which draws rows by
+  position, and stopped in the local optimum that seeding led to. Segments
+  that overlap, as real ones do, leave many: the same respondents stored in
+  another order (a table read back from a database comes in the order its
+  rows are stored) came out as other segments, some of them clearly worse
+  (a within-cluster sum of squares up to 6 % higher, the largest segment at
+  8 hours a day instead of 5.6). It now runs ten starts, all drawn from the
+  one `seed`, and keeps the one with the smallest within-cluster sum of
+  squares (the first of equals); `n_init=1` is the single start, with the
+  result it always had. A stored flow's clusters can change, to a solution
+  at least as tight.
+
 - **A snapshot's codebook describes the arm a script assigns.** No question
   collects the arm `Script.assign_condition` draws, so the codebook
   `read_snapshot` builds from a questionnaire (and a platform's Responses

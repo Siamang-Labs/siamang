@@ -32,6 +32,7 @@ params:
     kind: int
     default: 42
     label: Seed
+    help: The random draws of ten k-means++ starts; the start with the smallest within-cluster sum of squares is kept, so the clusters do not depend on the order of the rows.
   standardize:
     kind: bool
     default: true
