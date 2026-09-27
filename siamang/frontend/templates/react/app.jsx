@@ -1121,6 +1121,9 @@ function App() {
   const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
   const surveyId = ui.surveyId || env.survey_id || "siamang_survey";
 
+  // ─── What this browser keeps: a week at most, before anything reads it ───
+  useMemo(() => sweepKept(Date.now()), []);
+
   // ─── Author-declared randomization (applied once per respondent) ───
   const randomized = useMemo(() => applyRandomization(window.PAGES || []), []);
   const allPages = randomized.pages;
@@ -1261,6 +1264,7 @@ function App() {
   const answeredRef = useRef(false);
   const setAnswer = useCallback((id, val) => {
     answeredRef.current = true;
+    startInterview(surveyId);
     const q = itemsById[id];
     store.setMany(q ? answerUpdates(q, val, store.snapshot()) : { [id]: val });
     // A change to the field invalidates any script-written message for it;
@@ -1353,6 +1357,7 @@ function App() {
     }
     setErrors({});
     setHeldRows({});
+    startInterview(surveyId);
     const proceed = () => {
       if (nav.isLast) {
         cancelScriptTimers(store);
@@ -1382,6 +1387,7 @@ function App() {
 
   const handlePrev = useCallback(() => {
     if (leavingRef.current) return;
+    startInterview(surveyId);
     setErrors({});
     setHeldRows({});
     nav.goPrev();
@@ -1390,6 +1396,7 @@ function App() {
   // A page dot: back to a page on the path that led here, never forward.
   const handleDot = useCallback((idx) => {
     if (leavingRef.current || !nav.canGoBackTo(idx)) return;
+    startInterview(surveyId);
     setErrors({});
     setHeldRows({});
     nav.goBackTo(idx);
@@ -1506,6 +1513,7 @@ function App() {
             <span>{uiTexts.resumeTitle}</span>
             <div className="siamang-resume-banner__actions">
               <button className="sd-btn sd-navigation__next-btn" onClick={() => {
+                startInterview(surveyId);
                 // The runtime's own state (__pages__, __options__, …) stays;
                 // the answers come back in today's layout.
                 const internal = {};
@@ -1523,6 +1531,7 @@ function App() {
                 setSavedData(null);
               }}>{uiTexts.resumeAction}</button>
               <button className="sd-btn sd-navigation__prev-btn" onClick={() => {
+                startInterview(surveyId);
                 clearSaved();
               }}>{uiTexts.restartAction}</button>
             </div>

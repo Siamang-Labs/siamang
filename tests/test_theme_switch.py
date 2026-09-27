@@ -95,4 +95,4 @@ def test_the_button_and_the_stored_value_are_both_behind_the_flag() -> None:
     # the decision this study made.
     body = hooks[hooks.index("function useTheme") : hooks.index("function useAutosave")]
     assert "if (!allowSwitch) return preferred();" in body
-    assert body.index("if (!allowSwitch)") < body.index("localStorage.getItem")
+    assert body.index("if (!allowSwitch)") < body.index("keptGet(storageKey)")

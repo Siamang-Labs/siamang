@@ -3119,12 +3119,25 @@ def test_the_transports_respondent_id_is_the_interviews(tmp_path):
     assert "__respondent__" not in submitted
 
 
-def test_without_one_the_runtime_keeps_its_own_until_the_interview_ends(tmp_path):
+def test_without_one_the_runtime_keeps_its_own_once_the_respondent_starts(tmp_path):
+    """Opening the survey keeps nothing, a reload included; the first answer
+    keeps the id the scripts drew with, so a reload goes on as the same
+    respondent; the end of the interview forgets it."""
+
     key = "siamang_interview_t"  # the transport's survey_id
     scenario = (
         _RELOAD
         + f"""
+        const keys = () => page.evaluate(() => Object.keys(localStorage).sort());
+        const opened = await keys();
+        await reload();
+        const reopened = await keys();
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+        // The answer reaches the store when the field commits it.
+        await page.waitForFunction(() => localStorage.getItem("{key}") !== null);
         const first = await page.evaluate(() => localStorage.getItem("{key}"));
+        const started = (await keys()).filter((key) => !key.startsWith("siamang_answers_"));
         await reload();
         const again = await page.evaluate(() => localStorage.getItem("{key}"));
     """
@@ -3132,9 +3145,11 @@ def test_without_one_the_runtime_keeps_its_own_until_the_interview_ends(tmp_path
         + f"""
         const after = await page.evaluate(() => localStorage.getItem("{key}"));
     """
-        + _STATE.replace("return {", "return { first, again, after,")
+        + _STATE.replace("return {", "return { opened, reopened, first, started, again, after,")
     )
     state = run_in_browser(_rid_document(), scenario, tmp_path)
+    assert state["opened"] == [] and state["reopened"] == []
+    assert state["started"] == ["siamang_interview_t", "siamang_kept_t"]
     assert state["first"] and state["first"] == state["again"]
     (submitted,) = state["submitted"]
     assert submitted["rid_seen"] == state["first"]
@@ -4327,6 +4342,162 @@ def test_another_surveys_saved_answers_are_not_offered_for_resuming(tmp_path):
     init = f"localStorage.setItem('{key}', " + json.dumps(json.dumps(saved)) + ");"
     scenario = 'return (await page.$$(".siamang-resume-banner")).length;'
     assert run_in_browser(_body_document(), scenario, tmp_path, init=init) == 0
+
+
+# ── What the browser keeps, and for how long ─────────────────────────────────
+
+_DAY_MS = 24 * 60 * 60 * 1000
+
+
+def _keep(key: str, value: Any) -> str:
+    """An init-script line that leaves ``key`` in localStorage: ``value``, as
+    JSON unless it is a string."""
+
+    text = value if isinstance(value, str) else json.dumps(value)
+    return f"localStorage.setItem({json.dumps(key)}, {json.dumps(text)});"
+
+
+def _note(survey_id: str, days_ago: float) -> str:
+    """The note of a survey that last wrote in this browser ``days_ago``."""
+
+    at = f"String(Date.now() - {days_ago * _DAY_MS})"
+    return f"localStorage.setItem({json.dumps('siamang_kept_' + survey_id)}, {at});"
+
+
+def _draft(days_ago: float, name: str = "Ann") -> str:
+    """An autosave of the body document's first page, saved ``days_ago``."""
+
+    return (
+        "localStorage.setItem('siamang_answers_t', JSON.stringify({ answers: { name: "
+        + json.dumps(name)
+        + "}, pageIdx: 0, savedAt: new Date(Date.now() - "
+        + str(days_ago * _DAY_MS)
+        + ").toISOString() }));"
+    )
+
+
+_KEYS = "return await page.evaluate(() => Object.keys(localStorage).sort());"
+
+
+def test_opening_a_survey_keeps_nothing_in_the_browser(tmp_path):
+    # Well past the autosave's 2 s: nothing is pending either.
+    scenario = "await page.waitForTimeout(2500);" + _KEYS
+    assert run_in_browser(_body_document(), scenario, tmp_path) == []
+
+
+def test_the_theme_button_keeps_the_choice_and_nothing_else(tmp_path):
+    scenario = "await page.click('.siamang-theme-toggle');" + _KEYS
+    keys = run_in_browser(_body_document(), scenario, tmp_path)
+    assert keys == ["siamang_kept_t", "siamang_theme_t"]
+
+
+def test_what_a_survey_kept_goes_a_week_after_it_last_wrote(tmp_path):
+    init = "".join(
+        [
+            # This survey, last written eight days ago: its draft, its
+            # interview, its theme — and the one-response mark a host keeps.
+            _draft(8),
+            _keep("siamang_interview_t", "old-id"),
+            _keep("siamang_theme_t", "dark"),
+            _note("t", 8),
+            _keep("siamang_done_t", "2026-01-01T00:00:00.000Z"),
+            # Another survey on the origin, as old (a host's respondent id),
+            # and a third written yesterday.
+            _keep("siamang_respondent_old", "r-1"),
+            _keep("siamang_ended_old", "1"),
+            _note("old", 10),
+            _keep("siamang_answers_fresh", {"answers": {"q": 1}}),
+            _note("fresh", 1),
+            _keep("unrelated", "kept"),
+        ]
+    )
+    scenario = """
+        const banner = !!(await page.$(".siamang-resume-banner"));
+        const theme = await page.getAttribute("html", "data-theme");
+        const keys = await page.evaluate(() => Object.keys(localStorage).sort());
+        return { banner, theme, keys };
+    """
+    state = run_in_browser(_body_document(), scenario, tmp_path, init=init)
+    # Nothing of the old interview is offered or applied …
+    assert state["banner"] is False
+    assert state["theme"] == "light"
+    # … and it is gone, but for the mark that has to outlast the week.
+    assert state["keys"] == [
+        "siamang_answers_fresh",
+        "siamang_done_t",
+        "siamang_kept_fresh",
+        "unrelated",
+    ]
+
+
+def test_a_draft_saved_days_ago_is_still_offered_back(tmp_path):
+    init = _draft(6) + _note("t", 6)
+    scenario = """
+        await page.waitForSelector(".siamang-resume-banner");
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        return await page.inputValue("input.sd-input");
+    """
+    assert run_in_browser(_body_document(), scenario, tmp_path, init=init) == "Ann"
+
+
+def test_a_completed_interview_leaves_no_draft_behind(tmp_path):
+    scenario = (
+        """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+    """
+        + _autosaved('answers.name === "Ann"')
+        + _NEXT
+        + """
+        await page.click("text=Pear");
+    """
+        + _NEXT
+        + """
+        const submitted = (await page.evaluate(() => window.__T.submitted)).length;
+    """
+        + _AFTER_THE_AUTOSAVE
+        + """
+        const keys = await page.evaluate(() => Object.keys(localStorage).sort());
+        return { kept, banner, keys, submitted };
+    """
+    )
+    state = run_in_browser(_body_document(), scenario, tmp_path)
+    assert state["submitted"] == 1
+    assert state["kept"] is None and state["banner"] is False
+    # Neither the answers nor the interview's id, and — once the page has
+    # opened again — not the note that dated them either.
+    assert state["keys"] == []
+
+
+def test_a_page_that_keeps_its_state_in_memory_leaves_nothing_behind(tmp_path):
+    init = "".join(
+        [
+            'window.SIAMANG_STORAGE = "memory";',
+            _draft(1),
+            _note("t", 1),
+            _keep("siamang_theme_old", "dark"),
+            _note("old", 30),
+        ]
+    )
+    scenario = """
+        const banner = !!(await page.$(".siamang-resume-banner"));
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+        await page.click(".siamang-theme-toggle");
+        await page.waitForTimeout(3000);
+        const keys = await page.evaluate(() => Object.keys(localStorage).sort());
+        return { banner, keys };
+    """
+    state = run_in_browser(_body_document(), scenario, tmp_path, init=init)
+    # The browser's storage is neither read (no banner for yesterday's draft)
+    # nor written (no id, no theme) nor swept (the month-old theme is there).
+    assert state["banner"] is False
+    assert state["keys"] == [
+        "siamang_answers_t",
+        "siamang_kept_old",
+        "siamang_kept_t",
+        "siamang_theme_old",
+    ]
 
 
 # ── The typefaces, from the survey's own host ────────────────────────────────
