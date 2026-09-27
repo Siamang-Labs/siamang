@@ -274,7 +274,15 @@ def test_freq_table_counts_weights_and_keeps_the_people_beside_them():
     assert frame["Unweighted N"].tolist() == [2, 2, 4]
     assert frame["%"].tolist() == [25.0, 75.0, 100.0]
     assert frame["Cumulative %"].tolist() == [25.0, 100.0, 100.0]
-    assert weighted.stats == {"Variable": "Answer", "N valid": 4, "Weighted N": 8.0, "Weight": "w"}
+    # Kish: (1+3+1+3)² / (1+9+1+9) = 64 / 20 = 3.2 effective respondents of 4.
+    assert weighted.stats == {
+        "Variable": "Answer",
+        "N valid": 4,
+        "Weighted N": 8.0,
+        "Effective N": 3.2,
+        "Design effect": 1.25,
+        "Weight": "w",
+    }
 
 
 def test_weighted_freq_percentages_are_of_the_unrounded_sums_of_weights():
