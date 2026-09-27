@@ -542,7 +542,9 @@ function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
       <div className="sd-matrix-wrapper">
-        <table className="sd-matrix" role="radiogroup" aria-label={q.title}>
+        {/* --sd-matrix-cols: on a narrow screen each row is a card of this
+            many answers, each under its column's label (style.css). */}
+        <table className="sd-matrix" role="radiogroup" aria-label={q.title} style={{ "--sd-matrix-cols": width }}>
           <thead>
             <tr>
               <th></th>
@@ -567,6 +569,7 @@ function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
                         {...cellProps(row, rowIdx, colIdx)}
                         onClick={() => onChange({ ...v, [row.id]: code })}
                       />
+                      <span className="sd-matrix__col-label" aria-hidden="true" onClick={() => onChange({ ...v, [row.id]: code })}>{q.columns[colIdx]}</span>
                     </td>
                   );
                 })}
@@ -580,6 +583,7 @@ function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
                       {...cellProps(row, rowIdx, q.columns.length)}
                       onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}
                     />
+                    <span className="sd-matrix__col-label" aria-hidden="true" onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}>{q.naOption}</span>
                   </td>
                 ) : null}
               </tr>
@@ -600,14 +604,22 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
     const min = q.min ?? 0;
     const max = q.max ?? 10;
     const step = q.step || 1;
-    const v = value ?? (q.defaultValue !== undefined ? q.defaultValue : Math.round((min + max) / 2));
+    // Nothing is stored until the respondent moves the slider, so an untouched
+    // one must not look answered: the thumb waits (faded) where it starts, the
+    // default or the middle, and the value reads "—". Showing the middle as the
+    // answer let someone who agreed with it go on with a blank.
+    const touched = value !== null && value !== undefined;
+    const v = touched ? value : (q.defaultValue !== undefined ? q.defaultValue : Math.round((min + max) / 2));
     const labels = q.labels || {};
     // Only show tick marks if the range is small enough (≤20 steps)
     const totalSteps = Math.round((max - min) / step);
     const showTicks = totalSteps <= 20;
+    // A click on the thumb where it waits changes nothing, so no change event
+    // comes: letting go of the pointer answers the value it shows.
+    const settle = (e) => { if (!touched) onChange(Number(e.currentTarget.value)); };
     return (
       <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-        <div className="siamang-slider">
+        <div className={"siamang-slider" + (touched ? "" : " is-untouched")}>
           <input
             type="range"
             min={min}
@@ -615,21 +627,23 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
             step={step}
             value={v}
             onChange={(e) => onChange(Number(e.target.value))}
+            onPointerUp={settle}
             className="siamang-slider__input"
             aria-valuemin={min}
             aria-valuemax={max}
-            aria-valuenow={v}
+            aria-valuenow={touched ? v : undefined}
+            aria-valuetext={touched ? undefined : "Not answered"}
             aria-label={q.title}
           />
           <div className="siamang-slider__value" style={{
-            color: v !== null ? "var(--siamang-accent)" : "var(--siamang-muted)",
+            color: touched ? "var(--siamang-accent)" : "var(--siamang-muted)",
             fontWeight: 600,
             fontSize: "1.1rem",
-          }}>{v !== null && v !== undefined ? v : "—"}</div>
+          }}>{touched ? v : "—"}</div>
           {showTicks ? (
             <div className="siamang-slider__labels">
               {Array.from({ length: totalSteps + 1 }, (_, i) => min + i * step).map((n) => (
-                <span key={n} className={"siamang-slider__tick" + (v === n ? " is-active" : "")}>
+                <span key={n} className={"siamang-slider__tick" + (touched && v === n ? " is-active" : "")}>
                   {labels[n] !== undefined ? labels[n] : n}
                 </span>
               ))}
