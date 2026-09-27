@@ -800,6 +800,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A time with a time zone goes to Excel in UTC.** A workbook cell holds no
+  time zone, and pandas refuses to write a time that has one, so a frame with
+  timezone-aware times — the response times a platform's data carries — made
+  `export_file(data, "coded.xlsx")` (a flow's Export file to `.xlsx`), a
+  table's `export_xlsx` and every other workbook `siamang.io.excel_text.
+  to_excel` writes fail with *Excel does not support datetimes with
+  timezones*. Such a time is now written as the same moment in UTC, without
+  the zone — a column of them, one in a column of objects, or the index
+  (`excel_text.without_zones`); the frame given is left as it was, and text
+  that looks like a formula is still written as text.
+
 - **A missing open answer is not an answer.** A text column that holds its
   missing values as `pd.NA` (a `string` column, `convert_dtypes()`) or `NaT`
   had them read as the texts *<NA>* and *NaT*: `text_coding.normalise` gave
