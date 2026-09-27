@@ -1044,7 +1044,8 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
     from siamang.data import descriptives
     from siamang.data.intervals import mean_interval
 
-    frame = table.to_frame()
+    # The row per variable and group, whatever layout the table is shown in.
+    frame = table.long_frame() if hasattr(table, "long_frame") else table.to_frame()
     data = table.data
     variables = data.variables
     by_label = None if not table.by else descriptives._label(variables, table.by)
