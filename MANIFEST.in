@@ -2,6 +2,7 @@ include README.md CHANGELOG.md LICENSE LICENSE-COMMERCIAL.md MANIFEST.in
 include pyproject.toml
 
 recursive-include siamang *.tpl *.jsx *.js *.json *.yaml py.typed
+recursive-include siamang/frontend/templates/react/fonts *.woff2 *.txt *.md
 recursive-include docs *.md
 recursive-include examples *.py
 

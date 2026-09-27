@@ -85,7 +85,8 @@ The returned bundle contains five base files:
 
 A runtime may add its own static assets on top: `ReactRuntime` contributes
 `bundle.js` plus vendored React files under `vendor/`; `SurveyJSRuntime` adds
-none.
+none. Both get the typefaces the stylesheet uses under `fonts/` (see
+[Typography](#typography)).
 
 ### End-to-end example
 
@@ -265,8 +266,15 @@ it to deployment via `survey.deploy(..., ui=UIConfig(...))` or to a
 ### Typography
 
 `font_preset` is the high-level knob: `"academic"` (Source Serif 4 body + Inter UI,
-the default), `"modern"` (Inter everywhere), or `"humanist"` (Nunito). Each preset
-ships its own Google Fonts URL. Fine-grained overrides: `font_family`,
+the default), `"modern"` (Inter everywhere), or `"humanist"` (Nunito). The three
+families ship with the package (SIL Open Font License 1.1; variable weights, the
+`latin`, `latin-ext` and `cyrillic` subsets) and are served with the survey: the
+stylesheet declares the ones its font stacks name with `@font-face` pointing at
+`fonts/` next to it, and the bundle carries those files and their license texts. No
+request goes to Google Fonts or any other font CDN. A family that is not bundled
+(`font_family='"Roboto", sans-serif'`) is used where the respondent's device has it,
+the next family of the stack otherwise; declare a web font of your own with
+`@font-face` in `custom_css`. Fine-grained overrides: `font_family`,
 `heading_font_family`, `ui_font_family`, `mono_font_family`, `font_size`
 (`"15.5px"`), `line_height` (`"1.6"`), and `font_pair` (`"serif"` | `"sans"` |
 `"mixed"`).
@@ -418,13 +426,16 @@ preset.
 ```python
 from siamang.frontend import compile_css
 
-css: str = compile_css(ui)
+css: str = compile_css(ui)                     # font_base="fonts/"
 ```
 
 Compiles a `UIConfig` into a CSS stylesheet string using CSS custom properties. This
 is the fallback `style.css` when a runtime does not supply its own (the React
 runtime ships a full design system). Useful for inspecting the generated theme or
-embedding it elsewhere.
+embedding it elsewhere. It opens with the `@font-face` rules of the bundled typefaces
+its stacks name, their files at `font_base` — where you serve
+`siamang.frontend.theme.fonts.font_file(name)` when the stylesheet is not next to a
+bundle's `fonts/`.
 
 ---
 

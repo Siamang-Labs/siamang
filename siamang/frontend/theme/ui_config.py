@@ -13,26 +13,25 @@ _THEME_VALUES = {"light", "dark", "system"}
 
 
 # ─── Font preset definitions ─────────────────────────────────────────────────
-# Each preset defines body, heading, and UI font stacks plus a Google Fonts URL.
+# Each preset defines body, heading, and UI font stacks. Their web fonts (Source
+# Serif 4, Inter, Nunito) ship with the package and are served with the survey
+# (siamang.frontend.theme.fonts), not fetched from Google Fonts.
 
 FONT_PRESETS: dict[str, dict[str, str]] = {
     "academic": {
         "body": '"Source Serif 4", "Charter", Georgia, "Times New Roman", serif',
         "heading": '"Source Serif 4", "Charter", Georgia, serif',
         "ui": '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
-        "google_fonts": "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap",
     },
     "modern": {
         "body": '"Inter", "Helvetica Neue", system-ui, -apple-system, sans-serif',
         "heading": '"Inter", "Helvetica Neue", system-ui, sans-serif',
         "ui": '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
-        "google_fonts": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
     },
     "humanist": {
         "body": '"Nunito", "Segoe UI", system-ui, sans-serif',
         "heading": '"Nunito", "Segoe UI", system-ui, sans-serif',
         "ui": '"Nunito", system-ui, -apple-system, "Segoe UI", sans-serif',
-        "google_fonts": "https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap",
     },
 }
 
@@ -50,6 +49,13 @@ class UIConfig:
         - ``"academic"`` — Source Serif 4 body + Inter UI (default)
         - ``"modern"`` — Inter everywhere, clean geometric sans
         - ``"humanist"`` — Nunito, friendly rounded sans-serif
+
+    Those three families ship with the package and are served with the
+    survey, from its own host (:mod:`siamang.frontend.theme.fonts`) — also
+    where a font field's own stack names one of them. Any other family a
+    stack names is used where the respondent's device has it; nothing is
+    fetched from Google Fonts or another font CDN (declare a web font of your
+    own with ``@font-face`` in ``custom_css``).
     """
 
     # --- palette ----------------------------------------------------------
@@ -270,12 +276,6 @@ class UIConfig:
         if self.ui_font_family != default_ui:
             return self.ui_font_family
         return preset["ui"]
-
-    @property
-    def effective_google_fonts_url(self) -> str:
-        """Google Fonts URL for the active font preset."""
-        preset = FONT_PRESETS.get(self.font_preset, FONT_PRESETS["academic"])
-        return preset["google_fonts"]
 
     @property
     def effective_logo_text(self) -> str:

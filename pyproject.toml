@@ -63,7 +63,7 @@ include = ["siamang*"]
 "siamang.schemas" = ["*.json"]
 "siamang.flow.nodes" = ["**/*.yaml"]
 "siamang.frontend.templates" = ["*.tpl"]
-"siamang.frontend.templates.react" = ["*.tpl", "*.jsx"]
+"siamang.frontend.templates.react" = ["*.tpl", "*.jsx", "fonts/*.woff2", "fonts/*.txt", "fonts/*.md"]
 "siamang.frontend.templates.react.dist" = ["*.js"]
 "siamang.frontend.templates.react.vendor" = ["*.js"]
 

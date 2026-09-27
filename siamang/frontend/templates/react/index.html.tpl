@@ -6,10 +6,8 @@
   <meta name="robots" content="noindex,nofollow">
   <title>${title}</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="${google_fonts_url}">
-
+  <!-- The typefaces come with the survey (fonts/, declared in style.css),
+       not from a font CDN. -->
   <link rel="stylesheet" href="style.css">
 
   <!-- Preload critical resources. React UMD is shipped inside the bundle

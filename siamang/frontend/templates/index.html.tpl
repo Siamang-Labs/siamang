@@ -6,9 +6,6 @@
   <meta name="robots" content="noindex,nofollow">
   <title>${title}</title>
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="${surveyjs_css}">
   <link rel="stylesheet" href="${css_href}">
 </head>

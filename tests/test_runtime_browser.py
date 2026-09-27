@@ -18,10 +18,13 @@ executable)::
 
 from __future__ import annotations
 
+import functools
+import http.server
 import json
 import os
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -4324,3 +4327,87 @@ def test_another_surveys_saved_answers_are_not_offered_for_resuming(tmp_path):
     init = f"localStorage.setItem('{key}', " + json.dumps(json.dumps(saved)) + ");"
     scenario = 'return (await page.$$(".siamang-resume-banner")).length;'
     assert run_in_browser(_body_document(), scenario, tmp_path, init=init) == 0
+
+
+# ── The typefaces, from the survey's own host ────────────────────────────────
+
+_SERVED_HARNESS = r"""
+const [url] = process.argv.slice(2);
+let chromium;
+try { ({ chromium } = require("playwright")); }
+catch (e) { console.log(JSON.stringify({ skip: "playwright is not installed" })); process.exit(0); }
+(async () => {
+  let browser;
+  try {
+    const exe = process.env.PLAYWRIGHT_CHROMIUM;
+    browser = await chromium.launch(exe ? { executablePath: exe } : {});
+  } catch (e) {
+    console.log(JSON.stringify({ skip: "no Chromium: " + String(e.message).split("\n")[0] }));
+    process.exit(0);
+  }
+  const errors = [];
+  try {
+    const page = await browser.newPage();
+    page.on("pageerror", (e) => errors.push(e.message));
+    const origin = new URL(url).origin;
+    const requested = [];
+    page.on("request", (r) => requested.push(r.url()));
+    // Whatever is not the survey's own host never answers.
+    await page.route(/.*/, (route) =>
+      new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+    await page.goto(url);
+    await page.waitForSelector(".sd-page", { timeout: 15000 });
+    const families = ["Source Serif 4", "Inter"];
+    await page.waitForFunction((names) => names.every((name) => Array.from(document.fonts)
+      .some((f) => f.family.replace(/"/g, "") === name && f.status === "loaded")), families,
+      { timeout: 15000 });
+    console.log(JSON.stringify({ result: { requested, origin }, errors }));
+  } finally {
+    await browser.close();
+  }
+})().catch((e) => { console.log(JSON.stringify({ error: String((e && e.stack) || e), errors: [] })); });
+"""
+
+
+class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        pass
+
+
+def test_the_typefaces_load_from_the_surveys_own_host(tmp_path):
+    """Served over HTTP as a host serves it (a browser does not load a font
+    from file://), the academic preset's two families load, from fonts/ next
+    to the stylesheet, and the page asks nothing of any other host."""
+
+    node = _node()
+    out = build_bundle(_body_document(), tmp_path / "bundle")
+    handler = functools.partial(_QuietHandler, directory=str(out))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    harness = tmp_path / "served.cjs"
+    harness.write_text(_SERVED_HARNESS, encoding="utf-8")
+    try:
+        result = subprocess.run(
+            [node, str(harness), f"http://127.0.0.1:{server.server_address[1]}/index.html"],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env={**os.environ},
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+    lines = [line for line in result.stdout.splitlines() if line.startswith("{")]
+    assert lines, f"browser harness printed nothing:\n{result.stdout}\n{result.stderr}"
+    outcome = json.loads(lines[-1])
+    if "skip" in outcome:
+        pytest.skip(outcome["skip"])
+    assert "error" not in outcome, outcome.get("error")
+    assert outcome["errors"] == []
+    requested = outcome["result"]["requested"]
+    origin = outcome["result"]["origin"]
+    assert all(url.startswith(origin + "/") for url in requested), requested
+    fonts = {url.rsplit("/", 1)[-1] for url in requested if "/fonts/" in url}
+    # The English page needs the latin subsets, and only those are fetched.
+    assert fonts == {"source-serif-4-latin-opsz-normal.woff2", "inter-latin-wght-normal.woff2"}
