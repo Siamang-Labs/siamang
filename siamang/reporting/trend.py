@@ -52,6 +52,7 @@ from siamang.reporting.chart_parts import (
     axes_points,
     chars_in,
     font_size,
+    in_sentence,
     legend_below,
     percent_axis,
     series_colours,
@@ -263,10 +264,10 @@ def trend(
                 and not isinstance(code, bool)
             ]
             scale_codes = tuple(sorted(declared))
-        title = f"Mean {var_label}"
+        title = f"Mean {in_sentence(var_label)}"
         ylabel = "Mean"
-        stats["Measure"] = f"mean of {var_label}"
-        stats["Base"] = f"respondents who answered {var_label}, per point"
+        stats["Measure"] = f"mean of {in_sentence(var_label)}"
+        stats["Base"] = f"respondents who answered {in_sentence(var_label)}, per point"
     else:
         title = "Respondents"
         ylabel = "Respondents"

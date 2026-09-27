@@ -206,6 +206,11 @@ def draw_means(chart: HeatMap) -> None:
         f"{label} ({name})" if labels.count(label) > 1 else label
         for label, name in zip(labels, columns, strict=True)
     ]
+    # "MaxDiff score: Focus sessions", "MaxDiff score: …" on every row: the
+    # rows name what differs, and what they share goes to the colour bar.
+    from siamang.reporting.chart_parts import common_prefix, in_sentence
+
+    shared, labels = common_prefix(labels)
     numbered = max(len(label) for label in labels) > 14
     texts = [f"{index}. {label}" if numbered else label for index, label in enumerate(labels, 1)]
     size, rows = _row_labels(texts, chart.figsize)
@@ -228,7 +233,10 @@ def draw_means(chart: HeatMap) -> None:
         vmax=chart.vmax,
         ax=ax,
         linewidths=0.5,
-        cbar_kws={"label": "Weighted mean" if weighted else "Mean"},
+        cbar_kws={
+            "label": ("Weighted mean" if weighted else "Mean")
+            + (f" {in_sentence(shared)}" if shared else "")
+        },
     )
     ax.grid(False)
     ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=size)

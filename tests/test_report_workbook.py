@@ -54,14 +54,16 @@ def test_sheet_names_are_ones_excel_accepts():
     names = SheetNames(reserved=["Contents"])
     long = "Satisfaction with the service in the shop, by region [weighted]"
     first = names.take(long)
-    assert first == "Satisfaction with the service i" and len(first) == 31
-    assert names.take(long) == "Satisfaction with the servi (2)"
+    # Cut after a whole word, with an ellipsis, rather than in the middle of one.
+    assert first == "Satisfaction with the service…" and len(first) <= 31
+    assert names.take(long) == "Satisfaction with the… (2)"
+    assert names.take("Table 3. Habits by age group and gender") == "Table 3. Habits by age group…"
     assert names.take("Q1: which/brand?*") == "Q1 which brand"
     assert names.take("contents") == "contents (2)"  # the Contents sheet's name is taken
     assert names.take("History") == "History (2)"  # Excel keeps History for itself
     assert names.take("'quoted'") == "quoted"
     with_suffix = names.take(long, suffix="Post-hoc")
-    assert with_suffix == "Satisfaction with th – Post-hoc" and len(with_suffix) == 31
+    assert with_suffix == "Satisfaction with… – Post-hoc" and len(with_suffix) <= 31
     assert names.take("AGE") == "AGE" and names.take("age") == "age (2)"
 
 
@@ -89,7 +91,7 @@ def test_every_table_gets_its_sheet_as_its_own_export_writes_it(data, tmp_path):
         "Region of residence",
         "Age",
         "Age – Post-hoc",
-        "Satisfaction by region and gend",
+        "Satisfaction by region and…",
         "Age (2)",
     ]
 
@@ -121,7 +123,7 @@ def test_every_table_gets_its_sheet_as_its_own_export_writes_it(data, tmp_path):
     assert isinstance(stats["p"], float) and isinstance(stats["N"], int)
 
     # The banner keeps its significance letters.
-    letters = _rows(book["Satisfaction by region and gend"])
+    letters = _rows(book["Satisfaction by region and…"])
     assert letters[: len(banner.to_frame()) + 1] == _own_export(banner, tmp_path)["Table"]
     assert any(isinstance(cell, str) and cell.endswith(" C") for row in letters for cell in row)
 
@@ -135,7 +137,7 @@ def test_every_table_gets_its_sheet_as_its_own_export_writes_it(data, tmp_path):
         ("Region of residence", "Who answered", "Region of residence"),
         ("Age", "Age", "Group means: Age"),
         ("Age – Post-hoc", "Age", "Group means: Age — Post-hoc"),
-        ("Satisfaction by region and gend", "Age", "Satisfaction by region and gender"),
+        ("Satisfaction by region and…", "Age", "Satisfaction by region and gender"),
         ("Age (2)", "Age", "Table"),
     ]
     link = book["Contents"]["A6"]

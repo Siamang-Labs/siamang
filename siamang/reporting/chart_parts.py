@@ -35,6 +35,38 @@ def wrap(text: Any, width: int) -> str:
     return "\n".join(lines)
 
 
+def in_sentence(label: Any) -> str:
+    """A codebook label as it reads inside a sentence: "Weighted mean overall
+    life satisfaction", not "… mean Overall life …". Only a capital that starts
+    an ordinary word is lowered — "MaxDiff score", "NPS", "I scroll" and a
+    one-letter word keep theirs."""
+
+    text = str(label)
+    word = text.split(" ", 1)[0]
+    letters = word.rstrip(":,;.)")
+    if len(letters) > 1 and letters[0].isupper() and letters[1:].islower():
+        return text[0].lower() + text[1:]
+    return text
+
+
+def common_prefix(labels: list[Any]) -> tuple[str, list[str]]:
+    """The "Question: " every one of ``labels`` starts with, and the labels
+    without it — ("MaxDiff score", ["Focus sessions", …]) — or ("", the labels)
+    when there is none. An exploded question's or a score's options all carry
+    it, and a chart that repeats it on every row has room for little else."""
+
+    texts = [str(label) for label in labels]
+    if len(texts) < 2 or not all(": " in text for text in texts):
+        return "", texts
+    heads = {text.split(": ", 1)[0] for text in texts}
+    if len(heads) != 1:
+        return "", texts
+    rests = [text.split(": ", 1)[1].strip() for text in texts]
+    if not all(rests) or len(set(rests)) != len(rests):
+        return "", texts
+    return heads.pop(), rests
+
+
 def chars_in(width_pt: float, size: float) -> int:
     """How many characters of ``size`` points fit in ``width_pt`` points."""
 
