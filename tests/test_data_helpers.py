@@ -128,6 +128,28 @@ def test_two_straightliners_of_one_column_are_not_a_duplicate():
     assert list(flags) == ["", "straightlining", "straightlining", "", ""]
 
 
+def test_duplicates_can_be_asked_to_match_on_more_than_the_battery():
+    """Two honest respondents can answer a battery alike: with their age and
+    gender to match as well they are told apart, while the one who submitted
+    twice (every answer the same) is still caught. An unanswered question
+    matches an unanswered one; the battery itself must be complete."""
+    frame = _battery()
+    frame["age"] = [30, 40, 50, 60, 70]
+    frame["gender"] = [1, 2, 1, None, 2]
+    frame.loc[5] = frame.loc[0]  # submitted twice
+    frame.loc[6] = frame.loc[3]  # the same battery, someone else
+    frame.loc[6, "age"] = 25
+    frame.loc[7] = frame.loc[3]  # twice, with no gender either time
+    battery_only = quality.duplicate_pattern(frame, BATTERY)
+    assert list(battery_only) == [True, False, False, True, False, True, True, True]
+    wider = quality.duplicate_pattern(frame, BATTERY, also=["age", "gender", "not_asked"])
+    assert list(wider) == [True, False, False, True, False, True, False, True]
+    flags = quality.quality_flags(frame, items=BATTERY, duplicates_also=["age", "gender"])
+    assert list(flags)[6] == "" and list(flags)[5] == "duplicate"
+    # A battery column among them is not counted twice.
+    assert list(quality.duplicate_pattern(frame, BATTERY, also=["q1", "age"])) == list(wider)
+
+
 def test_attention_failed_only_judges_answered_checks():
     frame = pd.DataFrame({"trap": [3, 1, None]})
     assert list(quality.attention_failed(frame, {"trap": 3})) == [False, True, False]

@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from siamang.data import SurveyData
+from siamang.data import SurveyData, quality
 from siamang.flow import FlowError, FlowRunner, check_flow, default_registry, generate_flow
 from siamang.flow.document import resolve_flow, resolved_params
 from siamang.flow.registry import RegistryError, condition_holds, spec_from_dict
@@ -361,6 +361,29 @@ BEFORE = {
         "    else n_src.analysis.kruskal('satisfaction', 'region')\n"
         ")\n"
     ),
+    # Before Duplicates also match on.
+    ("prepare.quality", '{"items": ["trust_acme", "trust_globex"], "expected": {"gender": 1}}'): (
+        "_flags = quality.quality_flags(\n"
+        "    n_src.frame,\n"
+        "    items=['trust_acme', 'trust_globex'],\n"
+        "    pairs=None,\n"
+        "    expected={'gender': 1},\n"
+        "    max_sd=0.0,\n"
+        ")\n"
+        "_scored = n_src.with_derived(\n"
+        '    \'quality_flags\', _flags, label="Quality flags", scale="nominal"\n'
+        ")\n"
+        "_scored = _scored.with_derived(\n"
+        "    'quality_score',\n"
+        "    quality.quality_score(_flags),\n"
+        '    label="Checks failed",\n'
+        '    scale="ratio",\n'
+        ")\n"
+        "# Counted before anything is dropped, so the percentages are of everyone\n"
+        "# screened — that is the number a report can quote.\n"
+        "n_n_table = _scored.report.quality('quality_flags')\n"
+        "n_n_data = _scored\n"
+    ),
 }
 
 
@@ -370,6 +393,45 @@ def test_a_stored_flow_renders_the_code_it_always_did(node_type, params, questio
     assert issues == []
     graph = resolve_flow(flow, questionnaire=questionnaire_doc)
     assert render_node(graph, "n") == BEFORE[(node_type, params)]
+
+
+def test_duplicates_can_match_on_more_than_the_battery(questionnaire_doc, survey, tmp_path):
+    """Response quality's Duplicates also match on: written when set, checked
+    against the codebook, and run — the repeat submission is caught, the
+    stranger with the same battery is not."""
+    params = {
+        "items": ["trust_acme", "trust_globex", "satisfaction", "age", "region"],
+        "duplicates_also": ["gender", "comment"],
+    }
+    flow, issues = _one("prepare.quality", params, questionnaire_doc)
+    assert issues == []
+    code = render_node(resolve_flow(flow, questionnaire=questionnaire_doc), "n")
+    assert "duplicates_also=['gender', 'comment']," in code
+    _, issues = _one(
+        "prepare.quality", {**params, "duplicates_also": ["no_such"]}, questionnaire_doc
+    )
+    assert any("no_such" in issue.message for issue in issues)
+
+    frame = survey.simulate(n=40, seed=5).frame.reset_index(drop=True)
+    battery = params["items"]
+    whole = frame[battery].notna().all(axis=1) & (frame[battery].nunique(axis=1) > 1)
+    first, other = list(frame.index[whole][:2])
+    frame.loc[len(frame)] = frame.loc[first]  # the first respondent, twice
+    stranger = frame.loc[first].copy()
+    stranger[battery] = frame.loc[other, battery]
+    stranger["gender"] = 2 if frame.loc[other, "gender"] == 1 else 1
+    frame.loc[len(frame)] = stranger  # another's battery, another gender
+    # On the battery alone the stranger and that respondent collide.
+    alone = quality.duplicate_pattern(frame, battery)
+    assert bool(alone[other]) and bool(alone.iloc[-1])
+    result = FlowRunner(flow, questionnaire=survey).run(
+        sources={"src": SurveyData(frame=frame, questionnaire=survey)},
+        cwd=tmp_path,
+        raise_on_error=True,
+    )
+    flags = result.outputs["n"]["data"].frame["quality_flags"]
+    assert "duplicate" in flags[first] and "duplicate" in flags.iloc[-2]
+    assert "duplicate" not in flags[other] and "duplicate" not in flags.iloc[-1]
 
 
 # ─── a flow with every new option ────────────────────────────────────────────

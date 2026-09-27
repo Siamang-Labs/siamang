@@ -724,6 +724,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A duplicate can be asked to match on more than the battery.** Response
+  quality's duplicate check compared the battery alone, and a dozen
+  five-point items still let two honest respondents answer alike now and
+  then: both were flagged as one person submitting twice, and dropped. On a
+  platform's example two such strangers were among 18 duplicates, where 16
+  were the repeat submissions. The node gains Duplicates also match on
+  (`quality_flags(duplicates_also=…)`, `duplicate_pattern(also=…)`): other
+  answers a duplicate must repeat too, such as age and gender. Only the
+  battery must be complete; two unanswered questions among the others match.
+  Empty, the battery alone decides, and a stored flow renders the code it
+  did.
+
 - **k-means keeps the best of ten starts.** `kmeans` (Cluster (k-means),
   `SurveyData.cluster`) ran from one k-means++ seeding, which draws rows by
   position, and stopped in the local optimum that seeding led to. Segments

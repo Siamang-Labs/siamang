@@ -13,6 +13,11 @@ params:
     default: []
     label: Battery to check
     help: A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these; a flat pattern (the same answer throughout) is straightlining, never a duplicate, since two straightliners of one column match whoever they are.
+  duplicates_also:
+    kind: variables
+    default: []
+    label: Duplicates also match on
+    help: Other answers a duplicate must repeat as well as the battery, such as age, gender and a few questions of their own. Two honest respondents can answer a battery alike, and both are dropped as one person submitting twice; the more answers two responses must share, the surer the match. Empty, the battery alone decides.
   pairs:
     kind: mapping
     default: {}
@@ -51,14 +56,28 @@ subtitle: '{mode} · sd ≤ {max_sd}'
 imports:
 - from siamang.data import quality
 template:
+# Duplicates also match on is written only when it is set, so a stored flow
+# renders the code it did.
+- when: duplicates_also=[]
+  code: |
+    _flags = quality.quality_flags(
+        {in.data}.frame,
+        items={items!r},
+        pairs={pairs!r},
+        expected={expected!r},
+        max_sd={max_sd!r},
+    )
+- when: duplicates_also!=[]
+  code: |
+    _flags = quality.quality_flags(
+        {in.data}.frame,
+        items={items!r},
+        pairs={pairs!r},
+        expected={expected!r},
+        max_sd={max_sd!r},
+        duplicates_also={duplicates_also!r},
+    )
 - |
-  _flags = quality.quality_flags(
-      {in.data}.frame,
-      items={items!r},
-      pairs={pairs!r},
-      expected={expected!r},
-      max_sd={max_sd!r},
-  )
   _scored = {in.data}.with_derived(
       {flags_column!r}, _flags, label="Quality flags", scale="nominal"
   )
