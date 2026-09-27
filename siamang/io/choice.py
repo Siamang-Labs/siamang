@@ -168,8 +168,10 @@ out <- ChoiceModelR::choicemodelr(
 )
 
 # One row per respondent: their own utilities, on the same scale as the
-# aggregate ones, with the reference item at zero.
-utilities <- as.data.frame(out$betadraw[, , dim(out$betadraw)[3]])
+# aggregate ones, with the reference item at zero. Each is the mean of the
+# respondent's kept draws (the posterior mean): one draw on its own is a noisy
+# sample of the posterior, not an estimate.
+utilities <- as.data.frame(apply(out$betadraw, c(1, 2), mean))
 names(utilities) <- paste0("x", seq_len({n_parameters}))
 utilities$id <- unique(choices$id)
 write.csv(utilities, file.path(base_dir, "hb_utilities.csv"), row.names = FALSE)
