@@ -391,6 +391,14 @@ class FreqTable(SurveyTable):
         self._stats = {"Variable": _get_label(self.data, col), "N valid": n_valid}
         if weighted is not None:
             self._stats["Weighted N"] = round(total, 1)
+            # What the weighting costs in precision, on the answers counted: a
+            # weighted percentage is as precise as one of Kish's effective N
+            # respondents, the design effect times fewer than N valid.
+            squares = float((weights.astype(float) ** 2).sum())
+            if total > 0 and squares > 0:
+                effective = total**2 / squares
+                self._stats["Effective N"] = round(effective, 1)
+                self._stats["Design effect"] = round(n_valid / effective, 3)
             self._stats["Weight"] = self.data.weight
 
     def _build_multi(self, series: pd.Series) -> None:

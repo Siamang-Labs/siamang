@@ -196,7 +196,8 @@ output, in [[Analysis|Analysis#choosing-the-test-yourself]].
 
 After `SurveyData.with_weight(...)` (the flow's **Apply weight**) every table
 reads the weight and says in its footer what it did with it: `FreqTable` sums
-weights for N and % and adds an `Unweighted N` column; `CrossTable` sums
+weights for N and % and adds an `Unweighted N` column, with Kish's effective N
+and the design effect in its footer; `CrossTable` sums
 weights in the cells and runs χ² on Kish's effective base (Fisher's exact test
 counts respondents and says so); `GroupMeanTable` weights means, SDs and
 medians while N, the test and the post-hoc pairs stay unweighted.
