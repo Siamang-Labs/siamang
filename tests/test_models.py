@@ -134,6 +134,38 @@ def test_kmeans_keeps_the_best_of_ten_starts_whatever_the_row_order():
     assert sizes_found == (81, 39, 39, 21)
 
 
+def test_kmeans_can_number_the_clusters_by_an_items_mean():
+    """Two groups of close sizes swap numbers by size when a few rows come or
+    go, and a name given to a number lands on the other group. Numbered by an
+    item's mean, lowest first, each keeps its number."""
+    rng = np.random.default_rng(3)
+    low = rng.normal([1, 0], 0.3, (40, 2))
+    high = rng.normal([6, 0], 0.3, (42, 2))
+    frame = pd.DataFrame(np.vstack([low, high]), columns=["hours", "other"])
+    more_low = pd.concat(
+        [frame, pd.DataFrame(rng.normal([1, 0], 0.3, (4, 2)), columns=["hours", "other"])]
+    )
+
+    def hours_of(result):
+        return result.centroids.set_index("cluster")["hours"]
+
+    assert hours_of(kmeans(frame, ["hours", "other"], k=2))[1] > 4  # the 42 first
+    assert hours_of(kmeans(more_low, ["hours", "other"], k=2))[1] < 2  # now the 44
+    for data in (frame, more_low):
+        result = kmeans(data, ["hours", "other"], k=2, number_by="hours")
+        assert hours_of(result)[1] < 2 and hours_of(result)[2] > 4
+        assert result.stats["numbered_by"] == "mean of hours, lowest first"
+    # The partition is the one numbered by size; only the numbers differ.
+    by_size = kmeans(frame, ["hours", "other"], k=2)
+    by_hours = kmeans(frame, ["hours", "other"], k=2, number_by="hours")
+    assert (by_size.labels == 3 - by_hours.labels).all()
+    assert "numbered_by" not in by_size.stats
+    with pytest.raises(ValueError, match="not one of the items"):
+        kmeans(frame, ["hours", "other"], k=2, number_by="age")
+    assignment = SurveyData(frame=frame).cluster(["hours", "other"], k=2, number_by="hours")
+    assert assignment.centroids["hours"].is_monotonic_increasing
+
+
 def test_survey_data_cluster_adds_a_labeled_variable():
     frame = _frame()
     data = SurveyData(frame=frame)

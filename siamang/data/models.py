@@ -416,9 +416,16 @@ def kmeans(
     standardize: bool = True,
     max_iter: int = 100,
     n_init: int = 10,
+    number_by: str | None = None,
 ) -> ClusterResult:
     """k-means (k-means++ seeding, Lloyd's iterations) on ``items``, the best
     of ``n_init`` starts. Rows with a missing item get no cluster.
+
+    The clusters are numbered by size, largest first, or with ``number_by``
+    (one of ``items``) by that item's mean, lowest first (the larger first
+    of equal means). Segments of close sizes swap numbers with a few
+    respondents more or less, and a name given to a number then lands on
+    the other segment; numbered by what tells them apart, they keep it.
 
     One start ends in the local optimum its seeding leads to, which can be a
     poor one, and which one depends on the order of the rows as well as on
@@ -431,6 +438,10 @@ def kmeans(
 
     if k < 2:
         raise ValueError("kmeans needs k >= 2.")
+    if number_by is not None and number_by not in items:
+        raise ValueError(
+            f"kmeans: number_by {number_by!r} is not one of the items ({', '.join(items)})."
+        )
     numeric = frame[items].apply(pd.to_numeric, errors="coerce")
     mask = numeric.notna().all(axis=1).to_numpy()
     complete = numeric[mask]
@@ -451,8 +462,15 @@ def kmeans(
             best = (inertia, labels)
     assert best is not None
     inertia, labels = best
-    # Number clusters by size (largest first) so the labels are stable to read.
-    order = np.argsort(-np.bincount(labels, minlength=k), kind="stable")
+    # Number clusters by size (largest first) so the labels are stable to read,
+    # or by an item's mean (lowest first, the larger of equal means first).
+    sizes = np.bincount(labels, minlength=k)
+    if number_by is None:
+        order = np.argsort(-sizes, kind="stable")
+    else:
+        column = matrix[:, items.index(number_by)]
+        means = np.array([column[labels == j].mean() if sizes[j] else np.inf for j in range(k)])
+        order = np.lexsort((-sizes, means))
     rank = {old: new + 1 for new, old in enumerate(order)}
     numbered = np.array([rank[label] for label in labels])
     # Placed by position: by label, a repeated index label is a row per
@@ -472,6 +490,8 @@ def kmeans(
             row[item] = float(members[:, i].mean()) if len(members) else float("nan")
         rows.append(row)
     stats: dict[str, float | int | str] = {"n": int(len(complete)), "k": k, "inertia": inertia}
+    if number_by is not None:
+        stats["numbered_by"] = f"mean of {number_by}, lowest first"
     return ClusterResult(labels=series, centroids=pd.DataFrame(rows), stats=stats)
 
 

@@ -724,6 +724,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Clusters can be numbered by an item's mean.** k-means numbers its
+  clusters by size, and a flow names them by number with Derive. Two
+  segments of close sizes swapped numbers when a few respondents came or
+  went, or when the best of ten starts landed on another of several nearly
+  equal solutions, and the names landed on the wrong segments: on a
+  platform's example, keeping two respondents more made its "Always on"
+  segment the one with the fewest hours. Cluster (k-means) gains Number
+  clusters by (`kmeans(number_by=…)`, `SurveyData.cluster(number_by=…)`):
+  one of the Items, by whose mean the clusters are numbered, lowest first
+  (`stats["numbered_by"]`). The check refuses an item that is not among the
+  Items. Empty, the clusters are numbered by size and a stored flow renders
+  the code it did.
+
 - **A duplicate can be asked to match on more than the battery.** Response
   quality's duplicate check compared the battery alone, and a dozen
   five-point items still let two honest respondents answer alike now and

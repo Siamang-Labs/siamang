@@ -553,10 +553,13 @@ class SurveyData:
         seed: int | None = 42,
         standardize: bool = True,
         label: str | None = None,
+        number_by: str | None = None,
     ) -> ClusterAssignment:
         """k-means on ``items``: a copy of the data with the cluster number in
         ``into`` (a nominal variable labeled "Cluster 1".."Cluster k") and the
-        centroid table (:func:`siamang.data.models.kmeans`).
+        centroid table (:func:`siamang.data.models.kmeans`). The clusters are
+        numbered by size, or with ``number_by`` (one of ``items``) by that
+        item's mean, lowest first.
 
         The segmentation is drawn on the respondents as they are, never on the
         weight: on weighted data ``stats["weight"]`` says it is not applied.
@@ -570,6 +573,7 @@ class SurveyData:
             k=k,
             seed=seed,
             standardize=standardize,
+            number_by=number_by,
         )
         frame = self.frame.copy()
         frame[into] = result.labels.astype("Int64")
