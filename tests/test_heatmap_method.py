@@ -408,3 +408,33 @@ def test_many_long_items_by_many_groups_keep_their_mean_cells():
     boxes = [text.get_window_extent(renderer) for text in ax.texts]
     assert len(boxes) == 96
     assert not any(a.overlaps(b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
+
+
+def test_the_question_every_row_shares_is_said_once_on_the_colour_bar():
+    """MaxDiff scores (and exploded options) are all labelled "Question:
+    item": each row said the question again ("1. MaxDiff score: Focus
+    sessions" eight times). The rows name the items, and the colour bar says
+    what they are the mean of."""
+    rng = np.random.default_rng(4)
+    items = ["s1", "s2", "s3"]
+    frame = pd.DataFrame({name: rng.normal(size=60) for name in items})
+    frame["g"] = rng.integers(1, 3, 60)
+    variables = VariableMap()
+    variables.add_many(
+        [
+            Variable(name, "interval", label=f"MaxDiff score: {label}")
+            for name, label in zip(
+                items, ["Bedtime wind-down mode", "Focus sessions", "Mood check-ins"], strict=True
+            )
+        ]
+        + [Variable("g", "nominal", label="Usage segment", labels={1: "A", 2: "B"})]
+    )
+    ax = (
+        SurveyData(frame=frame, variables=variables)
+        .plot.heatmap(items, by="g", cmap="theme")
+        .plot()
+    )
+    rows = [label.get_text().replace("\n", " ") for label in ax.get_yticklabels()]
+    assert rows == ["1. Bedtime wind-down mode", "2. Focus sessions", "3. Mood check-ins"]
+    colour_bar = ax.figure.axes[-1]
+    assert colour_bar.get_ylabel() == "Mean MaxDiff score"

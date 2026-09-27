@@ -417,6 +417,17 @@ def test_turf_draws_the_reach_curve_and_each_options_reach():
     assert together and together[0].get_xdata()[0] == fixed["reach_percent"].iloc[-1]
 
 
+def test_turf_names_each_option_without_the_question_they_share():
+    """Exploded options are labelled "Question: option"; the question on
+    every tick left no room for the option."""
+    labels = {name: f"Features they would use: Feature {name.upper()}" for name in "abcd"}
+    search = turf.turf(_turf_frame(), ["a", "b", "c", "d"], max_size=2, labels=labels)
+    ticks = " ".join(_ticks(rc.chart(search)._ax, "x"))
+    assert "Feature A" in ticks and "Features they would use" not in ticks
+    fixed = turf.evaluate(_turf_frame(), ["a", "b"], items=list("abcd"), labels=labels)
+    assert _ticks(rc.chart(fixed)._ax) == ["Feature A", "Feature B"]
+
+
 # ─── PCA, factor analysis, cluster, regression ──────────────────────────────
 
 

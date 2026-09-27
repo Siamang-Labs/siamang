@@ -1549,7 +1549,7 @@ def _draw_turf_reach(table: Any, chart: ResultChart) -> str:
     )
     width = float(chart.figsize[0])
     per_slot = max(int(width * 0.8 * 72 / max(count, 1) / (9 * 0.55)), 10)
-    names = getattr(table, "labels", None) or {}
+    names = _named_options(getattr(table, "labels", None) or {})
     # Each size is named by what it adds to the portfolio before it — the step
     # a TURF curve shows; a best portfolio that is not the last one plus one
     # option is listed in full under the chart.
@@ -1611,11 +1611,24 @@ def _whole_words(text: str, width: int, lines: int) -> str:
     return "\n".join(wrapped)
 
 
+def _named_options(names: dict[Any, Any]) -> dict[Any, str]:
+    """The options by their own names: an exploded question's options are all
+    labelled "Question: option", and the question on every tick left no room
+    for the option ("App features they would use: Focus sessions")."""
+    from siamang.reporting.chart_parts import common_prefix
+
+    keys = list(names)
+    _, labels = common_prefix([names[key] for key in keys])
+    return dict(zip(keys, labels, strict=True))
+
+
 def _draw_turf_items(table: Any, chart: ResultChart) -> str:
     frame = pd.DataFrame(table)
     options = frame[frame["option"] != "(portfolio)"]
     whole = frame[frame["option"] == "(portfolio)"]
-    labels = [str(value) for value in options["label"]]
+    from siamang.reporting.chart_parts import common_prefix
+
+    _, labels = common_prefix([str(value) for value in options["label"]])
     ax, y, size = chart.rows(
         labels, legend=["Reach", "Reached by this option only", "All together"]
     )

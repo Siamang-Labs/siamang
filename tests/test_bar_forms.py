@@ -320,7 +320,7 @@ def test_means_by_group_largest_first_say_their_base():
     # Weighted: Left (10·1 + 20·3 + 30·1 + 30·2) / 7 = 22.857; Right (40·2 + 50 + 60 + 80·2) / 6.
     weighted = _data().with_weight("w").plot.bar("score", by="g", sort="value")
     assert _heights(weighted) == [[58.333, 22.857]]
-    assert weighted.plot().get_ylabel() == "Weighted mean Score"
+    assert weighted.plot().get_ylabel() == "Weighted mean score"
     # Grouped by a multiple-choice question: the groups overlap, and it says so.
     overlap = _data().plot.bar("score", by="m")
     # Acme rows 0, 1, 5 (10, 20, 60); Globex 0, 2 (10, 30); Initech 2, 5 (30, 60).
@@ -1156,3 +1156,19 @@ def test_a_box_plot_in_the_theme_s_colours_keeps_its_value_title_clear_of_the_ti
     assert label.y1 <= title.y0
     plain = data.plot.boxplot("income", by="region").plot()
     assert plain.get_ylabel() == "Monthly household income after tax (EUR)"
+
+
+def test_a_label_reads_in_a_sentence_and_a_shared_question_is_said_once():
+    from siamang.reporting.chart_parts import common_prefix, in_sentence
+
+    assert in_sentence("Overall life satisfaction") == "overall life satisfaction"
+    for kept in ("MaxDiff score", "NPS", "I scroll longer", "Q1 trust", "age"):
+        assert in_sentence(kept) == kept
+    assert common_prefix(["MaxDiff score: Focus sessions", "MaxDiff score: Mood check-ins"]) == (
+        "MaxDiff score",
+        ["Focus sessions", "Mood check-ins"],
+    )
+    # Different questions, a label without one, or two options that would
+    # read the same keep their full labels.
+    for labels in (["A: x", "B: y"], ["A: x", "y"], ["A: x", "A: x"], ["A: x"]):
+        assert common_prefix(labels) == ("", labels)

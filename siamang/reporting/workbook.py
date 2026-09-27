@@ -123,12 +123,28 @@ class SheetNames:
         while True:
             mark = f" ({count})" if count > 1 else ""
             room = SHEET_NAME_LENGTH - len(tail) - len(mark)
-            name = (stem[: max(room, 1)].rstrip(" '") + tail + mark)[:SHEET_NAME_LENGTH]
+            name = (_shortened(stem, max(room, 1)) + tail + mark)[:SHEET_NAME_LENGTH]
             name = name.strip("'") or "Table"
             if name.casefold() not in self._used:
                 self._used.add(name.casefold())
                 return name
             count += 1
+
+
+def _shortened(stem: str, room: int) -> str:
+    """``stem`` in at most ``room`` characters: whole, or cut after a whole word
+    with an ellipsis — "Table 3. Habits by age group…", not "Table 3. Habits by
+    age group an" (unless a word runs past half the room, when it is cut)."""
+
+    if len(stem) <= room:
+        return stem.rstrip(" '")
+    if room < 8:
+        return stem[:room].rstrip(" '")
+    cut = stem[: room - 1]
+    space = cut.rfind(" ")
+    if space >= room // 2:
+        cut = cut[:space]
+    return cut.rstrip(" '.,;:–-(") + "…"
 
 
 def _clean(text: Any) -> str:

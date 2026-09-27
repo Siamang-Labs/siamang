@@ -284,9 +284,10 @@ def test_each_chart_draws_its_result_as_the_result_is_weighted(questionnaire_doc
         .get_title(loc="left")
         .startswith("What goes with satisfaction")
     )
-    # TURF's reach curve names its options by their labels, as the fixed one.
+    # TURF's reach curve names its options by their labels, as the fixed one
+    # (the question they share, "Brands heard of (unaided): ", said once).
     first = result.output("c_turf").plot().get_xticklabels()[0].get_text().replace("\n", " ")
-    assert first.startswith("1 Brands heard of")
+    assert first.startswith("1 Globex") and "Brands heard of" not in first
     # What each output draws, as the check reads it, is what the run draws.
     for node, kind, params, ports, _ in ANALYSES:
         spec = default_registry().get(kind)

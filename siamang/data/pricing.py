@@ -64,6 +64,7 @@ points, or the demand and revenue curves.
 
 from __future__ import annotations
 
+import re
 import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -162,6 +163,9 @@ class PriceSensitivity:
     n: int
     weight: str | None = None
     notes: list[str] = field(default_factory=list)
+    #: What the prices are in ("£ a month"), when the price questions' labels
+    #: all end with it in brackets; the chart's price axis names it.
+    unit: str | None = None
 
 
 # ── array level ──────────────────────────────────────────────────────────────
@@ -475,6 +479,7 @@ def van_westendorp(
         n=n,
         weight=data.weight,
         notes=notes,
+        unit=_unit(data, questions),
     )
     result.table.analysis = result
     result.curves.analysis = result
@@ -574,6 +579,24 @@ def gabor_granger(
     table.analysis = result
     curves_table.analysis = result
     return result
+
+
+_UNIT = re.compile(r"\(([^()]+)\)\s*$")
+
+
+def _unit(data: SurveyData, questions: list[str]) -> str | None:
+    """The unit the price questions' labels all end with in brackets —
+    "Too cheap (£ a month)", … — or None when they do not agree."""
+
+    variables = data.variables
+    units = set()
+    for name in questions:
+        label = variables[name].label if variables is not None and name in variables else None
+        found = _UNIT.search(str(label or ""))
+        if not found:
+            return None
+        units.add(found.group(1).strip())
+    return units.pop() if len(units) == 1 else None
 
 
 def _weights(data: SurveyData, mask: np.ndarray | None) -> np.ndarray | None:
@@ -816,6 +839,10 @@ _LINES = (
 )
 
 
+def _price_axis(result: PriceSensitivity) -> str:
+    return f"Price ({result.unit})" if result.unit else "Price"
+
+
 def _draw_van_westendorp(result: PriceSensitivity, ax: Any, fig: Any) -> None:
     prices = result.prices
     low, high = result.points.get("PMC"), result.points.get("PME")
@@ -832,7 +859,7 @@ def _draw_van_westendorp(result: PriceSensitivity, ax: Any, fig: Any) -> None:
     span = float(prices.max() - prices.min()) or 1.0
     ax.set_xlim(float(prices.min()) - 0.02 * span, float(prices.max()) + 0.02 * span)
     ax.set_ylabel("% of respondents", fontsize=10, color=_ink())
-    ax.set_xlabel("Price", fontsize=10, color=_ink())
+    ax.set_xlabel(_price_axis(result), fontsize=10, color=_ink())
     for key, _, _ in POINTS:
         price = result.points.get(key)
         if price is None:
@@ -931,7 +958,7 @@ def _draw_trial(result: PriceSensitivity, ax: Any) -> None:
         ax.plot([price, price], [value, top * 1.3], color=_muted(), linewidth=0.8, zorder=1)
         ax.scatter([price], [value], s=40, marker=marker, color=_ink(), zorder=4)
     ax.set_ylabel("Trial (% would buy)", fontsize=10, color=_ink())
-    ax.set_xlabel("Price", fontsize=10, color=_ink())
+    ax.set_xlabel(_price_axis(result), fontsize=10, color=_ink())
 
 
 def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> tuple[Any, ...]:
@@ -971,7 +998,7 @@ def _draw_gabor_granger(result: PriceSensitivity, axes: list[Any]) -> tuple[Any,
     ]
     bottom_ax.set_ylim(0, max(float(revenue.max()) * 1.25, 1e-9))
     bottom_ax.set_ylabel("Revenue per respondent", fontsize=10, color=_ink())
-    bottom_ax.set_xlabel("Price", fontsize=10, color=_ink())
+    bottom_ax.set_xlabel(_price_axis(result), fontsize=10, color=_ink())
     bottom_ax.set_xticks(prices)
     bottom_ax.set_xticklabels([_price(p) for p in prices])
     top_ax.axvline(best, color=_muted(), linewidth=0.8, zorder=0)
