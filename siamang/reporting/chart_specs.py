@@ -1142,6 +1142,13 @@ class DrawnMatrix:
     kind: str = "heatmap"
     #: Each cell's fill as the picture drew it (for the ink written on it).
     fills: list[list[str]] = field(default_factory=list)
+    #: The fill of a cell without a value, where the picture fills one (the
+    #: loadings a factor analysis leaves blank); else such a cell is empty.
+    blank: str | None = None
+    #: What the tooltip of a cell without a value says.
+    blank_text: str = "not computed"
+    #: More of each cell for its tooltip, by title (a coefficient's p).
+    details: dict[str, list[list[str]]] = field(default_factory=dict)
 
     def spec(self, chart: Any) -> dict[str, Any]:
         return matrix_spec(chart, self)
@@ -1226,12 +1233,16 @@ def matrix_spec(chart: Any, drawn: DrawnMatrix) -> dict[str, Any]:
                     "row_name": drawn.row_names[i],
                     "column_name": drawn.column_names[j],
                     "value": vega.number(value),
-                    "text": drawn.texts[i][j] or "not computed",
+                    "text": drawn.texts[i][j] or drawn.blank_text,
                     "cell": drawn.texts[i][j],
                     "ink": _ink(chart, fill),
                     "base": base,
                     "description": f"{drawn.row_names[i]}, {drawn.column_names[j]}: "
-                    f"{drawn.texts[i][j] or 'not computed'}",
+                    f"{drawn.texts[i][j] or drawn.blank_text}",
+                    **{
+                        f"detail_{number}": cells[i][j]
+                        for number, cells in enumerate(drawn.details.values())
+                    },
                 }
             )
     tooltip = [
@@ -1239,6 +1250,7 @@ def matrix_spec(chart: Any, drawn: DrawnMatrix) -> dict[str, Any]:
         ("column_name", drawn.x_title or "Column"),
         ("text", drawn.value_title),
     ]
+    tooltip += [(f"detail_{number}", title) for number, title in enumerate(drawn.details)]
     if drawn.bases:
         tooltip.append(("base", "Base"))
     cells: dict[str, Any] = {
@@ -1265,10 +1277,20 @@ def matrix_spec(chart: Any, drawn: DrawnMatrix) -> dict[str, Any]:
         },
     }
     layers: list[dict[str, Any]] = [cells]
+    if drawn.blank is not None:
+        layers.append(
+            {
+                "transform": [{"filter": "!isValid(datum.value)"}],
+                "mark": {"type": "rect", "color": drawn.blank, "stroke": "#ffffff"},
+                "encoding": {"tooltip": vega.tooltip(*tooltip)},
+            }
+        )
     if drawn.annotate:
         layers.append(
             {
-                "transform": [{"filter": "isValid(datum.value)"}],
+                # A cell's text where it has one: its value, or the mark of
+                # a cell without one (a correlation matrix's diagonal).
+                "transform": [{"filter": "datum.cell"}],
                 "mark": {"type": "text", "fontSize": VALUE_SIZE, "baseline": "middle"},
                 "encoding": {
                     "text": {"field": "cell"},

@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Interactive charts.** Every chart of `siamang.reporting` but a Result chart
-  says what it draws as a Vega-Lite 6 spec (`SurveyChart.vega_lite()`), drawn
+- **Interactive charts.** Every chart of `siamang.reporting` says what it draws
+  as a Vega-Lite 6 spec (`SurveyChart.vega_lite()`), drawn
   from the numbers its picture is drawn from: inline data of only what the chart
   draws (a scatter plot's points and a box plot's outliers are the plotted
   values, nothing else), the picture's title, axis titles, notes and colors with
@@ -19,7 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their series, zoom where it helps, and a description for a screen reader —
   every form of the Bar chart (percent, Split by grouped, stacked and 100 %,
   Top N with Other, error bars, significance letters, histogram, donut), the
-  Likert chart, the heatmaps, the box plot, the scatter plot and the Trend.
+  Likert chart, the heatmaps, the box plot, the scatter plot and the Trend —
+  and every kind of Result chart (`siamang.reporting.result_specs`): the means
+  and shares with their intervals (a dot and a line per estimate, its base,
+  interval and post-hoc letters in the tooltip; Descriptive statistics'
+  panels; a profile's lines; a regression's forest, odds ratios on a log
+  axis), the bars of MaxDiff, conjoint (part-worths colored and toggled by
+  attribute), shares of preference, themes and Key drivers (by the sign of the
+  beta), the Net Promoter Score's and sentiment's stacks, a proportion on its
+  track, TURF's reach curve (each size's whole portfolio in its tooltip) and
+  its options' reach, scree plots (Kaiser's line, parallel analysis), loadings
+  and correlation heatmaps (each coefficient's p in its tooltip), the
+  Perceptual map (one scale on both axes at any width, each name where the
+  picture placed it, zoom, and a **Names on the map** box — off for a map too
+  crowded to name its points), Van Westendorp's curves, points and range (a
+  line at the price pointed at with every curve's share there; the NMS trial
+  curve under them) and Gabor-Granger's demand over its revenue. A renderer a
+  later node registers has one when it draws with the shared forms; one that
+  draws a figure of its own has none. A row's label is written in narrower
+  lines in a chart under 520 pixels wide, and axis titles and subtitles in
+  lines a phone's width holds.
   `Report.to_html(standalone=True, interactive=True)` and
   `Report.save("r.html", interactive=True)` draw them in the reader's browser
   with Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0, vendored in

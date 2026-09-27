@@ -212,6 +212,9 @@ _INTERACTIVE_CSS = """
 .siamang-chart-picture img { display: block; width: 100%; height: auto; }
 .siamang-chart-live .siamang-chart-picture { display: none; }
 .siamang-chart-failed .siamang-chart-view { display: none; }
+/* A chart's own control (a map's Names on the map), in the page's face. */
+.siamang-chart .vega-bindings { font-family: inherit; font-size: 12px; margin: 2px 0 0 8px; }
+.siamang-chart .vega-bind-name { margin-right: 4px; }
 @media print {
   .siamang-chart-view { display: none !important; }
   .siamang-chart-picture { display: block !important; }

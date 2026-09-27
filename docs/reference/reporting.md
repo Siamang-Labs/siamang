@@ -357,7 +357,7 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
 * **`png(dpi: int | None = None) -> bytes`**:
   The chart as PNG bytes at `dpi` (default: the chart's `dpi`), the bytes `save` writes to a `.png`.
 * **`vega_lite() -> dict | None`**:
-  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`), or `None` for a chart without an interactive form (a Result chart). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. Its data is inline and holds only what the chart draws: counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. It has the picture's title (and the weight line as its subtitle), axis titles and notes (the base, the weight, the missing codes left out) at its foot, the colors the picture was drawn in with the report Look's text, grid and font, a tooltip on every mark (its label, its value written as the picture writes it, its base), a legend whose entries hide and show their series (a double click shows them all), zoom and pan on a scatter plot and a Trend of more than 24 periods (Shift and the wheel zoom, so a page scrolls past), and a `description` for a screen reader. Each form: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn) and `TrendChart` (lines, bands, hollow low-base points, gaps). `usermeta.siamang` names the chart and lists its notes.
+  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`), or `None` for a chart without an interactive form (a Result chart whose renderer, registered by a later node, draws a figure of its own). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. Its data is inline and holds only what the chart draws: counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. It has the picture's title (and the weight line as its subtitle), axis titles and notes (the base, the weight, the missing codes left out) at its foot, the colors the picture was drawn in with the report Look's text, grid and font, a tooltip on every mark (its label, its value written as the picture writes it, its base), a legend whose entries hide and show their series (a double click shows them all), zoom and pan on a scatter plot and a Trend of more than 24 periods (Shift and the wheel zoom, so a page scrolls past), and a `description` for a screen reader. Each form: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn), `TrendChart` (lines, bands, hollow low-base points, gaps) and every kind of `ResultChart` (section 4). `usermeta.siamang` names the chart (a Result chart: its kind, `means`, `scree`, …) and lists its notes.
 * **`release() -> None`**:
   Closes the figure and lets go of it, keeping the PNGs rendered so far. A figure holds its drawing (megabytes at 150 dpi) for as long as the chart refers to it, closed or not. After `release`, `png` and `save` to a `.png` at a resolution rendered before write those bytes without drawing; `plot`, `show`, another resolution or format draw the chart again from its parameters. A `Report` releases each chart once it has written it (but one whose figure was asked for with `plot()` or `show()`), and `FlowRunner` each chart once its node has rendered it.
 
@@ -734,6 +734,46 @@ drawn, and the chart does not lay it out again. The later analyses' renderers
 are in `siamang.reporting.method_charts`: Key drivers, the Perceptual map and
 Price sensitivity through their modules' `plot`, Cochran's Q and the ordinal
 logit as above.
+
+**Interactive form.** Every kind has its Vega-Lite 6 spec (`chart.vega_lite()`,
+§3), recorded while the chart draws (`siamang.reporting.result_specs`: the
+shared forms `_dots` and `_bars`, the scree plot, the heatmaps and each
+renderer's own) and finished from the figure before it is laid out: the title
+given or the renderer's, the weight line (and an analysis's own lines — `Johnson's
+relative weights, R² = 0.452, N = 240`) as the subtitle, the axis titles, and the
+notes under the plot at its foot. Its data holds what the picture draws — no
+Result chart plots respondents. Each form: a point and a line per estimate and
+interval, its value beside it as the picture writes it, the tooltip giving the
+row, the series, the value, the interval (`95% confidence interval`, `± 1 SD`),
+the post-hoc letters, a note the picture's label carries (`reference`) and the
+base (a row's `(n = 97)`, else the result's N or `Base`); a series per group
+with a legend that hides it; Descriptive statistics' panels, a scale each; a
+profile's lines; odds ratios on a log axis ticked 0.5, 1, 2. Bars from 0, the
+value past each end (left of a negative one); the part-worths colored by
+attribute and the Key drivers by the sign of the beta, each with a legend that
+hides its group, the beta in the tooltip. The NPS stack under its score and
+sentiment's stacks, each share in its segment where the segment holds it; a
+proportion on its 0–100 % track; TURF's reach curve (each size's whole
+portfolio and what the last option added in the tooltip) and its options'
+reach under what each reaches alone, the portfolio's line; scree plots with
+Kaiser's line (dashed in the legend too), the random data's line of a parallel
+analysis, the components kept filled; loadings and correlation heatmaps in the
+picture's color map, a factor analysis's hidden loadings blank, a
+correlation's marks in its cell and its p (`< .001`) in the tooltip. The
+Perceptual map keeps one scale on both axes at whatever width it is drawn,
+writes each name where the picture placed it (with its line back to a point
+far out), and at a narrow width beside its point; a box under it, **Names on
+the map**, writes or hides the names — off at first for a map the picture had
+to number — and the map zooms (Shift and the wheel) and pans. Van
+Westendorp's curves, points and range of acceptable prices, the points' names
+over the curves; pointing at the chart draws a line at the nearest price and
+gives every curve's share there; the NMS trial curve in a panel under it on
+the same prices. Gabor-Granger's demand over its revenue, the best price's bar
+in the full color. In a chart narrower than 520 pixels a row's label is
+written in lines of 14 characters (26 otherwise); axis titles are written in
+lines of at most 40 characters and subtitles of 44, which a phone's width
+holds. A renderer registered later has a spec when it draws with `_dots` or
+`_bars`; one that draws a figure of its own has none (`None`).
 
 ---
 

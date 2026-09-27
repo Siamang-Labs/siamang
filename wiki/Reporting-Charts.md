@@ -43,7 +43,7 @@ figure is built lazily on first use.
 | `plot()` | `matplotlib.axes.Axes` | Build and return the Axes for further tweaking. |
 | `show()` | `None` | Display inline (Jupyter) or in a window. |
 | `save(path, dpi=150)` | `Path` | Write to file (the directory must already exist); `bbox_inches="tight"`. |
-| `vega_lite()` | `dict \| None` | The chart as a Vega-Lite 6 spec a browser draws interactively (see below), or `None` for a chart without one (a Result chart). |
+| `vega_lite()` | `dict \| None` | The chart as a Vega-Lite 6 spec a browser draws interactively (see below), or `None` for a chart without one (a Result chart whose renderer draws a figure of its own). |
 
 **Interactive form.** `vega_lite()` says what the picture says, drawn from the
 same numbers: inline data of only what the chart draws (counts, percentages,
@@ -55,8 +55,9 @@ text, grid and font, a tooltip on every mark with its value as the picture
 writes it and its base, a legend that hides and shows its series, zoom on a
 scatter plot and on a long Trend, and a description for a screen reader. Every
 chart on this page has one: each form of `BarChart` (histogram and donut too),
-`LikertChart`, `HeatMap`, `BoxPlot`, `ScatterPlot`, `TrendChart`. A report shows
-them with `to_html(..., interactive=True)` ([[Report Document|Report-Document]]).
+`LikertChart`, `HeatMap`, `BoxPlot`, `ScatterPlot`, `TrendChart`, and every kind
+of Result chart (below). A report shows them with `to_html(..., interactive=True)`
+([[Report Document|Report-Document]]).
 
 **Weighted data.** After `with_weight(...)` a chart never disagrees in silence
 with the weighted tables beside it. `BarChart` draws sums of weights (axis
@@ -532,9 +533,23 @@ when the chart cannot draw what is connected (`RESULT_NOT_DRAWABLE`) or when the
 Kind does not suit it (`RESULT_KIND`), and warns when results of two analyses
 are connected (`RESULT_SOURCES`).
 
+**Interactive.** Every kind has its `vega_lite()` spec, drawn from the numbers
+of its picture: a tooltip on each point, bar, segment or cell with its value as
+the picture writes it, its interval and its base; a legend that hides a group
+(the groups of Descriptive statistics, a cluster, a conjoint attribute, a
+sentiment, a price curve); odds ratios on a log axis; a correlation's p in its
+cell's tooltip. The **Perceptual map** keeps one scale on both axes, names each
+point where the picture did, zooms (Shift and the wheel) and pans, and has a
+**Names on the map** box — unticked for a map too crowded to name its points,
+whose names its tooltips then give. **Van Westendorp**'s chart draws a line at
+the price the pointer is nearest and gives every curve's share there. In a
+narrow chart (a phone, a Live tile) row labels are written in shorter lines.
+
 **Your own result.** `result_charts.register(MyResult, ["mykind"], draw)`
 teaches the chart a new result: `draw(result, chart)` draws on
-`chart.rows(labels)` or `chart.figure()` and returns its title.
+`chart.rows(labels)` or `chart.figure()` and returns its title. Drawn with the
+chart's shared forms (`result_charts._dots`, `result_charts._bars`), it is
+interactive too; a figure of its own is shown as its picture.
 
 ---
 

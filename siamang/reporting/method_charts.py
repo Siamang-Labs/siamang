@@ -33,7 +33,10 @@ The three figures drawn by the analyses keep their own title (the Title given
 replaces its first line), weight line and color-blind-safe colors, so the
 Palette is not read for them; their labels are placed for the figure's final
 layout, which the chart therefore does not lay out again
-(:meth:`ResultChart.adopt`).
+(:meth:`ResultChart.adopt`). Their interactive form (``vega_lite()``) is
+recorded from the analysis's result as the figure draws it
+(:mod:`siamang.reporting.result_specs`): the drivers' shares, the map's points
+with each name where the figure placed it, the price curves and points.
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from siamang.reporting import result_specs
 from siamang.reporting.result_charts import (
     ResultChart,
     _dots,
@@ -75,7 +79,9 @@ def _draw_drivers(result: Any, chart: ResultChart) -> str:
 
     analysis = _analysis_of(result, drivers.DriverTable, drivers.KeyDrivers)
     chart.adopt(drivers.plot(analysis, title=chart.title, figsize=chart.figsize))
-    return f"Key drivers of {analysis.outcome}"
+    heading = f"Key drivers of {analysis.outcome}"
+    result_specs.record_drivers(chart, analysis, heading=chart.title or heading)
+    return heading
 
 
 def _draw_map(result: Any, chart: ResultChart) -> str:
@@ -93,6 +99,7 @@ def _draw_map(result: Any, chart: ResultChart) -> str:
     analysis = _analysis_of(result, correspondence.MapTable, correspondence.PerceptualMap)
     width, height = (float(value) for value in chart.figsize)
     asked, tallest = height, max(height, width * 1.2)
+    numbered = False
     while True:
         fig = correspondence.plot(
             analysis, title=chart.title, figsize=(width, height), numbered=False
@@ -108,10 +115,15 @@ def _draw_map(result: Any, chart: ResultChart) -> str:
                 figsize=(width, max(asked, 0.8 * width)),
                 numbered=True,
             )
+            numbered = True
             break
         height = min(height * 1.2, tallest)
     chart.adopt(fig)
-    return f"Perceptual map: {analysis.row_title} × {analysis.column_title}"
+    heading = f"Perceptual map: {analysis.row_title} × {analysis.column_title}"
+    # Interactive, a crowded map leaves its names to the tooltips and a box
+    # that writes them on the map, where zooming in sets them apart.
+    result_specs.record_map(chart, analysis, numbered=numbered, heading=chart.title or heading)
+    return heading
 
 
 def labels_overlap(ax: Any) -> bool:
@@ -149,7 +161,9 @@ def _draw_price(result: Any, chart: ResultChart) -> str:
     analysis = _analysis_of(result, pricing.PriceTable, pricing.PriceSensitivity)
     chart.adopt(pricing.plot(analysis, title=chart.title, figsize=_price_size(analysis, chart)))
     name = "Van Westendorp" if analysis.method == "van_westendorp" else "Gabor-Granger"
-    return f"Price sensitivity ({name})"
+    heading = f"Price sensitivity ({name})"
+    result_specs.record_prices(chart, analysis, heading=chart.title or heading)
+    return heading
 
 
 #: The least height of a price chart of two panels, in inches: on a shorter
