@@ -138,6 +138,10 @@ class SurveyChart:
     #: The caller asked for the figure (:meth:`plot`, :meth:`show`) and may
     #: still change it: a report leaves it open.
     _held: bool = field(init=False, repr=False, default=False)
+    #: What the chart drew — its numbers, labels, notes and colors — recorded
+    #: while it was drawn, for its interactive form (:meth:`vega_lite`); None
+    #: for a chart that has none.
+    _drawn: Any = field(init=False, repr=False, default=None)
 
     def _build(self) -> None:
         """Build the chart. Subclasses must implement this."""
@@ -151,6 +155,7 @@ class SurveyChart:
             # A new figure: what the one before was rendered to (it may have
             # been changed through plot()) no longer stands for the chart.
             self._pngs = {}
+            self._drawn = None
             with chart_theme.drawing(self):
                 self._build()
 
@@ -226,6 +231,26 @@ class SurveyChart:
             plt.close(self._fig)
         self._fig = self._ax = None
         self._held = False
+
+    def vega_lite(self) -> dict[str, Any] | None:
+        """The chart as a Vega-Lite 6 spec a browser draws interactively, or
+        None when the chart has no interactive form.
+
+        The spec is drawn from the numbers the picture was drawn from (the
+        chart is drawn first when it was not): its data is inline and holds
+        only what the chart draws — counts, percentages, means, intervals,
+        bins — never a respondent's row, except for a chart that plots the
+        respondents themselves (a scatter plot's points, a box plot's
+        outliers), which carries the values it plots and nothing else. It has
+        the picture's title, axis titles and notes, its colors with the report
+        Look's text, grid and font, a tooltip on every mark, and a legend whose
+        entries hide and show their series. See :mod:`siamang.reporting.vega`.
+        """
+        self._ensure_computed()
+        drawn = self._drawn
+        if drawn is None:
+            return None
+        return drawn.spec(self)
 
     def _auto_title(self, *parts: str) -> str:
         """Generate a title from variable labels."""
@@ -373,6 +398,17 @@ class BarChart(SurveyChart):
                         ax.text(i, v + 0.5, _format_value(float(v)), ha="center")
 
             ax.set_title(self._auto_title(col_label))
+            from siamang.reporting.chart_specs import record_classic
+
+            record_classic(
+                self,
+                counts.to_numpy(dtype=float),
+                labels,
+                col_label,
+                axis,
+                "count",
+                lambda: [(int(len(series)), None if weights is None else float(weights.sum()))],
+            )
 
         else:
             # Grouped mean bar chart
@@ -413,6 +449,18 @@ class BarChart(SurveyChart):
                         ax.text(i, v + 0.02, text, ha="center")
 
             ax.set_title(self._auto_title(f"Mean {col_label}", by_label))
+            from siamang.reporting.chart_specs import group_bases, record_classic
+
+            record_classic(
+                self,
+                grouped.to_numpy(dtype=float),
+                labels,
+                by_label,
+                axis,
+                "mean",
+                lambda: group_bases(frame[self.by], weights, list(grouped.index)),
+                col_label,
+            )
 
         plt.tight_layout()
 
@@ -513,6 +561,10 @@ class BoxPlot(SurveyChart):
                 height = axes_points(ax)[1]
                 ax.set_ylabel(wrap(col_label, chars_in(height, font_size("axes.labelsize"))))
                 plt.tight_layout()
+        if sns:
+            from siamang.reporting.chart_specs import record_boxes
+
+            record_boxes(self, ax, frame, self.column, self._auto_title(col_label, by_label))
 
 
 # ─── HeatMap ──────────────────────────────────────────────────────────────────
@@ -594,6 +646,7 @@ class HeatMap(SurveyChart):
             else:
                 grouped = _weighted_means(frame, self.columns, self.by, weights)
                 self._weighted()
+            codes = list(grouped.index)
 
             if by_value_labels:
                 grouped.index = [by_value_labels.get(v, str(v)) for v in grouped.index]
@@ -616,6 +669,22 @@ class HeatMap(SurveyChart):
             chart_theme.label_cells(ax)
             ax.set_title(self._auto_title("Mean Values", by_label))
             ax.set_xlabel(by_label)
+            from siamang.reporting.chart_specs import group_bases, record_matrix
+
+            record_matrix(
+                self,
+                ax,
+                matrix.to_numpy(dtype=float),
+                rows=[str(label) for label in matrix.index],
+                columns=[str(label) for label in matrix.columns],
+                text=lambda value: f"{value:.2f}",
+                title=ax.get_title(),
+                legend_title="Weighted mean" if weights is not None else None,
+                x_title=by_label,
+                value_title="Weighted mean" if weights is not None else "Mean",
+                bases=lambda: group_bases(frame[self.by], weights, codes, text=True),
+                annotate=self.annot,
+            )
 
         else:
             # Correlation matrix
@@ -637,6 +706,23 @@ class HeatMap(SurveyChart):
             )
             chart_theme.label_cells(ax)
             ax.set_title(self._unweighted(self._auto_title("Spearman Correlation Matrix")))
+            from siamang.reporting.chart_specs import record_matrix
+            from siamang.reporting.vega import base_text
+
+            record_matrix(
+                self,
+                ax,
+                corr.to_numpy(dtype=float),
+                rows=col_labels,
+                columns=col_labels,
+                text=lambda value: f"{value:.2f}",
+                title=self._auto_title("Spearman Correlation Matrix"),
+                subtitle=[self._weight_note] if self._weight_note else None,
+                value_title="Spearman rho",
+                bases=lambda: [base_text(len(frame))],
+                annotate=self.annot,
+                kind="correlation",
+            )
 
         plt.tight_layout()
 
@@ -730,3 +816,13 @@ class ScatterPlot(SurveyChart):
         ax.set_ylabel(y_label)
         ax.set_title(self._unweighted(self._auto_title(y_label, x_label)))
         plt.tight_layout()
+        from siamang.reporting.chart_specs import record_points
+
+        record_points(
+            self,
+            ax,
+            frame,
+            hue_col,
+            self._auto_title(y_label, x_label),
+            _get_label(self.data, self.hue) if self.hue else None,
+        )

@@ -90,16 +90,36 @@ are ordered but not consecutive:
 ### `to_html`
 
 ```python
-def to_html(self) -> str: ...
+def to_html(
+    self,
+    *,
+    theme=None,
+    standalone: bool = False,
+    embed_images: bool = True,
+    asset_dir=".",
+    interactive: bool = False,
+) -> str: ...
 ```
 
-Renders to HTML (via the `markdown` library with the `tables` extension), always
-embedding images inline. Requires the `markdown` package.
+Renders to HTML. By default a fragment (the Markdown through the `markdown`
+library with the `tables` extension, images embedded inline); with
+`standalone=True` a whole document with the theme's stylesheet.
+
+With `interactive=True` (a document only) each chart that has an interactive
+form (`SurveyChart.vega_lite()`, see [[Reporting Charts|Reporting-Charts]]) is
+drawn in the reader's browser: a tooltip on every bar, point and cell with its
+value and base, a legend whose entries hide and show their series, zoom where it
+helps. The document carries the libraries that draw them — Vega, Vega-Lite and
+Vega-Embed, vendored with the engine, about 0.8 MB, written in once however many
+charts there are and never loaded from anywhere — so it opens offline and can be
+mailed as it is. Each chart's picture stays in it: shown to a reader without
+scripts, printed, and shown if a chart cannot be drawn. The charts' menu saves a
+chart as PNG or SVG (no editor, no source view).
 
 ### `save`
 
 ```python
-def save(self, path: str | Path) -> Path: ...
+def save(self, path: str | Path, *, theme=None, interactive: bool = False) -> Path: ...
 ```
 
 Writes the document, choosing the format from the file suffix: `.md`/`.markdown`
@@ -110,6 +130,11 @@ letters, digits, `.`, `_` and `-` in the name become `-`: `Q3 results.md`
 writes `Q3-results_fig_3.png`); `.html`/`.htm` → HTML, its figures embedded. A
 `.pdf` suffix raises `NotImplementedError`; any other suffix raises
 `ValueError`. Parent directories are created automatically.
+
+`interactive=True` asks for the charts' interactive form: the HTML draws them in
+the browser (see `to_html`); the Markdown is the same and each figure has its
+Vega-Lite spec written beside it (`report_fig_3.png`, `report_fig_3.vl.json`).
+Without it a report writes exactly what it always wrote.
 
 Each chart is drawn once for a report and written as the same PNG to its
 Markdown and its HTML; its figure is then closed and let go

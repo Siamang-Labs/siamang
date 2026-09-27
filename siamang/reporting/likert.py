@@ -254,6 +254,20 @@ class LikertChart(SurveyChart):
             footnote.apply()
         self._annotate(ax, aside, rows, scale, shares, lefts, colours, limit)
         footnote.apply()
+        from siamang.reporting.chart_specs import record_likert
+
+        record_likert(
+            self,
+            rows=rows,
+            items=shown,
+            scale=scale,
+            colours=colours,
+            limit=limit,
+            side=side,
+            title=self.title or stem or single or _fallback_title(columns, scale),
+            notes=notes,
+            axis=ax.get_xlabel(),
+        )
 
     def _annotate(
         self,

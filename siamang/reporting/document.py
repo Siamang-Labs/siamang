@@ -19,15 +19,17 @@ sized. Both are written from the same blocks, so neither can drift from the othe
 from __future__ import annotations
 
 import base64
+import json
 import mimetypes
 import re
 import tempfile
+import warnings
 from collections.abc import Mapping
 from pathlib import Path
 
 import pandas as pd
 
-from siamang.reporting import chart_theme
+from siamang.reporting import chart_theme, vega
 from siamang.reporting.charts import SurveyChart
 from siamang.reporting.tables import SurveyTable, frame_to_html
 from siamang.reporting.theme import _LENGTH, ReportTheme
@@ -181,6 +183,117 @@ def _data_uri(data: bytes, path: str) -> str:
     return f"data:{mime};base64,{base64.b64encode(data).decode()}"
 
 
+def _spec_of(chart: SurveyChart) -> dict[str, object] | None:
+    """``chart``'s Vega-Lite spec, or None — also when making it fails: a
+    chart's interactive form must never cost a report its picture."""
+
+    try:
+        return chart.vega_lite()
+    except Exception as exc:  # noqa: BLE001 - the picture is kept, and the warning says why
+        warnings.warn(
+            f"{type(chart).__name__}: no interactive chart ({type(exc).__name__}: {exc}); "
+            "its picture is kept.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+        return None
+
+
+#: The class of a chart drawn in the reader's browser.
+_INTERACTIVE_MARK = 'class="siamang-chart"'
+
+#: What an interactive chart needs of the page: its view the width of its
+#: figure; its picture printed in its place, and shown when scripts are off
+#: (``<noscript>``) or the chart could not be drawn.
+_INTERACTIVE_CSS = """
+/* ── interactive charts ─────────────────────────────────────────────── */
+.siamang-chart { width: 100%; }
+.siamang-chart-view, .siamang-chart-view.vega-embed { display: block; width: 100%; }
+.siamang-chart-picture img { display: block; width: 100%; height: auto; }
+.siamang-chart-live .siamang-chart-picture { display: none; }
+.siamang-chart-failed .siamang-chart-view { display: none; }
+@media print {
+  .siamang-chart-view { display: none !important; }
+  .siamang-chart-picture { display: block !important; }
+}
+"""
+
+#: Draws every interactive chart of the document with Vega-Embed: SVG, the
+#: width of its figure, a menu that saves the chart as PNG or SVG — no editor
+#: (which would send the chart and its numbers to a web site) and no source
+#: (code a reader has no use for). The picture in each chart's ``<noscript>``
+#: is put back in the page, for printing and for a chart that cannot be drawn.
+_EMBED_SCRIPT = """(function () {
+  var options = {
+    renderer: "svg",
+    mode: "vega-lite",
+    actions: { export: { png: true, svg: true }, source: false, compiled: false, editor: false }
+  };
+  var boxes = document.querySelectorAll(".siamang-chart");
+  Array.prototype.forEach.call(boxes, function (box) {
+    var fallback = box.querySelector("noscript");
+    var picture = document.createElement("div");
+    picture.className = "siamang-chart-picture";
+    if (fallback) { picture.innerHTML = fallback.textContent; }
+    box.appendChild(picture);
+    var spec;
+    try {
+      spec = JSON.parse(box.querySelector("script.siamang-chart-spec").textContent);
+    } catch (error) {
+      box.classList.add("siamang-chart-failed");
+      return;
+    }
+    var settings = { downloadFileName: box.getAttribute("data-name") || "chart" };
+    for (var key in options) { settings[key] = options[key]; }
+    vegaEmbed(box.querySelector(".siamang-chart-view"), spec, settings).then(function (result) {
+      // Laid out once more at the width drawn: the notes and a legend take
+      // the lines and columns that width gives them, which the first layout
+      // does not measure.
+      return result.view.resize().runAsync().then(function () { return result; });
+    }).then(function (result) {
+      // The chart's description is its name for a screen reader.
+      var svg = result.view.container() && result.view.container().querySelector("svg");
+      if (svg && spec.description) {
+        svg.setAttribute("role", "graphics-document document");
+        svg.setAttribute("aria-label", spec.description);
+      }
+      box.classList.add("siamang-chart-live");
+    }).catch(function (error) {
+      box.classList.add("siamang-chart-failed");
+      if (window.console) { console.warn("A chart could not be drawn; its picture is shown.", error); }
+    });
+  });
+})();"""
+
+
+def _interactive_chart(picture: str, spec: dict[str, object], name: str) -> str:
+    """A chart drawn in the reader's browser: its view, its picture for a
+    reader without scripts and for print, and its spec (``$schema`` left out:
+    the page names the mode itself, and no address)."""
+
+    inline = {key: value for key, value in spec.items() if key != "$schema"}
+    return (
+        f'<div class="siamang-chart" data-name="{_esc(name)}">'
+        '<div class="siamang-chart-view"></div>'
+        f"<noscript>{picture}</noscript>"
+        '<script type="application/json" class="siamang-chart-spec">'
+        f"{vega.script_json(inline)}</script>"
+        "</div>"
+    )
+
+
+def _interactive_scripts() -> str:
+    """The chart libraries, once for the whole document, and what draws the
+    charts with them."""
+
+    parts = [
+        f'<script data-library="{name.removesuffix(".min.js")}">\n{vega.library(name)}\n</script>\n'
+        for name in vega.LIBRARIES
+    ]
+    parts.append(f"<script>\n{_EMBED_SCRIPT}\n</script>\n")
+    return "".join(parts)
+
+
 class Report:
     def __init__(
         self,
@@ -291,12 +404,22 @@ class Report:
 
     # ── serialization ─────────────────────────────────────────────
     def to_markdown(
-        self, asset_dir: str | Path = ".", *, embed_images: bool = False, prefix: str = ""
+        self,
+        asset_dir: str | Path = ".",
+        *,
+        embed_images: bool = False,
+        prefix: str = "",
+        specs: bool = False,
     ) -> str:
         """The report as Markdown, its figures written to ``asset_dir`` as
         ``{prefix}fig_{n}.png`` (``n`` the block's place) and referenced by that
         name. :meth:`save` passes the file's stem, so two reports saved in one
-        folder do not write each other's figures."""
+        folder do not write each other's figures.
+
+        ``specs`` also writes each figure's Vega-Lite spec beside it
+        (``{prefix}fig_{n}.vl.json``, ``SurveyChart.vega_lite()``), for a chart
+        that has an interactive form: what a host draws the chart from in a
+        browser. The Markdown itself is the same."""
         asset_dir = Path(asset_dir)
         # The theme the charts of palette "theme" take their colors from: the
         # document's, or the one whatever runs this names — as the HTML's.
@@ -326,7 +449,9 @@ class Report:
                 comp, caption = payload[0], payload[1]
                 assert isinstance(comp, SurveyChart)
                 name = f"{prefix}fig_{i}.png"
-                ref = self._chart_ref(comp, name, asset_dir, embed_images, look=look)
+                ref, _ = self._chart_ref(
+                    comp, name, asset_dir, embed_images, look=look, specs=specs
+                )
                 lines.append(f"![{caption or ''}]({ref})")
                 if caption:
                     lines.append(f"*{caption}*")
@@ -348,7 +473,17 @@ class Report:
         embed: bool,
         theme: ReportTheme | None = None,
         look: ReportTheme | None = None,
-    ) -> str:
+        *,
+        interactive: bool = False,
+        specs: bool = False,
+    ) -> tuple[str, dict[str, object] | None]:
+        """The figure's reference (a file's name, or a data URI when
+        ``embed``) and, when ``interactive``, the chart's Vega-Lite spec in
+        the same colors (None when it has none). With ``specs`` a figure
+        written to a file has its spec written beside it (``fig_3.png``,
+        ``fig_3.vl.json``: :func:`siamang.reporting.vega.spec_path`) when the
+        chart has an interactive form."""
+
         # The figure is written at the theme's resolution when one is rendering
         # it; without a theme the chart's own `dpi` applies, as before.
         dpi = theme.figure_dpi if theme is not None else None
@@ -363,15 +498,22 @@ class Report:
         shown = chart_theme.in_report(chart, look or theme)
         let_go = shown is not chart or not getattr(chart, "_held", False)
         try:
+            spec = _spec_of(shown) if interactive else None
             if embed:
                 with tempfile.TemporaryDirectory() as tmp:
                     png = Path(tmp) / name
                     shown.save(png, dpi=dpi)
-                    return _data_uri(png.read_bytes(), str(png))
+                    return _data_uri(png.read_bytes(), str(png)), spec
             asset_dir.mkdir(parents=True, exist_ok=True)
             png = asset_dir / name
             shown.save(png, dpi=dpi)
-            return png.name
+            written = (spec if interactive else _spec_of(shown)) if specs else None
+            if written is not None:
+                vega.spec_path(png).write_text(
+                    json.dumps(written, ensure_ascii=False, indent=1, allow_nan=False) + "\n",
+                    encoding="utf-8",
+                )
+            return png.name, spec
         finally:
             if let_go:
                 shown.release()
@@ -389,6 +531,7 @@ class Report:
         standalone: bool = False,
         embed_images: bool = True,
         asset_dir: str | Path = ".",
+        interactive: bool = False,
     ) -> str:
         """The report as HTML.
 
@@ -400,11 +543,29 @@ class Report:
         components (which know which columns are numbers) and its figures in a
         ``<figure>`` with their caption, so it can be opened, printed and mailed
         as it is.
+
+        ``interactive`` (a document only) draws each chart that has an
+        interactive form (``SurveyChart.vega_lite()``) in the reader's browser:
+        a tooltip on every bar, point and cell with its value and base, a
+        legend whose entries hide and show their series, zoom where it helps.
+        The document then carries the chart libraries — Vega, Vega-Lite and
+        Vega-Embed, about 0.8 MB, written in once however many charts there
+        are, never loaded from anywhere — and each chart's numbers as its spec
+        (:mod:`siamang.reporting.vega`). Each chart's picture stays in the
+        document: it is what a reader without scripts sees (``<noscript>``),
+        what is printed, and what is shown if a chart cannot be drawn. The
+        charts' menu saves a chart as PNG or SVG; it offers no editor and no
+        view of the source, which would send the chart elsewhere or show the
+        reader code.
         """
 
         import markdown as md_lib
 
         if not standalone:
+            if interactive:
+                raise ValueError(
+                    "Interactive charts are drawn in an HTML document: pass standalone=True."
+                )
             md = self.to_markdown(asset_dir=asset_dir, embed_images=embed_images)
             return md_lib.markdown(md, extensions=["tables"])
 
@@ -413,19 +574,25 @@ class Report:
         # house style without editing the flow (as SIAMANG_PROVENANCE does for
         # the footer). Unset, that is the defaults.
         theme = _as_theme(theme) or self.theme or ReportTheme.from_env()
-        body = "\n".join(self._html_blocks(theme, Path(asset_dir), embed_images))
+        blocks = self._html_blocks(theme, Path(asset_dir), embed_images, interactive=interactive)
+        body = "\n".join(blocks)
         title = _esc(self.title or "Report")
+        drawn = interactive and any(_INTERACTIVE_MARK in block for block in blocks)
+        style = theme.stylesheet() + (_INTERACTIVE_CSS if drawn else "")
+        scripts = _interactive_scripts() if drawn else ""
         return (
             "<!doctype html>\n"
             '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
             f'<meta name="siamang-report-theme" content="{_esc(theme.font_preset)}">\n'
             f"<title>{title}</title>\n"
-            f"<style>\n{theme.stylesheet()}</style>\n</head>\n"
-            f'<body>\n<main class="siamang-report">\n{body}\n</main>\n</body>\n</html>\n'
+            f"<style>\n{style}</style>\n</head>\n"
+            f'<body>\n<main class="siamang-report">\n{body}\n</main>\n{scripts}</body>\n</html>\n'
         )
 
-    def _html_blocks(self, theme: ReportTheme, asset_dir: Path, embed: bool) -> list[str]:
+    def _html_blocks(
+        self, theme: ReportTheme, asset_dir: Path, embed: bool, *, interactive: bool = False
+    ) -> list[str]:
         import markdown as md_lib
 
         def md(text: str) -> str:
@@ -466,11 +633,16 @@ class Report:
                 out.append(_figure(inner, caption, label, layout, theme))
             elif kind == "chart":
                 figures += 1
-                ref = self._chart_ref(component, f"fig_{i}.png", asset_dir, embed, theme)
+                ref, spec = self._chart_ref(
+                    component, f"fig_{i}.png", asset_dir, embed, theme, interactive=interactive
+                )
                 alt = _esc(caption or "")
+                inner = f'<img src="{ref}" alt="{alt}">'
+                if spec is not None:
+                    inner = _interactive_chart(inner, spec, f"figure-{figures}")
                 out.append(
                     _figure(
-                        f'<img src="{ref}" alt="{alt}">',
+                        inner,
                         caption,
                         _number(theme, "figure", figures),
                         layout,
@@ -493,8 +665,20 @@ class Report:
         return out
 
     def save(
-        self, path: str | Path, *, theme: ReportTheme | Mapping[str, object] | None = None
+        self,
+        path: str | Path,
+        *,
+        theme: ReportTheme | Mapping[str, object] | None = None,
+        interactive: bool = False,
     ) -> Path:
+        """Write the report to ``path``: Markdown (``.md``, its figures beside
+        it) or an HTML document (``.html``).
+
+        ``interactive`` asks for the charts' interactive form: the HTML draws
+        its charts in the reader's browser (:meth:`to_html`); the Markdown,
+        which stays as it is, has each figure's Vega-Lite spec written beside
+        it (``report_fig_3.vl.json``, :meth:`to_markdown`'s ``specs``)."""
+
         path = Path(path)
         suffix = path.suffix.lower()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -503,13 +687,16 @@ class Report:
             # the same folder would otherwise write over them. Only characters
             # a Markdown link and any file system take as they are.
             stem = re.sub(r"[^A-Za-z0-9._-]+", "-", path.stem).strip("-") or "report"
-            text = self.to_markdown(asset_dir=path.parent, prefix=f"{stem}_")
+            text = self.to_markdown(asset_dir=path.parent, prefix=f"{stem}_", specs=interactive)
             path.write_text(text, encoding="utf-8")
         elif suffix in (".html", ".htm"):
             # Written as a document, not a fragment: a saved `.html` is opened
             # by a person, so it carries its own stylesheet and its own images.
             path.write_text(
-                self.to_html(theme=theme, standalone=True, embed_images=True), encoding="utf-8"
+                self.to_html(
+                    theme=theme, standalone=True, embed_images=True, interactive=interactive
+                ),
+                encoding="utf-8",
             )
         elif suffix == ".pdf":
             raise NotImplementedError(

@@ -22,6 +22,11 @@ params:
     kind: bool
     default: true
     label: Also save HTML
+  interactive:
+    kind: bool
+    default: false
+    label: Interactive charts in HTML
+    help: The HTML draws its charts in the reader's browser — a tooltip on every bar, point and cell with its value and base, a legend whose entries hide and show their series, zoom where it helps — and still opens offline, so it can be sent to a client as it is. For that it carries the chart libraries (Vega, Vega-Lite and Vega-Embed, about 0.8 MB, written in once) and each chart's numbers — what it draws, and a scatter plot's points and a box plot's outliers, the respondents' values it plots. Each chart's picture stays in the HTML for printing and for readers without scripts; the Markdown and the Excel workbook are unchanged. Applies only with Also save HTML.
   toc:
     kind: bool
     default: false
@@ -36,20 +41,38 @@ params:
     label: Look
     help: Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected.
 subtitle: '{path}'
+checks:
+- when: interactive=True & html=False
+  severity: warning
+  message: Interactive charts in HTML draws the charts of the HTML — turn on Also save HTML; the Markdown and the Excel workbook keep their pictures.
 imports:
 - import os
 - from pathlib import Path
 - from siamang.reporting import Report
 # SIAMANG_PROVENANCE is set by the platform that runs the flow and by a
 # research bundle's run.sh: the report's footer says what it was made from.
+# Written as it always was unless Interactive charts is on (with the HTML):
+# a stored flow renders the same code. On, the Markdown's figures have their
+# Vega-Lite specs beside them (report_fig_3.vl.json) and the HTML draws them.
 template:
 - |
   {out.report} = Report.combine({in.sections}, title={title!r}, toc={toc!r}, theme={theme!r})
   {out.report}.provenance(os.environ.get("SIAMANG_PROVENANCE"))
-  {out.report}.save({path!r})
-- when: html
+- when: html!=True
+  code: |
+    {out.report}.save({path!r})
+- when: html=True & interactive!=True
+  code: |
+    {out.report}.save({path!r})
+- when: html=True & interactive=True
+  code: |
+    {out.report}.save({path!r}, interactive=True)
+- when: html=True & interactive!=True
   code: |
     {out.report}.save(Path({path!r}).with_suffix(".html"))
+- when: html=True & interactive=True
+  code: |
+    {out.report}.save(Path({path!r}).with_suffix(".html"), interactive=True)
 - when: xlsx
   code: |
     {out.report}.save_tables(Path({path!r}).with_suffix(".xlsx"))

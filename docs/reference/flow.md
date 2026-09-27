@@ -443,6 +443,18 @@ checked on every run but produce no file anyone can look at is a trap, and the
 two parameters describe a document that was not being written. `html: false`
 writes the Markdown alone.
 
+`output.save_report` also takes **`interactive`** (*Interactive charts in
+HTML*, off by default): the HTML draws its charts in the reader's browser
+(`Report.to_html(..., interactive=True)`) — tooltips with each value and its
+base, a legend that hides and shows series, zoom where it helps — carrying the
+chart libraries (about 0.8 MB, once) and each chart's numbers, and the
+Markdown's figures get their Vega-Lite specs beside them
+(`report_fig_3.vl.json`). It is written into the code only when it is on (with
+`html`), so a stored flow renders the code it always did; with `html` off it
+is not read, and `check_flow` warns (`PARAM_CONFLICT`, *Interactive charts in
+HTML draws the charts of the HTML — turn on Also save HTML; the Markdown and
+the Excel workbook keep their pictures.*).
+
 `output.save_report` ends the report with a **provenance footer** when the
 environment variable `SIAMANG_PROVENANCE` is set (Markdown: questionnaire
 version, data snapshot, engine version — whatever ran the flow knows). A
@@ -595,7 +607,11 @@ error`), `tiles` (what `output.live_tile` nodes published), `ok`.
 `output.live_tile` makes. Off-platform it only notifies sinks; `with
 live.capture() as tiles:` collects them (the runner does this for you),
 `add_sink` / `remove_sink` install a platform sink. `metric="rows"` publishes
-the row count of a `SurveyData`.
+the row count of a `SurveyData`. A `Tile` is `(node, kind, label, value,
+spec)`: a chart tile's `spec` is the chart's Vega-Lite spec
+(`SurveyChart.vega_lite()`), for a dashboard that draws it interactively,
+and `None` for another kind, a chart without an interactive form, or a spec
+that could not be made (a warning says why; the tile and its picture stay).
 
 ## `generate_flow`
 

@@ -381,6 +381,9 @@ class ChartColours:
     grid: str = GRID
     #: The face the charts' text is set in; None is matplotlib's default.
     font: str | None = None
+    #: The theme's font stack as it names it, for a browser drawing the chart
+    #: (an interactive chart, :mod:`siamang.reporting.vega`); None: the default.
+    font_stack: str | None = None
 
     @classmethod
     def of(cls, theme: ReportTheme | None) -> ChartColours:
@@ -395,6 +398,7 @@ class ChartColours:
             text=hex_colour(theme.chart_text_color),
             grid=hex_colour(theme.chart_grid_color),
             font=resolve_font(theme.chart_font),
+            font_stack=theme.chart_font or None,
         )
 
     @functools.cached_property
