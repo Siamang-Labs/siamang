@@ -283,6 +283,22 @@ class SurveyTable:
         return self.to_html()
 
 
+def _value_order(value: Any) -> tuple[int, float, str]:
+    """Where a value sorts in a table by value: numbers (and number-like
+    text, "2") by their value, then other text alphabetically. A column
+    holding both — codes, and a text an earlier runtime or an import left
+    among them ("25-34") — could not be sorted at all, and the table
+    stopped its whole report."""
+    if isinstance(value, bool):
+        return (0, float(value), "")
+    if isinstance(value, int | float | np.integer | np.floating):
+        return (0, float(value), "")
+    try:
+        return (0, float(str(value)), str(value))
+    except ValueError:
+        return (1, 0.0, str(value))
+
+
 # ─── FreqTable ────────────────────────────────────────────────────────────────
 
 
@@ -339,7 +355,7 @@ class FreqTable(SurveyTable):
         # rounded sums, weights summing to 1 over 1000 respondents made every
         # answer 20.0 %.
         exact: list[float] = []
-        for value in sorted(counts.index):
+        for value in sorted(counts.index, key=_value_order):
             n = int(counts[value])
             label = value_labels.get(value, str(value))
             row: dict[str, Any] = {"Value": value, "Label": label, "N": n}

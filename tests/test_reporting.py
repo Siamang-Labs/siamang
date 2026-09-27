@@ -285,6 +285,24 @@ def test_freq_table_counts_weights_and_keeps_the_people_beside_them():
     }
 
 
+def test_a_frequency_table_of_codes_and_stray_text_orders_them():
+    """Codes with a text among them — what an earlier runtime or an import
+    can leave in a column ("25-34" among 1, 2, 3) — could not be sorted,
+    and the table stopped the report it was in. Numbers come by value, a
+    number written as text among them, then the rest of the text."""
+    import pandas as pd
+
+    from siamang.data import SurveyData
+
+    frame = pd.DataFrame({"age": [3, 1, "25-34", 2, "2", None, 1]})
+    data = SurveyData(frame=frame)
+    table = data.report.freq("age").to_frame()
+    assert table["Value"].tolist()[:-1] == [1, 2, "2", 3, "25-34"]
+    assert table["N"].tolist() == [2, 1, 1, 1, 1, 6]
+    weighted = SurveyData(frame=frame.assign(w=[1.0] * 7)).with_weight("w").report.freq("age")
+    assert weighted.to_frame()["Value"].tolist()[:-1] == [1, 2, "2", 3, "25-34"]
+
+
 def test_weighted_freq_percentages_are_of_the_unrounded_sums_of_weights():
     """The N column shows a weighted count to one decimal; the percentages are
     of the sums as they are, so they agree with a Crosstab, the Bar chart
