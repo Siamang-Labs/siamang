@@ -126,9 +126,10 @@ The day count is rounded up, so a trial with a few hours left shows `1d`.
 **What is not unlocked during an unpaid trial**
 
 - **Email invitations to respondents.** Mailings leave from a sending domain
-  shared by every organization, so they unlock with the first payment. A new
-  mailing is refused with "email invitations unlock with the first payment — a
-  trial organization cannot send mailings".
+  shared by every organization, so they unlock once a plan is bought (a plan
+  bought during the trial counts at once, even one that starts when the trial
+  ends). A new mailing is refused with "email invitations unlock once a plan
+  is bought — a trial organization cannot send mailings".
 - **The AI assistant** runs on a **one-off allowance of 500 credits** (at most
   200 a day and 10 requests per person per hour), not Pro's monthly 50,000. It
   does not renew. When it is spent, you see "…this organization's assistant
@@ -335,8 +336,9 @@ checkout it answers "Could not open the billing portal. No billing account yet
 
 - **Upgrading.** Click **Upgrade** (or **Extend Pro**) → **Continue to
   checkout**, pay on Stripe's page, and you are brought back to Studio with the
-  notice "Payment received — your plan is being activated". The new plan
-  applies as soon as the payment is confirmed. If you leave the payment page
+  notice "Checkout complete — Settings → Billing shows your plan and when it
+  starts". The new plan applies as soon as the payment is confirmed, or, for
+  Plus bought during the trial, when the trial ends. If you leave the payment page
   instead, you see "Checkout canceled — your plan is unchanged".
 - **Buying during the trial** never shortens it: billing starts when the free
   period ends. The exception is the last two days or so of a trial, when
@@ -344,12 +346,15 @@ checkout it answers "Could not open the billing portal. No billing account yet
   organization on Pro. **Plus** (a subscription or the Plus year) starts when
   the trial ends: the organization stays on the Pro trial until then and then
   moves to Plus, not to Free. The Plus card shows **starts *date***, and
-  canceling that Plus subscription before the trial ends leaves the trial
-  running as if nothing was bought. In the last two days or so of the trial,
-  when billing cannot wait, a Plus subscription starts right away. A purchase
-  lifts the trial's limits (email invitations, the AI allowance) at once.
-  While a Plus year you bought waits for the trial to end, no other plan can
-  be bought, so its months are never lost.
+  canceling that Plus subscription before the trial ends (on the Billing
+  screen or in the payment portal) leaves the trial running as if nothing was
+  bought, with its limits. In the last two days or so of the trial, when
+  billing cannot wait, a Plus subscription starts right away. A purchase lifts
+  the trial's limits (email invitations, the AI allowance) at once.
+- **While a year offer is in force** — waiting for the trial to end, or
+  running — no other plan can be bought ("a year offer is in force until
+  *date*; another plan can be bought once it ends"), so its months are never
+  lost. Subscribe once it ends.
 - **Switching between Plus and Pro** on an existing subscription takes effect
   immediately. The difference is charged or credited pro rata.
 - **A subscription that has already ended.** If the payment provider has

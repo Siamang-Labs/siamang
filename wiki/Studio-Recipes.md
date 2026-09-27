@@ -342,7 +342,7 @@ panel provider's own checks.
 
 ### Invite a list by email and remind non-responders
 
-*(Plus and above, after the first payment.)*
+*(Plus and above, once a plan is bought.)*
 
 1. Publish the environment you will invite to.
 2. **Distribute → Email invitations → Import contacts**: paste one per line

@@ -49,7 +49,7 @@ and edit locks, API keys.
 | | |
 |---|---|
 | Length | 30 days of Pro, once per email address |
-| Not included during the trial | email invitations (import and send unlock with the first payment) |
+| Not included during the trial | email invitations (import and send unlock once a plan is bought) |
 | AI during the trial | 500 credits in total, at most 200 per day and 10 requests per hour |
 | Reminders | email 7 days and 1 day before the end; banner in the last 3 days |
 | When it ends | the organization moves to the **Free** plan; nothing is deleted |
