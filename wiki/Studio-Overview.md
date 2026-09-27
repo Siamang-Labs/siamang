@@ -82,6 +82,12 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
   [[Key Concepts|Studio-Key-Concepts]].
 - **Want the whole journey on one realistic study?**
   [[Tutorial: A Study from Start to Finish|Studio-Tutorial-End-to-End]].
+- **Want to see a finished study first?** Start a project from the
+  [example study](Studio-Projects#the-example-study), *Digital Life &
+  Wellbeing 2026*: a questionnaire that uses every question type but one, 729
+  sample responses and six analysis flows — cleaning and weighting, key
+  tables, screen use, wellbeing scales and drivers, an app idea (MaxDiff,
+  TURF, prices, an A/B message) and segments — each with its report.
 - **Looking for how to do one thing?** [[Recipes|Studio-Recipes]] and
   [[FAQ and Troubleshooting|Studio-FAQ-and-Troubleshooting]].
 
@@ -145,7 +151,7 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
 - [[Analysis Flows|Studio-Flows]] — the canvas, renaming and deleting flows, running, scheduling, live mode
 - [[Node Reference|Studio-Node-Reference]] — every node and every parameter
 - [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]] — preparing data the documented way
-- [[Coding Open Answers|Studio-Open-Answer-Coding]] — codeframes and the frozen-coding approach
+- [[Coding Open Answers|Studio-Open-Answer-Coding]] — codeframes: open answers coded by hand and by word rules, with no model
 - [[Reports|Studio-Reports]] — composing, styling, downloading, printing
 - [[History and Versions|Studio-History-and-Versions]] — Saves, diffs, restore, Methods, pre-registration, deposits
 - [[Reproducibility: Code, Bundles and Citation|Studio-Reproducibility]] — Download .py, the research bundle, citing

@@ -25,6 +25,7 @@ see when you reach a limit.
 | Builder: all question types, logic, quotas, randomization, theme, script library | ✓ | ✓ | ✓ | ✓ |
 | **Download .py**, research bundles, every data export | ✓ | ✓ | ✓ | ✓ |
 | Flows: **Run**, **Run all** | ✓ | ✓ | ✓ | ✓ |
+| Coding open answers by hand and by rules (the codeframe editor, the **Code open answers** node) | ✓ | ✓ | ✓ | ✓ |
 | Custom JavaScript and custom CSS in the questionnaire | — | ✓ | ✓ | ✓ |
 | Live tiles that recompute on new responses; public Live share links | — | ✓ | ✓ | ✓ |
 | Schedules and webhooks | — | ✓ | ✓ | ✓ |
@@ -73,7 +74,9 @@ see when you reach a limit.
 - **AI credits** measure how much text the assistant sends to and receives
   from the model: one credit is about 1,000 tokens (pieces of words). The daily
   allowance resets at midnight UTC and the monthly one with the next month.
-  See [[AI Assistant|Studio-AI-Assistant]].
+  See [[AI Assistant|Studio-AI-Assistant]]. Coding open answers spends none:
+  it is done by hand and by rules, and AI coding of open answers is switched
+  off on this platform (see [[Coding Open Answers|Studio-Open-Answer-Coding]]).
 
 > **Note.** The Free response cap used to be counted for each environment
 > separately, with screen-outs included. It now counts completed interviews
@@ -204,7 +207,7 @@ paid, not as a trial:
 | Workspace chip menu | a `200d` pill, hover "Paid period — 200 days left" |
 | **Organizations** screen | **Paid period · 200d left** |
 | **Settings → Billing** | "**Plus · 200 days left of the paid period.** Full access to every Plus feature; one subscription covers the whole organization. …", and the Plus card carries a **paid period** pill |
-| Banner, last 3 days | "**Your paid Plus period ends in 3 days.** Afterwards, Free plan limits apply. Your data is preserved and stays exportable. Renew in Settings → Billing to keep using paid features." Once it is over: "**Your paid period has ended.**" |
+| Banner, last 3 days | "**Your paid Plus period ends in 3 days.** Afterward, Free plan limits apply. Your data is preserved and stays exportable. Renew in Settings → Billing to keep using paid features." Once it is over: "**Your paid period has ended.**" |
 | Owners' emails, 7 and 1 day before | "Your Siamang Studio paid Plus period for *organization* ends in N day(s)" |
 | Owners' email at the end | "*organization* is now on the free plan — the Siamang Studio paid Plus period ended" |
 

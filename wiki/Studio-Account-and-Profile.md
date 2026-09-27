@@ -104,7 +104,7 @@ away.
 A paid period that ends on a date, such as a 12-month beta offer, gets the
 same banner in its own words:
 
-> **Your paid Plus period ends in 3 days.** Afterwards, Free plan limits apply.
+> **Your paid Plus period ends in 3 days.** Afterward, Free plan limits apply.
 > Your data is preserved and stays exportable. Renew in Settings → Billing to
 > keep using paid features.
 
@@ -151,7 +151,7 @@ This tab changes the password you use with **Continue with Email**.
 
 > Set a new password for your account. Your current session stays active.
 
-1. Type the new password in **New password**. The checklist below it ticks off
+1. Type the new password in **New password**. The checklist below it checks off
    the rules: **At least 8 characters**, **A lowercase letter**, **An uppercase
    letter**, **A number**, **A symbol (e.g. ! ? @ #)**.
 2. Type it again in **Confirm new password**. If the two differ, the field says

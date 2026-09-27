@@ -40,15 +40,19 @@ here is exactly what the generated script does.
 ```
 Flows  Load → Clean → Analyze → Report · run history          [More ▾] [+ New flow] [▶ Run flow]
 
-Flows  2 · one document each under flows/
-┌──────────┬─────────────────────┬──────────────────────────┬───────────────────┬──────────────┐
-│ Flow     │ Description         │ Last run                 │ Report            │              │
-│ cleaning │ Clean raw responses │ ● 23 Sep, 09:12 · 0m 08s │ —                 │ review run ⋮ │
-│ tables   │ Key tables          │ ● 23 Sep, 09:13 · 0m 34s │ outputs/tables.md │ review run ⋮ │
-└──────────┴─────────────────────┴──────────────────────────┴───────────────────┴──────────────┘
+Flows  6 · one document each under flows/
+┌───────────────┬───────────────────────────────────────┬──────────────────────────┬───────────────────────────────────┬──────────────┐
+│ Flow          │ Description                           │ Last run                 │ Report                            │              │
+│ cleaning      │ 1. Clean raw responses                │ ● 23 Sep, 09:14 · 0m 11s │ outputs/data_quality.md           │ review run ⋮ │
+│ tables        │ 2. Key tables                         │ ● 23 Sep, 09:12          │ outputs/key_tables.md             │ review run ⋮ │
+│ usage         │ 3. Screen use                         │ ● 23 Sep, 09:12          │ outputs/screen_use.md             │ review run ⋮ │
+│ wellbeing     │ 4. Wellbeing: scales and drivers      │ ● 23 Sep, 09:12          │ outputs/wellbeing.md              │ review run ⋮ │
+│ wellbeing_app │ 5. The app: features, reach and price │ ● 23 Sep, 09:12          │ outputs/app_features_and_price.md │ review run ⋮ │
+│ segments      │ 6. Segments                           │ ● 23 Sep, 09:12          │ outputs/segments.md               │ review run ⋮ │
+└───────────────┴───────────────────────────────────────┴──────────────────────────┴───────────────────────────────────┴──────────────┘
 
 Pipeline  the order Run all runs them · a flow after the flows whose tables it reads
-   ● cleaning ──── ● tables
+   ● cleaning ── ● tables ── ● usage ── ● wellbeing ── ● wellbeing_app ── ● segments
 
 Schedules  1 · cron, UTC · fired by the worker                         [+ Schedule a run]
 
@@ -80,10 +84,16 @@ tables it reads, alphabetical where that leaves a choice (see
 |---|---|
 | **Flow** | the flow's name (its file name), with a red **errors** pill when the flow did not pass the engine's check at the current Save (see [A flow with errors](#a-flow-with-errors)) and an amber **cycle** pill when it and another flow read each other's tables (see [Flows that read each other's tables](#flows-that-read-each-others-tables)); hover a pill for the details |
 | **Description** | the flow's title (or description) |
-| **Last run** | status dot, start time and duration ("0m 34s") of the flow's latest finished run of its own — started by hand, by a schedule or by Live; "running" while a run of the flow is in progress; "never" when the flow has not finished a run since the last **Reset history**. **Run all** does not count here |
+| **Last run** | status dot, start time and duration ("0m 34s") of the flow's latest finished run — started by hand, by a schedule or by Live — or of the latest **Run all** that ran it, whichever is newer; "running" while a run of the flow is in progress; "never" when the flow has not finished a run since the last **Reset history** |
 | **Report** | the flow's **Report path**, or "—" |
 
-**Last run** comes from the server, so it survives a reload of the page.
+**Last run** comes from the server, so it survives a reload of the page, and
+it is read again when a **Run all** you started finishes. A **Run all** counts
+for each flow it ran, with that flow's own outcome (a green
+dot for a flow that succeeded, red for one that failed or was skipped) and the
+time the Run all started, but no duration: the Run all times its flows only
+as a whole. The screen above is the example study after a **Run all** at
+09:12, followed by a run of `cleaning` on its own at 09:14.
 
 Click a row to open the flow on the canvas. On the right:
 
@@ -94,14 +104,16 @@ Click a row to open the flow on the canvas. On the right:
 - **⋮** ("More for *flow*") — **Rename…**, **Duplicate…** and **Delete…**;
   see [Rename, duplicate or delete a flow](#rename-duplicate-or-delete-a-flow).
 
-With no flows: "**No flows yet.** The example study ships one to read; start
-your own with **New flow**." (The example study ships two flows, `cleaning`
-and `tables`.)
+With no flows: "**No flows yet.** The example study ships six to read; start
+your own with **New flow**." (See
+[The example study's flows](#the-example-studys-flows).)
 
 ### Pipeline
 
-The strip shows every flow as a chip with the status of its latest run, in
-the same order as the flows table — the order **Run all** runs them. Its
+The strip shows every flow as a chip with the status of its latest run —
+the same run as its **Last run** in the table, a **Run all** that ran it
+included, and a blinking dot while a run of the flow is in progress — in the
+same order as the flows table, the order **Run all** runs them. Its
 sub-title reads "the order Run all runs them · a flow after the flows whose
 tables it reads". Click a chip to open the **Run flow** dialog with that flow
 selected.
@@ -131,7 +143,7 @@ ten more, up to the 50 most recent runs.
 │ ● success   flow   #412                              23 Sep, 09:13     │
 │ ✓ Queued ── ✓ Run ── ✓ Done      ran in 0m 34s                        │
 │ tables · Save #17                                                      │
-│ [tables.md  4.1 KB] [tables.html  88 KB] [tables_fig_3.png  31 KB]     │
+│ [key_tables.md  5.7 KB] [key_tables.html  199 KB] [key_tables.xlsx …] │
 │ › View logs                               [Re-run] [Open flow →]      │
 └───────────────────────────────────────────────────────────────────────┘
 ```
@@ -204,7 +216,10 @@ A Save that would exceed the cap is refused with "plan 'free' allows up to 3
 analysis flows per project; this Save would have 4 — delete one or upgrade". A
 project that is already over the cap (after a downgrade) can still be saved as
 long as the number of flows does not grow — a rename, for example, does not
-add one. Deleting a flow frees its place.
+add one. Deleting a flow frees its place. A project started from the example
+study begins with its six flows on every plan, so on Free it is such a
+project: its flows run and can be edited, and a new flow can be added once
+fewer than three are left.
 
 ---
 
@@ -460,10 +475,10 @@ t-test's **Groups** does). They offer, in this order:
 - the variables that nodes **upstream** of this one make — a **Recode**,
   **Derive**, **Index / scale**, **Bands**, **Explode multiple choice**,
   **MaxDiff scores**, **Cluster (k-means)**, **Factor analysis** (with **Add
-  factor scores** ticked), **Code open answers** (when its **Theme variable**
-  is filled in), **Response quality**, **Speeders & partials** or weighting
-  node earlier in the flow. Their label says so:
-  "*label* · made by *node*", or "made by *node*" when the node gives no
+  factor scores** checked), **Code open answers** (its **Theme variable**, or,
+  left empty, the name its codeframe carries), **Response quality**,
+  **Speeders & partials** or weighting node earlier in the flow. Their label
+  says so: "*label* · made by *node*", or "made by *node*" when the node gives no
   label (`duration_s` reads "completion time · made by *node*", `partial`
   "partial response · made by *node*", `factor_1` "factor 1 score · made by
   *node*", `q_md_score_3` "MaxDiff score: *item* · made by *node*"). A node
@@ -493,7 +508,7 @@ survey's responses carry — `created_at — Response date (created_at)`,
 `updated_at — Last change (updated_at)` and `started_at — Start time
 (started_at)` — and the checks know them. A flow that reads them from a **Data
 file** or **Simulated data**, which have none unless the file brings the
-column, gets a warning. **Time** lists **Waves and dates** first (labelled
+column, gets a warning. **Time** lists **Waves and dates** first (labeled
 codes, ordinal variables, date columns, a Date question's answers), then
 **Other variables**.
 
@@ -768,12 +783,12 @@ without a preview run and without using your preview allowance. It reads
 
 The counts are exactly the rows the Responses node keeps. The pill names its
 environment — **SQL · main**, or **SQL · main, completed** with **Only
-completed responses** ticked (tooltip "Counted by the server straight from
+completed responses** checked (tooltip "Counted by the server straight from
 the responses table — no sandbox run") — and the note under the counts says
 the same in words: "Counts what this source keeps: main's responses and any
 rows no deployment claims (imported or sample data), partial ones included."
 (", completed only" in place of ", partial ones included" when **Only
-completed responses** is ticked). The counts are always **unweighted**,
+completed responses** is checked). The counts are always **unweighted**,
 since the node is fed by the source directly. For a multiple-answer question
 the panel notes that percentages are of the respondents who answered. A
 Responses node that reads another table shows no Instant panel.
@@ -899,7 +914,7 @@ other does not read back) to get a meaningful order.
 - The **combined report**, with its `.html` twin and figures.
 - **Each successful flow's report** — its `.md`, the `.html` twin (when
   **Also save HTML** is on), the workbook of its tables (`<name>.xlsx`, when
-  **Also save tables to Excel** is ticked) and the figures the `.md` names —
+  **Also save tables to Excel** is checked) and the figures the `.md` names —
   stored as soon as that flow finishes, under `outputs/<flow>/` in **Files**
   and on **Reports**, where a single run of the flow stores it. It replaces
   the flow's previous report there. Run all runs the flows in one working
@@ -908,19 +923,38 @@ other does not read back) to get a meaningful order.
   flow's workbook or HTML left under that name.
 - **Each successful flow's tab books** — the workbook every **Tab book
   (Excel)** node writes under `outputs/` — stored the same way.
+- **What each flow's Live tile nodes published** — its tiles and the charts
+  they show — so **Live** shows the tiles of this Run all (see
+  [[Live Monitoring|Studio-Live-Monitoring]]).
+- **The other files a flow's document declares as its outputs** — the list
+  under `outputs.files` in `flows/<name>.flow.json`. The example study's
+  flows declare their HTML twins, the R bundle of the cleaned data
+  (`clean_responses.R`, `.csv` and `.dictionary.json`) and the MaxDiff choice
+  data with its R script for hierarchical Bayes; a flow built on the canvas
+  declares none.
 - The tables its **Write table** nodes write, as in any run.
 
-Other files the flows write under `outputs/` (exports, HB files) are not kept
-by Run all, and Live tiles are not updated — run a flow on its own (or
+The tiles and the declared files are stored under `outputs/<flow>/` in
+**Files**, where a single run of the flow stores them, and listed on the Run
+all's card — each only when that flow wrote it during this Run all, so a file
+an earlier flow left under the same name is never taken for another's. Other
+files the flows write under `outputs/` — an **Export file** of a flow built
+on the canvas, say — are not kept by Run all: run the flow on its own (or
 schedule it) for those. Open the reports from **Reports**.
 
 ### The combined report
 
-The combined report — title "Combined report" — has a **Contents** list and
-one section per flow that declares a **Report path**, titled with the flow's
-title and containing that flow's report. It is written to `reports/report.md`
-with an `.html` twin in the project's report house style, and appears on
-**Reports** with a **combined** badge. The path can be changed in **Settings →
+The combined report is titled with the questionnaire's title (the example
+study's reads *Digital Life & Wellbeing 2026*; "Combined report" when the
+questionnaire has none). It has a **Contents** list and one chapter per flow
+that declares a **Report path**: the chapter is headed with that report's
+own title, the flow's title stands under the heading, and the report's
+sections follow one heading level down. The provenance footer (while
+**Settings → Reports** has it on) comes once, at the end, rather than after
+every chapter. It is written to `reports/report.md`
+with an `.html` twin in the project's report house style — the twin carries
+its figures inside it, as a flow's own HTML does — and appears on **Reports**
+with a **combined** badge. The path can be changed in **Settings →
 Reports**; the badge follows it.
 
 The sections follow the order in which the flows ran. A flow without a
@@ -937,7 +971,9 @@ all will fail this flow. Set it to the Path of a Save report step, or clear
 it."
 
 **After a failure** the combined report is still written from the flows that
-succeeded, titled **Combined report (incomplete)**. Its first section,
+succeeded, its title marked incomplete — *Digital Life & Wellbeing 2026
+(incomplete)*, or **Combined report (incomplete)** for a questionnaire
+without a title. Its first section,
 **Missing from this report**, reads "This Run all did not finish every flow,
 so this report has only the sections of the flows that did. Not in it:",
 then one line per flow — "**tables** — failed: *reason*" or "**charts** —
@@ -973,7 +1009,7 @@ settings. Full details: [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
 ## Live mode
 
-Tick **Live: recompute on new responses** in the Flow settings and Save. From
+Check **Live: recompute on new responses** in the Flow settings and Save. From
 then on, new responses trigger a recompute of the flow about ten seconds after
 they arrive (a burst of responses gives one recompute), and its **Live tile**
 nodes refresh the **Live** screen. Each recompute is an ordinary run: it
@@ -981,9 +1017,10 @@ appears in **Run history**, replaces the flow's files and reports, and uses
 the plan's run time. A recompute that fails sends no email (a failed
 scheduled run does); it shows in **Run history**. Automatic recompute is a *Plus* feature; on Free you refresh tiles by hand
 with **Recompute now** on the Live screen. Live tiles are also refreshed by
-any ordinary run of the flow, with or without Live mode; the Live screen
-shows the tiles of the flow's latest completed run. **Run all** and previews
-do not change them. See [[Live Monitoring|Studio-Live-Monitoring]].
+any ordinary run of the flow, with or without Live mode, and by a **Run all**
+in which the flow ran; the Live screen shows the tiles of the newest of
+these. Previews do not change them. See
+[[Live Monitoring|Studio-Live-Monitoring]].
 
 ---
 
@@ -1008,8 +1045,20 @@ derived variable, an index, a cluster, the quality flags) arrives in the
 reading flow labeled, can be picked in its nodes ("from table *table* · made
 by *flow*"), and passes the engine check at Save. **Run all** runs the writing
 flow first. A table last written before tables kept their variables arrives
-without those labels: run the writing flow once more to store them. The
-recipe is in
+without those labels: run the writing flow once more to store them. A
+multiple-choice question kept as one variable, and a ranking, come back as
+the lists they were, as the **Responses** node gives them, so **Explode
+multiple choice** (and the **Paired tests** or **TURF** after it) and a
+**Tab book (Excel)** read them in the reading flow too.
+
+Until the writing flow has run once, the table does not exist, and the
+reading flow's **Project table** node stops — in a preview and in a run —
+with "The table clean_responses does not exist yet: it is written by 1. Clean
+raw responses. Run that flow (or Run all) first, then this one." (the title
+of the flow whose **Write table** node writes it; "…: a flow's Write table
+node makes it." when no flow of the project does). The nodes after it then
+read "not reached". A new example project is in this state until you run
+`cleaning`. The recipe is in
 [Cleaning and Weighting Data](Studio-Cleaning-and-Weighting#writing-the-cleaned-data-to-a-table).
 
 ---
@@ -1037,6 +1086,142 @@ across N steps." is a good answer. A flow with engine errors is not reviewed
 ("fix what the structural check reports first"). Only the flow and the
 codebook are sent — no responses. A review typically costs about 7 credits.
 See [[AI Assistant|Studio-AI-Assistant]].
+
+---
+
+## The example study's flows
+
+A project started from the example study (see
+[The example study](Studio-Projects#the-example-study)) comes with six flows
+that between them use most of the palette on its sample responses. Each is
+about a dozen nodes with a report of its own; their titles are numbered in
+the order **Run all** runs them, and the node ids named below are on the node
+cards. Every report section says how its numbers were made, never what they
+are — the same flow run on your own fieldwork gives other numbers — and
+every **Save report** uses the example's Look, so the six reports and the
+combined one look alike. All six pass **Check** without an issue.
+
+Run `cleaning` first, or all six with **More ▾ → Run all flows**: the other
+five read the table it writes (and `segments` the one `wellbeing` writes),
+and until it has run they stop at their first node (see
+[Tables between flows](#tables-between-flows)).
+
+> **Plan.** The six flows come with the project on every plan. On Free, which
+> allows 3 flows per project, you can run, edit, rename and delete them, but
+> a Save that adds a flow is refused until fewer than three are left (see
+> [Creating a flow](#creating-a-flow)).
+
+### 1. Clean raw responses (`cleaning`)
+
+From the completed interviews to an analysis-ready, weighted table.
+
+| Node | What it shows you |
+|---|---|
+| `src` **Responses** | **Environment** `main` and **Only completed responses** on: the sample rows, which no deployment claims, count as `main`'s, and break-offs never reach the analyses |
+| `check` **Data check** | the answers against the codebook, off to the side of the pipeline — a table, not a filter. It finds the commutes outside 0–240 and leaves them in the data for you to decide on |
+| `dedup` **Dedup respondents** | one row per `respondent_id`, keeping the last |
+| `speed` **Speeders & partials** | **Minimum seconds** `240` (four minutes, in a survey of about ten), **Drop partials** on, **Required answers** gender, age group and life satisfaction |
+| `bands` **Bands** | the typed age in the three age groups (`16-29`, `30-44`, `45+`) as `age_band`, for the consistency check |
+| `quality` **Response quality** | **Mode** `drop`: straightlining down the eleven statements of the two matrices (the attention check aside), the age group asked against `age_band` (**Answers that must agree**), the attention check (expected answer `2`, Disagree), and duplicates — the same grid answers plus the six answers under **Duplicates also match on** (age, gender, area, employment, life satisfaction, hours on screens), so that two strangers who answered the grids alike are not dropped as one person |
+| `rake` **Rake weights** | illustrative population shares of age group, gender and area, each weight capped at 5 |
+| `write` **Write table** | `clean_responses`, the table the other flows read |
+| `export` **Export file** | `outputs/clean_responses.R`: the cleaned, weighted data for R, with its `.csv` and dictionary |
+| `tile_n`, `tile_quality` **Live tile** | *Clean respondents* (**Show** `rows`) and *Quality checks* (the quality table); **Live: recompute on new responses** is on |
+| `weights`, `weighted` → `age_mix` | **Descriptive statistics** of the weight by age group, and **Apply weight** → **Frequencies** of age group: what the weighting did |
+
+Its report, *Data quality*, has two sections. **Checks and cleaning** gives
+what the data check found and the responses that failed each quality check,
+with the funnel under the tables: *Checked* (the completed interviews),
+*Screened* (those left after the speeders) and *Clean* (those left after
+the quality checks). **Weighting** gives the weights in each
+age group, and each age group's weighted share beside its respondents, with
+Kish's effective N — what the weighting costs in precision.
+
+### 2. Key tables (`tables`)
+
+The tables a client asks for first, weighted.
+
+| Node | What it shows you |
+|---|---|
+| `src` **Project table** → `weight` **Apply weight** | `clean_responses`, with every table after it weighted |
+| `sat` **Frequencies** | life satisfaction, weighted count and % beside the respondents, and the effective N |
+| `band` **Derive** → `xtab` **Crosstab** | seven answers by three age groups leave cells too thin for a chi-square test, so `life_band` first puts the answers in three bands (`1-3`, `4-5`, `6-7`); **Percentages** `row`, the test on the effective base |
+| `chart` **Bar chart** | mean life satisfaction by age group, with **Confidence intervals** |
+| `missing` **Missing values** → `banner` **Banner table** | Prefer not to say and Not applicable become blanks, so they get no column or row; four habits down, age group and gender across, with significance letters |
+| `tabbook` **Tab book (Excel)** | fourteen questions named in **Questions**, by age group, gender and area, in `outputs/tabbook.xlsx`. They are named because, left empty, the tab book would also take in the eight feelings and the thirteen MaxDiff variables; and the banner's own variables are left out, since crossed with themselves they give 100 % and 0 % |
+| `code` **Code open answers** → `themes` **Result chart** | the open answers coded with `analysis/improve.codeframe.json`, **Also add sentiment** on, and a chart of the themes and their tone |
+
+Its report, *Key tables* (**Also save tables to Excel** on), has the
+sections **Life satisfaction** and **Habits by group, and one change in their
+own words**.
+
+### 3. Screen use (`usage`)
+
+Charts of a number and of time, a test of four yes/no answers from the same
+people, and a map.
+
+| Node | What it shows you |
+|---|---|
+| `hist` **Bar chart** | **Layout** `histogram` of hours a day, in two-hour **Bins**, % of each age group in a panel of its own |
+| `trend` **Trend** | the weekly mean of hours a day (**Time** `created_at`, **Period** `week`) over the ten weeks of fieldwork, with its confidence band — drawn low and wide (7.5 × 3.4 inches), so it also fills the tile below |
+| `tile_trend` **Live tile** | the same chart as a tile, *Screen time by week*: `trend`'s `chart` goes both to the report section and to the tile. Live is off, so the tile changes when the flow runs |
+| `explode` **Explode multiple choice** → `manage` **Paired tests** | the four ways of managing screen time as 0/1 columns, compared with Cochran's Q (**Test** `cochran`), each pair by McNemar with Holm's adjustment |
+| `map` **Perceptual map** → `map_chart` **Result chart** | **Table** `attributes`: each respondent's kind of app against the eight feelings, so that each kind of app lands near the feelings its users name more often than average |
+
+Its report, *Screen use*, has the sections **How much, and over the weeks**
+and **Managing it, and the apps it goes to**.
+
+### 4. Wellbeing: scales and drivers (`wellbeing`)
+
+Two scales, and what goes with life satisfaction. Nothing here is weighted:
+the scales, factors and models describe how the answers hang together, and
+the report says so.
+
+| Node | What it shows you |
+|---|---|
+| `recode` **Recode** | "I feel anxious about unread messages" reversed into `calm`, so that the five items run the same way |
+| `index` **Index / scale** | `wellbeing_index`, the mean of the five |
+| `alpha` **Scale reliability** | Cronbach's alpha, with each item's corrected item-total correlation and the alpha without it |
+| `likert` **Likert chart** | the six phone statements (the attention check left out) |
+| `factor` **Factor analysis** | **Factors** `2` — fixed, not left to a rule, because the regression below reads both scores and on other answers a rule could keep one — **Rotation** `promax`, sorted, loadings under 0.3 hidden, scores `digital_1` and `digital_2` |
+| `drivers` **Key drivers** → `drivers_chart` **Result chart** | life satisfaction on sleep, waking rested, focus, calm, feeling in control and hours on screens: each one's share of R² |
+| `ordinal` **Regression** | **Model** `ordinal`: life satisfaction on the index, the two factor scores, hours and age group, with odds ratios, N and McFadden's pseudo-R². Age group enters as one slope across its three groups, as the section and the table's notes say |
+| `write` **Write table** | `scored_responses`: the clean data with the index and the scores, for `segments` |
+
+Its report, *Wellbeing*, has the sections **Two scales** and **What goes with
+life satisfaction**.
+
+### 5. The app: features, reach and price (`wellbeing_app`)
+
+What people want from the app idea, how many a shortlist reaches, and what it
+should cost.
+
+| Node | What it shows you |
+|---|---|
+| `maxdiff` **MaxDiff** | the eight features from most to least important: times shown, best, worst, score, utility and share |
+| `explode` → `turf` **TURF** → `turf_chart` **Result chart** | the features people would use, as 0/1 columns; the best shortlist of one, two and three features and how many people it reaches — which need not be the most important features. The chart names the features |
+| `framing` **t-test** | interest in the app by `message_arm` (Welch's t): the two arms compared as they were drawn, unweighted |
+| `recommend` **Net Promoter Score** | the 0–10 recommendation question |
+| `price` **Price sensitivity** → `price_chart` **Result chart** | Van Westendorp: the four price points, the range of acceptable prices and the curves, from those whose interest was 3 or more |
+
+Its report, *App features and price*, has the sections **What people want
+from it** and **Framing, recommendation and price**.
+
+### 6. Segments (`segments`)
+
+Three kinds of user, from `scored_responses`.
+
+| Node | What it shows you |
+|---|---|
+| `cluster` **Cluster (k-means)** | three clusters on hours a day, social media use, feeling in control and restlessness without the phone (standardized); **Number clusters by** hours a day, fewest first, so the names below stay with their clusters even when two come out at close sizes |
+| `segment` **Derive** | names the clusters *Intentional*, *Balanced* and *Always on* — names given after reading their profiles, to be read again on other answers |
+| `means`, `ranks` **Group means** | the wellbeing index by segment (ANOVA with Tukey's pairs) and life satisfaction, a rating, by its ranks (Kruskal-Wallis with Dunn's pairs); both before the weight, so the means printed with the tests are the ones compared |
+| `weight` **Apply weight** → `sizes` **Bar chart** | **Layout** `donut`: the segments' weighted sizes |
+| `profile` **Descriptive statistics** | **Layout** `means`: a column per segment with each variable's weighted mean, a compact profile |
+| `scores` **MaxDiff scores** → `wants` **Heatmap** | each respondent's score for each feature, and each segment's mean scores as a heatmap |
+| `hb` **Choice data for HB** | `outputs/app_md_choices.csv` with its dictionary and an R script for a hierarchical Bayes estimate, which gives each respondent utilities of their own |
+
+Its report, *Segments*, has one section, **Three kinds of user**.
 
 ---
 

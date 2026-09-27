@@ -2,10 +2,15 @@
 
 The AI assistant *(Plus)* reads your work and makes suggestions. It drafts a
 questionnaire from a brief, rewords a question, proposes answer options,
-reviews the wording of a whole questionnaire and reviews an analysis flow. It
-can also build a coding scheme for open answers. This page covers each
-feature, how to turn the assistant on, what it sends where, and how its
-allowance of credits works.
+reviews the wording of a whole questionnaire and reviews an analysis flow.
+This page covers each feature, how to turn the assistant on, what it sends
+where, and how its allowance of credits works.
+
+> **Coding open answers is not one of them.** AI coding of open answers is
+> switched off on this platform, because it sent what respondents wrote to the
+> model provider. You code open answers yourself, by hand and by word rules,
+> in the codeframe editor — no assistant, no credits. See
+> [Coding open answers is switched off](#coding-open-answers-is-switched-off).
 
 ---
 
@@ -55,11 +60,11 @@ feature". See [Integrations](Studio-Organizations-and-Team#integrations).
 | **Reword**, **Suggest options** | that one question (id, type, text, hint, required, scale, answer labels), the survey's title and description, and your note |
 | **Draft from a brief** | your brief, the working title and the language you named |
 | Flow **review** | the flow's title and description, its steps with their settings and connections, and the codebook (variable names, labels, scales) |
-| **Code open answers** | the open answers of one variable, and the question text |
 
-Never sent: your theme, scripts, quotas, files, contact lists, or anyone's
-answers. The exception is open-answer coding, whose whole purpose is to read
-the answers.
+Never sent: your theme, scripts, quotas, files, contact lists, or anything a
+respondent wrote. (AI coding of open answers, the one feature that sent
+respondents' answers, is switched off on this platform — which is why the
+consent above asks only about questionnaire and analysis text.)
 
 ---
 
@@ -212,12 +217,28 @@ See [[Analysis Flows|Studio-Flows]].
 
 ---
 
-## Coding open answers
+## Coding open answers is switched off
 
-On a flow's canvas, **Code open answers…** (or **Code more answers…**) has the
-assistant read the answers to one open-text question, propose themes and
-assign each answer to one. You review and rename the scheme before anything
-is coded. See [[Coding Open Answers|Studio-Open-Answer-Coding]].
+The assistant used to build coding schemes for open answers: **Code open
+answers…** on a flow's **Code open answers** node had it read the answers to
+one open-text question, propose themes and assign each answer to one. That
+meant sending the text respondents wrote — not your team's own text — to the
+model provider, DeepSeek, which processes it in China. It is switched off on
+this platform for now:
+
+- the **Code open answers…** and **Code more answers…** buttons and their
+  dialog are gone;
+- a request to start a coding job through the API is refused before anything
+  is read or charged: "AI coding of open answers is switched off on this
+  platform.", and a job queued before the switch ends as failed with the same
+  words, without reading an answer;
+- codeframes the assistant built earlier stay in their projects, and the
+  **Code open answers** node applies them as before, without any model.
+
+Open answers are coded in the **codeframe editor** instead: by hand, and by
+word rules that also code the answers collected later. It runs in Studio,
+sends nothing anywhere, is on every plan and spends no credits. See
+[[Coding Open Answers|Studio-Open-Answer-Coding]].
 
 ---
 
@@ -249,7 +270,6 @@ Allowances are **per organization**:
 | **Reword**, **Suggest options** | about 2 each |
 | **Draft from a brief** | about 34 on Plus, about 115 on Pro and Corporate (larger model) |
 | Flow **review** | about 7 |
-| **Code open answers** | depends on the number of answers |
 
 You are charged for what the provider actually processed. Before sending,
 Studio checks that your remaining allowance covers a cautious estimate of the

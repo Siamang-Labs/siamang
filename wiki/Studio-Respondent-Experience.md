@@ -100,7 +100,7 @@ row." and marks the rows still empty until each is answered (see
 (email, phone, web address, date, time) show their own messages. A Number
 outside its range shows "Minimum value is 1" or "Maximum value is 10" when the
 field is left and on **Next**, and a Multiple choice with **Min answers** and
-too few options ticked shows "Select at least 1 more" — in both cases **Next**
+too few options checked shows "Select at least 1 more" — in both cases **Next**
 waits until the answer is corrected. An exclusive answer such as "None of
 these" is a whole answer on its own, so **Min answers** does not hold it, and
 an optional question left empty can still be skipped.
@@ -130,7 +130,7 @@ Builder → Theme → Appearance → Question style → **Progress**:
 
 **Page dots.** A dot goes back to a page the respondent has already been
 through on the way to the current one; dots ahead, and dots of pages the
-routing skipped, are greyed out and do nothing. With **Allow going back** off,
+routing skipped, are grayed out and do nothing. With **Allow going back** off,
 no dot goes back. Only pages actually visited are drawn as done.
 
 The published survey follows these settings the same way the Builder's
@@ -155,7 +155,7 @@ statement, when you set them.
 
 | Input | Does |
 |---|---|
-| `Enter` or `Space` (outside a text field) | next page (or submit on the last). Right after a mouse click on a button or link — a MaxDiff or Conjoint pick, a rating point, a matrix cell — the key still goes on, and every pick stays as it was clicked. Once the keyboard has brought the focus to a button or link (`Tab`, `Shift+Tab`, the arrow keys in a Matrix), the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen, a chosen MaxDiff or Conjoint pick is released. On a radio button or a checkbox — where a click on a choice or a picture choice leaves the focus — and on a slider, `Enter` goes on with the choice kept, and `Space` is the control's own: it checks the radio, ticks or unticks the box, and does not go on |
+| `Enter` or `Space` (outside a text field) | next page (or submit on the last). Right after a mouse click on a button or link — a MaxDiff or Conjoint pick, a rating point, a matrix cell — the key still goes on, and every pick stays as it was clicked. Once the keyboard has brought the focus to a button or link (`Tab`, `Shift+Tab`, the arrow keys in a Matrix), the key does that control's own action instead: **← Previous** goes back, a rating point or a matrix cell is chosen, a chosen MaxDiff or Conjoint pick is released. On a radio button or a checkbox — where a click on a choice or a picture choice leaves the focus — and on a slider, `Enter` goes on with the choice kept, and `Space` is the control's own: it checks the radio, checks or unchecks the box, and does not go on |
 | `Enter` or `Space` on a video or audio player | the player's own keys (`Space` plays or pauses); they never go to the next page. The same holds for an expandable section or a widget in a page's own HTML, and typing in an editable area of it is like typing in a text field |
 | `←` `→` / `↑` `↓` in a Matrix | move along the row, answering it with the cell reached (the N/A column included) / move to the same column in the row above or below; `Tab` leaves the grid. The cell in focus shows the focus ring, a chosen one included |
 | `Enter`, `Space` or `↓` on a dropdown | opens its list, with the cursor in the search box. There `↓` / `↑` move through the options (starting from the chosen one), typing narrows the list to the matches and puts the cursor on the first, and `Enter` chooses the option and closes the list. `Esc` or `Tab` closes the list without choosing, however long it is. The keys work wherever the focus is in the open list (a click on its scroll bar puts it there); `Esc` there, or on the dropdown itself, only closes the list, with the focus back on the dropdown — it never goes back a page |

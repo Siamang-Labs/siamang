@@ -433,12 +433,12 @@ GitHub, Zenodo and reference managers:
    creates a Save). See [[Project Settings|Studio-Project-Settings]].
 2. Open the Save to cite in History and choose **More ▾ → Deposit** to send
    its bundle to **Zenodo** (which mints a DOI) or **OSF**. The box "Use
-   sandbox.zenodo.org (test DOI; needs a sandbox token)" is **ticked by
-   default** — untick it, with a zenodo.org token, for a real DOI. With
+   sandbox.zenodo.org (test DOI; needs a sandbox token)" is **checked by
+   default** — uncheck it, with a zenodo.org token, for a real DOI. With
    "Include the data collected so far: data/responses.csv, and the project
    tables and uploaded files the flows read. Survey-link parameters (panel
    ids) are included only where a flow reads one; invitation tokens never
-   are." ticked, the deposit publishes the same data files as a bundle with
+   are." checked, the deposit publishes the same data files as a bundle with
    the responses. See
    [Depositing to Zenodo or OSF](Studio-History-and-Versions#depositing-to-zenodo-or-osf).
 3. Put the DOI back into **Study & citation** so later bundles carry it.

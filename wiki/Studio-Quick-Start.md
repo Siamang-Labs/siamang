@@ -33,7 +33,8 @@ owner, on a **30-day Pro trial**. The topbar shows `Pro trial · 30d`.
 
 You land on the organization's **Projects** tab. Press **New project**
 (or, on an empty list, **Start from the example study** to explore a finished
-study first).
+study first: a questionnaire, 729 sample responses and six analysis flows with
+their reports — see [The example study](Studio-Projects#the-example-study)).
 
 1. **Name** — e.g. `Customer Pulse 2026`. The dim line under it, "Its
    address will be `/customer-pulse-2026`", shows the project's address; it

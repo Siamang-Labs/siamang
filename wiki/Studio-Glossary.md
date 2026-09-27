@@ -21,9 +21,9 @@ closing-date changes and the **One per browser** switch. Per organization
 → [[Organizations and Team|Studio-Organizations-and-Team]]
 
 **AI assistant** — optional suggestions from a language model: reviews of
-wording and analysis, rewrites, answer options, drafts from a brief and the
-coding of open answers. Off until the organization's owner turns it on;
-Plus and above. → [[AI Assistant|Studio-AI-Assistant]]
+wording and analysis, rewrites, answer options and drafts from a brief. Off
+until the organization's owner turns it on; Plus and above. AI coding of open
+answers is switched off on this platform. → [[AI Assistant|Studio-AI-Assistant]]
 
 **AI credit** — the unit the assistant's allowance is counted in, about 1,000
 tokens of model input. → [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
@@ -38,7 +38,7 @@ arm of an experiment. → [[Scripts|Studio-Scripts]]
 Builder so the analysis can flag respondents who fail it.
 → [[Data Quality|Studio-Data-Quality]]
 
-**Bands** — a number cut into labelled ranges ("18 to under 30", …) as a new
+**Bands** — a number cut into labeled ranges ("18 to under 30", …) as a new
 ordinal variable, by the **Bands** node; missing codes are taken out first and
 values outside every band stay blank. → [Bands](Studio-Node-Reference#bands)
 
@@ -79,13 +79,19 @@ yes the same for all of them? Followed by a McNemar test of every pair.
 ranges and missing codes; built alongside the questions and exported with the
 data. → [[Codebook and Variables|Studio-Codebook-and-Variables]]
 
-**Codeframe** — a saved coding scheme for one open-text question
-(`analysis/<name>.codeframe.json`); applied by the **Code open answers** node
-without calling any model. → [[Coding Open Answers|Studio-Open-Answer-Coding]]
+**Codeframe** — the coding scheme of one open-text question, a document of
+the project (`analysis/<name>.codeframe.json`): its themes (with their nets,
+exclusive themes and priorities), the answers coded by hand — kept by their
+**fingerprints**, never their text — and each theme's **rules**. Built in the
+codeframe editor and applied by the **Code open answers** node at every run,
+without any model: an answer gets the themes a coder gave it, else the ones
+the rules find, else stays uncoded.
+→ [[Coding Open Answers|Studio-Open-Answer-Coding]]
 
 **Combined report** — the single document **Run all** assembles from every
-flow's report. When a flow failed, it is titled "Combined report
-(incomplete)" and opens with what is missing. → [[Reports|Studio-Reports]]
+flow's report, titled with the questionnaire's title. When a flow failed, its
+title is marked "(incomplete)" and it opens with what is missing. →
+[[Reports|Studio-Reports]]
 
 **Comment** — a note on a question, page, flow or flow node, visible to the
 organization. → [[Working Together|Studio-Collaboration]]
@@ -140,6 +146,16 @@ Friedman's test, Cramér's V for a crosstab.
 **Environment** — a named publishing target (`pilot`, `main`) with its own
 permanent link and response cap. → [[Publishing and Environments|Studio-Publishing-and-Environments]]
 
+**Example study** — *Digital Life & Wellbeing 2026*, a finished study a new
+project can start from: a questionnaire, six analysis flows, the codeframe of
+its open answers and 729 sample responses under the survey id `sample-data`,
+which count toward no cap. → [The example study](Studio-Projects#the-example-study)
+
+**Exclusive theme** — a theme of a codeframe (*Nothing*, *Don't know*) that the
+rules give an answer only when no other theme matches it: **Only when no
+other theme applies** in the codeframe editor.
+→ [Exclusive themes](Studio-Open-Answer-Coding#exclusive-themes)
+
 **Export Python** — downloading the Python the engine generated for the
 questionnaire or a flow at a given Save. → [[Reproducibility|Studio-Reproducibility]]
 
@@ -148,6 +164,14 @@ move together (factors), how strongly each loads on each, and whether the
 items share enough to be factored at all (KMO, Bartlett's test). Its
 **factor scores** — one variable per factor, `factor_1`, `factor_2`, … — can
 be used by later nodes. → [Factor analysis](Studio-Node-Reference#factor-analysis)
+
+**Fingerprint (of an answer)** — sixteen hexadecimal characters computed from
+an open answer's text, with case, spacing and Unicode form set aside. A
+codeframe keeps a coder's decision under the answer's fingerprint instead of
+its text, so the decision holds wherever the same answer appears. It cannot
+be turned back into the text, but whoever has the codeframe and guesses an
+answer's exact words can confirm it was given.
+→ [Privacy: only fingerprints are stored](Studio-Open-Answer-Coding#privacy-only-fingerprints-are-stored)
 
 **Fisher's exact test** — a test of a crosstab that sums the exact
 probabilities instead of the chi-square approximation, for small counts; for
@@ -166,7 +190,7 @@ the same as the end of a trial, which moves the organization to the Free plan.
 
 **Gabor-Granger** — a pricing method that asks at each of a set of prices
 whether the respondent would buy, and gives the demand, the revenue and the
-revenue-maximising price among those asked.
+revenue-maximizing price among those asked.
 → [Price sensitivity](Studio-Node-Reference#price-sensitivity)
 
 **House style** — an organization's default survey look (Organization
@@ -197,7 +221,7 @@ regression's coefficients cannot give when the attributes correlate.
 → [Key drivers](Studio-Node-Reference#key-drivers)
 
 **Likert chart** — a battery of statements on one scale as diverging bars
-centred on the neutral answer, each with its top-2 and bottom-2 shares.
+centered on the neutral answer, each with its top-2 and bottom-2 shares.
 → [Likert chart](Studio-Node-Reference#likert-chart)
 
 **Live tile** — a flow output published to the **Live** screen and, if you
@@ -225,6 +249,11 @@ and say how many; a few older defaults count them as answers and say so
 ("Missing codes counted as answers", or `missing_codes_counted` in
 Correlation and Compare groups) until **Missing values** clears them.
 → [Missing codes](Studio-Codebook-and-Variables#missing-codes)
+
+**Net** — in a codeframe, the themes that share a **Net** name, counted
+together: the theme table's "*net* (net)" row counts a respondent once,
+however many of its themes they have. A net needs two themes or more.
+→ [Nets](Studio-Open-Answer-Coding#nets)
 
 **Node** — one box in a flow: a source, a preparation step, an analysis, a
 chart or an output. → [[Node Reference|Studio-Node-Reference]]
@@ -342,6 +371,15 @@ intervals, a scree plot, a reach curve, odds ratios, a map, price curves),
 drawn from the numbers the analysis computed, so it never disagrees with the
 table beside it. → [Result chart](Studio-Node-Reference#result-chart)
 
+**Rule (coding)** — a theme's words in a codeframe: **Words and phrases**
+that give it, **But not** words that rule it out and **Must also contain**
+words that must be there too, read in a clause or in the whole answer. A
+term is a word or phrase with `*` for word forms (`delay*`), `|` for
+alternatives, `not_` for a negated mention and `~N` for words near each
+other — no regular expressions. Rules code every answer nobody coded by
+hand, at every run, including answers collected later.
+→ [Writing rules](Studio-Open-Answer-Coding#writing-rules)
+
 **Run** — one execution of a flow (or of all flows) in the sandbox, with a log
 and output files. → [[Analysis Flows|Studio-Flows]]
 
@@ -422,9 +460,14 @@ ships twelve, and your organization can save its own.
 **Theme** — the survey's look and fixed wording, set in **Builder → Theme**.
 → [[Theme and Branding|Studio-Theme-and-Branding]]
 
+**Theme (open answers)** — one category of a codeframe, with a code, a label
+and its rules; an answer can get one theme or, when the codeframe allows it,
+several. Written into the flow's theme variable (`<variable>_theme` by
+default). → [[Coding Open Answers|Studio-Open-Answer-Coding]]
+
 **Top-2 box** — the share of respondents giving the two highest answers of a
 scale (bottom-2: the two lowest); the Likert chart writes both at the ends of
-each item's bar, and a **Trend** tracks it when both answers are ticked in its
+each item's bar, and a **Trend** tracks it when both answers are checked in its
 **Answer codes**. → [Likert chart](Studio-Node-Reference#likert-chart)
 
 **Trend** — a measure over time: the percent choosing an answer, a mean or

@@ -24,6 +24,17 @@ Part 4  Test it                  Part 8  Report, close, archive
 > *(Plus)* need Plus or higher after the trial. See
 > [[Plans, Trial and Billing|Studio-Plans-and-Billing]].
 
+> **A finished study to compare with.** The
+> [example study](Studio-Projects#the-example-study) (**Projects → New
+> project → Template → Example study**) is a larger study built with the same
+> tools and already filled with 729 sample responses. Its flow `cleaning`
+> does what Part 5 builds — quality checks, raking, a table the other flows
+> read, a live tile — with **Response quality** in **drop** mode rather than
+> **flag**; `tables` adds a banner table, a tab book and coded open answers;
+> and `wellbeing_app` reports a Net Promoter Score. Open it in another tab to
+> see each step done on a study that has data — see
+> [The example study's flows](Studio-Flows#the-example-studys-flows).
+
 ---
 
 ## Part 1 — Plan
@@ -37,7 +48,7 @@ For this study:
 | Sample | 300 completed interviews, roughly 100 per region |
 | Key measures | satisfaction (5-point), NPS (0–10) |
 | Quality | one attention check; flag, don't drop |
-| Weighting | to the known customer mix: North 45 %, Centre 30 %, South 25 % |
+| Weighting | to the known customer mix: North 45 %, Center 30 %, South 25 % |
 | Deliverables | a report with a weighted table and a chart, a live tile for the client, a research bundle |
 
 Two naming habits make everything downstream easier:
@@ -93,7 +104,7 @@ answers are anonymous.* It is HTML, not Markdown — wrap paragraphs in
    **Unit** `years`. Variable name `age`, **Advanced → Id** `age`. In
    **Variable**, set **Min** `16` and **Max** `99`.
 3. **+ Question → Types → Single choice**. Text *Where do you live?*,
-   **Required** on. **Choices**: `1` North, `2` Centre, `3` South. Variable and
+   **Required** on. **Choices**: `1` North, `2` Center, `3` South. Variable and
    Id `region`. Variable label *Region of residence*.
 
 ### Page 3 — experience
@@ -321,7 +332,7 @@ Response quality `table` (counts per quality flag) to the Report section's
 > counts respondents), **Price sensitivity**, **Correlation** and
 > **Correlation matrix** with Pearson, **Bar chart**, **Heatmap** with **By**
 > or with Pearson, **Likert chart**, **Proportion CI** with **Weighted**
-> ticked, **Trend** and **Tab book (Excel)**; a **Result chart** follows the
+> checked, **Trend** and **Tab book (Excel)**; a **Result chart** follows the
 > result it draws. A Banner table is used here for its significance letters; a
 > **Crosstab** (**Rows** `satisfaction`, **Columns** `region`, **Percentages**
 > `col`) would also give weighted column percentages, with a chi-square test
@@ -353,7 +364,7 @@ history**; the report appears on the **Reports** tab.
 
 ### Make the tile live *(Plus)*
 
-With no node selected, the inspector shows **Flow** settings. Tick **Live:
+With no node selected, the inspector shows **Flow** settings. Check **Live:
 recompute on new responses** and **Save**. New responses will re-run the flow
 and refresh the tile.
 
@@ -379,7 +390,7 @@ and refresh the tile.
 
 ### Switch the analysis to real data
 
-In the flow, drag in a **Responses** node, set **Environment** `main` and tick
+In the flow, drag in a **Responses** node, set **Environment** `main` and check
 **Only completed responses**. Connect its `data` output to **Response
 quality** — this replaces the connection from Simulated data — then delete
 **Simulated data**. **Check**, **Save**.
@@ -489,7 +500,7 @@ the tab-switch counts). **Stata** gives the same as a `.dta`.
    parameters, such as panel ids, are included only where a flow reads one,
    and invitation tokens never are.
 4. **More ▾ → Deposit** *(needs a Zenodo token stored under **Settings →
-   Secrets**, which an owner or admin adds)*: choose **Zenodo**, pick the token, **untick "Use
+   Secrets**, which an owner or admin adds)*: choose **Zenodo**, pick the token, **uncheck "Use
    sandbox.zenodo.org"** for a real DOI, decide on **Publish immediately**, and
    **Deposit**.
 
@@ -514,6 +525,10 @@ and citable.
 | Flows, quality flags, raking, reports, live tiles | [[Analysis Flows\|Studio-Flows]], [[Reports\|Studio-Reports]] |
 | Environments, pilot, launch, response caps, closing dates | [[Publishing and Environments\|Studio-Publishing-and-Environments]] |
 | Pre-registration, bundles, deposits | [[History and Versions\|Studio-History-and-Versions]] |
+
+To see the same skills on a larger study, with six flows and their reports
+already built, start a project from the
+[example study](Studio-Projects#the-example-study).
 
 ## See also
 

@@ -144,6 +144,28 @@ republish), **Contact email**, **Privacy URL** and **Ethics statement**. Put you
 question, and route anyone who declines to the end of the survey (see
 [[Logic and Branching|Studio-Logic-and-Branching]]).
 
+### Open answers and codeframes
+
+What respondents write in open questions stays in Studio when you code it:
+
+- **The codeframe editor** reads the answers from your project's own
+  responses, on Studio's servers, and shows them only to members of the
+  project. No model, provider or other service is involved.
+- **A codeframe stores fingerprints, never answers.** The coding decisions
+  in `analysis/<name>.codeframe.json` are keyed by a fingerprint of each
+  answer (sixteen hexadecimal characters computed from its text), not by the
+  text; the engine refuses a codeframe (version 2) that holds an answer's
+  text.
+- **A fingerprint is not anonymization.** It cannot be turned back into the
+  text, but whoever holds the file and guesses an answer's exact words can
+  confirm it was given. Words you type into rules and theme labels are stored
+  as typed. A codeframe is in every Save and every research bundle, with or
+  without data: share it as you would the study's other documents.
+- **AI coding of open answers is switched off** on this platform (see
+  [below](#the-ai-assistant-and-your-data)).
+
+See [[Coding Open Answers|Studio-Open-Answer-Coding]].
+
 ---
 
 ## Code execution
@@ -212,9 +234,13 @@ decision:
   turned on by *name* on *date*."), and the Activity log records `ai.enable`
   and `ai.disable`, as well as each assistant task.
 - **What is sent** is the text you ask it to work on: questionnaire wording,
-  analysis descriptions, a brief you write. If you use AI coding of open
-  answers, the **text of those answers** is sent. It goes without respondent
-  ids, metadata or timings, and each answer is clipped to 400 characters.
+  analysis descriptions, a brief you write. **Nothing a respondent wrote is
+  sent.** AI coding of open answers — the one feature that sent the text of
+  respondents' answers — is **switched off** on this platform: its buttons
+  are gone, the API refuses a coding request ("AI coding of open answers is
+  switched off on this platform."), and a coding job queued earlier ends
+  without reading an answer. Open answers are coded by hand and by rules in
+  the codeframe editor, which calls no model.
 - **The owner can turn it off** at any time with **Turn the assistant off**.
 
 If your ethics approval or data agreement does not allow processing in China,
@@ -307,7 +333,7 @@ For the current legal texts see the
   survey-link parameters a flow reads. A **Data → Export** file carries every
   link parameter, panel ids and invitation tokens included. Store and share
   them like the personal data they may be, and check what is in the data
-  before you tick **Include the data collected so far** in a deposit.
+  before you check **Include the data collected so far** in a deposit.
 - Remove people from the organization when they leave, and revoke API keys
   you no longer use.
 

@@ -405,13 +405,17 @@ The draft has these sections:
 - **Participants** — mostly `[...]` for you to fill in (population, sampling
   frame, recruitment);
 - **Instrument** — pages, question types, blocks, randomization, logic, quotas,
-  scripts, environments;
+  scripts, environments; an **Assign to a condition** script is described as
+  the experiment it is — "each respondent was randomly assigned to one of 2
+  conditions (…), recorded as `…`", with the arms' ratio when they are
+  weighted and whether the draw is seeded or balanced against quotas;
 - **Measures** — per question: type, scale, number of options, range, missing
   codes, variable and label;
 - **Procedure** — how the questionnaire was administered, consent, closing
   pages;
-- **Data handling and analysis** — every node of every flow in execution
-  order, in words, naming the test each analysis runs: "mean Age was
+- **Data handling and analysis** — every flow in the order **Run all** runs
+  them (a flow after the flows whose tables it reads), and every node of each
+  in execution order, in words, naming the test each analysis runs: "mean Age was
   compared by Region with a one-way ANOVA, followed by Tukey's HSD for every
   pair of groups", "mean Age was compared between two groups of Gender with
   Welch's t-test (unequal variances), reporting the mean difference with its
@@ -425,6 +429,15 @@ The draft has these sections:
 - **Software** — engine and Studio versions;
 - a closing line naming the authors from
   [Study & citation](Studio-Project-Settings#study--citation).
+
+For a project started from the example study, Save #1's draft describes 18
+pages with 33 questions (its Screen-out, Redirect and Final pages are not
+counted), the random assignment to the sleep or the time message (recorded
+as `message_arm`, drawn with a fixed seed), the consent "on page 2", piped
+text as "[answer to main_app]", each wide multiple choice with as many options
+as it has variables, and the six flows from *1. Clean raw responses* to *6.
+Segments*, naming the variables they derive by their labels (*Wellbeing index
+(1-5)*, *Usage segment*) and the arm as *Message arm*, as their tables do.
 
 Switch between **Rendered** and **Markdown**, click **Copy Markdown**, or
 **.md** to download `METHODS-s<N>.md`. The same draft is included in every
@@ -512,7 +525,7 @@ citable. "Zenodo mints a DOI; OSF stores the file in your project."
 | "Include the data collected so far: data/responses.csv, and the project tables and uploaded files the flows read. Survey-link parameters (panel ids) are included only where a flow reads one; invitation tokens never are." | both; unchecked by default; at most 100,000 responses |
 
 > **Important.** The sandbox box is **on by default**, which gives a *test* DOI
-> on sandbox.zenodo.org. For a real DOI, untick it and choose a secret that
+> on sandbox.zenodo.org. For a real DOI, uncheck it and choose a secret that
 > holds a token from zenodo.org.
 
 Click **Deposit** (it shows "Depositing…" while the bundle is built and
