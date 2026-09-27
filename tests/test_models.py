@@ -106,6 +106,34 @@ def test_kmeans_separates_clear_groups_and_numbers_them_by_size():
         kmeans(frame, ["x", "y"], k=1)
 
 
+def test_kmeans_keeps_the_best_of_ten_starts_whatever_the_row_order():
+    # One k-means++ start ends where its seeding leads, and the seeding draws
+    # rows by position: the same respondents stored in another order came out
+    # as other clusters.
+    rng = np.random.default_rng(0)
+    centres = [(0, 0), (5, 0), (0, 5), (5, 5)]
+    sizes = [80, 40, 40, 20]
+    frame = pd.DataFrame(
+        np.vstack([rng.normal(c, 0.8, size=(n, 2)) for c, n in zip(centres, sizes, strict=True)]),
+        columns=["x", "y"],
+    )
+
+    def found(n_init: int) -> set[tuple[tuple[int, ...], float]]:
+        results = set()
+        for order in range(20):
+            result = kmeans(
+                frame.sample(frac=1, random_state=order), ["x", "y"], k=4, seed=7, n_init=n_init
+            )
+            results.add((tuple(result.centroids["size"]), round(result.stats["inertia"], 6)))
+        return results
+
+    single = found(1)
+    assert len(single) > 1
+    ((sizes_found, inertia),) = found(10)
+    assert inertia <= min(value for _, value in single)
+    assert sizes_found == (81, 39, 39, 21)
+
+
 def test_survey_data_cluster_adds_a_labeled_variable():
     frame = _frame()
     data = SurveyData(frame=frame)

@@ -373,6 +373,40 @@ def pca(
 # ── k-means ──────────────────────────────────────────────────────────────────
 
 
+def _kmeans_pp(scaled: np.ndarray, k: int, rng: np.random.Generator) -> np.ndarray:
+    """k-means++ seeding: the first centre a random row, each next one a row
+    drawn with probability proportional to its squared distance from the
+    nearest centre so far."""
+
+    centers = scaled[[rng.integers(len(scaled))]]
+    while len(centers) < k:
+        dist = ((scaled[:, None, :] - centers[None, :, :]) ** 2).sum(axis=2).min(axis=1)
+        probabilities = (
+            dist / dist.sum() if dist.sum() > 0 else np.full(len(scaled), 1 / len(scaled))
+        )
+        centers = np.vstack([centers, scaled[rng.choice(len(scaled), p=probabilities)]])
+    return centers
+
+
+def _lloyd(scaled: np.ndarray, centers: np.ndarray, max_iter: int) -> tuple[np.ndarray, float]:
+    """Lloyd's iterations from ``centers``: each row's cluster (0-based) and
+    the within-cluster sum of squares they end with."""
+
+    k = len(centers)
+    labels = np.zeros(len(scaled), dtype=int)
+    for _ in range(max_iter):
+        dist = ((scaled[:, None, :] - centers[None, :, :]) ** 2).sum(axis=2)
+        new_labels = dist.argmin(axis=1)
+        if np.array_equal(new_labels, labels) and _ > 0:
+            break
+        labels = new_labels
+        for j in range(k):
+            members = scaled[labels == j]
+            if len(members):
+                centers[j] = members.mean(axis=0)
+    return labels, float(((scaled - centers[labels]) ** 2).sum())
+
+
 def kmeans(
     frame: pd.DataFrame,
     items: list[str],
@@ -381,9 +415,19 @@ def kmeans(
     seed: int | None = 42,
     standardize: bool = True,
     max_iter: int = 100,
+    n_init: int = 10,
 ) -> ClusterResult:
-    """k-means (k-means++ seeding, Lloyd's iterations) on ``items``. Rows
-    with a missing item get no cluster."""
+    """k-means (k-means++ seeding, Lloyd's iterations) on ``items``, the best
+    of ``n_init`` starts. Rows with a missing item get no cluster.
+
+    One start ends in the local optimum its seeding leads to, which can be a
+    poor one, and which one depends on the order of the rows as well as on
+    ``seed``: the seeding draws rows by position. Segments that overlap, as
+    real ones do, leave many such optima, so the same respondents stored in
+    another order came out as other segments. Every start draws from the one
+    ``seed``, and the start with the smallest within-cluster sum of squares
+    is kept (the first of equals). ``n_init=1`` is the single start of
+    earlier versions, with the same result."""
 
     if k < 2:
         raise ValueError("kmeans needs k >= 2.")
@@ -400,25 +444,13 @@ def kmeans(
         sd[sd == 0] = 1.0
         scaled = (scaled - mean) / sd
     rng = np.random.default_rng(seed)
-    centers = scaled[[rng.integers(len(scaled))]]
-    while len(centers) < k:
-        dist = ((scaled[:, None, :] - centers[None, :, :]) ** 2).sum(axis=2).min(axis=1)
-        probabilities = (
-            dist / dist.sum() if dist.sum() > 0 else np.full(len(scaled), 1 / len(scaled))
-        )
-        centers = np.vstack([centers, scaled[rng.choice(len(scaled), p=probabilities)]])
-    labels = np.zeros(len(scaled), dtype=int)
-    for _ in range(max_iter):
-        dist = ((scaled[:, None, :] - centers[None, :, :]) ** 2).sum(axis=2)
-        new_labels = dist.argmin(axis=1)
-        if np.array_equal(new_labels, labels) and _ > 0:
-            break
-        labels = new_labels
-        for j in range(k):
-            members = scaled[labels == j]
-            if len(members):
-                centers[j] = members.mean(axis=0)
-    inertia = float(((scaled - centers[labels]) ** 2).sum())
+    best: tuple[float, np.ndarray] | None = None
+    for _start in range(max(1, int(n_init))):
+        labels, inertia = _lloyd(scaled, _kmeans_pp(scaled, k, rng), max_iter)
+        if best is None or inertia < best[0]:
+            best = (inertia, labels)
+    assert best is not None
+    inertia, labels = best
     # Number clusters by size (largest first) so the labels are stable to read.
     order = np.argsort(-np.bincount(labels, minlength=k), kind="stable")
     rank = {old: new + 1 for new, old in enumerate(order)}
