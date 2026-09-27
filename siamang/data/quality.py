@@ -120,6 +120,7 @@ def duplicate_pattern(
     items: Sequence[str] | None,
     *,
     min_items: int = 5,
+    also: Sequence[str] | None = None,
 ) -> pd.Series:
     """``True`` for every row sharing its exact answer pattern with another row.
 
@@ -134,6 +135,12 @@ def duplicate_pattern(
     their match says nothing about a repeat submission, and
     :func:`straightlining` already names them. Counted here too, every
     straightliner of a popular column read as a duplicate as well.
+
+    ``also`` names other answers a duplicate must repeat too: a battery of a
+    dozen five-point items still lets two honest respondents answer it alike
+    now and then, and both would be dropped as one person twice; age, gender
+    and a few answers besides make that all but impossible. Only the battery
+    has to be complete; among ``also``, two unanswered questions match.
     """
 
     present = _present(frame, items)
@@ -142,7 +149,8 @@ def duplicate_pattern(
     subset = frame[present]
     complete = subset.notna().all(axis=1)
     flat = subset.nunique(axis=1, dropna=False) <= 1
-    duplicated = subset.duplicated(keep=False)
+    wider = present + [name for name in _present(frame, also) if name not in present]
+    duplicated = frame[wider].duplicated(keep=False)
     return complete & ~flat & duplicated
 
 
@@ -174,17 +182,19 @@ def quality_flags(
     pairs: Mapping[str, str] | Sequence[tuple[str, str]] | None = (),
     expected: Mapping[str, object] | None = None,
     max_sd: float = 0.0,
+    duplicates_also: Sequence[str] | None = None,
 ) -> pd.Series:
     """One string per respondent naming every check they failed, ``""`` if none.
 
     The reasons are joined with ``"; "`` in :data:`REASONS` order, so the column
     reads as an explanation rather than a verdict: ``"straightlining; duplicate"``.
+    ``duplicates_also`` is :func:`duplicate_pattern`'s ``also``.
     """
 
     checks = {
         "straightlining": straightlining(frame, items, max_sd=max_sd) if items else None,
         "inconsistency": inconsistency(frame, pairs) if pairs else None,
-        "duplicate": duplicate_pattern(frame, items) if items else None,
+        "duplicate": duplicate_pattern(frame, items, also=duplicates_also) if items else None,
         "attention": attention_failed(frame, expected) if expected else None,
     }
     reasons = [(r, checks[r]) for r in REASONS if checks.get(r) is not None]
