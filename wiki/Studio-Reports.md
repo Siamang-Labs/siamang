@@ -219,8 +219,16 @@ The size control on a row reads the width it is set to — **Full**, **¾**,
 | space above | **Usual space above**, **No space above**, **More space above**, **Much more space above** — "The space between this item and the one before it in the HTML" |
 | **New page** | "Start this item on a new page when the report is printed" |
 
-Two outputs at **Half** sit side by side; that is the whole layout model, and
-it is enough for almost every report. Every table and chart keeps the look's
+Outputs narrower than the page that follow one another share a line — two at
+**Half**, **Two thirds** and **A third**, three at **A third** — with the usual
+gap between them; what does not fit wraps under them, and so does a table that
+needs more room than its share. Text, a full-width output, **New page** or a
+space above of its own starts a new line. That is the whole layout model, and
+it is enough for almost every report. On a phone, and anywhere the report is
+narrower than 480px, each takes the whole width; the preview pane is that
+narrow by default, and when it stacks outputs you set side by side it says so
+above the preview ("Items set side by side are shown one under another here,
+as on a phone…") — widen it to see them together. Every table and chart keeps the look's
 usual gap from the block before it (**Density** sets how much): **More** is
 for two results that belong apart, **No space** for a chart that belongs right
 under its table. A row that has been sized, or given a space of its own, says
