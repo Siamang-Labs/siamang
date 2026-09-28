@@ -295,8 +295,9 @@ At the top of the rail:
 
 - **Find question…** — filters the current page's questions by text, id or
   variable name;
-- **id** — shows question ids instead of their texts ("Show ids instead of
-  text").
+- **id** — shows page and question ids instead of their texts ("Show the ids
+  of pages and questions instead of their text"). A page's id is its name, the
+  one a branch's "go to" uses.
 
 Click a page to select it (the Inspector shows its properties); click a
 question or block to select it.

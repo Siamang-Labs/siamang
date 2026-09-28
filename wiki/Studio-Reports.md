@@ -216,11 +216,15 @@ The size control on a row reads the width it is set to — **Full**, **¾**,
 |---|---|
 | width | **Full width**, **Three quarters**, **Two thirds**, **Half — two fit side by side**, **A third** |
 | alignment | **left**, **center**, **right** — shown only when the item is narrower than the page; default center |
+| space above | **Usual space above**, **No space above**, **More space above**, **Much more space above** — "The space between this item and the one before it in the HTML" |
 | **New page** | "Start this item on a new page when the report is printed" |
 
 Two outputs at **Half** sit side by side; that is the whole layout model, and
-it is enough for almost every report. A row that has been sized says so while
-folded. The same control is in the **Report section** node's inspector, under
+it is enough for almost every report. Every table and chart keeps the look's
+usual gap from the block before it (**Density** sets how much): **More** is
+for two results that belong apart, **No space** for a chart that belongs right
+under its table. A row that has been sized, or given a space of its own, says
+so while folded: its control is drawn darker and names the choices on hover. The same control is in the **Report section** node's inspector, under
 **Size and placement** (where a statistic, again, reads "one line"). Size
 and placement reach the `.html` only.
 
