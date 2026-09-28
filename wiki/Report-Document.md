@@ -106,21 +106,36 @@ Renders to HTML. By default a fragment (the Markdown through the `markdown`
 library with the `tables` extension, images embedded inline); with
 `standalone=True` a whole document with the theme's stylesheet.
 
-With `interactive=True` (a document only) each chart that has an interactive
-form (`SurveyChart.vega_lite()`, see [[Reporting Charts|Reporting-Charts]]) is
+With `interactive=True` (a document only: with `standalone=False` it raises
+`ValueError`) each chart that has an interactive form
+(`SurveyChart.vega_lite()`, see [[Reporting Charts|Reporting-Charts]]) is
 drawn in the reader's browser: a tooltip on every bar, point and cell with its
 value and base, a legend whose entries hide and show their series (a double
 click on the chart shows them all again), zoom where it helps (hold Ctrl — Cmd
-on a Mac — and scroll, or pinch). The document carries the libraries that draw
-them — Vega, Vega-Lite and Vega-Embed, vendored with the engine, about 0.8 MB,
-written in once however many charts there are and never loaded from anywhere —
-with their licenses' notices in a comment before them, so it opens offline and
-can be mailed as it is. Each chart's picture stays in it: shown to a reader
-without scripts, printed, and shown if a chart cannot be drawn. The charts' menu
-saves a chart as PNG or SVG (no editor, no source view), named by the report
-and the chart's title — `key_tables-life-satisfaction-by-age-group.png` — where
-`name` is the report's file name without its extension (`save` passes it; by
-default the report's title).
+on a Mac — and scroll, or pinch). What the document then carries:
+
+- **The chart libraries**, once however many charts there are: Vega 6.4.0,
+  Vega-Lite 6.4.3 and Vega-Embed 7.3.0, about 0.8 MB, vendored with the engine
+  (`siamang/reporting/assets/vega`, BSD-3-Clause, with their licenses and a
+  README naming the npm sources and the files' hashes) and written in inline —
+  never loaded from a CDN or anywhere else, so the file opens offline and can
+  be mailed as it is. The notices of the libraries and of everything they
+  bundle come before them in an HTML comment, as their licenses ask.
+- **Each chart's numbers**, as its Vega-Lite spec: what the chart draws —
+  counts, percentages, means, intervals, bins — and, for a scatter plot or a
+  box plot's outliers and points, the respondents' plotted values, without
+  ids or other answers. Anyone who has the file can read them.
+- **Each chart's picture**, shown to a reader without scripts, printed in
+  the chart's place, and shown if a chart cannot be drawn.
+
+The charts' menu (`…`) offers **Save as PNG** and **Save as SVG** and nothing
+else (no editor, which would send the chart to a web site; no source view),
+named by the report and the chart's title —
+`key_tables-life-satisfaction-by-age-group.png` — where `name` is the report's
+file name without its extension (`save` passes it; by default the report's
+title). A report with no chart that has an interactive form carries no
+library. In a flow, Save report's **Interactive charts in HTML** (`interactive`)
+asks for this.
 
 `Report.interactive_figures(html, specs, name="report")` takes a document
 `to_html(standalone=True)` wrote whose charts are pictures — a report combined

@@ -9,72 +9,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Interactive charts.** Every chart of `siamang.reporting` says what it draws
-  as a Vega-Lite 6 spec (`SurveyChart.vega_lite()`), drawn
-  from the numbers its picture is drawn from: inline data of only what the chart
-  draws (a scatter plot's points and a box plot's outliers are the plotted
-  values, nothing else), the picture's title, axis titles, notes and colors with
-  the report Look's text, grid and font, a tooltip on every mark with its value
-  as the picture writes it and its base, a legend whose entries hide and show
-  their series, zoom where it helps, and a description for a screen reader —
-  every form of the Bar chart (percent, Split by grouped, stacked and 100 %,
-  Top N with Other, error bars, significance letters, histogram, donut), the
-  Likert chart, the heatmaps, the box plot, the scatter plot and the Trend —
-  and every kind of Result chart (`siamang.reporting.result_specs`): the means
-  and shares with their intervals (a dot and a line per estimate, its base,
-  interval and post-hoc letters in the tooltip; Descriptive statistics'
-  panels; a profile's lines; a regression's forest, odds ratios on a log
-  axis), the bars of MaxDiff, conjoint (part-worths colored and toggled by
-  attribute), shares of preference, themes and Key drivers (by the sign of the
-  beta), the Net Promoter Score's and sentiment's stacks, a proportion on its
-  track, TURF's reach curve (each size's whole portfolio in its tooltip) and
-  its options' reach, scree plots (Kaiser's line, parallel analysis), loadings
-  and correlation heatmaps (each coefficient's p in its tooltip), the
-  Perceptual map (one scale on both axes at any width, each name where the
-  picture placed it, zoom, and a **Names on the map** box — off for a map too
-  crowded to name its points), Van Westendorp's curves, points and range (a
-  line at the price pointed at with every curve's share there; the NMS trial
-  curve under them) and Gabor-Granger's demand over its revenue. A renderer a
-  later node registers has one when it draws with the shared forms; one that
-  draws a figure of its own has none. A row's label is written in narrower
-  lines in a chart under 520 pixels wide, and axis titles and subtitles in
-  lines a phone's width holds.
+- **Interactive charts.** Every chart of `siamang.reporting` can say what it
+  draws as a **Vega-Lite 6** spec (`SurveyChart.vega_lite()`, `None` for a
+  chart without an interactive form), made from the numbers its picture is
+  drawn from, so the two cannot disagree. The spec's data is inline and holds
+  only what the chart draws — counts, percentages, means, intervals, bins, a
+  heatmap's cells, a box's five numbers. A chart that plots respondents
+  themselves carries the plotted values and nothing else: a scatter plot's x,
+  y and group, a box plot's outliers and, with *Show points*, its points —
+  never an id or another answer — listed by group and value rather than in the
+  data's order, and it says so in `usermeta.siamang.respondents`. A spec has
+  the picture's title, axis titles, legend and notes (the base, the weight,
+  the missing codes left out) and colors, with the report Look's text, grid
+  and font; a tooltip on every mark with its label, its value written as the
+  picture writes it and its base; a legend whose entries hide and show their
+  series (the selection `shown`; a hidden series' entry is faded); zoom and
+  pan on a scatter plot, a Trend of more than 24 periods and the Perceptual
+  map (Ctrl or Cmd and the wheel, or a pinch; drag to move; a double click
+  resets); and a `description` for a screen reader. `usermeta.siamang` also
+  names the chart, gives its title on one line and, for a chart that cannot
+  be drawn shorter than some height (a row per label as tall as its label, a
+  map, a donut), that height (`least`), for a host that fits charts into
+  boxes. Every form of the Bar chart has one (percent; Split by grouped,
+  stacked and 100 %; Top N with Other; error bars; significance letters;
+  histogram; donut), and so do the Likert chart, both heatmaps, the box plot,
+  the scatter plot, the Trend and every kind of Result chart
+  (`siamang.reporting.result_specs`: means and intervals, bars, stacks,
+  TURF's reach, scree plots, loadings and correlation heatmaps, odds ratios
+  on a log axis, the Perceptual map with a **Names on the map** box, Van
+  Westendorp's curves with a line at the price pointed at, Gabor-Granger). A
+  renderer registered later has a spec when it draws with the shared forms;
+  one that draws a figure of its own has none.
   `Report.to_html(standalone=True, interactive=True)` and
-  `Report.save("r.html", interactive=True)` draw them in the reader's browser
-  with Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0, vendored in
-  `siamang/reporting/assets/vega` (BSD-3-Clause, with their licenses and a
-  README naming the npm sources) and written into the document once, never
-  loaded from anywhere; each chart's picture stays for print and for readers
-  without scripts. `save("r.md", interactive=True)` writes each figure's spec
-  beside it (`r_fig_3.vl.json`). Save report has **Interactive charts in HTML**
-  (`interactive`, off: a stored flow renders the code it always did; with *Also
-  save HTML* off a check warns), and a Live tile of a chart publishes the spec
-  with it (`Tile.spec`). `siamang.reporting.vega` holds what the specs share and
-  `write_spec` / `spec_path` for a host that writes a chart's picture itself.
-  A legend's selection (`shown`) holds the series shown, so the legend fades the
-  entries of the hidden ones, and only a click on an entry toggles; a double
-  click on a chart in a report shows every series again. Zoom takes the wheel
-  with Ctrl or Cmd held, or a pinch (Shift, which Windows and macOS turn into a
-  scroll across, did not zoom there). A tooltip has no row a mark lacks (a
-  Trend point's note is on the low-base points alone), a heatmap's written value
-  has its cell's tooltip, a mean by group's cell gives the base of its own mean,
-  and a Result chart's tooltip names its rows (Region, Term, Theme) and gives
-  its base (themes, sentiment, a proportion, PCA loadings; a cluster's as
-  `123 respondents (41.0 %)`). A scatter plot's and a box plot's points are
-  listed by group and value, not in the data's order, and their specs say
-  `usermeta.siamang.respondents`; every spec gives its `title`, and a chart
-  that cannot be drawn shorter than a height (a row per label as tall as its
-  label, a map, a donut) its `least`. `Report.interactive_figures(html, specs)`
-  draws a document's pictures from the specs written beside them (a report
-  combined from Markdown). The report lays
-  a chart out until it settles (a legend of more rows pushed the title above
-  the drawing), keeps titles within the chart's width, gives a phone's width
-  the room the menu's button kept, and writes a narrow map's names only where
-  they fit. A picture saved from a chart's menu is named by the report and the
-  chart (`to_html(..., name=)`), and the document carries the notices of the
-  libraries and of what they bundle (`vega.notices()`,
-  `assets/vega/THIRD-PARTY-NOTICES.txt`). A donut whose values all sit in its
-  slices draws no empty layer (Vega warned of an infinite extent).
+  `Report.save("r.html", interactive=True)` draw the charts in the reader's
+  browser with **Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0**, vendored
+  in `siamang/reporting/assets/vega` from their npm packages (BSD-3-Clause:
+  their `LICENSE-*` files, `THIRD-PARTY-NOTICES.txt` with the licenses of the
+  modules the builds bundle, and a README naming the versions, the sources and
+  the files' hashes). The document carries the three builds once, inline
+  (about 0.8 MB), with the notices in an HTML comment before them, and loads
+  nothing from anywhere, so it opens offline and can be mailed as it is. Each
+  chart keeps its picture: in a `<noscript>` for a reader without scripts,
+  printed in the chart's place (`@media print`), and shown when a chart
+  cannot be drawn. A chart's menu offers **Save as PNG** and **Save as SVG**
+  only (no editor, which would send the chart's numbers to a web site, and no
+  source view), named after the report and the chart
+  (`key_tables-life-satisfaction-by-age-group.png`, `to_html(..., name=)`),
+  and a double click on a chart shows every series again.
+  `save("r.md", interactive=True)` writes the same Markdown with each figure's
+  spec beside its picture (`r_fig_3.png`, `r_fig_3.vl.json`), and
+  `Report.interactive_figures(html, specs)` draws the pictures of a document
+  written without it from specs kept beside them (a report combined from
+  Markdown). Without `interactive` a report writes what it always did. Save
+  report has **Interactive charts in HTML** (`interactive`, off), written into
+  the code only when it is on with *Also save HTML*, so a stored flow renders
+  the code it always did; on with *Also save HTML* off, `check_flow` warns
+  (`PARAM_CONFLICT`). A Live tile of a chart publishes its spec with it
+  (`live.Tile.spec`; `None` when there is none, and a spec that fails leaves
+  the tile its picture). `siamang.reporting.vega` holds what the specs share,
+  `library()`, `LIBRARIES` and `notices()` for a host that draws specs with
+  the vendored builds, and `write_spec(chart, path)` / `spec_path(picture)`
+  (`fig_3.png` → `fig_3.vl.json`) for a host that saves a chart's picture
+  itself.
 - **Coding open answers by hand and by rules: codeframe version 2.** A
   codeframe (`"schema_version": "2.0"`) codes each answer by the first of: a
   coder's decision for its fingerprint (`assignments`: a code, several codes, or
