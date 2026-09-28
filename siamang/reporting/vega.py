@@ -282,8 +282,9 @@ def finish(
 
     ``kind`` names the chart in ``usermeta`` (``{"siamang": {"chart": …}}``),
     with the notes as a list — what a host that shows the chart needs besides
-    the drawing. ``respondents`` marks a chart that plots each respondent (a
-    scatter plot, a box plot's points): ``"respondents": true``, which a host
+    the drawing. ``respondents`` marks a chart that plots respondents' own
+    answers (a scatter plot, a box plot with outliers or points):
+    ``"respondents": true``, which a host
     that shows charts to the public reads to show such a chart's picture only.
     ``least`` is the least height (pixels) its plot reads at — a row per label
     as tall as its label's lines, a map or a donut its own height —

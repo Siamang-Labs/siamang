@@ -1515,9 +1515,11 @@ def boxes_spec(chart: Any, drawn: DrawnBoxes) -> dict[str, Any]:
                 f"quartiles {_amount(stat['q1'])} to {_amount(stat['q3'])}",
             }
         )
+        # An outlier is one respondent's answer: listed by value, not in the
+        # data's order (see the points below).
         outliers += [
             {"group": axis_group, "name": vega.plain(group), "value": value, "text": _amount(value)}
-            for value in stat["fliers"]
+            for value in sorted(stat["fliers"], key=_sort_number)
         ]
     names = {group: axis for group, axis in zip(drawn.groups, axis_groups, strict=True)}
     # The points by group and value, not in the data's order: a row's place
@@ -1660,7 +1662,9 @@ def boxes_spec(chart: Any, drawn: DrawnBoxes) -> dict[str, Any]:
         notes=notes,
         description=description,
         kind="boxplot",
-        respondents=bool(points),
+        # An outlier is a respondent's answer as much as a point is: a public
+        # page shows either chart as its picture only.
+        respondents=bool(points or outliers),
     )
 
 
