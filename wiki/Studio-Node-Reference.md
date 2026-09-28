@@ -3110,8 +3110,8 @@ table, a chart or a statistic — as a tile on the **Live** screen. See
   **Live** tab and the public page draw it with a tooltip on every mark and a
   legend that hides and shows a series, whatever the flow's **Save report**
   says about **Interactive charts in HTML**; the public page shows a
-  **Scatter plot**, or a **Box plot** with **Show points**, as its picture
-  only. See [Interactive chart tiles](Studio-Live-Monitoring#interactive-chart-tiles).
+  **Scatter plot**, or a **Box plot** with outliers or **Show points**, as
+  its picture only. See [Interactive chart tiles](Studio-Live-Monitoring#interactive-chart-tiles).
 - A tile's size on the Live screen is not set from the canvas; tiles appear at
   the standard size.
 

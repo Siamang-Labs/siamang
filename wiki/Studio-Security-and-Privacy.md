@@ -54,7 +54,7 @@ with a role that can see only their own project.
 |---|---|---|
 | A published survey link, or the survey embedded in your site | the questionnaire, for respondents to answer | until you close or unpublish it, or until its closing date passes (the questionnaire's deadline, the environment's closing date, or a date set under **Distribute → Closing date**). After that the link shows "This survey is closed" as it opens (a survey published before this update shows it only when the respondent submits, until you republish it), and no response is accepted. |
 | A **share preview** link | the respondent view of a draft, for reviewers. Answers given there are not stored. | 24 hours. Each person can create up to 50 per day. |
-| A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire. Chart tiles are interactive and carry the numbers they draw; a chart that plots each respondent (a scatter plot, a box plot with **Show points**) shows only its picture there | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
+| A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire. Chart tiles are interactive and carry the numbers they draw; a chart that plots respondents' own answers (a scatter plot, a box plot with outliers or **Show points**) shows only its picture there | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
 | The **unsubscribe** link in invitation emails | a page where the recipient opts out of further mailings | sent with every invitation email |
 | A **team invitation** link | the inviter's name, the organization name, the role, a masked email address (`j***@example.com`) and the expiry date | 7 days, or until used or revoked |
 
@@ -198,9 +198,10 @@ anyone with the file or the page can read out — not only as a picture:
   respondents tells a reader about those three, whether they read it off the
   picture or out of the file.
 - **The public Live page** shows a **Scatter plot**, or a **Box plot** with
-  **Show points**, as its picture only, so a public link never hands out a
-  list of respondents' values; a **Box plot** without **Show points** is
-  interactive there, its outliers among its numbers.
+  outliers or with **Show points**, as its picture only, so a public link
+  never hands out respondents' values — an outlier is one respondent's
+  answer, and in a small group it could point to a person. A **Box plot**
+  with no outliers and without **Show points** stays interactive there.
 
 Look at an interactive report's scatter plots and box plots before you send
 it, and leave out a chart — or send the report without **Interactive charts

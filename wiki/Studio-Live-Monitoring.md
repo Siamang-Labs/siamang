@@ -317,9 +317,9 @@ tiles is a Plus feature." and the button is disabled.
 - **Create public link** → toast **Public link created**. The bar then shows
   the link, **Copy**, **Rotate**, **Revoke** and "**Anyone with this link can
   view these live tiles** — no Studio account, no sign-in. A chart there
-  answers the pointer and carries the numbers it draws; a chart of each
-  respondent's answers (a scatter plot, a box plot's points) shows only its
-  picture. Created `<date, time>`. Revoke it when the study closes."
+  answers the pointer and carries the numbers it draws; a chart of
+  respondents' own answers (a scatter plot, a box plot's outliers or points)
+  shows only its picture. Created `<date, time>`. Revoke it when the study closes."
 - **Rotate** issues a new address and revokes the old one:
 
   > **Replace the public link?** — "A new URL is issued for these tiles." —
@@ -354,12 +354,13 @@ automatically"; the page refreshes every 30 seconds while it is open.
 
 Chart tiles are [interactive](#interactive-chart-tiles) on the public page
 too, so a viewer can read the numbers each chart draws, not only see them. A
-chart that plots each respondent — a **Scatter plot**, or a **Box plot** with
-**Show points** — is the exception: the public page shows only its picture,
-so the link never hands out a list of respondents' values. On your own
-**Live** tab the same tile stays interactive. A **Box plot** without **Show
-points** is interactive on the public page, and its outliers — the few
-extreme values it marks — are among its numbers.
+chart that plots respondents' own answers — a **Scatter plot**, or a **Box
+plot** with outliers or with **Show points** — is the exception: the public
+page shows only its picture, so the link never hands out respondents' values.
+An outlier counts: it is one respondent's answer, and an unusual one, so in a
+small group it could point to a person. On your own **Live** tab the same
+tile stays interactive. A **Box plot** with no outliers and without **Show
+points** stays interactive on the public page.
 
 ### Rules
 
