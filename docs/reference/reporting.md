@@ -192,8 +192,8 @@ HTML document: pass standalone=True."). What the document carries:
   no library at all.
 - **Each chart's spec** in a `<script type="application/json">` beside the
   view it is drawn in: the chart's numbers as it draws them (§2, `vega_lite()`
-  says exactly what that is — a scatter plot's and a box plot's points are
-  the respondents' plotted values).
+  says exactly what that is — a scatter plot's points and a box plot's
+  outliers and points are the respondents' plotted values).
 - **Each chart's picture.** In a `<noscript>` for a reader without scripts,
   and put back by the page for printing (`@media print` shows the picture,
   not the drawing) and for a chart that cannot be drawn.
@@ -399,7 +399,7 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
   - **Legend**: where there are series, a click on an entry hides or shows its series — the selection `shown` holds the series shown, every entry at first, so the legend fades the entries of the series hidden; only a click on an entry toggles, and a page that draws the chart shows them all again on a double click.
   - **Zoom**: on a scatter plot, a Trend of more than 24 periods and the Perceptual map — Ctrl (Cmd on a Mac) and the wheel, or a trackpad's pinch, zoom, so a page scrolls past the chart; drag to move; a double click resets. The note under the chart says so.
   - **`description`**: the chart in words, for a screen reader.
-  - **`usermeta.siamang`**: the chart's name (a Result chart: its kind, `means`, `scree`, …), its title as one line (`title`) and its notes; `"respondents": true` for a chart that plots each respondent (a scatter plot, a box plot with its points), which a host that shows charts to the public reads to show such a chart's picture only; and `least`, the least height (pixels) its plot reads at — a row per label as tall as its label's lines (a Likert chart, a heatmap, horizontal bars, a Result chart's rows), a map, a donut and a proportion their own height — for a host that shortens a chart to fit a box (a Studio Live tile).
+  - **`usermeta.siamang`**: the chart's name (a Result chart: its kind, `means`, `scree`, …), its title as one line (`title`) and its notes; `"respondents": true` for a chart that plots respondents' own answers (a scatter plot, a box plot with outliers or its points), which a host that shows charts to the public reads to show such a chart's picture only; and `least`, the least height (pixels) its plot reads at — a row per label as tall as its label's lines (a Likert chart, a heatmap, horizontal bars, a Result chart's rows), a map, a donut and a proportion their own height — for a host that shortens a chart to fit a box (a Studio Live tile).
 
   Each form has one: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn), `TrendChart` (lines, bands, hollow low-base points, gaps) and every kind of `ResultChart` (section 4). A report draws them with `to_html(standalone=True, interactive=True)` (§1b); `vega.write_spec(chart, path)` writes one to a file (`fig_3.vl.json` beside `fig_3.png`: `vega.spec_path`).
 * **`release() -> None`**:

@@ -753,7 +753,31 @@ def test_charts_that_plot_respondents_carry_only_the_plotted_values(charts, spec
     flagged = {
         name for name, spec in specs.items() if spec["usermeta"]["siamang"].get("respondents")
     }
-    assert flagged == {"scatter", "scatter_hue", "boxplot_points"}
+    assert flagged == {"scatter", "scatter_hue", "boxplot", "boxplot_points"}
+
+
+def test_a_box_plot_is_flagged_when_it_plots_a_respondents_answer():
+    """An outlier is one respondent's answer as much as a point is: a box plot
+    with outliers is flagged for a public page, one without is not, and its
+    outliers are listed by value, not in the data's order."""
+    import matplotlib.pyplot as plt
+
+    data = _survey()
+    try:
+        with_outliers = BoxPlot(data, column="income", by="region")
+        spec = with_outliers.vega_lite()
+        assert spec["usermeta"]["siamang"].get("respondents") is True
+        outliers = _main(spec)["layer"][3]["data"]["values"]
+        by_group: dict[str, list[float]] = {}
+        for row in outliers:
+            by_group.setdefault(row["group"], []).append(row["value"])
+        assert outliers and all(values == sorted(values) for values in by_group.values())
+        plain = BoxPlot(data, column="wave", by="region")
+        plain_spec = plain.vega_lite()
+        assert not any(stat and len(stat["fliers"]) for stat in plain._drawn.stats)
+        assert "respondents" not in plain_spec["usermeta"]["siamang"]
+    finally:
+        plt.close("all")
 
 
 def _box_axis(spec: dict[str, Any]) -> list[str]:

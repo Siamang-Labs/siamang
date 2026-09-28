@@ -451,8 +451,8 @@ zoom where it helps — and still opens offline, so it can be sent to a client
 as it is. For that it carries the chart libraries (Vega 6.4.0, Vega-Lite
 6.4.3 and Vega-Embed 7.3.0, BSD-3-Clause, vendored with the engine: about
 0.8 MB, once) and each chart's numbers as its Vega-Lite spec — what the chart
-draws, and for a scatter plot or a box plot's points the respondents' plotted
-values, with no id or other answer. Each chart's picture stays in the HTML
+draws, and for a scatter plot, a box plot's outliers or its points the
+respondents' plotted values, with no id or other answer. Each chart's picture stays in the HTML
 for print and for a reader without scripts. The Markdown's figures get their
 specs beside them (`report_fig_3.png`, `report_fig_3.vl.json`), and the
 Markdown itself and the Excel workbook are unchanged. It is written into the
@@ -623,8 +623,8 @@ A platform that saves a chart tile's picture keeps the spec beside it by the
 same name (`siamang.reporting.vega.spec_path`: `live/tile_n.png` →
 `live/tile_n.vl.json`) — Studio's Live screen draws it from there. A spec
 that plots respondents (`usermeta.siamang.respondents`: a scatter plot, a
-box plot's points) is one a public dashboard should show as its picture
-only.
+box plot with outliers or points) is one a public dashboard should show as
+its picture only.
 
 ## `generate_flow`
 
