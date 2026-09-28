@@ -183,7 +183,7 @@ The flow then appears under **Live tiles** with its tiles.
 | **number** | one formatted number |
 | **stat** | a list of named values (e.g. mean, sd, n) |
 | **table** | the connected table — a **Trend**'s `table` gives its points with their intervals and bases |
-| **chart** | the connected chart as an image — any chart node's: a Likert chart of a battery, a **Trend** of the weeks so far, or the Result chart of an analysis (means with their intervals, a TURF reach curve) as the run drew it. A chart whose **Palette** is `theme` is drawn in the look of the flow's **Save report**, so the tile shows the colors the report does — in the default chart colors when the flow's **Save report** nodes do not all name the same look |
+| **chart** | the connected chart, drawn interactively in your browser (see [Interactive chart tiles](#interactive-chart-tiles)), with the picture the run drew as its fallback — any chart node's: a Likert chart of a battery, a **Trend** of the weeks so far, or the Result chart of an analysis (means with their intervals, a TURF reach curve). A chart whose **Palette** is `theme` is drawn in the look of the flow's **Save report**, so the tile shows the colors the report does — in the default chart colors when the flow's **Save report** nodes do not all name the same look |
 | **text** | the value as text |
 
 Numbers show up to three decimals; a number smaller than 0.001 — a p-value,
@@ -191,10 +191,10 @@ say — is written with its exponent (`2.35e-5`) rather than rounded to 0.
 
 By default every tile takes one grid cell. Larger tiles — up to four cells
 across and three down; a larger size is drawn at that — can be set only in
-the flow's document; there is no drag-to-resize on the Live tab. A chart fills
-its tile without being cropped, so a chart drawn low and wide (a **Figure
-height (in)** well under its **Figure width (in)**) reads best in a wide
-tile.
+the flow's document; there is no drag-to-resize on the Live tab. A chart
+takes its tile's width; a chart's picture fills its tile without being
+cropped, so a chart drawn low and wide (a **Figure height (in)** well under
+its **Figure width (in)**) reads best in a wide tile.
 
 > **In the example study.** A project started from the
 > [example study](Studio-Projects#the-example-study) has two flows with
@@ -210,6 +210,40 @@ tile.
 > in the flow documents: *Quality checks* takes two grid cells by two,
 > *Screen time by week* four across and three down — which is why its trend
 > is drawn 7.5 × 3.4 inches.
+
+### Interactive chart tiles
+
+A **chart** tile is drawn in your browser from the numbers the chart draws —
+the same form a report's HTML has with
+[Interactive charts in HTML](Studio-Reports#interactive-charts):
+
+| Action | What happens |
+|---|---|
+| Point at a bar, point, segment or cell | a tooltip gives its label, its value and its base |
+| Click a legend entry | hides that series (its entry fades); click again to show it |
+| Double-click the chart | shows every series again |
+| Hold `Ctrl` (`Cmd` on a Mac) and scroll, or pinch | zooms a **Scatter plot**, a **Trend** of more than 24 periods or a **Perceptual map**; drag to move, double-click to reset |
+
+- **No setting.** The **Live tile** node publishes the chart's interactive
+  form with its picture, whatever the flow's **Save report** says about
+  **Interactive charts in HTML**. Tiles from a run before this existed show
+  the picture.
+- **The picture stands in** while the chart loads and whenever it cannot be
+  drawn — a chart without an interactive form, or one whose form is over
+  512 KB (a few KB is usual). A chart far too tall for its tile shows its
+  picture, which scales down whole, with the hint "Too tall for this tile to
+  draw interactively: its picture. A larger tile draws it." One a little too
+  tall is drawn with a shorter plot — never so short that its labels
+  overlap — and what still does not fit scrolls inside the tile.
+- **Colors.** The chart keeps its own light background in Studio's dark
+  theme, as its picture does; only the tooltip follows the theme.
+- **Refreshes keep what you did.** A tile is drawn again only when its numbers
+  change, so a series you hid stays hidden through the 30-second refreshes.
+- **No menu.** A tile has no **…** menu; the chart's PNG is among the run's
+  outputs.
+- **Nothing from elsewhere.** The chart libraries are Studio's own copies,
+  loaded the first time a chart tile is on screen, and a chart is drawn from
+  the data it carries alone — it never makes your browser fetch anything.
 
 ### A flow's row
 
@@ -282,8 +316,10 @@ tiles is a Plus feature." and the button is disabled.
 
 - **Create public link** → toast **Public link created**. The bar then shows
   the link, **Copy**, **Rotate**, **Revoke** and "**Anyone with this link can
-  view these live tiles** — no Studio account, no sign-in. Created
-  `<date, time>`. Revoke it when the study closes."
+  view these live tiles** — no Studio account, no sign-in. A chart there
+  answers the pointer and carries the numbers it draws; a chart of each
+  respondent's answers (a scatter plot, a box plot's points) shows only its
+  picture. Created `<date, time>`. Revoke it when the study closes."
 - **Rotate** issues a new address and revokes the old one:
 
   > **Replace the public link?** — "A new URL is issued for these tiles." —
@@ -316,6 +352,15 @@ automatically"; the page refreshes every 30 seconds while it is open.
 | "This live page does not exist or its link was revoked." | the link was revoked or rotated, the address is wrong, or the organization's plan no longer includes Live |
 | "Could not load the live page." | a temporary problem; the page keeps trying |
 
+Chart tiles are [interactive](#interactive-chart-tiles) on the public page
+too, so a viewer can read the numbers each chart draws, not only see them. A
+chart that plots each respondent — a **Scatter plot**, or a **Box plot** with
+**Show points** — is the exception: the public page shows only its picture,
+so the link never hands out a list of respondents' values. On your own
+**Live** tab the same tile stays interactive. A **Box plot** without **Show
+points** is interactive on the public page, and its outliers — the few
+extreme values it marks — are among its numbers.
+
 ### Rules
 
 - **One link per project.** Creating a new link revokes the previous one.
@@ -325,7 +370,9 @@ automatically"; the page refreshes every 30 seconds while it is open.
 - Any member of the organization can create, rotate and revoke the link.
   Creating and revoking are recorded in the project's activity log.
 - Treat the link like a password, and never publish a tile that could
-  identify a respondent (small cells, open answers, ids).
+  identify a respondent (small cells, open answers, ids). A chart tile's
+  numbers can be read off the page, not only seen — a chart of a group of
+  three tells a viewer about those three.
 
 ---
 

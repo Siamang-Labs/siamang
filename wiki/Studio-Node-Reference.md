@@ -3106,6 +3106,12 @@ table, a chart or a statistic — as a tile on the **Live** screen. See
   its `table` — the points with their intervals and bases — with **Kind**
   `table`. A chart whose **Palette** is `theme` is drawn on the tile in the
   look of the flow's **Save report**, as its report draws it.
+- A **chart** tile carries the chart's picture and its interactive form: the
+  **Live** tab and the public page draw it with a tooltip on every mark and a
+  legend that hides and shows a series, whatever the flow's **Save report**
+  says about **Interactive charts in HTML**; the public page shows a
+  **Scatter plot**, or a **Box plot** with **Show points**, as its picture
+  only. See [Interactive chart tiles](Studio-Live-Monitoring#interactive-chart-tiles).
 - A tile's size on the Live screen is not set from the canvas; tiles appear at
   the standard size.
 
@@ -3153,6 +3159,7 @@ footer** is on (the default).
 | **Title** | text | required | — | The report's title. |
 | **Path** | file path | `outputs/report.md` | — | Where the Markdown file is written. Keep it under `outputs/`. |
 | **Also save HTML** | checkbox | on | — | Also write the styled `.html` twin next to the Markdown. |
+| **Interactive charts in HTML** | checkbox | off | — | The HTML draws its charts in the reader's browser — a tooltip on every bar, point and cell with its value and base, a legend whose entries hide and show their series, zoom where it helps — and still opens offline, so it can be sent to a client as it is. For that it carries the chart libraries (Vega, Vega-Lite and Vega-Embed, about 0.8 MB, written in once) and each chart's numbers — what it draws, and a scatter plot's points and a box plot's outliers, the respondents' values it plots. Each chart's picture stays in the HTML for printing and for readers without scripts; the Markdown and the Excel workbook are unchanged. Applies only with Also save HTML. |
 | **Table of contents** | checkbox | off | — | Add a table of contents. |
 | **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (Path with .xlsx) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
 | **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected. |
@@ -3170,6 +3177,21 @@ footer** is on (the default).
   composer's **Also Excel** is the same box; see
   [Tables in Excel](Studio-Reports#tables-in-excel).
 
+- **Interactive charts in HTML** (the Report view's box of the same name)
+  makes the `.html` draw its charts in the reader's browser: a tooltip with
+  each value and its base, a legend that hides and shows a series, zoom on a
+  **Scatter plot**, a **Trend** of more than 24 periods and a **Perceptual
+  map**, and a menu that saves a chart as PNG or SVG. Beside the Markdown,
+  each figure's Vega-Lite spec is written next to its picture
+  (`report_fig_3.png`, `report_fig_3.vl.json`); the `.md` and the Excel
+  workbook keep the pictures. Unchecked (the default), the node writes
+  exactly what it wrote before the option existed. With **Also save HTML**
+  unchecked it does nothing, and **Check** and the node warn: "Interactive
+  charts in HTML draws the charts of the HTML — turn on Also save HTML; the
+  Markdown and the Excel workbook keep their pictures." What the file then
+  carries — the chart libraries and each chart's numbers, a scatter plot's
+  and a box plot's points included — is under
+  [Interactive charts](Studio-Reports#interactive-charts).
 - The **Look** parameter is edited in the **Look** tab of the Report view
   ([Reports](Studio-Reports#the-look-tab)). A node created by the Report view
   or added from the palette starts with the project's house style as its

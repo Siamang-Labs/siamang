@@ -4,9 +4,10 @@ A report is a document produced by a flow: headings, text you wrote, tables
 and charts with captions, and notes. This page covers how a report is built
 from nodes, putting a result's chart beside its table, writing it in the
 flow's **Report** view, styling it — its charts' colors too — in the **Look**
-tab and with the project's house style, the **Reports** screen, the report's
-tables in Excel and the tab books beside the reports, PDF and Word copies,
-the provenance footer and the combined report of **Run all**.
+tab and with the project's house style, charts the reader can hover and
+toggle in the HTML, the **Reports** screen, the report's tables in Excel and
+the tab books beside the reports, PDF and Word copies, the provenance footer
+and the combined report of **Run all**.
 
 ---
 
@@ -20,8 +21,9 @@ Two node types ([[Node Reference|Studio-Node-Reference]]):
   sections.
 - **Save report** — the sections, in the order you connect them, combined
   into one document with a title and saved to a **Path** (default
-  `outputs/report.md`), optionally with a table of contents and with its
-  tables in Excel.
+  `outputs/report.md`), optionally with a table of contents, with
+  [interactive charts](#interactive-charts) in its HTML and with its tables
+  in Excel.
 
 **Run** the flow, and the document appears on the **Reports** screen and in
 **Files**.
@@ -40,7 +42,8 @@ Two files come out of one report, and they divide the work (a third, the
   print the same numbers as the `.md`: a statistics table as it rounds them,
   and a table such as a **Regression**'s coefficients, a **Principal
   components** loading or a **Cluster** centroid with six significant digits
-  (`62.263`, `6.15462e-38`).
+  (`62.263`, `6.15462e-38`). With **Interactive charts in HTML** its charts
+  answer the reader's pointer — see [Interactive charts](#interactive-charts).
 
 Three rules make sure a report arrives:
 
@@ -59,7 +62,9 @@ A run keeps at most 50 files (and 200 MB) under `outputs/`. When a flow
 writes more — a report with dozens of charts — the report's `.md` and `.html`
 are kept before the figures, so the report still arrives; the charts past the
 cap are missing next to the `.md`, while the `.html` carries its charts
-inside. See [What a run keeps](Studio-Flows#running-a-flow).
+inside. With **Interactive charts in HTML** each chart also writes its
+`.vl.json` beside its picture, which counts like a figure. See
+[What a run keeps](Studio-Flows#running-a-flow).
 
 A report produced by a run on the platform ends with a
 [provenance footer](#the-provenance-footer) unless you turn it off in
@@ -105,7 +110,7 @@ a document over the same nodes. Everything you change here is a change to the
 flow — visible on the canvas at once, saved with **Save changes**.
 
 ```
-┌ Report title ─────────────── outputs/satisfaction.md  [ ] Contents  [x] Also HTML  [ ] Also Excel ┐
+┌ Report title ──── outputs/satisfaction.md  [ ] Contents  [x] Also HTML  [ ] Interactive charts in HTML  [ ] Also Excel ┐
 │ 1  Section heading (optional)                             2 outputs   ok   v  ⋮           │
 │    Introductory text (Markdown) — what the reader should take from this section            │
 │    Outputs                                                                                  │
@@ -120,7 +125,14 @@ flow — visible on the canvas at once, saved with **Save changes**.
 ### The title row
 
 When the flow has a **Save report** node: **Report title**, the file path,
-**Contents** (a table of contents), **Also HTML**, **Also Excel** ("Every
+**Contents** (a table of contents), **Also HTML**, **Interactive charts in
+HTML** ("Hover for a value and its base, click a legend entry to show or
+hide a series. The HTML then carries the chart libraries (about 0.8 MB, once)
+and the numbers each chart draws; the Markdown, the Excel and print keep the
+pictures" — the node's parameter of the same name, off by default; with
+**Also HTML** unchecked the box is grayed out and reads "Only the HTML has
+interactive charts — tick Also HTML first"; see
+[Interactive charts](#interactive-charts)), **Also Excel** ("Every
 table of the report in one workbook beside it (Path with .xlsx): a sheet per
 table with its statistics under it, and a Contents sheet first; charts are
 left out" — the node's **Also save tables to Excel**, off by default; see
@@ -226,6 +238,11 @@ switches to the Markdown source.
   run does — the engine's defaults when the node has none.
 - The Markdown view shows the first 4,000 characters; the rendered view shows
   the whole document.
+- With **Interactive charts in HTML** on (and **Also HTML**), the preview
+  draws the charts as the run's HTML will. A preview opened straight from
+  the file storage cannot be given the isolated frame those charts need, so
+  there it shows each chart's picture, as print does; the report on the
+  **Reports** screen is interactive either way.
 - Changing anything upstream marks it "changed since — run again".
 - Before the first preview: "No preview yet. Preview report runs the draft up
   to the Save report node and renders the document the engine builds — the
@@ -439,7 +456,10 @@ at once ("Update report settings", "Apply the report house style to 3 flows")
   name (`outputs/client_q3.xlsx`) — see [Tab books](#tab-books).
 - **The document** renders in the middle: the HTML twin when there is one
   (exactly as the flow styled it), otherwise the Markdown with a plain
-  stylesheet. It is shown as a document only — scripts in a report never run.
+  stylesheet. It is shown as a document — scripts in a report do not run —
+  except a report saved with **Interactive charts in HTML**: its charts work
+  here, in a frame cut off from Studio, and the bar shows an **interactive**
+  pill (see [On the Reports screen](#on-the-reports-screen)).
 - **The bar** offers **Markdown**, **HTML** (only when the report has an HTML
   twin), **Excel** (only when a workbook of its tables is stored beside it —
   see [Tables in Excel](#tables-in-excel)) and **Print / PDF**.
@@ -467,7 +487,9 @@ and its report shows up here." with **Open Flows**. If a stored file cannot be
 read: "The stored file could not be read — download it instead." with a
 download button.
 
-> **Tip.** To share a report, send the **HTML**: one file, charts inside. The
+> **Tip.** To share a report, send the **HTML**: one file, charts inside —
+> charts the client can hover and toggle when the flow has **Interactive
+> charts in HTML** on ([send an interactive report](Studio-Recipes#send-an-interactive-report-to-a-client)). The
 > **Markdown** zip is for a repository or an editor, the **Excel** workbook
 > for a colleague who wants the numbers in a spreadsheet, a tab book for a
 > client who wants every question by every segment. Reports have no
@@ -551,7 +573,8 @@ copy") opens your browser's print dialog on the report's own HTML, page box
 and all. If you set **Page** to `a4` or `letter`, choose the same paper size
 in the dialog and set its margins to none — the document already carries
 them. A report without an HTML twin prints with Studio's own print margins
-(18 mm top and bottom, 16 mm at the sides).
+(18 mm top and bottom, 16 mm at the sides). A report with interactive charts
+prints each chart's picture.
 
 **For Word**, convert the HTML with [pandoc](https://pandoc.org):
 
@@ -562,6 +585,109 @@ pandoc report.html -o report.docx
 The same command is in every research bundle's README. Studio does not render
 Word or PDF on the server: a converter you run yourself is one you can pin,
 and the HTML is the honest input to it.
+
+---
+
+## Interactive charts
+
+A report's HTML can draw its charts in the reader's browser instead of as
+fixed pictures: the reader points at a bar to read its exact value and base,
+hides a series to compare the others, and zooms into a crowded scatter plot.
+It is one checkbox, and it changes the HTML only.
+
+### Turning them on
+
+1. In the flow's **Report** view, check **Interactive charts in HTML** in the
+   title row — on the canvas, the **Save report** node's **Interactive charts
+   in HTML**. **Also HTML** must be checked too.
+2. **Preview report** to see them, then **Run** the flow.
+
+The box is off by default: a flow that does not check it writes exactly the
+files it always did. With **Also HTML** unchecked it has nothing to act on —
+the Report view grays it out, and a node that has it on anyway gets the
+warning "Interactive charts in HTML draws the charts of the HTML — turn on
+Also save HTML; the Markdown and the Excel workbook keep their pictures."
+
+### What the reader can do
+
+| Action | What happens |
+|---|---|
+| Point at a bar, point, segment or cell | a tooltip gives its label, its value — written as the picture writes it — and its base (`400 respondents`) |
+| Click a legend entry | hides that series (its entry fades); click again to show it |
+| Double-click the chart | shows every series again |
+| Hold `Ctrl` (`Cmd` on a Mac) and scroll, or pinch | zooms a **Scatter plot**, a **Trend** of more than 24 periods or a **Perceptual map**; drag to move, double-click to reset — the note under the chart says so |
+| **Names on the map** (a Perceptual map) | writes or hides the points' names; every name is in its point's tooltip either way. It starts unchecked for a map too crowded to name its points |
+| Point at a **Van Westendorp** chart | draws a line at that price and gives every curve's share there |
+| The chart's **…** menu | **Save as PNG** or **Save as SVG**, named after the report and the chart (`key_tables-life-satisfaction-by-age-group.png`) — nothing else: no "open in editor", which would send the chart's numbers to a web site |
+
+Every chart node has this form — each **Bar chart** form (histogram and
+donut included), the **Likert chart**, the **Heatmap**, the **Box plot**, the
+**Scatter plot**, the **Trend** and every kind of **Result chart** — drawn
+from the same numbers as its picture, in the same colors (the Look's
+[Chart colors](#chart-colors) for a chart of **Palette** `theme`), with the
+same title and the same notes under it (base, weighting, missing codes left
+out). On a phone the chart narrows with the page and its menu button sits
+over its corner.
+
+### What the file carries
+
+The `.html` is still one file that opens in any browser, offline, and
+fetches nothing from anywhere — which is what makes it something you can
+email to a client as it is. For that it carries:
+
+- **The chart libraries** — Vega, Vega-Lite and Vega-Embed, open-source code
+  under the BSD 3-Clause license, with their license notices — about 0.8 MB,
+  once, however many charts the report has. A report whose HTML was 0.8 MB
+  with six charts is about 1.7 MB with them interactive.
+- **Each chart's numbers**, as a Vega-Lite spec: what the chart draws —
+  counts, percentages, means, intervals, bins, a heatmap's cells, a result's
+  estimates — never a respondent's own answers, **except** in the two charts
+  that plot respondents one by one. A **Scatter plot** carries each point's
+  **X**, **Y** and **Color by** group; a **Box plot** carries its outliers
+  and, with **Show points**, every point — each a value and its group. No
+  respondent id, no other answer, and the points are listed in sorted order,
+  so a point's place in one chart does not match it to a point in another.
+  Anyone who has the file can read these numbers, not only see them — see
+  [Security and Privacy](Studio-Security-and-Privacy#interactive-charts-and-your-data).
+- **Each chart's picture**, as before: it is what prints, what a reader
+  whose browser runs no scripts sees, and what shows if a chart cannot be
+  drawn.
+
+Beside the Markdown, each figure's spec is written next to its picture
+(`satisfaction_fig_3.png`, `satisfaction_fig_3.vl.json`). The run's card and
+**Files** list them with a chart icon and the hint "Interactive chart: a
+Vega-Lite 6 spec with the numbers the chart draws — the report's HTML draws
+it"; the **Markdown** download keeps them beside the figures in its `.zip`.
+The `.md` itself and the [Excel workbook](#tables-in-excel) are unchanged —
+they keep the pictures.
+
+### On the Reports screen
+
+An interactive report has an **interactive** pill in the bar ("Its charts
+answer the pointer: hover for a value and its base, click a legend entry to
+show or hide a series. The report's scripts run in a frame of their own, cut
+off from Studio."), and its **HTML** button says "One file that opens in any
+browser, offline, with its interactive charts: it carries the chart
+libraries and the numbers each chart draws".
+
+Its charts work here as in the file, but in a frame of their own: the
+report's scripts cannot read your Studio session, Studio's pages or storage,
+call Studio's API, fetch anything, open windows, submit forms or start
+downloads. The charts' **…** menu is hidden here for that reason — download
+the **HTML** to use it, or take a figure's PNG from the run's card. Only a
+report that carries the engine's chart libraries and interactive charts runs
+scripts at all; any other report, including one whose text contains a
+`<script>` of its own, is shown with none. **Print / PDF** prints each
+chart's picture.
+
+### In the combined report
+
+In the [combined report](#the-combined-report) of **Run all**, the figures of
+each flow whose **Save report** has **Interactive charts in HTML** checked
+are interactive too, and the other flows' figures stay pictures. The research
+bundle's `README.md` lists the reports with interactive charts, and the
+Methods draft says that the report had "its charts interactive in its HTML
+version".
 
 ---
 
@@ -614,7 +740,10 @@ when the questionnaire has none:
   `<flow>__<report>_fig_N.png` (an `_` in the flow name becomes `-`), taken
   from each flow as soon as it finishes, so two flows' figures never mix. The
   `.html` twin carries its figures inside it, so it shows them on this screen
-  and wherever you open the downloaded file.
+  and wherever you open the downloaded file. A figure whose flow drew it
+  interactively has its `.vl.json` copied beside it the same way, and is
+  interactive in the `.html` twin (see
+  [In the combined report](#in-the-combined-report)).
 
 Because it is assembled from each flow's Markdown, the combined HTML has the
 house style's typefaces, measure and page box but plainer tables than a single
@@ -678,6 +807,10 @@ shows the flows' reports and tab books from that Run all too. See
   one edit.
 - **Send a tab book with the report.** The report tells the story; the tab
   book lets the client look up any question by any segment.
+- **Send the interactive HTML to a client** who wants exact values: check
+  **Interactive charts in HTML**, and one file lets them read every value and
+  base and switch series on and off, offline. Look at its scatter plots and
+  box plots first — they carry each plotted respondent's values.
 
 ## See also
 
