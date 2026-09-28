@@ -45,23 +45,41 @@ figure is built lazily on first use.
 | `save(path, dpi=150)` | `Path` | Write to file (the directory must already exist); `bbox_inches="tight"`. |
 | `vega_lite()` | `dict \| None` | The chart as a Vega-Lite 6 spec a browser draws interactively (see below), or `None` for a chart without one (a Result chart whose renderer draws a figure of its own). |
 
-**Interactive form.** `vega_lite()` says what the picture says, drawn from the
-same numbers: inline data of only what the chart draws (counts, percentages,
-means, intervals, bins, a heatmap's cells, a box's five numbers — a scatter
-plot's points and a box plot's outliers are the respondents' values it plots,
-without ids or other answers, listed by group and value so that no point's
-place in the list is a key to a respondent in another chart), the title, the
-axis titles, the notes (base, weight, missing codes) at its foot, the picture's
-colors with the report Look's text, grid and font, a tooltip on every mark with
-its value as the picture writes it and its base, a legend that hides and shows
-its series (a hidden series' entry faded; a double click on the chart, in a
-report or in Studio, shows them all), zoom on a scatter plot and on a long
-Trend (hold Ctrl — Cmd on a Mac — and scroll, or pinch; drag to move; double
-click to reset), and a description for a screen reader. Every
-chart on this page has one: each form of `BarChart` (histogram and donut too),
-`LikertChart`, `HeatMap`, `BoxPlot`, `ScatterPlot`, `TrendChart`, and every kind
-of Result chart (below). A report shows them with `to_html(..., interactive=True)`
-([[Report Document|Report-Document]]).
+**Interactive form.** `vega_lite()` returns the chart as a
+[Vega-Lite 6](https://vega.github.io/vega-lite/) spec that says what the
+picture says, drawn from the same numbers, so the two cannot disagree:
+
+- **Data**, inline, of only what the chart draws: counts, percentages, means,
+  intervals, bins, a heatmap's cells, a box's five numbers. Never a
+  respondent's row — except where the chart plots respondents themselves: a
+  scatter plot's points (x, y, group) and a box plot's outliers (and, with
+  `show_points`, its points) are the plotted values alone, without ids or
+  other answers, listed by group and value so that no point's place in the
+  list is a key to a respondent in another chart. Such a spec says
+  `"respondents": true` in `usermeta.siamang`.
+- **The picture's words and look**: the title, the axis titles, the notes
+  (base, weight, missing codes left out) at its foot, the picture's colors
+  with the report Look's text, grid and font.
+- **A tooltip on every mark**: its label, its value as the picture writes it,
+  and its base.
+- **A legend that hides and shows its series**: click an entry to hide its
+  series (the entry fades), click again to show it; a double click on the
+  chart — in a report or in Studio — shows them all.
+- **Zoom** on a scatter plot, a Trend of more than 24 periods and the
+  Perceptual map: hold Ctrl (Cmd on a Mac) and scroll, or pinch; drag to
+  move; double click to reset.
+- **A description** for a screen reader.
+
+Every chart on this page has one: each form of `BarChart` (histogram and donut
+too), `LikertChart`, `HeatMap`, `BoxPlot`, `ScatterPlot`, `TrendChart`, and
+every kind of Result chart (below). A report draws them with
+`to_html(standalone=True, interactive=True)` and writes each figure's spec
+beside its picture with `save("r.md", interactive=True)` (`r_fig_3.vl.json`,
+see [[Report Document|Report-Document]]); a Live tile of a chart publishes it
+with the tile. The libraries that draw them — Vega 6.4.0, Vega-Lite 6.4.3 and
+Vega-Embed 7.3.0, BSD-3-Clause — are vendored with the engine
+(`siamang/reporting/assets/vega`, with their licenses and a README naming the
+npm sources); nothing is loaded from a CDN.
 
 **Weighted data.** After `with_weight(...)` a chart never disagrees in silence
 with the weighted tables beside it. `BarChart` draws sums of weights (axis
@@ -538,7 +556,8 @@ Kind does not suit it (`RESULT_KIND`), and warns when results of two analyses
 are connected (`RESULT_SOURCES`).
 
 **Interactive.** Every kind has its `vega_lite()` spec, drawn from the numbers
-of its picture: a tooltip on each point, bar, segment or cell with its value as
+of its picture — the result's estimates, intervals and bases, never a
+respondent's answers: a tooltip on each point, bar, segment or cell with its value as
 the picture writes it, its interval and its base; a legend that hides a group
 (the groups of Descriptive statistics, a cluster, a conjoint attribute, a
 sentiment, a price curve); odds ratios on a log axis; a correlation's p in its

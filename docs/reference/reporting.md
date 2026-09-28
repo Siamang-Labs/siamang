@@ -171,42 +171,62 @@ Report(title="Satisfaction 2026", theme=theme).text("…").save("report.html")
 
 **Interactive charts.** `to_html(standalone=True, interactive=True)` (and
 `save("report.html", interactive=True)`) draws each chart that has an
-interactive form (`SurveyChart.vega_lite()`) in the reader's browser: a
+interactive form (`SurveyChart.vega_lite()`, §2) in the reader's browser: a
 tooltip on every bar, point and cell with its value and base, a legend whose
 entries hide and show their series (a double click on the chart shows them
-all again), zoom where it helps. The document carries the libraries that draw
-them — Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0, vendored in
-`siamang/reporting/assets/vega` with their BSD-3-Clause licenses, about 0.8 MB,
-written in **once** however many charts there are and never loaded from a CDN
-or any other address — with their notices before them in an HTML comment
-(`vega.notices()`: the license of every library the builds bundle, verbatim,
-as the licenses ask of a copy given to someone), and each chart's spec in a
-`<script type="application/json">`. Each chart's picture stays: in a
-`<noscript>` for a reader without scripts, and put back by the page for
-printing (`@media print` shows the picture, not the drawing) and for a chart
-that cannot be drawn. The charts' menu saves a chart as PNG or SVG and offers
-nothing else — no editor, which would send the chart and its numbers to a web
-site, and no view of the source; the picture saved is named by the report and
-the chart's title, `key_tables-life-satisfaction-by-age-group.png` (`to_html`'s
-`name`, the file's stem that `save` passes, else the report's title). On a
-phone's width (under 520 pixels) the menu's button sits over the chart and the
-chart takes the width beside it. The Markdown, the Excel workbook and a report
-saved without `interactive` are what they always were; `save("report.md",
-interactive=True)` writes the same Markdown and each figure's spec beside it
-(`report_fig_3.png`, `report_fig_3.vl.json`). `siamang.reporting.vega` has
-`Report.interactive_figures(html, specs, name=)` draws the pictures of a
-document `to_html(standalone=True)` wrote whose charts came back as pictures —
-a report combined from Markdown, each figure's spec written beside it — from
-their specs (`specs` by the picture's `src`), the libraries once and each
-picture kept. `write_spec(chart, path)` and `spec_path(picture)` (`fig_3.png` →
-`fig_3.vl.json`) for a host that writes a chart's picture itself, and
-`library(name)` / `LIBRARIES` for one that draws the specs with the vendored
-builds; a page that embeds a spec with Vega-Embed lays it out again after it
-is drawn (`view.resize().runAsync()`) until nothing moves — the notes', the
-title's and a legend's lines are chosen for the width drawn at, and a legend
-that took more rows there pushed the title above the drawing when the chart
-was laid out once only — and on a double click puts the legend's selection
-(`shown_store`) back as it was drawn.
+all again), zoom where it helps. `interactive` asks for a document: with
+`standalone=False` it is a `ValueError` ("Interactive charts are drawn in an
+HTML document: pass standalone=True."). What the document carries:
+
+- **The libraries, once.** Vega 6.4.0, Vega-Lite 6.4.3 and Vega-Embed 7.3.0 —
+  the npm packages' own minified builds, vendored in
+  `siamang/reporting/assets/vega` with their BSD-3-Clause licenses
+  (`LICENSE-vega`, `LICENSE-vega-lite`, `LICENSE-vega-embed`) and a README
+  naming the versions, the npm sources and the files' SHA-256 — about 0.8 MB,
+  written in inline **once** however many charts there are, and never loaded
+  from a CDN or any other address: the document opens offline and can be
+  mailed as it is. Before them, in an HTML comment, the notices of every
+  library the builds bundle, verbatim (`vega.notices()`,
+  `assets/vega/THIRD-PARTY-NOTICES.txt`), as the licenses ask of a copy given
+  to someone. A report none of whose charts has an interactive form carries
+  no library at all.
+- **Each chart's spec** in a `<script type="application/json">` beside the
+  view it is drawn in: the chart's numbers as it draws them (§2, `vega_lite()`
+  says exactly what that is — a scatter plot's and a box plot's points are
+  the respondents' plotted values).
+- **Each chart's picture.** In a `<noscript>` for a reader without scripts,
+  and put back by the page for printing (`@media print` shows the picture,
+  not the drawing) and for a chart that cannot be drawn.
+- **The charts' menu** (Vega-Embed's `…`), which offers **Save as PNG** and
+  **Save as SVG** and nothing else — no editor, which would send the chart and
+  its numbers to a web site, and no view of the source. The picture saved is
+  named by the report and the chart's title,
+  `key_tables-life-satisfaction-by-age-group.png` (`to_html`'s `name`, the
+  file's stem that `save` passes, else the report's title). On a phone's
+  width (under 520 pixels) the menu's button sits over the chart and the chart
+  takes the width beside it. A chart is drawn as SVG, as wide as its place in
+  the report (its `layout` width) and narrower on a narrower screen.
+
+The Markdown, the Excel workbook and a report saved without `interactive` are
+what they always were; `save("report.md", interactive=True)` writes the same
+Markdown and each figure's spec beside its picture (`report_fig_3.png`,
+`report_fig_3.vl.json`), for a host that draws the figure in a browser.
+`Report.interactive_figures(html, specs, name="report")` draws the pictures of
+a document `to_html(standalone=True)` wrote whose charts came back as
+pictures — a report combined from Markdown, each figure's spec written beside
+it — from their specs (`specs` keyed by the picture's `src`), the libraries
+once and each picture kept; a picture without a spec stays a picture.
+
+`siamang.reporting.vega` has `write_spec(chart, path)` and
+`spec_path(picture)` (`fig_3.png` → `fig_3.vl.json`) for a host that writes a
+chart's picture itself, and `library(name)`, `LIBRARIES` and `notices()` for
+one that draws the specs with the vendored builds. A page that embeds a spec
+with Vega-Embed should lay it out again after it is drawn
+(`view.resize().runAsync()`) until nothing moves — the notes', the title's
+and a legend's lines are chosen for the width drawn at, and a legend that
+took more rows there pushed the title above the drawing when the chart was
+laid out once only — and, on a double click, put the legend's selection
+(`shown_store`) back as it was drawn; the report's own script does both.
 
 The theme is the same shape as the questionnaire's `UIConfig`: **one named preset
 plus tokens you may override**, stored sparsely (`to_dict()` writes only what
@@ -371,7 +391,17 @@ A chart on weighted data (`SurveyData.with_weight`) never disagrees in silence w
 * **`png(dpi: int | None = None) -> bytes`**:
   The chart as PNG bytes at `dpi` (default: the chart's `dpi`), the bytes `save` writes to a `.png`.
 * **`vega_lite() -> dict | None`**:
-  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`), or `None` for a chart without an interactive form (a Result chart whose renderer, registered by a later node, draws a figure of its own). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. Its data is inline and holds only what the chart draws: counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. It has the picture's title (and the weight line as its subtitle), axis titles and notes (the base, the weight, the missing codes left out) at its foot, the colors the picture was drawn in with the report Look's text, grid and font, a tooltip on every mark (its label, its value written as the picture writes it, its base — a mean by group's cell the base of the respondents who answered its item; a row only a mark has, such as a low-base point's note, on that mark alone), a legend whose entries hide and show their series (the selection `shown` holds the series shown, every entry at first, so the legend fades the entries of the series hidden; only a click on an entry toggles; a page that draws the chart shows them all again on a double click), zoom and pan on a scatter plot and a Trend of more than 24 periods (Ctrl or Cmd and the wheel, or a trackpad's pinch, zoom, so a page scrolls past; Shift, which Windows and macOS turn into a scroll across, did not zoom there), and a `description` for a screen reader. A scatter plot's and a box plot's points are listed by group and value, not in the data's order — a point's place in the list is no key to the same respondent in another chart of the data. A title's (and the notes') lines never run wider than the chart's container, and a subtitle is a size smaller under 330 pixels. Each form: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn), `TrendChart` (lines, bands, hollow low-base points, gaps) and every kind of `ResultChart` (section 4). `usermeta.siamang` names the chart (a Result chart: its kind, `means`, `scree`, …), gives its title as one line (`title`) and lists its notes; a chart that plots each respondent (a scatter plot, a box plot with its points) also says `"respondents": true`, which a host that shows charts to the public reads to show such a chart's picture only; and `least` is the least height (pixels) its plot reads at — a row per label as tall as its label's lines (a Likert chart, a heatmap, horizontal bars, a Result chart's rows), a map, a donut and a proportion their own height — for a host that shortens a chart to fit a box (a Studio Live tile).
+  The chart as a **Vega-Lite 6** spec a browser draws interactively (`siamang.reporting.vega`; Vega-Lite 6.4.3 is the release the specs are validated against and the one a report carries), or `None` for a chart without an interactive form (a Result chart whose renderer, registered by a later node, draws a figure of its own). It is drawn from the numbers the picture was drawn from — the chart is drawn first if it was not — so the two cannot disagree. What a spec holds:
+  - **Data**: inline, and only what the chart draws — counts, percentages, means, intervals, bins, a heatmap's cells, a box's five numbers, computed in Python. A chart that plots the respondents themselves carries the values it plots and nothing else — a scatter plot's points (x, y and the group), a box plot's outliers and, with `show_points`, its points (the group and the value); never an id or another answer. Those points are listed by group and value, not in the data's order, so a point's place in the list is no key to the same respondent in another chart of the data.
+  - **Words**: the picture's title (and the weight line as its subtitle), axis titles and legend, and its notes (the base, the weight, the missing codes left out) at its foot. A title's and the notes' lines never run wider than the chart's container, and a subtitle is a size smaller under 330 pixels.
+  - **Look**: the colors the picture was drawn in, with the report Look's text, grid and font (`chart_theme`).
+  - **Tooltips**: on every mark, its label, its value written as the picture writes it and its base — a mean by group's cell the base of the respondents who answered its item; a row only some marks have, such as a low-base point's note, on those marks alone.
+  - **Legend**: where there are series, a click on an entry hides or shows its series — the selection `shown` holds the series shown, every entry at first, so the legend fades the entries of the series hidden; only a click on an entry toggles, and a page that draws the chart shows them all again on a double click.
+  - **Zoom**: on a scatter plot, a Trend of more than 24 periods and the Perceptual map — Ctrl (Cmd on a Mac) and the wheel, or a trackpad's pinch, zoom, so a page scrolls past the chart; drag to move; a double click resets. The note under the chart says so.
+  - **`description`**: the chart in words, for a screen reader.
+  - **`usermeta.siamang`**: the chart's name (a Result chart: its kind, `means`, `scree`, …), its title as one line (`title`) and its notes; `"respondents": true` for a chart that plots each respondent (a scatter plot, a box plot with its points), which a host that shows charts to the public reads to show such a chart's picture only; and `least`, the least height (pixels) its plot reads at — a row per label as tall as its label's lines (a Likert chart, a heatmap, horizontal bars, a Result chart's rows), a map, a donut and a proportion their own height — for a host that shortens a chart to fit a box (a Studio Live tile).
+
+  Each form has one: `BarChart` (the classic chart; percent; Split by grouped, stacked and stacked to 100 %; Sort; Top N with Other; intervals as error bars; significance letters; a histogram's bins; a donut's slices), `LikertChart` (the diverging stacks, the top-2 and bottom-2 columns, the neutral answer split or apart), `HeatMap` (correlations and means by group, each cell's value), `BoxPlot`, `ScatterPlot` (the fitted line as drawn), `TrendChart` (lines, bands, hollow low-base points, gaps) and every kind of `ResultChart` (section 4). A report draws them with `to_html(standalone=True, interactive=True)` (§1b); `vega.write_spec(chart, path)` writes one to a file (`fig_3.vl.json` beside `fig_3.png`: `vega.spec_path`).
 * **`release() -> None`**:
   Closes the figure and lets go of it, keeping the PNGs rendered so far. A figure holds its drawing (megabytes at 150 dpi) for as long as the chart refers to it, closed or not. After `release`, `png` and `save` to a `.png` at a resolution rendered before write those bytes without drawing; `plot`, `show`, another resolution or format draw the chart again from its parameters. A `Report` releases each chart once it has written it (but one whose figure was asked for with `plot()` or `show()`), and `FlowRunner` each chart once its node has rendered it.
 
