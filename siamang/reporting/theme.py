@@ -424,6 +424,7 @@ _FIGURE_ALIGN = {"left": "0", "center": "0 auto", "right": "0 0 0 auto"}
 _FIGURE = """\
 .siamang-figure {{
   margin: {align};
+  margin-top: var(--fig-space, 0);
   width: var(--fig-w, var(--report-figure-width));
   max-width: 100%;
   display: flex;
@@ -441,8 +442,10 @@ _FIGURE = """\
   line-height: 1.45;
 }}
 .siamang-number {{ color: var(--report-text); font-weight: 600; }}
-/* Two half-width figures set side by side rather than stacked. */
-.siamang-figure + .siamang-figure[data-align="left"] {{ margin-top: 0; }}"""
+/* The `margin` above sets the sides; the space above a figure is the gap every
+   other block has, or the item's own (`space_before`). Without this the
+   shorthand zeroed it, and a table sat flush under the caption before it. */
+.siamang-report > * + .siamang-figure {{ margin-top: var(--fig-space, var(--report-block-gap)); }}"""
 
 _CAPTION_ABOVE = ".siamang-figure { flex-direction: column-reverse; }"
 

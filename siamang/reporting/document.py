@@ -39,8 +39,8 @@ from siamang.reporting.theme import _LENGTH, ReportTheme
 #   "table" -> (SurveyTable | pd.DataFrame, caption|None, placement)
 #   "chart" -> (SurveyChart, caption|None, placement)
 #   "image" -> (path: str, caption|None, placement)
-# `placement` is {width?, align?, break_before?} and reaches the HTML only —
-# see Report.add.
+# `placement` is {width?, align?, break_before?, space_before?} and reaches
+# the HTML only — see Report.add.
 _Block = tuple[str, object]
 
 _HTML_ESCAPES = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}
@@ -60,8 +60,11 @@ def _slugify(text: str) -> str:
 _ALIGN = ("left", "center", "right")
 
 
+_KEYS = ("width", "align", "break_before", "space_before")
+
+
 def layout_problem(placement: object) -> str | None:
-    """Why ``{width, align, break_before}`` cannot be used, or None.
+    """Why ``{width, align, break_before, space_before}`` cannot be used, or None.
 
     Lives here rather than in the flow package so that the rule a report obeys
     and the rule ``check_flow`` enforces are one rule: a width the document
@@ -69,10 +72,10 @@ def layout_problem(placement: object) -> str | None:
     """
 
     if not isinstance(placement, dict):
-        return "expected an object with width, align or break_before."
+        return "expected an object with width, align, break_before or space_before."
     for key in placement:
-        if key not in ("width", "align", "break_before"):
-            return f"unknown key {key!r} (width, align, break_before)."
+        if key not in _KEYS:
+            return f"unknown key {key!r} ({', '.join(_KEYS)})."
     width = placement.get("width")
     if width is not None and not _LENGTH.match(str(width)):
         return f"width: {width!r} is not a CSS length (a number and a unit, e.g. '60%', '320px')."
@@ -81,6 +84,16 @@ def layout_problem(placement: object) -> str | None:
         return f"align: {align!r} is not one of {', '.join(_ALIGN)}."
     if not isinstance(placement.get("break_before", False), bool):
         return "break_before: expected true or false."
+    # The space above the item. A negative one would draw it over the block
+    # before it, which is not a gap; a percentage is of the page's width, not
+    # of anything vertical, so it is refused rather than surprising.
+    space = placement.get("space_before")
+    if space is not None and (
+        not _LENGTH.match(str(space)) or str(space).startswith("-") or str(space).endswith("%")
+    ):
+        return (
+            f"space_before: {space!r} is not a length of zero or more (e.g. '0px', '40px', '2em')."
+        )
     return None
 
 
@@ -97,7 +110,9 @@ def _as_theme(theme: ReportTheme | Mapping[str, object] | None) -> ReportTheme |
     return ReportTheme.from_dict(dict(theme))
 
 
-def _placement(width: str | None, align: str | None, break_before: bool) -> dict[str, object]:
+def _placement(
+    width: str | None, align: str | None, break_before: bool, space_before: str | None = None
+) -> dict[str, object]:
     """Validate and pack a block's placement, dropping what was not asked for."""
 
     placement: dict[str, object] = {}
@@ -107,6 +122,8 @@ def _placement(width: str | None, align: str | None, break_before: bool) -> dict
         placement["align"] = align
     if break_before:
         placement["break_before"] = True
+    if space_before is not None:
+        placement["space_before"] = space_before
     problem = layout_problem(placement)
     if problem:
         raise ValueError(problem)
@@ -161,12 +178,20 @@ def _figure(
     `width` and `align` come from the block (Report.add), falling back to the
     theme; the width is an inline custom property rather than an inline rule, so
     a stylesheet can still override it and nothing here writes CSS syntax the
-    theme does not own.
+    theme does not own. `space_before` is one too (`--fig-space`), standing in
+    for the theme's gap between blocks above this one.
     """
 
     align = str(layout.get("align") or theme.figure_align)
-    width = layout.get("width")
-    style = f' style="--fig-w:{_esc(width)}"' if width else ""
+    props = [
+        f"{name}:{_esc(value)}"
+        for name, value in (
+            ("--fig-w", layout.get("width")),
+            ("--fig-space", layout.get("space_before")),
+        )
+        if value
+    ]
+    style = f' style="{";".join(props)}"' if props else ""
     classes = "siamang-figure" + (" siamang-break" if layout.get("break_before") else "")
     parts = [f'<figure class="{classes}" data-align="{_esc(align)}"{style}>', inner]
     if caption or number:
@@ -419,19 +444,21 @@ class Report:
         width: str | None = None,
         align: str | None = None,
         break_before: bool = False,
+        space_before: str | None = None,
     ) -> Report:
         """Put a table, a chart or a statistic in the report.
 
         ``width`` (a CSS length: ``"60%"``, ``"320px"``) and ``align`` place it
-        on the page; ``break_before`` starts it on a new one when printed. All
-        three are checked here, when the report is built, so a typo fails where
-        it was written rather than in the renderer. **They apply to the HTML
-        only.** The Markdown is the report's content and does not carry layout:
+        on the page; ``break_before`` starts it on a new one when printed;
+        ``space_before`` (``"40px"``, ``"2em"``, ``"0px"``) is the space above
+        it in place of the theme's gap between blocks. All four are checked
+        here, when the report is built, so a typo fails where it was written
+        rather than in the renderer. **They apply to the HTML only.** The Markdown is the report's content and does not carry layout:
         an attribute like ``{width=50%}`` is stripped by GitHub and by most
         pipelines, so it would vanish exactly where a `.md` is most likely to be
         read, and supporting it would mean a Markdown dialect with two parsers.
         """
-        placement = _placement(width, align, break_before)
+        placement = _placement(width, align, break_before, space_before)
         if isinstance(component, SurveyTable):
             self._blocks.append(("table", (component, caption, placement)))
         elif isinstance(component, SurveyChart):
@@ -460,8 +487,10 @@ class Report:
         width: str | None = None,
         align: str | None = None,
         break_before: bool = False,
+        space_before: str | None = None,
     ) -> Report:
-        self._blocks.append(("image", (str(path), caption, _placement(width, align, break_before))))
+        placement = _placement(width, align, break_before, space_before)
+        self._blocks.append(("image", (str(path), caption, placement)))
         return self
 
     # ── serialization ─────────────────────────────────────────────
