@@ -26,7 +26,7 @@ params:
   layout:
     kind: layout
     label: Size and placement
-    help: Per item — a width (60%, 320px), an alignment, or a page break before it. The Markdown is unaffected.
+    help: Per item — a width (60%, 320px), an alignment, the space above it (40px), or a page break before it. The Markdown is unaffected.
   note:
     kind: markdown
     label: Note

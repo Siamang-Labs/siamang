@@ -349,8 +349,10 @@ Region — rows (Brand)`, `Price sensitivity: Gabor-Granger — curves`, `Key dr
 Liking`, `Paired tests: Cochran's Q` for the later analyses). Charts, text and statistics mappings are not tables and are skipped.
 
 `Report.add()` and `Report.image()` take a **`width`** (a CSS length), an
-**`align`** and a **`break_before`**, checked where they are written rather than
-where they are rendered. Two items at `width="48%"` with `align="left"` sit side
+**`align`**, a **`break_before`** and a **`space_before`** (the space above the
+item, a length of zero or more: `"40px"`, `"2em"`, `"0px"`; without it the
+theme's gap between blocks, which a table or chart keeps like any other
+block), checked where they are written rather than where they are rendered. Two items at `width="48%"` with `align="left"` sit side
 by side. Like the theme, they reach the HTML only.
 
 `sample_report(theme)` builds a short report using every kind of block, from

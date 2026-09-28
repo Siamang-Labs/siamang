@@ -340,8 +340,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `default_theme` is now validated by `UIConfig` like its other enumerations.
 
 - **`theme` and `layout` flow parameters** and per-item placement on `Report`.
-  `Report.add()` / `.image()` take a `width`, an `align` and a `break_before`,
-  validated where they are written; `output.save_report` takes a `theme` and
+  `Report.add()` / `.image()` take a `width`, an `align`, a `break_before` and
+  a `space_before` (the space above the item in place of the theme's gap
+  between blocks, a length of zero or more), validated where they are written; `output.save_report` takes a `theme` and
   `output.report_section` a `layout` keyed by the item's node, both read by
   `check_flow` so a misspelled field is named on the document rather than raised
   in a run. They are kinds of their own for the same reason `formula` is one.
@@ -923,6 +924,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **A report's tables and charts keep the gap between blocks.** In the HTML a
+  table or a chart sat flush under whatever came before it — a table's caption
+  against the next table's head, a section's paragraph against its first
+  table — because the `margin` shorthand that places a figure left, center or
+  right also set its top margin to 0. A figure now keeps the gap every other
+  block has (the theme's density sets it), or the one its item asks for
+  (`space_before`).
 
 - **An ending page no longer says the answers were recorded while they are
   not.** A survey whose last page is an ending page (`kind` `final`,

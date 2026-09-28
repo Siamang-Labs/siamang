@@ -1385,7 +1385,7 @@ def _param_problem(param: ParamSpec, value: Any) -> str | None:
         from siamang.reporting.document import layout_problem
 
         if not isinstance(value, dict):
-            return "expected node id → {width, align, break_before}."
+            return "expected node id → {width, align, break_before, space_before}."
         for node, placement in value.items():
             problem = layout_problem(placement)
             if problem:

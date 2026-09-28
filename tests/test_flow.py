@@ -248,7 +248,12 @@ def test_a_report_carries_its_look_and_the_placement_of_each_item(questionnaire_
                     "captions": {"xtab": "Satisfaction by region"},
                     "layout": {
                         "xtab": {"width": "75%"},
-                        "bar": {"width": "48%", "align": "left", "break_before": True},
+                        "bar": {
+                            "width": "48%",
+                            "align": "left",
+                            "break_before": True,
+                            "space_before": "40px",
+                        },
                     },
                 },
             ),
@@ -276,7 +281,11 @@ def test_a_report_carries_its_look_and_the_placement_of_each_item(questionnaire_
     code = generate_flow(document, questionnaire_doc)
     # Keyed by node in the document (so a rename carries it), positional in the
     # code (so it lines up with the port the template zips over).
-    assert '[{"width": "75%"}, {"width": "48%", "align": "left", "break_before": True}]' in code
+    # (The formatter breaks the list over lines once it is too long for one.)
+    placed = code.index('{"width": "75%"}')
+    assert placed < code.index(
+        '{"width": "48%", "align": "left", "break_before": True, "space_before": "40px"}'
+    )
     assert "n_section.add(_item, caption=_caption, **_layout)" in code
     # The theme travels as data — no import to add, like every other parameter.
     assert 'theme={"font_preset": "modern", "page": "a4", "number_tables": True}' in code
@@ -310,6 +319,10 @@ def test_a_look_or_a_placement_that_cannot_work_is_named_before_the_run(question
     assert any("CSS length" in m for m in errors({}, {"theme": {"width": "wide"}}))
     assert any("xtab: align" in m for m in errors({"layout": {"xtab": {"align": "middle"}}}, {}))
     assert any("unknown key" in m for m in errors({"layout": {"xtab": {"size": "big"}}}, {}))
+    assert any(
+        "xtab: space_before" in m
+        for m in errors({"layout": {"xtab": {"space_before": "-8px"}}}, {})
+    )
 
 
 @pytest.mark.skipif(not HAS_MPL, reason="matplotlib")
