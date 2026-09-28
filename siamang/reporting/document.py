@@ -203,6 +203,36 @@ def _figure(
     return "\n".join(parts)
 
 
+def _narrow(layout: Mapping[str, object], theme: ReportTheme) -> bool:
+    """Whether a figure is narrower than the page, and so can share a row."""
+
+    width = layout.get("width") or theme.figure_width
+    return bool(width) and str(width).strip() != "100%"
+
+
+def _row(figures: list[tuple[str, Mapping[str, object]]], theme: ReportTheme) -> list[str]:
+    """Narrow figures that follow one another, set side by side.
+
+    One figure is returned as it is. Several go into a `siamang-row`, a
+    wrapping flex row: as many as fit share a line (two at 48%, 66% and 33%,
+    three at 33%), the rest wrap under them, and on a phone each takes the
+    whole width. The row hangs from the edge they all name, or from the left
+    when they disagree; it keeps the first figure's page break and the space
+    it asked for above it, since the row is what now starts there.
+    """
+
+    if len(figures) == 1:
+        return [figures[0][0]]
+    first = figures[0][1]
+    aligns = {str(layout.get("align") or theme.figure_align) for _, layout in figures}
+    align = aligns.pop() if len(aligns) == 1 else "left"
+    classes = "siamang-row" + (" siamang-break" if first.get("break_before") else "")
+    space = first.get("space_before")
+    style = f' style="--fig-space:{_esc(space)}"' if space else ""
+    body = "\n".join(html for html, _ in figures)
+    return [f'<div class="{classes}" data-align="{_esc(align)}"{style}>\n{body}\n</div>']
+
+
 def _data_uri(data: bytes, path: str) -> str:
     mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
     return f"data:{mime};base64,{base64.b64encode(data).decode()}"
@@ -716,9 +746,28 @@ class Report:
 
         tables = figures = 0
         files: set[str] = set()
+        # Narrow figures in a row wait here until something that is not one of
+        # them (text, a full-width figure, one that starts a page or asks for
+        # space above it) closes the row (_row).
+        row: list[tuple[str, Mapping[str, object]]] = []
+
+        def close() -> None:
+            if row:
+                out.extend(_row(row, theme))
+                row.clear()
+
+        def place(html: str, layout: Mapping[str, object]) -> None:
+            narrow = _narrow(layout, theme)
+            if not narrow or layout.get("break_before") or layout.get("space_before"):
+                close()
+            row.append((html, layout))
+            if not narrow:
+                close()
+
         for i, (kind, payload) in enumerate(self._blocks):
             if kind == "md":
                 assert isinstance(payload, str)
+                close()
                 out.append(md(payload))
                 continue
             assert isinstance(payload, tuple)
@@ -738,7 +787,7 @@ class Report:
                     if isinstance(component, SurveyTable)
                     else frame_to_html(component, rounded=False)
                 )
-                out.append(_figure(inner, caption, label, layout, theme))
+                place(_figure(inner, caption, label, layout, theme), layout)
             elif kind == "chart":
                 figures += 1
                 ref, spec = self._chart_ref(
@@ -752,28 +801,31 @@ class Report:
                     file = file if file not in files else f"{file}-{figures}"
                     files.add(file)
                     inner = _interactive_chart(inner, spec, f"figure-{figures}", file)
-                out.append(
+                place(
                     _figure(
                         inner,
                         caption,
                         _number(theme, "figure", figures),
                         layout,
                         theme,
-                    )
+                    ),
+                    layout,
                 )
             elif kind == "image":
                 figures += 1
                 ref = self._image_ref(str(component), embed)
                 alt = _esc(caption or "")
-                out.append(
+                place(
                     _figure(
                         f'<img src="{ref}" alt="{alt}">',
                         caption,
                         _number(theme, "figure", figures),
                         layout,
                         theme,
-                    )
+                    ),
+                    layout,
                 )
+        close()
         return out
 
     def save(
