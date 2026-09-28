@@ -54,7 +54,7 @@ with a role that can see only their own project.
 |---|---|---|
 | A published survey link, or the survey embedded in your site | the questionnaire, for respondents to answer | until you close or unpublish it, or until its closing date passes (the questionnaire's deadline, the environment's closing date, or a date set under **Distribute → Closing date**). After that the link shows "This survey is closed" as it opens (a survey published before this update shows it only when the respondent submits, until you republish it), and no response is accepted. |
 | A **share preview** link | the respondent view of a draft, for reviewers. Answers given there are not stored. | 24 hours. Each person can create up to 50 per day. |
-| A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
+| A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire. Chart tiles are interactive and carry the numbers they draw; a chart that plots each respondent (a scatter plot, a box plot with **Show points**) shows only its picture there | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
 | The **unsubscribe** link in invitation emails | a page where the recipient opts out of further mailings | sent with every invitation email |
 | A **team invitation** link | the inviter's name, the organization name, the role, a masked email address (`j***@example.com`) and the expiry date | 7 days, or until used or revoked |
 
@@ -177,6 +177,35 @@ What respondents write in open questions stays in Studio when you code it:
   [below](#the-ai-assistant-and-your-data)).
 
 See [[Coding Open Answers|Studio-Open-Answer-Coding]].
+
+### Interactive charts and your data
+
+A report saved with **Interactive charts in HTML**, and every **chart** tile
+on the Live tab and its public page, hold each chart's numbers as data that
+anyone with the file or the page can read out — not only as a picture:
+
+- **Most charts carry aggregates only**: what the chart draws — counts,
+  percentages, means, intervals, histogram bins, a heatmap's cells, an
+  analysis's estimates — computed in the run before the chart leaves it.
+  Never a response, a respondent id or another answer.
+- **Two charts plot respondents one by one**, and carry exactly what they
+  plot: a **Scatter plot**'s points (each point's **X**, **Y** and **Color
+  by** group) and a **Box plot**'s outliers and, with **Show points**, all
+  its points (each value and its group). The points are listed in sorted
+  order, not in the data's order, so a point's place in one chart does not
+  match it to the same respondent in another chart.
+- **Small groups show as they do in the picture.** A bar of a group of three
+  respondents tells a reader about those three, whether they read it off the
+  picture or out of the file.
+- **The public Live page** shows a **Scatter plot**, or a **Box plot** with
+  **Show points**, as its picture only, so a public link never hands out a
+  list of respondents' values; a **Box plot** without **Show points** is
+  interactive there, its outliers among its numbers.
+
+Look at an interactive report's scatter plots and box plots before you send
+it, and leave out a chart — or send the report without **Interactive charts
+in HTML** — when those values should not travel. See
+[Interactive charts](Studio-Reports#interactive-charts).
 
 ---
 
@@ -311,6 +340,18 @@ Tell respondents, in the survey's consent text or privacy notice:
   reaches your data like any answer, and a script can also call other web
   addresses from the respondent's browser. Review scripts you did not write
   before you publish.
+- **Reports are shown, not run** — except a report saved with **Interactive
+  charts in HTML**, whose charts need the chart libraries it carries. On the
+  **Reports** screen that report runs in a frame of its own whose origin is
+  no one's: its scripts cannot read your session, Studio's pages or storage,
+  call Studio's API, fetch anything, open windows, submit forms or start
+  downloads. Studio frames a report so only when it carries the engine's
+  chart libraries and interactive charts; any other HTML, a `<script>`
+  written into a report's text included, runs no scripts at all.
+- **Live chart tiles** are drawn by Studio's own code from the chart's data
+  alone: nothing in a chart can make your browser — or a public viewer's —
+  fetch anything, and the chart libraries are served by Studio, never by a
+  third party.
 
 ---
 
@@ -456,6 +497,10 @@ For the current legal texts see the
 - Get consent before contacting people. The contact importer asks you to
   confirm it, and the import is recorded.
 - Decide deliberately about the AI assistant (above) before turning it on.
+- Check interactive reports and chart tiles for what their numbers reveal
+  before you send or share them — above all scatter plots, box plots and
+  charts of small groups (see
+  [Interactive charts and your data](#interactive-charts-and-your-data)).
 - Download bundles and exports with care. A bundle **with data** contains raw
   responses, the project tables and uploaded files the flows read, and the
   survey-link parameters a flow reads. A **Data → Export** file carries every

@@ -51,6 +51,7 @@ short path; the linked pages have every option and caveat.
   [analyze an uploaded file](#analyze-a-file-you-uploaded) ·
   [open answers](#code-an-open-question-by-rules) ·
   [nightly report](#a-nightly-report-on-a-schedule) ·
+  [interactive report for a client](#send-an-interactive-report-to-a-client) ·
   [client dashboard](#a-live-dashboard-for-a-client) ·
   [Google Sheets](#keep-a-google-sheet-in-sync)
 - Keeping it: [pre-register and cite](#pre-register-and-get-a-doi) ·
@@ -1096,13 +1097,44 @@ flow (or a Run all) that is still going: it fires as soon as that run
 finishes. On Free, the button reads **Requires Plus** and opens the plans
 instead. → [[Schedules and Webhooks|Studio-Schedules-and-Webhooks]]
 
+### Send an interactive report to a client
+
+Give a client one file whose charts they can explore: point at a bar for its
+exact value and base, hide a series to compare the rest, zoom into a scatter
+plot.
+
+1. In the flow's **Report** view, check **Also HTML** and **Interactive
+   charts in HTML** in the title row (on the canvas: the **Save report**
+   node's **Also save HTML** and **Interactive charts in HTML**).
+2. **Preview report** and point at a few charts: the tooltips give each
+   value and its base, and a click on a legend entry hides its series.
+3. Look at the report's **Scatter plot** and **Box plot** charts, if any:
+   the file carries each plotted respondent's values (no ids). Take a chart
+   out of its section if those values should not leave the study.
+4. **Run** the flow, then on **Reports** open the report — the bar shows an
+   **interactive** pill — and press **HTML** to download it.
+5. Send the `.html`. It opens in any browser, offline, with nothing to
+   install and nothing fetched from anywhere; it prints each chart as its
+   picture, and each chart's **…** menu saves it as PNG or SVG.
+
+The file is about 0.8 MB larger than without interactive charts (the chart
+libraries, once). The `.md` and the Excel workbook keep the pictures, and a
+flow without the box checked writes exactly what it always did. →
+[Interactive charts](Studio-Reports#interactive-charts)
+
+*In the example study:* its six flows write their HTML with pictures; check
+**Interactive charts in HTML** in the `tables` flow's Report view and run it
+to see its **Key tables** report drawn this way.
+
 ### A live dashboard for a client
 
 *(Plus and above.)* Add **Live tile** nodes to a flow (a respondent count with
 **Show** `rows`, a crosstab, a chart, a **Trend** of completes per week), check
 **Live: recompute on new responses** in the flow settings, **Save** and
 **Run** once. On **Live**, press **Create public link** and send it.
-**Revoke** it when the engagement ends.
+**Revoke** it when the engagement ends. The client can point at a chart
+tile for its values and bases and click its legend; a **Scatter plot** or a
+**Box plot** with **Show points** shows there as its picture only.
 → [[Live Monitoring|Studio-Live-Monitoring]]
 
 *In the example study:* the flow `cleaning` has two tiles with Live on, and
