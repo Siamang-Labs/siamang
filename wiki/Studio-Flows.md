@@ -442,13 +442,21 @@ took (`120 ms`, `1.4 s`).
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
 
-**With a node selected:** its category and title with **Duplicate (⌘D)** and
-**Delete (Del)** icons, its description, its own problems, **Node id**, the
+**With a node selected:** its category and title with an **ⓘ** for what the
+node does, **Duplicate (⌘D)** and **Delete (Del)** icons, its own problems,
+**Node id**, the
 parameters (only those its current choices read — see
 [Parameters and variable pickers](#parameters-and-variable-pickers)), the
 **Instant** counts where available, the **Preview** pane with
 **Run to here**, **Connections** (what feeds it and what it feeds, each with
 **remove**) and **Comments**.
+
+What a node does and what each parameter means sit behind the **ⓘ** beside
+the node's title and beside each label, rather than printed under it: hover
+over it, or click it to keep it open (Esc or a click elsewhere closes it). A
+screen reader reads the same text with the control. Printed in full, the help
+set how far apart the controls were — a crosstab's settings ran past the
+bottom of the screen.
 
 Below the inspector, the **Checks** block lists the flow's problems ("Checks
 2 errors · 0 warnings", up to twelve); click one to select its node.
