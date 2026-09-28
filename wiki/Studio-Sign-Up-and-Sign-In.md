@@ -85,7 +85,7 @@ ready. A failed lookup never sends you to the sign-up form.
    activity.
 5. Choose a **Password** that meets every rule in the checklist (below).
    **Show** reveals what you typed.
-6. If a captcha appears, solve it.
+6. If a captcha box appears, complete it (usually none does).
 7. Click **Create account**.
 
 There is no "repeat password" field on this form. Use **Show** to check what
@@ -93,8 +93,8 @@ you typed before you submit.
 
 ### Password rules
 
-The checklist under the password field checks each rule off as you type (○
-becomes ✓). **Create account** stays disabled until all five are met.
+The checklist under the password field (in two columns) checks each rule off
+as you type (○ becomes ✓). **Create account** stays disabled until all five are met.
 
 | Checklist item | Rule |
 |---|---|
@@ -109,10 +109,12 @@ change it in your profile.
 
 ### The captcha
 
-A small Cloudflare Turnstile check may appear on the sign-up, sign-in and
-reset forms. The form's button stays disabled until the check has passed. If
-an attempt fails (a wrong password, say), the check resets and you solve it
-again for the next try. The check is loaded from Cloudflare when one of those
+A Cloudflare Turnstile check runs on the sign-up, sign-in and reset forms.
+Usually it passes on its own and nothing appears: the form's button enables a
+moment after. A small box appears, in the middle of the card, only when
+Cloudflare needs you to do something. The button stays disabled until the
+check has passed. If an attempt fails (a wrong password, say), the check
+resets for the next try. The check is loaded from Cloudflare when one of those
 forms opens, not on the first, email step (see
 [Cookies and browser storage](Studio-Security-and-Privacy#cookies-and-browser-storage)).
 
