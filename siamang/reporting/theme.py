@@ -445,7 +445,38 @@ _FIGURE = """\
 /* The `margin` above sets the sides; the space above a figure is the gap every
    other block has, or the item's own (`space_before`). Without this the
    shorthand zeroed it, and a table sat flush under the caption before it. */
-.siamang-report > * + .siamang-figure {{ margin-top: var(--fig-space, var(--report-block-gap)); }}"""
+.siamang-report > * + .siamang-figure {{ margin-top: var(--fig-space, var(--report-block-gap)); }}
+/* Narrow figures that follow one another share a row (Report.to_html groups
+   them): as many as fit on a line, the rest wrap under them. The gutter
+   between them is padding inside each, and the row reaches half a gutter past
+   the column on either side, so a figure's width is a share of the line and
+   two at 48% or a 66% and a 33% fit with the gap between them. */
+.siamang-row {{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: var(--report-block-gap);
+  margin-left: calc(var(--report-block-gap) / -2);
+  margin-right: calc(var(--report-block-gap) / -2);
+}}
+.siamang-report > * + .siamang-row {{ margin-top: var(--fig-space, var(--report-block-gap)); }}
+.siamang-row[data-align="center"] {{ justify-content: center; }}
+.siamang-row[data-align="right"] {{ justify-content: flex-end; }}
+.siamang-row > .siamang-figure {{
+  margin: 0;
+  flex: 0 0 var(--fig-w, var(--report-figure-width));
+  padding: 0 calc(var(--report-block-gap) / 2);
+}}
+/* A table that needs more than its share takes what it needs and wraps
+   rather than run over its neighbor. A chart does not: a picture scales, and
+   an interactive one is redrawn to the width it is given — held at the width
+   it was first drawn at, it could never be drawn narrower. */
+.siamang-row > .siamang-figure:has(table) {{ min-width: min-content; }}
+/* On a phone each takes the whole width: a half of 360px is too narrow to
+   read a table in. */
+@media (max-width: 480px) {{
+  .siamang-row > .siamang-figure {{ flex-basis: 100%; }}
+}}"""
 
 _CAPTION_ABOVE = ".siamang-figure { flex-direction: column-reverse; }"
 

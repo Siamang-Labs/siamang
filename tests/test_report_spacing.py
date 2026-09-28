@@ -130,13 +130,13 @@ def test_the_gaps_a_reader_sees(tmp_path):
     if "skip" in status:
         pytest.skip(status["skip"])
     assert status.get("ok"), status
-    # h1, paragraph, then six figures; the comfortable gap is 20px.
+    # h1, paragraph, two figures, the two halves in one row (a <div>, see
+    # tests/test_report_rows.py), then two more; the comfortable gap is 20px.
     assert [(g["tag"], g["gap"]) for g in status["gaps"]] == [
         ("p", 20),
         ("figure", 20),
         ("figure", 20),
-        ("figure", 20),
-        ("figure", 20),
+        ("div", 20),
         ("figure", 72),
         ("figure", 0),
     ]

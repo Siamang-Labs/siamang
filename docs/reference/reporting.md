@@ -352,8 +352,19 @@ Liking`, `Paired tests: Cochran's Q` for the later analyses). Charts, text and s
 **`align`**, a **`break_before`** and a **`space_before`** (the space above the
 item, a length of zero or more: `"40px"`, `"2em"`, `"0px"`; without it the
 theme's gap between blocks, which a table or chart keeps like any other
-block), checked where they are written rather than where they are rendered. Two items at `width="48%"` with `align="left"` sit side
-by side. Like the theme, they reach the HTML only.
+block), checked where they are written rather than where they are rendered.
+Like the theme, they reach the HTML only.
+
+Tables and charts narrower than the page that follow one another **share a
+row** (`<div class="siamang-row">`, a wrapping flex row): as many as fit on a
+line — two at `"48%"`, a `"66%"` and a `"33%"`, three at `"33%"` — with the
+theme's gap between them, and the rest wrap under them. A table that needs
+more than its share takes what it needs and wraps; on a screen narrower than
+480px each takes the whole width. Text, a full-width figure, or a figure with
+a `break_before` or a `space_before` starts again; the row hangs from the edge
+its figures all name (`align`, else the theme's `figure_align`), or from the
+left when they disagree. A theme whose `figure_width` is narrower than the
+page therefore sets every run of figures in rows.
 
 `sample_report(theme)` builds a short report using every kind of block, from
 literals rather than from data, so a theme can be previewed without a run.

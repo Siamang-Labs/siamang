@@ -925,6 +925,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Tables and charts narrower than the page sit side by side.** Two items
+  at `width="48%"` were documented to share a line and never did: a figure is
+  a block, so the second started under the first. Narrow figures that follow
+  one another now share a row in the HTML — as many as fit, the rest under
+  them, with the theme's gap between them, and one per line on a phone; a
+  table that needs more than its share wraps rather than run over its
+  neighbor. Text, a full-width figure, a page break or a space above starts a
+  new row.
+
 - **A report's tables and charts keep the gap between blocks.** In the HTML a
   table or a chart sat flush under whatever came before it — a table's caption
   against the next table's head, a section's paragraph against its first
