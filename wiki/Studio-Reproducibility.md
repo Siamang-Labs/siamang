@@ -404,7 +404,9 @@ applies.
 **Instrument**, **Measures**, **Procedure**, **Data handling and analysis**
 (one entry per flow, its steps in order, each analysis with the test it runs
 — the correlation method, the t-test's design, a post-hoc test and its
-adjustment, the factor extraction and rotation; "This flow also fed a live
+adjustment, the factor extraction and rotation; what Dedup respondents,
+Speeders & partials and Missing values dropped and by which rule; "This flow
+also fed a live
 dashboard during fieldwork." for live flows), **Pre-registration**, **Software**, and
 the authors on record. The same text opens from History → a Save → **More ▾ →
 Methods** (**Rendered | Markdown**, **Copy Markdown**, **.md**). See

@@ -85,22 +85,23 @@ table into your report's methods section. See
 
 ## Completed interviews only
 
-A **partial** is an interview that was started but not submitted. Two ways to
-exclude them:
+A **partial** is an interview that was started but not submitted. To exclude
+them, check **Only completed responses** on the **Responses** node. The
+partials never enter the flow.
 
-- On the **Responses** node, check **Only completed responses**. The partials
-  never enter the flow.
-- Or keep them in and use **Speeders & partials** with **Drop partials**,
-  which defines "partial" by the answers *you* require (below). This is the
-  better choice when some submitted interviews are also unusable because key
-  questions are blank.
+To also drop submitted interviews that are unusable because key questions are
+blank, list those questions under **Required answers** in **Speeders &
+partials** (below); with **Drop partials** on, it drops each interview that
+misses any of them. The node's `partial` column replaces the table's own, so
+an interview broken off after those answers stays in, marked `false`. With no
+required answers, the node finds no partials and **Drop partials** removes
+nothing.
 
 > **Note.** Partial interviews reach the project only from surveys published
 > with the current survey runtime. Once you publish a survey again, its
 > partials start arriving, and a flow whose **Responses** node does not check
 > **Only completed responses** includes them — its counts can grow for that
-> reason alone. Check the box, or drop them as above, before you compare with
-> earlier runs.
+> reason alone. Check the box before you compare with earlier runs.
 
 ## One row per respondent
 
@@ -113,15 +114,17 @@ step. Rows without a respondent id are kept, each as its own respondent.
 ## Speeders and partials
 
 **Speeders & partials** adds two columns, `duration_s` and `partial`, and
-drops rows. The rule, precisely:
+drops the speeders and, with **Drop partials** on (the default), the partials.
+The rule, precisely:
 
 - **Speeder:** the interview length is known and is below **Minimum seconds**
   (default 60). Interviews whose length is unknown are never counted as
-  speeders.
+  speeders. At `0`, nobody is a speeder.
 - **Partial:** *any* of the variables in **Required answers** is blank. With
   **Required answers** empty, nobody is partial and **Drop partials** removes
   nothing. A variable name that does not exist in the data marks everyone as
-  partial — so check what the preview says after this node.
+  partial — so check what the preview says after this node. With **Drop
+  partials** off, partials stay in the data, marked `true` in `partial`.
 
 Recipe — drop interviews under 90 seconds and those missing age, region or
 satisfaction:
@@ -514,7 +517,12 @@ get the numbers into your report and onto Live:
   correlation heatmaps stay unweighted, as do t-tests, the tests of group
   means (ANOVA, Welch's ANOVA) and their post-hoc comparisons, paired tests
   (Cochran's Q among them), Fisher's exact test, a perceptual map's
-  chi-square test, rank correlations and factor analysis)".
+  chi-square test, rank correlations and factor analysis)". For **Dedup
+  respondents**, **Speeders & partials** and **Missing values** it says what
+  was dropped and by which rule, for example "interviews shorter than 90 s
+  were excluded as speeders and interviews missing an answer to any of Age and
+  Region were dropped as partial"; with no **Required answers**, it does not
+  say that any partials were dropped.
 - **Data check**'s table, for "the data were screened for out-of-range
   values and undeclared codes".
 

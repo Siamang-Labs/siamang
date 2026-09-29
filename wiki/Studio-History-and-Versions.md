@@ -425,7 +425,12 @@ The draft has these sections:
   estimated from 20,000 random tables with the same margins when there are too
   many to enumerate), counting respondents", "an exploratory factor analysis of 8 items was run
   (minimum residual extraction, promax rotation), retaining factors with an
-  eigenvalue above 1";
+  eigenvalue above 1"; and what **Dedup respondents**, **Speeders &
+  partials** and **Missing values** dropped and by which rule: "interviews
+  shorter than 90 s were excluded as speeders and interviews missing an answer
+  to any of Age and Region were dropped as partial". With no **Required
+  answers**, the Speeders & partials sentence does not say that any partials
+  were dropped;
 - **Pre-registration** — which Save was registered and what changed since;
 - **Software** — engine and Studio versions;
 - a closing line naming the authors from
