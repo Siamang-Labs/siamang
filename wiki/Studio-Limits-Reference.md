@@ -16,7 +16,7 @@ saving and deleting, you just cannot add more.
 |---|---|---|---|---|
 | Price shown in the app | Free | $25/mo | $99/mo | Custom (Contact sales) |
 | Projects per organization | 2 | 10 | unlimited | unlimited |
-| Members per organization (owner and pending invitations count) | 2 | 15 | unlimited | unlimited |
+| Members per organization (owner and pending invitations count; an invitation sent again counts once) | 2 | 15 | unlimited | unlimited |
 | Completed interviews per project (all environments together; screen-outs, partials and the Example template's sample rows not counted) | 1,000 | unlimited | unlimited | unlimited |
 | File storage per organization (uploads **and** run outputs) | 250 MB | 5 GB | 50 GB | unlimited |
 | Analysis flows per project (checked when a Save adds one: a project started from the example study keeps its six on every plan) | 3 | 20 | unlimited | unlimited |

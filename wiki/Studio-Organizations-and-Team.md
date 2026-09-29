@@ -232,25 +232,31 @@ What happens next depends on the address:
 
 | The address… | Result | Notice |
 |---|---|---|
-| **already has a Studio account** | they are **added to the organization immediately**, with that role. No email is sent. The organization appears in their workspace chip the next time they open or reload Studio. | "*email* added to the team" |
+| **already has a Studio account** and is not a member | they are **added to the organization immediately**, with that role. No email is sent. The organization appears in their workspace chip the next time they open or reload Studio. | "*email* added to the team as *role*" |
 | **has no account yet** | a **pending invitation** is created and they get an email with a link, **valid for 7 days**. An account set up with that address, by email or with Google or Microsoft, joins your organization as it is set up, whether or not they used the link, and opens in the inviting organization rather than in their own new workspace. | "Invitation sent to *email*" |
+| **has no account and a pending invitation**, expired or not | the invitation is **replaced** by a new one with the role you picked, and a new link is emailed. The old link stops working. | "New invitation sent to *email* — the earlier link no longer works" |
+| **belongs to a member with another role** | their role changes to the one you picked, recorded as a role change (`member.role`), not as an invitation, as with the role dropdown. No email is sent. | "*email* is already on the team — role changed from *old role* to *new role*" |
+| **belongs to a member with that role** | nothing changes, and nothing is recorded. | "*email* is already on the team as *role* — nothing changed" |
+| **is the owner's** | nothing changes. | "Could not add member. Cannot change the owner's role." |
 
 What the invitee sees is described in
 [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]].
 
 Good to know:
 
-- **Inviting someone who is already a member** changes their role to the one
-  you picked, and is recorded as a role change (`member.role`), not as an
-  invitation. Picking the role they already have changes and records
-  nothing. Inviting the owner's address fails with "Could not add member.
-  Cannot change the owner's role."
+- **Your own address.** The notice reads "You are already on the team as
+  *role* — nothing changed" or "Your role changed from *old role* to *new
+  role*". An admin who picks `member` for their own address gives up the admin
+  role at once, and the page changes to what members see: **Invite member**,
+  the role dropdowns, **Remove** and the **Activity** tab disappear.
 - **A full organization.** If your organization has no room left on its plan
   when the invitee's account is set up, the invitation stays pending; they
   can accept it from the link once you have upgraded or made room (see
-  [Member limits](#member-limits)).
-- **Re-inviting** an address with a pending invitation issues a new link, and
-  the old one stops working.
+  [Member limits](#member-limits)). Once there is room, you can also invite
+  that address again: they are added directly, and the invitation leaves the
+  pending list. Opened while they are signed in, its link still takes them
+  into the organization; signed out, it reads "This invitation link is invalid
+  or has already been used.", and they only need to sign in.
 
 ### Pending invitations
 
@@ -266,9 +272,11 @@ Under the member table, owners and admins see:
 **Revoke** cancels an invitation at once, without a confirmation step. The
 notice reads "Invitation to *email* revoked", and the link then shows "This
 invitation link is invalid or has already been used." An invitation past its
-expiry date stays in the list until you revoke it or re-invite the address.
-The list is loaded when you open the **Members** tab, so an invitation you
-have just sent appears once you open the tab again.
+expiry date stays in the list until you revoke it or re-invite the address;
+for an address that has an account, adding the person also takes it off.
+The list is loaded when you open the **Members** tab and again after you send
+an invitation or change a role, so a new or replaced invitation shows at once,
+and one that closed because the person joined disappears.
 
 ### Member limits
 
@@ -283,6 +291,8 @@ Corporate unlimited** (see [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
   members plus unexpired pending invitations must stay within the limit. If
   they don't, you see "Could not add member. Plan 'free' allows up to 2
   members; upgrade to add more." Revoke unused invitations to make room.
+  Inviting an address again while its invitation is pending replaces that
+  invitation, so it is not counted twice.
 - The limit is checked again when an invitee's account is set up (a full
   organization leaves the invitation pending) and when someone accepts. A
   full organization answers "Could not accept the invitation. Plan 'free'
@@ -302,8 +312,10 @@ In **Settings → Members**, owners and admins see the member table:
 | (ML) Maria Lopez | `maria@example.com` | `admin ▾` | 9/3/2026 | **Remove** |
 
 - **Change a role** with the dropdown (`admin` / `member`). The change applies
-  immediately ("Role updated to member"). The owner's row always shows a pill
-  instead of a dropdown.
+  immediately ("Role updated to member"). An admin who demotes themselves sees
+  the page as a member does straight away, without the role dropdowns,
+  **Invite member**, **Remove** or the **Activity** tab. The owner's row always
+  shows a pill instead of a dropdown.
 - **Remove** someone: Studio asks "Remove member" / "Remove *name* from the
   team? They will lose access to this organization's projects." Click
   **Remove**. They lose access to every project of the organization at once.
