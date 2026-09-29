@@ -42,7 +42,8 @@ the server was busy or could not be reached — the link itself is fine; press
 **Try again**. "This invitation has expired. …" and "This invitation link is
 invalid or has already been used." are about the link itself: ask for a new
 invitation. The second one can also mean you were already added to the
-organization directly: sign in first, and the link takes you in.
+organization directly: sign in and open the link again, or pick the
+organization in the workspace chip.
 → [If you create your account from the invitation](Studio-Sign-Up-and-Sign-In#if-you-create-your-account-from-the-invitation)
 
 **I landed in my own workspace, not my colleague's.**
@@ -69,7 +70,8 @@ admin, or to be made an admin.
 → [Things members may notice](Studio-Organizations-and-Team#things-members-may-notice)
 
 **My trial ended. What changed?**
-The organization is now on the **Free** plan. Nothing is deleted and surveys
+The organization is now on the **Free** plan, or on Plus if Plus or the Plus
+year was bought for after the trial. Nothing is deleted. On Free, surveys
 keep collecting within Free limits — 1,000 completed interviews per project,
 all its environments together, counting the ones it already has; you cannot
 add projects or members beyond Free's caps, schedules and live recomputation

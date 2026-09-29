@@ -52,7 +52,7 @@ and edit locks, API keys.
 | Not included during the trial | email invitations (import and send unlock once a plan is bought) |
 | AI during the trial | 500 credits in total, at most 200 per day and 10 requests per hour |
 | Reminders | email 7 days and 1 day before the end; banner in the last 3 days |
-| When it ends | the organization moves to the **Free** plan; nothing is deleted |
+| When it ends | the organization moves to the **Free** plan, or to Plus if it was bought for after the trial; nothing is deleted |
 | Extra organizations you create | start on Free, no trial |
 
 ---

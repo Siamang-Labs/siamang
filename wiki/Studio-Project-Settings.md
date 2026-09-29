@@ -328,10 +328,10 @@ recomputes are not listed, only clicks on Recompute now."
   too, with "—" in place of a person: `deploy.live`, `deploy.failed`,
   `deploy.preview_live`, `deploy.preview_failed`, `run.completed`,
   `run.failed`, `connector.completed`, `connector.failed`. The person who
-  started the build or the run has an entry of their own (`deploy.create`,
-  `deploy.preview`, `run.start` for **Run** and **Run all**, `connector.run`);
-  a run that a schedule started on its timer has only the entry for how it
-  ended.
+  started the build or the run has an entry of their own (`deploy.create` or
+  `deploy.reopen`, `deploy.preview`, `run.start` for **Run** and **Run all**,
+  `schedule.run` for a schedule's **Run now**, `connector.run`); a run that a
+  schedule started on its timer has only the entry for how it ended.
 - A build or a run that Studio marks failed because it stopped responding gets
   a failure entry with `"reason": "timed out"` in its details. If such a build
   finishes afterward, its survey or preview is up after all, and a

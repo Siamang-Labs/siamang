@@ -269,7 +269,9 @@ flow and its tiles land here."
 
 Every tile update is a full **run** of its flow — the same sandbox run as
 **Run** in Flows, on the project's **current Save**, recorded in the flow's run
-history. These runs are not listed in the project's **Settings → Activity**.
+history. Live recomputes, the automatic ones and those **Recompute now**
+starts, are not listed in the project's **Settings → Activity**. A **Run** or
+**Run all** you start in **Flows**, which also refreshes the tiles, is listed.
 Recompute takes as long as the flow does: seconds for a few counts, longer for
 weighting or models.
 
