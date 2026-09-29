@@ -21,7 +21,7 @@ The topbar is the same on every screen:
 | Wordmark and **Beta** | the product name. The **Beta** label says Studio is in open beta. |
 | **Workspace chip** | the colored square with your organization's initials, followed by the name of the **project** you are in, or the **organization** name when you are not in a project. Click it to switch organization or project. |
 | **Save badge** | shown only inside a project: the project's current Save and its validation state, e.g. `● valid #17`, `● warnings #17`, `● errors #17`, `checking #17`, `unsaved`, `saving…`. Click it to open that Save in **History**. See [[Key Concepts\|Studio-Key-Concepts]]. |
-| **Trial pill** | `Pro trial · 27d`: the days left on your organization's Pro trial. Hover for "Pro trial — 27 days left". During a paid period that ends on a date, such as a 12-month beta offer, the pill names the plan instead, for example `Plus · 200d` (hover: "Paid period — 200 days left"), and reads `Paid period ended` in the short time between its end and the switch to Free. Absent when the organization's plan has no end date. See [[Plans, Trial and Billing\|Studio-Plans-and-Billing]]. |
+| **Trial pill** | `Pro trial · 27d`: the days left on your organization's Pro trial. Hover for "Pro trial — 27 days left", or "Pro trial — 27 days left, then Plus from Oct 3, 2026" when Plus or the Plus year was bought for after the trial. During a paid period that ends on a date, such as a 12-month beta offer, the pill names the plan instead, for example `Plus · 200d` (hover: "Paid period — 200 days left"), and reads `Paid period ended` in the short time between its end and the switch to Free. Absent when the organization's plan has no end date. See [[Plans, Trial and Billing\|Studio-Plans-and-Billing]]. |
 | **Avatar** | a colored circle with your initials. Hover shows your name. Click it for the avatar menu. |
 
 Below the topbar are the **tabs**: the organization's (**Projects**, **Team**,
@@ -45,7 +45,9 @@ The chip opens a two-column menu:
 - **Organizations** lists every organization you belong to. Each row shows a
   role pill (`owner`, `admin`, `member`), a days-left pill (e.g. `27d`) when
   that organization's trial or paid period runs to a date (hover: "Pro trial —
-  27 days left" or "Paid period — 27 days left"), and a ✓ on the current one.
+  27 days left", with ", then Plus from Oct 3, 2026" when a plan was bought for
+  after the trial, or "Paid period — 27 days left"), and a ✓ on the current
+  one.
   Click another organization to switch to it. You land on its **Projects**
   tab.
 - **Manage organizations** opens the **Organizations** screen (see
@@ -98,19 +100,30 @@ Two banners can appear across the top of every screen of an organization.
 > data is preserved and stays exportable. Choose a paid plan in Settings →
 > Billing to keep using paid features.
 
+If Plus or the Plus year was bought during the trial, the rest of the banner
+is one sentence naming it instead of Free:
+
+> **Pro trial ends in 3 days.** After the trial, on Oct 3, 2026, the
+> organization moves to the Plus plan you chose; its first charge is made then.
+
+or, for the Plus year, "After the trial, on Oct 3, 2026, the Plus year you paid
+for starts; it runs until Oct 3, 2027."
+
 The first sentence counts down ("Pro trial ends in 1 day.") and reads **Your
 Pro trial has ended.** right after the trial lapses. Studio moves the
-organization to Free within half an hour after that, and the banner goes
-away.
+organization to Free, or to the plan bought for after the trial, within half
+an hour after that, and the banner goes away.
 
 A paid period that ends on a date, such as a 12-month beta offer, gets the
 same banner in its own words:
 
 > **Your paid Plus period ends in 3 days.** Afterward, Free plan limits apply.
-> Your data is preserved and stays exportable. Renew in Settings → Billing to
-> keep using paid features.
+> Your data is preserved and stays exportable. Once it ends, choose a plan in
+> Settings → Billing to keep using paid features.
 
-Once it is over, the first sentence reads **Your paid period has ended.** See
+No other plan can be bought while the period runs. Once it is over, the first
+sentence reads **Your paid period has ended.** and the last one "Renew in
+Settings → Billing to keep using paid features." See
 [[Plans, Trial and Billing|Studio-Plans-and-Billing]].
 
 **Frozen workspace.** Shown only if Siamang has frozen the organization, which

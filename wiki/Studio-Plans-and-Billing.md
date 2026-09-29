@@ -114,12 +114,19 @@ card required (see [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]]).
 
 **Where you see it**
 
-- the topbar pill `Pro trial · 27d` (hover: "Pro trial — 27 days left");
-- a `27d` pill next to the organization in the workspace chip menu;
-- the **Organizations** screen: **Pro trial · 27d left**;
+- the topbar pill `Pro trial · 27d` (hover: "Pro trial — 27 days left", or
+  "Pro trial — 27 days left, then Plus from Oct 3, 2026" when a plan was
+  bought for after the trial);
+- a `27d` pill next to the organization in the workspace chip menu, with the
+  same hover;
+- the **Organizations** screen: **Pro trial · 27d left**, followed by **Plus
+  from Oct 3, 2026** (or **Plus year from Oct 3, 2026**) when a plan was
+  bought for after the trial;
 - **Settings → Billing**: "**Pro trial · 27 days left.** Full access to every
   Pro feature; one subscription covers the whole organization. Afterward the
   organization switches to the free plan — your data and surveys are kept."
+  With a plan bought for after the trial, the last sentence names that plan
+  instead (see [The Billing tab](#the-billing-tab)).
 
 The day count is rounded up, so a trial with a few hours left shows `1d`.
 
@@ -144,7 +151,11 @@ The day count is rounded up, so a trial with a few hours left shows `1d`.
 - In the last **3 days**, a banner appears under the topbar: "**Pro trial ends
   in 3 days.** After the trial, Free plan limits apply. Your data is preserved
   and stays exportable. Choose a paid plan in Settings → Billing to keep using
-  paid features."
+  paid features." If a plan was bought for after the trial, one sentence
+  naming it follows the countdown instead: "After the trial, on Oct 3, 2026,
+  the organization moves to the Plus plan you chose; its first charge is made
+  then." or, for the Plus year, "After the trial, on Oct 3, 2026, the Plus year
+  you paid for starts; it runs until Oct 3, 2027."
 
 **One trial per email address.** Signing up again with the same address does
 not start a new trial, and organizations you create later (see
@@ -208,7 +219,7 @@ paid, not as a trial:
 | Workspace chip menu | a `200d` pill, hover "Paid period — 200 days left" |
 | **Organizations** screen | **Paid period · 200d left** |
 | **Settings → Billing** | "**Plus · 200 days left of the paid period.** Full access to every Plus feature; one subscription covers the whole organization. …", and the Plus card carries a **paid period** pill |
-| Banner, last 3 days | "**Your paid Plus period ends in 3 days.** Afterward, Free plan limits apply. Your data is preserved and stays exportable. Renew in Settings → Billing to keep using paid features." Once it is over: "**Your paid period has ended.**" |
+| Banner, last 3 days | "**Your paid Plus period ends in 3 days.** Afterward, Free plan limits apply. Your data is preserved and stays exportable. Once it ends, choose a plan in Settings → Billing to keep using paid features." Once it is over: "**Your paid period has ended.** … Renew in Settings → Billing to keep using paid features." |
 | Owners' emails, 7 and 1 day before | "Your Siamang Studio paid Plus period for *organization* ends in N day(s)" |
 | Owners' email at the end | "*organization* is now on the free plan — the Siamang Studio paid Plus period ended" |
 
@@ -252,8 +263,10 @@ subscription covers the whole organization. Afterward the organization
 switches to the free plan — your data and surveys are kept." Once card
 payments are live it adds "Subscribe or extend now: **billing starts only when
 the free period ends**." When Plus was bought during the trial, the note says
-instead "Afterward the organization moves to the **Plus** plan you chose, on
-*date*." Without a countdown it reads "The Siamang engine is
+instead "After the trial, on *date*, the organization moves to the Plus plan
+you chose; its first charge is made then.", and for the Plus year "After the
+trial, on *date*, the Plus year you paid for starts; it runs until *date*."
+Without a countdown it reads "The Siamang engine is
 source-available; Studio is billed per plan. One subscription covers the whole
 organization."
 
@@ -291,7 +304,7 @@ The button at the bottom of a card is one of:
 | **current plan** (a label) | the plan the organization is on, when no trial or paid period is running |
 | **starts *date*** (a label) | the plan bought during the trial; it starts when the trial ends |
 | **Upgrade** | a higher plan than the current one (during a trial or a paid period, whichever of Plus and Pro is not the running plan); opens the checkout dialog (owner only) |
-| **Extend Pro** / **Extend Plus** | on the plan whose trial or paid period is running; subscribes now, with billing starting when the running period ends (owner only) |
+| **Extend Pro** / **Extend Plus** | on the plan whose trial or paid period is running; subscribes now, with billing starting when the running period ends (owner only). During the trial, with a Plus subscription bought for after it waiting, **Extend Pro** switches that subscription to Pro instead |
 | **Coming soon** (disabled) | card payments are not live yet in the beta ("Available at the official release"). Until they are, every card except the current plan and Corporate shows it. |
 | **Contact sales** (disabled) | Corporate is arranged with the Siamang team, not bought in the app ("Sales-assisted — coming soon"). Write to `info@siamang-team.org`. |
 
@@ -322,7 +335,16 @@ year offers are described in the Terms of Use; how we handle your data is in
 the Privacy Policy. By continuing you agree to both." With card payments live,
 it says "You'll be taken to Stripe's secure checkout to enter card details.
 The plan activates as soon as the payment completes." and offers **Cancel** and
-**Continue to checkout**.
+**Continue to checkout**. During the trial it says instead when what you buy
+takes effect (dates read like "Oct 3, 2026"):
+
+| Bought during the trial | The dialog says |
+|---|---|
+| Pro, with **Extend Pro** (more than about two days before the trial ends) | "You'll be taken to Stripe's secure checkout to enter card details. Pro carries on without a break, and the first charge is made when the trial ends, on *date*." |
+| Pro, with **Extend Pro**, while a Plus subscription bought for after the trial waits | "Your Plus subscription switches to Pro now, with the card you already entered. Pro carries on without a break, and the first charge is made when the trial ends, on *date*." The button reads **Switch to Pro**. |
+| the Pro year | "You'll pay now on Stripe's secure checkout. Pro carries on without a break, and the 12 months count from the end of the trial, on *date*." |
+| Plus (more than about two days before the trial ends) | "You'll be taken to Stripe's secure checkout to enter card details. Your trial runs on; Plus starts when it ends, on *date*, and the first charge is made then." |
+| the Plus year | "You'll pay now on Stripe's secure checkout. Your trial runs on, and the 12 months of Plus start when it ends, on *date*." |
 
 **Manage billing.** Once card payments are live, the owner sees "Card,
 invoices and cancellation are managed in the Stripe portal." and **Manage
@@ -339,18 +361,30 @@ checkout it answers "Could not open the billing portal. No billing account yet
   notice "Checkout complete — Settings → Billing shows your plan and when it
   starts". The new plan applies as soon as the payment is confirmed, or, for
   Plus bought during the trial, when the trial ends. If you leave the payment page
-  instead, you see "Checkout canceled — your plan is unchanged".
+  instead, you see "Checkout canceled — your plan is unchanged". **Extend Pro**
+  beside a waiting Plus subscription reads **Switch to Pro** and opens no
+  payment page: Studio confirms "Plan changed to pro".
 - **Buying during the trial** never shortens it: billing starts when the free
   period ends. The exception is the last two days or so of a trial, when
   billing starts right away. **Pro** (a subscription or the Pro year) keeps the
   organization on Pro. **Plus** (a subscription or the Plus year) starts when
   the trial ends: the organization stays on the Pro trial until then and then
-  moves to Plus, not to Free. The Plus card shows **starts *date***, and
-  canceling that Plus subscription before the trial ends (on the Billing
-  screen or in the payment portal) leaves the trial running as if nothing was
-  bought, with its limits. In the last two days or so of the trial, when
-  billing cannot wait, a Plus subscription starts right away. A purchase lifts
-  the trial's limits (email invitations, the AI allowance) at once.
+  moves to Plus, not to Free. The Plus card shows **starts *date***, and until
+  then the trial pill's hover, the **Organizations** screen, the banner of the
+  trial's last three days and the status note on **Billing** name Plus and the
+  day it starts; for the Plus year, the banner and the note also say when the
+  year ends. Canceling that Plus subscription before the trial ends (on the
+  Billing screen or in the payment portal) leaves the trial running as if
+  nothing was bought, with its limits, and these places say Free again. Once
+  a Pro subscription is confirmed, the trial pill goes away and the Pro card
+  shows **current plan**; after the Pro year, the pill counts the year's days
+  instead (for example `Pro · 300d`). **Extend Pro** beside a waiting Plus
+  subscription switches that subscription to Pro in place, and its first
+  charge stays at the trial end, even in the trial's last two days. In the
+  last two days or so of the trial, when billing cannot wait, a new
+  subscription is charged at once and a Plus subscription starts right away.
+  A purchase lifts the trial's limits (email invitations, the AI allowance) at
+  once.
 - **While a year offer is in force** — waiting for the trial to end, or
   running — no other plan can be bought ("a year offer is in force until
   *date*; another plan can be bought once it ends"), so its months are never
