@@ -566,7 +566,7 @@ recorded.**). Lines you may see:
 | `[note] no quota cells seeded — …` | the questionnaire declares no quotas, so there is nothing to count |
 | `[stop] Unpublished — survey link now shows a closed page` | the environment was closed |
 | `[stop] Preview removed — staging link no longer served` | a preview was removed |
-| `[reaper] deployment timed out and was marked failed, but the build finished afterward: …` | a slow build finished after being marked failed; the survey is up (the card shows **· previous version still live**) — publish the environment again to bring the status up to date, or **Close** it |
+| `[reaper] deployment timed out and was marked failed, but the build finished afterward: …` | a slow build finished after being marked failed; the survey is up (the card shows **· previous version still live**, and the project's **Settings → Activity** adds a `deploy.live` entry for it) — publish the environment again to bring the status up to date, or **Close** it |
 
 ---
 
@@ -626,7 +626,9 @@ was in the field when:
 
 - **Settings → Activity** lists every publish (`deploy.create`,
   `deploy.reopen`) with its time and environment; **Export CSV** includes the
-  Save number of each publish.
+  Save number of each publish. When the build finishes, a `deploy.live` entry
+  follows, with `—` as the person and the survey link as its target: from
+  then on the new version is the one collecting.
 - Compare those times with the responses' `created_at`.
 
 The per-environment **Codebook** chip shows the variables of the environment's
@@ -667,7 +669,8 @@ build to the current runtime, is listed under
 | Deploy a Save with custom JavaScript or custom CSS | *(Plus)* — on Free such a Save is refused |
 
 Every action is recorded in the project's activity log (**Settings →
-Activity**).
+Activity**), and so is how each build ended (`deploy.live`, `deploy.failed`,
+`deploy.preview_live`, `deploy.preview_failed`).
 
 ## See also
 

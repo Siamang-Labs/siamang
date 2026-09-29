@@ -807,8 +807,10 @@ Responses node that reads another table shows no Instant panel.
 
 **▶ Run** in the editor, **run** in the flows table, the **Run flow** dialog
 or **Re-run** on a card runs the flow's generated script **as of the current
-Save**, in an isolated sandbox, and records a run. A flow can have one run in
-progress at a time ("This flow already has a run in progress — see Run
+Save**, in an isolated sandbox, and records a run. The project's **Settings →
+Activity** records who started it (`run.start`) and how it ended
+(`run.completed` or `run.failed`, with `—` as the person). A flow can have one
+run in progress at a time ("This flow already has a run in progress — see Run
 history").
 
 The sandbox has one CPU, no internet access (only the project's own data) and
@@ -826,7 +828,9 @@ for example "script timed out (300s) — the free plan allows 5 min per flow run
 plus allows 15 min". A run may also write at most 1 GB of files ("script
 exceeded the sandbox disk budget (1024 MB written) and was stopped"). A run
 stuck without any sign of life for 40 minutes is marked failed ("[reaper] run
-timed out and was marked failed").
+timed out and was marked failed"), and the project's Activity gets a
+`run.failed` entry with `"reason": "timed out"` in its details (not for a
+Live recompute).
 
 **Uploads a flow reads.** Before the sandbox starts, Studio copies in the
 files uploaded under [[Files|Studio-Files]] that the project's flows name by
@@ -1023,7 +1027,8 @@ they arrive (a burst of responses gives one recompute), and its **Live tile**
 nodes refresh the **Live** screen. Each recompute is an ordinary run: it
 appears in **Run history**, replaces the flow's files and reports, and uses
 the plan's run time. A recompute that fails sends no email (a failed
-scheduled run does); it shows in **Run history**. Automatic recompute is a *Plus* feature; on Free you refresh tiles by hand
+scheduled run does); it shows in **Run history**. Recomputes are not listed in
+**Settings → Activity**. Automatic recompute is a *Plus* feature; on Free you refresh tiles by hand
 with **Recompute now** on the Live screen. Live tiles are also refreshed by
 any ordinary run of the flow, with or without Live mode, and by a **Run all**
 in which the flow ran; the Live screen shows the tiles of the newest of

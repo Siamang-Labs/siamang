@@ -93,6 +93,11 @@ The **When** column describes common shapes in words — "every 30 min",
   one resumed after its flow was deleted — fails with "flow '*name*' is not in
   Save #*N*: it was deleted or renamed".
 - Its end sends the `run.completed` or `run.failed` webhook (below).
+- Its end is recorded in the project's **Settings → Activity** as
+  `run.completed` or `run.failed`, with `—` as the person. Creating, pausing,
+  resuming, retiming and removing a schedule, and **Run now**, are recorded
+  under the name of the person who did it, as `schedule.create`,
+  `schedule.update`, `schedule.delete` and `schedule.run`.
 - When a run the timer started fails, every **owner** of the organization gets
   an email, "Scheduled analysis failed: *org/project*", with the run number
   and a link to open the run log. Runs started with **Run now** send no email,

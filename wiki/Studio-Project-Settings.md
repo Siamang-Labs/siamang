@@ -296,14 +296,16 @@ is covered in [[Connectors|Studio-Connectors]].
 
 ## Activity
 
-"Everything that happened in this project — Saves, deploys, flow runs,
-connector exports, schedules and secret changes."
+"Who did what in this project, and how builds and runs ended: Saves, deploys,
+flow runs, connector exports, schedules, data exports and secret changes. Live
+recomputes are not listed, only clicks on Recompute now."
 
 - Shows the **latest 100 events** of this project, newest first: the action
   (for example `snapshot.save`, `snapshot.restore`, `snapshot.tag`,
-  `bundle.download`, `bundle.deposit`, `deploy.create`, `deploy.stop`,
-  `connector.run`, `schedule.create`, `secret.set`, `response.delete`), its
-  target, who did it and when.
+  `bundle.download`, `bundle.deposit`, `deploy.create`, `deploy.live`,
+  `deploy.stop`, `run.start`, `run.completed`, `connector.run`,
+  `schedule.create`, `schedule.delete`, `live.recompute`, `secret.set`,
+  `response.delete`), its target, who did it and when.
 - Data leaving the project is recorded too, never the data itself:
   `data.export` for a download from **Data → Export** or the export API (the
   table as the target; the format and the number of rows in the details), and
@@ -322,11 +324,23 @@ connector exports, schedules and secret changes."
   **Import CSV** on **Distribute**) is also recorded as
   `access_codes.generate`, with the Save number as the target and the number
   of codes added — never the codes themselves.
-- What Studio records in the background when a build or a run ends —
-  `deploy.live`, `deploy.failed`, `run.completed`, `run.failed`,
-  `connector.completed`, `connector.failed` — is not tied to the project, so
-  it does not appear here. Owners and admins find those events in the
-  organization-wide log, where they show "—" in place of a project.
+- What Studio records on its own when a build or a run ends appears here
+  too, with "—" in place of a person: `deploy.live`, `deploy.failed`,
+  `deploy.preview_live`, `deploy.preview_failed`, `run.completed`,
+  `run.failed`, `connector.completed`, `connector.failed`. The person who
+  started the build or the run has an entry of their own (`deploy.create`,
+  `deploy.preview`, `run.start` for **Run** and **Run all**, `connector.run`);
+  a run that a schedule started on its timer has only the entry for how it
+  ended.
+- A build or a run that Studio marks failed because it stopped responding gets
+  a failure entry with `"reason": "timed out"` in its details. If such a build
+  finishes afterward, its survey or preview is up after all, and a
+  `deploy.live` or `deploy.preview_live` entry follows, with
+  `"after": "timed out"`.
+- **Live recomputes are not listed**, neither those that new responses start
+  nor the runs **Recompute now** starts: they are in **Run history** on
+  **Flows**. A click on **Recompute now** that queues a recompute is recorded,
+  as `live.recompute`, under the name of the person who clicked.
 - The range buttons **24h**, **7d** (default), **30d** and **All** filter the
   list. With nothing in range you see "No activity in this period" and **Show
   all activity**.

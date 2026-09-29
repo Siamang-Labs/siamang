@@ -382,7 +382,8 @@ serves. Responses, however, do not record the Save that collected them: a
 republish keeps the environment's link and `survey_id`. To tell which version
 collected an answer, compare its `created_at` with the publish times in
 **Settings → Activity** (`deploy.create`; its **Export CSV** includes each
-publish's Save number). Publishing is covered in
+publish's Save number). The `deploy.live` entry that follows marks when the
+build finished and the new version started collecting. Publishing is covered in
 [[Publishing and Environments|Studio-Publishing-and-Environments]].
 
 **More ▾ → Preview** builds a preview of that Save for looking at — it never

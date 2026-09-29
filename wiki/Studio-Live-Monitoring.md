@@ -269,14 +269,17 @@ flow and its tiles land here."
 
 Every tile update is a full **run** of its flow — the same sandbox run as
 **Run** in Flows, on the project's **current Save**, recorded in the flow's run
-history. Recompute takes as long as the flow does: seconds for a few counts,
-longer for weighting or models.
+history. These runs are not listed in the project's **Settings → Activity**.
+Recompute takes as long as the flow does: seconds for a few counts, longer for
+weighting or models.
 
 - **Recompute now** re-runs every flow whose Live is on (disabled otherwise:
   "Turn Live on for a flow first (canvas → Live: recompute on new
   responses)"). Toasts: **Recompute queued — tiles update when the runs
   finish**, or **A recompute is already pending**. Works on **every plan** —
-  it is how Free projects refresh.
+  it is how Free projects refresh. A click that queues a recompute is recorded
+  in the project's Activity as `live.recompute`, under your name; the runs it
+  starts are not.
 - *(Plus)* **Automatic recompute.** After a submitted response arrives, the
   live flows are re-run about **10 seconds** later; a burst of responses in that
   window causes one run, not fifty. Partial saves of unfinished interviews do

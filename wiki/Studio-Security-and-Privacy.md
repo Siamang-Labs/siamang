@@ -421,8 +421,9 @@ leave the assistant off. See [[AI Assistant|Studio-AI-Assistant]] and the
 ## Audit trail
 
 Each organization keeps an append-only **Activity** log: Saves, restores,
-publishing, pausing and closing, closing dates and the **One response per
-browser** switch, runs, response deletions, bundle downloads, Live share
+publishing and how each build ended, pausing and closing, closing dates and the
+**One response per browser** switch, runs and how they ended, schedules,
+response deletions, bundle downloads, Live share
 links, contact imports and deletions (by contact id, never the address),
 mailings (including bounces and spam complaints), member changes including
 role changes, name changes, secret changes, plan and billing events, the AI
