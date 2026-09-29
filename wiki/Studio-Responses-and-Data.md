@@ -150,8 +150,8 @@ environment published before it sends none — its table holds submitted
 responses only — until you
 [republish](Studio-Publishing-and-Environments#republishing) it.
 
-In a flow, the **Speeders & partials** node drops them (see
-[[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]).
+In a flow, **Only completed responses** on the **Responses** node leaves them
+out (see [[Cleaning and Weighting Data|Studio-Cleaning-and-Weighting]]).
 
 ---
 

@@ -753,8 +753,10 @@ weight, `respondent_id`, timestamps. Select late, or include them.
 ### Speeders & partials
 
 `prepare.speeders` — quality screening on interview length and completeness.
-It adds two columns, `duration_s` and `partial`, and drops speeders and
-(optionally) partial interviews. Later nodes offer both in their variable
+It adds two columns, `duration_s` and `partial`, and drops speeders. With
+**Drop partials** on, it also drops the interviews that miss any of the
+**Required answers**; with no required answers listed, it drops no partials.
+Later nodes offer both in their variable
 lists ("completion time · made by *node*", "partial response · made by
 *node*").
 
@@ -762,9 +764,9 @@ lists ("completion time · made by *node*", "partial response · made by
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Minimum seconds** | whole number | `60` | at least 0 | Interviews completed faster than this are dropped. |
-| **Required answers** | variables (several) | empty | — | An interview is *partial* when any of these is blank. |
-| **Drop partials** | checkbox | on | — | Also drop partial interviews. |
+| **Minimum seconds** | whole number | `60` | at least 0 | Interviews completed faster than this are dropped; `0` drops none. |
+| **Required answers** | variables (several) | empty | — | An interview is *partial* when any of these is blank. With none listed, no interview is. |
+| **Drop partials** | checkbox | on | — | Also drop the interviews that **Required answers** marks as partial. Off, they stay, marked in `partial`. |
 
 The rules, precisely:
 
@@ -776,6 +778,10 @@ The rules, precisely:
   blank. With no required answers listed, nobody is partial, so **Drop
   partials** removes nothing. A required name that does not exist in the data
   marks *every* response partial — check the names.
+- The node's `partial` replaces the table's own `partial` column, so an
+  interview broken off after answering every required question stays in,
+  marked `false`. To leave unfinished interviews out, check **Only completed
+  responses** on the [Responses](#responses) node.
 
 ### Code open answers
 

@@ -225,13 +225,17 @@ keeps screen-outs too. See
 ### Speeders & partials
 
 **Speeders & partials** adds `duration_s` and `partial` columns and **drops**
-responses that were too fast or incomplete:
+responses that were too fast or miss a required answer:
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| **Minimum seconds** | 60 | responses faster than this are dropped |
-| **Required answers** | none | variables a response must have to count as complete |
-| **Drop partials** | on | also drop incomplete responses |
+| **Minimum seconds** | 60 | responses faster than this are dropped; `0` drops none |
+| **Required answers** | none | a response missing any of these is partial; with none listed, no response is |
+| **Drop partials** | on | also drop the partial responses; off, they stay, marked in `partial` |
+
+Unfinished interviews are left out by **Only completed responses** on the
+**Responses** node, not by this one: its `partial` replaces the table's own,
+so an interview broken off after the required answers stays in.
 
 Note the two speeder definitions: the Distribute tile uses *faster than a
 third of the median*; this node uses a fixed **Minimum seconds**. Set the node
