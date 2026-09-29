@@ -56,7 +56,7 @@ with a role that can see only their own project.
 | A **share preview** link | the respondent view of a draft, for reviewers. Answers given there are not stored. | 24 hours. Each person can create up to 50 per day. |
 | A **Live share link** *(Plus)* | the Live tiles only: no raw rows, no questionnaire. Chart tiles are interactive and carry the numbers they draw; a chart that plots respondents' own answers (a scatter plot, a box plot with outliers or **Show points**) shows only its picture there | until revoked. Creating a new link revokes the previous one. It stops working if the organization drops below Plus. |
 | The **unsubscribe** link in invitation emails | a page where the recipient opts out of further mailings | sent with every invitation email |
-| A **team invitation** link | the inviter's name, the organization name, the role, a masked email address (`j***@example.com`) and the expiry date | 7 days, or until used or revoked |
+| A **team invitation** link | the inviter's name, the organization name, the role, a masked email address (`j***@example.com`) and the expiry date | 7 days, or until used, revoked, replaced by a newer invitation to the same address, or closed because the person was added to the organization directly. After that it shows no details; opened by the invited person while signed in, a used or closed link still takes them into the organization. |
 
 Nothing else is public.
 

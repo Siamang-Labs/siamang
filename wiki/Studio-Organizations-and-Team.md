@@ -279,7 +279,9 @@ expiry date stays in the list until you revoke it or re-invite the address;
 for an address that has an account, adding the person also takes it off.
 The list is loaded when you open the **Members** tab and again after you send
 an invitation or change a role, so a new or replaced invitation shows at once,
-and one that closed because the person joined disappears.
+and one that closed because you added the person disappears. An invitation
+someone accepts from its link while you have the tab open stays listed until
+the list loads again.
 
 ### Member limits
 
@@ -581,7 +583,8 @@ Each row shows:
   handed back to the Save on the Distribute card (`deploy.closing_date`), and
   **One response per browser** switched on or off
   (`deploy.one_response_per_browser`: the target is `<project>:<environment>`).
-- **Analysis:** flow runs and Run all started by hand (`run.start`) and how
+- **Analysis:** flow runs started with **Run** or **Run all** (`run.start`;
+  a schedule's **Run now** is recorded as `schedule.run` instead) and how
   those runs and scheduled runs ended (`run.completed`, `run.failed`, with `—`
   as the person), run history reset, schedules created, changed, removed or
   started with **Run now** (`schedule.create`, `schedule.update`,

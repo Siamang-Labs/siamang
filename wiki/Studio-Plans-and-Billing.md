@@ -166,14 +166,19 @@ start on Free.
 
 ## When the trial ends
 
-The organization moves to the **Free** plan. It does **not** become read-only:
-you keep signing in, editing, saving, publishing, running flows and
-collecting responses, within Free's limits. Nothing is deleted. The owners get
-an email: "*organization* is now on the free plan — the Siamang Studio Pro
-trial ended". The end of a paid period works the same way (see
+The organization moves to the **Free** plan, unless Plus or the Plus year was
+bought for after the trial, in which case it moves to Plus (see *Buying during
+the trial* under
+[Upgrading, downgrading and canceling](#upgrading-downgrading-and-canceling)).
+It does **not** become read-only: you keep signing in, editing, saving,
+publishing, running flows and collecting responses, within the new plan's
+limits. Nothing is deleted. The owners get an email: "*organization* is now
+on the free plan — the Siamang Studio Pro trial ended", or, when the
+organization moves to Plus, "*organization* is now on the Plus plan — the
+Siamang Studio Pro trial ended". The end of a paid period works the same way (see
 [Paid periods](#paid-periods)).
 
-Concretely, once the trial is over:
+Concretely, once the trial is over and the organization is on Free:
 
 | Area | What changes |
 |---|---|
@@ -260,9 +265,11 @@ has a trial or a paid period that ends on a date: "**Pro trial · 27 days
 left.**" or, for a paid period, "**Plus · 200 days left of the paid
 period.**", followed by "Full access to every *plan* feature; one
 subscription covers the whole organization. Afterward the organization
-switches to the free plan — your data and surveys are kept." Once card
-payments are live it adds "Subscribe or extend now: **billing starts only when
-the free period ends**." When Plus was bought during the trial, the note says
+switches to the free plan — your data and surveys are kept." During the
+trial, once card payments are live and more than about two days before it
+ends, it adds "Subscribe or extend now: **billing starts only when the free
+period ends**." During a paid period it adds "Another plan can be bought once
+this period ends." When Plus was bought during the trial, the note says
 instead "After the trial, on *date*, the organization moves to the Plus plan
 you chose; its first charge is made then.", and for the Plus year "After the
 trial, on *date*, the Plus year you paid for starts; it runs until *date*."
@@ -303,13 +310,15 @@ The button at the bottom of a card is one of:
 |---|---|
 | **current plan** (a label) | the plan the organization is on, when no trial or paid period is running |
 | **starts *date*** (a label) | the plan bought during the trial; it starts when the trial ends |
-| **Upgrade** | a higher plan than the current one (during a trial or a paid period, whichever of Plus and Pro is not the running plan); opens the checkout dialog (owner only) |
-| **Extend Pro** / **Extend Plus** | on the plan whose trial or paid period is running; subscribes now, with billing starting when the running period ends (owner only). During the trial, with a Plus subscription bought for after it waiting, **Extend Pro** switches that subscription to Pro instead |
+| **Upgrade** | a higher plan than the current one (during a trial, the plan that is not the trial's); opens the checkout dialog (owner only) |
+| **Extend Pro** / **Extend Plus** | on the plan whose trial is running; subscribes now, with billing starting when the trial ends (owner only). During the trial, with a Plus subscription bought for after it waiting, **Extend Pro** switches that subscription to Pro instead |
 | **Coming soon** (disabled) | card payments are not live yet in the beta ("Available at the official release"). Until they are, every card except the current plan and Corporate shows it. |
 | **Contact sales** (disabled) | Corporate is arranged with the Siamang team, not bought in the app ("Sales-assisted — coming soon"). Write to `info@siamang-team.org`. |
 
-There is no button to move to a lower plan on the cards. See
-[Upgrading, downgrading and canceling](#upgrading-downgrading-and-canceling).
+There is no button to move to a lower plan on the cards. While a paid period
+runs, or a year bought during the trial waits for it to end, the cards show no
+buttons (see *While a year offer is in force* under
+[Upgrading, downgrading and canceling](#upgrading-downgrading-and-canceling)).
 
 **Beta offers.** While a beta offer runs, the owner sees one line per offer
 with its price and deadline:
@@ -361,9 +370,10 @@ checkout it answers "Could not open the billing portal. No billing account yet
   notice "Checkout complete — Settings → Billing shows your plan and when it
   starts". The new plan applies as soon as the payment is confirmed, or, for
   Plus bought during the trial, when the trial ends. If you leave the payment page
-  instead, you see "Checkout canceled — your plan is unchanged". **Extend Pro**
-  beside a waiting Plus subscription reads **Switch to Pro** and opens no
-  payment page: Studio confirms "Plan changed to pro".
+  instead, you see "Checkout canceled — your plan is unchanged". With a Plus
+  subscription bought for after the trial waiting, **Extend Pro** opens a
+  dialog whose button reads **Switch to Pro** instead of **Continue to
+  checkout**. No payment page opens, and Studio confirms "Plan changed to pro".
 - **Buying during the trial** never shortens it: billing starts when the free
   period ends. The exception is the last two days or so of a trial, when
   billing starts right away. **Pro** (a subscription or the Pro year) keeps the
@@ -377,8 +387,10 @@ checkout it answers "Could not open the billing portal. No billing account yet
   Billing screen or in the payment portal) leaves the trial running as if
   nothing was bought, with its limits, and these places say Free again. Once
   a Pro subscription is confirmed, the trial pill goes away and the Pro card
-  shows **current plan**; after the Pro year, the pill counts the year's days
-  instead (for example `Pro · 300d`). **Extend Pro** beside a waiting Plus
+  shows **current plan**; if you buy the Pro year instead, the pill names the
+  plan and counts down to the end of the year, which runs 12 months from the
+  end of the trial (for example `Pro · 392d` right after buying it with 27
+  trial days left). **Extend Pro** beside a waiting Plus
   subscription switches that subscription to Pro in place, and its first
   charge stays at the trial end, even in the trial's last two days. In the
   last two days or so of the trial, when billing cannot wait, a new
