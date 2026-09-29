@@ -84,7 +84,10 @@ members and subscription. Owners and admins manage it here."
 The screen shows the organization you are in: its name and pills for its type
 (**personal** or **cooperative**), your role, its plan (for example "Pro
 plan") and, during a trial, **Pro trial · 27d left**, or during a paid period
-that ends on a date (a 12-month beta offer), **Paid period · 200d left**.
+that ends on a date (a 12-month beta offer), **Paid period · 200d left**. When
+Plus or the Plus year was bought for after the trial, a further pill names it:
+**Plus from Oct 3, 2026** or **Plus year from Oct 3, 2026** (hover: "Bought
+during the trial; it starts when the trial ends").
 **Manage** opens **Organization settings**. **Create organization**, at the top right, opens
 the dialog described in
 [Creating another organization](#creating-another-organization).
