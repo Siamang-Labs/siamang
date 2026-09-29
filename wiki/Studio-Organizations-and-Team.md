@@ -522,7 +522,7 @@ Each row shows:
 | Action | `member.invite`, `snapshot.save`, `deploy.live`, `data.export`, `response.delete` |
 | Project | `brand-awareness`, or `—` for organization-level events |
 | Target | what it acted on: an email, a Save, an environment, a table |
-| Who | the person's name, or `—` for automatic events such as a lapsed trial or a payment |
+| Who | the person's name, or `—` for automatic events such as the end of a build or a run, a lapsed trial or a payment |
 | When | the date |
 
 - **Range**: **24h**, **7d** (the default), **30d**, **All**. The window is
@@ -569,13 +569,23 @@ Each row shows:
 - **Saves:** new Saves, restores, tags, and a Save that adds access codes
   (`access_codes.generate`: the target is the Save, the exported `meta` says
   how many codes were added, and the codes themselves are never recorded).
-- **Publishing:** a deployment going live, preview builds, failed builds,
-  pause, resume, close (`deploy.stop`), reopen, history reset, a closing date
-  set, removed or handed back to the Save on the Distribute card
-  (`deploy.closing_date`), and **One response per browser** switched on or off
+- **Publishing:** publishes and previews (`deploy.create`, `deploy.preview`)
+  and how each build ended (`deploy.live`, `deploy.failed`,
+  `deploy.preview_live`, `deploy.preview_failed`, with `—` as the person; a
+  build Studio marked failed because it stopped responding has
+  `"reason": "timed out"` in the exported `meta`), pause, resume, close
+  (`deploy.stop`), reopen, history reset, a closing date set, removed or
+  handed back to the Save on the Distribute card (`deploy.closing_date`), and
+  **One response per browser** switched on or off
   (`deploy.one_response_per_browser`: the target is `<project>:<environment>`).
-- **Analysis:** runs completed or failed, run history reset, schedules created,
-  changed or triggered, connector runs.
+- **Analysis:** flow runs and Run all started by hand (`run.start`) and how
+  those runs and scheduled runs ended (`run.completed`, `run.failed`, with `—`
+  as the person), run history reset, schedules created, changed, removed or
+  started with **Run now** (`schedule.create`, `schedule.update`,
+  `schedule.delete`, `schedule.run`), connector runs (`connector.run`) and how
+  they ended (`connector.completed`, `connector.failed`). Live recomputes are
+  not recorded; a click on **Recompute now** is (`live.recompute`), not the
+  runs it starts.
 - **Data and sharing:** response deletions, downloads from **Data → Export**
   (`data.export`: the target is the table, and the exported `meta` holds the
   format and the number of rows), panel outcome CSVs from Distribute

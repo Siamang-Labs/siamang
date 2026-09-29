@@ -349,7 +349,10 @@ Read the imported table in a flow with a **Project table** node.
 
 Click **Run export** or **Run import**. The run is queued and then executed in
 the background; open **History** under the connector to follow it. Connector
-runs also appear in **Flows → Run history**.
+runs also appear in **Flows → Run history**. The project's **Settings →
+Activity** records `connector.run`, under the person's name, when someone
+starts a run, and `connector.completed` or `connector.failed`, with `—` as the
+person, when it ends.
 
 | State | Meaning |
 |---|---|
