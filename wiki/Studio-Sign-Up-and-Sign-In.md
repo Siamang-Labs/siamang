@@ -306,9 +306,12 @@ Good to know:
   stays pending. The invitation page then shows **Accept invitation**, and
   accepting answers "Could not accept the invitation. Plan 'free' allows up to
   2 members; upgrade to add more." Accept it again once the owner has upgraded
-  or made room.
-- Opening the link again later, signed in with the account that used it,
-  takes you into the organization instead of showing an error.
+  or made room. If an owner or admin adds you directly in the meantime, the
+  invitation is closed; opening the link while signed in takes you into the
+  organization.
+- Opening the link again later, signed in with the account that used it or
+  after you were added directly, takes you into the organization instead of
+  showing an error.
 
 ### Invitation page messages
 
@@ -316,7 +319,7 @@ Good to know:
 |---|---|
 | **Loading invitation…** | the page is looking the invitation up |
 | "This invitation has expired. Ask the person who invited you to send a new one." | more than 7 days have passed |
-| "This invitation link is invalid or has already been used." | the invitation was already used, revoked by an admin, or replaced by a newer invitation to the same address, or the link was copied incompletely. If your own account used it and you are signed out, sign in and open the link again: it takes you into the organization. |
+| "This invitation link is invalid or has already been used." | the invitation was already used, revoked by an admin or replaced by a newer invitation to the same address; an owner or admin already added you to the organization directly; or the link was copied incompletely. If your own account used it, or you were added directly, and you are signed out, sign in and open the link again: it takes you into the organization. |
 | "Could not load the invitation. …" | the page could not look the invitation up just then. The rest of the line gives the reason, for example "The server could not be reached — check your connection and try again." or, after many reloads in a minute, "Rate limit exceeded; slow down." The link itself may be fine: click **Try again**. |
 | "This invitation was sent to j***@example.com — sign in with that account to accept it." | you are signed in with a different address. Sign out and sign in with the invited one. |
 | "Could not accept the invitation. Plan 'free' allows up to 2 members; upgrade to add more." | the organization is full on its plan. Ask its owner to upgrade, then accept again. |

@@ -41,7 +41,8 @@ invitation page says "Could not load the invitation." followed by a reason,
 the server was busy or could not be reached — the link itself is fine; press
 **Try again**. "This invitation has expired. …" and "This invitation link is
 invalid or has already been used." are about the link itself: ask for a new
-invitation.
+invitation. The second one can also mean you were already added to the
+organization directly: sign in first, and the link takes you in.
 → [If you create your account from the invitation](Studio-Sign-Up-and-Sign-In#if-you-create-your-account-from-the-invitation)
 
 **I landed in my own workspace, not my colleague's.**
