@@ -1576,9 +1576,13 @@ cumulative %.
 | **Exclude missing** | checkbox | on | — | Leave blank answers out of the table. |
 | **Sort** | choice | `value` | `value`, `freq`, `label` | `value` (by code), `freq` (largest count first) or `label` (alphabetical). |
 
+**Cumulative %** is the running share of the counts (after **Apply weight**,
+of the weights), rounded once, so the last answer always reads 100.0, even
+when the **%** column, each row rounded on its own, adds up to 99.9 or 100.1.
+
 For a multiple-answer question, each option's share is of the respondents who
-answered, so the column sums above 100 %; the base is a row of its own and
-there is no cumulative column.
+answered, so the **%** column sums above 100 %; the base is a row of its own
+and there is no cumulative column.
 
 After **Apply weight**, **N** is the sum of the weights (shown to one
 decimal) and the percentages are taken from the sums as they are, not from
@@ -3169,7 +3173,7 @@ footer** is on (the default).
 | **Interactive charts in HTML** | checkbox | off | — | The HTML draws its charts in the reader's browser — a tooltip on every bar, point and cell with its value and base, a legend whose entries hide and show their series, zoom where it helps — and still opens offline, so it can be sent to a client as it is. For that it carries the chart libraries (Vega, Vega-Lite and Vega-Embed, about 0.8 MB, written in once) and each chart's numbers — what it draws, and a scatter plot's points and a box plot's outliers, the respondents' values it plots. Each chart's picture stays in the HTML for printing and for readers without scripts; the Markdown and the Excel workbook are unchanged. Applies only with Also save HTML. |
 | **Table of contents** | checkbox | off | — | Add a table of contents. |
 | **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (Path with .xlsx) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
-| **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected. |
+| **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). Its p_values says how the report writes a p-value — exact, as computed (the default); 0.01, one below 0.01 as < 0.01; or 0.001, one below 0.001 as < 0.001 — in its tables' cells and statistics lines, the Markdown as the HTML, the Excel workbook (a number format, so the cell keeps its number) and the charts' notes (< .01); the results and their exports keep the exact p. Otherwise the Markdown's text is unaffected. |
 
 - **The Excel workbook** (`outputs/report.xlsx` for the default **Path**) is
   the report's tables as a spreadsheet: numbers stay numbers, and text stays
@@ -3222,6 +3226,17 @@ footer** is on (the default).
   of 1.6:1; text needs at least 4.5:1."; "theme: chart_font: a list of font
   names separated by commas, without ; { } < >." See
   [Chart colors](Studio-Reports#chart-colors).
+- The **Look** also holds the report's **P values** (the theme's
+  `p_values`: `exact`, the default, `0.01` or `0.001`), the one choice of the
+  look besides the chart colors that reaches the Markdown: a p below the
+  threshold is written as the bound — `< 0.01` in a table's p column, `p <
+  0.01` in a statistics line, a number format in the Excel workbook, and a
+  chart's note. The results, the tables the node receives and every export
+  keep the exact p, and a **Proportion CI**'s `p`, the proportion, is never
+  changed. It travels with the node, so the downloaded script writes
+  `theme={"p_values": "0.01"}`. Any other value is named on the node: "theme:
+  p_values: '0.05' is not one of exact, 0.01, 0.001." See
+  [P values](Studio-Reports#p-values).
 - Keep **Path** under `outputs/`; set the same file as the flow's **Report
   path** (Flow settings) if you want this report in the combined report of
   **Run all**. The Report view does both for you when it creates the node;

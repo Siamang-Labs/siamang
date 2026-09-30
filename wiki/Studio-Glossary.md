@@ -284,6 +284,13 @@ chance: Holm and Bonferroni (the chance of any false finding) or
 Benjamini-Hochberg, `fdr_bh` (the share of false findings among the
 significant ones). → [Correlation matrix](Studio-Node-Reference#correlation-matrix)
 
+**P values** — the choice in a report's **Look** of how the report writes a
+p-value: **Exact** (the default, as computed), or a p below 0.01 or 0.001
+written as the bound, `< 0.01` or `< 0.001`. Results and exports keep the
+exact p. The project's house style's **P values** also sets how node
+previews and Live tiles write one.
+→ [P values](Studio-Reports#p-values)
+
 **Page kind** — what a page does: an ordinary **Content** page, a **Final**
 (thank-you) page, a **Screen-out** page or a **Redirect** page.
 

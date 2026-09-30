@@ -201,11 +201,15 @@ A section saved before, with one caption for the node, shows it on each of
 the node's outputs until you give one its own — as the report prints it. The post-hoc pairs of a **Group means** are
 not a separate output: they print under its means table.
 
-After a preview, each row also shows a small preview of that output. A
-statistic (**Stat**) is printed in the report as one line, `Caption: key =
-value; …` — the caption is the label before the values. It has no size or
-placement: its row reads "one line", with the tooltip "A statistic is one
-line of the report: size and placement apply to tables and charts only".
+After a preview, each row also shows a small preview of that output, written
+as the node's preview is (a p-value as the house style's **P values** says;
+see [The project's house style](#the-projects-house-style)). A statistic
+(**Stat**) is printed in the report as one line, `Caption: key = value; …` —
+the caption is the label before the values; with the look's
+[P values](#p-values) at **< 0.01**, a p below it reads `p < 0.01` there. It
+has no size or placement: its row reads "one line", with the tooltip "A
+statistic is one line of the report: size and placement apply to tables and
+charts only".
 
 ### Size and placement
 
@@ -275,11 +279,12 @@ report** node, so — as the tab says — "it is in this flow, in
 `scripts/<flow>.py` and in the research bundle. Whoever re-runs the study on
 their own laptop gets this document, not a default one. **Preview report**
 shows it." Everything here reaches the `.html` only — except the **Chart
-colors**, which also color the charts in the `.md`'s figures. A **Save
-report** node whose look is empty renders with the engine's defaults — in
-Studio as in the downloaded script.
+colors**, which also color the charts in the `.md`'s figures, and **P
+values**, which sets how every p-value of the report is written, in the `.md`
+too (see [P values](#p-values)). A **Save report** node whose look is empty
+renders with the engine's defaults — in Studio as in the downloaded script.
 
-The four main choices:
+The main choices — the four presets and **P values**:
 
 | Control | Choices | Default |
 |---|---|---|
@@ -287,6 +292,7 @@ The four main choices:
 | **Density** | **compact** (14 px text, tight), **comfortable** (15.5 px), **spacious** (16.5 px) — type size, leading and the air between blocks | comfortable |
 | **Tables** | **rules** (horizontal lines, the journal default), **grid**, **zebra** | rules |
 | **Page** | **screen** (no page box, a measure of 720 px), **a4** (A4 with 22 mm margins), **letter** (Letter with 0.9 in margins) — "a4 and letter add page size and margins for printing" | screen |
+| **P values** | **Exact** (every p as it was computed, such as `0.0123` or `3.2e-05`), **< 0.01** (a p below 0.01 reads `< 0.01`; any other as it was computed), **< 0.001** (the same below 0.001) — "how tables and statistics write a small p; results and exports keep the exact value" | Exact |
 
 Typefaces are named font stacks, never a downloaded web font: a report is
 read offline and printed, and a stylesheet that fetches a font renders
@@ -315,6 +321,44 @@ At the bottom: **Use the house style** (only when the project has one —
 **Reset** ("Drop every choice and render with the engine's defaults"). Without
 a **Save report** node the tab says "Add a section first — it creates the Save
 report node the look belongs to."
+
+### P values
+
+**P values** decides how the report writes a p-value. **Exact**, the default,
+writes every p as it was computed, as reports always have; **< 0.01** and
+**< 0.001** write a p below that threshold as the bound and any other p as it
+was computed (a p of exactly 0.01 is not below 0.01). The choice reaches every
+p the report writes, in the `.md` and the `.html` alike:
+
+- **Table cells** — every column of p-values: a crosstab's, **Group means**'
+  and its post-hoc pairs', a t-test's, a correlation's pairs', a regression's
+  coefficients', **Paired tests**' and **Key drivers**'. A Tukey or
+  Games-Howell p below 1e-07, otherwise written `< 1e-07`, reads as the bound
+  too. Columns named after your answers, such as a crosstab's, are never
+  changed, even when an answer is labeled "p".
+- **Statistics lines** — the line under a table and a statistics line of its
+  own (a **Stat** output in a section) read `p < 0.01`, never `p = < 0.01`;
+  so do a `Bartlett p` and the p of each pair that a comparison of groups
+  names in a sentence. A **Proportion CI**'s `p` is the proportion, not a
+  test's p, and is never changed.
+- **The Excel workbook** ([Tables in Excel](#tables-in-excel)) — the cell
+  keeps its number and shows the bound through its number format, so it still
+  sorts, filters and calculates as the p it is.
+- **Chart notes** — a **Result chart**'s note, such as a t-test's difference,
+  reads `p < 0.01`; the tooltips of an interactive correlation heatmap
+  follow it in their own style, `< .01`.
+
+Only the writing changes: every result, the tables a node passes on, exported
+files and a table's own Excel export keep the exact p. A tab book prints
+significance letters, not p-values, so it is unchanged. The choice is stored
+in the **Save report** node like the rest of the look (`"p_values": "0.01"`),
+so the downloaded script and the research bundle write p the same way. Any
+other value is refused on the node: "theme: p_values: '0.05' is not one of
+exact, 0.01, 0.001."
+
+The house style's **P values** does one thing more: it sets how Studio itself
+writes a p-value in node previews and Live tiles; see
+[The project's house style](#the-projects-house-style).
 
 ### Chart colors
 
@@ -407,9 +451,10 @@ of its own. A palette you choose is yours to check.
   **Chart colors** that readers with protanopia or deuteranopia can tell
   apart).
 
-The house style is a **stamp**, never a setting a run reads: a flow's report
-always renders in the look of its own **Save report** node — the same look
-its downloaded script and a research bundle use. It is used in three ways:
+The house style is a **stamp**, never a setting a flow's report reads: a
+flow's report always renders in the look of its own **Save report** node —
+the same look its downloaded script and a research bundle use. It is used in
+four ways:
 
 1. It is **stamped** into a new **Save report** node — when the Report view
    creates one, and when you add one from the palette. From then on the node
@@ -420,6 +465,15 @@ its downloaded script and a research bundle use. It is used in three ways:
    every flow, so each flow — and each bundle — carries it") copies it into
    every **Save report** node (or clears their looks when the house style is
    empty). If nothing changes: "Every flow already uses the house style".
+4. Its **P values** sets how Studio writes a p-value where no report is
+   involved: in a node's **Preview** pane, in the report composer's rows and
+   in **Live** tiles, in Studio and on a public link. The form says so under
+   **House style**: "Its P values also sets how Studio writes a p-value in
+   node previews and Live tiles, so the study reads the same here as in its
+   reports. They follow a change from their next run." A preview or a tile is
+   written when it runs, so it shows a change from the next **Run to here**
+   or recompute. A flow's own report still writes p as its **Save report**
+   node's look says.
 
 A **Save report** node with no look of its own renders with the engine's
 defaults, on the platform as in its script. Earlier, such a node silently
@@ -533,6 +587,10 @@ What the workbook holds:
   (`21.2% (21) F`) and its notes under it.
 - **Text stays text.** An open answer, label or caption that begins with `=`
   is written as a string, never as a formula Excel would run.
+- **P values.** With the look's [P values](#p-values) at **< 0.01** or
+  **< 0.001**, a p below the threshold keeps its number and reads as the
+  bound (`< 0.01`) through the cell's number format, in the tables and in the
+  statistics under them.
 - **Not in it:** charts, the sections' text and notes, and statistics wired
   in as their own line (a **Stat** output). A report without tables gets a
   Contents sheet that says so.
