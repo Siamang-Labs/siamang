@@ -365,8 +365,11 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
   connected sources with **disconnect**, plus a **connect…** / **add
   source…** dropdown of compatible outputs, or "nothing can feed this"),
   **Outputs**, **State** (ok / errors / warnings) and the links **run to**,
-  **duplicate**, **delete**. **+ Node** under the table (or `Ctrl/Cmd + K`)
-  opens a searchable node picker (↑ ↓ choose · Enter adds · Esc closes).
+  **duplicate** (the copy keeps the wires into the node, none out of it, and
+  a file or table it writes gets a new name; see
+  [The inspector](#the-inspector)), **delete**. **+ Node** under the table
+  (or `Ctrl/Cmd + K`) opens a searchable node picker (↑ ↓ choose · Enter adds
+  · Esc closes).
 - **Report** — the report the flow writes, as a document you can edit. See
   [[Reports|Studio-Reports]].
 
@@ -460,6 +463,19 @@ parameters (only those its current choices read — see
 **Instant** counts where available, the **Preview** pane with
 **Run to here**, **Connections** (what feeds it and what it feeds, each with
 **remove**) and **Comments**.
+
+**Duplicate** (the icon, `Ctrl/Cmd + D`, or **duplicate** in the List view)
+adds a copy of the node beside it with a new id, such as `xtab_2`, the same
+parameters and the same wires into it: whatever feeds the original feeds the
+copy, so it is ready for the one setting you change. Nothing is wired to its
+outputs; connect them to a chart, a report section or another node yourself.
+A copied report section keeps its outputs, their order, captions and sizes,
+and joins the report once you connect it to **Save report**. A copy of a node
+that saves a file saves to a new name, such as `outputs/tabbook_2.xlsx` for a
+tab book saved at `outputs/tabbook.xlsx`, skipping names the flow's nodes
+already use, so the two files do not overwrite each other; a copied **Write
+table** writes a new table the same way, such as `clean_responses_2`. The
+flow's **Report path** stays with the original **Save report** node.
 
 What a node does and what each parameter means sit behind the **ⓘ** beside
 the node's title and beside each label, rather than printed under it: hover
@@ -1310,7 +1326,7 @@ and what says it is not, is listed under
 | Keys | Where | Action |
 |---|---|---|
 | `Delete` or `Backspace` | Canvas, List | delete the selected node |
-| `Ctrl/Cmd + D` | Canvas, List | duplicate the selected node |
+| `Ctrl/Cmd + D` | Canvas, List | duplicate the selected node, with the same wires into it and none out of it |
 | `Ctrl/Cmd + Z` / `Shift + Ctrl/Cmd + Z` | Canvas, List | undo / redo |
 | `Ctrl/Cmd + S` | anywhere in the editor | Save |
 | `Ctrl/Cmd + Enter` | anywhere in the editor | preview up to the selected node (the whole draft when none is selected) |

@@ -226,7 +226,8 @@ people.
 - **Allow going back** (on by default). Turned off, it hides **← Previous**
   and disables going back with the `Esc` key, the swipe gesture and the page
   dots. Use it for experiments where later answers must not revise earlier
-  ones.
+  ones. The **Previous button** field under [Wording](#wording) then says it
+  is never shown.
 
 ### Survey information
 
@@ -241,7 +242,8 @@ The footer also carries the institution's name, and it appears on end pages
 and on the completion screen too. The link texts and the estimate's wording
 are Wording fields (**Contact link**, **Privacy link**, **Estimated time**,
 whose `{minutes}` is filled in; a replaced text has no separate form for 1
-minute).
+minute). While **Contact email**, **Privacy URL** or **Estimated minutes** is
+empty, its Wording field carries a hint that the text is not shown.
 
 The estimate appears on the first page the respondent is shown, only. A
 survey published before this fix showed no estimate; publish it again.
@@ -306,6 +308,34 @@ are filled in by the survey, and {link} is the link that follows."
 - A replaced field shows "default: …" under it and a **×** (tooltip "Back to
   “…”") that restores that one field.
 
+Some phrases appear only in some survey structures or with some settings,
+and their fields carry a hint under the label when yours leaves them out:
+
+- **Submit button** labels the button on the last page only when that page
+  has questions. When an end page (Final, Screen-out or Redirect) follows your
+  last question page — every template ends on a Final page — that question
+  page shows the **Next button** instead, and reaching the end page submits
+  the response. The hint names the page: "the Final page “Thank you” ends your
+  survey, so this button is never shown: the last question page shows the
+  Next button, and reaching the Final page submits the response". When every
+  end page after the last question page has a condition, it says the button
+  is shown only while those pages are hidden.
+- **Completion screen: redirect countdown** and **Completion screen: redirect
+  link** belong to the completion screen after **Submit**. A survey that ends
+  on an end page never shows that screen, and a redirect from its end page
+  uses **Redirect notice**; without a **Completed → return URL** the countdown
+  is never shown either. Their hints say which applies.
+- **Screen-out page title** stands in only for a Screen-out page without a
+  title of its own. New Screen-out pages start with one ("Thank you"), so the
+  hint says so when every Screen-out page has its own title, or when the
+  survey has none.
+- **Previous button** is never shown while **Allow going back** is off
+  ("never shown: Allow going back is off, so no page has a Previous button");
+  **Estimated time** only when **Estimated minutes** is set ("shown on the
+  first page only when Estimated minutes is set"); **Privacy link** and
+  **Contact link** only when **Privacy URL** and **Contact email** are set
+  ("shown in the footer only when Privacy URL is set").
+
 With no field set, every text reads exactly as the defaults below.
 
 | Group | Label | Default |
@@ -351,10 +381,10 @@ With no field set, every text reads exactly as the defaults below.
 | At the end | **Completion screen: “Response ID”** | `Response ID` |
 | | **Completion screen: “Submitted”** | `Submitted` |
 | | **Screen-out page title** | `Thank you` |
-| | **Redirect page: countdown** | `You will be redirected in {seconds} seconds. {link} if not redirected.` |
-| | **Redirect page: link** | `Click here` |
-| | **Redirecting at once** | `Redirecting you now. {link} if you are not redirected.` |
-| | **Redirecting at once: link** | `Continue` |
+| | **Completion screen: redirect countdown** | `You will be redirected in {seconds} seconds. {link} if not redirected.` |
+| | **Completion screen: redirect link** | `Click here` |
+| | **Redirect notice** | `Redirecting you now. {link} if you are not redirected.` |
+| | **Redirect notice: link** | `Continue` |
 | When something fails | **Failed submission title** | `Submission failed` |
 | | **Failed submission text** | `We could not save your responses.` |
 | | **Submission attempt** | `Attempt {n} of {max}.` |
@@ -400,11 +430,14 @@ Where some of them appear:
   question outside its valid range.
 - **“Other” option**, **“None of the above” option** and **“N/A” option**:
   the labels of the options Studio adds to a question.
-- **Redirect page: countdown** and its link: on the completion screen when a
-  **Completed → return URL** sends respondents on (after 5 seconds).
-  **Redirecting at once** and its link: on end pages that send respondents on
-  (a Redirect page, or a Final or Screen-out page with a return URL), and on
-  the quota-full screen with a **Quota full → return URL**.
+- **Completion screen: redirect countdown** and **Completion screen: redirect
+  link**: on the completion screen after **Submit**, when a **Completed →
+  return URL** sends respondents on (after 5 seconds). Without that URL they
+  are never shown, and the fields say so: "shown on the completion screen
+  only when a Completed → return URL is set in Distribute → Panel". **Redirect
+  notice** and **Redirect notice: link**: on end pages that send respondents
+  on (a Redirect page, or a Final or Screen-out page with a return URL), and
+  on the quota-full screen with a **Quota full → return URL**.
 - **Submission attempt**: in the **Submission failed** dialog ("Attempt 1 of
   3."). After the third failed attempt the survey shows **Submission error
   title** and **text**.
