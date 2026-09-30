@@ -29,8 +29,16 @@ and press **Continue** again. A failed lookup never sends you to **Create
 your account**: only a definite "no account" does.
 
 **"Your session expired. Please sign in again."**
-Sign in again. Unsaved Builder and flow edits are kept as your server-side
-draft and come back when you reopen the editor.
+Sign in again: Studio opens the screen you were on. Unsaved Builder and flow
+edits are kept as your server-side draft and come back when you reopen the
+editor.
+
+**Signing in or creating an account says the browser blocks cookies and site data.**
+Studio keeps your sign-in in the browser. Allow cookies and site data for the
+Studio site (in a private window too), reload the sign-in page, and sign in
+again. If the message came after **Create account**, the account already
+exists: sign in with it.
+→ [Troubleshooting](Studio-Sign-Up-and-Sign-In#troubleshooting)
 
 **I created my account from a colleague's invitation. Where am I?**
 In your colleague's organization: the invitation is accepted as your account
