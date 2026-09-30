@@ -35,7 +35,7 @@ on its **Dismiss** button, it stays where it is.
 
 | Keys | Action |
 |---|---|
-| `Esc` | close the dialog without doing anything; clicking outside it does the same; either way the focus goes back to what opened it |
+| `Esc` | close the dialog without doing anything; clicking outside it does the same; either way the focus goes back to what opened it (from a tab bar, to the tab that is open) |
 | `Tab` / `Shift + Tab` | move between the dialog's controls; focus stays inside the dialog and wraps around. A group of radio buttons, such as **Start from** in **New project**, is one stop: the arrow keys choose within it |
 | `Enter` | submit, in these fields: **Name** in **New project** (Create) · **Organization name** in **Create organization** (Create) · **Title** or **File name** in **New flow** (Open canvas) · **Name** in **Rename *flow*** and **Duplicate *flow*** (Rename / Duplicate) · **Message** in **Save** (Save; not while a conflict is shown) · **Email** in **Invite member** (Send invite) · **Value** in **Add secret** (Add secret) · **Name** in **Save … to library** (Save to library) |
 | `↓` on the template picker, then `↑` / `↓` | open the template list in **New project**, then move through the templates |

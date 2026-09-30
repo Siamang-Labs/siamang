@@ -189,10 +189,11 @@ The flow then appears under **Live tiles** with its tiles.
 
 Numbers read as in the node's preview and under a report's tables: up to
 four decimals, a whole number the engine keeps as a decimal with its `.0` (an
-NPS of `20.0`), thousands with a comma (`1,198`), and a number smaller than
-0.0001 — a p-value, say — with four significant digits and its exponent
-(`2.345e-05`) rather than rounded to 0. A p-value follows the project's house
-style (**Settings → Reports**, **P values**; see
+NPS of `20.0`), and a number smaller than 0.0001 — a p-value, say — with four
+significant digits and its exponent (`2.345e-05`) rather than rounded to 0.
+Studio also adds a thousands comma (`1,198`), as the node's preview does and a
+report's footer does not. A p-value follows the project's house style
+(**Settings → Reports**, **P values**; see
 [P values](Studio-Reports#p-values)): at **< 0.01** or **< 0.001**, a p below
 the threshold reads as that bound in a **stat** or **table** tile and in a
 chart's note. The run that published a tile wrote it, so a change of

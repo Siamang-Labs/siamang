@@ -2311,7 +2311,9 @@ apart. In the report — its `.md` figures and its `.html` alike — the chart i
 drawn in that report's colors. In a preview, and on a **Live tile** after a
 run, it is drawn in the look of the flow's own **Save report** node — in the
 default chart colors when the flow has none, or when its **Save report**
-nodes name different looks. The house style is never read for it. A named
+nodes name different looks. Its colors never come from the house style;
+only the p in a **Result chart**'s note follows the house style's
+**P values** there (see [P values](Studio-Reports#p-values)). A named
 palette (`muted`, `RdBu`, `YlOrRd`, …) keeps its own colors whatever the
 report's **Look** says. With `theme`:
 

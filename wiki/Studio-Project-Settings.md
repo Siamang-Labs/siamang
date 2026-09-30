@@ -51,8 +51,8 @@ keys only move the focus between the tabs, so they never leave one.
 If you leave **General** with an unsaved name or unsaved edits in **Study &
 citation**, Studio asks **Discard unsaved changes?** — "The General tab has
 unsaved changes. Switching tabs discards them." — with **Discard**. If you
-choose **Discard**, the tab you opened (with a click or `Enter`) opens and has
-the focus; **Cancel** keeps you, and the focus, on **General**.
+choose **Discard**, the tab you chose (with a click, `Enter` or `Space`) opens
+and has the focus; **Cancel** keeps you, and the focus, on **General**.
 
 ### Study & citation
 

@@ -309,7 +309,7 @@ are filled in by the survey, and {link} is the link that follows."
   “…”") that restores that one field.
 
 Some phrases appear only in some survey structures or with some settings,
-and their fields carry a hint under the label when yours leaves them out:
+and their fields carry a hint beside the label when yours leaves them out:
 
 - **Submit button** labels the button on the last page only when that page
   has questions. When an end page (Final, Screen-out or Redirect) follows your
@@ -433,11 +433,13 @@ Where some of them appear:
 - **Completion screen: redirect countdown** and **Completion screen: redirect
   link**: on the completion screen after **Submit**, when a **Completed →
   return URL** sends respondents on (after 5 seconds). Without that URL they
-  are never shown, and the fields say so: "shown on the completion screen
-  only when a Completed → return URL is set in Distribute → Panel". **Redirect
-  notice** and **Redirect notice: link**: on end pages that send respondents
-  on (a Redirect page, or a Final or Screen-out page with a return URL), and
-  on the quota-full screen with a **Quota full → return URL**.
+  are never shown. In a survey with no end page after its last question page,
+  the fields say so: "shown on the completion screen only when a Completed →
+  return URL is set in Distribute → Panel"; when end pages follow it, their
+  hints name those pages, as described above. **Redirect notice** and
+  **Redirect notice: link**: on end pages that send respondents on (a
+  Redirect page, or a Final or Screen-out page with a return URL), and on the
+  quota-full screen with a **Quota full → return URL**.
 - **Submission attempt**: in the **Submission failed** dialog ("Attempt 1 of
   3."). After the third failed attempt the survey shows **Submission error
   title** and **text**.
