@@ -146,9 +146,17 @@ with no styling, for a diff or a repository."
   **Reports** screen marks the report at this path with the **combined**
   badge, including a custom path.
 - **House style** — the report theme form (typeface, density, table style,
-  page size, sizes, figures, captions, colors, and the chart colors of the
-  charts whose **Palette** is `theme`), described on
-  [[Reports|Studio-Reports]] (see [Chart colors](Studio-Reports#chart-colors)).
+  page size, **P values**, sizes, figures, captions, colors, and the chart
+  colors of the charts whose **Palette** is `theme`), described on
+  [[Reports|Studio-Reports]] (see [Chart colors](Studio-Reports#chart-colors)
+  and [P values](Studio-Reports#p-values)). A note above the form says what
+  its **P values** does besides: "Its P values also sets how Studio writes a
+  p-value in node previews and Live tiles, so the study reads the same here
+  as in its reports. They follow a change from their next run." The form
+  offers only the three choices; a `p_values` written into
+  `studio/settings.json` by other means is refused unless it is `exact`,
+  `0.01` or `0.001`, and the Save is not made: "settings: report/theme:
+  p_values: '0.05' is not one of exact, 0.01, 0.001."
 
 Buttons:
 

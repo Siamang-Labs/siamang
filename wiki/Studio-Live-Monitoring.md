@@ -187,8 +187,16 @@ The flow then appears under **Live tiles** with its tiles.
 | **chart** | the connected chart, drawn interactively in your browser (see [Interactive chart tiles](#interactive-chart-tiles)), with the picture the run drew as its fallback — any chart node's: a Likert chart of a battery, a **Trend** of the weeks so far, or the Result chart of an analysis (means with their intervals, a TURF reach curve). A chart whose **Palette** is `theme` is drawn in the look of the flow's **Save report**, so the tile shows the colors the report does — in the default chart colors when the flow's **Save report** nodes do not all name the same look |
 | **text** | the value as text |
 
-Numbers show up to three decimals; a number smaller than 0.001 — a p-value,
-say — is written with its exponent (`2.35e-5`) rather than rounded to 0.
+Numbers read as in the node's preview and under a report's tables: up to
+four decimals, a whole number the engine keeps as a decimal with its `.0` (an
+NPS of `20.0`), thousands with a comma (`1,198`), and a number smaller than
+0.0001 — a p-value, say — with four significant digits and its exponent
+(`2.345e-05`) rather than rounded to 0. A p-value follows the project's house
+style (**Settings → Reports**, **P values**; see
+[P values](Studio-Reports#p-values)): at **< 0.01** or **< 0.001**, a p below
+the threshold reads as that bound in a **stat** or **table** tile and in a
+chart's note. The run that published a tile wrote it, so a change of
+the setting shows from the next recompute.
 
 By default every tile takes one grid cell. Larger tiles — up to four cells
 across and three down; a larger size is drawn at that — can be set only in

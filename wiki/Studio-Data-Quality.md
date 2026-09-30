@@ -145,7 +145,9 @@ defaults, so the live number and your analysis agree.
 ### Median duration and speeders
 
 **Median duration** is the median time from opening the survey to submitting,
-over submitted responses, screen-outs included (`m:ss`). Underneath, **N
+over submitted responses, screen-outs included (`m:ss`), to the nearest
+second; a median that falls on a half second rounds up, as the percentages
+beside it do (92.5 seconds reads `1:33`). Underneath, **N
 speeders**: submitted responses faster than **one third of the median**. Until
 timings arrive the tile says **timing arrives with responses**.
 
