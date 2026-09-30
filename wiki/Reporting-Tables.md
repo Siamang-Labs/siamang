@@ -48,7 +48,10 @@ FreqTable(data, column="", exclude_missing=True, sort="value")
 ```
 
 A frequency distribution with absolute counts, percentages, and cumulative
-percentages, plus a `Total` row. Value labels are resolved automatically.
+percentages, plus a `Total` row. Value labels are resolved automatically. The
+cumulative percentage is the running share of the counts (of the sums of
+weights, when weighted) rounded once, so the last answer reads `100.0` even
+when the rounded percentages add up to 99.9 or 100.1.
 
 **Parameters**
 

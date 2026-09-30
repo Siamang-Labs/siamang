@@ -946,6 +946,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A frequency table's cumulative percentage ends at 100.0.** Unweighted,
+  `Cumulative %` added up the percentages already rounded to one decimal, so
+  the rounding piled up: 1, 1, 1 and 3 respondents of six read 16.7, 33.4,
+  50.1 and 100.1 on the last answer, six answers of one each 100.2 (and 99.9
+  elsewhere). It is now the running share of the counts, rounded once — 16.7,
+  33.3, 50.0, 100.0 — as the weighted table always computed it from the sums of
+  weights. The factor analysis's and the Perceptual map's cumulative columns
+  already were, and say so in their tests.
+
 - **Tables and charts narrower than the page sit side by side.** Two items
   at `width="48%"` were documented to share a line and never did: a figure is
   a block, so the second started under the first. Narrow figures that follow
