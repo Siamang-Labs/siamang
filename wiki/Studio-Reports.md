@@ -330,14 +330,15 @@ writes every p as it was computed, as reports always have; **< 0.01** and
 was computed (a p of exactly 0.01 is not below 0.01). The choice reaches every
 p the report writes, in the `.md` and the `.html` alike:
 
-- **Table cells** — every column of p-values: a crosstab's, **Group means**'
-  and its post-hoc pairs', a t-test's, a correlation's pairs', a regression's
+- **Table cells** — every column of p-values: **Group means**' and its
+  post-hoc pairs', a t-test's, a correlation's pairs', a regression's
   coefficients', **Paired tests**' and **Key drivers**'. A Tukey or
   Games-Howell p below 1e-07, otherwise written `< 1e-07`, reads as the bound
   too. Columns named after your answers, such as a crosstab's, are never
   changed, even when an answer is labeled "p".
-- **Statistics lines** — the line under a table and a statistics line of its
-  own (a **Stat** output in a section) read `p < 0.01`, never `p = < 0.01`;
+- **Statistics lines** — the line under a table (a crosstab's chi-square p
+  among them) and a statistics line of its own (a **Stat** output in a
+  section) read `p < 0.01`, never `p = < 0.01`;
   so do a `Bartlett p` and the p of each pair that a comparison of groups
   names in a sentence. A **Proportion CI**'s `p` is the proportion, not a
   test's p, and is never changed.
@@ -473,7 +474,8 @@ four ways:
    reports. They follow a change from their next run." A preview or a tile is
    written when it runs, so it shows a change from the next **Run to here**
    or recompute. A flow's own report still writes p as its **Save report**
-   node's look says.
+   node's look says, and the combined report of **Run all** puts the flows'
+   reports together as each wrote them.
 
 A **Save report** node with no look of its own renders with the engine's
 defaults, on the platform as in its script. Earlier, such a node silently
