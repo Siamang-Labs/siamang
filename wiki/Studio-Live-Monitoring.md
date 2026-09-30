@@ -194,7 +194,19 @@ across and three down; a larger size is drawn at that — can be set only in
 the flow's document; there is no drag-to-resize on the Live tab. A chart
 takes its tile's width; a chart's picture fills its tile without being
 cropped, so a chart drawn low and wide (a **Figure height (in)** well under
-its **Figure width (in)**) reads best in a wide tile.
+its **Figure width (in)**) reads best in a wide tile. The grid is four cells
+wide, and two in a window 900 px wide or narrower, where a tile three or four
+cells wide takes both columns. On a phone (600 px or narrower), each chart tile takes the whole row
+and is as tall as its chart, as in a report: you scroll the page, not the
+tile; numbers, statistics, tables and text keep their cells.
+
+A tile's label is shown in capitals; a long one wraps to a second line and
+then ends in "…" (point at it for the whole label); on a phone, which shows no
+tooltips, the whole label is shown. A statistic's symbol keeps its case, so it
+is not misread as a Latin capital (a capital chi looks like X): a Greek letter
+on its own, with any index written onto it — the χ² of "χ² test", Cronbach's
+α, μ, the ηp² of "partial ηp²". A Greek word is capitalized like any other
+word.
 
 > **In the example study.** A project started from the
 > [example study](Studio-Projects#the-example-study) has two flows with
@@ -232,13 +244,25 @@ the same form a report's HTML has with
   drawn — a chart without an interactive form, or one whose form is over
   512 KB (a few KB is usual). A chart far too tall for its tile shows its
   picture, which scales down whole, with the hint "Too tall for this tile to
-  draw interactively: its picture. A larger tile draws it." One a little too
+  draw interactively: its picture. Click to open it larger." One a little too
   tall is drawn with a shorter plot — never so short that its labels
-  overlap — and what still does not fit scrolls inside the tile.
+  overlap — and what still does not fit scrolls inside the tile. On a phone a
+  chart is drawn at its own height instead, so it is not replaced by its
+  picture for being too tall.
+- **A picture opens larger.** Click or tap a picture in a tile (a mark in its
+  corner says it opens) to see it at its own size, in a window titled with the
+  tile's label; where the screen is smaller it scrolls in that window, and
+  its ✕ (**Close**), `Esc` or a click outside closes it.
+- **Wider than its tile.** A chart whose labels leave its plot no room in a
+  narrow tile is drawn at the width it needs and scrolls sideways inside the
+  tile, a fade with an arrow at the right edge until you reach the end; no
+  label or value is cut off. When the tile's width changes (you resize the
+  window or turn a tablet), the chart is fitted to it again.
 - **Colors.** The chart keeps its own light background in Studio's dark
   theme, as its picture does; only the tooltip follows the theme.
 - **Refreshes keep what you did.** A tile is drawn again only when its numbers
-  change, so a series you hid stays hidden through the 30-second refreshes.
+  change, so a series you hid stays hidden through the 30-second refreshes. A
+  chart fitted again to a new tile width shows all its series again.
 - **No menu.** A tile has no **…** menu; the chart's PNG is among the run's
   outputs.
 - **Nothing from elsewhere.** The chart libraries are Studio's own copies,
@@ -349,7 +373,9 @@ The public page (`https://studio.siamang.org/live/<token>`) shows the project's
 name, "live tiles · updated …", and for each flow its title, its **updated …**
 time and its tiles — no pills, run numbers or links into the project. The
 footer reads "Shared from Siamang Studio · read-only · refreshes
-automatically"; the page refreshes every 30 seconds while it is open.
+automatically"; the page refreshes every 30 seconds while it is open. On a
+phone, chart tiles take the whole width at their own height, as on the
+**Live** tab (see [Publishing a tile](#publishing-a-tile)).
 
 | Viewer sees | When |
 |---|---|
