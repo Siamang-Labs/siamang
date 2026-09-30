@@ -18,6 +18,7 @@ from siamang.flow.document import (
     check_flow,
     node_order,
     read_codeframes,
+    read_data_files,
     resolve_flow,
     validate_flow,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "live",
     "node_order",
     "read_codeframes",
+    "read_data_files",
     "render_condition",
     "render_node",
     "resolve_flow",

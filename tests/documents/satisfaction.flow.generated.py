@@ -33,7 +33,7 @@ args = parser.parse_args()
 if args.data:  # research bundle: reproduce from a data snapshot
     from siamang.io import read_snapshot
 
-    n_src = read_snapshot(args.data, questionnaire=survey)
+    n_src = read_snapshot(args.data, questionnaire=survey, codebook="questionnaire")
 else:  # the platform: project database, scoped to this project
     from siamang_studio import db
 

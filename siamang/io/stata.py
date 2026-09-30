@@ -59,10 +59,15 @@ def _variables_from_meta(meta: Any) -> VariableMap:
     missing_user_values = getattr(meta, "missing_user_values", {}) or {}
     variable_measure = getattr(meta, "variable_measure", {}) or {}
     for name in names:
+        measure = variable_measure.get(name)
+        if measure not in {"nominal", "ordinal"} and value_labels.get(name):
+            # Stata keeps no measurement level; a variable with value labels
+            # holds codes, not quantities.
+            measure = "nominal"
         variable_map.add(
             Variable(
                 name=name,
-                scale=_scale_from_measure(variable_measure.get(name)),
+                scale=_scale_from_measure(measure),
                 label=column_labels.get(name),
                 labels=_analytic_value_labels(
                     value_labels.get(name, {}),

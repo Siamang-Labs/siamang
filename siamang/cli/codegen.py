@@ -19,11 +19,20 @@ def run(
     try:
         document = loads(Path(path).read_text(encoding="utf-8"))
         if "nodes" in document:
-            from siamang.flow import generate_flow, read_codeframes
+            from siamang.flow import generate_flow, read_codeframes, read_data_files
 
             qdoc = loads(Path(questionnaire).read_text(encoding="utf-8")) if questionnaire else None
+            survey = None
+            if qdoc is not None:
+                from siamang.model import from_document
+
+                survey = from_document(qdoc).survey
             code = generate_flow(
-                document, qdoc, format=format, codeframes=read_codeframes(document)
+                document,
+                qdoc,
+                format=format,
+                codeframes=read_codeframes(document),
+                files=read_data_files(document, ".", survey),
             )
         else:
             code = generate_questionnaire(document, format=format)

@@ -1,7 +1,7 @@
 type: source.file
 category: source
 title: Data file
-description: 'A data file from Files: Parquet, CSV, Excel, SPSS or Stata, with its dictionary when present.'
+description: 'A data file from Files: CSV (in any encoding, with , ; tab or | between fields), Excel, SPSS, Stata or Parquet. Its columns come into the flow with it: their names, the labels of a label row (a Qualtrics export''s question texts), value labels and missing codes where the format keeps them.'
 outputs:
   data: SurveyData
 params:
@@ -9,13 +9,101 @@ params:
     kind: path
     required: true
     label: File
+  codebook:
+    kind: enum
+    values:
+    - auto
+    - file
+    - questionnaire
+    default: auto
+    label: Codebook
+    help: 'Where the variables'' labels, scales and value labels come from. auto: the questionnaire''s when the file is this survey''s data (half of its answer columns are the questionnaire''s variables and half of those variables are in it, or its dictionary labels them as the questionnaire does; and their answers fit them), else the file''s own — its names, a label row, scales guessed from the values. When the file''s schema has been read, the flow is checked and run with what auto decided then, so an edited questionnaire does not change it until the flow is checked again. file: always the file''s own, for data from elsewhere whose columns happen to share names with the questionnaire. questionnaire: always the questionnaire''s, for the columns it knows.'
+  header_rows:
+    kind: enum
+    values:
+    - auto
+    - '1'
+    - '2'
+    - '3'
+    default: auto
+    label: Header rows
+    help: 'Rows at the top that are not answers, the names first. 1: the names only. 2: the names, then a row of labels (question texts), which label the variables. 3: names, labels and a row that is left out (the ImportId row of a Qualtrics CSV). auto finds a Qualtrics export (its ImportId row, or StartDate and ResponseId with a row of texts under them) and reads one row otherwise.'
+  skip_rows:
+    kind: int
+    minimum: 0
+    label: Skip rows
+    help: Rows above the names to leave out (a title, a note). Empty to find the names row, the first that fills at least half of the table's width.
+  sheet:
+    kind: string
+    label: Sheet
+    help: 'Excel: the sheet to read, by its name or its number (1 is the first). Empty for the first sheet that holds a table.'
+  delimiter:
+    kind: enum
+    values:
+    - auto
+    - ','
+    - ;
+    - tab
+    - '|'
+    default: auto
+    label: Delimiter
+    help: 'Text files: what separates the fields. Excel saves CSV with ; where the comma is the decimal mark (Russian and most European settings), "Unicode text" with tabs. auto tries each on the first rows.'
+  encoding:
+    kind: enum
+    values:
+    - auto
+    - utf-8
+    - utf-16
+    - cp1251
+    - koi8-r
+    - cp866
+    - cp1252
+    - cp1250
+    - iso-8859-1
+    default: auto
+    label: Encoding
+    help: 'Text files: how the letters are written. cp1251 is Windows-1251, what Russian Excel saves "CSV (comma delimited)" in; utf-16 is Excel''s "Unicode text". auto reads a byte-order mark, then UTF-8, then the most likely Windows code page.'
+  decimal:
+    kind: enum
+    values:
+    - auto
+    - .
+    - ','
+    default: auto
+    label: Decimal mark
+    help: 'How numbers write their fraction, 4.5 or 4,5: in a text file, and for numbers an Excel sheet keeps as text. auto reads a comma where the numbers are written so (with ; between the fields; in a sheet, where its text numbers show it), and leaves values as ambiguous as 1,500 as text when nothing tells.'
+  missing:
+    kind: string
+    label: Missing codes
+    help: 'Codes that mean no answer in this file. Per column — sought_advice: -9; source_1: -7, -8 (a ; between columns) — or for every column that holds them: -7, -8, -9 (a negative code is left alone in a column of other negative amounts). Missing values then turns them into blanks, and tables leave them out. The file''s schema lists the codes it suspects in each column.'
   dictionary:
     kind: path
     label: Dictionary (JSON)
-    help: Optional <name>.dictionary.json; found automatically when next to the file.
+    help: The file's codebook as a data dictionary (<name>.dictionary.json, as a Siamang export writes it), uploaded under Files. Its labels, scales and missing codes describe the file's columns.
 subtitle: '{path}'
 imports:
 - from siamang.io import read_snapshot
-template: |
-  {out.data} = read_snapshot({path!r}, dictionary={dictionary!r}, questionnaire=survey)
+template:
+- |
+  {out.data} = read_snapshot(
+      {path!r},
+- when: dictionary
+  code: '    dictionary={dictionary!r},'
+- when: codebook!=auto
+  code: '    codebook={codebook!r},'
+- when: sheet
+  code: '    sheet={sheet!r},'
+- when: header_rows!=auto
+  code: '    header_rows={header_rows!r},'
+- when: skip_rows!=None
+  code: '    skip_rows={skip_rows!r},'
+- when: delimiter!=auto
+  code: '    delimiter={delimiter!r},'
+- when: encoding!=auto
+  code: '    encoding={encoding!r},'
+- when: decimal!=auto
+  code: '    decimal={decimal!r},'
+- when: missing
+  code: '    missing={missing!r},'
+- "    questionnaire=survey,\n)"
 preview: rows

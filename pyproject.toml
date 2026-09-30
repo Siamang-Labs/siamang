@@ -32,7 +32,9 @@ dependencies = [
     "uvicorn>=0.29",
     # IO formats
     "openpyxl>=3.1",         # Excel
+    "xlrd>=2.0.1",           # Excel 97-2003 .xls
     "pyreadstat>=1.2",       # SPSS .sav / Stata .dta
+    "charset-normalizer>=3.0",  # the code page of a CSV that is not UTF-8
     # Statistics
     "scipy>=1.11",
     # Reporting (Report.to_markdown / to_html; pandas DataFrame.to_markdown needs tabulate)

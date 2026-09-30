@@ -46,18 +46,24 @@ def generate_flow(
     platform_module: str = "siamang_studio",
     format: bool = True,
     codeframes: Mapping[str, Any] | None = None,
+    files: Mapping[str, Any] | None = None,
 ) -> str:
     """Render the flow as a Python script.
 
     ``questionnaire`` is the questionnaire document; when given, variable
     parameters are checked against its codebook. ``questionnaire_module`` is
     where the script imports ``survey`` from; ``platform_module`` is the SDK
-    that provides ``db`` on the platform. ``codeframes`` as
-    :func:`~siamang.flow.check_flow` takes them.
+    that provides ``db`` on the platform. ``codeframes`` and ``files`` (the
+    codebooks of the flow's Data files) as :func:`~siamang.flow.check_flow`
+    takes them.
     """
 
     graph = resolve_flow(
-        document, registry=registry, questionnaire=questionnaire, codeframes=codeframes
+        document,
+        registry=registry,
+        questionnaire=questionnaire,
+        codeframes=codeframes,
+        files=files,
     )
     code = _Generator(
         graph, header or DEFAULT_HEADER, questionnaire_module, platform_module
@@ -155,11 +161,14 @@ class _Generator:
         if spec.snapshot:
             arg = "args.data" if len(snapshot_nodes) <= 1 else f"args.{node_id}_data"
             name = output_names(node_id, spec)["data"]
+            # The platform's source is the survey's data, whole or not: read
+            # with the questionnaire's codebook as the platform reads it
+            # (a pilot's snapshot has the columns of the questions reached).
             lines += [
                 f"if {arg}:  # research bundle: reproduce from a data snapshot",
                 "    from siamang.io import read_snapshot",
                 "",
-                f"    {name} = read_snapshot({arg}, questionnaire=survey)",
+                f'    {name} = read_snapshot({arg}, questionnaire=survey, codebook="questionnaire")',
                 "else:  # the platform: project database, scoped to this project",
             ]
             lines += [

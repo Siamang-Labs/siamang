@@ -890,6 +890,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not run and the server would not take the answers without it. Any other
   error shows `retry_body` as before.
 
+- **A data file from anywhere reads into its own columns, and says what they
+  are.** `read_snapshot` (the flow's **Data file** node) reads a file as a
+  researcher brings it (`siamang.io.tabular`): a CSV's encoding (a byte-order
+  mark, UTF-8, UTF-16 — Excel's "Unicode text" — or the Windows code page in
+  which the file's non-ASCII lines, wherever they are, read as words:
+  Windows-1251 for Russian Excel even when a file of codes holds only "м" and
+  "ж", Windows-1252 for "très", Windows-1250 for "Łódź"; a guess is named in
+  the notes), its delimiter (`,` `;` tab `|`, sniffed on the first rows with
+  quotes respected; `;` where names such as `Рост, см;Вес, кг` split alike at
+  both; a one-column file of decimal commas stays one column) and its decimal
+  mark (`4,5`, `1 234,5`, `12,5%`, also where the decimals come after hundreds
+  of whole numbers; in a workbook, the mark its text numbers show, and a
+  column of nothing but `1,500`-like values left as text with a note); a
+  workbook's sheet (the first that holds a table, past a README or a codebook
+  sheet); rows above the names (a title), and a names row that names fewer
+  columns than the answers fill; and a Qualtrics export's header rows (an
+  ImportId row, or StartDate and ResponseId over a row of texts) — its
+  question texts become the variables' labels and its CSV's `{"ImportId": …}`
+  row is dropped, where both were respondents before. Each is an option — `encoding`, `delimiter`,
+  `decimal`, `sheet`, `skip_rows`, `header_rows` — detected on `"auto"`, and
+  pandas' own keywords (`sep=`, `header=`, `sheet_name=` …) still win. Text
+  columns whose values are numbers, dates or true/false (`"100.0"`, `"True"`,
+  a Qualtrics `StartDate`) become so; `00123` stays a code and an answer
+  `NA` stays an answer. `.tsv`, `.txt` and `.xlsm` are read too
+  (`READ_FORMATS`), and `.xls` needs `xlrd`, now a dependency. What cannot be
+  read raises `SnapshotReadError` in words — the encoding it looks like and
+  what to set, the line with a field too many, an "Excel" file that is a web
+  page.
+  `codebook=` (`auto`, `file`, `questionnaire`) says whose codebook a file
+  gets: on `auto` the questionnaire's only when the file is its data (half of
+  its columns, response metadata aside — ids, timestamps, Studio's export
+  columns `captcha`, `tab_switches`, `hidden_seconds`, `pastes`, `url_…`,
+  Qualtrics' fixed, `Q_…` and display-order columns, a question's "Other"
+  text — are its variables — `Q1` counts for `q1` — and they are half of its
+  variables, or the file's dictionary or SPSS/Stata metadata labels them as
+  it does, labelled missing codes included; and their answers fit them), else
+  the file's own (`siamang.io.file_codebook`): its names, its label row's
+  texts, scales guessed from the values. With the questionnaire's codebook a
+  choice-text export's answers become their codes, and a multiple-choice
+  question's `1,3` (Qualtrics) or `Acme,Initech` becomes the list of its
+  codes. `missing=` declares missing codes per column (`"sought_advice: -9;
+  source_1: -7"`, or `{column: codes}`) or for every column holding one
+  (`"-7, -8, -9"`; a negative code spares a column of other negative
+  amounts).
+  `inspect_snapshot(path, …, rows=None)` returns, as JSON and without an
+  answer in it, how the file was read, whose codebook it has and how its
+  columns met the questionnaire's, each column's label, type, scale (and
+  whether it is a guess), value labels, declared and **suspected missing
+  codes** (-7, -9, 99 … to confirm; not in a column of genuine negative
+  amounts) and whether it looks like **personal data** (e-mail and IP
+  addresses, locations, names, phones, participant IDs, addresses — by name or
+  by value), and the codebook in the questionnaire document's form.
+  **`check_flow(..., files=)`** takes those codebooks by Data file node (id or
+  path): a node below a Data file knows the file's columns — not the
+  questionnaire's, unless the file is its data — and a guessed scale that
+  does not fit is a warning; a file not read yet (`None`) leaves the names
+  below it unchecked; other sources' branches are checked as before.
+  `resolve_flow`, `FlowRunner`, `generate_flow` take `files` too — and with
+  them a Data file on Codebook `auto` is read with what its schema decided,
+  so the run reads the file as it was checked — `read_data_files` reads them
+  for a flow, and `siamang flow check`, `flow run` and `codegen` do. The Data file node has the options as parameters
+  (Codebook, Header rows, Skip rows, Sheet, Delimiter, Encoding, Decimal mark,
+  Missing codes), written into the code only when set (a number given for a
+  choice, `header_rows: 2`, is that choice); `snapshot_options(params)` gives
+  a host the same keywords. A schema's column with no value is typed `empty`
+  with no scale, and `sampled` is true only when the file goes on past the
+  rows read.
+
 ### Changed
 
 - **The survey's typefaces come with the survey, not from Google Fonts.** Every
@@ -938,6 +1006,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `window.SIAMANG_STORAGE = "memory"`: the runtime then keeps its state in
   memory and does not touch `localStorage`.
 
+- **`read_snapshot` gives a file with no codebook one of its own, and the
+  questionnaire to its own data only.** Without a dictionary, embedded
+  metadata or a questionnaire that describes it, the result's `variables` are
+  the file's (a variable per column, scales guessed; `None` before), so
+  Describe describes the file's columns. The questionnaire passed is attached
+  only when it describes the file (`codebook="questionnaire"` forces it, as
+  every call did before), and a column it says holds several answers is split
+  in any other file only where they are the question's codes. A platform
+  source's snapshot — a research bundle's `--data`, `FlowRunner`'s `sources`
+  — is read with `codebook="questionnaire"`, as the platform reads its
+  responses, however few of the survey's columns a pilot's data has. SPSS codes
+  are read as integers (`1`, not `1.0`, so a snapshot's codes come back
+  `Int64`); a Stata variable with value labels is nominal (Stata keeps no
+  level; it was interval). The Data file node writes its call over several
+  lines, one per option set; `FlowRunner` binds `survey` to `None` without a
+  questionnaire. `charset-normalizer` and `xlrd` are dependencies.
+
 ### Removed
 
 - `UIConfig.effective_google_fonts_url` and the `"google_fonts"` URL of each
@@ -945,6 +1030,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **An uploaded file loads into its columns.** A CSV Excel saved with `;`
+  (Russian and European settings) collapsed into one column — with a comma in
+  a row, pandas moved its leading fields into a hidden index and a preview
+  showed `5;Хорошо`; one in Windows-1251, Windows-1252 or UTF-16 failed with
+  `UnicodeDecodeError`; decimal commas stayed text; a Qualtrics export's
+  question texts (and ImportId row) were read as a respondent and every column
+  as text; a title above the names became the names, and a README sheet the
+  data. A file that is not the survey's data was labeled by whatever
+  questionnaire variable shared a column's name (a file's `region` codes with
+  the survey's region labels, a Qualtrics `age` of answer texts as ratio) and
+  a text column named like a multiple-choice question was split into lists; and no analysis node could
+  name a Data file's column the questionnaire lacks — the check called it an
+  unknown variable. A Data file read without a questionnaire failed with
+  `NameError: name 'survey' is not defined`.
 
 - **A frequency table's cumulative percentage ends at 100.0.** Unweighted,
   `Cumulative %` added up the percentages already rounded to one decimal, so
