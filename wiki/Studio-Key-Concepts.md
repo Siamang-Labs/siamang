@@ -288,7 +288,14 @@ and opens the address once you have signed in:
 | One flow on the canvas | `…/<project>/flows/<flow-name>` |
 
 The browser's Back and Forward buttons move between screens as you would
-expect.
+expect. The browser tab's title names the screen and where you are, for
+example "Data · brand-awareness-study — Siamang Studio" in a project or
+"Projects · Acme Research — Siamang Studio" in an organization, the same after
+a reload as after a click.
+
+Dates read the same on every screen, whatever your browser's language: a day
+as "Oct 3, 2026", and a day with a time as "Oct 3, 2026, 2:32 PM", in your
+browser's time zone. Build logs show the time of each line as `14:32:05`.
 
 ## See also
 

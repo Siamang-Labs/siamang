@@ -17,9 +17,9 @@ list ("*N* · cron, UTC · fired by the worker").
 
 ```
 Schedules  2 · cron, UTC · fired by the worker                 [+ Schedule a run]
- What runs     When                          Last fired          State
- Run all       daily at 02:00  0 2 * * *     9/23/2026, 2:00 AM  ● active   [Run now] [Pause] [Remove]
- tables        every 30 min  */30 * * * *    never               ● paused   [Run now] [Resume] [Remove]
+ What runs     When                          Last fired             State
+ Run all       daily at 02:00  0 2 * * *     Sep 23, 2026, 2:00 AM  ● active   [Run now] [Pause] [Remove]
+ tables        every 30 min  */30 * * * *    never                  ● paused   [Run now] [Resume] [Remove]
 ```
 
 With none yet: "**No schedules.** Run a flow on a timer — a nightly report, a

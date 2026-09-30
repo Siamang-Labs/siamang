@@ -13,7 +13,8 @@ including the Activity log.
 When you sign up you get an organization of your own, and you are its
 **owner**:
 
-- it is named after you (for example "Jane Doe"). You can rename it under
+- it is named after you (for example "Jane Doe"; the first 120 characters of
+  your name, on one line, if it is longer). You can rename it under
   [General](#general).
 - its address (slug) is derived from that name with `-org` added, for example
   `jane-doe-org`. The slug appears in every URL
@@ -51,20 +52,27 @@ people never see it:
 >
 > [ **Create organization** ]  [ **Sign out** ]
 
-The **Create organization** dialog asks for:
-
-- **Organization name** (placeholder `Acme Research`);
-- **Slug**: generated from the name ("auto-generated"), shown read-only and
-  fixed forever. It must come out between 3 and 40 characters (letters, digits
-  and hyphens), so keep the name short.
+The **Create organization** dialog asks for the **Organization name**
+(placeholder `Acme Research`), up to 120 characters; the field stops there and
+says "120 characters at most". Under the name it shows the address the
+organization will get: "Its address will be /acme-research — it cannot be
+changed later." That address is the organization's slug, and Studio makes it
+the way it makes a project's (see
+[The project's slug](Studio-Projects#the-projects-slug)): letters from other
+alphabets are spelled in Latin letters (`Réseau Santé` → `reseau-sante`), and
+the slug is 3 to 40 characters. A name with nothing Studio can spell gives
+`organization`. A slug shorter than 3 characters, or made of exactly 12 hex
+digits (the shape of a survey id), gets `-org` added, and one that an
+organization you belong to already has gets `-2`, `-3` and so on.
 
 Click **Create** ("Creating…"). Studio switches to the new organization, opens
 its **Projects** tab and confirms "Organization *name* created". You are the
 owner of a **cooperative** organization on the **Free** plan. A new
 organization created this way gets no trial: the Pro trial comes once per
 email address, with the organization you got at sign-up. Organization slugs
-are unique across Studio; if the name is taken you see "Could not create
-organization. Org slug already taken."
+are unique across Studio; if another organization already has the address, you
+see "Could not create organization. Org slug already taken." Choose a
+different name.
 
 Organizations cannot be deleted from the app in the beta. Write to
 `info@siamang-team.org`.
@@ -82,12 +90,13 @@ With one, it reads "You belong to one organization. It owns your projects,
 members and subscription. Owners and admins manage it here."
 
 The screen shows the organization you are in: its name and pills for its type
-(**personal** or **cooperative**), your role, its plan (for example "Pro
-plan") and, during a trial, **Pro trial · 27d left**, or during a paid period
-that ends on a date (a 12-month beta offer), **Paid period · 200d left**. When
-Plus or the Plus year was bought for after the trial, a further pill names it:
-**Plus from Oct 3, 2026** or **Plus year from Oct 3, 2026** (hover: "Bought
-during the trial; it starts when the trial ends").
+(**personal** or **cooperative**), your role (for example "Owner"), its plan
+(for example "Pro plan") and, during a trial, **Pro trial · 27d left**, or
+during a paid period that ends on a date (a 12-month beta offer), **Paid
+period · 200d left**. When Plus or the Plus year was bought for after the
+trial, a further pill names it: **Plus from Oct 3, 2026** or **Plus year from
+Oct 3, 2026** (hover: "Bought during the trial; it starts when the trial
+ends").
 **Manage** opens **Organization settings**. **Create organization**, at the top right, opens
 the dialog described in
 [Creating another organization](#creating-another-organization).
@@ -99,10 +108,10 @@ section, subtitled "upgrade to a cooperative organization":
 > **cooperative** to give it a team name and invite people. The subscription
 > stays with you as the owner.
 
-Optionally type a new **Organization name** ("how your team will see it") and
-click **Create cooperative**. Only the owner can do this; others see "Only the
-owner can do this." The organization becomes cooperative and Studio opens its
-settings.
+Optionally type a new **Organization name** ("how your team will see it", up
+to 120 characters) and click **Create cooperative**. Only the owner can do
+this; others see "Only the owner can do this." The organization becomes
+cooperative and Studio opens its settings.
 
 ---
 
@@ -227,7 +236,7 @@ members**).
 2. In the **Invite member** dialog, enter the **Email** (placeholder
    `colleague@example.com`). A malformed address shows "Enter a valid email
    address".
-3. Choose the **Role**: `admin` or `member` (default `member`). You cannot
+3. Choose the **Role**: `Admin` or `Member` (default `Member`). You cannot
    invite a second owner.
 4. Click **Send invite** ("Sending…").
 
@@ -249,7 +258,7 @@ Good to know:
 
 - **Your own address.** The notice reads "You are already on the team as
   *role* — nothing changed" or "Your role changed from *old role* to *new
-  role*". An admin who picks `member` for their own address gives up the admin
+  role*". An admin who picks `Member` for their own address gives up the admin
   role at once, and the page changes to what members see: **Invite member**,
   the role dropdowns, **Remove** and the **Activity** tab disappear.
 - **A full organization.** If your organization has no room left on its plan
@@ -270,7 +279,7 @@ Under the member table, owners and admins see:
 
 | Email | Role | Invited by | Expires | |
 |---|---|---|---|---|
-| `new.person@example.com` | `member · pending` | Jane Doe | Oct 7, 2026 | **Revoke** |
+| `new.person@example.com` | `Member · pending` | Jane Doe | Oct 7, 2026 | **Revoke** |
 
 **Revoke** cancels an invitation at once, without a confirmation step. The
 notice reads "Invitation to *email* revoked", and the link then shows "This
@@ -290,17 +299,17 @@ Corporate unlimited** (see [[Plans, Trial and Billing|Studio-Plans-and-Billing]]
 
 - At the limit, **Invite member** is disabled ("Your plan allows 2 members —
   upgrade to add more") and a note reads "You've reached the **2-member**
-  limit on the free plan. **Upgrade your plan** to invite more." The link opens
+  limit on the Free plan. **Upgrade your plan** to invite more." The link opens
   **Billing**.
 - When you invite a new address, **pending invitations count too**:
   members plus unexpired pending invitations must stay within the limit. If
-  they don't, you see "Could not add member. Plan 'free' allows up to 2
+  they don't, you see "Could not add member. The Free plan allows up to 2
   members; upgrade to add more." Revoke unused invitations to make room.
   Inviting an address again while its invitation is pending replaces that
   invitation, so it is not counted twice.
 - The limit is checked again when an invitee's account is set up (a full
   organization leaves the invitation pending) and when someone accepts. A
-  full organization answers "Could not accept the invitation. Plan 'free'
+  full organization answers "Could not accept the invitation. The Free plan
   allows up to 2 members; upgrade to add more."
 - After a downgrade, everyone who is already a member keeps access. You just
   cannot add more until the team fits the limit.
@@ -313,10 +322,10 @@ In **Settings → Members**, owners and admins see the member table:
 
 | Member | Email | Role | Since | |
 |---|---|---|---|---|
-| (JD) Jane Doe | `jane@example.com` | `owner` | 9/1/2026 | |
-| (ML) Maria Lopez | `maria@example.com` | `admin ▾` | 9/3/2026 | **Remove** |
+| (JD) Jane Doe | `jane@example.com` | `Owner` | Sep 1, 2026 | |
+| (ML) Maria Lopez | `maria@example.com` | `Admin ▾` | Sep 3, 2026 | **Remove** |
 
-- **Change a role** with the dropdown (`admin` / `member`). The change applies
+- **Change a role** with the dropdown (`Admin` / `Member`). The change applies
   immediately ("Role updated to member"). An admin who demotes themselves sees
   the page as a member does straight away, without the role dropdowns,
   **Invite member**, **Remove** or the **Activity** tab. The owner's row always
@@ -375,7 +384,7 @@ to owners and admins.
 | Field | Notes |
 |---|---|
 | Avatar and type pill | the organization's colored square and its type |
-| **Organization name** | editable by owners and admins |
+| **Organization name** | editable by owners and admins, up to 120 characters: the field stops there and says "120 characters at most". An older name that is longer shows "Organization name must be 120 characters or fewer." and cannot be saved until you shorten it. |
 | **Type** | **Personal** / **Cooperative**, hint "personal = solo · cooperative = invite a team". Only the owner can change it (see [Personal and cooperative organizations](#personal-and-cooperative-organizations)). |
 | **Slug** | "read-only". It is the organization's address and never changes, even when you rename it. |
 
@@ -413,12 +422,15 @@ capped:
 | Any other text setting, such as the **Ethics statement** | 4 KB |
 | The whole house style | 128 KB |
 
-Over a limit, **Save changes** stores nothing and your edits stay in the form
-so you can shorten them. The message names the setting, for example "Could
-not save the survey style. custom_css is longer than 64 KB, which is more than
-a house style can hold; shorten it." or "Could not save the survey style. The
-house style is larger than 128 KB altogether, which is more than a house style
-can hold; shorten it."
+Over a limit, the setting shows a message under it, such as "Custom CSS is
+longer than 64 KB. Shorten it to save the style." or "Primary is longer than
+4 KB. Shorten it to save the style.", and **Save changes** stays unavailable
+until you shorten it; your edits stay in the form. A line above **Save
+changes** names every setting that is over, even in a section you have
+folded: "Shorten Primary (4 KB at most) and Custom CSS (64 KB at most) to save
+the style." Over the whole limit, the line adds "The survey style is larger
+than 128 KB altogether. Shorten the custom CSS or the longer texts to save
+it."
 
 The individual settings are described in
 [[Theme and Branding|Studio-Theme-and-Branding]].

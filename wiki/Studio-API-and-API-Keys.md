@@ -14,8 +14,9 @@ A personal API key lets a script act **as you**. Create and revoke keys in
 **Profile → API keys** (full walkthrough in
 [[Account and Profile|Studio-Account-and-Profile]]):
 
-1. Type a name in **Key name (e.g. ci-pipeline)** — up to 80 characters — and
-   click **Create key** (or press `Enter`).
+1. Type a name in **Key name (e.g. ci-pipeline)** — up to 80 characters; the
+   field stops there and says "80 characters at most." — and click **Create
+   key** (or press `Enter`).
 2. Copy the token from "New key — copy it now, it won't be shown again:" with
    **Copy**. Tokens look like `sck_` followed by 43 characters.
 3. To revoke, click **Revoke** on the key's row and confirm **Revoke API key**.

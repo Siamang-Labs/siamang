@@ -12,13 +12,13 @@ which you can also share with people outside Studio.
 
 ```
 ┌ Live   fieldwork monitor · brand-awareness                  [Open data] [Distribute] ┐
-│   1,284          1,003           212 · 16.5%        6/4/2026, 2:41 PM                 │
+│   1,284          1,003           212 · 16.5%        Jun 4, 2026, 2:41 PM              │
 │   responses      completed       partial            last response                     │
 │ ┌ Responses per day · last 14 days ──────────────────────────────────────────────┐   │
 │ │            ▁▂▅▇▆▅▃                                                            │   │
 │ └────────────────────────────────────────────────────────────────────────────────┘   │
 │ Live deployments  2                                                                   │
-│ ┌ ● Live  main  #17                                       6/4/2026, 9:00 AM ┐         │
+│ ┌ ● Live  main  #17                                    Jun 4, 2026, 9:00 AM ┐         │
 │ │ https://study.siamang.org/3f9a1c07b2de/                                    │         │
 │ │ Responses · 81%   ▓▓▓▓▓▓▓▓░░                                  972/1,200   │         │
 │ │ region="north"    ▓▓▓▓▓▓░░░░                                  240/400     │         │
@@ -41,7 +41,7 @@ The strip at the top covers the **whole project** — all environments together:
 | **responses** | every response row, **including partial and screened-out interviews**. Tooltip: "Every response row: completed, screened-out and partial interviews. Each interview counts on its own — Studio cannot tell whether two responses came from the same person." |
 | **completed** | submitted interviews that did not end on a Screen-out page. Tooltip: "Submitted interviews that did not end on a screen-out page — what quota cells and response caps count. N screened out." |
 | **partial** | interviews started and not submitted, with their share of all rows |
-| **last response** | when the most recent row (partial or complete) arrived |
+| **last response** | when the most recent row (partial or complete) arrived, as a date and time in your browser's time zone, such as Jun 4, 2026, 2:41 PM |
 
 Someone who answers twice counts twice in every number: each interview is a
 response of its own. To discourage repeat answers from one browser, see
@@ -83,9 +83,10 @@ This part needs no configuration and works on every plan.
 ## Monitoring on Distribute
 
 Each environment card on **Distribute** carries the same **Responses** and
-quota bars plus **Last response `<time>`**, and the tiles row above the cards
-adds completion, median duration, speeders, the quality screen and today's
-count for the environment in the field. See
+quota bars plus **Last response `<date and time>`** (for example
+`Jun 4, 2026, 2:32 PM`), and the tiles row above the cards adds completion,
+median duration, speeders, the quality screen and today's count for the
+environment in the field. See
 [The Distribute screen](Studio-Publishing-and-Environments#metric-tiles) for
 the tiles and [[Data Quality|Studio-Data-Quality]] for the quality numbers.
 

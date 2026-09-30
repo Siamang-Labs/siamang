@@ -94,7 +94,7 @@ Open it with:
 │ deploy, preview or restore later.                       │
 │                                                         │
 │ Message                                      optional   │
-│ [ Add charging-access question                      ]   │
+│ [ What changed, in a few words                      ]   │
 │                                                         │
 │                                      Cancel   ✓ Save    │
 └─────────────────────────────────────────────────────────┘
@@ -149,7 +149,7 @@ History marks the messages Studio writes for an empty **Message** with
 
 | You see | Why | What to do |
 |---|---|---|
-| "Save failed." with a plan message such as "Plan 'free' allows up to 3 analysis flows per project; this Save would have 4 — delete one or upgrade." | the Save would add a flow or access codes beyond your plan's cap | delete a flow or upgrade; a Save that keeps or reduces the count always goes through |
+| "Save failed." with a plan message such as "The Free plan allows up to 3 analysis flows per project; this Save would have 4 — delete one or upgrade." | the Save would add a flow or access codes beyond your plan's cap | delete a flow or upgrade; a Save that keeps or reduces the count always goes through |
 | "Save failed." naming the document and the problem (for example a flow named `survey`, or a connector with the same name as a flow: "task name '*x*' is already in use") | the document is malformed or names collide | fix the named item and save again |
 | "Save failed. questionnaire: pages/0/items/0/text: must not be empty (page 'page1', question 'q1')" | a questionnaire field that must be filled in is empty, or has the wrong shape; the message gives the field's path, then the page (by name), any block ("block 2") and the question (by id or variable). Other forms: "… needs at least 1 entry", "… 'Nope' is not a question type", "questionnaire: title: must not be empty" | fill in or correct that field (the same text appears as the **DOCUMENT** issue of **Source → Check** in the Builder) |
 | "Save failed. *Name* has this open for editing — yours will save once they are done." | a colleague holds the edit lock on a flow this Save would delete or rename | wait until they are done, or ask them; see [One editor per document](Studio-Collaboration#one-editor-per-document) |

@@ -26,11 +26,11 @@ Codeframes  analysis/*.codeframe.json · coding open answers by hand and by rule
 
 Uploads and run outputs
  Name                         Size       Updated
- panel_wave1.sav              1.2 MB     9/12/2026   [copy] [download] [delete]
+ panel_wave1.sav              1.2 MB     Sep 12, 2026   [copy] [download] [delete]
    assets/panel_wave1.sav
- report.html                  212.4 KB   9/20/2026          [download] [delete]
+ report.html                  212.4 KB   Sep 20, 2026          [download] [delete]
    outputs/tables/report.html
- report_fig_1.png             31.0 KB    9/20/2026          [download] [delete]
+ report_fig_1.png             31.0 KB    Sep 20, 2026          [download] [delete]
    outputs/tables/report_fig_1.png
 ```
 
@@ -94,8 +94,8 @@ in all projects of the organization, including run outputs**:
 | Pro | 50 GB |
 | Corporate | unlimited |
 
-An upload that would exceed it is refused with "plan '*plan*' allows up to *N*
-MB of stored files; delete files or upgrade to add more". Replacing a file only
+An upload that would exceed it is refused with "the *Plan* plan allows up to
+*N* MB of stored files; delete files or upgrade to add more". Replacing a file only
 counts the difference in size. The quota is checked when you upload; flow runs
 still store their outputs when you are over it.
 

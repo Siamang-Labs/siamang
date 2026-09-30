@@ -205,8 +205,8 @@ themselves are never logged.
 | Plus | 5,000 |
 | Pro, Corporate | no limit |
 
-A Save that would go beyond the limit is refused: "plan 'free' allows up to 100
-access codes; this Save would have 150".
+A Save that would go beyond the limit is refused: "the Free plan allows up to
+100 access codes; this Save would have 150".
 
 ### What access codes are — and are not
 

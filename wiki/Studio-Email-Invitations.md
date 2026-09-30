@@ -24,7 +24,7 @@ in the **Email invitations** panel.
 ├──────────┬───────────────────────────────┬──────────┬─────────┬─────────────┬─────────────┤
 │ Kind     │ Mailing                       │ Sent     │ Started │ Completed   │             │
 │ invite   │ Brand study: your personal link│ 409 · 2 failed · 1 bounced │ 188 │ 141 · 34% │ [Remind] [Recipients] │
-│          │ main · 6/4/2026, 9:00 AM       │          │         │ +60 via reminders │       │
+│          │ main · Jun 4, 2026, 9:00 AM    │          │         │ +60 via reminders │       │
 │ reminder │ Reminder: Brand study: …       │ 266      │ 41      │ 60 · 23%    │ [Recipients]│
 └──────────┴───────────────────────────────┴──────────┴─────────┴─────────────┴─────────────┘
 ```
@@ -320,7 +320,7 @@ platform's own name is used. Replies go to **Reply-to**. Emails are plain text
 - The first-mailing limit applies to your organization's very first mailing,
   in any project — the warm-up every new sender needs.
 - A mailing that would exceed an allowance is refused as a whole, e.g. "this
-  mailing would exceed the plus plan's 300 invitation emails per day (120 sent
+  mailing would exceed the Plus plan's 300 invitation emails per day (120 sent
   today, 250 to send) — send the rest tomorrow" or "an organization's first
   mailing is limited to 200 recipients (412 selected) — start with a smaller
   list, then send the rest".
