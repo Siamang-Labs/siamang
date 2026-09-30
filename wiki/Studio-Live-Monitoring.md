@@ -197,9 +197,9 @@ takes its tile's width; a chart's picture fills its tile without being
 cropped, so a chart drawn low and wide (a **Figure height (in)** well under
 its **Figure width (in)**) reads best in a wide tile. The grid is four cells
 wide, and two in a window 900 px wide or narrower, where a tile three or four
-cells wide takes both columns. On a phone (600 px or narrower), each chart tile takes the whole row
-and is as tall as its chart, as in a report: you scroll the page, not the
-tile; numbers, statistics, tables and text keep their cells.
+cells wide takes both columns. On a phone (600 px or narrower), each chart tile
+takes the whole row and is as tall as its chart, as in a report: you scroll the
+page, not the tile; numbers, statistics, tables and text keep their cells.
 
 A tile's label is shown in capitals; a long one wraps to a second line and
 then ends in "…" (point at it for the whole label); on a phone, which shows no

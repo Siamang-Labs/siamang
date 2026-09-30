@@ -675,15 +675,6 @@ generated script — and only that flow is affected:
   except those that read a table it writes (see [Run all](#run-all)).
 - **Export Python** has nothing to download for it.
 
-**Connections Studio repairs.** An earlier version of Studio saved an output
-added with **+ Add output** in the **Report** view in a form the engine
-rejects, so every check, preview and run of that flow failed with
-"edges/*N*/from: Additional properties are not allowed ('title', 'type' were
-unexpected)". Opening such a flow repairs its connections, and a banner says
-"**Studio repaired this flow's connections.** An earlier version saved them in
-a form the engine rejects, so the saved flow cannot run. Save changes to keep
-the repair." Click **Save changes**, and the flow runs again.
-
 A flow the engine itself fails on is such a flow too — a fault of the engine,
 not of your flow, logged on the server for whoever maintains it. Its issue
 reads "The engine failed while checking this flow (*error*); it has no code and
@@ -694,6 +685,15 @@ does not stop a Save of the questionnaire or of the other flows; **Check** and
 a preview show the same issue.
 
 Fix it, press **Check**, and Save: the next Save gives it a script again.
+
+**Connections Studio repairs.** An earlier version of Studio saved an output
+added with **+ Add output** in the **Report** view in a form the engine
+rejects, so every check, preview and run of that flow failed with
+"edges/*N*/from: Additional properties are not allowed ('title', 'type' were
+unexpected)". Opening such a flow repairs its connections, and a banner says
+"**Studio repaired this flow's connections.** An earlier version saved them in
+a form the engine rejects, so the saved flow cannot run. Save changes to keep
+the repair." Click **Save changes**, and the flow runs again.
 
 ### Saving, drafts and the edit lock
 

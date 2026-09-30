@@ -90,7 +90,7 @@ With one, it reads "You belong to one organization. It owns your projects,
 members and subscription. Owners and admins manage it here."
 
 The screen shows the organization you are in: its name and pills for its type
-(**personal** or **cooperative**), your role (for example "Owner"), its plan
+(**Personal** or **Cooperative**), your role (for example "Owner"), its plan
 (for example "Pro plan") and, during a trial, **Pro trial · 27d left**, or
 during a paid period that ends on a date (a 12-month beta offer), **Paid
 period · 200d left**. When Plus or the Plus year was bought for after the
