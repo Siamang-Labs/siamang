@@ -64,6 +64,11 @@ Every table reads `SurveyData.weight` (set by `with_weight()`, the flow's Apply 
 ### Univariate Frequencies: `FreqTable`
 
 Generates frequency distributions with absolute counts, percentages, and cumulative percentages.
+`Cumulative %` is the running share of the counts (on weighted data, of the sums of
+weights) as they are, rounded once to one decimal — not the rounded percentages added
+up — so the last answer reads `100.0` (six answers of one respondent each: `16.7`,
+`33.3`, `50.0`, `66.7`, `83.3`, `100.0`), even where the `%` column, each rounded
+on its own, adds up to 100.2.
 
 #### Properties
 

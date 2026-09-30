@@ -185,6 +185,8 @@ def test_a_crosstab_of_respondents_is_the_table_s_analysis():
         "Cumulative %",
     ]
     assert list(inertia["Principal inertia"]) == [0.07476, 0.01002, 0.00041]
+    # The running share of the inertia as it is, rounded once.
+    assert inertia["Cumulative %"].iloc[-1] == 100.0
     rows = result.rows.to_frame()
     assert list(rows.columns) == [
         "Staff group",

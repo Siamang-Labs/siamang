@@ -285,6 +285,33 @@ def test_freq_table_counts_weights_and_keeps_the_people_beside_them():
     }
 
 
+def test_cumulative_percent_is_rounded_once_and_ends_at_100():
+    """Unweighted, the cumulative column added up the percentages already
+    rounded: 1, 1, 1 and 3 respondents of six read 16.7, 33.4, 50.1 and 100.1,
+    six answers of one each ended at 100.2. It is the running share of the
+    counts, rounded once, as the weighted table always computed it."""
+    import pandas as pd
+
+    from siamang.data import SurveyData
+
+    data = SurveyData(frame=pd.DataFrame({"q": [1, 2, 3, 4, 4, 4]}))
+    frame = data.report.freq("q").to_frame()
+    assert frame["%"].tolist() == [16.7, 16.7, 16.7, 50.0, 100.0]
+    assert frame["Cumulative %"].tolist() == [16.7, 33.3, 50.0, 100.0, 100.0]
+    by_frequency = data.report.freq("q", sort="freq").to_frame()
+    assert by_frequency["Cumulative %"].tolist() == [50.0, 66.7, 83.3, 100.0, 100.0]
+    six = SurveyData(frame=pd.DataFrame({"q": [1, 2, 3, 4, 5, 6]})).report.freq("q")
+    assert six.to_frame()["Cumulative %"].tolist() == [16.7, 33.3, 50.0, 66.7, 83.3, 100.0, 100.0]
+    assert "| 4 | 4 | 3 | 50.0 | 100.0 |" in data.report.freq("q").to_markdown()
+    # Weighted by equal weights, the same numbers: the two paths are one rule.
+    weighted = SurveyData(frame=pd.DataFrame({"q": [1, 2, 3, 4, 4, 4], "w": [2.0] * 6}))
+    same = weighted.with_weight("w").report.freq("q").to_frame()
+    assert same["Cumulative %"].tolist() == frame["Cumulative %"].tolist()
+    # Nothing answered: no rows but the total.
+    empty = SurveyData(frame=pd.DataFrame({"q": pd.Series([], dtype=float)}))
+    assert empty.report.freq("q").to_frame()["Cumulative %"].tolist() == [100.0]
+
+
 def test_a_frequency_table_of_codes_and_stray_text_orders_them():
     """Codes with a text among them — what an earlier runtime or an import
     can leave in a column ("25-34" among 1, 2, 3) — could not be sorted,

@@ -332,7 +332,9 @@ def test_analyze_leaves_out_missing_codes_and_builds_the_tables():
     assert result.loadings.stats == stats
     variance = result.variance.to_frame()
     assert list(variance["Factor"]) == [f"Factor {i}" for i in range(1, 9)]
-    assert variance["Cumulative %"].iloc[-1] == pytest.approx(100.0)
+    # The running share of the eigenvalues as they are, rounded once: exactly
+    # 100 on the last row, not a sum of rounded shares.
+    assert variance["Cumulative %"].iloc[-1] == 100.0
     assert variance["Extracted SS"].notna().sum() == 2
     # Oblique: the rotated variances overlap, so they have no percentages.
     assert "Rotated SS" in variance and "Rotated %" not in variance

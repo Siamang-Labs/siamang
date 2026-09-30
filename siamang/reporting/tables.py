@@ -434,10 +434,11 @@ class FreqTable(SurveyTable):
         total = float(sums.sum()) if not df.empty else 0.0
         n_valid = int(counts.sum())
         df["%"] = (sums / total * 100).round(1) if total > 0 else 0.0
-        if weighted is not None and total > 0:
-            df["Cumulative %"] = (sums.cumsum() / total * 100).round(1)
-        else:
-            df["Cumulative %"] = df["%"].cumsum().round(1) if not df.empty else 0.0
+        # The running share of the counts (or of the sums of weights) as they
+        # are, rounded once. Adding up the rounded percentages instead let the
+        # rounding pile up: six answers of one respondent each read 100.2 on
+        # the last row, and 1, 1, 1 and 3 of six read 100.1.
+        df["Cumulative %"] = (sums.cumsum() / total * 100).round(1) if total > 0 else 0.0
 
         # Append total row
         total_entry: dict[str, Any] = {
