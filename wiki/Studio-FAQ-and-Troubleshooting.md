@@ -66,6 +66,16 @@ the **Free** plan with you as its owner — the Pro trial comes once per email
 address, with the organization you got at sign-up.
 → [Creating another organization](Studio-Organizations-and-Team#creating-another-organization)
 
+**"Could not update profile. Name must be 200 characters or fewer." (or another
+"… must be …" message).**
+The server refused a value you entered. The message names the field as the
+form labels it and says the rule it broke: a length ("must be 200 characters
+or fewer"), a required value ("is required"), a number range ("must be at most
+730") or a format ("is not in a form Studio accepts"). Most fields stop at
+their limit as you type, so you rarely see these messages; correct the field
+it names and try again.
+→ [[Limits and Quotas at a Glance|Studio-Limits-Reference]]
+
 **"Only owners and admins can create projects" (or rename a project, add a
 secret, run a connector).**
 Your role in this organization is **member**. Members build, publish and

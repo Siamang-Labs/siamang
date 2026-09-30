@@ -34,8 +34,8 @@ The chip opens a two-column menu:
 
 ```
  ORGANIZATIONS                          PROJECTS
- [AR] Acme Research   27d  owner  ✓     ● Brand Awareness Study   ✓
- [LB] Lab of Behavior      member       ● Employee Pulse Q3
+ [AR] Acme Research   27d  Owner  ✓     ● Brand Awareness Study   ✓
+ [LB] Lab of Behavior      Member       ● Employee Pulse Q3
  ─────────────────────                  ● Course Evaluation
  Manage organizations                   ───────────────────
  Create organization                    All projects
@@ -43,7 +43,7 @@ The chip opens a two-column menu:
 ```
 
 - **Organizations** lists every organization you belong to. Each row shows a
-  role pill (`owner`, `admin`, `member`), a days-left pill (e.g. `27d`) when
+  role pill (`Owner`, `Admin`, `Member`), a days-left pill (e.g. `27d`) when
   that organization's trial or paid period runs to a date (hover: "Pro trial —
   27 days left", with ", then Plus from Oct 3, 2026" when a plan was bought for
   after the trial, or "Paid period — 27 days left"), and a ✓ on the current
@@ -157,7 +157,7 @@ It has five tabs: **Account**, **Security**, **Appearance**, **API keys**,
 | Field | Notes |
 |---|---|
 | Avatar | "Your avatar is generated from your initials." There is no picture upload. |
-| **Name** | how colleagues see you: presence avatars, Save authors, comments, the member list and the Activity log. Up to 200 characters. |
+| **Name** | how colleagues see you: presence avatars, Save authors, comments, the member list and the Activity log. Up to 200 characters; the field stops there and says "200 characters at most". A longer name, such as one that came from your Google or Microsoft account, shows "Name must be 200 characters or fewer." and cannot be saved until you shorten it. |
 | **Email** | marked "read-only". It is your identity: invitations, notices and the one-trial-per-address rule all key on it. To change it, write to `info@siamang-team.org`. |
 
 Edit the name and click **Save changes**. The button is active only when the
@@ -176,7 +176,7 @@ This tab changes the password you use with **Continue with Email**.
    the rules: **At least 8 characters**, **A lowercase letter**, **An uppercase
    letter**, **A number**, **A symbol (e.g. ! ? @ #)**.
 2. Type it again in **Confirm new password**. If the two differ, the field says
-   "Passwords don't match".
+   "Passwords don't match."
 3. Click **Update password** ("Updating…"). A "Password updated" notice
    confirms it, and you stay signed in.
 
@@ -212,7 +212,8 @@ Personal tokens that let scripts and CI jobs call the Studio API as you.
 **Create a key**
 
 1. Type a name you will recognize later in **Key name (e.g. ci-pipeline)**, for
-   example `laptop` or `nightly-export` (up to 80 characters).
+   example `laptop` or `nightly-export` (up to 80 characters; the field stops
+   there and says "80 characters at most.").
 2. Click **Create key** (or press `Enter`).
 3. A box appears: "New key — copy it now, it won't be shown again:" with the
    full token (`sck_…`). Click **Copy**.

@@ -69,7 +69,7 @@ see when you reach a limit.
   all projects.
 - **Flow runs** get one CPU and no internet access on every plan. The plan
   buys time and memory. A run that hits its ceiling is stopped, and its log
-  names the limit, for example "the free plan allows 5 min per flow run; plus
+  names the limit, for example "the Free plan allows 5 min per flow run; Plus
   allows 15 min". An early stop is never mistaken for a bug in your analysis.
 - **AI credits** measure how much text the assistant sends to and receives
   from the model: one credit is about 1,000 tokens (pieces of words). The daily
@@ -124,7 +124,7 @@ card required (see [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]]).
   bought for after the trial;
 - **Settings → Billing**: "**Pro trial · 27 days left.** Full access to every
   Pro feature; one subscription covers the whole organization. Afterward the
-  organization switches to the free plan — your data and surveys are kept."
+  organization switches to the Free plan — your data and surveys are kept."
   With a plan bought for after the trial, the last sentence names that plan
   instead (see [The Billing tab](#the-billing-tab)).
 
@@ -173,7 +173,7 @@ the trial* under
 It does **not** become read-only: you keep signing in, editing, saving,
 publishing, running flows and collecting responses, within the new plan's
 limits. Nothing is deleted. The owners get an email: "*organization* is now
-on the free plan — the Siamang Studio Pro trial ended", or, when the
+on the Free plan — the Siamang Studio Pro trial ended", or, when the
 organization moves to Plus, "*organization* is now on the Plus plan — the
 Siamang Studio Pro trial ended". The end of a paid period works the same way (see
 [Paid periods](#paid-periods)).
@@ -226,7 +226,7 @@ paid, not as a trial:
 | **Settings → Billing** | "**Plus · 200 days left of the paid period.** Full access to every Plus feature; one subscription covers the whole organization. …", and the Plus card carries a **paid period** pill |
 | Banner, last 3 days | "**Your paid Plus period ends in 3 days.** Afterward, Free plan limits apply. Your data is preserved and stays exportable. Once it ends, choose a plan in Settings → Billing to keep using paid features." Once it is over: "**Your paid period has ended.** … Renew in Settings → Billing to keep using paid features." |
 | Owners' emails, 7 and 1 day before | "Your Siamang Studio paid Plus period for *organization* ends in N day(s)" |
-| Owners' email at the end | "*organization* is now on the free plan — the Siamang Studio paid Plus period ended" |
+| Owners' email at the end | "*organization* is now on the Free plan — the Siamang Studio paid Plus period ended" |
 
 A paid period is not a trial: **email invitations** to respondents work, and
 the **AI assistant** has the plan's full monthly allowance, not the trial's
@@ -265,7 +265,7 @@ has a trial or a paid period that ends on a date: "**Pro trial · 27 days
 left.**" or, for a paid period, "**Plus · 200 days left of the paid
 period.**", followed by "Full access to every *plan* feature; one
 subscription covers the whole organization. Afterward the organization
-switches to the free plan — your data and surveys are kept." During the
+switches to the Free plan — your data and surveys are kept." During the
 trial, once card payments are live and more than about two days before it
 ends, it adds "Subscribe or extend now: **billing starts only when the free
 period ends**." During a paid period it adds "Another plan can be bought once
@@ -284,14 +284,10 @@ summaries read:
 
 | Plan | Summary on the card |
 |---|---|
-| Free | "Kick the tires — 2 studies, 1,000 responses each." |
-| Plus | "Run real fieldwork — 10 studies, unlimited responses, schedules, webhooks & first connectors (Sheets, Excel 365, Supabase, GitHub)." |
-| Pro | "Scale without limits — unlimited studies & team, all connectors (S3, warehouses, GitLab) and SSO." |
-| Corporate | "Enterprise & self-hosted — run it on your own infra, with onboarding and support." |
-
-> **Note.** The Plus and Pro summaries mention GitHub and GitLab; those are
-> not available as Studio connectors. The connector lists above are what each
-> plan actually includes.
+| Free | "Kick the tires — 2 projects, 1,000 responses each." |
+| Plus | "Run real fieldwork — 10 projects, unlimited responses, schedules, webhooks, and connectors to Google Sheets, Excel 365, Supabase and HubSpot." |
+| Pro | "Scale without limits — unlimited projects and team, and connectors to cloud storage, warehouses, your own Postgres, SFTP, REDCap, Salesforce and any HTTP endpoint." |
+| Corporate | "Enterprise and self-hosted — run it on your own infrastructure, with onboarding and support." |
 
 Under the summary, each card lists the features the plan unlocks:
 
@@ -373,7 +369,7 @@ checkout it answers "Could not open the billing portal. No billing account yet
   instead, you see "Checkout canceled — your plan is unchanged". With a Plus
   subscription bought for after the trial waiting, **Extend Pro** opens a
   dialog whose button reads **Switch to Pro** instead of **Continue to
-  checkout**. No payment page opens, and Studio confirms "Plan changed to pro".
+  checkout**. No payment page opens, and Studio confirms "Plan changed to Pro".
 - **Buying during the trial** never shortens it: billing starts when the free
   period ends. The exception is the last two days or so of a trial, when
   billing starts right away. **Pro** (a subscription or the Pro year) keeps the
@@ -428,16 +424,16 @@ checkout it answers "Could not open the billing portal. No billing account yet
 
 | Limit | What you see |
 |---|---|
-| Projects | **New project** is disabled on the **Projects** tab, in the workspace chip menu and on the **Library** tab ("Your plan allows 2 projects — upgrade to add more"). The **Projects** tab adds the note "You've reached the **2-project** limit on the free plan. **Upgrade your plan** to add more." The API answers "Could not create project. Plan 'free' allows up to 2 projects; upgrade to add more." |
-| Members | **Invite member** is disabled ("Your plan allows 2 members — upgrade to add more") with a similar note. Pending invitations count toward the limit: "Could not add member. Plan 'free' allows up to 2 members; upgrade to add more." An invitation sent again to the same address is not counted twice. |
+| Projects | **New project** is disabled on the **Projects** tab, in the workspace chip menu and on the **Library** tab ("Your plan allows 2 projects — upgrade to add more"). The **Projects** tab adds the note "You've reached the **2-project** limit on the Free plan. **Upgrade your plan** to add more." The API answers "Could not create project. The Free plan allows up to 2 projects; upgrade to add more." |
+| Members | **Invite member** is disabled ("Your plan allows 2 members — upgrade to add more") with a similar note. Pending invitations count toward the limit: "Could not add member. The Free plan allows up to 2 members; upgrade to add more." An invitation sent again to the same address is not counted twice. |
 | Responses | Once the project's completed responses, all environments together, reach 1,000, its surveys stop accepting new completions. A respondent who opens the link then sees "Thank you for your interest" / "We have already reached our target sample for participants like you." (or the survey's own wording of that screen from **Theme → Wording**, and its quota-full redirect if it has one); someone already answering sees it when they submit. Screen-outs are still recorded. A survey published before this behavior shows the notice only on submitting: republish it so respondents see it as the page opens. |
-| Storage | "Upload failed. Plan 'free' allows up to 250 MB of stored files; delete files or upgrade to add more." |
-| Flows per project | the Save is refused: "Save failed. Plan 'free' allows up to 3 analysis flows per project; this Save would have 4 — delete one or upgrade." |
-| Access codes | the Save is refused: "Save failed. Plan 'free' allows up to 100 access codes; this Save would have 150." |
+| Storage | "Upload failed. The Free plan allows up to 250 MB of stored files; delete files or upgrade to add more." |
+| Flows per project | the Save is refused: "Save failed. The Free plan allows up to 3 analysis flows per project; this Save would have 4 — delete one or upgrade." |
+| Access codes | the Save is refused: "Save failed. The Free plan allows up to 100 access codes; this Save would have 150." |
 | **Run to here** | "preview limit reached: 30 runs per hour on the free plan", or "a preview is already running: the free plan runs 1 at a time — wait for it to finish". **Run** still works. |
 | Flow run time or memory | the run stops, and its log names the limit (see [How the numbers are counted](#how-the-numbers-are-counted)) |
-| Email invitations | the mailing is refused with the month's or day's count, e.g. "this mailing would exceed the plus plan's 300 invitation emails per day (… sent today, … to send) — send the rest tomorrow", or "an organization's first mailing is limited to 200 recipients (… selected) — start with a smaller list, then send the rest" |
-| AI assistant | "the assistant is not included in the free plan — upgrade to Plus", or the daily or monthly allowance message with the credits used |
+| Email invitations | the mailing is refused with the month's or day's count, e.g. "this mailing would exceed the Plus plan's 300 invitation emails per day (… sent today, … to send) — send the rest tomorrow", or "an organization's first mailing is limited to 200 recipients (… selected) — start with a smaller list, then send the rest" |
+| AI assistant | "the assistant is not included in the Free plan — upgrade to Plus", or the daily or monthly allowance message with the credits used |
 | Schedules | In **Flows**, the **Schedule a run** button reads **Requires Plus** (hover: "Schedules are available from the Plus plan") and opens **Billing** |
 | A Plus or Pro feature on a lower plan | the control shows a card such as "**Webhooks is a Plus feature** — Upgrade your plan to unlock webhooks." with **View plans**, which opens **Billing** |
 

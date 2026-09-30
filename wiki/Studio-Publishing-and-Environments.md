@@ -73,15 +73,15 @@ that environment.
 │ │ 247 / 1,200    ││ 78%      ││ 6:10          ││ 3%           ││ +31 │   │ Current  #17 ●valid│ │
 │ │ ▓▓▓░░░░░░      ││ drop-off…││ 12 speeders   ││ 7 of 240 …   ││ ▂▃▅▇│   │ Draft    no unsaved│ │
 │ └────────────────┘└──────────┘└───────────────┘└──────────────┘└─────┘   │ Target  [main ▾]   │ │
-│ ┌ ● Live  main  #17  published 6/4/2026, 2:32 PM         [Pause] [Close] ┐ │ [Publish to main]  │ │
+│ ┌ ● Live  main  #17  published Jun 4, 2026, 2:32 PM      [Pause] [Close] ┐ │ [Publish to main]  │ │
 │ │ study.siamang.org/3f9a1c07b2de/                             [Copy]     │ ├────────────────────┤ │
 │ │ [QR] [Embed] [Access codes] [Captcha] [One per browser] [Panel]        │ │ Download the survey│ │
 │ │ [Closing date] [Drop-off] [Codebook] [Build log]                       │ │ as a Python program│ │
-│ │ Closes 7/1/2026, 12:00 AM → redirect https://example.org/thanks        │ │ [questionnaire.py] │ │
+│ │ Closes Jul 1, 2026 → redirect https://example.org/thanks               │ │ [questionnaire.py] │ │
 │ │ Responses · 21%   ▓▓░░░░░░░░                         247/1,200         │ └────────────────────┘ │
 │ │ region="north"    ▓▓▓░░░░░░░                          90/400           │                        │
 │ └────────────────────────────────────────────────────────────────────────┘                        │
-│ ┌ ○ Closed  pilot  #12  closed 6/1/2026 …                        [Reopen] ┐                        │
+│ ┌ ○ Closed  pilot  #12  closed Jun 1, 2026, …                    [Reopen] ┐                        │
 │ └──────────────────────────────────────────────────────────────────────────┘                        │
 │ Email invitations …                                                                                │
 └────────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -169,7 +169,7 @@ also applies only at the next publish, but the line does not point it out. See
 **Monitor block.** A **Responses** bar — with an environment cap, the completed interviews
 against it (`247/1,200`, with the percentage, and the same tooltip as the
 tile); without one, every response row — one bar per quota cell
-(`region="north"` `90/400`), and **Last response `<date>`**. See
+(`region="north"` `90/400`), and **Last response `<date and time>`**. See
 [[Live Monitoring|Studio-Live-Monitoring]] for what the numbers count.
 
 ### Publish panel

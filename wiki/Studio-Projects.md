@@ -82,9 +82,9 @@ The organization's **Projects** tab lists every study in the workspace.
 ┌ Projects   Acme Research                                        [+ New project] ┐
 │ [Search projects by name…           ]  [Sort: Last opened ▾]                     │
 │ ┌──────────────────────────────────────────────────────────────────────────────┐ │
-│ │ Name                        Version  Status      Responses · 14d  Updated    │ │
-│ │ Employee Pulse 2026 Q1      #17      ● valid     ▁▂▅▇▆  247       6/4/2026   │ │
-│ │ Brand tracker (pilot)       #3       ● warnings  ▁▁▂▁▃   31       5/28/2026  │ │
+│ │ Name                      Version  Status      Responses · 14d  Updated      │ │
+│ │ Employee Pulse 2026 Q1    #17      ● valid     ▁▂▅▇▆  247       Jun 4, 2026  │ │
+│ │ Brand tracker (pilot)     #3       ● warnings  ▁▁▂▁▃   31       May 28, 2026 │ │
 │ └──────────────────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -133,8 +133,9 @@ At the cap every **New project** button — on the list, in the workspace chip,
 **Start from the example study** on an empty list, and the **New project**
 buttons on the **Library** tab (on each template card and on each saved
 questionnaire) — is disabled; hovering says "Your plan allows 2 projects —
-upgrade to add more" (10 on Plus). The list also shows, for example on Free: "You've reached the **2-project**
-limit on the free plan. **Upgrade your plan** to add more." See
+upgrade to add more" (10 on Plus). The list also shows, for example on Free:
+"You've reached the **2-project** limit on the Free plan. **Upgrade your
+plan** to add more." See
 [[Plans, Trial and Billing|Studio-Plans-and-Billing]].
 
 > **Plan.** On the Free plan each project also takes at most **1,000

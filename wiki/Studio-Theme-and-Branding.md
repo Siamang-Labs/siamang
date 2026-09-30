@@ -519,9 +519,11 @@ and admins can set the house style." See
 
 A house style is copied into every new study, so its size is limited:
 **Custom CSS** up to 64 KB, every other value up to 4 KB, and 128 KB for the
-whole style. **Save changes** on a larger one is refused with a message that
-names the field ("… is longer than 64 KB, which is more than a house style
-can hold; shorten it") or the total ("… larger than 128 KB altogether …").
+whole style. Over a limit, the form says so under the setting, by its label
+("Custom CSS is longer than 64 KB. Shorten it to save the style."), and in a
+line above **Save changes** that names every setting over its limit ("Shorten
+Primary (4 KB at most) and Custom CSS (64 KB at most) to save the style.");
+**Save changes** stays unavailable until you shorten it.
 
 ### A stamp, not a setting
 

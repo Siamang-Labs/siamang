@@ -62,10 +62,11 @@ and edit locks, API keys.
 | Item | Limit |
 |---|---|
 | Password | at least 8 characters, with a lower-case letter, an upper-case letter, a number and a symbol |
-| Name | 1–200 characters |
-| Organization slug | 3–40 characters (`a–z`, `0–9`, `-`), generated from the name, permanent |
+| Name | 1–200 characters; the field stops at 200 |
+| Organization name | 1–120 characters, on one line; the field stops at 120 |
+| Organization slug | 3–40 characters (`a–z`, `0–9`, `-`), made from the name: for an organization you create, as a project slug is (other scripts spelled in Latin letters, `organization` when nothing can be spelled, `-org` added to a slug under 3 characters or of exactly 12 hex digits, `-2`, `-3`, … when one of your organizations already has it); for the one you get at sign-up, your name with `-org` added; permanent, unique across Studio |
 | Team invitation link | valid 7 days |
-| API key name | 1–80 characters; the key is shown once; keys made in the app do not expire |
+| API key name | 1–80 characters (the field stops at 80); the key is shown once; keys made in the app do not expire |
 | Email lookup on the sign-in page | 10 per minute per address and network, and 20 per minute per network across all addresses |
 | Organization house style (**Branding**) | **Custom CSS** up to 64 KB; every other value up to 4 KB; 128 KB for the whole style |
 

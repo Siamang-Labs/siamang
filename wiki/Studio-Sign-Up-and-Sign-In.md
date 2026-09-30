@@ -81,8 +81,8 @@ ready. A failed lookup never sends you to the sign-up form.
 3. Studio finds no account for that address and shows **Create your account**.
    Check the address shown in the sentence at the top. Studio will create an
    account for exactly what you typed, typos included.
-4. Enter your **Name**. Colleagues see it next to your Saves, comments and
-   activity.
+4. Enter your **Name**, up to 200 characters (the field stops there).
+   Colleagues see it next to your Saves, comments and activity.
 5. Choose a **Password** that meets every rule in the checklist (below).
    **Show** reveals what you typed.
 6. If a captcha box appears, complete it (usually none does).
@@ -138,10 +138,10 @@ Nothing arrived? Check your spam folder, and check the address on the
 Every new account gets its own workspace straight away. This happens whether
 you signed up with email or with Google or Microsoft:
 
-- **An organization named after you.** Its name is the name you entered, for
-  example "Jane Doe", and you can rename it later. Its address (slug) is
-  derived from that name with `-org` added, for example `jane-doe-org`, and
-  cannot be changed.
+- **An organization named after you.** Its name is the name you entered (its
+  first 120 characters, on one line, if it is longer), for example "Jane Doe",
+  and you can rename it later. Its address (slug) is derived from that name
+  with `-org` added, for example `jane-doe-org`, and cannot be changed.
 - **You are its owner.**
 - **It is a cooperative organization**, so you can invite colleagues right
   away. See [[Organizations and Team|Studio-Organizations-and-Team]].
@@ -268,7 +268,7 @@ The link opens an invitation page at `studio.siamang.org/invite/…`:
 Siamang Studio
 
 Maria Lopez invited you to join Acme Research as member.
-Sent to j***@example.com. The link is valid until 10/7/2026.
+Sent to j***@example.com. The link is valid until Oct 7, 2026.
 
 Sign in (or create an account) with the invited email to accept.
 [ Sign in to accept ]
@@ -309,11 +309,11 @@ Good to know:
   if you never opened the link.
 - If the inviting organization has no room left on its plan, that invitation
   stays pending. The invitation page then shows **Accept invitation**, and
-  accepting answers "Could not accept the invitation. Plan 'free' allows up to
-  2 members; upgrade to add more." Accept it again once the owner has upgraded
-  or made room. If an owner or admin adds you directly in the meantime, the
-  invitation is closed; opening the link while signed in takes you into the
-  organization.
+  accepting answers "Could not accept the invitation. The Free plan allows up
+  to 2 members; upgrade to add more." Accept it again once the owner has
+  upgraded or made room. If an owner or admin adds you directly in the
+  meantime, the invitation is closed; opening the link while signed in takes
+  you into the organization.
 - Opening the link again later, signed in with the account that used it or
   after you were added directly, takes you into the organization instead of
   showing an error.
@@ -327,7 +327,7 @@ Good to know:
 | "This invitation link is invalid or has already been used." | the invitation was already used, revoked by an admin or replaced by a newer invitation to the same address; an owner or admin already added you to the organization directly; or the link was copied incompletely. If your own account used it, or you were added directly, and you are signed out, sign in and open the link again: it takes you into the organization. |
 | "Could not load the invitation. …" | the page could not look the invitation up just then. The rest of the line gives the reason, for example "The server could not be reached — check your connection and try again." or, after many reloads in a minute, "Rate limit exceeded; slow down." The link itself may be fine: click **Try again**. |
 | "This invitation was sent to j***@example.com — sign in with that account to accept it." | you are signed in with a different address. Sign out and sign in with the invited one. |
-| "Could not accept the invitation. Plan 'free' allows up to 2 members; upgrade to add more." | the organization is full on its plan. Ask its owner to upgrade, then accept again. |
+| "Could not accept the invitation. The Free plan allows up to 2 members; upgrade to add more." | the organization is full on its plan. Ask its owner to upgrade, then accept again. |
 
 Error states show a button: **Go to the console** if you are signed in, **Go
 to sign in** if not. When the page could not load the invitation, a **Try
@@ -349,7 +349,7 @@ again** button comes first.
 | "Sign in failed. This e-mail address is not verified by the identity provider; verify it there, then sign in again." | Your Google or Microsoft account reports the email address as unverified. Verify it with the provider, then try again. |
 | "Your session expired. Please sign in again." | Your sign-in could not be renewed. Sign in again; Studio opens the screen you were on, and no work is lost. Unsaved edits are kept as drafts. |
 | The reset or confirmation link opened the app instead of a form | You were already signed in. Sign out (or use a private window) and click the link again. |
-| "Passwords do not match." | The two fields on **Set new password** differ. |
+| "Passwords don't match." | The two fields on **Set new password** differ. |
 | "Password must be 8+ characters with a lower- and upper-case letter, a number, and a symbol." | The new password misses a rule from the checklist. |
 | "Could not send recovery email. …" | The reset email could not be requested. The second sentence gives the reason (for example, a new link requested too soon after the last one). Wait a little and try again. |
 | "Could not create your account. …" / "Could not reset your password. …" / "Could not sign you in with that provider. …" | The action failed. The sentence after the first gives the reason. |

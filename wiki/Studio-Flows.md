@@ -41,15 +41,15 @@ here is exactly what the generated script does.
 Flows  Load → Clean → Analyze → Report · run history          [More ▾] [+ New flow] [▶ Run flow]
 
 Flows  6 · one document each under flows/
-┌───────────────┬───────────────────────────────────────┬──────────────────────────┬───────────────────────────────────┬──────────────┐
-│ Flow          │ Description                           │ Last run                 │ Report                            │              │
-│ cleaning      │ 1. Clean raw responses                │ ● 23 Sep, 09:14 · 0m 11s │ outputs/data_quality.md           │ review run ⋮ │
-│ tables        │ 2. Key tables                         │ ● 23 Sep, 09:12          │ outputs/key_tables.md             │ review run ⋮ │
-│ usage         │ 3. Screen use                         │ ● 23 Sep, 09:12          │ outputs/screen_use.md             │ review run ⋮ │
-│ wellbeing     │ 4. Wellbeing: scales and drivers      │ ● 23 Sep, 09:12          │ outputs/wellbeing.md              │ review run ⋮ │
-│ wellbeing_app │ 5. The app: features, reach and price │ ● 23 Sep, 09:12          │ outputs/app_features_and_price.md │ review run ⋮ │
-│ segments      │ 6. Segments                           │ ● 23 Sep, 09:12          │ outputs/segments.md               │ review run ⋮ │
-└───────────────┴───────────────────────────────────────┴──────────────────────────┴───────────────────────────────────┴──────────────┘
+┌───────────────┬───────────────────────────────────────┬──────────────────────────────────┬───────────────────────────────────┬──────────────┐
+│ Flow          │ Description                           │ Last run                         │ Report                            │              │
+│ cleaning      │ 1. Clean raw responses                │ ● Sep 23, 2026, 9:14 AM · 0m 11s │ outputs/data_quality.md           │ review run ⋮ │
+│ tables        │ 2. Key tables                         │ ● Sep 23, 2026, 9:12 AM          │ outputs/key_tables.md             │ review run ⋮ │
+│ usage         │ 3. Screen use                         │ ● Sep 23, 2026, 9:12 AM          │ outputs/screen_use.md             │ review run ⋮ │
+│ wellbeing     │ 4. Wellbeing: scales and drivers      │ ● Sep 23, 2026, 9:12 AM          │ outputs/wellbeing.md              │ review run ⋮ │
+│ wellbeing_app │ 5. The app: features, reach and price │ ● Sep 23, 2026, 9:12 AM          │ outputs/app_features_and_price.md │ review run ⋮ │
+│ segments      │ 6. Segments                           │ ● Sep 23, 2026, 9:12 AM          │ outputs/segments.md               │ review run ⋮ │
+└───────────────┴───────────────────────────────────────┴──────────────────────────────────┴───────────────────────────────────┴──────────────┘
 
 Pipeline  the order Run all runs them · a flow after the flows whose tables it reads
    ● cleaning ── ● tables ── ● usage ── ● wellbeing ── ● wellbeing_app ── ● segments
@@ -140,7 +140,7 @@ ten more, up to the 50 most recent runs.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│ ● success   flow   #412                              23 Sep, 09:13     │
+│ ● success   flow   #412                      Sep 23, 2026, 9:13 AM     │
 │ ✓ Queued ── ✓ Run ── ✓ Done      ran in 0m 34s                        │
 │ tables · Save #17                                                      │
 │ [key_tables.md  5.7 KB] [key_tables.html  199 KB] [key_tables.xlsx …] │
@@ -222,7 +222,7 @@ flow cannot share its name with a connector; a Save that tries is refused
 | Plus | 20 |
 | Pro, Corporate | unlimited |
 
-A Save that would exceed the cap is refused with "plan 'free' allows up to 3
+A Save that would exceed the cap is refused with "the Free plan allows up to 3
 analysis flows per project; this Save would have 4 — delete one or upgrade". A
 project that is already over the cap (after a downgrade) can still be saved as
 long as the number of flows does not grow — a rename, for example, does not
@@ -843,8 +843,8 @@ these ceilings per flow run:
 | Corporate | 2 GB | 30 min |
 
 A run that reaches the time limit stops with a message that names the limit,
-for example "script timed out (300s) — the free plan allows 5 min per flow run;
-plus allows 15 min". A run may also write at most 1 GB of files ("script
+for example "script timed out (300s) — the Free plan allows 5 min per flow run;
+Plus allows 15 min". A run may also write at most 1 GB of files ("script
 exceeded the sandbox disk budget (1024 MB written) and was stopped"). A run
 stuck without any sign of life for 40 minutes is marked failed ("[reaper] run
 timed out and was marked failed"), and the project's Activity gets a

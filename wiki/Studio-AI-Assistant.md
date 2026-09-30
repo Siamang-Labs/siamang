@@ -305,7 +305,7 @@ reason:
 
 | Message | What to do |
 |---|---|
-| "the assistant is not included in the <plan> plan — upgrade to Plus" | upgrade |
+| "the assistant is not included in the <Plan> plan — upgrade to Plus", for example "…in the Free plan…" | upgrade |
 | "the assistant is off for this organization — an owner can turn it on in Settings, which also confirms that questionnaire text may be sent to the model provider" | ask the owner |
 | "the assistant is paused for this organization — contact support" | contact support |
 | "the assistant is temporarily unavailable — please try again later" | try later |

@@ -659,7 +659,7 @@ Press **Save changes** (or `Ctrl/Cmd + S`, which works even while you are
 typing in a field). The **Save** dialog explains what will happen — "A new
 version of questionnaire.json and a Save you can deploy, preview or restore
 later." — and asks for a **Message** (optional, placeholder
-`Add charging-access question`, up to 240 characters). `Enter` or **Save**
+`What changed, in a few words`, up to 240 characters). `Enter` or **Save**
 saves.
 
 - With nothing changed the dialog says "No document changed — this Save
