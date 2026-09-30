@@ -167,10 +167,11 @@ In the Inspector, a question's **Question** section has:
 - **Suggest options** (single choice, multiple choice and ranking only), which
   proposes up to **12** answer options in reading order, with a one-line note.
   **Replace options** applies them ("Options you already have keep their
-  codes."). A proposed label that matches an existing one (ignoring case)
-  keeps that option's code, new labels get the lowest free codes, and options
-  not in the proposal are removed. If nothing comes back: "The assistant
-  proposed no options for this question."
+  codes."), including options a question shows from its variable's value
+  labels. A proposed label that matches an existing one (ignoring case) keeps
+  that option's code, new labels get the lowest free codes, and options not in
+  the proposal are removed, with their value labels. If nothing comes back:
+  "The assistant proposed no options for this question."
 - **What to fix (optional)**: a short note for either button, such as "too
   formal" or "add a don't-know option". Keep it under 300 characters.
 
@@ -328,7 +329,7 @@ reason:
 - Use **What to fix** to steer a rewrite. "Make it neutral" or "simpler for
   teenagers" works better than a bare request.
 - After **Replace options**, check the codebook: removed options disappear
-  from the question, and new ones take new codes. On a multiple-choice
+  from the question and from its value labels, and new ones take new codes. On a multiple-choice
   question in the wide layout, each new option also gets its own 0/1
   variable, and a removed option's variable goes.
 - After **Use this draft**, check the theme (it starts from your

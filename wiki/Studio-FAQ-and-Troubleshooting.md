@@ -190,8 +190,9 @@ code, or is labeled `Missing (<code>)`.
 
 **I want one 0/1 column per option of a Multiple choice question.**
 **Options → Data layout → wide** turns the question into one 0/1 variable
-per choice (`brands_1`, `brands_2`, …) and keeps them in step with the
-choices; **array** turns them back into one variable. A published survey
+per choice (`brands_1`, `brands_2`, …; a question whose options come from its
+variable's value labels gets them as its choices first) and keeps them in step
+with the choices; **array** turns them back into one variable. A published survey
 stores each chosen option's variable as `1` and the others as `0` once the
 question is answered (an option hidden by its own condition stays empty),
 exclusive choices such as "None of these" clear the others, and conditions
