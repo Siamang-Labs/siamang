@@ -340,8 +340,13 @@ year offers are described in the Terms of Use; how we handle your data is in
 the Privacy Policy. By continuing you agree to both." With card payments live,
 it says "You'll be taken to Stripe's secure checkout to enter card details.
 The plan activates as soon as the payment completes." and offers **Cancel** and
-**Continue to checkout**. During the trial it says instead when what you buy
-takes effect (dates read like "Oct 3, 2026"):
+**Continue to checkout**. With a Plus subscription already running,
+**Upgrade** on the Pro card opens no checkout page: the subscription itself
+changes plan, and the dialog says "Your Plus subscription switches to Pro now,
+with the card you already entered. The difference for the rest of the current
+billing period is charged today; after that, Pro renews at its monthly
+price." Its button reads **Switch to Pro**. During the trial the dialog says
+instead when what you buy takes effect (dates read like "Oct 3, 2026"):
 
 | Bought during the trial | The dialog says |
 |---|---|
@@ -370,6 +375,9 @@ checkout it answers "Could not open the billing portal. No billing account yet
   subscription bought for after the trial waiting, **Extend Pro** opens a
   dialog whose button reads **Switch to Pro** instead of **Continue to
   checkout**. No payment page opens, and Studio confirms "Plan changed to Pro".
+  The same happens with a Plus subscription running: **Upgrade** on the Pro
+  card opens the **Switch to Pro** dialog, and **Switch to Pro** changes the
+  plan at once.
 - **Buying during the trial** never shortens it: billing starts when the free
   period ends. The exception is the last two days or so of a trial, when
   billing starts right away. **Pro** (a subscription or the Pro year) keeps the
@@ -398,7 +406,9 @@ checkout it answers "Could not open the billing portal. No billing account yet
   *date*; another plan can be bought once it ends"), so its months are never
   lost. Subscribe once it ends.
 - **Switching between Plus and Pro** on an existing subscription takes effect
-  immediately. The difference is charged or credited pro rata.
+  immediately, without a checkout page (from Plus, **Upgrade** on the Pro card
+  opens the **Switch to Pro** dialog). The difference is charged or credited
+  pro rata.
 - **A subscription that has already ended.** If the payment provider has
   already canceled or expired the organization's subscription before Studio
   heard about it, **Upgrade** takes you to a new checkout: Studio drops the

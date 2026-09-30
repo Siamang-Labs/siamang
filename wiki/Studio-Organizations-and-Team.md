@@ -62,17 +62,27 @@ the way it makes a project's (see
 alphabets are spelled in Latin letters (`Réseau Santé` → `reseau-sante`), and
 the slug is 3 to 40 characters. A name with nothing Studio can spell gives
 `organization`. A slug shorter than 3 characters, or made of exactly 12 hex
-digits (the shape of a survey id), gets `-org` added, and one that an
-organization you belong to already has gets `-2`, `-3` and so on.
+digits (the shape of a survey id), gets `-org` added. Slugs are unique across
+Studio, so when you pause typing, Studio checks the slug with the server
+before it shows it — the line reads "Checking the address…" until then — and
+a slug that another organization already has, yours or anyone else's, gets
+`-2`, `-3` and so on. If the server does not answer within a few seconds, the
+line shows the slug without the check; if it turns out to be taken, the
+dialog says so when you click **Create** (see below).
 
 Click **Create** ("Creating…"). Studio switches to the new organization, opens
-its **Projects** tab and confirms "Organization *name* created". You are the
-owner of a **cooperative** organization on the **Free** plan. A new
-organization created this way gets no trial: the Pro trial comes once per
-email address, with the organization you got at sign-up. Organization slugs
-are unique across Studio; if another organization already has the address, you
-see "Could not create organization. Org slug already taken." Choose a
-different name.
+its **Projects** tab and confirms "Organization *name* created". The
+organization gets exactly the address the line showed. You are the owner of a
+**cooperative** organization on the **Free** plan. A new organization created
+this way gets no trial, so the topbar shows no trial pill in it: the Pro trial
+comes once per email address, with the organization you got at sign-up.
+
+In the rare case that another organization takes the address after the line
+showed it and before you click **Create**, the dialog stays open and says so
+at once — "/acme-research was just taken by another organization. Checking the
+next address…" — then shows the next free address: "Its address will be
+/acme-research-2 — it cannot be changed later." A screen reader reads both
+sentences out. Click **Create** again.
 
 Organizations cannot be deleted from the app in the beta. Write to
 `info@siamang-team.org`.

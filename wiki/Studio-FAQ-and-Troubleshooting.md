@@ -61,8 +61,10 @@ workspace chip. → [[Organizations and Team|Studio-Organizations-and-Team]]
 
 **How do I create a second organization?**
 Open the workspace chip in the topbar and choose **Create organization** (the
-**Organizations** screen has the same button). The new organization starts on
-the **Free** plan with you as its owner — the Pro trial comes once per email
+**Organizations** screen has the same button). The dialog shows the address
+the organization will get, checked with the server so that it is free. The
+new organization starts on the **Free** plan with you as its owner, and the
+topbar shows no trial pill in it — the Pro trial comes once per email
 address, with the organization you got at sign-up.
 → [Creating another organization](Studio-Organizations-and-Team#creating-another-organization)
 
