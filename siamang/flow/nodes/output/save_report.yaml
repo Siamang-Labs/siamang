@@ -39,7 +39,7 @@ params:
   theme:
     kind: theme
     label: Look
-    help: Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). The Markdown's text is unaffected.
+    help: Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). Its p_values says how the report writes a p-value — exact, as computed (the default); 0.01, one below 0.01 as < 0.01; or 0.001, one below 0.001 as < 0.001 — in its tables' cells and statistics lines, the Markdown as the HTML, the Excel workbook (a number format, so the cell keeps its number) and the charts' notes (< .01); the results and their exports keep the exact p. Otherwise the Markdown's text is unaffected.
 subtitle: '{path}'
 checks:
 - when: interactive=True & html=False

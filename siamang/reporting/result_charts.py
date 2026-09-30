@@ -75,7 +75,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from siamang.reporting import chart_theme, result_specs
+from siamang.reporting import chart_theme, p_values, result_specs
 from siamang.reporting.charts import SurveyChart, _require_matplotlib, plt, sns
 
 __all__ = [
@@ -1320,7 +1320,7 @@ def _no_interval() -> Any:
 
 def _draw_ttest(table: Any, chart: ResultChart) -> str:
     from siamang.data.intervals import t_interval
-    from siamang.reporting.tables import _get_label, stat_text
+    from siamang.reporting.tables import _get_label, stat_item
 
     frame = table.to_frame()
     first = str(frame.columns[0])
@@ -1357,7 +1357,7 @@ def _draw_ttest(table: Any, chart: ResultChart) -> str:
     if stats.get("Mean difference") is not None and stats.get(ci):
         note = (
             f"{stats['Test']}: difference {stats['Difference']} = {stats['Mean difference']} "
-            f"({ci} {stats[ci]}), p = {stat_text(stats['p'])}"
+            f"({ci} {stats[ci]}), {stat_item('p', stats['p'])}"
         )
         if table.kind == "one_sample":
             note += f"; the line is the test value, {table.mu:g}"
@@ -1424,13 +1424,14 @@ def _draw_paired(table: Any, chart: ResultChart) -> str:
 
 
 def _test_line(stats: dict[str, Any]) -> str:
-    """The test and its p as the table's footer prints them, or why there is none."""
-    from siamang.reporting.tables import stat_text
+    """The test and its p as the table's footer prints them, or why there is
+    none — below the report's threshold ``p < 0.01`` (ReportTheme.p_values)."""
+    from siamang.reporting.tables import stat_item
 
     test = stats.get("Test", "the test")
     if stats.get("p") is None:
         return f"{test}: {stats.get('Note', 'not run')}"
-    return f"{test}, p = {stat_text(stats['p'])}"
+    return f"{test}, {stat_item('p', stats['p'])}"
 
 
 def _draw_mcnemar(table: Any, chart: ResultChart) -> str:
@@ -2489,10 +2490,11 @@ def _cell_text(values: np.ndarray, p: np.ndarray, i: int, j: int) -> str:
 
 
 def _p_text(p: float) -> str:
-    """A p-value as APA writes one: .012, < .001."""
+    """A p-value as APA writes one: .012, < .001 — below the report's
+    threshold ``< .01`` (ReportTheme.p_values)."""
     if p != p:
         return "not computed"
-    return "< .001" if p < 0.001 else f"{p:.3f}".replace("0.", ".", 1)
+    return p_values.apa(p)
 
 
 def _marks(p: float) -> str:

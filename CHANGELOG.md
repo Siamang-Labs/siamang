@@ -861,6 +861,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`siamang.io.excel_text`): a label, an answer or a banner name that begins
   with `=` is never a formula, and its links quote a sheet's name.
 
+- **A report can write small p-values as "< 0.01" or "< 0.001".** A report's
+  theme takes `p_values`: `exact` (the default: a p as it is kept, `0.0123`,
+  `1.134e-24`, byte for byte what reports wrote before), `0.01` (one below
+  0.01 written `< 0.01`) or `0.001` (one below 0.001 written `< 0.001`),
+  checked like the theme's other choices (a number, `0.01`, is taken as its
+  name). One setting governs the whole report: the cells of every column that
+  holds p-values (`p`, `p (Holm)`, `p adjusted`, `Beta p`, `p_value` …) and
+  every statistics line (`p < 0.01`, `Bartlett p < 0.001` — a table's footer,
+  a statistics mapping given to `Report.add`, which is now written when the
+  report is rendered, and a `p = …` the engine wrote into a sentence), in the
+  Markdown as in the HTML; the Excel workbook of its tables, whose cells keep
+  their numbers under the format `[<0.01]"< 0.01";General`; and the charts'
+  notes and tooltips in their APA style (`< .01`), a chart drawn at its node
+  being drawn again in the report's setting as it is for the chart colors.
+  Tukey's and Games-Howell's floor (`< 1e-07`) becomes the bound too. A table
+  rendered outside a report writes p as kept unless given a theme
+  (`to_markdown(theme=...)`, `to_html(theme=...)`), and the results, frames,
+  `stats` and exports always keep the exact p. The Save report node's Look
+  (`theme`) takes it (`{"p_values": "0.01"}`), and `check_flow` names a value
+  it does not know. The sample report shows a statistics line with a p.
+
 - **A transport can say why the answers were not sent.** An error thrown by a
   transport's `submit()` may carry `respondentMessage`, a sentence or two for
   the respondent — why the answers did not go, and what they can do about it —

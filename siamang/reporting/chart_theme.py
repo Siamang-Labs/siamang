@@ -795,30 +795,52 @@ def palette_for(name: Any, levels: Sequence[Any]) -> Any:
 def in_report(chart: Any, theme: ReportTheme | None) -> Any:
     """``chart`` as a report in ``theme`` shows it.
 
-    A chart that does not read the theme is itself. One that does is drawn in
-    the report theme's colors: built in them when it has not been drawn yet,
-    else — drawn at its node in other colors — a copy drawn from its
-    parameters, which is kept on the chart for the report's next rendering
-    (its Markdown, then its HTML). The report renders the copy and releases
-    its figure (``SurveyChart.release``), so what is kept is its picture, not
-    an open figure: closing a figure does not free it while something still
-    refers to it.
+    A chart is shown as it was drawn unless ``theme`` would draw it otherwise:
+    one that reads the theme is drawn in the report theme's colors, and one
+    that writes a p-value in its notes writes it as the theme's ``p_values``
+    asks (:mod:`siamang.reporting.p_values`). Such a chart is built in them
+    when it has not been drawn yet, else — drawn at its node in others — a
+    copy is drawn from its parameters, which is kept on the chart for the
+    report's next rendering (its Markdown, then its HTML). The report renders
+    the copy and releases its figure (``SurveyChart.release``), so what is
+    kept is its picture, not an open figure: closing a figure does not free it
+    while something still refers to it.
     """
 
-    if not reads_theme(chart):
+    from siamang.reporting import p_values
+
+    colours = reads_theme(chart)
+    wanted = theme_colours(theme) if colours else None
+    mode = p_values.mode_of(theme)
+
+    def fits(candidate: Any) -> bool:
+        written = getattr(candidate, "_p_drawn_with", "")
+        return (not colours or getattr(candidate, "_drawn_with", None) == wanted) and (
+            not written or written == mode
+        )
+
+    drawn = (
+        getattr(chart, "_fig", None) is not None
+        or bool(getattr(chart, "_pngs", None))
+        or getattr(chart, "_drawn_with", None) is not None
+        or getattr(chart, "_p_drawn_with", None) is not None
+    )
+    if not drawn:
+        # Drawn in them when it is drawn: now, for its colors, else when the
+        # report writes it out.
+        chart._p_values = mode
+        if colours:
+            chart._colours = wanted
+            chart._ensure_built()
         return chart
-    wanted = theme_colours(theme)
-    if getattr(chart, "_fig", None) is None and getattr(chart, "_drawn_with", None) is None:
-        chart._colours = wanted
-        chart._ensure_built()
-        return chart
-    if getattr(chart, "_drawn_with", None) == wanted:
+    if fits(chart):
         return chart
     kept = getattr(chart, "_redrawn", None)
-    if kept is not None and kept._drawn_with == wanted:
+    if kept is not None and fits(kept):
         return kept
     copy = dataclasses.replace(chart)
     copy._colours = wanted
+    copy._p_values = mode
     copy._ensure_built()
     chart._redrawn = copy
     return copy

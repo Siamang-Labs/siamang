@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="siamang-report-theme" content="academic">
+<title>P values</title>
+<style>
+/* ── siamang report ─────────────────────────────────────────────────── */
+:root {
+  --report-width: 720px;
+  --report-font-size: 15.5px;
+  --report-line-height: 1.6;
+  --report-body-font: "Source Serif 4", "Charter", Georgia, "Times New Roman", serif;
+  --report-heading-font: "Source Serif 4", "Charter", Georgia, serif;
+  --report-mono-font: "JetBrains Mono", "Menlo", "Consolas", monospace;
+  --report-text: #1a1a1a;
+  --report-muted: #5a5a5a;
+  --report-border: #d9d9de;
+  --report-accent: #2c5f8a;
+  --report-bg: #ffffff;
+  --report-block-gap: 20px;
+  --report-cell-pad: 5px 10px;
+  --report-table-font-size: 0.87em;
+  --report-figure-width: 100%;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--report-bg);
+  color: var(--report-text);
+  font-family: var(--report-body-font);
+  font-size: var(--report-font-size);
+  line-height: var(--report-line-height);
+  -webkit-text-size-adjust: 100%;
+}
+.siamang-report {
+  max-width: var(--report-width);
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+}
+.siamang-report > * + * { margin-top: var(--report-block-gap); }
+h1, h2, h3, h4 {
+  font-family: var(--report-heading-font);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 { font-size: 1.8em; }
+h2 { font-size: 1.35em; }
+h3 { font-size: 1.12em; }
+h4 { font-size: 1em; }
+.siamang-report > h2 { margin-top: calc(var(--report-block-gap) * 1.8); }
+p { margin: 0; text-wrap: pretty; }
+a { color: var(--report-accent); }
+code, pre, .siamang-stats { font-family: var(--report-mono-font); font-size: 0.9em; }
+blockquote {
+  margin: 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--report-border);
+  color: var(--report-muted);
+}
+hr { border: 0; border-top: 1px solid var(--report-border); }
+ul, ol { margin: 0; padding-left: 1.4em; }
+li + li { margin-top: 4px; }
+/* The table of contents `Report.combine` writes, and the provenance footer. */
+.siamang-report h2#contents + ul { list-style: none; padding-left: 0; }
+
+table { border-collapse: collapse; font-size: var(--report-table-font-size); }
+th, td { padding: var(--report-cell-pad); border: 0; }
+thead th { border-bottom: 1.5px solid var(--report-text); font-weight: 600; text-align: left; }
+thead tr:first-child th { border-top: 1.5px solid var(--report-text); }
+tbody tr:last-child td { border-bottom: 1.5px solid var(--report-text); }
+
+tbody td:not(:first-child), thead th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.siamang-figure {
+  margin: 0 auto;
+  margin-top: var(--fig-space, 0);
+  width: var(--fig-w, var(--report-figure-width));
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.siamang-figure img { width: 100%; height: auto; }
+.siamang-figure[data-align="left"] { margin-right: auto; margin-left: 0; }
+.siamang-figure[data-align="center"] { margin-left: auto; margin-right: auto; }
+.siamang-figure[data-align="right"] { margin-left: auto; margin-right: 0; }
+.siamang-figcaption, .siamang-stats {
+  margin: 0;
+  color: var(--report-muted);
+  font-size: 0.87em;
+  line-height: 1.45;
+}
+.siamang-number { color: var(--report-text); font-weight: 600; }
+/* The `margin` above sets the sides; the space above a figure is the gap every
+   other block has, or the item's own (`space_before`). Without this the
+   shorthand zeroed it, and a table sat flush under the caption before it. */
+.siamang-report > * + .siamang-figure { margin-top: var(--fig-space, var(--report-block-gap)); }
+/* Narrow figures that follow one another share a row (Report.to_html groups
+   them): as many as fit on a line, the rest wrap under them. The gutter
+   between them is padding inside each, and the row reaches half a gutter past
+   the column on either side, so a figure's width is a share of the line and
+   two at 48% or a 66% and a 33% fit with the gap between them. */
+.siamang-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: var(--report-block-gap);
+  margin-left: calc(var(--report-block-gap) / -2);
+  margin-right: calc(var(--report-block-gap) / -2);
+}
+.siamang-report > * + .siamang-row { margin-top: var(--fig-space, var(--report-block-gap)); }
+.siamang-row[data-align="center"] { justify-content: center; }
+.siamang-row[data-align="right"] { justify-content: flex-end; }
+.siamang-row > .siamang-figure {
+  margin: 0;
+  flex: 0 0 var(--fig-w, var(--report-figure-width));
+  padding: 0 calc(var(--report-block-gap) / 2);
+}
+/* A table that needs more than its share takes what it needs and wraps
+   rather than run over its neighbor. A chart does not: a picture scales, and
+   an interactive one is redrawn to the width it is given — held at the width
+   it was first drawn at, it could never be drawn narrower. */
+.siamang-row > .siamang-figure:has(table) { min-width: min-content; }
+/* On a phone each takes the whole width: a half of 360px is too narrow to
+   read a table in. */
+@media (max-width: 480px) {
+  .siamang-row > .siamang-figure { flex-basis: 100%; }
+}
+
+@media print {
+  body { background: #fff; }
+  .siamang-report { max-width: none; padding: 0; }
+  table, figure, img, blockquote, pre { break-inside: avoid; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  pre { overflow: visible; white-space: pre-wrap; word-break: break-word; }
+  .siamang-break { break-before: page; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main class="siamang-report">
+<h1>P values</h1>
+<h2 id="tests">Tests</h2>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>region</th>
+      <th>gender</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th></th>
+      <td>1</td>
+      <td>30</td>
+      <td>10</td>
+      <td>10</td>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th></th>
+      <td>2</td>
+      <td>10</td>
+      <td>30</td>
+      <td>30</td>
+      <td>70</td>
+    </tr>
+    <tr>
+      <th></th>
+      <td>Total</td>
+      <td>40</td>
+      <td>40</td>
+      <td>40</td>
+      <td>120</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>χ² = 27.429; df = 2; p < 0.001; Cramér's V = 0.478; N = 120</p>
+<figcaption class="siamang-figcaption">Crosstab</figcaption>
+</figure>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>region</th>
+      <th>Mean</th>
+      <th>SD</th>
+      <th>Median</th>
+      <th>N</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>1.89</td>
+      <td>0.729</td>
+      <td>1.85</td>
+      <td>40</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>2.427</td>
+      <td>0.747</td>
+      <td>2.45</td>
+      <td>40</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>2.853</td>
+      <td>0.789</td>
+      <td>2.85</td>
+      <td>40</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>Test = One-way ANOVA; F = 16.347; df = 2, 117; p < 0.001; η² = 0.218; Post-hoc = Tukey HSD: 3 of 3 pairs differ at p < 0.05; N = 120; Variable = other</p>
+<caption>Post-hoc: Tukey HSD</caption>
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Pair</th>
+      <th>Difference</th>
+      <th>95% CI low</th>
+      <th>95% CI high</th>
+      <th>q</th>
+      <th>p</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1 vs 2</td>
+      <td>-0.537</td>
+      <td>-0.937</td>
+      <td>-0.136</td>
+      <td>4.495</td>
+      <td>0.0053</td>
+    </tr>
+    <tr>
+      <td>1 vs 3</td>
+      <td>-0.963</td>
+      <td>-1.364</td>
+      <td>-0.563</td>
+      <td>8.069</td>
+      <td>&lt; 0.001</td>
+    </tr>
+    <tr>
+      <td>2 vs 3</td>
+      <td>-0.427</td>
+      <td>-0.827</td>
+      <td>-0.026</td>
+      <td>3.574</td>
+      <td>0.0341</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>Method = Tukey HSD; Groups = region; Difference = mean of the first group minus the second; p = adjusted for the number of pairs by the method itself</p>
+<figcaption class="siamang-figcaption">Group means</figcaption>
+</figure>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>gender</th>
+      <th>N</th>
+      <th>Mean</th>
+      <th>SD</th>
+      <th>SE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>50</td>
+      <td>2.416</td>
+      <td>0.997</td>
+      <td>0.141</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>70</td>
+      <td>3.069</td>
+      <td>0.903</td>
+      <td>0.108</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>Test = Welch's t-test (unequal variances); t = -3.676; df = 99.12; p < 0.001; Mean difference = -0.653; Difference = 1 − 2; 95% CI = -1.005 – -0.300; Cohen's d = -0.692; Hedges' g = -0.688; N = 120; Variable = score</p>
+<figcaption class="siamang-figcaption">t-test</figcaption>
+</figure>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Variable 1</th>
+      <th>Variable 2</th>
+      <th>r</th>
+      <th>p</th>
+      <th>p (Holm)</th>
+      <th>N</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>score</td>
+      <td>other</td>
+      <td>0.608</td>
+      <td>&lt; 0.001</td>
+      <td>&lt; 0.001</td>
+      <td>120</td>
+    </tr>
+    <tr>
+      <td>score</td>
+      <td>noise</td>
+      <td>0.013</td>
+      <td>0.8842</td>
+      <td>1.0</td>
+      <td>120</td>
+    </tr>
+    <tr>
+      <td>other</td>
+      <td>noise</td>
+      <td>0.025</td>
+      <td>0.7841</td>
+      <td>1.0</td>
+      <td>120</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>Method = Pearson correlation; Missing = pairwise: each pair uses everyone who answered both; N = 120; p adjustment = Holm, over 3 pairs</p>
+<figcaption class="siamang-figcaption">Correlations</figcaption>
+</figure>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Estimate</th>
+      <th>SE</th>
+      <th>t</th>
+      <th>p</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>(Intercept)</td>
+      <td>1.097</td>
+      <td>0.244</td>
+      <td>4.49</td>
+      <td>&lt; 0.001</td>
+    </tr>
+    <tr>
+      <td>other</td>
+      <td>0.713</td>
+      <td>0.086</td>
+      <td>8.27</td>
+      <td>&lt; 0.001</td>
+    </tr>
+    <tr>
+      <td>noise</td>
+      <td>-0.002</td>
+      <td>0.078</td>
+      <td>-0.03</td>
+      <td>0.9792</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>Model = Linear (OLS); Outcome = score; N = 120; R² = 0.3692; Adjusted R² = 0.3584; Residual SE = 0.795</p>
+<figcaption class="siamang-figcaption">Regression</figcaption>
+</figure>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Driver</th>
+      <th>Beta</th>
+      <th>Beta p</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>other</td>
+      <td>0.91</td>
+      <td>&lt; 0.001</td>
+    </tr>
+    <tr>
+      <td>noise</td>
+      <td>0.02</td>
+      <td>0.4121</td>
+    </tr>
+  </tbody>
+</table>
+<p class='siamang-stats'>Bartlett p < 0.001; Fit p = 0.2311</p>
+<figcaption class="siamang-figcaption">Drivers</figcaption>
+</figure>
+<figure class="siamang-figure" data-align="center">
+<table class="dataframe siamang-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>term</th>
+      <th>p_value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>a</td>
+      <td>&lt; 0.001</td>
+    </tr>
+    <tr>
+      <td>b</td>
+      <td>0.0345679</td>
+    </tr>
+  </tbody>
+</table>
+<figcaption class="siamang-figcaption">Bare</figcaption>
+</figure>
+<p><em>Kruskal-Wallis</em>: statistic = 12.5; p_value = 0.00193; n = 120</p>
+<p><em>Proportion</em>: p = 0.004; lower = 0.001; upper = 0.012; n = 250</p>
+<p><em>Pairs</em>: posthoc = Dunn; 1 vs 3 = z = -3.108, p = 0.0057</p>
+</main>
+</body>
+</html>

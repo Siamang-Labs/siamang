@@ -424,9 +424,16 @@ by `check_flow`, so a misspelled field or a width like `"wide"` is named before
 the run rather than raised inside it, and both reach only the **HTML**: the
 Markdown is the report's content and carries no layout — except the theme's
 chart colors, which color the report's charts of palette `theme` in the
-Markdown's figures and the HTML's alike. `check_flow` names a bad one as
+Markdown's figures and the HTML's alike, and its **`p_values`** (`exact`, the
+default; `0.01`; `0.001`): how the report writes a p-value, one below the
+threshold as `< 0.01` in every table's cells and statistics line, in the
+Markdown as in the HTML, in the Excel workbook (a number format, the cell
+keeping its number) and in the charts' notes (`< .01`), the results keeping
+the exact p (reporting reference §1b, *P values*). `{"p_values": "0.01"}` is
+written into the script as it is (`theme={"p_values": "0.01"}`). `check_flow` names a bad one as
 `PARAM_INVALID` (`Parameter 'theme' of save: chart_palette: 'purple' is not a
-hex color such as '#2a78d6'.`, `… chart_text_color: '#cccccc' on the charts'
+hex color such as '#2a78d6'.`, `… p_values: '0.05' is not one of exact, 0.01,
+0.001.`, `… chart_text_color: '#cccccc' on the charts'
 white background has a contrast of 1.6:1; text needs at least 4.5:1.`). A flow that names no
 theme leaves `SIAMANG_REPORT_THEME` to answer.
 

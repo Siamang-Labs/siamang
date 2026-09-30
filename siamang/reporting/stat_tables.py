@@ -22,6 +22,7 @@ import pandas as pd
 
 from siamang.data import inference
 from siamang.data.listwise import round_p
+from siamang.reporting import p_values
 from siamang.reporting.tables import (
     SurveyTable,
     _BlankUndefined,
@@ -248,14 +249,22 @@ class PostHocTable(_BlankUndefined, SurveyTable):
             stats["Weight"] = note
         self._stats = stats
 
-    def to_markdown(self) -> str:
-        return f"**{self.title}**\n\n" + super().to_markdown()
+    def to_markdown(self, *, theme: Any = None) -> str:
+        return f"**{self.title}**\n\n" + super().to_markdown(theme=theme)
 
-    def to_html(self) -> str:
-        html = frame_to_html(self._printable(), caption=self.title)
-        if self._stats:
-            html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
+    def to_html(self, *, theme: Any = None) -> str:
+        with p_values.showing(theme):
+            html = frame_to_html(self._shown(self._printable()), caption=self.title)
+            if self._stats:
+                html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
         return html
+
+    def _footer(self) -> dict[str, Any]:
+        # Below the report's threshold every p is written as its bound, so the
+        # floor of Tukey's and Games-Howell's p is never shown: its clause goes.
+        if p_values.limit() is None or not isinstance(self._stats.get("p"), str):
+            return self._stats
+        return {**self._stats, "p": self._stats["p"].split("; ")[0]}
 
 
 # ─── Crosstab with Fisher's exact test ───────────────────────────────────────
@@ -598,6 +607,11 @@ class CorrelationMatrixTable(_BlankUndefined, SurveyTable):
         """The numbers behind the table: coefficients, p, adjusted p and N."""
         self._ensure_built()
         return self._matrix
+
+    def _p_columns(self) -> list[Any]:
+        # The matrix's columns are the variables, by their labels, holding a
+        # coefficient with its marks; the pairs have their p columns.
+        return super()._p_columns() if self.layout == "pairs" else []
 
     def _build(self) -> None:
         if self.layout not in ("matrix", "pairs"):

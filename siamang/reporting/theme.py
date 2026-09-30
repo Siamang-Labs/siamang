@@ -25,6 +25,7 @@ from dataclasses import dataclass, fields
 from typing import Any
 
 from siamang.reporting import chart_theme
+from siamang.reporting import p_values as p_display
 
 # ─── presets ─────────────────────────────────────────────────────────────────
 # The stacks are the questionnaire's own (frontend.theme.ui_config.FONT_PRESETS),
@@ -133,6 +134,16 @@ class ReportTheme:
     table_label: str = "Table"
     figure_label: str = "Figure"
 
+    # ── statistics ───────────────────────────────────────────────────
+    # How the report writes a p-value (siamang.reporting.p_values): "exact",
+    # as it is kept (0.0123, 1.134e-24); "0.01" writes one below 0.01 as
+    # "< 0.01" and "0.001" one below 0.001 as "< 0.001" — in the tables'
+    # cells and statistics lines, the Markdown as the HTML, the Excel
+    # workbook (a number format: the cell keeps its number) and the charts'
+    # notes ("< .01" in their APA style). The p-values themselves, in the
+    # results, frames and exports, are never changed.
+    p_values: str = "exact"  # exact | 0.01 | 0.001
+
     # ── charts ───────────────────────────────────────────────────────
     # The colors and the face of every chart whose palette is "theme"
     # (siamang.reporting.chart_theme) — and of no other, so a chart that names
@@ -158,6 +169,12 @@ class ReportTheme:
         # to itself read back.
         for name in ("chart_palette", "chart_diverging"):
             object.__setattr__(self, name, chart_theme.colours_of(getattr(self, name)))
+        # A threshold may arrive as the number it is (0.01 from a JSON file);
+        # the theme holds its name, so it stays equal to itself read back.
+        threshold = self.p_values
+        if isinstance(threshold, int | float) and not isinstance(threshold, bool):
+            named = {float(mode): mode for mode in p_display.MODES if mode != "exact"}
+            object.__setattr__(self, "p_values", named.get(float(threshold), threshold))
         _validate(self)
 
     @property
@@ -275,6 +292,7 @@ _ENUMS: dict[str, tuple[str, ...]] = {
     "table_width": _TABLE_WIDTHS,
     "figure_align": _ALIGNMENTS,
     "caption_position": _CAPTION_POSITIONS,
+    "p_values": p_display.MODES,
 }
 _LENGTHS = (
     "width",
@@ -527,6 +545,8 @@ def sample_report(theme: ReportTheme | None = None) -> Any:
         ),
         caption="Satisfaction by region (%)",
     )
+    # A statistics line with a p-value, so the theme's p_values shows.
+    report.add({"χ²": 17.62, "df": 4, "p": 0.0015, "Cramér's V": 0.085}, caption="Test")
     report.note("Base: n = 1 204 respondents who answered both questions.")
     report.heading("Method")
     report.text(
