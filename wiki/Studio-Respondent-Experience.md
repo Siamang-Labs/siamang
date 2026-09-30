@@ -90,10 +90,13 @@ Things your consent text should reflect (details below):
 └────────────────────────────────────────────────┘
 ```
 
-**Navigation.** **← Previous** and **Next section →** move between pages; on
-the last page the button reads **Submit responses**. With **Allow going back**
-turned off (Builder → Theme → Respondent experience), there is no Previous
-button.
+**Navigation.** **← Previous** and **Next section →** move between pages. On
+the last page, when it has questions, the button reads **Submit responses**.
+When an end page (Final, Screen-out or Redirect) comes after the last
+question page, as it does in every template, the last question page shows
+**Next section →**, and reaching the end page submits the response. With
+**Allow going back** turned off (Builder → Theme → Respondent experience),
+there is no Previous button.
 
 **Required questions.** Moving on with a required question unanswered shows
 "This question requires an answer." under it and scrolls to it. A required
@@ -218,8 +221,8 @@ week**.
 
 ## Submitting
 
-On the last page, **Submit responses** shows "Submitting your responses…".
-Then the thank-you page:
+**Submit responses**, or reaching an end page, shows "Submitting your
+responses…". Then the thank-you page:
 
 ```
 ✓  Thank you for participating
@@ -242,8 +245,10 @@ Then the thank-you page:
   in a withdrawal or erasure request: ask them to note it, and see
   [Finding a respondent](Studio-Responses-and-Data#finding-a-respondent).
 - If the survey redirects on completion (for example back to a panel), the
-  page adds "You will be redirected in 5 seconds. Click here if not
-  redirected."
+  thank-you page after **Submit responses** adds "You will be redirected in 5
+  seconds. Click here if not redirected." An end page that redirects says
+  "Redirecting you now. Continue if you are not redirected." instead (see
+  [Ending on a special page](#ending-on-a-special-page)).
 - After completing, the same browser can start the survey again as a **new**
   respondent — unless the environment has
   [One response per browser](Studio-Distribution-Channels#one-response-per-browser)

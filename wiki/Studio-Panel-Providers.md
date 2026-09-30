@@ -109,7 +109,7 @@ is filled in and `{answer:…}` / `{label:…}` are removed.
 
 | How the interview ends | Where the respondent goes | After |
 |---|---|---|
-| submits the last page | **Completed → return URL** | 5 seconds ("You will be redirected in 5 seconds. Click here if not redirected.") |
+| presses **Submit responses** on the last page (a page with questions and no end page after it) | **Completed → return URL** | 5 seconds ("You will be redirected in 5 seconds. Click here if not redirected.") |
 | reaches a **Final (thank you)** page | the **Completed** URL | 5 seconds |
 | reaches a **Screen-out** page | the **Screened out** URL | 5 seconds |
 | reaches a **Redirect** page | the page's own **Redirect URL** (the **Completed** URL if the page has none) | the page's **Delay (s)**, 5 by default |

@@ -85,7 +85,7 @@ when you switch projects, and while a colleague's edits are shown to you.
 | `Ctrl/Cmd + S` | open the **Save** dialog | works while typing; does nothing while following |
 | `Ctrl/Cmd + Enter` | **Run to here** on the selected node; with nothing selected, preview the whole flow | works while typing and in every view (Canvas, List, Report) |
 | `Delete` / `Backspace` | delete the selected node | |
-| `Ctrl/Cmd + D` | duplicate the selected node | |
+| `Ctrl/Cmd + D` | duplicate the selected node, with the same wires into it and none out of it | |
 | `Ctrl/Cmd + Z` | undo | |
 | `Shift + Ctrl/Cmd + Z` | redo | `Ctrl/Cmd + Y` does not redo on flows |
 | double-click a node | select it and **Run to here** | Canvas view |
