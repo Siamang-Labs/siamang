@@ -3098,7 +3098,7 @@ table, a chart or a statistic — as a tile on the **Live** screen. See
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Kind** | choice | `number` | `number`, `table`, `chart`, `stat`, `text` | How the tile shows the value: `number`, `table`, `chart`, `stat` or `text`. |
-| **Label** | text | required | — | The tile's caption on the Live screen. |
+| **Label** | text | required | — | The tile's caption on the Live screen, shown in capitals; a statistic's symbol — a Greek letter on its own, with any index written onto it (the χ² of "χ² test", ηp²) — keeps its case. |
 | **Show** | choice | `value` | `value`, `rows` | rows: the number of respondents in the data connected. |
 
 - Tiles are published by every run of the flow (a manual run, a scheduled
@@ -3119,7 +3119,8 @@ table, a chart or a statistic — as a tile on the **Live** screen. See
   **Scatter plot**, or a **Box plot** with outliers or **Show points**, as
   its picture only. See [Interactive chart tiles](Studio-Live-Monitoring#interactive-chart-tiles).
 - A tile's size on the Live screen is not set from the canvas; tiles appear at
-  the standard size.
+  the standard size; on a phone a chart tile takes the whole row at its own
+  height.
 
 ### Report section
 
