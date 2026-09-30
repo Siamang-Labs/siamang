@@ -494,6 +494,13 @@ and the other flows, **Run all** and previews work — in Run all it fails with
 to run: open it, fix its errors and save". Press **Check**, fix what it
 lists and **Save**. → [A flow with errors](Studio-Flows#a-flow-with-errors)
 
+**"edges/N/from: Additional properties are not allowed ('title', 'type' were unexpected)".**
+An earlier version of Studio saved an output added with **+ Add output** in
+the **Report** view in a form the engine rejects. Open the flow: Studio
+repairs its connections and says "Studio repaired this flow's connections."
+Click **Save changes**, and the flow runs again.
+→ [A flow with errors](Studio-Flows#a-flow-with-errors)
+
 **In what order does Run all run my flows?**
 In dependency order: a flow that reads a table another flow writes (through a
 **Project table** node, or a **Responses** node set to that table) runs after
