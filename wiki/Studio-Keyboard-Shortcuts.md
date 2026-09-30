@@ -16,14 +16,23 @@ on macOS and `Ctrl` elsewhere.
 | `Tab` (first press on a page) | shows **Skip to content**; press `Enter` to jump past the topbar and tabs to the screen itself |
 | `Tab` / `Shift + Tab` | move between controls |
 | `Enter` or `Space` | activate a focused row or card that opens something (a Save in History, a list row) |
-| `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, the **⋮** menu of a row in the flows table, the Builder's **Library** menu and its menu for adding a question, the Data export menu |
+| `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, the **⋮** menu of a row in the flows table, the Builder's **Library** menu and its menu for adding a question, the Data export menu; the focus goes back to the button that opened it |
+| `↑` / `↓`, `Home` / `End` in an open menu | move through its items (the menu takes the focus when it opens): the account menu, the organization/project switcher, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu |
+| `Tab` in an open menu | close the menu and move on to the next control |
+| `←` / `→`, `Home` / `End` on a focused tab | switch tabs in **Organization settings**, **Profile settings**, **Project settings** and a Save in **History**; `Tab` then moves into the tab's content |
+
+Messages at the foot of the screen are read out by a screen reader as they
+appear. A confirmation goes after a few seconds; an error stays until you
+dismiss it with its ✕ (**Dismiss**), or until the next message takes its
+place, never sooner than you can read it. While the pointer rests on a
+message, or the focus is on its **Dismiss** button, it stays where it is.
 
 ## Dialogs
 
 | Keys | Action |
 |---|---|
-| `Esc` | close the dialog without doing anything |
-| `Tab` / `Shift + Tab` | move between the dialog's controls; focus stays inside the dialog and wraps around |
+| `Esc` | close the dialog without doing anything; clicking outside it does the same; either way the focus goes back to what opened it |
+| `Tab` / `Shift + Tab` | move between the dialog's controls; focus stays inside the dialog and wraps around. A group of radio buttons, such as **Start from** in **New project**, is one stop: the arrow keys choose within it |
 | `Enter` | submit, in these fields: **Name** in **New project** (Create) · **Organization name** in **Create organization** (Create) · **Title** in **New flow** (Open canvas) · **Name** in **Rename *flow*** and **Duplicate *flow*** (Rename / Duplicate) · **Message** in **Save** (Save; not while a conflict is shown) · **Email** in **Invite member** (Send invite) · **Value** in **Add secret** (Add secret) · **Name** in **Save … to library** (Save to library) |
 | `↓` on the template picker, then `↑` / `↓` | open the template list in **New project**, then move through the templates |
 | `Esc` in the template list | close the list (not the dialog) |
@@ -31,6 +40,9 @@ on macOS and `Ctrl` elsewhere.
 
 Other dialogs (for example **Deposit**, **Connect …**, **Schedule a run**,
 **Upload file**) have no `Enter` shortcut; use their buttons.
+
+A dialog opens with the focus in its first field, so you can type at once; a
+dialog that only asks you to confirm takes the focus itself.
 
 ## Other fields with Enter
 
@@ -108,7 +120,8 @@ The picker's footer repeats this: "↑ ↓ choose · Enter adds · Esc closes".
 |---|---|
 | `Enter` in **Filter loaded rows…** | search **every** row of the table on the server, not only the loaded ones (the same as **Search all rows**) |
 | `Enter` or `Space` on a focused column header | sort the loaded rows by that column |
-| `Esc` | close the export menu |
+| `↑` / `↓`, `Home` / `End` in the export menu | move through the formats; `Enter` exports |
+| `Esc` | close the export menu; the focus goes back to **Export** |
 
 ## Panels and resizers
 

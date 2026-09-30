@@ -42,7 +42,8 @@ part of any Save.
 
 If you switch tabs with an unsaved name, Studio asks **Discard unsaved
 changes?** — "The General tab has unsaved changes. Switching tabs discards
-them." — with **Discard**.
+them." — with **Discard**. If you choose **Discard**, the tab you switched to
+opens and has the focus; **Cancel** keeps you, and the focus, on **General**.
 
 ### Study & citation
 
