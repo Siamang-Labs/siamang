@@ -379,6 +379,13 @@ to owners and admins.
 | [Integrations](#integrations) | AI assistant, webhooks |
 | [Activity](#activity) | the organization's audit log (owners and admins) |
 
+If you leave **General**, **Branding** or **Integrations** with changes you
+have not saved — a new name, house style edits, a webhook you have started to
+fill in and not added — Studio asks **Discard unsaved changes?** ("The *tab*
+tab has unsaved changes. Switching tabs discards them.") first. **Discard**
+drops the changes and opens the other tab; **Cancel** keeps you on the tab
+with your changes.
+
 ### General
 
 | Field | Notes |

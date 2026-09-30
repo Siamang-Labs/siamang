@@ -19,13 +19,17 @@ on macOS and `Ctrl` elsewhere.
 | `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu; the focus goes back to the button that opened it |
 | `↑` / `↓`, `Home` / `End` in an open menu | move through its items (the menu takes the focus when it opens): the account menu, the organization/project switcher, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu |
 | `Tab` in an open menu | close the menu and move on to the next control |
-| `←` / `→`, `Home` / `End` on a focused tab | switch tabs in **Organization settings**, **Profile settings**, **Project settings** and a Save in **History**; `Tab` then moves into the tab's content |
+| `←` / `→`, `Home` / `End` on a focused tab | move between the tabs of **Organization settings**, **Profile settings**, **Project settings**, a Save in **History** and the codeframe editor (**Answers**, **Suggested words**, **Test a phrase**), without opening one |
+| `Enter` or `Space` on a focused tab | open that tab (a settings tab with unsaved changes asks **Discard unsaved changes?** first); `Tab` then moves into the tab's content |
 
 Messages at the foot of the screen are read out by a screen reader as they
 appear. A confirmation goes after a few seconds; an error stays until you
 dismiss it with its ✕ (**Dismiss**), or until the next message takes its
-place, never sooner than you can read it. While the pointer rests on a
-message, or the focus is on its **Dismiss** button, it stays where it is.
+place, never sooner than you can read it. A message that tells you what to
+do first, such as "Save first — a preview is built from a Save", is read out
+without interrupting and goes by itself once you have had time to read it; a
+longer one stays longer. While the pointer rests on a message, or the focus is
+on its **Dismiss** button, it stays where it is.
 
 ## Dialogs
 

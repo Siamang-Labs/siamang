@@ -163,7 +163,8 @@ Answers from [every environment ▾]   [ ] Only completed responses
 - **Left:** the themes and the selected theme's details, then **Codeframe
   settings**.
 - **Right:** three tabs — **Answers**, **Suggested words** and **Test a
-  phrase**.
+  phrase**. Click one, or move to it with `←` / `→` and open it with `Enter`
+  or `Space`.
 
 Everything the editor shows about the answers is computed on the server by
 the same engine code the Code open answers node runs, so what you see is what

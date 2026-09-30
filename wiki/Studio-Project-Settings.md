@@ -20,6 +20,14 @@ versioned, appear in History and travel in every research bundle. The
 exceptions are the project name, secrets and the activity log, which are not
 part of any Save.
 
+A tab with unsaved changes — **General** (the project name and the **Study &
+citation** card), **Runtime** or **Reports** — asks before you leave it,
+whether you click another tab or press `Enter` or `Space` on it: **Discard
+unsaved changes?** — "The *tab* tab has unsaved changes. Switching tabs
+discards them." **Discard** drops the changes and opens the other tab;
+**Cancel** keeps you, and the focus, on the tab with your changes. The arrow
+keys only move the focus between the tabs, so they never leave one.
+
 ---
 
 ## General
@@ -40,10 +48,11 @@ part of any Save.
 > **Distribute**. See
 > [[Publishing and Environments|Studio-Publishing-and-Environments]].
 
-If you switch tabs with an unsaved name, Studio asks **Discard unsaved
-changes?** — "The General tab has unsaved changes. Switching tabs discards
-them." — with **Discard**. If you choose **Discard**, the tab you switched to
-opens and has the focus; **Cancel** keeps you, and the focus, on **General**.
+If you leave **General** with an unsaved name or unsaved edits in **Study &
+citation**, Studio asks **Discard unsaved changes?** — "The General tab has
+unsaved changes. Switching tabs discards them." — with **Discard**. If you
+choose **Discard**, the tab you opened (with a click or `Enter`) opens and has
+the focus; **Cancel** keeps you, and the focus, on **General**.
 
 ### Study & citation
 
@@ -54,7 +63,7 @@ every Save."
 | Field | Format | Notes |
 |---|---|---|
 | **Study title** | text, up to 300 characters | "defaults to the project name" |
-| **Authors** | one per line: `Name; ORCID; affiliation` | e.g. `Ada Lovelace; 0000-0002-1825-0097; Analytical Engines`. ORCID and affiliation are optional; write `Name;; affiliation` to skip the ORCID |
+| **Authors** | one per line: `Name; ORCID; affiliation` | e.g. `Ada Lovelace; 0000-0002-1825-0097; Analytical Engines`. ORCID and affiliation are optional; write `Name;; affiliation` to skip the ORCID, and the card shows that author the same way after a Save |
 | **License** | **— not set —**, `CC-BY-4.0`, `CC-BY-SA-4.0`, `CC-BY-NC-4.0`, `CC0-1.0`, `MIT`, `ODbL-1.0`, `proprietary` | |
 | **Keywords** | "comma-separated" | |
 | **DOI** | e.g. `10.5281/zenodo.123456` | "once the bundle is deposited" — Studio does not fill it in for you |
