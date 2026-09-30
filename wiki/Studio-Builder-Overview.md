@@ -362,8 +362,14 @@ Pills on a card:
 | **→ page_name** | the question has **Skip to** set |
 | **script** | a script on the **Scripts** tab targets this question |
 
-A card for a choice question with no options says "No answer options yet. Add
-choices in Options."
+A card for a choice question with no choices of its own sketches the options
+respondents see instead, its variable's value labels, under the line "From the
+variable’s value labels" (a wide Multiple choice without one choice per
+variable: one option per variable, under "One option per variable, labeled
+with its variable label"). Only a card for a question respondents would see no
+options for (no choices and no value labels, or a list of choices you emptied)
+says "No answer options yet. Add choices in Options." See
+[The options editor](Studio-Question-Types#the-options-editor).
 
 A **block** is drawn as a frame with its title, a **randomized** pill when its
 questions are shuffled, a **show if**/**hide if** pill, its questions inside

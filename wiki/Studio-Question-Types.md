@@ -74,6 +74,29 @@ Codes must be unique and every label must have text — an empty label or a
 duplicate code makes the questionnaire impossible to save (see
 [What the engine refuses](#what-the-engine-refuses)).
 
+**Options from the codebook.** A Single choice, Multiple choice, Ranking or
+MaxDiff question does not need choices of its own. Without any, respondents
+see its variable's value labels (for a MaxDiff, those of its first variable),
+all of them, including a missing code that has a value label. Imported
+questionnaires are often built this way. The card sketches those labels under
+"From the variable’s value labels", and the editor lists them with their codes
+under "From the value labels of `<variable>` — the question has no choices of
+its own, so respondents see these. Any edit here makes them its choices, and
+the codebook follows." Your first edit, **+ Option** included, copies them
+into the question's choices with the same codes and then makes the change, so
+the value labels follow the choices code by code from the first edit on: an
+option you remove takes its value label with it. **Exclusive choices** and the
+assistant's **Suggest options** work on the same options.
+
+A wide Multiple choice shows its choices only when it has one per variable.
+Otherwise it offers one option per variable, labeled with that variable's
+label (or its name), and the card and the editor say "One option per variable,
+labeled with its variable label". Your first edit there makes those options
+its choices, one per variable, so **+ Option** adds a variable and removing an
+option drops its variable. With neither choices nor value labels, respondents
+see no options: the card reads "No answer options yet. Add choices in
+Options." and **Validation → Structure** lists "q1: no choices".
+
 ---
 
 ## Single choice
@@ -179,12 +202,18 @@ choice's code (`q7` becomes `q7_1`, `q7_2`, `q7_3`; `_2` is added to a name
 that is taken). Each is nominal, coded `0` No / `1` Yes, and takes the choice's
 label as its variable label. Studio keeps them in step with the choices: a new
 choice gets a new variable, a removed choice's variable leaves the codebook,
-and relabeling a choice relabels its variable. Clicking **array** collapses
-them back into one variable (`q7`) with the choices as value labels. A wide
-question that came from a template or an import without a list of choices
-keeps its variables as they are while you edit it; switching it to **array**
-replaces them with a single variable and leaves the question without choices
-until you add some.
+and relabeling a choice relabels its variable. A Multiple choice that takes
+its options from its variable's value labels (no **Choices** of its own) gets
+those labels as its choices when you click **wide**, one variable per option
+(`aware` with the codes 1, 2, 3 and 99 becomes `aware_1`, `aware_2`,
+`aware_3` and `aware_99`), and its exclusive options stay exclusive. Clicking
+**array** collapses them back into one variable (`q7`) with the choices as
+value labels. A wide question that came from a template or an import without
+one choice per variable offers one option per variable. Your first edit in
+**Options** makes those its choices, one per variable, so **+ Option** adds a
+variable and removing an option drops its variable. Before any edit, switching
+it to **array** replaces them with a single variable and leaves the question
+without choices until you add some.
 
 In the data, each per-choice variable holds:
 
@@ -565,13 +594,21 @@ to warn about. The hint beside the switch always says what is stored.
 - **A choice as the Other option.** In the **Source** tab, `other_code` in the
   question's `metadata` can name the code of one of its choices: that choice
   becomes the Other option — it opens the text box, and no second "Other" is
-  added. A Qualtrics import does this for a text-entry choice.
+  added, on the card either. A Qualtrics import does this for a text-entry
+  choice. A question without choices can do the same with one of its
+  variable's value labels. The card shows such an option once, in its place,
+  with no separate "Other (please specify)". The options editor leaves a value
+  label with the Other or None of the above code out of its list, because the
+  switch stands for it. After your first edit there, the survey adds its own
+  Other at the end, stored under the same code.
 - **Options that come from the codebook.** A Single choice, or a Multiple
-  choice in the array layout, from an import can have no **Choices** of its
-  own: the survey then offers its variable's value labels.
-  Switching Other or None of the above on for such a question first copies
-  those labels into its **Choices** list (without the Other or None code
-  itself), so the new option is added beside them and the Save stays valid.
+  choice in the array layout, can have no **Choices** of its own: the survey
+  then offers its variable's value labels, and the card and the options editor
+  show them (see [The options editor](#the-options-editor)). Switching Other or
+  None of the above on for such a question first copies those labels into its
+  **Choices** list (without the Other or None code itself), as editing them in
+  the options editor does, so the new option is added beside them and the
+  Save stays valid.
 - **Scales with a valid range** (an NPS 0–10, a CES 1–7): the Other and None
   codes are also declared as missing codes, so means and the range check leave
   them out.

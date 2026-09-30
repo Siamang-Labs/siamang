@@ -194,6 +194,14 @@ choice is relabeled, and a Matrix row variable is relabeled "<question text> —
 <statement>" only when the question text or that statement changes. A label
 you write for either in the Codebook stays through every other edit.
 
+A choice question with no choices of its own takes its options from these
+value labels (see
+[The options editor](Studio-Question-Types#the-options-editor)). The first
+edit of them in the Inspector's **Options** copies them into its choices with
+the same codes and then makes the change, so removing an option, even as the
+first edit, removes its label, and from then on the labels follow the question
+like any other choices.
+
 Codes are what the data stores; the label is only its meaning. The engine warns
 with `OPTION_CODE_WITHOUT_LABEL` when a choice's code has no value label.
 
@@ -349,14 +357,16 @@ codebook lists it. See [Matrix](Studio-Question-Types#matrix).
   as `1;3`; frequency tables use respondents as the base.
 - **wide** — one 0/1 variable per choice. Clicking **wide** under **Options →
   Data layout** replaces the question's variable with `<variable>_<code>` for
-  each choice (`brands` becomes `brands_1`, `brands_2`), each coded `0` No /
-  `1` Yes and labeled with its choice. Adding, removing or relabeling a choice
-  keeps the variables in step, and clicking **array** collapses them back
-  into one variable. In the data each per-choice variable is `1` when the
-  option was chosen, `0` when the question was answered without it, and empty
-  when the question was not answered or the option was hidden by its own
-  condition. Conditions, piping and quotas on a per-choice variable
-  (`brands_1 = 1`) work, and so do exclusive choices. Details in
+  each choice (`brands` becomes `brands_1`, `brands_2`; a question that takes
+  its options from its variable's value labels gets them as its choices first,
+  one variable per option), each coded `0` No / `1` Yes and labeled with its
+  choice. Adding, removing or relabeling a choice keeps the variables in step,
+  and clicking **array** collapses them back into one variable. In the data
+  each per-choice variable is `1` when the option was chosen, `0` when the
+  question was answered without it, and empty when the question was not
+  answered or the option was hidden by its own condition. Conditions, piping
+  and quotas on a per-choice variable (`brands_1 = 1`) work, and so do
+  exclusive choices. Details in
   [Multiple choice](Studio-Question-Types#multiple-choice).
 
 Responses collected by a survey built before the wide layout was stored this
