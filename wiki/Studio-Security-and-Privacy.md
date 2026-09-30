@@ -222,16 +222,21 @@ Studio sets **one cookie**, `sc_auth`, on `studio.siamang.org`. Its value is
 `1`: it says nothing about you, and only tells Studio's web server whether to
 show you the app or the sign-in page — your sign-in itself is checked by the
 API on every request. It lasts 7 days, renewed each time you open Studio, and
-**Sign out** removes it. It is marked `Secure`, so the browser sends it over
-HTTPS only, and `SameSite=Lax`.
+**Sign out** removes it. So does Studio itself when it finds no sign-in stored
+in the browser (say, the browser's storage for Studio was cleared but not its
+cookies): you then see the sign-in page. It is marked `Secure`, so the browser
+sends it over HTTPS only, and `SameSite=Lax`.
 
-Everything else is in the browser's local storage for `studio.siamang.org`,
-which the browser never sends anywhere on its own:
+Everything else is in the browser's storage for `studio.siamang.org` — local
+storage, and for two entries (`sc_oauth_provider`, `sc_oauth_next`) the tab's
+session storage — which the browser never sends anywhere on its own:
 
 | Key | What it holds | How long |
 |---|---|---|
 | `sc_session` | your sign-in: the token the API checks, the token that renews it, your name, email and organizations | until you sign out |
 | `sc_next` | the team invitation to return to once you have signed in | until you have signed in |
+| `sc_oauth_provider` | which sign-in button, Google or Microsoft, started the trip to the provider's page, so the sign-in page knows which provider you came back from | until you come back from the provider; at most until the tab is closed |
+| `sc_oauth_next` | the address you opened before signing in with Google or Microsoft, so it opens once you are back (the provider always returns you to the bare sign-in page) | until you have signed in; at most until the tab is closed |
 | `ss_theme`, `ss_density` | the theme and density you picked (see [[Account and Profile\|Studio-Account-and-Profile]]) | until you clear the browser's data for Studio |
 | `sc_last_opened` | when you last opened each project in this browser, for **Sort: Last opened** | the same |
 | `siamang.builder.inspector`, `siamang.flows.node-inspector`, `siamang.flows.report-preview` | the panel widths you dragged | the same |
@@ -279,8 +284,9 @@ button is a real build and keeps a draft as a live survey does. See
 
 ### Why there is no cookie banner
 
-Studio's cookie and its local storage do only what you asked for — keeping you
-signed in, bringing you back to an invitation — or remember a choice you made:
+Studio's cookie and its storage in the browser do only what you asked for —
+keeping you signed in, bringing you back to an invitation or to the page you
+opened before signing in — or remember a choice you made:
 the theme, the density, panel widths, open sections. Nothing tracks you, and
 nothing is shared with another site. Under the EU's ePrivacy rules, storage
 that is strictly necessary for a service the user asked for, or that keeps a

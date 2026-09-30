@@ -159,7 +159,8 @@ same address does not give you a new trial. Organizations you add later with
 [Creating another organization](Studio-Organizations-and-Team#creating-another-organization)).
 
 After sign-in you arrive on the **Projects** tab of the organization you
-joined first. For a new account that is this workspace, unless you created
+joined first (or, if you opened a link to a Studio screen before signing in,
+on that screen). For a new account that is this workspace, unless you created
 the account with an address that had been invited to another organization:
 then the inviting organization opens first (see
 [If you create your account from the invitation](#if-you-create-your-account-from-the-invitation)).
@@ -226,12 +227,16 @@ with. Keep using the provider button, or set a password as described in
   does not suddenly log you out.
 - If your sign-in cannot be renewed, you are returned to the sign-in card with
   the note "Your session expired. Please sign in again." This can happen after
-  a long time offline, for example.
+  a long time offline, for example. Once you sign in again, Studio opens the
+  screen you were on.
 - If you don't open Studio for about a week, it asks you to sign in again.
 - **Sign out** is at the bottom of the avatar menu (top right). It ends the
   session in this browser and invalidates its sign-in token.
 - While you are signed in, the sign-in page is skipped: going to
   `studio.siamang.org` takes you straight to your workspace.
+- A link to a Studio screen opened while you are signed out takes you to the
+  sign-in card first; once you sign in (with a password, Google or Microsoft),
+  the screen opens.
 
 ---
 
@@ -340,8 +345,9 @@ again** button comes first.
 | "This email already has an account — sign in instead." | You tried to sign up with an address that already has an account. Use **← Use a different email**, then sign in. |
 | "Could not sign you in. Invalid login credentials." | Wrong password, or the account was created with Google or Microsoft and has no password. Use **Forgot password?** or the provider button. |
 | "Could not sign you in. Email not confirmed." | Click the link in the confirmation email first. |
+| "…This browser blocks cookies and site data for Studio, which it needs to keep you signed in. Allow them for this site and try again." after "Could not sign you in." (password sign-in), "Could not create your account." (new account) or "Sign in failed." (back from Google, Microsoft or a confirmation link) | Your browser, or its private-window settings, blocks cookies and site data for Studio. Allow both for `studio.siamang.org`, reload the sign-in page and sign in again. After "Could not create your account." the account already exists: sign in with the address and password you chose. |
 | "Sign in failed. This e-mail address is not verified by the identity provider; verify it there, then sign in again." | Your Google or Microsoft account reports the email address as unverified. Verify it with the provider, then try again. |
-| "Your session expired. Please sign in again." | Your sign-in could not be renewed. Sign in again; no work is lost. Unsaved edits are kept as drafts. |
+| "Your session expired. Please sign in again." | Your sign-in could not be renewed. Sign in again; Studio opens the screen you were on, and no work is lost. Unsaved edits are kept as drafts. |
 | The reset or confirmation link opened the app instead of a form | You were already signed in. Sign out (or use a private window) and click the link again. |
 | "Passwords do not match." | The two fields on **Set new password** differ. |
 | "Password must be 8+ characters with a lower- and upper-case letter, a number, and a symbol." | The new password misses a rule from the checklist. |

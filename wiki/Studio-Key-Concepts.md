@@ -274,7 +274,9 @@ unless you uncheck **End every report with the provenance footer** under
 ## Where things are
 
 Every screen has its own address, so you can bookmark it or send it to a
-colleague (who needs to be a member of the organization to open it):
+colleague (who needs to be a member of the organization to open it). If you
+are signed out when you open an address, Studio shows the sign-in card first
+and opens the address once you have signed in:
 
 | Screen | Address |
 |---|---|
