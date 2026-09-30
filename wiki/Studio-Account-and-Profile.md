@@ -56,16 +56,22 @@ The chip opens a two-column menu:
   there however many organizations you already belong to; see
   [Creating another organization](Studio-Organizations-and-Team#creating-another-organization).
 - **Projects** lists up to ten projects of the current organization with a
-  status dot, and a ✓ on the one you are in. Clicking one opens it. If you were
-  already inside a project, the other project opens on the same tab (for
-  example **Data**); otherwise it opens in the **Builder**.
+  status dot (a screen reader reads the status after the name, in the
+  **Projects** list's words, such as "status: valid"), and a ✓ on the one you
+  are in. Clicking one opens it. If you were already inside a project, the
+  other project opens on the same tab (for example **Data**); otherwise it
+  opens in the **Builder**.
 - **All projects** goes to the organization's **Projects** tab. **New
   project** opens the **New project** dialog (see [[Projects|Studio-Projects]]).
   It is disabled when the organization has reached its plan's project limit
   (on Free, hovering it says "Your plan allows 2 projects — upgrade to add
   more") and for members ("Only owners and admins can create projects").
 
-Press `Esc` or click outside to close the menu.
+Press `Esc` or click outside to close the menu. From the keyboard, the focus
+moves to the first organization when the menu opens; `↑` and `↓` move through
+both columns, `Home` and `End` jump to the first and the last item, and
+`Enter` chooses; `Esc` puts the focus back on the chip, and `Tab` closes the
+menu and moves on.
 
 ---
 

@@ -814,6 +814,7 @@ where you can restore one as a new Save
 
 On a phone-width screen a bar with **Preview** and **Save** stays at the bottom
 of the screen, so you never have to scroll back to the header to save.
+Messages appear above the bar, so they never cover it.
 
 ## See also
 
