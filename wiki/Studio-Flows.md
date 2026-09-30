@@ -190,14 +190,24 @@ so runs fired by a schedule or by Live appear without a reload.
 1. **+ New flow**. The dialog explains: "A flow is a small pipeline — load,
    clean, analyze, report — saved as `flows/<name>.flow.json` and run by the
    engine. Build it on the canvas; it is created at the first Save."
-2. Type a **Title** (placeholder "Satisfaction by region"). The file name is
-   derived from it and shown as the hint ("file name: satisfaction_by_region"):
-   lowercase, every run of other characters becomes `_`, leading digits are
-   dropped. If a flow of that name exists the hint says "a flow with this name
-   already exists".
+2. Type a **Title** (placeholder "Satisfaction by region"). **File name**
+   fills in from it (`satisfaction_by_region`), and its hint shows where the
+   flow is saved ("saved as flows/satisfaction_by_region.flow.json; Rename
+   flow changes it later"). The name is the title spelled in Latin letters, as
+   a project's address is ("Удовлетворенность клиентов" becomes
+   `udovletvorennost_klientov`), in lowercase, with every run of other
+   characters turned into `_` and leading digits dropped; with nothing left,
+   it is `flow`. When a flow or connector already has that name, Studio adds
+   `_2`, `_3` and so on. Type over the file name to choose another; one that
+   breaks the rules below says so under the field (for a taken one, "A flow or
+   connector named *name* already exists.").
 3. **Open canvas →**. The new flow starts with one **Responses** node (id
-   `src`).
-4. Build it, then **Save changes**. Only now does the flow exist.
+   `src`), and **More ▾** reads "Analysis flow · new, not saved yet · …" until
+   you save.
+4. Build it, then **Save changes**. Only now does the flow exist, under the
+   title you typed. From that Save on it is an ordinary saved flow: **▶ Run**,
+   **Export Python**, **Rename flow…** and **Duplicate flow…** are available
+   at once, and the address in the browser ends in the flow's name.
 
 Name rules: the name must start with a letter and contain only lowercase
 letters, digits and `_` (at most 63 characters). `survey` is reserved, and a
@@ -664,6 +674,15 @@ generated script — and only that flow is affected:
   script to run: open it, fix its errors and save". The other flows run,
   except those that read a table it writes (see [Run all](#run-all)).
 - **Export Python** has nothing to download for it.
+
+**Connections Studio repairs.** An earlier version of Studio saved an output
+added with **+ Add output** in the **Report** view in a form the engine
+rejects, so every check, preview and run of that flow failed with
+"edges/*N*/from: Additional properties are not allowed ('title', 'type' were
+unexpected)". Opening such a flow repairs its connections, and a banner says
+"**Studio repaired this flow's connections.** An earlier version saved them in
+a form the engine rejects, so the saved flow cannot run. Save changes to keep
+the repair." Click **Save changes**, and the flow runs again.
 
 A flow the engine itself fails on is such a flow too — a fault of the engine,
 not of your flow, logged on the server for whoever maintains it. Its issue
