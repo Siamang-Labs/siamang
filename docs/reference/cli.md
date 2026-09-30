@@ -193,7 +193,8 @@ Generates ordinary siamang code (`survey = sg.Questionnaire(...)` plus
 `options`) that `siamang validate` accepts and that converts back to the same
 document. See [`siamang.codegen`](codegen.md). Given a `<name>.flow.json`
 document instead (with `--questionnaire questionnaire.json`), it writes the
-flow's analysis script; see [`siamang.flow`](flow.md).
+flow's analysis script, checked against the codebooks of the files its Data
+file nodes read from the current directory; see [`siamang.flow`](flow.md).
 
 ---
 
@@ -207,8 +208,8 @@ siamang flow nodes [--json]
 
 | Subcommand | Description |
 |------------|-------------|
-| `check` | JSON Schema plus graph checks against the node registry (and the codebook when `--questionnaire` is given). The codeframes the flow's Code open answers nodes name are read from the current directory. Prints every issue with its code; exit 1 on errors. |
-| `run` | Execute the flow in-process. `--data` feeds the platform data source from a snapshot file (`NODE=PATH` when there are several); relative output paths land in `--cwd`, and the codeframes are read from there. Prints one line per node and the live tiles. |
+| `check` | JSON Schema plus graph checks against the node registry (and the codebook when `--questionnaire` is given). The codeframes the flow's Code open answers nodes name, and the files its Data file nodes read (with each node's reading options, so a node naming a file's column is checked against the file's columns), are read from the current directory. Prints every issue with its code; exit 1 on errors. |
+| `run` | Execute the flow in-process. `--data` feeds the platform data source from a snapshot file (`NODE=PATH` when there are several); relative output paths land in `--cwd`, and the codeframes and Data files are read from there. Prints one line per node and the live tiles. |
 | `nodes` | List the node registry by category; `--json` prints it as the builder receives it. |
 
 ---

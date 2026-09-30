@@ -72,16 +72,19 @@ class FlowRunner:
         registry: Registry | None = None,
         questionnaire_document: dict[str, Any] | None = None,
         codeframes: Mapping[str, Any] | None = None,
+        files: Mapping[str, Any] | None = None,
     ) -> None:
         """``codeframes`` are the codeframe documents the flow's Code open
         answers nodes name, by path, as :func:`~siamang.flow.check_flow` takes
         them: with them the theme variable a node leaves unnamed has its
-        codeframe's name here as it has in the check."""
+        codeframe's name here as it has in the check. ``files`` are the
+        codebooks of its Data files, as the check takes them too."""
         self.graph: FlowGraph = resolve_flow(
             document,
             registry=registry,
             questionnaire=questionnaire_document,
             codeframes=codeframes,
+            files=files,
         )
         self.questionnaire = questionnaire
 
@@ -109,9 +112,10 @@ class FlowRunner:
             needed = _ancestors(graph, upto) | {upto}
             order = [node_id for node_id in order if node_id in needed]
 
-        namespace: dict[str, Any] = {"__name__": "__siamang_flow__"}
-        if self.questionnaire is not None:
-            namespace["survey"] = self.questionnaire
+        # `survey` is bound even without a questionnaire: a Data file reads
+        # its file with questionnaire=survey, and needs none (it was a
+        # NameError where the project's questionnaire could not be imported).
+        namespace: dict[str, Any] = {"__name__": "__siamang_flow__", "survey": self.questionnaire}
         if db is not None:
             namespace["db"] = db
         self._import(namespace, graph)
@@ -171,7 +175,10 @@ class FlowRunner:
     def _source(self, value: SurveyData | str | Path) -> SurveyData:
         if isinstance(value, SurveyData):
             return value
-        return read_snapshot(value, questionnaire=self.questionnaire)
+        # A platform source's snapshot is the survey's data, whole or not
+        # (a pilot's has the columns of the questions reached): read with the
+        # questionnaire's codebook, as the platform reads it.
+        return read_snapshot(value, questionnaire=self.questionnaire, codebook="questionnaire")
 
     @staticmethod
     def _import(namespace: dict[str, Any], graph: FlowGraph) -> None:

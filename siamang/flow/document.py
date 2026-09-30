@@ -170,6 +170,7 @@ def check_flow(
     questionnaire: dict[str, Any] | None = None,
     response_times: Iterable[str] | None = None,
     codeframes: Mapping[str, Any] | None = None,
+    files: Mapping[str, Any] | None = None,
 ) -> list[FlowIssue]:
     """Every problem of the graph: unknown nodes, bad params, wrong edges, cycles.
 
@@ -189,7 +190,25 @@ def check_flow(
     A run and a generated script know that name only from the same
     codeframes: give them to :class:`~siamang.flow.FlowRunner` and
     :func:`~siamang.flow.generate_flow` too (or write the name in **Theme
-    variable**). Errors make the flow unusable; warnings are worth showing.
+    variable**).
+
+    ``files`` are the codebooks of the flow's Data files (``source.file``), by
+    the node's id or by the path it reads: what
+    :func:`~siamang.io.inspect_snapshot` returns for the file (read with the
+    node's options), or None for a file not read yet. A node downstream of a
+    Data file then knows that file's columns — its ``variables`` with their
+    scales and value labels, and every one of its ``columns`` — rather than
+    the questionnaire's variables, which it knows too only when the file is
+    the questionnaire's data (``codebook`` ``"questionnaire"``); a scale the
+    file's values only suggest (``inferred``) is a warning where it does not
+    fit, not an error. A node below a file given as None is not checked for
+    names at all. Without ``files``, a Data file is checked against the
+    questionnaire, as any source is. Each node is checked against the sources
+    upstream of it, so a flow reading a file and the responses checks each
+    branch against its own. Give the runner and the code generator the same
+    ``files``.
+
+    Errors make the flow unusable; warnings are worth showing.
     Returns the list — :func:`resolve_flow` raises on the first error instead.
     """
 
@@ -213,72 +232,45 @@ def check_flow(
             )
 
     frames = _codeframes_named(nodes, codeframes)
-    known_variables = _known_variables(
-        document, nodes, registry, questionnaire, response_times=response_times, frames=frames
-    )
-    scales = {
-        name: payload.get("scale")
-        for name, payload in ((questionnaire or {}).get("variables") or {}).items()
-    }
-    for name in _assigned_variables(questionnaire):
-        # An arm the codebook leaves out is nominal, as Simulated data enters it.
-        scales.setdefault(name, "nominal")
-    # The scales the nodes upstream of each node give what they make (the
-    # codebook's entry wins a shared name). A node naming one of the wrong scale
-    # is warned, not stopped: a flow saved before this was checked may rely on
-    # it and runs.
-    made_at = (
-        _made_scales(document, nodes, registry, questionnaire, scales, frames)
-        if questionnaire is not None
-        else {}
-    )
-    # A theme variable a codeframe with several themes an answer makes holds
-    # lists of codes, as a multiple-choice question does.
-    several = frozenset(
-        name
-        for node_id, (_, codeframe) in frames.items()
-        if codeframe is not None and codeframe.multiple
-        for name in [_theme_name(nodes[node_id], codeframe)]
-        if name and name not in scales
-    )
+    # Each node is checked against the codebook of the sources upstream of it:
+    # the questionnaire's, or a Data file's own (`files`). Without files every
+    # node has the questionnaire's, as it always had.
+    views = _codebook_views(document, nodes, registry, questionnaire, files, response_times)
+    books: dict[int, _Codebook] = {}
     for node_id, node in nodes.items():
         if node["type"] not in registry:
             continue
+        doc, times, guessed = views.get(node_id, (questionnaire, response_times, frozenset()))
+        book = books.get(id(doc))
+        if book is None:
+            book = books[id(doc)] = _Codebook.of(
+                document, nodes, registry, doc, times, frames, guessed
+            )
         spec = registry.get(node["type"])
+        params = node.get("params") or {}
+        scales = book.scales
         made = {
-            name: scale for name, scale in made_at.get(node_id, {}).items() if name not in scales
+            name: scale
+            for name, scale in book.made_at.get(node_id, {}).items()
+            if name not in scales
         }
-        issues.extend(
-            _check_params(node_id, spec, node.get("params") or {}, known_variables, scales, made)
-        )
-        issues.extend(_check_rules(node_id, spec, node.get("params") or {}))
-        issues.extend(_check_design(node_id, spec, node.get("params") or {}, questionnaire))
+        issues.extend(_check_params(node_id, spec, params, book.known, scales, made, book.guessed))
+        issues.extend(_check_rules(node_id, spec, params))
+        issues.extend(_check_design(node_id, spec, params, doc))
         if spec.type == "analyze.regression":
-            issues.extend(
-                _check_ordinal_outcome(
-                    node_id, spec, node.get("params") or {}, questionnaire, scales, made
-                )
-            )
-        if spec.type == "prepare.maxdiff_scores" and questionnaire is not None:
-            issues.extend(_check_maxdiff_question(node_id, node.get("params") or {}, questionnaire))
-        if spec.type == "visualize.likert" and questionnaire is not None:
-            issues.extend(
-                _check_likert_scale(node_id, node.get("params") or {}, questionnaire, several)
-            )
-        if spec.type == "visualize.bar" and questionnaire is not None:
-            issues.extend(
-                _check_bar_answers(node_id, spec, node.get("params") or {}, questionnaire, several)
-            )
-        if spec.type == "visualize.trend" and questionnaire is not None:
-            issues.extend(
-                _check_trend(node_id, spec, node.get("params") or {}, questionnaire, several)
-            )
+            issues.extend(_check_ordinal_outcome(node_id, spec, params, doc, scales, made))
+        if spec.type == "prepare.maxdiff_scores" and doc is not None:
+            issues.extend(_check_maxdiff_question(node_id, params, doc))
+        if spec.type == "visualize.likert" and doc is not None:
+            issues.extend(_check_likert_scale(node_id, params, doc, book.several))
+        if spec.type == "visualize.bar" and doc is not None:
+            issues.extend(_check_bar_answers(node_id, spec, params, doc, book.several))
+        if spec.type == "visualize.trend" and doc is not None:
+            issues.extend(_check_trend(node_id, spec, params, doc, book.several))
         if spec.type == "output.tabbook":
-            issues.extend(
-                _check_tabbook(node_id, spec, node.get("params") or {}, questionnaire, several)
-            )
+            issues.extend(_check_tabbook(node_id, spec, params, doc, book.several))
         if node_id in frames:
-            issues.extend(_check_codeframe(node_id, node, frames[node_id], known_variables))
+            issues.extend(_check_codeframe(node_id, node, frames[node_id], book.known))
 
     edges: list[Edge] = []
     seen_single: set[tuple[str, str]] = set()
@@ -401,19 +393,192 @@ def check_flow(
     return issues
 
 
+@dataclass(slots=True)
+class _Codebook:
+    """What the nodes checked against one codebook know: the names, their
+    scales, the scales made upstream of each node, the variables holding
+    several answers, and the names whose scale is a guess."""
+
+    known: set[str] | None
+    scales: dict[str, str | None]
+    made_at: dict[str, dict[str, str]]
+    several: frozenset[str]
+    guessed: frozenset[str]
+
+    @classmethod
+    def of(
+        cls,
+        document: dict[str, Any],
+        nodes: dict[str, dict[str, Any]],
+        registry: Registry,
+        questionnaire: dict[str, Any] | None,
+        response_times: Iterable[str] | None,
+        frames: dict[str, tuple[Any, Any]],
+        guessed: frozenset[str],
+    ) -> _Codebook:
+        known = _known_variables(
+            document, nodes, registry, questionnaire, response_times=response_times, frames=frames
+        )
+        scales = {
+            name: payload.get("scale") if isinstance(payload, dict) else None
+            for name, payload in ((questionnaire or {}).get("variables") or {}).items()
+        }
+        for name in _assigned_variables(questionnaire):
+            # An arm the codebook leaves out is nominal, as Simulated data enters it.
+            scales.setdefault(name, "nominal")
+        # The scales the nodes upstream of each node give what they make (the
+        # codebook's entry wins a shared name). A node naming one of the wrong
+        # scale is warned, not stopped: a flow saved before this was checked
+        # may rely on it and runs.
+        made_at = (
+            _made_scales(document, nodes, registry, questionnaire, scales, frames)
+            if questionnaire is not None
+            else {}
+        )
+        # A theme variable a codeframe with several themes an answer makes holds
+        # lists of codes, as a multiple-choice question does.
+        several = frozenset(
+            name
+            for node_id, (_, codeframe) in frames.items()
+            if codeframe is not None and codeframe.multiple
+            for name in [_theme_name(nodes[node_id], codeframe)]
+            if name and name not in scales
+        )
+        return cls(known, scales, made_at, several, guessed)
+
+
+_QUESTIONNAIRE = "questionnaire"
+_UNREAD = "unread"
+
+
+def _codebook_views(
+    document: dict[str, Any],
+    nodes: dict[str, dict[str, Any]],
+    registry: Registry,
+    questionnaire: dict[str, Any] | None,
+    files: Mapping[str, Any] | None,
+    response_times: Iterable[str] | None = None,
+) -> dict[str, tuple[dict[str, Any] | None, Any, frozenset[str]]]:
+    """For each node below a Data file ``files`` describes: the codebook it is
+    checked against (a questionnaire document), the response timestamps it
+    knows (a platform's responses' — a file has the columns it has), and the
+    names whose scale is a guess. Nodes not listed are checked against the
+    questionnaire."""
+
+    if not files:
+        return {}
+    by_key = {_plain_path(str(key)): value for key, value in files.items()}
+    parents: dict[str, set[str]] = {node_id: set() for node_id in nodes}
+    for raw in document.get("edges") or []:
+        source, target = raw["from"]["node"], raw["to"]["node"]
+        if source in nodes and target in nodes:
+            parents[target].add(source)
+
+    def view_of(source_id: str) -> Any:
+        node = nodes[source_id]
+        if node.get("type") != "source.file":
+            return _QUESTIONNAIRE
+        path = (node.get("params") or {}).get("path")
+        for key in (source_id, _plain_path(path) if isinstance(path, str) else None):
+            if key is not None and key in by_key:
+                schema = by_key[key]
+                return _UNREAD if schema is None else source_id
+        return _QUESTIONNAIRE
+
+    schemas = {
+        node_id: by_key.get(
+            node_id, by_key.get(_plain_path(str((node.get("params") or {}).get("path"))))
+        )
+        for node_id, node in nodes.items()
+        if node.get("type") == "source.file"
+    }
+    cache: dict[tuple[str, ...], tuple[dict[str, Any] | None, Any, frozenset[str]]] = {}
+    out: dict[str, tuple[dict[str, Any] | None, Any, frozenset[str]]] = {}
+    for node_id in nodes:
+        sources: set[str] = set()
+        seen: set[str] = set()
+        stack = [node_id]
+        while stack:
+            current = stack.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            spec_type = nodes[current].get("type")
+            if spec_type in registry and registry.get(spec_type).category == "source":
+                sources.add(current)
+            stack.extend(parents.get(current, ()))
+        views = {view_of(source) for source in sources}
+        if not views - {_QUESTIONNAIRE}:
+            continue  # the questionnaire's, as without files
+        key = tuple(sorted(views))
+        if key not in cache:
+            cache[key] = _file_view(views, questionnaire, schemas, response_times)
+        out[node_id] = cache[key]
+    return out
+
+
+def _file_view(
+    views: set[str],
+    questionnaire: dict[str, Any] | None,
+    schemas: dict[str, Any],
+    response_times: Iterable[str] | None = None,
+) -> tuple[dict[str, Any] | None, Any, frozenset[str]]:
+    """The codebook of the files (and the questionnaire) upstream of a node."""
+
+    if _UNREAD in views:
+        return None, (), frozenset()
+    files = [schemas[view] for view in sorted(views - {_QUESTIONNAIRE})]
+    with_questionnaire = _QUESTIONNAIRE in views or any(
+        isinstance(schema, Mapping) and schema.get("codebook") == "questionnaire"
+        for schema in files
+    )
+    if with_questionnaire and questionnaire is None:
+        return None, (), frozenset()  # nothing to check the questionnaire's names by
+    variables: dict[str, Any] = (
+        dict((questionnaire or {}).get("variables") or {}) if with_questionnaire else {}
+    )
+    guessed: set[str] = set()
+    for schema in files:
+        if not isinstance(schema, Mapping):
+            continue
+        for name, payload in (schema.get("variables") or {}).items():
+            if name in variables or not isinstance(payload, Mapping):
+                continue
+            variables[name] = dict(payload)
+            if payload.get("inferred"):
+                guessed.add(name)
+        for column in schema.get("columns") or []:
+            name = column.get("name") if isinstance(column, Mapping) else column
+            if isinstance(name, str) and name not in variables:
+                # A column the codebook does not describe: known, no scale.
+                variables[name] = {"label": name}
+    document = (
+        {**(questionnaire or {}), "variables": variables}
+        if with_questionnaire
+        else {"variables": variables}
+    )
+    times = response_times if _QUESTIONNAIRE in views else ()
+    return document, times, frozenset(guessed)
+
+
 def resolve_flow(
     document: dict[str, Any],
     *,
     registry: Registry | None = None,
     questionnaire: dict[str, Any] | None = None,
     codeframes: Mapping[str, Any] | None = None,
+    files: Mapping[str, Any] | None = None,
 ) -> FlowGraph:
     """Check the flow and return the resolved graph; raise :class:`FlowError` on
-    errors. ``codeframes`` as :func:`check_flow` takes them."""
+    errors. ``codeframes`` and ``files`` as :func:`check_flow` takes them."""
 
     registry = registry or default_registry()
     issues = check_flow(
-        document, registry=registry, questionnaire=questionnaire, codeframes=codeframes
+        document,
+        registry=registry,
+        questionnaire=questionnaire,
+        codeframes=codeframes,
+        **({"files": files} if files else {}),
     )
     errors = [issue for issue in issues if issue.severity == "error"]
     if errors:
@@ -421,6 +586,8 @@ def resolve_flow(
         more = f" (+{len(errors) - 1} more)" if len(errors) > 1 else ""
         raise FlowError(f"{first.message}{more}")
     nodes = {node["id"]: node for node in document.get("nodes") or []}
+    if files:
+        nodes = _pinned_codebooks(nodes, files)
     edges = [
         Edge(raw["from"]["node"], raw["from"]["port"], raw["to"]["node"], raw["to"]["port"])
         for raw in document.get("edges") or []
@@ -437,6 +604,36 @@ def resolve_flow(
         order=node_order(nodes, edges),
         inputs=inputs,
     )
+
+
+def _pinned_codebooks(
+    nodes: dict[str, dict[str, Any]], files: Mapping[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Data file nodes whose Codebook is auto, with the codebook their file's
+    schema decided on: what the check just checked the flow against is what
+    the run reads. Left to decide again at run time, auto could decide
+    otherwise — the questionnaire edited since, or answers past the rows the
+    schema read — and a column the check knew as the questionnaire's ``q1``
+    would come back as the file's ``Q1`` (or the other way round)."""
+
+    by_key = {_plain_path(str(key)): value for key, value in files.items()}
+    out = dict(nodes)
+    for node_id, node in nodes.items():
+        if node.get("type") != "source.file":
+            continue
+        params = node.get("params") or {}
+        if not unset(params.get("codebook")) and params.get("codebook") != "auto":
+            continue
+        path = params.get("path")
+        schema = by_key.get(node_id)
+        if schema is None and isinstance(path, str):
+            schema = by_key.get(_plain_path(path))
+        if not isinstance(schema, Mapping) or "questionnaire" not in schema:
+            continue
+        met = schema.get("questionnaire")
+        decided = "questionnaire" if isinstance(met, Mapping) and met.get("matches") else "file"
+        out[node_id] = {**node, "params": {**params, "codebook": decided}}
+    return out
 
 
 def node_order(nodes: dict[str, dict[str, Any]], edges: list[Edge]) -> list[str]:
@@ -729,6 +926,38 @@ def read_codeframes(document: dict[str, Any], root: str | Path = ".") -> dict[st
     return found
 
 
+def read_data_files(
+    document: dict[str, Any], root: str | Path = ".", questionnaire: Any = None
+) -> dict[str, Any]:
+    """The codebooks of a flow's Data files, read from ``root`` — the directory
+    the flow runs in, which the node reads its file from — with each node's
+    reading options (:func:`~siamang.io.inspect_snapshot`), keyed by node id,
+    as :func:`check_flow`, ``FlowRunner`` and ``generate_flow`` take them
+    (``files=``). ``questionnaire`` is the survey (a ``Questionnaire``) the
+    file may be the data of. A file that is not there, or cannot be read, is
+    None: the run says what is wrong with it, and the check does not call its
+    columns unknown meanwhile."""
+
+    from siamang.io.snapshot import inspect_snapshot, snapshot_options
+
+    found: dict[str, Any] = {}
+    for node in document.get("nodes") or []:
+        params = node.get("params") or {}
+        path = params.get("path")
+        if node.get("type") != "source.file" or not isinstance(path, str) or not path:
+            continue
+        options = snapshot_options(params)
+        if isinstance(options.get("dictionary"), str):
+            options["dictionary"] = Path(root) / options["dictionary"]
+        try:
+            found[node["id"]] = inspect_snapshot(
+                Path(root) / path, questionnaire=questionnaire, **options
+            )
+        except Exception:  # noqa: BLE001 - whatever the file is, the run says it
+            found[node["id"]] = None
+    return found
+
+
 def _plain_path(path: str) -> str:
     parts = [part for part in path.replace("\\", "/").split("/") if part not in ("", ".")]
     return "/".join(parts)
@@ -962,6 +1191,7 @@ def _check_params(
     known: set[str] | None,
     scales: dict[str, str | None],
     made: dict[str, str] | None = None,
+    guessed: frozenset[str] = frozenset(),
 ) -> list[FlowIssue]:
     issues: list[FlowIssue] = []
     for name in params:
@@ -1015,7 +1245,29 @@ def _check_params(
                             node_id,
                         )
                     )
-                elif param.scales and variable in scales and scales[variable] not in param.scales:
+                elif (
+                    param.scales
+                    and variable in guessed
+                    and scales.get(variable)
+                    and scales[variable] not in param.scales
+                ):
+                    # A Data file's column whose scale its values only suggest.
+                    issues.append(
+                        FlowIssue(
+                            "warning",
+                            "VARIABLE_SCALE",
+                            f"Parameter {name!r} of {node_id}: {variable!r} looks "
+                            f"{scales[variable]} (as guessed from its file's values), expected "
+                            f"{' | '.join(param.scales)}.",
+                            node_id,
+                        )
+                    )
+                elif (
+                    param.scales
+                    and variable in scales
+                    and scales[variable] is not None
+                    and scales[variable] not in param.scales
+                ):
                     issues.append(
                         FlowIssue(
                             "error",
@@ -1095,12 +1347,30 @@ def unset(value: Any) -> bool:
 
 
 def resolved_params(spec: NodeSpec, given: dict[str, Any]) -> dict[str, Any]:
-    """Every parameter of ``spec``: the value given, or the default when unset."""
+    """Every parameter of ``spec``: the value given, or the default when unset.
+    A number given for a choice written as text (``header_rows: 2`` for
+    ``"2"``) is that choice."""
 
     return {
-        name: param.default if unset(given.get(name)) else given[name]
+        name: param.default if unset(given.get(name)) else _enum_value(param, given[name])
         for name, param in spec.params.items()
     }
+
+
+def _enum_value(param: ParamSpec, value: Any) -> Any:
+    """``value`` as the choice it names: a number for a choice written as
+    text (``2`` for ``"2"``), as a builder or a hand may write it."""
+
+    if (
+        param.kind == "enum"
+        and isinstance(value, int | float)
+        and not isinstance(value, bool)
+        and value not in param.values
+    ):
+        text = str(int(value)) if float(value).is_integer() else str(value)
+        if text in param.values:
+            return text
+    return value
 
 
 def _check_rules(node_id: str, spec: NodeSpec, given: dict[str, Any]) -> list[FlowIssue]:
@@ -1324,7 +1594,7 @@ def _param_problem(param: ParamSpec, value: Any) -> str | None:
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
             return "expected a list of variable names."
     elif kind == "enum":
-        if value not in param.values:
+        if _enum_value(param, value) not in param.values:
             return f"{value!r} is not one of {', '.join(map(str, param.values))}."
     elif kind == "int":
         if isinstance(value, bool) or not isinstance(value, int):

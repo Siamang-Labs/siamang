@@ -17,6 +17,7 @@ into the list again).
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -59,12 +60,16 @@ def _code(token: str) -> Any:
         return token
 
 
-def list_frame(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
+def list_frame(
+    frame: pd.DataFrame, columns: Iterable[str], commas: Iterable[str] = ()
+) -> pd.DataFrame:
     """The inverse of :func:`scalar_frame` for columns known to hold lists.
 
     Only the named columns are touched, and only where a text format left a
     string: a frame read from Parquet holds lists (``read_snapshot`` turns the
-    arrays pandas reads back into them) and passes through.
+    arrays pandas reads back into them) and passes through. In ``commas``
+    columns a comma separates the answers too: Qualtrics writes several
+    answers ``1,3``.
 
     An empty cell comes back as missing rather than as an empty list. The two
     are the same answer — "did not answer" — and no text format keeps them
@@ -72,6 +77,7 @@ def list_frame(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
     """
 
     out = frame
+    with_commas = set(commas)
     for column in columns:
         if column not in frame.columns:
             continue
@@ -80,9 +86,11 @@ def list_frame(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
             continue
         if out is frame:
             out = frame.copy()
+        separator = re.compile("[;,]" if column in with_commas else ";")
         out[column] = series.map(
-            lambda v: (
-                [code for code in (_code(t) for t in v.split(";")) if code is not None] or None
+            lambda v, separator=separator: (
+                [code for code in (_code(t) for t in separator.split(v)) if code is not None]
+                or None
             )
             if isinstance(v, str)
             else v

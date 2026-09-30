@@ -98,9 +98,12 @@ def test_dictionary_lookup_rules(tmp_path):
     data = _data()
     write_snapshot(data, tmp_path / "responses.csv", dictionary=False)
     assert not dictionary_path_for(tmp_path / "responses.csv").exists()
-    # No dictionary, no questionnaire: a bare frame.
+    # No dictionary, no questionnaire: the file's own codebook, its scales
+    # guessed from the values (siamang.io.file_codebook).
     bare = read_snapshot(tmp_path / "responses.csv")
-    assert bare.variables is None
+    assert list(bare.variables) == list(bare.frame.columns)
+    assert bare.variables["region"].scale == "nominal" and bare.variables["region"].labels == {}
+    assert bare.variables["age"].scale == "ratio"
     # A shared dictionary.json next to the file is picked up.
     (tmp_path / "dictionary.json").write_text(
         json.dumps(data.variables.to_dict()), encoding="utf-8"
@@ -194,9 +197,10 @@ def test_weight_column_is_applied(tmp_path):
 def test_unknown_formats_and_missing_files(tmp_path):
     with pytest.raises(FileNotFoundError):
         read_snapshot(tmp_path / "nothing.csv")
-    (tmp_path / "data.txt").write_text("x", encoding="utf-8")
+    (tmp_path / "data.ods").write_text("x", encoding="utf-8")
     with pytest.raises(ValueError, match="Unsupported snapshot format"):
-        read_snapshot(tmp_path / "data.txt")
+        read_snapshot(tmp_path / "data.ods")
+    # A .txt is read as delimited text (Excel's "Unicode text"), not written.
     with pytest.raises(ValueError, match="Unsupported snapshot format"):
         write_snapshot(_data(), tmp_path / "data.txt")
 

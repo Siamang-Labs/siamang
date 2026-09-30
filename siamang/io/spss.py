@@ -93,8 +93,22 @@ def _variables_from_meta(meta: Any) -> VariableMap:
     variable_map = VariableMap()
     names = getattr(meta, "column_names", [])
     column_labels = getattr(meta, "column_names_to_labels", {}) or {}
-    value_labels = getattr(meta, "variable_value_labels", {}) or {}
-    missing_ranges = getattr(meta, "missing_ranges", {}) or {}
+    # SPSS keeps every number as a double: code 1 comes back 1.0. Whole codes
+    # are read as the integers they are, so a snapshot's codes come back Int64
+    # and a table says 1, not 1.0.
+    value_labels = {
+        name: {_whole(code): label for code, label in labels.items()}
+        for name, labels in (getattr(meta, "variable_value_labels", {}) or {}).items()
+    }
+    missing_ranges = {
+        name: [
+            {key: _whole(value) for key, value in item.items()}
+            if isinstance(item, dict)
+            else _whole(item)
+            for item in ranges
+        ]
+        for name, ranges in (getattr(meta, "missing_ranges", {}) or {}).items()
+    }
     variable_measure = getattr(meta, "variable_measure", {}) or {}
     for name in names:
         scale = _scale_from_measure(variable_measure.get(name))
@@ -114,6 +128,13 @@ def _variables_from_meta(meta: Any) -> VariableMap:
             )
         )
     return variable_map
+
+
+def _whole(code: Any) -> Any:
+    """A code as an integer when it is a whole number."""
+    if isinstance(code, float) and code.is_integer():
+        return int(code)
+    return code
 
 
 def _scale_from_measure(measure: str | None) -> str:

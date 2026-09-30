@@ -40,7 +40,7 @@ The JSON Schema is `siamang/schemas/flow-1.0.json`; `validate_flow` checks it,
 
 ### Checks (`check_flow`)
 
-`check_flow(flow, *, registry=None, questionnaire=None, response_times=None) -> list[FlowIssue]`
+`check_flow(flow, *, registry=None, questionnaire=None, response_times=None, codeframes=None, files=None) -> list[FlowIssue]`
 returns errors and warnings with a code and the node concerned.
 `response_times` are the timestamps the platform's data carries beside the
 answers, which a node may name though no codebook declares them (a Trend's
@@ -54,11 +54,50 @@ column 'submitted_at' to read Time from.` at the run:
 |------|---------|
 | `UNKNOWN_NODE_TYPE`, `UNKNOWN_PARAM`, `PARAM_REQUIRED`, `PARAM_INVALID` | the node against its spec |
 | `PARAM_CONFLICT` (error or warning) | a rule of the spec's `checks` between its parameters: a post-hoc test that does not follow the test chosen, a t-test without the variable its design compares (errors); a choice the node would ignore (warnings). And what the parameters settle before any data: Paired tests with a number of variables its test cannot compare (`McNemar compares exactly two variables; 3 were given.` — an error), and a t-test of two groups whose Groups has more than two answers in the codebook (its missing codes left out) with Group A and Group B empty (a warning: a filter upstream may leave two) |
-| `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the questionnaire's codebook (when given); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) and the arm of a `Script.assign_condition` (nominal unless the codebook declares it) count as known. A variable a node makes has the scale that node gives it (Derive its Scale, ratio by default; Recode its Scale or the source's where it reads it; an index interval; Bands ordinal; a cluster, themes, quality flags and Explode's columns nominal; the quality score ratio; factor and MaxDiff scores interval) — the maker nearest upstream of the node reading it, along the edges, whatever order the document lists them in — and one of the wrong scale is a `VARIABLE_SCALE` warning — an error only for the codebook's own |
+| `UNKNOWN_VARIABLE`, `VARIABLE_SCALE` | a variable parameter against the codebook of the sources upstream of its node — the questionnaire's (when given), or a Data file's own (`files`, below; a scale guessed from the file's values is a warning); variables created upstream (`into`, `name`, weight columns, `duration_s`, `partial`) and the arm of a `Script.assign_condition` (nominal unless the codebook declares it) count as known. A variable a node makes has the scale that node gives it (Derive its Scale, ratio by default; Recode its Scale or the source's where it reads it; an index interval; Bands ordinal; a cluster, themes, quality flags and Explode's columns nominal; the quality score ratio; factor and MaxDiff scores interval) — the maker nearest upstream of the node reading it, along the edges, whatever order the document lists them in — and one of the wrong scale is a `VARIABLE_SCALE` warning — an error only for the codebook's own |
 | `UNKNOWN_EDGE_NODE`, `UNKNOWN_PORT`, `PORT_TYPE_MISMATCH`, `INPUT_CONNECTED_TWICE`, `INPUT_NOT_CONNECTED` | edges against the ports |
 | `CYCLE` | not a DAG |
 | `UNREACHABLE_NODE` (warning) | not fed by any source |
 | `UNKNOWN_TILE_NODE`, `TILE_NOT_LIVE_TILE` | `live.tiles` |
+
+**A Data file's columns (`files`).** A `source.file` node brings the columns
+of its file, and nothing in the flow document says what they are: `files`
+gives each Data file's codebook, keyed by the node's id or by the path it
+reads — what `siamang.io.inspect_snapshot` returns for the file read with the
+node's options (`siamang.io.snapshot_options(params)`), or `None` for a file
+not read yet. Each node is then checked against the sources upstream of it
+along the edges:
+
+- below a Data file, a node knows the file's columns — every entry of the
+  schema's `columns`, with the scales and value labels of its `variables` —
+  and the variables the flow makes, but not the questionnaire's, unless the
+  file is the questionnaire's data (the schema's `codebook` is
+  `"questionnaire"`: it knows both, the questionnaire's scales for its own
+  names). A column's scale the schema marks `inferred` (guessed from the
+  values) that does not fit a parameter is a `VARIABLE_SCALE` **warning** —
+  `Parameter 'variables' of ds: 'sex' looks nominal (as guessed from its file's
+  values), expected ordinal | interval | ratio.` — never an error;
+- below a file given as `None`, names are not checked at all (the file's
+  columns are not known yet; the run reads them);
+- below any other source (Responses, Project table, Simulated data) the
+  questionnaire's codebook applies as before, so a flow with a file branch
+  and a responses branch checks each against its own; a node fed by both
+  knows both.
+
+Without `files` every node is checked against the questionnaire, as it always
+was, so a Data file's column is `UNKNOWN_VARIABLE` unless the questionnaire
+has a variable of that name. `resolve_flow`, `FlowRunner` and `generate_flow`
+take the same `files`, and with them a Data file whose **Codebook** is `auto`
+is read with what its schema decided (`codebook="questionnaire"` when the
+schema's `questionnaire.matches`, else `"file"`): the run reads the file the
+way the check checked it, though the questionnaire was edited since or later
+rows would have decided otherwise — a column the check knew as the
+questionnaire's `q1` no longer comes back as the file's `Q1`. Without a
+schema (or with `None`) `auto` is decided when the file is read.
+`read_data_files(flow, root=".", questionnaire=survey)`
+reads them for the flow's Data files from the directory the flow runs in (a
+file missing or unreadable is `None`), which `siamang flow check`, `flow run`
+and `codegen` do.
 
 A parameter the node's code does not read with its current choices is not
 checked: `NodeSpec.reads(name, params)` is true when a template fragment that
@@ -267,6 +306,36 @@ with the ones it has: `Parameter 'question' of sc: no MaxDiff question named
 'q_mdx'; this questionnaire has: q_md, maxdiff_mx_t1_best.` (by id, name, or
 the runtime's `maxdiff_<first variable>` for a question with neither).
 `prepare.derive` takes `labels` (code → label) for a formula that yields codes.
+
+`source.file` reads a data file with `siamang.io.read_snapshot` — CSV, TSV
+and `.txt` in any encoding and delimiter, Excel (`.xlsx`, `.xlsm`, `.xls`),
+SPSS, Stata, Parquet — and takes the reading options as parameters, each
+detected when left on `auto` (or empty): **Codebook** (`codebook`: `auto` the
+questionnaire's when the file is its data, else the file's own; `file`;
+`questionnaire`), **Header rows** (`header_rows`: `auto`, `1`, `2` with a row
+of labels under the names, `3` with a row dropped after it — a Qualtrics CSV),
+**Skip rows** (`skip_rows`: rows above the names), **Sheet** (`sheet`: a name
+or a number from 1), **Delimiter** (`auto`, `,`, `;`, `tab`, `|`),
+**Encoding** (`auto`, `utf-8`, `utf-16`, `cp1251`, `koi8-r`, `cp866`,
+`cp1252`, `cp1250`, `iso-8859-1`), **Decimal mark** (`auto`, `.`, `,`),
+**Missing codes** (`missing`: per column, `sought_advice: -9; source_1: -7`,
+or `-7, -8, -9` for every column that holds them) and **Dictionary**. A
+number given for a choice written as text (`header_rows: 2`) is that choice.
+The template
+writes only the options set, one per line:
+
+```python
+n_src = read_snapshot(
+    "assets/was.csv",
+    delimiter=";",
+    encoding="cp1251",
+    questionnaire=survey,
+)
+```
+
+so a node with none set reads its file with `read_snapshot(path,
+questionnaire=survey)`. `FlowRunner` binds `survey` to `None` when it has no
+questionnaire (a Data file needs none; it was a `NameError`).
 
 `source.simulated` generates its rows with
 `siamang.local_simulator.simulate_survey(survey, n=…, seed=…)`: conditions at
@@ -591,18 +660,23 @@ Variables in the rendered code are `n_<id>` for a single output and
 ## `FlowRunner`
 
 ```python
-runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=doc, codeframes=None)
+runner = FlowRunner(flow, questionnaire=survey, questionnaire_document=doc, codeframes=None, files=None)
 result = runner.run(sources={"src": data_or_path}, db=None, cwd="work", upto=None)
 ```
 
 Executes the nodes in order in one namespace. `sources` feeds platform
 sources by node id (a `SurveyData` or a snapshot path, read with
-`read_snapshot(questionnaire=survey)`); `db` stands in for the platform
+`read_snapshot(questionnaire=survey, codebook="questionnaire")` — the
+platform's data is the survey's, whole or not, as a pilot's snapshot with the
+columns of the questions reached is); `db` stands in for the platform
 module (`as_survey_data`, `write_table`); `cwd` is where relative output
 paths land; `upto` runs a node and its ancestors only. With
 `raise_on_error=False` the run stops at the first failing node and reports
 it instead of raising. `codeframes` (`{path: document}`, as `check_flow` takes
-them) name the theme variable a Code open answers node leaves unnamed.
+them) name the theme variable a Code open answers node leaves unnamed; `files`
+(the Data files' codebooks, as `check_flow` takes them) let the check before
+the run know their columns. `survey` is bound in the run's namespace — to
+`None` without a questionnaire.
 
 A chart is drawn at its node, so what it cannot draw fails that node; it is
 rendered to a PNG at its own `dpi` there and its figure released
@@ -639,7 +713,7 @@ its picture only.
 generate_flow(flow, questionnaire=None, *, registry=None, header=None,
               questionnaire_module="survey.questionnaire",
               platform_module="siamang_studio", format=True,
-              codeframes=None) -> str
+              codeframes=None, files=None) -> str
 ```
 
 Sections: docstring (title, description, `header` with `{schema}` and
@@ -652,7 +726,7 @@ A platform source becomes
 if args.data:  # research bundle: reproduce from a data snapshot
     from siamang.io import read_snapshot
 
-    n_src = read_snapshot(args.data, questionnaire=survey)
+    n_src = read_snapshot(args.data, questionnaire=survey, codebook="questionnaire")
 else:  # the platform: project database, scoped to this project
     from siamang_studio import db
 
@@ -675,3 +749,8 @@ siamang flow run   FLOW.json --data snapshot [--data node=path …] [--questionn
 siamang flow nodes [--json]
 siamang codegen    FLOW.json --questionnaire questionnaire.json [-o scripts/name.py]
 ```
+
+`flow check`, `flow run` and `codegen` of a flow read its Data files from the
+current directory (`flow run`: from `--cwd`) with each node's options
+(`read_data_files`), so a node naming a file's column is checked against the
+file's columns.

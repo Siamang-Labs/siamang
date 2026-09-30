@@ -7,13 +7,17 @@ from siamang.io.export import EXPORT_FORMATS, export_file
 from siamang.io.r import RScriptWriter
 from siamang.io.reader import SurveyDataReader
 from siamang.io.snapshot import (
+    READ_FORMATS,
     SNAPSHOT_FORMATS,
     dictionary_path_for,
+    inspect_snapshot,
     read_snapshot,
+    snapshot_options,
     write_snapshot,
 )
 from siamang.io.spss import SPSSReader, SPSSWriter, read_spss
 from siamang.io.stata import StataReader, StataWriter, read_stata
+from siamang.io.tabular import SnapshotReadError
 
 __all__ = [
     "SurveyDataReader",
@@ -31,9 +35,13 @@ __all__ = [
     "SPSSWriter",
     "SPSSReader",
     "SNAPSHOT_FORMATS",
+    "READ_FORMATS",
+    "SnapshotReadError",
     "EXPORT_FORMATS",
     "export_file",
     "dictionary_path_for",
+    "inspect_snapshot",
     "read_snapshot",
+    "snapshot_options",
     "write_snapshot",
 ]
