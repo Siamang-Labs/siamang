@@ -150,7 +150,12 @@ settings — your account, appearance and developer credentials. These apply to
 you across every organization."
 
 It has five tabs: **Account**, **Security**, **Appearance**, **API keys**,
-**Support**.
+**Support**. If you leave **Account**, **Security** or **API keys** with
+something typed and not saved — a new name, a password, the name of a key
+you have not created yet — Studio asks **Discard unsaved changes?** ("The
+*tab* tab has unsaved changes. Switching tabs discards them.") first.
+**Discard** clears what you typed and opens the other tab; **Cancel** keeps
+you where you were.
 
 ### Account
 
