@@ -20,6 +20,7 @@ from typing import Any
 
 import pandas as pd
 
+from siamang.reporting import p_values
 from siamang.reporting.tables import SurveyTable, _frame_to_markdown, frame_to_html
 
 
@@ -38,18 +39,20 @@ class ResultTable(SurveyTable):
         shown = self._result.astype(object)
         return shown.where(self._result.notna(), "")
 
-    def to_markdown(self) -> str:
-        self._ensure_built()
-        text = _frame_to_markdown(self._display())
-        if self._stats:
-            text += "\n\n" + self._format_stats()
+    def to_markdown(self, *, theme: Any = None) -> str:
+        with p_values.showing(theme):
+            self._ensure_built()
+            text = _frame_to_markdown(self._shown(self._display()))
+            if self._stats:
+                text += "\n\n" + self._format_stats()
         return text
 
-    def to_html(self) -> str:
-        self._ensure_built()
-        html = frame_to_html(self._display())
-        if self._stats:
-            html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
+    def to_html(self, *, theme: Any = None) -> str:
+        with p_values.showing(theme):
+            self._ensure_built()
+            html = frame_to_html(self._shown(self._display()))
+            if self._stats:
+                html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
         return html
 
 

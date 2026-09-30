@@ -175,6 +175,17 @@ A chart of `palette="theme"` is written in the chart colors of the report's
 HTML's alike: drawn again from its parameters when it was drawn in other
 colors. Any other chart is written as it was drawn.
 
+The theme's `p_values` says how the report writes a p-value: `"exact"` (the
+default) as it is kept (`0.0123`, `1.134e-24`); `"0.01"` one below 0.01 as
+`< 0.01`; `"0.001"` one below 0.001 as `< 0.001`. It reaches the cells of every
+column of p-values (`p`, `p (Holm)`, `Beta p`, …) and every statistics line
+(`p < 0.01`, never `p = < 0.01`), in the Markdown and the HTML alike, the
+workbook of `save_tables`, and the charts' notes in their APA style (`< .01`) —
+a chart that wrote a p at its node is drawn again in the report's setting. The
+results, `to_frame()`, `stats` and the exports keep the exact p. A table
+rendered on its own writes p as kept unless given a theme:
+`table.to_markdown(theme={"p_values": "0.01"})`.
+
 ### `save_tables`
 
 ```python
@@ -198,7 +209,10 @@ table: `Group means: Age`; `Perceptual map: Brand × Region — rows (Brand)` fo
 one of a map's three tables), each a link — to a sheet named `Brand's image`
 as Excel names it in a reference, `'Brand''s image'!A1`, the apostrophe
 doubled. Charts, text and statistics lines are left out; a report without
-tables gets a Contents sheet that says so.
+tables gets a Contents sheet that says so. With the theme's `p_values` at
+`"0.01"` (or `"0.001"`) a p-value keeps its number and is shown as `< 0.01`
+below the threshold by its number format (`[<0.01]"< 0.01";General`), in the
+tables and the statistics under them.
 
 ```python
 report.save("out/report.md")

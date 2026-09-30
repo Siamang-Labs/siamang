@@ -132,6 +132,12 @@ class SurveyChart:
     _colours: Any = field(init=False, repr=False, default=None)
     _drawn_with: Any = field(init=False, repr=False, default=None)
     _redrawn: Any = field(init=False, repr=False, default=None)
+    #: How the chart writes a p-value in its notes (``ReportTheme.p_values``,
+    #: :mod:`siamang.reporting.p_values`), which a report sets; and how it
+    #: wrote them when it was drawn — ``""`` when it wrote none, None before
+    #: it was drawn — so a report in another setting draws it again.
+    _p_values: str | None = field(init=False, repr=False, default=None)
+    _p_drawn_with: str | None = field(init=False, repr=False, default=None)
     #: The figure as PNG, by resolution: what :meth:`png` rendered, which a
     #: released figure (:meth:`release`) is answered with.
     _pngs: dict[int, bytes] = field(init=False, repr=False, default_factory=dict)
@@ -150,14 +156,19 @@ class SurveyChart:
     def _ensure_built(self) -> None:
         if self._fig is None:
             _require_matplotlib()
-            from siamang.reporting import chart_theme
+            from siamang.reporting import chart_theme, p_values
 
             # A new figure: what the one before was rendered to (it may have
             # been changed through plot()) no longer stands for the chart.
             self._pngs = {}
             self._drawn = None
-            with chart_theme.drawing(self):
+            with (
+                chart_theme.drawing(self),
+                p_values.showing(self._p_values or p_values.DEFAULT),
+                p_values.recording() as written,
+            ):
                 self._build()
+            self._p_drawn_with = written[0] if written else ""
 
     def _ensure_computed(self) -> None:
         """The chart's numbers and notes, drawing it only when it never was:

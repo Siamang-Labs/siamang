@@ -29,9 +29,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from siamang.reporting import chart_theme, vega
+from siamang.reporting import chart_theme, p_values, vega
 from siamang.reporting.charts import SurveyChart
-from siamang.reporting.tables import SurveyTable, frame_to_html
+from siamang.reporting.tables import SurveyTable, frame_to_html, stat_item
 from siamang.reporting.theme import _LENGTH, ReportTheme
 
 # (kind, payload) blocks. payload depends on kind:
@@ -39,6 +39,8 @@ from siamang.reporting.theme import _LENGTH, ReportTheme
 #   "table" -> (SurveyTable | pd.DataFrame, caption|None, placement)
 #   "chart" -> (SurveyChart, caption|None, placement)
 #   "image" -> (path: str, caption|None, placement)
+#   "stats" -> (dict of statistics, caption|None): one line, written when the
+#              report is rendered, so its p-values follow the report's theme
 # `placement` is {width?, align?, break_before?, space_before?} and reaches
 # the HTML only — see Report.add.
 _Block = tuple[str, object]
@@ -154,6 +156,17 @@ def _frame_markdown(frame: pd.DataFrame) -> str:
             column.replace("|", "\\|") if piped(column) else column for column in frame.columns
         ]
     return frame.to_markdown(index=False)
+
+
+def _stats_line(stats: Mapping[object, object], caption: str | None) -> str:
+    """A statistics dict as the report's one line: ``key = value; …`` (each as
+    :func:`~siamang.reporting.tables.stat_item` writes it, a p-value as the
+    report's theme asks), after its caption."""
+
+    keys = p_values.statistics(stats)
+    parts = [stat_item(key, value, p=key in keys) for key, value in stats.items()]
+    text = "; ".join(parts) if parts else "—"
+    return f"*{caption}*: {text}" if caption else text
 
 
 def _number(theme: ReportTheme, kind: str, n: int) -> str | None:
@@ -496,12 +509,11 @@ class Report:
         elif isinstance(component, pd.DataFrame):
             self._blocks.append(("table", (component, caption, placement)))
         elif isinstance(component, Mapping):
-            # A statistics dict (a table's .stats, an analysis result): one line.
-            from siamang.reporting.tables import stat_text
-
-            parts = [f"{key} = {stat_text(value)}" for key, value in component.items()]
-            text = "; ".join(parts) if parts else "—"
-            self._blocks.append(("md", f"*{caption}*: {text}" if caption else text))
+            # A statistics dict (a table's .stats, an analysis result): one
+            # line, written when the report is rendered — its p-values as the
+            # theme it is rendered with asks (_stats_line). A copy, so the line
+            # says what the statistics were when they were added.
+            self._blocks.append(("stats", (dict(component), caption)))
         else:
             raise TypeError(
                 "Report.add() accepts a SurveyTable, SurveyChart, pandas.DataFrame or a "
@@ -542,9 +554,16 @@ class Report:
         that has an interactive form: what a host draws the chart from in a
         browser. The Markdown itself is the same."""
         asset_dir = Path(asset_dir)
-        # The theme the charts of palette "theme" take their colors from: the
-        # document's, or the one whatever runs this names — as the HTML's.
+        # The theme the charts of palette "theme" take their colors from, and
+        # the tables and charts their way of writing a p-value: the document's,
+        # or the one whatever runs this names — as the HTML's.
         look = self.theme or ReportTheme.from_env()
+        with p_values.showing(look):
+            return self._markdown(asset_dir, embed_images, prefix, specs, look)
+
+    def _markdown(
+        self, asset_dir: Path, embed_images: bool, prefix: str, specs: bool, look: ReportTheme
+    ) -> str:
         lines: list[str] = []
         if self.title:
             lines.append(f"# {self.title}")
@@ -564,7 +583,10 @@ class Report:
                     lines.append(comp.to_markdown())
                 else:
                     assert isinstance(comp, pd.DataFrame)
-                    lines.append(_frame_markdown(comp))
+                    lines.append(_frame_markdown(p_values.cells(comp, tabulated=True)))
+            elif kind == "stats":
+                assert isinstance(payload, tuple)
+                lines.append(_stats_line(payload[0], payload[1]))
             elif kind == "chart":
                 assert isinstance(payload, tuple)
                 comp, caption = payload[0], payload[1]
@@ -699,13 +721,14 @@ class Report:
         # house style without editing the flow (as SIAMANG_PROVENANCE does for
         # the footer). Unset, that is the defaults.
         theme = _as_theme(theme) or self.theme or ReportTheme.from_env()
-        blocks = self._html_blocks(
-            theme,
-            Path(asset_dir),
-            embed_images,
-            interactive=interactive,
-            name=name if name is not None else (_slug(self.title, 40) or "report"),
-        )
+        with p_values.showing(theme):
+            blocks = self._html_blocks(
+                theme,
+                Path(asset_dir),
+                embed_images,
+                interactive=interactive,
+                name=name if name is not None else (_slug(self.title, 40) or "report"),
+            )
         body = "\n".join(blocks)
         title = _esc(self.title or "Report")
         drawn = interactive and any(_INTERACTIVE_MARK in block for block in blocks)
@@ -771,6 +794,10 @@ class Report:
                 out.append(md(payload))
                 continue
             assert isinstance(payload, tuple)
+            if kind == "stats":
+                close()
+                out.append(md(_stats_line(payload[0], payload[1])))
+                continue
             component, caption = payload[0], payload[1]
             layout = payload[2] if len(payload) > 2 else {}
             if kind == "table":
@@ -785,7 +812,7 @@ class Report:
                 inner = (
                     component.to_html()
                     if isinstance(component, SurveyTable)
-                    else frame_to_html(component, rounded=False)
+                    else frame_to_html(p_values.cells(component, tabulated=True), rounded=False)
                 )
                 place(_figure(inner, caption, label, layout, theme), layout)
             elif kind == "chart":

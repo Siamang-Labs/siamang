@@ -31,6 +31,14 @@ lazily on first use):
 The statistics footer (Chi-square, Cramér's V, the chosen mean-comparison test,
 etc.) is rendered automatically beneath `to_markdown()`/`to_html()` output.
 
+`to_markdown(theme=...)` and `to_html(theme=...)` take a report theme (a
+`ReportTheme` or its fields as a dict) for how p-values are written:
+`{"p_values": "0.01"}` writes one below 0.01 as `< 0.01` in the cells and
+`p < 0.01` in the footer (`"0.001"` likewise). Without it a table in a
+`Report` follows the report's theme, and one on its own writes p as kept
+(`p = 1.134e-24`). `to_frame()` and `stats` always keep the exact p. See
+[[Report Document|Report-Document]].
+
 ---
 
 ## `FreqTable` — univariate frequencies

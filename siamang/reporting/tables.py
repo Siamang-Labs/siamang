@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.data.listwise import round_p
+from siamang.reporting import p_values
 
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
@@ -152,6 +153,27 @@ def stat_text(value: Any) -> str:
     return str(value)
 
 
+def stat_item(key: Any, value: Any, *, p: bool | None = None) -> str:
+    """A statistic as a table's footer and a report's statistics line write
+    it: ``key = value``, the value as :func:`stat_text` prints it.
+
+    A p-value below the threshold the report asks for
+    (:attr:`~siamang.reporting.theme.ReportTheme.p_values`, see
+    :mod:`siamang.reporting.p_values`) is written as the bound — ``p < 0.01``,
+    ``Bartlett p < 0.001`` — and so is a ``p = …`` the engine wrote into a
+    sentence (a pair of groups compared). ``p`` says whether the statistic is
+    a p-value; by default its name says (:func:`~siamang.reporting.p_values.is_p`).
+    Under the default, ``exact``, it is ``key = value`` as it always was.
+    """
+    mode = p_values.current()
+    if mode != p_values.DEFAULT:
+        if (p_values.is_p(key) if p is None else p) and p_values.is_below(value, mode):
+            return f"{key} {p_values.bound(mode)}"
+        if isinstance(value, str):
+            return f"{key} = {p_values.in_text(value, mode)}"
+    return f"{key} = {stat_text(value)}"
+
+
 def frame_to_html(df: pd.DataFrame, caption: str | None = None, *, rounded: bool = True) -> str:
     """Convert a DataFrame to a clean HTML table.
 
@@ -245,21 +267,41 @@ class SurveyTable:
         self._ensure_built()
         return dict(self._stats)
 
-    def to_markdown(self) -> str:
-        """Return the table as a GitHub-flavored Markdown string."""
-        self._ensure_built()
-        md = _frame_to_markdown(self._result)
-        if self._stats:
-            md += "\n\n" + self._format_stats()
+    def to_markdown(self, *, theme: Any = None) -> str:
+        """Return the table as a GitHub-flavored Markdown string.
+
+        ``theme`` (a :class:`~siamang.reporting.theme.ReportTheme`, or its
+        fields as a dict) says how its p-values are written (``p_values``);
+        without one, as the report rendering the table asks, and outside a
+        report as they are kept.
+        """
+        with p_values.showing(theme):
+            self._ensure_built()
+            md = _frame_to_markdown(self._shown(self._result))
+            if self._stats:
+                md += "\n\n" + self._format_stats()
         return md
 
-    def to_html(self) -> str:
-        """Return the table as an HTML string."""
-        self._ensure_built()
-        html = _frame_to_html(self._result)
-        if self._stats:
-            html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
+    def to_html(self, *, theme: Any = None) -> str:
+        """Return the table as an HTML string (``theme``: as :meth:`to_markdown`)."""
+        with p_values.showing(theme):
+            self._ensure_built()
+            html = _frame_to_html(self._shown(self._result))
+            if self._stats:
+                html += f"\n<p class='siamang-stats'>{self._format_stats()}</p>"
         return html
+
+    def _p_columns(self) -> list[Any]:
+        """The columns that hold p-values, which a report may write as a bound
+        (:mod:`siamang.reporting.p_values`): those named as p-values are
+        (``p``, ``p (Holm)``, ``Beta p`` …). A table whose columns are named by
+        the data — a crosstab's answers — says it has none."""
+        return [column for column in self._result.columns if p_values.is_p(column)]
+
+    def _shown(self, frame: pd.DataFrame) -> pd.DataFrame:
+        """``frame`` (the table, or its printable form) with its p-values
+        written as the report asks; ``frame`` itself under ``exact``."""
+        return p_values.cells(frame, self._p_columns())
 
     def export_xlsx(self, path: str | Path) -> Path:
         """Export the table to an Excel file."""
@@ -271,8 +313,15 @@ class SurveyTable:
         return path
 
     def _format_stats(self) -> str:
-        """Format statistics footer (each value as :func:`stat_text` writes it)."""
-        return "; ".join(f"{key} = {stat_text(val)}" for key, val in self._stats.items())
+        """Format statistics footer (each as :func:`stat_item` writes it: the
+        value as :func:`stat_text` does, a p-value as the report asks)."""
+        footer = self._footer()
+        keys = p_values.statistics(footer)
+        return "; ".join(stat_item(key, val, p=key in keys) for key, val in footer.items())
+
+    def _footer(self) -> dict[str, Any]:
+        """The statistics the footer prints: :attr:`stats`."""
+        return self._stats
 
     def __repr__(self) -> str:
         self._ensure_built()
@@ -633,6 +682,11 @@ class CrossTable(SurveyTable):
     test: bool = True
     method: str = "chi2"
 
+    def _p_columns(self) -> list[Any]:
+        # The columns are the answers of `col`, named by its labels: one
+        # labeled "p" holds counts or percentages, not p-values.
+        return []
+
     def _build(self) -> None:
         from siamang.data import multi
 
@@ -852,17 +906,19 @@ class _BlankUndefined:
         frame = self._result.astype(object)  # type: ignore[attr-defined]
         return frame.where(frame.notna(), "")
 
-    def to_markdown(self) -> str:
-        md = _frame_to_markdown(self._printable())
-        if self._stats:  # type: ignore[attr-defined]
-            md += "\n\n" + self._format_stats()  # type: ignore[attr-defined]
+    def to_markdown(self, *, theme: Any = None) -> str:
+        with p_values.showing(theme):
+            md = _frame_to_markdown(self._shown(self._printable()))  # type: ignore[attr-defined]
+            if self._stats:  # type: ignore[attr-defined]
+                md += "\n\n" + self._format_stats()  # type: ignore[attr-defined]
         return md
 
-    def to_html(self) -> str:
-        html = frame_to_html(self._printable())
-        if self._stats:  # type: ignore[attr-defined]
-            stats = self._format_stats()  # type: ignore[attr-defined]
-            html += f"\n<p class='siamang-stats'>{stats}</p>"
+    def to_html(self, *, theme: Any = None) -> str:
+        with p_values.showing(theme):
+            html = frame_to_html(self._shown(self._printable()))  # type: ignore[attr-defined]
+            if self._stats:  # type: ignore[attr-defined]
+                stats = self._format_stats()  # type: ignore[attr-defined]
+                html += f"\n<p class='siamang-stats'>{stats}</p>"
         return html
 
 
@@ -919,15 +975,17 @@ class GroupMeanTable(_BlankUndefined, SurveyTable):
         self._ensure_built()
         return self._posthoc
 
-    def to_markdown(self) -> str:
+    def to_markdown(self, *, theme: Any = None) -> str:
         from siamang.reporting.stat_tables import render_with_posthoc
 
-        return render_with_posthoc(super().to_markdown(), self.posthoc_table, html=False)
+        with p_values.showing(theme):
+            return render_with_posthoc(super().to_markdown(), self.posthoc_table, html=False)
 
-    def to_html(self) -> str:
+    def to_html(self, *, theme: Any = None) -> str:
         from siamang.reporting.stat_tables import render_with_posthoc
 
-        return render_with_posthoc(super().to_html(), self.posthoc_table, html=True)
+        with p_values.showing(theme):
+            return render_with_posthoc(super().to_html(), self.posthoc_table, html=True)
 
     def export_xlsx(self, path: str | Path) -> Path:
         if self.posthoc_table is None:

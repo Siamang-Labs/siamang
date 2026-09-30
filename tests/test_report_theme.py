@@ -97,10 +97,12 @@ def test_the_report_and_the_questionnaire_agree_on_what_a_preset_is():
 # ─── the stylesheet ──────────────────────────────────────────────────────────
 
 # Fields that change the document rather than the stylesheet — the chart
-# colors change the figures (test_chart_theme.py holds them to that). Everything
-# else must move at least one byte of CSS, or it is a control that does nothing.
+# colors change the figures (test_chart_theme.py holds them to that), p_values
+# how p-values are written (test_p_values.py). Everything else must move at
+# least one byte of CSS, or it is a control that does nothing.
 _NOT_IN_CSS = {
     "figure_dpi",
+    "p_values",
     "number_tables",
     "number_figures",
     "table_label",
@@ -325,7 +327,8 @@ def test_numbering_is_off_until_it_is_asked_for_and_then_it_counts():
 
 def test_markdown_is_unchanged_by_any_of_this():
     """The Markdown is the content and stays what it was: a theme changes how a
-    report is rendered, never what it says."""
+    report is rendered, never what it says — but for how it writes a p-value
+    below a threshold (p_values, test_p_values.py), which is what it says."""
 
     frame = pd.DataFrame({"a": [1, 2]})
     plain = Report(title="R").text("Body").add(frame, caption="T").to_markdown()

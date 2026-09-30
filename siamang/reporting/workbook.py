@@ -20,7 +20,12 @@ table of a :class:`~siamang.reporting.document.Report`:
   caption, each a link to the sheet;
 - text is text: a respondent's answer, a label or a caption that begins with
   ``=`` is written as a string, never as a formula Excel would run
-  (:mod:`siamang.io.excel_text`).
+  (:mod:`siamang.io.excel_text`);
+- a p-value is written as the report's theme asks (``ReportTheme.p_values``,
+  :mod:`siamang.reporting.p_values`): with a threshold, the cell keeps its
+  number and a number format shows one below the threshold as ``< 0.01``
+  (``[<0.01]"< 0.01";General``), so it still sorts, filters and computes as
+  the p it is; ``exact`` writes the cells as they always were.
 
 Charts, text and statistics lines are not tables and are left out.
 """
@@ -53,8 +58,12 @@ def save_tables(report: Report, path: str | Path) -> Path:
     from openpyxl.styles import Font
 
     from siamang.io.excel_text import as_text, sheet_link
+    from siamang.reporting.theme import ReportTheme
 
     path = Path(path)
+    # How the p-values are shown: the report's theme, or the one whatever runs
+    # this names — as its Markdown and HTML.
+    mode = (report.theme or ReportTheme.from_env()).p_values
     if path.suffix.lower() != ".xlsx":
         raise ValueError(f"The tables are written to an .xlsx workbook; got {path.name!r}.")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -78,7 +87,9 @@ def save_tables(report: Report, path: str | Path) -> Path:
             name = names.take(base, suffix=own if index else None)
             target = book.create_sheet(name)
             _copy(sheet, target)
-            _write_stats(target, _sheet_source(component, index, own))
+            source = _sheet_source(component, index, own)
+            _p_cells(target, _p_names(source), mode)
+            _write_stats(target, source, mode)
             _fit_columns(target)
             described = caption or _described(component)
             entries.append(
@@ -295,18 +306,70 @@ def _copy(source: Any, target: Any) -> None:
     target.freeze_panes = source.freeze_panes
 
 
-def _write_stats(target: Any, component: Any) -> None:
-    """The statistics a table prints under itself, one per row, under it."""
+def _p_names(source: Any) -> set[str]:
+    """The headers of the columns of ``source`` (a table, a bare DataFrame, or
+    None) that hold p-values, as its sheet writes them."""
+
+    from siamang.reporting import p_values
+    from siamang.reporting.tables import SurveyTable
+
+    if isinstance(source, SurveyTable):
+        source._ensure_built()
+        return {str(column) for column in source._p_columns()}
+    if isinstance(source, pd.DataFrame):
+        return {str(column) for column in _printable(source).columns if p_values.is_p(column)}
+    return set()
+
+
+def _p_cells(sheet: Any, names: set[str], mode: str) -> None:
+    """The p-values of the columns headed ``names`` shown as ``mode`` asks:
+    a number keeps its value under a number format that shows it as the bound
+    below the threshold; a bound written as text (``< 1e-07``) is the
+    report's bound. Nothing under ``exact``."""
+
+    from siamang.reporting import p_values
+
+    shown = p_values.excel_format(mode)
+    if shown is None or not names:
+        return
+    for header in sheet[1]:
+        if header.value is None or str(header.value) not in names:
+            continue
+        for row in range(2, sheet.max_row + 1):
+            cell = sheet.cell(row=row, column=header.column)
+            if isinstance(cell.value, int | float) and not isinstance(cell.value, bool):
+                cell.number_format = shown
+            elif isinstance(cell.value, str) and p_values.is_below(cell.value, mode):
+                cell.value = p_values.bound(mode)
+
+
+def _write_stats(target: Any, component: Any, mode: str = "exact") -> None:
+    """The statistics a table prints under itself, one per row, under it — a
+    p-value shown as ``mode`` asks (:func:`_p_cells`)."""
 
     from openpyxl.styles import Font
 
+    from siamang.reporting import p_values
+    from siamang.reporting.tables import SurveyTable
+
     stats = getattr(component, "stats", None) if component is not None else None
+    if isinstance(component, SurveyTable):
+        # What its footer prints, which may leave out what the bound makes moot.
+        with p_values.showing(mode):
+            stats = dict(component._footer())
     if not isinstance(stats, dict) or not stats:
         return
+    shown = p_values.excel_format(mode)
+    keys = p_values.statistics(stats)
     row = target.max_row + 2
     for key, value in stats.items():
         target.cell(row=row, column=1, value=str(key)).font = Font(italic=True)
-        target.cell(row=row, column=2, value=_cell(value))
+        cell = target.cell(row=row, column=2, value=_cell(value))
+        if shown is not None:
+            if key in keys and isinstance(cell.value, int | float):
+                cell.number_format = shown
+            elif isinstance(cell.value, str):
+                cell.value = p_values.in_text(cell.value, mode)
         row += 1
 
 

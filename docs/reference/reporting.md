@@ -25,10 +25,15 @@ Every table component supports the following common interface:
 
 * **`to_frame() -> pd.DataFrame`**:
   Returns the raw pandas DataFrame representation.
-* **`to_markdown() -> str`**:
+* **`to_markdown(*, theme=None) -> str`**:
   Returns a clean, pipe-formatted GitHub-flavored Markdown table.
-* **`to_html() -> str`**:
+* **`to_html(*, theme=None) -> str`**:
   Returns a clean HTML `<table>` string with basic class styling.
+
+  `theme` (a `ReportTheme`, or its fields as a dict) says how the table writes
+  its p-values (`p_values`, §1b *P values*). Without one a table rendered by a
+  `Report` writes them as the report's theme asks, and a table rendered on its
+  own (a node's output, a notebook) as they are kept.
 * **`export_xlsx(path: str | Path) -> Path`**:
   Exports the table directly to an Excel sheet named `"Table"`. The destination directory must already exist.
 
@@ -42,7 +47,9 @@ printed as it is (`p = 0.002343`). A p-value in the `stats` or a table cell of
 these tables keeps four decimals, or below 0.0001 four significant digits
 (`1.134e-24`), so its footer prints the same p; Paired tests and factor
 analysis keep four significant digits throughout — statistics, cells and
-footer alike (`p = 0.002343`, `Bartlett p = 0.00227`). The
+footer alike (`p = 0.002343`, `Bartlett p = 0.00227`). That is how a p is
+written by default; a report's theme can write one below 0.01 or 0.001 as the
+bound instead (`p < 0.01`, §1b *P values*), and the p kept stays as it is. The
 HTML writes each number of a table as the Markdown does, so the `.html` and the
 `.md` of a report show the same values: a table component's cells as they are
 kept, and a bare DataFrame given to `Report.add` — not rounded — as tabulate
@@ -250,12 +257,56 @@ can be set in the same type.
 | `figure_dpi` | 72–600 | what figures are written at (the pixels, not the size a figure is shown at) |
 | `caption_position` | `below` · `above` | |
 | `number_tables`, `number_figures`, `table_label`, `figure_label` | bool, str | `Table 1.` prefixes; off by default |
+| `p_values` | `exact` · `0.01` · `0.001` | how a p-value is written: as kept, or below the threshold as `< 0.01` / `< 0.001` (*P values* below) |
 | `chart_palette` | 2–12 hex colors | the series of a chart of `palette="theme"`, in order |
 | `chart_sequential` | a hex color | magnitude (a heatmap of means) and the steps of an ordered scale |
 | `chart_diverging` | two hex colors | a scale's low end and high end (Likert, NPS, sentiment, correlations) |
 | `chart_text_color`, `chart_grid_color` | a hex color | the charts' text (at least 4.5:1 on white) and grid lines |
 | `chart_font` | a font stack | the charts' face: the first of the stack installed where they are drawn |
 | `custom_css` | CSS | appended last, so it wins — and checked by nothing |
+
+**P values.** `p_values` says how the report writes a p-value. `exact`, the
+default, writes it as it is kept — four decimals, or four significant digits
+below 0.0001 (`0.0123`, `1.134e-24`; `siamang.data.listwise.round_p`) — which is
+what reports have always printed, byte for byte. `0.01` writes one below 0.01 as
+`< 0.01`, and `0.001` one below 0.001 as `< 0.001`; one at or above the
+threshold is written as kept (`0.0341`). A number given for it (`0.01`, as a
+JSON file may give it) is taken as its name; anything else is a
+`ReportThemeError`. One setting governs the whole report
+(`siamang.reporting.p_values`):
+
+- **Table cells** of every column that holds p-values, in the Markdown and the
+  HTML: `p`, `p (Holm)`, `p (unadjusted)`, `p adjusted`, `Beta p`, `p_value` …
+  (`p_values.is_p`) — in Crosstab, Group means and its post-hoc pairs (Tukey's
+  floor `< 1e-07` becomes the bound too, and the footer's clause about it goes),
+  the t-test, the correlation pairs, the regression, Paired tests, Key drivers,
+  and a bare DataFrame (its other numbers in that column as tabulate writes
+  them). A table whose columns are named by the data — a crosstab's answers,
+  descriptive statistics by group, the correlation matrix — has none.
+- **Statistics lines**: a table's footer and a statistics mapping given to
+  `Report.add` write `p < 0.01`, `Bartlett p < 0.001`, `p_value < 0.01` —
+  never `p = < 0.01` — and a `p = 0.0057` the engine wrote into a sentence (a
+  pair of groups in `compare_groups`) likewise. A proportion with its interval
+  (`{"p", "lower", "upper", "n"}`, `analysis.proportion_ci`) keeps its `p`: it
+  is the proportion. A mapping's line is written when the report is rendered,
+  so it takes the theme it is rendered with.
+- **The Excel workbook** (`save_tables`): the cell keeps its number, and the
+  number format `[<0.01]"< 0.01";General` (`[<0.001]"< 0.001";General`) shows
+  it as the bound below the threshold and as General shows it otherwise, so it
+  still sorts, filters and computes as the p it is; in the statistics under a
+  table too. `exact` leaves every cell's format as it was.
+- **Charts' notes**: a Result chart's note (`p < 0.01` beside a t-test's
+  difference, a paired test's line) and the correlation heatmap's tooltips in
+  their APA style (`< .01`; `exact` and `0.001` keep the style's `< .001`). A
+  chart writes its notes when it is drawn — at its node, as kept — so a report
+  in another setting draws it again from its parameters, as it does for the
+  chart colors (`chart_theme.in_report`); a chart that writes no p-value is
+  never drawn again for it.
+
+Only the writing changes: the results, `to_frame()`, `stats`, the CSV and
+Parquet exports and a table's own `export_xlsx` keep the p as computed. The tab
+book (`tabbook`) writes no p-value — its significance letters are at a level —
+and is unchanged.
 
 **How large a chart's text reads.** A figure is shown at `figure_width` of the
 measure (`100%` of `width`, 720 px), whatever size it was drawn at: a chart
@@ -320,7 +371,9 @@ no `@import` — so the same theme gives the same bytes on every machine.
 
 **Markdown and HTML carry different things, on purpose.** The `.md` is the
 report's content: text, order, captions, notes, the provenance footer. It stays
-plain Markdown that diffs and travels, and a theme never changes a byte of it.
+plain Markdown that diffs and travels, and a theme never changes a byte of it —
+but for `p_values`, which is how the content writes a p-value, and the
+figures of charts of palette `"theme"`.
 The `.html` is the document as it is meant to be read. Both are written from the
 same blocks, so neither can drift from the other.
 
@@ -347,6 +400,8 @@ sheet (the link quoting the sheet's name with an apostrophe inside doubled,
 caption (`Frequencies: Region` for a table without one; `Perceptual map: Brand ×
 Region — rows (Brand)`, `Price sensitivity: Gabor-Granger — curves`, `Key drivers:
 Liking`, `Paired tests: Cochran's Q` for the later analyses). Charts, text and statistics mappings are not tables and are skipped.
+A p-value is shown as the report's theme asks (`p_values`, *P values* above): with
+a threshold its cell keeps the number under the format `[<0.01]"< 0.01";General`.
 
 `Report.add()` and `Report.image()` take a **`width`** (a CSS length), an
 **`align`**, a **`break_before`** and a **`space_before`** (the space above the

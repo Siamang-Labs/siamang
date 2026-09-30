@@ -55,6 +55,11 @@ class DescriptivesTable(_BlankUndefined, SurveyTable):
     layout: str = "long"
     _long: Any = field(init=False, repr=False, default=None)
 
+    def _p_columns(self) -> list[Any]:
+        # Its columns are statistics of the variables, or (layout="means") the
+        # groups by their labels: none holds a p-value.
+        return []
+
     def _build(self) -> None:
         from siamang.data.descriptives import describe
 
