@@ -202,13 +202,13 @@ code, or is labeled `Missing (<code>)`.
 **Options → Data layout → wide** turns the question into one 0/1 variable
 per choice (`brands_1`, `brands_2`, …; a question whose options come from its
 variable's value labels gets them as its choices first) and keeps them in step
-with the choices; **array** turns them back into one variable. A published survey
-stores each chosen option's variable as `1` and the others as `0` once the
-question is answered (an option hidden by its own condition stays empty),
-exclusive choices such as "None of these" clear the others, and conditions
-and quotas on `brands_1 = 1` work. A survey published before this worked
-needs to be published again; its earlier answers are read as 1/0 columns in
-Data and exports. → [Multiple-choice layouts](Studio-Codebook-and-Variables#multiple-choice-layouts)
+with the choices; **array** turns them back into one variable. A published
+survey stores each chosen option's variable as `1` and the others as `0` once
+the question is answered (an option hidden by its own condition stays empty),
+exclusive choices such as "None of these" clear the others, and conditions and
+quotas on `brands_1 = 1` work. A survey published before this worked needs to
+be published again; its earlier answers are read as 1/0 columns in Data and
+exports. → [Multiple-choice layouts](Studio-Codebook-and-Variables#multiple-choice-layouts)
 
 **What are the `-66`, `-77` and `<variable>_other` values in my data?**
 The codes of the answers added with a switch: "Other (please specify)" is
@@ -504,7 +504,7 @@ and the other flows, **Run all** and previews work — in Run all it fails with
 to run: open it, fix its errors and save". Press **Check**, fix what it
 lists and **Save**. → [A flow with errors](Studio-Flows#a-flow-with-errors)
 
-**"edges/N/from: Additional properties are not allowed ('title', 'type' were unexpected)".**
+**"edges/*N*/from: Additional properties are not allowed ('title', 'type' were unexpected)".**
 An earlier version of Studio saved an output added with **+ Add output** in
 the **Report** view in a form the engine rejects. Open the flow: Studio
 repairs its connections and says "Studio repaired this flow's connections."

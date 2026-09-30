@@ -159,12 +159,12 @@ same address does not give you a new trial. Organizations you add later with
 [Creating another organization](Studio-Organizations-and-Team#creating-another-organization)).
 
 After sign-in you arrive on the **Projects** tab of the organization you
-joined first (or, if you opened a link to a Studio screen before signing in,
-on that screen). For a new account that is this workspace, unless you created
+joined first. For a new account that is this workspace, unless you created
 the account with an address that had been invited to another organization:
 then the inviting organization opens first (see
 [If you create your account from the invitation](#if-you-create-your-account-from-the-invitation)).
-The workspace chip in the topbar switches between your organizations.
+If you opened a link to a Studio screen before signing in, that screen opens
+instead. The workspace chip in the topbar switches between your organizations.
 
 ---
 

@@ -328,10 +328,10 @@ reason:
   what the data means.
 - Use **What to fix** to steer a rewrite. "Make it neutral" or "simpler for
   teenagers" works better than a bare request.
-- After **Replace options**, check the codebook: removed options disappear
-  from the question and from its value labels, and new ones take new codes. On a multiple-choice
-  question in the wide layout, each new option also gets its own 0/1
-  variable, and a removed option's variable goes.
+- After **Replace options**, check the codebook: removed options disappear from
+  the question and from its value labels, and new ones take new codes. On a
+  multiple-choice question in the wide layout, each new option also gets its
+  own 0/1 variable, and a removed option's variable goes.
 - After **Use this draft**, check the theme (it starts from your
   organization's house style, if there is one) and read every question as a
   respondent would.

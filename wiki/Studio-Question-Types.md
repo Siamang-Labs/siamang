@@ -202,18 +202,18 @@ choice's code (`q7` becomes `q7_1`, `q7_2`, `q7_3`; `_2` is added to a name
 that is taken). Each is nominal, coded `0` No / `1` Yes, and takes the choice's
 label as its variable label. Studio keeps them in step with the choices: a new
 choice gets a new variable, a removed choice's variable leaves the codebook,
-and relabeling a choice relabels its variable. A Multiple choice that takes
-its options from its variable's value labels (no **Choices** of its own) gets
-those labels as its choices when you click **wide**, one variable per option
-(`aware` with the codes 1, 2, 3 and 99 becomes `aware_1`, `aware_2`,
-`aware_3` and `aware_99`), and its exclusive options stay exclusive. Clicking
-**array** collapses them back into one variable (`q7`) with the choices as
-value labels. A wide question that came from a template or an import without
-one choice per variable offers one option per variable. Your first edit in
-**Options** makes those its choices, one per variable, so **+ Option** adds a
-variable and removing an option drops its variable. Before any edit, switching
-it to **array** replaces them with a single variable and leaves the question
-without choices until you add some.
+and relabeling a choice relabels its variable. Clicking **array** collapses
+them back into one variable (`q7`) with the choices as value labels. A
+Multiple choice that takes its options from its variable's value labels (no
+**Choices** of its own) gets those labels as its choices when you click
+**wide**, one variable per option (`aware` with the codes 1, 2, 3 and 99
+becomes `aware_1`, `aware_2`, `aware_3` and `aware_99`), and its exclusive
+options stay exclusive. A wide question that came from a template or an import
+without one choice per variable offers one option per variable. Your first edit
+in **Options** makes those its choices, one per variable, so **+ Option** adds
+a variable and removing an option drops its variable. Before any edit,
+switching it to **array** replaces them with a single variable and leaves the
+question without choices until you add some.
 
 In the data, each per-choice variable holds:
 
@@ -595,12 +595,14 @@ to warn about. The hint beside the switch always says what is stored.
   question's `metadata` can name the code of one of its choices: that choice
   becomes the Other option — it opens the text box, and no second "Other" is
   added, on the card either. A Qualtrics import does this for a text-entry
-  choice. A question without choices can do the same with one of its
-  variable's value labels. The card shows such an option once, in its place,
-  with no separate "Other (please specify)". The options editor leaves a value
-  label with the Other or None of the above code out of its list, because the
-  switch stands for it. After your first edit there, the survey adds its own
-  Other at the end, stored under the same code.
+  choice. A question without choices does the same with a value label under the
+  code Other stores (`-66`, or the code `other_code` names): with
+  **Add “Other (please specify)”** on, that label is its Other option. The card
+  shows such an option once, in its place, with no separate "Other (please
+  specify)". The options editor leaves a value label with the Other or None of
+  the above code out of its list, because the switch stands for it. After your
+  first edit there, the survey adds its own Other at the end, stored under the
+  same code.
 - **Options that come from the codebook.** A Single choice, or a Multiple
   choice in the array layout, can have no **Choices** of its own: the survey
   then offers its variable's value labels, and the card and the options editor

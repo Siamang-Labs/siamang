@@ -16,7 +16,7 @@ on macOS and `Ctrl` elsewhere.
 | `Tab` (first press on a page) | shows **Skip to content**; press `Enter` to jump past the topbar and tabs to the screen itself |
 | `Tab` / `Shift + Tab` | move between controls |
 | `Enter` or `Space` | activate a focused row or card that opens something (a Save in History, a list row) |
-| `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, the **⋮** menu of a row in the flows table, the Builder's **Library** menu and its menu for adding a question, the Data export menu; the focus goes back to the button that opened it |
+| `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu; the focus goes back to the button that opened it |
 | `↑` / `↓`, `Home` / `End` in an open menu | move through its items (the menu takes the focus when it opens): the account menu, the organization/project switcher, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu |
 | `Tab` in an open menu | close the menu and move on to the next control |
 | `←` / `→`, `Home` / `End` on a focused tab | switch tabs in **Organization settings**, **Profile settings**, **Project settings** and a Save in **History**; `Tab` then moves into the tab's content |

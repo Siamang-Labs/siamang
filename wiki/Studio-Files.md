@@ -95,9 +95,9 @@ in all projects of the organization, including run outputs**:
 | Corporate | unlimited |
 
 An upload that would exceed it is refused with "the *Plan* plan allows up to
-*N* MB of stored files; delete files or upgrade to add more". Replacing a file only
-counts the difference in size. The quota is checked when you upload; flow runs
-still store their outputs when you are over it.
+*N* MB of stored files; delete files or upgrade to add more". Replacing a file
+only counts the difference in size. The quota is checked when you upload; flow
+runs still store their outputs when you are over it.
 
 ## Download a file
 
