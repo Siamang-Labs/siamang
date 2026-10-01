@@ -1061,12 +1061,26 @@ or deleted until they are done.
    reads, and selects the file once it is stored. A file uploaded earlier
    under **Files** is in the list already.
 3. If a dictionary was uploaded beside it, the **Dictionary (JSON)** field
-   offers **Use panel_wave2.dictionary.json**. Then connect your
-   analysis.
+   offers **Use panel_wave2.dictionary.json**.
+4. Read the **Columns** panel under the parameters: "*rows* rows × *columns*
+   columns" and how the file was read. **Reading options** says what auto
+   found ("all auto (found: CSV, semicolon, CP1251, decimal comma, 1 header
+   row)"); open it only when that is wrong — a CSV read as one column needs
+   its **Delimiter**, garbled letters its **Encoding** — and press **Read
+   again**.
+5. If the panel lists **Codes that look like missing codes**, press **Mark
+   them as missing in these columns** (each code goes into **Missing codes**
+   for the columns it was found in, and **Undo** takes it back), then put a
+   **Missing values** node after the Data file. If it lists columns that
+   **look like personal data**, press **Add a Select columns node without
+   them**.
+6. Connect your analysis below. Its pickers offer the file's columns under
+   "From panel_wave2.csv"; the questionnaire's variables come with them only
+   when the file is this survey's data.
 
 Runs, **Run all** and **Run to here** read the upload directly; a research
 bundle made with data brings the uploads its flows name.
-→ [[Files|Studio-Files]]
+→ [Data file](Studio-Node-Reference#data-file) · [[Files|Studio-Files]]
 
 ### Code an open question by rules
 

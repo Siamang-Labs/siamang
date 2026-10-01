@@ -63,7 +63,10 @@ factor scores** checked, **Response quality**, **Speeders & partials**, a
 weighting node, or a **Code open answers** (its **Theme variable**, or the
 name its codeframe carries) — labeled "*label* · made by *node*" (or "made
 by *node*"), then those a table the flow reads brings, labeled "from table
-*table* · made by *flow*". A
+*table* · made by *flow*". Below a **Data file**, the file's own columns come
+first, grouped under "From *name*" (the file's name), and the questionnaire's
+variables only when the file is this survey's data (see
+[The file's columns in the flow](#the-files-columns-in-the-flow)). A
 variable made further down the flow is not offered: it does not exist yet
 when this node runs. See
 [Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers).
@@ -196,24 +199,162 @@ Nodes with no input that produce **SurveyData**. A flow needs at least one.
 
 ### Data file
 
-`source.file` — reads a data file with its codebook: Parquet, CSV, Excel,
-SPSS (`.sav`) or Stata (`.dta`). The palette describes it as "A data file from
-Files: Parquet, CSV, Excel, SPSS or Stata, with its dictionary when present."
-With a dictionary (a `<name>.dictionary.json` beside the file, or the one you
-name) the columns arrive labeled; otherwise the questionnaire's codebook
-labels the columns it knows.
+`source.file` — reads a data file uploaded under [[Files|Studio-Files]] as it
+comes, and brings **its own columns** into the flow. The palette describes it
+as "A data file from Files: CSV (in any encoding, with , ; tab or | between
+fields), Excel, SPSS, Stata or Parquet. Its columns come into the flow with
+it: their names, the labels of a label row (a Qualtrics export's question
+texts), value labels and missing codes where the format keeps them."
+
+It reads `.csv`, `.tsv` and `.txt` (text tables in any encoding, separated by
+commas, semicolons, tabs or vertical bars), `.xlsx`, `.xlsm` and `.xls`,
+`.sav` (SPSS), `.dta` (Stata) and `.parquet`, the ending in any case. The
+nodes below it offer the file's columns, and the checks know them (see
+[The file's columns in the flow](#the-files-columns-in-the-flow)); the
+questionnaire's variables come with the file only when the file is this
+survey's data.
 
 **In:** none → **Out:** `data` (SurveyData)
 
+The inspector shows the parameters in this order: **File**, **Codebook**, the
+**Reading options**, **Missing codes**, **Dictionary (JSON)** — then the
+[Columns panel](#the-columns-panel).
+
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **File** | upload | required | — | The data file, chosen by name from the uploads under **Files** a Data file reads, or uploaded from here with **Upload…** (stored as `assets/<name>`). |
-| **Dictionary (JSON)** | upload | — | — | Optional: a data dictionary, chosen from the `.json` uploads (`<name>.dictionary.json` first). When `<name>.dictionary.json` of the chosen **File** is in **Files**, the field offers **Use *name*.dictionary.json**. |
+| **File** | upload | required | the uploads ending in `.csv`, `.tsv`, `.txt`, `.xlsx`, `.xlsm`, `.xls`, `.sav`, `.dta`, `.parquet` | The data file, chosen by name from the uploads under **Files**, or uploaded from here with **Upload…** (stored as `assets/<name>`). The note under the list gives its rows × columns as the node read it (as **Files** read it, with the default options, until then; "reading its columns…" while **Files** reads it), its size and upload date. |
+| **Codebook** | choice | `auto` | `auto`, `file`, `questionnaire` | Where the columns' labels, scales and value labels come from. `auto`: the questionnaire's when the file is this survey's data, else the file's own. `file` — "the file's own: its names, label row and values": for data from elsewhere whose columns happen to share names with the questionnaire. `questionnaire` — "the questionnaire's, for the columns it knows". Once the file is read, **auto** shows what it decided: "auto — the file's own" or "auto — the questionnaire's". |
+| **Header rows** | choice | `auto` | `auto`, `1`, `2`, `3` | Rows at the top that are not answers, the names first: `1` "names only"; `2` "names, then labels (question texts)", whose second row labels the columns; `3` "names, labels, and a row left out (Qualtrics CSV)". `auto` finds a Qualtrics export (its ImportId row, or `StartDate` and `ResponseId` with a row of texts under them), else reads one row. |
+| **Skip rows** | whole number | — | 0 or more | Rows above the names to leave out (a title, a note). Empty finds the names row: the first that fills at least half of the table's width. |
+| **Sheet** | text | — | — | Excel: the sheet to read, by its name or its number (1 is the first). Empty reads the first sheet that holds a table. |
+| **Delimiter** | choice | `auto` | `auto`, `,`, `;`, `tab`, `\|` | Text files: what separates the fields — comma, "semicolon (Excel with Russian or European settings)", "tab (Excel's Unicode text)", vertical bar. `auto` tries each on the first rows. |
+| **Encoding** | choice | `auto` | `auto`, `utf-8`, `utf-16`, `cp1251`, `koi8-r`, `cp866`, `cp1252`, `cp1250`, `iso-8859-1` | Text files: how the letters are written. `cp1251` is "Windows-1251, Cyrillic (Russian Excel's CSV)", `utf-16` "Excel's Unicode text". `auto` reads a byte-order mark, then UTF-8, then the most likely Windows code page. |
+| **Decimal mark** | choice | `auto` | `auto`, `.`, `,` | How numbers write their fraction, 4.5 or 4,5, in a text file and for numbers an Excel sheet keeps as text. `auto` reads a comma where the numbers are written so, and leaves values as ambiguous as `1,500` as text when nothing tells. |
+| **Missing codes** | text | — | — | Codes that mean no answer in this file, per column — `q5: -9` and `q6_1: -7, -8`, one column a line (or `;` between them) — or for every column that holds them: `-7, -8, -9` (a negative code is then left alone in a column of other negative amounts). **Missing values** turns them into blanks, and tables leave them out. A box of a few lines; the empty box shows "e.g. q5: -9 (a line per column)". |
+| **Dictionary (JSON)** | upload | — | the `.json` uploads | Optional: the file's codebook as a data dictionary (`<name>.dictionary.json`, as a Siamang export writes it); its labels, scales and missing codes describe the file's columns. `<name>.dictionary.json` files are listed first, and when the one named after **File** is in **Files** the field offers **Use *name*.dictionary.json**. |
 
-- **On the platform** the node reads a file you uploaded under
-  [[Files|Studio-Files]], chosen by its name in **File** — for example
-  `panel_wave2.csv` — or uploaded from the node with **Upload…** (see
-  [Where files go](#where-files-go)). Runs, **Run all** and **Run to here**
+**Reading options.** **Header rows**, **Skip rows**, **Sheet**,
+**Delimiter**, **Encoding** and **Decimal mark** sit under one line,
+**Reading options**, which says what auto found — "Reading options · all
+auto (found: XLSX, sheet Sheet1, 1 header row)" — or names the options set
+("Reading options · Header rows 2, Delimiter ;"). Click it to open it; it
+opens by itself on a node where one of them is set. Only the options of the
+chosen kind of file show: for a text file **Header rows**, **Skip rows**,
+**Delimiter**, **Encoding** and **Decimal mark**; for a workbook **Header
+rows**, **Skip rows**, **Sheet** and **Decimal mark**; none for SPSS, Stata
+and Parquet, which say all of it themselves (an option set for another kind
+of file still shows, so it can be cleared). An option left on auto says what
+was found: "auto — found ;" in **Delimiter**, "found: Sheet1" in an empty
+**Sheet**. Each choice reads as a value and its meaning, such as `cp1251 —
+Windows-1251, Cyrillic (Russian Excel's CSV)`.
+
+**Missing codes per file.** When **Missing codes** names columns the file
+does not have — codes left from a file the node read before, which a run
+would skip without a word — the field says "Missing codes name columns this
+file doesn't have: …" with **Remove them** (**Remove it** for one).
+
+#### The Columns panel
+
+Under the parameters, once a **File** is chosen, the **Columns** panel shows
+what the node read from the file with these options — its head says **read**,
+**reading…**, **not in Files** or **cannot read**:
+
+- "*rows* rows × *columns* columns" and how the file was read: the format,
+  the delimiter, the encoding (or "with a byte-order mark"), a decimal comma,
+  the sheet ("sheet Sheet1 of 3"), rows above the names skipped, or "a
+  Qualtrics export: its question texts label the columns, its ImportId row is
+  left out". A `+` after the rows means only the first 50,000 rows were read.
+- Where the labels and scales come from: "Labels and scales: the
+  questionnaire's — the file is this survey's data.", "… from the file's
+  dictionary.", "… from the file's own SPSS / Stata labels." or "Labels and
+  scales: from the file (column names; scales guessed from the values)." (with
+  "the second header row as labels" when there is one). Notes on how the
+  file's names met the questionnaire's follow, such as "2 of the file's 16
+  columns share names with questionnaire variables (gender, satisfaction), but
+  satisfaction holds answers that don't fit its variable, so they keep the
+  file's own labels. Set Codebook to questionnaire to use the
+  questionnaire's."
+- **Codes that look like missing codes** in *n* columns — "-9, -8, -7 (e.g.
+  q5: -9; q6_1: -7). They count as answers until you mark them." — with
+  **Mark them as missing in these columns**, which writes each code into
+  **Missing codes** for the columns it was found in only ("Each code only in
+  the columns where it was found: a -7 among a column's amounts, or an age of
+  99, stays a value."). Once they are, the panel says "Marked as missing in *n*
+  columns — see Missing codes above." with **Undo**. When some are marked and
+  others not, the button reads **Add this file's missing codes (*n*
+  columns)**.
+- **Looks like personal data:** the columns whose names or values look like
+  an e-mail, an IP address, a location, a name, a phone number, an address or
+  a participant ID — "An analysis rarely needs these; leave them out early so
+  no table, report or export carries them." — with **Add a Select columns node
+  without them**: a **Select columns** node labeled "Without personal data",
+  keeping every other column, is put after the Data file, takes over what the
+  Data file fed, and is selected. Nothing is dropped until you press it.
+- **Show the *n* columns** lists each column on two lines: its name, a
+  personal-data mark and its missing codes — declared, and suspected ones with
+  a `?` — then its label, its value labels count, its type where it says
+  something (text, date) and its scale, `*` marking a scale guessed from the
+  values ("* a scale guessed from the values · ? a code that looks like a
+  missing code").
+- The last line names the options set ("Read with: Header rows 2, Missing
+  codes.") and says "The nodes below this one can pick these columns. The file
+  is read apart from the flow, and only its column list comes back here,
+  never an answer."
+
+While the file is read the panel says "Reading the file's columns… Nodes
+below it aren't checked for names until it is read."; a file not read yet
+with the node's options says "This file has not been read with these options
+yet; someone who can run previews opens this node to read it." **Read again**
+("Read the file again with these options") reads it once more. A file that cannot be
+read says why in words: the encoding it looks like and what to set, a line
+with a different number of fields than the table ("Line 4 has 3 fields where
+the table has 2 …"), the sheets a workbook has, an empty file, or a format
+the node does not read. When the chosen file is not in **Files**, the panel
+says only **not in Files**; the note under **File** says the rest.
+
+#### The file's columns in the flow
+
+The nodes below a Data file offer the file's columns in their pickers,
+grouped under "From *name*" (the file's name as **File** lists it), then the
+variables the nodes between make ("Made in this flow", or "From the
+questionnaire and this flow" when the file is this survey's data). The check
+on the canvas, at **Check**, at Save and before a preview knows them:
+
+- A name the file does not have is an error: "*param*: "*name*" is not a
+  column of assets/*name*, nor made by this flow."
+- A scale the file's values only suggest is a warning where it does not fit
+  the node, not an error: "*param*: "*name*" looks ratio (as guessed from its
+  file's values); this node expects nominal/ordinal." Set **Codebook**, or
+  recode the column, when the guess is wrong.
+- The questionnaire's variables are known below the file only when the file
+  is its data, so a file from elsewhere keeps its own names, labels and
+  scales even where a column shares a name with a survey variable. The
+  survey's response timestamps (`created_at` and the others) are known only
+  if the file has those columns.
+- While the file is not read yet, or cannot be read, the names below it are
+  not checked, and their fields take a typed name ("a column of the file",
+  or "columns of the file, separated by commas").
+- A table a [Write table](#write-table) node writes from the file brings the
+  file's columns to the flows that read it.
+
+**Where the labels come from.** With **Codebook** `auto`, the node takes the
+labels, value labels and scales from the dictionary you choose, else the
+labels inside an SPSS or Stata file, else the questionnaire's codebook when
+the file is this survey's data — at least half of the file's answer columns
+are the questionnaire's variables and they are at least half of its variables
+(or the file's dictionary labels them as the questionnaire does), and their
+answers fit — else the file's own: its names, the labels of its label row,
+and scales guessed from its values. Once the file has been read, the flow is
+checked and run with what auto decided then, so a later edit of the
+questionnaire does not change it until the flow is checked again.
+
+**On the platform:**
+
+- The node reads a file you uploaded under [[Files|Studio-Files]], chosen by
+  its name in **File** — for example `household_survey.xlsx` — or uploaded
+  from the node with **Upload…** (see [Where files go](#where-files-go)).
+  **Files** reads each data file once it is uploaded, so the node usually
+  knows its columns before you open it. Runs, **Run all** and **Run to here**
   all get it.
 - Only the uploads a flow names are copied into its run. An uploaded
   dictionary is therefore not found "next to the file" on the platform:
@@ -221,7 +362,10 @@ labels the columns it knows.
   panel_wave2.dictionary.json** when the file is `panel_wave2.csv`.
 - An upload that is missing shows in the run's log before the node fails:
   "note: assets/panel_wave2.csv is not among this project's Files" (or "… is
-  listed under Files but its content is gone").
+  listed under Files but its content is gone"). Each run reads the file as it
+  is in **Files** at that moment, and its log says which version it read:
+  "read assets/panel_wave2.csv (sha256 …)", the start of the content's hash,
+  so two runs over a replaced upload can be told apart.
 - In a research bundle made **with the responses so far**, the uploads the
   flows name are included at the same path; in a bundle without data, put
   the file there yourself (see [[Reproducibility|Studio-Reproducibility]]).
@@ -3491,6 +3635,16 @@ for other flows (**Project table**) and a table on the **Data** screen.
   value labels, including those of variables the flow created — so a flow
   that reads it gets them back (see [Project table](#project-table)). With
   `append`, the variables are merged with those the table already carries.
+  Written from a **Data file**, it brings the file's columns to the flows that
+  read it.
+- The columns keep their names as they are — a Qualtrics export's `StartDate`
+  and `Duration (in seconds)`, a header in Cyrillic, a name with `%` in it.
+  A name longer than 63 bytes (a Cyrillic letter takes two) cannot be a table
+  column, and neither can an empty one or two columns of one name: the node
+  stops before anything is written, in a preview as in a run — "column name
+  … is longer than 63 bytes, which a table column cannot be: rename it
+  (Compute or Recode into a shorter name, then Select columns) before Write
+  table", or "columns named twice: …".
 - A preview (**Run to here**, **Preview all**) never writes the table. The
   node's Preview pane says what a run would do: "Not written: a preview never
   writes project tables. A run writes 812 rows to table 'clean_responses' (if
