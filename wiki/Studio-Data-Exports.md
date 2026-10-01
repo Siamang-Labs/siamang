@@ -193,9 +193,9 @@ tool.
   stores a missing string anyway. Long open answers (2,045 characters and more)
   are written as Stata long strings, next to skipped ones.
 
-Good for: Stata, with labels ready. A flow's **Export file** node with a path
-ending in `.dta` writes a labeled Stata file of the data at that point of the
-flow. (The **Simulate** mode of **Builder → Test** downloads *simulated*
+Good for: Stata, with labels ready. A flow's **Export file** node with
+**Format** **Stata (.dta)** writes a labeled Stata file of the data at that
+point of the flow. (The **Simulate** mode of **Builder → Test** downloads *simulated*
 responses as CSV, Excel, SPSS, Stata or Parquet — useful for preparing your
 analysis before fieldwork, but it is not your data.)
 
@@ -203,15 +203,24 @@ analysis before fieldwork, but it is not your data.)
 
 The Data tab exports the table as it is stored. A flow's **Export file** node
 writes the data as it is at that point of the flow — after cleaning,
-recoding and weighting, with the variables the flow made — and the extension
-of its **Path** decides what it writes:
+recoding and weighting, with the variables the flow made. You type the
+file's name in its **File name** field, such as `clean` (the field keeps
+`outputs/` and the ending fixed), and choose what it writes in **Format**:
 
-| Path | Files written (under **Files**, `outputs/<flow>/`) |
+| Format | Files written for the name `clean` (under **Files**, `outputs/<flow>/`) |
 |---|---|
-| `outputs/clean.csv`, `.xlsx`, `.parquet` | the data and `clean.dictionary.json` |
-| `outputs/clean.sav`, `.dta` | labeled SPSS or Stata data and `clean.dictionary.json` |
-| `outputs/clean.R` | an **R bundle**: `clean.csv`, `clean.dictionary.json` and the script `clean.R` |
-| `outputs/codebook.json` | the codebook alone, no data |
+| **CSV (.csv)**, **Excel (.xlsx)**, **Parquet (.parquet)** | the data and `clean.dictionary.json` |
+| **SPSS (.sav)**, **Stata (.dta)** | labeled SPSS or Stata data and `clean.dictionary.json` |
+| **R bundle (.R)** | `clean.csv`, `clean.dictionary.json` and the script `clean.R` |
+| **Codebook only (.json)** | the codebook alone, no data |
+
+A node added from the palette writes `<flow>_data.csv`. There is no `.xls`:
+a name typed with it is answered "Choose Excel (.xlsx): an .xls name would
+hold an .xlsx workbook, and Excel warns about that.", with a one-click fix. A
+single run of the flow keeps these files under **Files**; **Run all** keeps
+them only when the flow lists them among its outputs, as the example study's
+flows do, and the line under **File name** says which (see
+[What Run all keeps](Studio-Flows#what-run-all-keeps)).
 
 `clean.R` reads `clean.csv` (UTF-8) and its dictionary with the `jsonlite`
 package into a data frame `survey_data`: the codebook's missing codes become
@@ -225,7 +234,8 @@ its files beside itself. See
 The [example study](Studio-Projects#the-example-study)'s flow `cleaning`
 writes one: `outputs/cleaning/clean_responses.R`, `clean_responses.csv` and
 `clean_responses.dictionary.json` in **Files**, the cleaned responses with
-their weight — kept by a run of the flow and by **Run all** alike.
+their weight — kept by a run of the flow and by **Run all** alike, since that
+flow lists them among its outputs.
 
 An `.xlsx` a flow writes keeps text as text: an open answer such as
 `=HYPERLINK(…)` stays the string it is, never a formula Excel would run —
@@ -255,7 +265,9 @@ card; a **Run all** keeps it too. See
 A **Tab book (Excel)** node writes every question of the study crossed by a
 banner of segments into one workbook — the file a client asks for after
 fieldwork. With **Banner** `gender, region` and **Questions** left empty, a
-run writes `outputs/<flow>/tabbook.xlsx`:
+run writes the workbook named in its **File name** — `<flow>_tabbook` for a
+node added from the palette, so `outputs/<flow>/<flow>_tabbook.xlsx` under
+**Files**:
 
 - a **Contents** sheet: one linked row per question (**#**, **Question**,
   **Variable**, **Base**, **Sheet**) and the questions it did not tabulate,
@@ -285,8 +297,8 @@ rows. No file was generated; use a database export for the complete dataset."
 No partial file is produced.
 
 For larger tables, use a flow: **Responses** (or **Project table**) →
-**Export file** writes the file during a run; it appears in the run's outputs
-and under [[Files|Studio-Files]]. Connectors and a research bundle that
+**Export file** writes the file during a run of that flow; it appears in the
+run's outputs and under [[Files|Studio-Files]]. Connectors and a research bundle that
 includes the responses are limited to 100,000 rows as well.
 
 ---
