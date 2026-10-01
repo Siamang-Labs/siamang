@@ -289,7 +289,7 @@ the conditional-logit utility and the share it implies."
 | Parameter | Values |
 |---|---|
 | **MaxDiff question** | the question's Id |
-| **Estimate** | `both` (default), `counts`, `utilities` — "Counting is best minus worst over shown and anyone can recount it. Utilities are a conditional logit on the choices the design actually showed." |
+| **Estimate** | how each item is scored: `both` (default) — the counting score and the utilities, with the share each implies; `counts` — the counting score alone, best minus worst over the times shown, which anyone can recount; `utilities` — the utilities, a conditional logit on the choices the design actually showed, with the counting score still beside them |
 
 The table has one row per item, best first: **Item**, **Shown**, **Best**,
 **Worst**, **Score** (best minus worst, divided by shown — you can check it by
@@ -316,14 +316,14 @@ with their 95 % intervals against the reference item at 0 (`utilities`, what
 The **MaxDiff** node describes everyone together. To break preferences down
 by segment — a crosstab by region, a cluster, a regression — the **MaxDiff
 scores** node (Prepare) gives each respondent their own counting score for
-every item: "One counting-score variable per MaxDiff item, per respondent —
-best minus worst over the times it was shown — so the preferences can go into
-a crosstab, a cluster or a regression."
+every item: "One counting-score variable per MaxDiff item, per respondent:
+best minus worst over the times the item was shown." With them, the
+preferences can go into a crosstab, a cluster or a regression.
 
 | Parameter | Values |
 |---|---|
 | **MaxDiff question** | a list of the questionnaire's MaxDiff questions, each with its question text under its name |
-| **Variable prefix** | "Each item's score is <prefix><item code>. Defaults to the question and _score_, so item 3 of q_md becomes q_md_score_3." |
+| **Variable prefix** | "Each item's score is `<prefix><item code>`. Defaults to the question and `_score_`, so item 3 of `q_md` becomes `q_md_score_3`." |
 
 Each variable, labeled "MaxDiff score: *item*", runs from −1 (picked worst
 every time the respondent saw it) to 1 (picked best every time); a
@@ -345,7 +345,7 @@ dictionary and a script that runs it."
 | Parameter | Values |
 |---|---|
 | **MaxDiff question** | the question's Id |
-| **File name** | the file's name in `outputs/`, before a fixed `.csv` — "It is saved as a CSV file (.csv) in outputs/, with <name>.dictionary.json and <name>.hb.R beside it. It has no weight column (the HB packages take none), so an applied weight is not in it: weight the individual utilities when you aggregate them." A node added from the palette gets `<flow>_maxdiff_choices` |
+| **File name** | the file's name in `outputs/`, before a fixed `.csv` — its **ⓘ**: "It is saved in `outputs/` as a CSV file (`.csv`), with `<name>.dictionary.json` and `<name>.hb.R` beside it.", then, in a paragraph of its own, "It has no weight column, since the HB packages take none, so an applied weight is not in it. Weight the individual utilities when you aggregate them." A node added from the palette gets `<flow>_maxdiff_choices` |
 
 A run of the flow keeps the three files under **Files**; **Run all** keeps
 them only when the flow lists them among its outputs (see
