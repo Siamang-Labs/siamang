@@ -108,17 +108,17 @@ It does not test the credential itself. The first real test is a run.
 365: the workbook path *or* item ID) and, where needed, a secret are filled in.
 
 The file targets — Amazon S3, Google Cloud Storage, Azure Blob Storage and
-SFTP — write the table as a CSV file, replacing it at each run, whatever its
-name ends in. The line under the name field says so: "The table is written
-here as a CSV file, replacing the file at each run." A name that ends in
-another format, such as `responses.xlsx`, gets a warning: "The file will hold
-CSV text though its name ends in .xlsx, and programs that trust the ending
-won't open it — end the name in .csv." An S3 object key or a Google Cloud
-Storage object name that starts with `/` gets "A leading “/” makes a folder
-with no name in the bucket — start with the folder or the file name
-(exports/responses.csv)." These names are places in your own storage, not in
-the project's `outputs/`, so you type them in full; the warnings do not stop
-**Add & Save**.
+SFTP (and Dropbox, coming soon) — write the table as a CSV file, replacing it
+at each run, whatever its name ends in. The line under the name field says so:
+"The table is written here as a CSV file, replacing the file at each run." A
+name that ends in another format, such as `responses.xlsx`, gets a warning:
+"The file will hold CSV text though its name ends in .xlsx, and programs that
+trust the ending won't open it — end the name in .csv." An S3 object key or a
+Google Cloud Storage object name that starts with `/` gets "A leading “/”
+makes a folder with no name in the bucket — start with the folder or the file
+name (exports/responses.csv)." These names are places in your own storage, not
+in the project's `outputs/`, so you type them in full; the warnings do not
+stop **Add & Save**.
 
 If the Save is refused you see "Could not add connector." and the reason — for
 example a name with capital letters ("…String should match pattern…") or a name

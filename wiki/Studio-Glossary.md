@@ -260,7 +260,7 @@ and say how many; a few older defaults count them as answers and say so
 ("Missing codes counted as answers", or `missing_codes_counted` in
 Correlation and Compare groups) until **Missing values** clears them. In an
 uploaded data file, Studio points out codes that look like missing codes
-(−7, −8, −9, 99 …); they count as answers until you declare them in the
+(-7, -8, -9, 99 …); they count as answers until you declare them in the
 **Data file** node's **Missing codes**.
 → [Missing codes](Studio-Codebook-and-Variables#missing-codes)
 
@@ -327,7 +327,7 @@ they go together more than chance would have it.
 → [Perceptual map](Studio-Node-Reference#perceptual-map)
 
 **Personal-data hint** — on **Files** and in a **Data file** node, the
-columns of an uploaded file whose names or values look like an e-mail or IP
+columns of an uploaded file whose names or values look like an email or IP
 address, a location, a name, a phone number, an address or a participant ID.
 A hint to leave them out early, never a drop.
 → [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload)

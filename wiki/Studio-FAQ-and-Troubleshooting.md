@@ -588,8 +588,9 @@ wrong or the file was deleted.
 
 **The topbar and the project tabs are gone in the flow editor.**
 Focus mode is on: it gives the **Canvas** view the whole window. Press `F`
-(outside a text field), or `Esc` once nothing is selected, or click **Focus
-mode** under the canvas's zoom buttons ("Exit focus mode (F or Esc)").
+(outside a text field or a dropdown), or `Esc` once nothing is selected, or
+click **Focus mode** under the canvas's zoom buttons ("Exit focus mode (F or
+Esc)").
 **List** and **Report** always show the topbar and tabs, and so does every
 screen outside the editor; the Save badge sits beside the flow's name while
 the mode is on. Studio remembers the choice in this browser.
@@ -600,8 +601,9 @@ The file is read when it is uploaded, and again when the node's reading
 options change; meanwhile the node's **Columns** panel says "Reading the
 file's columns… Nodes below it aren't checked for names until it is read."
 Then the pickers below list the file's columns under "From *name*". A
-**File** under "Other location" is not read at all — choose the upload from
-the list. If the panel says **cannot read**, fix what it names (the
+**File** under "Other location" is not read at all, though its **Columns**
+panel stays at "Asking what the file holds…" — choose the upload from the
+list. If the panel says **cannot read**, fix what it names (the
 encoding, the delimiter, the sheet, the header rows) under **Reading
 options** and click **Read again**. The questionnaire's variables are
 offered below a file only when the file is this survey's data; if it is and
@@ -640,11 +642,11 @@ Qualtrics' personal-data columns (`IPAddress`, `RecipientEmail` …).
 
 **Files says "possible missing codes", or the Columns panel lists codes such as -7, -8, -9.**
 Many surveys store "don't know", "refused" or "not asked" as negative codes
-(−7, −8, −9, −99) or as 97–99 far above the real answers. Until they are
+(-7, -8, -9, -99) or as 97–99 far above the real answers. Until they are
 declared, they count as answers: they show up in frequencies and pull a mean
 down. Click **Mark them as missing in these columns** in the node's
 **Columns** panel — it writes each code only for the columns it was found
-in, one column a line (`q5: -9`, `q6_1: -7, -8`), so a −7 among a column's
+in, one column a line (`q5: -9`, `q6_1: -7, -8`), so a -7 among a column's
 amounts or an age of 99 stays a value — then add a **Missing values** node
 below to turn them into blanks. A list for every column (`-7, -8, -9`) also
 works, but makes a code missing in columns where it is a real value (a
@@ -944,14 +946,14 @@ list of the flow's **Save report** nodes. A flow with **— none —** is left
 out. A path the flow does not write — saved earlier, or set through the API
 — fails that flow, and the list shows it as "*path* — no node saves this":
 "report outputs/*x*.md was not written: the flow's Report path names a file
-none of its nodes saves — set it to the Path of its Save report node". The
-flow's tables were still written, so the flows that read them run, and the
-combined report is marked incomplete. The Save warns about this beforehand
-(`REPORT_PATH_UNWRITTEN`: "The flow's Report path is “…”, but no Save report
-step saves there: Run all will fail this flow. Set it to the Path of a Save
-report step, or clear it."). Choose one of the flow's reports in **Report
-path**. Changing the **File name** of a flow's **Save report** node moves
-the Report path along with it, and deleting the node clears it.
+none of its nodes saves — set it to the Path of its Save report node" (the
+node's Path is its **File name** now). The flow's tables were still written,
+so the flows that read them run, and the combined report is marked
+incomplete. The Save warns about this beforehand (`REPORT_PATH_UNWRITTEN`:
+"The flow's Report path is “…”, but no Save report step saves there: Run all
+will fail this flow. Set it to the Path of a Save report step, or clear
+it."). Choose one of the flow's reports in **Report path**, or **— none —**.
+→ [The combined report](Studio-Flows#the-combined-report)
 
 **Live tiles are stale.**
 Tiles show the flow's last *completed* run, or a newer **Run all** that ran

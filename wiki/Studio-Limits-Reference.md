@@ -133,7 +133,7 @@ and edit locks, API keys.
 | Run history shown | the latest 50 runs |
 | Output download links | valid 5 minutes |
 | Flow and connector names | lower-case letters, digits, `_`; start with a letter; up to 63 characters; not `survey` |
-| A node's output **File name** | letters a–z, digits, `-`, `_` and `.`, with `/` between folders; up to 100 characters; always in `outputs/` |
+| A node's output **File name** | Latin letters (A–Z, a–z), digits, `-`, `_` and `.`, with `/` between folders; up to 100 characters; always in `outputs/` |
 | Data file reading | the formats `.csv`, `.tsv`, `.txt`, `.xlsx`, `.xlsm`, `.xls`, `.sav`, `.dta`, `.parquet`; a file's columns are worked out from its first 50,000 rows; a reading that has not answered in 5 minutes is dropped, and read again when a Data file node asks for it |
 | **Write table** column names | up to 63 bytes each (a Cyrillic letter takes two) |
 | Report custom CSS | anything except the sequence `</` |

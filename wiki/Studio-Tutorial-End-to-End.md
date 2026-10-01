@@ -88,7 +88,9 @@ The first Save, `#1`, is `valid`.
 3. Open **Variable** and change the variable name to `consent` (press `Enter`).
    Then open **Advanced** and set **Id** to `consent` too.
 4. Select the placeholder question `q1` and press **Delete question** (the
-   trash icon in the Inspector's header).
+   trash icon in the Inspector's header). Its variable `q1` leaves the
+   codebook with it: the message at the bottom says "Removed variable q1
+   too", with **Undo**.
 
 > The Yes / No preset codes `1 = Yes`, `0 = No` and shows them as buttons.
 

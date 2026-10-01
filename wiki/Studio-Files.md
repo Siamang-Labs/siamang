@@ -107,14 +107,14 @@ Rules:
   slowly: saved as CSV or Parquet it reads in a fraction of the time."
 - **Names are cleaned.** Cyrillic letters (Russian and Ukrainian) are spelled
   in Latin and accents are dropped (`café.csv` → `cafe.csv`). Then every run
-  of characters other than letters a–z, digits, `.`, `_` and `-` becomes `_`,
-  leading and trailing dots and underscores are removed, and the name is cut
-  to 128 characters, **keeping its extension**: `Logo final (v2).png` is
-  stored as `Logo_final_v2_.png`, `Волна 2.csv` as `Volna_2.csv`. A name with
-  nothing left in Latin letters, such as one in Chinese or Greek, is stored
-  as `upload_<8 characters>.<extension>` — the same for the same name. A
-  browser sends a double quote in a file name as `%22`, so `Survey "A".csv`
-  is stored as `Survey_22A_22.csv`.
+  of characters other than Latin letters (A–Z, a–z), digits, `.`, `_` and `-`
+  becomes `_`, leading and trailing dots and underscores are removed, and the
+  name is cut to 128 characters, **keeping its extension**:
+  `Logo final (v2).png` is stored as `Logo_final_v2_.png`, `Волна 2.csv` as
+  `Volna_2.csv`. A name with nothing left in Latin letters, such as one in
+  Chinese or Greek, is stored as `upload_<8 characters>.<extension>` — the
+  same for the same name. A browser sends a double quote in a file name as
+  `%22`, so `Survey "A".csv` is stored as `Survey_22A_22.csv`.
 - **The dialog says the stored name** in one sentence that says what happened
   to this name, such as "It will be saved in Files as Volna_2.csv: Cyrillic
   letters are spelled in Latin and spaces become _." or "Studio can't spell
@@ -210,7 +210,7 @@ Under the file's name, the row then says:
 
 - "*rows* rows × *columns* columns", and "· possible missing codes in *n*
   columns" when some columns hold codes that look like missing codes: negative
-  codes such as −1 to −9, −97 to −99 or −997 to −999 in a column whose other
+  codes such as -1 to -9, -97 to -99 or -997 to -999 in a column whose other
   values are not negative, or 97, 98, 99, 997 … far above a column's other
   codes. A column of real negative amounts, such as a balance, is not
   flagged. Until you declare them (the node's **Missing codes**, or
@@ -218,7 +218,7 @@ Under the file's name, the row then says:
   [Columns panel](Studio-Node-Reference#the-columns-panel)), such codes count
   as answers: they show in frequencies and change a mean.
 - **Looks like personal data:** the columns whose names (in English or
-  Russian) or values look like an e-mail or IP address, a location, a name, a
+  Russian) or values look like an email or IP address, a location, a name, a
   phone number, an address or a participant ID (Prolific, MTurk), each with
   its kind — "email (e-mail)" — then "Leave these out early — the Data file
   node can add a Select columns node without them — or delete the file and

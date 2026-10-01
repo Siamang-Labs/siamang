@@ -124,10 +124,10 @@ only the name:
   as you type. An ending the node cannot write is answered under the field —
   for a **Save report**, "Reports are saved as Markdown and HTML — for a PDF,
   open the HTML and print it." — with a fix such as **Use satisfaction**.
-- **A name uses letters a–z, digits, `-`, `_` and `.`**, with `/` between
-  folders, at most 100 characters. Other characters are named — "A file name
-  here can use letters a–z, digits, -, _ and . — not “(” or “)”." for
-  `Q3 (final)` — with **Use Q3_final**. While the name has a problem, the
+- **A name uses Latin letters (A–Z, a–z), digits, `-`, `_` and `.`**, with `/`
+  between folders, at most 100 characters. Other characters are named — "A
+  file name here can use letters a–z, digits, -, _ and . — not “(” or “)”."
+  for `Q3 (final)` — with **Use Q3_final**. While the name has a problem, the
   field does not say where the file will be.
 - **Two nodes writing one file** are pointed out: "Another node (tabbook)
   already writes outputs/tabbook.xlsx — this one would replace it.", with
@@ -246,7 +246,9 @@ and Parquet, which say all of it themselves (an option set for another kind
 of file still shows, so it can be cleared). An option left on auto says what
 was found: "auto — found ;" in **Delimiter**, "found: Sheet1" in an empty
 **Sheet**. Each choice reads as a value and its meaning, such as `cp1251 —
-Windows-1251, Cyrillic (Russian Excel's CSV)`.
+Windows-1251, Cyrillic (Russian Excel's CSV)`. While **Reading options** is
+open, the flow editor's `F` and `Esc` do nothing (see
+[Focus mode](Studio-Flows#focus-mode)); close it to use them.
 
 **Missing codes per file.** When **Missing codes** names columns the file
 does not have — codes left from a file the node read before, which a run
@@ -284,7 +286,7 @@ what the node read from the file with these options — its head says **read**,
   others not, the button reads **Add this file's missing codes (*n*
   columns)**.
 - **Looks like personal data:** the columns whose names or values look like
-  an e-mail, an IP address, a location, a name, a phone number, an address or
+  an email, an IP address, a location, a name, a phone number, an address or
   a participant ID — "An analysis rarely needs these; leave them out early so
   no table, report or export carries them." — with **Add a Select columns node
   without them**: a **Select columns** node labeled "Without personal data",
@@ -3214,11 +3216,16 @@ too:
 
 A timestamp Studio's responses do not carry is an unknown variable
 (`submitted_at`: "time: "submitted_at" is neither in the codebook nor made by
-this flow or a table it reads."). One the node reads from a **Data file** or
-**Simulated data**, which have none unless the file brings the column, is a
-warning: "time: "created_at" is a timestamp of the survey's responses, and
-this node reads Data file: the run stops unless that data has a column
-created_at. Read the Responses source, or choose a column the data has."
+this flow or a table it reads."). One the node reads from **Simulated
+data**, which has none, is a warning: "time: "created_at" is a timestamp of
+the survey's responses, and this node reads Simulated data: the run stops
+unless that data has a column created_at. Read the Responses source, or
+choose a column the data has." Below a **Data file** whose columns have been
+read, a timestamp is known only if the file has that column (see
+[The file's columns in the flow](#the-files-columns-in-the-flow)); otherwise
+it is an error like any name the file lacks ("time: "created_at" is not a
+column of assets/panel_wave2.csv, nor made by this flow."). Either way the
+Save also gives the warning above, naming Data file.
 
 What only the data can tell stops the node when it runs, with the reason: a
 code that is no answer ("Trust: Acme has no answer 7; its answers are 1 = No
@@ -3411,7 +3418,7 @@ footer** is on (the default).
 | **Also save HTML** | checkbox | on | — | Also write the styled `.html` twin next to the Markdown. |
 | **Interactive charts in HTML** | checkbox | off | — | The HTML draws its charts in the reader's browser — a tooltip on every bar, point and cell with its value and base, a legend whose entries hide and show their series, zoom where it helps — and still opens offline, so it can be sent to a client as it is. For that it carries the chart libraries (Vega, Vega-Lite and Vega-Embed, about 0.8 MB, written in once) and each chart's numbers — what it draws, and a scatter plot's points and a box plot's outliers, the respondents' values it plots. Each chart's picture stays in the HTML for printing and for readers without scripts; the Markdown and the Excel workbook are unchanged. Applies only with Also save HTML. |
 | **Table of contents** | checkbox | off | — | Add a table of contents. |
-| **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (Path with .xlsx) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
+| **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (its File name with `.xlsx`) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
 | **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). Its p_values says how the report writes a p-value — exact, as computed (the default); 0.01, one below 0.01 as < 0.01; or 0.001, one below 0.001 as < 0.001 — in its tables' cells and statistics lines, the Markdown as the HTML, the Excel workbook (a number format, so the cell keeps its number) and the charts' notes (< .01); the results and their exports keep the exact p. Otherwise the Markdown's text is unaffected. |
 
 - **The Excel workbook** (`<name>.xlsx` beside `<name>.md`) is
@@ -3482,15 +3489,12 @@ footer** is on (the default).
   tables to Excel**, and `<name>_fig_1.png`, "a picture per chart").
 - Choose this node as the flow's **Report path** (Flow settings, with no node
   selected) if you want this report kept by **Run all** and in its combined
-  report. The Report view does both for you when it creates the node;
-  changing the node's **File name** moves a **Report path** that named the old
-  file along with it, and deleting the node clears the **Report path** it
-  set. A node added from the palette sets no **Report path**, and its field
-  says "Run all keeps a report only when it is the flow's Report path (in the
-  Flow panel, with no node selected): run this flow on its own to get this
-  one." A **Report path** that no **Save report** node of the flow writes
-  (saved that way earlier) gets a warning at **Check** and at Save ("… but no
-  Save report step saves there: Run all will fail this flow. …").
+  report; the Report view does both for you when it creates the node. A node
+  added from the palette sets no **Report path**, and its field says "Run all
+  keeps a report only when it is the flow's Report path (in the Flow panel,
+  with no node selected): run this flow on its own to get this one." How the
+  **Report path** follows the node, and the warning for one that names no
+  node's file: [The combined report](Studio-Flows#the-combined-report).
 - There is no PDF output. A typed `.pdf` is answered under the field —
   "Reports are saved as Markdown and HTML — for a PDF, open the HTML and print
   it." — and so are `.html` ("The report is saved as Markdown (.md); Also save
