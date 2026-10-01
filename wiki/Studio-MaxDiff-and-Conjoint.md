@@ -322,7 +322,7 @@ a crosstab, a cluster or a regression."
 
 | Parameter | Values |
 |---|---|
-| **MaxDiff question** | a dropdown of the questionnaire's MaxDiff questions |
+| **MaxDiff question** | a list of the questionnaire's MaxDiff questions, each with its question text under its name |
 | **Variable prefix** | "Each item's score is <prefix><item code>. Defaults to the question and _score_, so item 3 of q_md becomes q_md_score_3." |
 
 Each variable, labeled "MaxDiff score: *item*", runs from −1 (picked worst

@@ -83,7 +83,7 @@ The codeframe keeps **fingerprints** of answers, never their texts (see
 
 From any of these:
 
-- **A flow's Code open answers node.** Under **Codeframe** (a dropdown of the
+- **A flow's Code open answers node.** Under **Codeframe** (a list of the
   project's codeframes, **— choose a codeframe —**): **New codeframe…** when
   none is chosen, **Edit codeframe…** for the chosen one. Opened from a node,
   the editor shows the answers that flow's **Responses** node reads, and a
@@ -518,7 +518,7 @@ Add **Code open answers** (Prepare) after your source and cleaning steps:
 
 | Parameter | Value |
 |---|---|
-| **Codeframe** | the file, from the dropdown (**— choose a codeframe —**) |
+| **Codeframe** | the file, from the list (**— choose a codeframe —**) |
 | **Theme variable** | leave empty for the codeframe's own (**Codeframe settings → Theme variable**, `<variable>_theme` by default) |
 | **Also add sentiment** | only for an [older codeframe](#older-codeframes-version-1) that carries a tone for its answers |
 

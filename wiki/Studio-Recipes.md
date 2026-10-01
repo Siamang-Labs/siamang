@@ -549,7 +549,7 @@ effective base; Spearman and Kendall stay unweighted and say so.
 1. Add **t-test** (Analyze). **Design** is `independent` ("two groups").
 2. **Variable** `satisfaction_score`, **Groups** `gender`.
 3. When **Groups** has more than two answers, pick the two in **Group A**
-   (`1 — Male`) and **Group B** (`2 — Female`); with exactly two, leave both
+   (`1`, "Male" under it) and **Group B** (`2`, "Female"); with exactly two, leave both
    empty.
 4. Leave **Variances** at `welch` ("Welch's t") — it does not assume the two
    groups vary equally. `student` pools the variances.
@@ -783,8 +783,9 @@ Satisfaction month by month since launch, a line per segment.
 
 1. After your cleaning steps (and **Apply weight**), add **Trend**
    (Visualize).
-2. **Time**: `created_at — Response date (created_at)`, under **Beside the
-   answers** (or your wave variable, for a wave-by-wave tracker). **Period**
+2. **Time**: `created_at` ("Response date (created_at)" under it), at the
+   end of the list under **Beside the answers** — in a long list, typing
+   "created" in its filter box finds it (or your wave variable, for a wave-by-wave tracker). **Period**
    `month` (`week` for an ISO week, Monday to Sunday).
 3. **Measure** `percent`, **Measure variable** `satisfaction`, **Answer
    codes** `4` and `5` checked — a top-2 box. (`mean` tracks the average;

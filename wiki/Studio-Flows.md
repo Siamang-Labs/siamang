@@ -545,7 +545,7 @@ took (`120 ms`, `1.4 s`).
 |---|---|
 | **Title** | the flow's title |
 | **Description** | shown in the flows table and the methods draft |
-| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node, such as `satisfaction.md — Save report (save)` (hint: "the report Run all keeps and puts in the combined report: one of this flow's Save report nodes"). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list as "*path* — no node saves this", with "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
+| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node — the file it writes, such as `satisfaction.md`, with the node and its report's title on the line under it ("Save report (save) · Satisfaction by region") (hint: "the report Run all keeps and puts in the combined report: one of this flow's Save report nodes"). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list, with "(no node saves this)" after it in the field and under it in the list, and the line under the field reads "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
 | **Live: recompute on new responses** | Live mode (see [Live mode](#live-mode)) |
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
@@ -598,10 +598,12 @@ size setting with it.
 
 Each parameter has a control that fits its kind (see
 [Reading this page](Studio-Node-Reference#reading-this-page) in the node
-reference). Variable parameters are dropdowns or checklists, shown as
-`name — label` and filtered to the scales the node accepts (the scales are
-the hint under the field, unless the field has help text of its own, as a
-t-test's **Groups** does). They offer, in this order:
+reference). Variable parameters are lists or checklists, filtered to the
+scales the node accepts (the scales are the field's **ⓘ** help, unless the
+field has help text of its own, as a t-test's **Groups** does). A list shows
+each variable by its name, with its label and scale on the line under it —
+`satisfaction` over "Overall satisfaction · ordinal" — and a checklist each
+name with its label beside it. They offer, in this order:
 
 - the questionnaire's codebook variables;
 - the variables that nodes **upstream** of this one make — a **Recode**,
@@ -613,16 +615,17 @@ t-test's **Groups** does). They offer, in this order:
   says so: "*label* · made by *node*", or "made by *node*" when the node gives no
   label (`duration_s` reads "completion time · made by *node*", `partial`
   "partial response · made by *node*", `factor_1` "factor 1 score · made by
-  *node*", `q_md_score_3` "MaxDiff score: *item* · made by *node*"). A node
+  *node*", `q_md_score_3` "MaxDiff score: *item* · made by *node*"), and a
+  list adds the scale after it. A node
   further down the flow does not offer them: they do not exist yet when it
   runs;
 - the variables brought by a table the flow reads (see
   [Tables between flows](#tables-between-flows)), labeled "from table
   *table* · made by *flow*".
 
-**Below a Data file** the pickers offer the file's own columns, grouped under
-"From *name*" (the file's name, as its **File** lists it), then the variables
-the nodes between make, under "Made in this flow" — or "From the
+**Below a Data file** the pickers offer the file's own columns, under the
+heading "From *name*" (the file's name, as its **File** lists it), then the
+variables the nodes between make, under "Made in this flow" — or "From the
 questionnaire and this flow" when the file is this survey's data, the only
 case in which the questionnaire's variables come with it. A file from
 elsewhere keeps its own names, labels and scales, even where a column shares
@@ -630,42 +633,68 @@ a name with a survey variable. While the file is being read, or cannot be,
 the fields below it take a typed column name ("a column of the file"). See
 [Data file](Studio-Node-Reference#data-file).
 
-The same list is behind the **Filter rows** condition editor and the
+The same variables are behind the **Filter rows** condition editor and the
 variable names listed under a formula. A stored name that is in none of
-these shows as "(not in codebook)". In **Filter rows** the value pickers show
-value labels — `Capital region (1)` — so you pick the meaning, not the code.
+these stays, with "(not in codebook)" after it in the field and under it in
+the list.
+
+**A Filter rows condition** is built in the inspector from the same lists:
+
+- **Variable** lists each variable with its label and scale under it,
+  grouped as a variable field is ("From *name*" below a **Data file**), with
+  no empty entry, since a row always names a variable.
+- The operator says under each sign what it asks: `=` "is", `≠` "is not",
+  `>` "is more than", `≥` "is at least", `<` "is less than", `≤` "is at
+  most", **in** "is one of", **not in** "is none of", **chose** "is among its
+  answers (a question answered more than once)" and **did not choose** "is
+  not among its answers".
+- The value of a labeled variable with `=`, `≠`, **chose** or **did not
+  choose** lists each answer's code with its label under it ("Satisfied"
+  under `4`), after an empty **—**. A stored value that is no answer stays,
+  with "(not an answer of *variable*)".
+- With two or more rows, **ALL of the following** ("every condition holds")
+  or **ANY of the following** ("at least one condition holds").
+
+Closed, the condition reads as one sentence (`satisfaction = Satisfied (4)`)
+that wraps inside the inspector, a long column name after its `_`. The
+Builder's **Show if**, **Hide if** and branch rules keep their own menus,
+which show a value as `Satisfied (4)`.
 
 Where a node asks for an **answer** of a variable — a **t-test**'s **Group
 A** and **Group B** (answers of **Groups**), **Paired tests**' **Counts as
 yes (McNemar, Cochran's Q)**, a **Perceptual map**'s **Counts as yes
 (attributes)**, **Price sensitivity**'s **Counts as would buy**,
 **Proportion CI**'s **Answer code**, a **Trend**'s **Answer codes** — the
-field lists that variable's value labels (`1 — Male`; for a list of
-variables, the first one's), including the bands a **Bands** node made; the
-t-test's groups and the Trend's codes leave its missing codes out.
+field lists that variable's answers, each code with its label under it
+("Male" under `1`; for a list of variables, the first one's), including the
+bands a **Bands** node made; the t-test's groups and the Trend's codes leave
+its missing codes out. The empty entry reads **— pick an answer —** for a
+required field and **— none —** otherwise. A stored code that is no answer
+of the variable stays, with "(not an answer of *variable*)" after it.
 
 A field that can read columns the codebook does not describe lists them last,
 under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the
-survey's responses carry — `created_at — Response date (created_at)`,
-`updated_at — Last change (updated_at)` and `started_at — Start time
-(started_at)` — and the checks know them. A flow that reads them from a **Data
+survey's responses carry — `created_at` ("Response date (created_at)"
+under it), `updated_at` ("Last change (updated_at)") and `started_at`
+("Start time (started_at)") — and the checks know them. A flow that reads them from a **Data
 file** or **Simulated data**, which have none unless the file brings the
 column, gets a warning; a **Data file** whose read columns include the
 timestamp gets none. **Time** lists **Waves and dates** first (labeled
 codes, ordinal variables, date columns, a Date question's answers), then
-**Other variables**.
+**Other variables** — each a heading in its list.
 
 A picker leaves out what its node refuses as soon as it is picked: a
 **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not
 offer multiple-choice questions, rankings or open answers, and a **Trend**'s
 **Measure variable** with **Measure** `mean` does not offer nominal or
-multiple-choice questions. A variable already stored stays in the list, with
-the reason: `aware (several answers: not one wave or date)`.
+multiple-choice questions. A variable already stored stays, with the reason
+after it in the field and under it in the list: `aware` "(several answers:
+not one wave or date)".
 
 A few text fields suggest values as you type:
 a **Bar chart**'s **Bins** (`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a
 **Heatmap**'s **Color map** (`theme` beside four matplotlib maps). **MaxDiff scores** lists the questionnaire's
-MaxDiff questions. Mappings, weighting targets and other codes are typed as JSON
+MaxDiff questions, each with its text under it. Mappings, weighting targets and other codes are typed as JSON
 (`{"1": 0.45, "2": 0.55}`); an empty JSON box shows the example its help
 gives.
 
@@ -676,9 +705,11 @@ does), and the lines under it say where a run leaves the file ("After a run:
 Files → outputs/*flow*/*name*"), what is written beside it, whether **Run
 all** keeps it, and what is wrong with a name — with a one-click fix such as
 **Use tabbook_2** when another node already writes that file. A file a node
-reads is picked by name from the uploads under **Files** it can read, with
-**Upload…** and **Type a name…** (**Type another name…** once a file is
-chosen) under the list. The flow still stores the
+reads is picked by name from the uploads under **Files** it can read, each
+with its size and upload date on the line under it — a data file that
+**Files** has read with its rows and columns first: "160 rows × 16 columns ·
+24.6 KB · uploaded Jun 2, 2026" — with **Upload…** and **Type a name…**
+(**Type another name…** once a file is chosen) under the list. The flow still stores the
 whole path (`outputs/<name>.xlsx`, `assets/<name>`), so flows saved earlier
 and the generated script read what they always did. See
 [Where files go](Studio-Node-Reference#where-files-go).
@@ -719,8 +750,13 @@ See [Result chart](Studio-Node-Reference#result-chart).
 
 A parameter with a fixed set of values — a **t-test**'s **Design**, a **Data
 file**'s **Encoding**, a chart's **Palette** — is a list drawn by Studio, not
-the browser's menu. The field shows the value chosen as the flow stores it
-(`welch_anova`); an optional parameter left on its default reads
+the browser's menu. So is every other picker of the inspector: a variable,
+an answer code, a file a node reads (**File**, **Dictionary (JSON)**), the
+flow's **Report path**, a **Codeframe**, a **MaxDiff question**, an **Export
+file**'s **Format**, and a **Filter rows** condition's variable, operator,
+value and **ALL** / **ANY** — and, in the Report view, an item's width and
+space above. The field shows the value chosen, a choice as the flow stores
+it (`welch_anova`); an optional parameter left on its default reads
 **— default —**.
 
 - **Opening it.** Click the field, or press `Enter`, `Space`, `↓` or `↑` on it
@@ -731,15 +767,41 @@ the browser's menu. The field shows the value chosen as the flow stores it
   field keeps its focused look, so a list that opens upward over other
   fields is clearly its own. Clicking the field's label puts the focus on the
   field without opening it.
-- **What it shows.** Each choice is its value with, on the line under it, its
-  name or what it does — "Welch's ANOVA" under `welch_anova`, "Windows-1251,
-  Cyrillic (Russian Excel's CSV)" under `cp1251` — wrapped onto more lines
-  when it is long. A value that needs no name, such as `none`, stands alone.
+- **What it shows.** Each entry is its value or name with, on the line under
+  it, what helps choose it, wrapped onto more lines when it is long:
+  - a choice: its name or what it does — "Welch's ANOVA" under
+    `welch_anova`, "Windows-1251, Cyrillic (Russian Excel's CSV)" under
+    `cp1251`; a value that needs no name, such as `none`, stands alone;
+  - a variable: its label and scale — "Overall satisfaction · ordinal";
+  - an answer code: its label — "Male" under `1`;
+  - a file a node reads: its size and upload date, a data file that **Files**
+    has read with its rows and columns first — "160 rows × 16 columns · 24.6
+    KB · uploaded Jun 2, 2026";
+  - a **Report path**: the **Save report** node and its report's title —
+    "Save report (save) · Satisfaction by region";
+  - a **MaxDiff question**: its text.
+
+  Groups have headings, which the keys pass by: "From *name*" for a **Data
+  file**'s columns, then "Made in this flow" (or "From the questionnaire and
+  this flow"); a **Trend**'s **Time** has "Waves and dates", "Other
+  variables" and "Beside the answers". A long name, a column name such as
+  `satisfaction_with_rapid_charging_speed_on_long_highway_trips` or a file
+  name such as `ev_owner_charging_experience_panel_wave_3_june_2026_weighted_final_v2.sav`,
+  wraps after a `_`, `.` or `/` rather than in the middle of a word, and so
+  does a heading made of one; a screen reader still reads the name whole.
   The chosen one has a ✓. An optional parameter's list starts with
   **— default —**, which leaves the parameter unset, with the value that
   means under it ("the node's default: auto"). A **Data file**'s reading options
   have no **— default —**, since `auto` is their default; left on `auto`, the
   field says what it found, such as "auto — found ;".
+- **In the closed field** the chosen name is on one line, cut short with "…"
+  when it is longer than the field; point at the field to read all of it,
+  with what is under it in the list. A stored value the field would not
+  offer stays chosen, with the reason after it in the field and under it in
+  the list: "(not in codebook)", "(*scale* — *field* takes …)", "(several
+  answers: not one group)", "(not an answer of *variable*)", "(not in
+  Files)", "(can't be read as data)", "(not a dictionary (.json))", "(no node
+  saves this)", "(not saved)" or "(not in the questionnaire)".
 - **Keys in the list.** `↑` and `↓` move one row (past the last, round to the
   first), `Home` and `End` to the first and the last, `Page Up` and `Page
   Down` about a screenful; typing the first letters of a value jumps to it.
@@ -749,11 +811,14 @@ the browser's menu. The field shows the value chosen as the flow stores it
   keys reached, or the one under a moving pointer — and `Enter` picks that
   one.
 - **A long list** — more than ten entries, such as a **Result chart**'s
-  **Kind** — opens with a filter box over it, the cursor in it ("Filter chart
-  kinds…"). Type part of a value or of what is under it: the list keeps the
-  entries that contain every word you typed, upper or lower case alike, and
-  says so when none does ("No chart kind matches “zzz”"). The empty entry,
-  such as **— default —**, is listed only while the box is empty. `↑`, `↓`,
+  **Kind** or most variable lists — opens with a filter box over it, the
+  cursor in it ("Filter chart kinds…", "Filter variables…"). Type part of a
+  name or of what is under it: the list keeps the entries that contain every
+  word you typed, upper or lower case alike — "public charging" finds
+  `satisfaction_with_public_charging_near_home` — and says so when none does
+  ("No variable matches “zzz”"). The empty entry, such as
+  **— pick a variable —** or **— default —**, is listed only while the box
+  is empty, so `Enter` after a letter never clears the field. `↑`, `↓`,
   `Page Up` and `Page Down` move through what is left (`Home` and `End` too
   while the box is empty), `Enter` chooses the lit entry, the first `Esc`
   empties the box (the chosen entry is lit again) and the second closes the
@@ -779,7 +844,9 @@ the browser's menu. The field shows the value chosen as the flow stores it
 - **A screen reader** hears the field as a button named by its label and its
   value ("Test optional welch_anova"), described by its **ⓘ** help, which
   opens a list; each choice is read with what is under it, and the chosen
-  one as selected.
+  one as selected. A required field says "required", and a long list's
+  filter box is named after its field ("Rows filter variables"); as you type,
+  it says how many entries are left ("3 variables").
 
 ### Checks
 
@@ -1233,7 +1300,7 @@ and deleting the node clears the **Report path** it set. A node added from the
 palette sets no **Report path**: choose it in the list, or press **Make it the
 flow's report** in the Report view. A **Report path** saved before it became a
 list, or written by other means, may name a file no **Save report** node of the
-flow saves; the list then shows it as "*path* — no node saves this", and
+flow saves; the field then shows it with "(no node saves this)" after it, and
 **Check** and the Save warn: "The flow's Report path is “outputs/tables.md”,
 but no Save report node saves there: Run all will fail this flow. Choose one of
 the flow's Save report nodes in Report path, or clear it." (**— none —** clears

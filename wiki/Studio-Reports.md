@@ -249,9 +249,9 @@ The size control on a row reads the width it is set to — **Full**, **¾**,
 
 | Control | Choices |
 |---|---|
-| width | **Full width**, **Three quarters**, **Two thirds**, **Half — two fit side by side**, **A third** |
+| width | a list: **Full width**, **Three quarters**, **Two thirds**, **Half — two fit side by side**, **A third** |
 | alignment | **left**, **center**, **right** — shown only when the item is narrower than the page; default center |
-| space above | **Usual space above**, **No space above**, **More space above**, **Much more space above** — "The space between this item and the one before it in the HTML" |
+| space above | a list: **Usual space above** ("the space the report's Look keeps between blocks" under it), **No space above**, **More space above**, **Much more space above** — "The space between this item and the one before it in the HTML" |
 | **New page** | "Start this item on a new page when the report is printed" |
 
 Outputs narrower than the page that follow one another share a line — two at
@@ -266,7 +266,9 @@ above the preview ("Items set side by side are shown one under another here,
 as on a phone…") — widen it to see them together. Every table and chart keeps the look's
 usual gap from the block before it (**Density** sets how much): **More** is
 for two results that belong apart, **No space** for a chart that belongs right
-under its table. A row that has been sized, or given a space of its own, says
+under its table. The width and space-above lists open and work as the flow
+inspector's lists do (see
+[Lists in the inspector](Studio-Flows#lists-in-the-inspector)). A row that has been sized, or given a space of its own, says
 so while folded: its control is drawn darker and names the choices on hover. The same control is in the **Report section** node's inspector, under
 **Size and placement** (where a statistic, again, reads "one line"). Size
 and placement reach the `.html` only.

@@ -581,7 +581,7 @@ name before you upload. A value saved earlier as a path, such as
 `./assets/panel_wave2.csv`, shows under "Other location, kept as it was
 written" — "A run only brings in files uploaded under Files, so it won't
 find this one." — with **Use the uploaded panel_wave2.csv** when Files has
-it. An upload deleted since shows as "*name* — not in Files". If the run log
+it. An upload deleted since shows with "(not in Files)" after its name. If the run log
 says "note: assets/*name* is not among this project's Files", the name is
 wrong or the file was deleted.
 → [Where files go](Studio-Node-Reference#where-files-go) · [[Files|Studio-Files]]
@@ -733,7 +733,7 @@ node reads holds only two of them." It does not stop the flow, since a filter
 upstream may leave two. If none does, the run then stops with the second,
 "Gender has 3 groups (1 = Male, 2 = Female, 3 = Other); a t-test compares two
 — name them in Group A and Group B." A t-test compares two groups. Pick them in **Group A** and **Group B** (the
-dropdowns list the answers of **Groups**), or use **Group means** with
+lists offer the answers of **Groups**), or use **Group means** with
 `anova` or `welch_anova` for all three. A multiple-choice **Groups** is
 refused because its groups overlap: run **Explode multiple choice** and
 compare by one option's 0/1 column.
@@ -821,7 +821,7 @@ given: …"); it does not warn of the chart of the defaults (Show count, no
 Split by, Sort code), which draws every value as it always did.
 
 **My Trend has no `created_at` to pick.**
-It is at the end of the **Time** dropdown, under **Beside the answers**, with
+It is at the end of the **Time** list, under the heading **Beside the answers**, with
 `updated_at` and `started_at` — the timestamps the survey's responses carry,
 which the codebook does not list. (There is no `submitted_at`: Studio's
 responses do not have one, and the check calls it an unknown variable.) A flow
@@ -948,7 +948,7 @@ after `cleaning` read `clean_responses`, and `segments` reads
 The combined report takes each flow's **Report path** (flow settings), a
 list of the flow's **Save report** nodes. A flow with **— none —** is left
 out. A path the flow does not write — saved earlier, or set through the API
-— fails that flow, and the list shows it as "*path* — no node saves this":
+— fails that flow, and the field shows it with "(no node saves this)" after it:
 "report outputs/*x*.md was not written: the flow's Report path names a file
 none of its nodes saves — choose one of its Save report nodes in Report
 path". The flow's tables were still written, so the flows that read them
