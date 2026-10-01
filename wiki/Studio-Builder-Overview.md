@@ -226,12 +226,15 @@ Two names that look similar are allowed:
 
 - **A codebook entry that no question collects and nothing writes.** An
   earlier version of the Builder left the old codebook entry behind when you
-  renamed a question's variable, under a name that is often the question's
-  Id (`q2` renamed to `comment` kept `q2`). The Id is fine; the entry is
-  simply unused. **Validation → Structure** suggests removing it — "q2: the
-  codebook still declares a variable "q2" that no question collects and
-  nothing writes — delete it in the Codebook tab" — and the Codebook tab
-  lists it **unused** with **Delete**. The **Id** field says nothing.
+  renamed a question's variable or deleted the question, under a name that
+  is often the question's Id (`q2` renamed to `comment` kept `q2`). The Id is
+  fine; the entry is simply unused. **Validation → Structure** suggests
+  removing it — "q2: the codebook still declares a variable "q2" that no
+  question collects and nothing writes — delete it in the Codebook tab" — and
+  the Codebook tab lists it **unused** with **Delete**. The **Id** field says
+  nothing. (An entry Studio keeps on purpose when you delete a question is
+  listed as **referred to by …** or **answers collected** instead; see
+  [When a question is deleted](Studio-Codebook-and-Variables#when-a-question-is-deleted).)
 - **A name a custom script writes that the codebook does not declare.** A
   script that writes the question's own Id (`answers.q5 = 7`, to prefill it)
   writes the question's answer: Studio translates it to `answers.nps_5`.
@@ -519,10 +522,25 @@ Block properties:
 - The **Move up** / **Move down** buttons on a card are the keyboard
   alternative (within the same page or block).
 - **Delete** with the trash button in the Inspector header — **Delete
-  question**, **Delete block and its questions**, **Delete page**.
+  question**, **Delete block and its questions**, **Delete page** (disabled
+  while the questionnaire has one page).
+
+Deleting questions also deletes the codebook entries only they wrote, unless
+something still refers to one (a condition, piped text, a quota, a script, a
+flow, a codeframe or a pinned Insights widget) or the survey has been
+published and a question of the last Save wrote it — exports label the
+answers already collected from the codebook. A message at the bottom says
+what went or stayed, such as "Removed variable q7 too", with **Undo**, which
+brings back the questions and their entries in one step and selects the item
+again. A **Skip to** that named a deleted question now points at nothing,
+and the message says so. Afterwards the keyboard focus is on the selected
+page in the rail. See
+[When a question is deleted](Studio-Codebook-and-Variables#when-a-question-is-deleted).
+Moving an item never touches the codebook.
 
 > **Note.** Deletes happen immediately, with no confirmation. If you delete
-> the wrong thing, press **↶** (`Ctrl/Cmd + Z`).
+> the wrong thing, click **Undo** in the message, or press **↶**
+> (`Ctrl/Cmd + Z`).
 
 ---
 
@@ -546,7 +564,9 @@ nothing selected it says "Select a page or a question to edit it."
   type-specific settings; see [[Question Types|Studio-Question-Types]].
 - **Variable** (marked *codebook*) — the codebook entry this question writes:
   name, scale, variable label, value labels, valid range; one card per
-  variable, including each row of a Matrix. Once the questionnaire has been
+  variable, including each row of a Matrix. The variable label follows the
+  question text until you write your own, and a value label that is not what
+  respondents see for its code is marked **≠**. Once the questionnaire has been
   published, the section adds: "This questionnaire has been published.
   Renaming a variable renames its column in the data: answers already
   collected keep the old name, answers collected after you publish again get
@@ -739,7 +759,9 @@ tab with unsaved edits, the browser asks whether you really want to leave.
 - While your cursor is in a text field, these keys undo your typing in that
   field instead.
 - Undo covers everything that changes the document, including imports,
-  deletes and **Apply** in the Source tab.
+  deletes and **Apply** in the Source tab. Undoing a deletion — with **↶**,
+  `Ctrl/Cmd + Z` or the **Undo** of its message — brings back the codebook
+  entries that went with it and selects the deleted item again.
 - The history is **cleared** when you Save, when you **Discard changes**, and
   when you leave the Builder or switch project. (Your draft survives; the undo
   steps do not.)
