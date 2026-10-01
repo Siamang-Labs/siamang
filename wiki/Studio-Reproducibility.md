@@ -87,8 +87,12 @@ A flow script is **not standalone**:
 
 - it imports the questionnaire from `survey/questionnaire.py`, so run it from
   the root of a research bundle (the bundle's `run.sh` sets `PYTHONPATH=.`);
-- outside Studio it must be given the data: `--data <file>` (Parquet, CSV,
-  Excel, SPSS `.sav` or Stata `.dta`). Without `--data` it tries to read the project database, which
+- outside Studio it must be given the data: `--data <file>` (Parquet, CSV or
+  another text table — `.tsv`, `.txt` — Excel `.xlsx`, `.xlsm` or `.xls`,
+  SPSS `.sav` or Stata `.dta`). The file is read with the questionnaire's
+  codebook, as the platform reads the responses, whatever part of the survey
+  it holds (a pilot's data has only the columns of the questions reached).
+  Without `--data` it tries to read the project database, which
   exists only inside Studio. A flow with **two or more** database sources
   takes one option per source instead — `--data-<node-id>`, with `_` in the id
   written as `-` (for example `--data-src-wave1`);
@@ -393,6 +397,25 @@ wrote are a snapshot rather than rewritten, **Write table**, Live and the
 combined report are platform-only, and an engine pin that lags behind Studio
 can stop a flow or change weighted numbers — the README says when that
 applies.
+
+### Which upload a run read
+
+A flow reads an upload under **Files** as it is when the run starts, and an
+upload replaced with new content keeps its name. So that two runs over a
+replaced file can be told apart, the log of every run — of one flow, **Run
+all**, a scheduled run — names each upload it copied in, with the start of
+its content's SHA-256:
+
+```
+read assets/panel_wave2.csv (sha256 4be1c07a93d2f518)
+```
+
+To check that a file you hold is the one a run read, compare the first 16
+characters of `sha256sum panel_wave2.csv` with that line. A research bundle
+with data records the full hash of each upload it carries in
+`data/responses.manifest.json`, under `uploads`. On **Files**, an upload's
+**Updated** date says when its content last changed (see
+[The Files screen](Studio-Files#the-files-screen)).
 
 ---
 
