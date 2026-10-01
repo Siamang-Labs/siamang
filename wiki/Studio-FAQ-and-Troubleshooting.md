@@ -595,6 +595,76 @@ screen outside the editor; the Save badge sits beside the flow's name while
 the mode is on. Studio remembers the choice in this browser.
 → [Focus mode](Studio-Flows#focus-mode)
 
+**The analyses below my Data file do not offer the file's columns.**
+The file is read when it is uploaded, and again when the node's reading
+options change; meanwhile the node's **Columns** panel says "Reading the
+file's columns… Nodes below it aren't checked for names until it is read."
+Then the pickers below list the file's columns under "From *name*". A
+**File** under "Other location" is not read at all — choose the upload from
+the list. If the panel says **cannot read**, fix what it names (the
+encoding, the delimiter, the sheet, the header rows) under **Reading
+options** and click **Read again**. The questionnaire's variables are
+offered below a file only when the file is this survey's data; if it is and
+the panel says the file keeps its own labels, set **Codebook** to
+`questionnaire`.
+→ [The file's columns in the flow](Studio-Node-Reference#the-files-columns-in-the-flow)
+
+**My CSV opens as one column, or its letters come out garbled.**
+Excel with Russian or most European settings saves "CSV" with `;` between
+the fields, a decimal comma and, for Cyrillic, Windows-1251; "Unicode text"
+is UTF-16 with tabs. A **Data file** node finds all of that by itself with
+**Delimiter**, **Encoding** and **Decimal mark** on auto, and its
+**Columns** panel says what it found ("CSV · semicolon-separated · CP1251 ·
+decimal comma"). The code page is told by how the file's letters read as
+words, and a note says so when it was a guess: "The file is not UTF-8: it is
+read as …, the code page its letters read best in. If names or answers look
+garbled, set Encoding (or save the file as CSV UTF-8)." If it still reads
+wrong, set the option under the node's **Reading options**.
+→ [Data file](Studio-Node-Reference#data-file)
+
+**Numbers with a decimal comma (`4,5`) come in as text.**
+**Decimal mark** on auto reads a comma where the file's numbers are written
+so — with `;` or tabs between the fields, also in a column whose first
+decimals come late. A column of nothing but values like `1,500` (one and a
+half, or fifteen hundred?) stays text, with a note in the **Columns** panel,
+until you set **Decimal mark** to `,` or `.`. In a file with `,` between the
+fields, a comma is never a decimal mark.
+
+**How do I analyze the data I collected in Qualtrics?**
+Import the survey's `.qsf` in the Builder and Save; export the data from
+Qualtrics with *Use numeric values*; upload it and read it with a **Data
+file** node. The node finds the export's header rows by itself, the
+questionnaire labels the answers, and the Columns panel offers to leave out
+Qualtrics' personal-data columns (`IPAddress`, `RecipientEmail` …).
+→ [Bringing in Qualtrics data](Studio-Importing-Questionnaires#bringing-in-qualtrics-data)
+
+**Files says "possible missing codes", or the Columns panel lists codes such as -7, -8, -9.**
+Many surveys store "don't know", "refused" or "not asked" as negative codes
+(−7, −8, −9, −99) or as 97–99 far above the real answers. Until they are
+declared, they count as answers: they show up in frequencies and pull a mean
+down. Click **Mark them as missing in these columns** in the node's
+**Columns** panel — it writes each code only for the columns it was found
+in, one column a line (`q5: -9`, `q6_1: -7, -8`), so a −7 among a column's
+amounts or an age of 99 stays a value — then add a **Missing values** node
+below to turn them into blanks. A list for every column (`-7, -8, -9`) also
+works, but makes a code missing in columns where it is a real value (a
+negative code is left alone in a column of other negative amounts). The
+panel only suggests; check the codes against the file's documentation.
+→ [The Columns panel](Studio-Node-Reference#the-columns-panel)
+
+**I chose another file, and Missing codes still names the old file's columns.**
+Codes for columns a file does not have would do nothing, so the field says
+"Missing codes name columns this file doesn't have: …" — click **Remove
+them**. If the new file has codes of its own that look like missing codes,
+the panel offers **Add this file's missing codes (*n* columns)**.
+
+**"column name … is longer than 63 bytes, which a table column cannot be" from a Write table node.**
+A project table keeps a file's column names as they are, up to 63 bytes
+each — a Cyrillic letter takes two, so about 31 Russian letters. The node
+stops before writing anything, in a preview as in a run. Shorten the name in
+the file and upload it again, or leave the column out with a **Select
+columns** node before the **Write table**.
+
 **Can Run to here change a project table?**
 No. A preview never writes project tables: a **Write table** node it reaches
 says "Not written: a preview never writes project tables. A run writes N rows

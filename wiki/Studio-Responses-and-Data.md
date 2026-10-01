@@ -44,6 +44,15 @@ is for owners and admins (see [Deleting a response](#deleting-a-response)).
 | `survey_meta` | one row per environment: the title and codebook of its latest build (`survey_id`, `title`, `schema_json`, `variables_json`, `max_responses`, `schema_hash`, `created_at`) |
 | *your own* | anything a flow's **Write table** node produced (`clean_responses`, `weighted`, …) |
 
+Data collected elsewhere — a panel file, an earlier wave, a Qualtrics
+export — never goes into `responses`. It is uploaded under
+[[Files|Studio-Files]] and read by a flow's **Data file** node; a **Write
+table** node below it can keep it here as a table of your own, with the
+file's column names as they are (`StartDate`, a Russian header). A name
+longer than 63 bytes (a Cyrillic letter takes two) cannot be a table column:
+the node stops before writing anything, and you rename that column first. See
+[Analyzing a dataset collected elsewhere](Studio-Files#analyzing-a-dataset-collected-elsewhere).
+
 In `quota_counters`, `value` is stored in JSON form — a text answer appears
 with quotes (`"north"`), a code without (`2`).
 

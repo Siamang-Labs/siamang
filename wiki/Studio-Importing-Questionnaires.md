@@ -251,6 +251,50 @@ Messages you may see (for a file read on the server — `.py`, `.qsf`, `.lss`,
 8. **Preview** the survey, then **Save** with a message such as "Imported from
    Qualtrics".
 
+## Bringing in Qualtrics data
+
+The answers you collected in Qualtrics are not imported with the `.qsf`: a
+flow reads them from the data export, and the imported questionnaire then
+labels them. The recommended route:
+
+1. **Import the survey's `.qsf`** as above, check it, and **Save**. A data
+   file is read against the questionnaire of the current Save.
+2. **In Qualtrics, export the data with *Use numeric values***, as CSV or
+   Excel, so the answers are the survey's codes.
+3. **Upload the export** under [[Files|Studio-Files]] and read it with a
+   **Data file** node in a flow (see
+   [Data file](Studio-Node-Reference#data-file)).
+
+The node finds a Qualtrics export by itself (**Header rows** on auto): the
+row of question texts under the names labels the columns instead of being
+read as a respondent, the `{"ImportId": …}` row of a CSV is left out, and
+Qualtrics' own columns get their types — dates, numbers, `Finished` as
+true/false. With **Codebook** on auto, the questionnaire describes the file
+when the file is its data, and the **Columns** panel says "Labels and scales:
+the questionnaire's — the file is this survey's data." The answers then carry
+the questionnaire's labels and scales, a column named `Q1` is read as the
+questionnaire's `q1`, and a multiple-choice answer, which Qualtrics writes
+`1,3`, becomes the list of its codes. Qualtrics' fixed columns (`StartDate`,
+`ResponseId` …), its `Q_…` metadata, display-order columns (`…_DO`) and the
+typed "Other" texts (`Q5_4_TEXT`) do not count against the file being the
+survey's data. If the panel says the file keeps its own codebook although it
+is this survey's data, set **Codebook** to `questionnaire`.
+
+An export of choice text ("Moderately", "25 - 34") works too: when the
+questionnaire describes the file, each column whose answers are all labels of
+its variable becomes that variable's codes, and a column with other answers
+keeps its text, which the **Columns** panel names. Without the
+questionnaire, the file keeps its text answers, labeled by the question
+texts.
+
+> **Personal data.** A Qualtrics export carries columns an analysis rarely
+> needs — `IPAddress`, `LocationLatitude`, `LocationLongitude` and, with a
+> contact list, `RecipientEmail`, `RecipientFirstName` and
+> `RecipientLastName`. Files and the node point them out; leave them out
+> early with **Add a Select columns node without them** in the node's
+> [Columns panel](Studio-Node-Reference#the-columns-panel). See
+> [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload).
+
 ## See also
 
 - [[The Builder|Studio-Builder-Overview]]
