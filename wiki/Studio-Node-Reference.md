@@ -41,10 +41,10 @@ error until you fill it in. The inspector marks every other parameter
 
 | Type | How you set it in the inspector |
 |---|---|
-| variable | a list of the variables available at this node, filtered to the scales the node accepts: each by its name, with its label and scale on the line under it (`satisfaction` over "Overall satisfaction · ordinal"), under headings where they come from different places (**From *name*** below a **Data file**). A list of more than ten opens with a filter box ("Filter variables…"); see [Lists in the inspector](Studio-Flows#lists-in-the-inspector). The empty entry reads **— pick a variable —** for a required field and **— none —** for an optional one. A stored variable of another scale stays shown as what the node reads, with the reason after its name: `q_md_score_1` "(interval — Rows takes nominal / ordinal)" — an error of the check for a codebook variable, a warning for one a node of the flow makes. A made variable has the scale the nearest node upstream that makes it gives it (a Recode of a derived variable is ratio, like its source), and the list offers it with that scale; a name the codebook has keeps the codebook's. An arm an **Assign to a condition** script writes is offered as a nominal variable ("assigned by a script") when the codebook does not list it. A field that can read columns the codebook does not describe lists them last, under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the survey's responses carry — `created_at` ("Response date (created_at)"), `updated_at` ("Last change (updated_at)"), `started_at` ("Start time (started_at)"). A field leaves out what its node refuses as soon as it is picked: a **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not offer multiple-choice questions, rankings or open answers, and a **Trend**'s **Measure variable** for a mean no nominal or multiple-choice question; a stored one stays shown with the reason (`aware` "(several answers: not one wave or date)") |
+| variable | a list of the variables available at this node, filtered to the scales the node accepts: each by its name, with its label and scale on the line under it (`satisfaction` over "Overall satisfaction · ordinal"), under headings where they come from different places ("From *name*" below a **Data file**). A list of more than ten opens with a filter box ("Filter variables…"); see [Lists in the inspector](Studio-Flows#lists-in-the-inspector). The empty entry reads **— pick a variable —** for a required field and **— none —** for an optional one. A stored variable of another scale stays shown as what the node reads, with the reason after its name in the field: `q_md_score_1` "(interval — Rows takes nominal / ordinal)" — an error of the check for a codebook variable, a warning for one a node of the flow makes. A made variable has the scale the nearest node upstream that makes it gives it (a Recode of a derived variable is ratio, like its source), and the list offers it with that scale; a name the codebook has keeps the codebook's. An arm an **Assign to a condition** script writes is offered as a nominal variable ("assigned by a script") when the codebook does not list it. A field that can read columns the codebook does not describe lists them last, under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the survey's responses carry — `created_at` ("Response date (created_at)"), `updated_at` ("Last change (updated_at)"), `started_at` ("Start time (started_at)"). A field leaves out what its node refuses as soon as it is picked: a **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not offer multiple-choice questions, rankings or open answers, and a **Trend**'s **Measure variable** for a mean no nominal or multiple-choice question; a stored one stays shown with the reason after it in the field (`aware` "(several answers: not one wave or date)") |
 | variables (several) | a checklist of the same variables, filtered the same way; a checked variable the list would not offer stays in it, with its scale or "(not in codebook)", and can be unchecked |
 | choice | a list of the allowed values, as wide as the field. The field shows the code chosen; in the list, where the code is a statistician's shorthand, its name is on the line under it — "Welch's ANOVA" under `welch_anova`, "Benjamini-Hochberg" under `fdr_bh`. An optional field's list starts with **— default —**, which leaves the default, with "the node's default: …" under it. The stored value and the generated script keep the code. A list of more than ten opens with a filter box. How the lists work: [Lists in the inspector](Studio-Flows#lists-in-the-inspector) |
-| answer code | an answer of the variable another parameter names, picked from that variable's value labels: a list of the codes, each with its label under it ("Male" under `1`; **— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be checked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads `5` "(not an answer of gender)" in a list and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1`, with "Male" under it in the list; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1"` "(not an answer of gender)". Where the field reads a list of variables, the answers are those of the first one checked. When that variable has no value labels, the field is a JSON box instead |
+| answer code | an answer of the variable another parameter names, picked from that variable's value labels: a list of the codes, each with its label under it ("Male" under `1`; **— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be checked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads `5` "(not an answer of gender)" in a list's field and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1`, with "Male" under it in the list; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1"` "(not an answer of gender)". Where the field reads a list of variables, the answers are those of the first one checked. When that variable has no value labels, the field is a JSON box instead |
 | whole number, number | a number box; the placeholder shows the default |
 | checkbox | checked = on |
 | text | a text box; where the text names a new variable or column, the hint says "names a new variable". A few text boxes suggest values as you type — a **Bar chart**'s **Bins** (`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a **Heatmap**'s **Color map** (`theme`, `YlOrRd`, `Blues`, `viridis`, `RdBu_r`) — and take any other value the node reads |
@@ -164,15 +164,11 @@ only the name:
 **A file a node reads** is an upload under [[Files|Studio-Files]]. The field
 lists, by name, only the uploads it can read — a **Data file**'s **File** the
 data files, its **Dictionary (JSON)** the `.json` files — each with its size
-and upload date on the line under it, a data file that **Files** has read
-with its rows and columns first ("160 rows × 16 columns · 24.6 KB · uploaded
-Jun 2, 2026"). A long name, such as
-`ev_owner_charging_experience_panel_wave_3_june_2026_weighted_final_v2.sav`,
-wraps in the list after its `_` and `.`, and is cut short with "…" in the
-field; point at the field to read it whole. The note under the field gives
-the chosen file's size and upload date (a data file's rows × columns first),
-then "Each run reads the file as it is in Files at that moment." Under the
-note:
+and upload date on the line under it (see
+[Lists in the inspector](Studio-Flows#lists-in-the-inspector)). The note
+under the field gives the chosen file's size and upload date (a data file's
+rows × columns first), then "Each run reads the file as it is in Files at
+that moment." Under the note:
 
 - **Upload…** opens **Upload a data file** (or **Upload a dictionary**), which
   says what it takes, refuses a file of another kind, even one dragged in, and
@@ -243,8 +239,8 @@ The inspector shows the parameters in this order: **File**, **Codebook**, the
 | **Skip rows** | whole number | — | 0 or more | Rows above the names to leave out (a title, a note). Empty finds the names row: the first that fills at least half of the table's width. |
 | **Sheet** | text | — | — | Excel: the sheet to read, by its name or its number (1 is the first). Empty reads the first sheet that holds a table. |
 | **Delimiter** | choice | `auto` | `auto`, `,`, `;`, `tab`, `\|` | Text files: what separates the fields — comma, "semicolon (Excel with Russian or European settings)", "tab (Excel's Unicode text)", vertical bar. `auto` tries each on the first rows. |
-| **Encoding** | choice | `auto` | `auto`, `utf-8`, `utf-16`, `cp1251`, `koi8-r`, `cp866`, `cp1252`, `cp1250`, `iso-8859-1` | Text files: how the letters are written. `cp1251` is "Windows-1251, Cyrillic (Russian Excel's CSV)", `utf-16` "Excel's Unicode text". `auto` reads a byte-order mark, then UTF-8, then the most likely Windows code page. |
-| **Decimal mark** | choice | `auto` | `auto`, `.`, `,` | How numbers write their fraction, `4.5` or `4,5`, in a text file and for numbers an Excel sheet keeps as text. `auto` reads a decimal comma where the numbers are written with one: in a text file with a semicolon, a tab or a vertical bar between the fields (not a comma), and in a sheet where its text numbers show it. A text file always gets a mark; when nothing in a sheet tells, `auto` leaves values as ambiguous as `1,500` as text, and the **Columns** panel says so — pick the mark here to read them as numbers. |
+| **Encoding** | choice | `auto` | `auto`, `utf-8`, `utf-16`, `cp1251`, `koi8-r`, `cp866`, `cp1252`, `cp1250`, `iso-8859-1` | Text files: how the letters are written. `cp1251` is "Windows-1251, Cyrillic (Russian Excel's CSV)", `utf-16` "UTF-16 (Excel's Unicode text)". `auto` reads a byte-order mark, then UTF-8, then the most likely Windows code page. |
+| **Decimal mark** | choice | `auto` | `auto`, `.`, `,` | How numbers write their fraction, `4.5` or `4,5`, in a text file and for numbers an Excel sheet keeps as text. `auto` reads a decimal comma where the numbers are written with one: in a text file with a semicolon, a tab or a vertical bar between the fields (not a comma), and in a sheet where its text numbers show it. In a text file `auto` always settles on one mark; only in a sheet, when nothing tells, does it leave values as ambiguous as `1,500` as text, and the **Columns** panel says so — pick the mark here to read them as numbers. |
 | **Missing codes** | text | — | — | Codes that mean no answer in this file, per column — `q5: -9` and `q6_1: -7, -8`, one column a line (or `;` between them) — or for every column that holds them: `-7, -8, -9` (a negative code is then left alone in a column of other negative amounts). **Missing values** turns them into blanks, and tables leave them out. A box of a few lines; the empty box shows "e.g. q5: -9 (a line per column)". |
 | **Dictionary (JSON)** | upload | — | the `.json` uploads | Optional: the file's codebook as a data dictionary (`<name>.dictionary.json`, as a Siamang export writes it); its labels, scales and missing codes describe the file's columns. `<name>.dictionary.json` files are listed first, and when the one named after **File** is in **Files** the field offers **Use *name*.dictionary.json**. |
 
@@ -305,10 +301,11 @@ location") or **cannot read**:
   phone number, an address or a participant ID. Its **ⓘ** names those
   columns, each with its kind ("`email` (e-mail)"), and says, in a paragraph
   of its own, "An analysis rarely needs these; leave them out early so no
-  table, report or export carries them." Beside it, **Add a Select columns node without them** puts a
-  **Select columns** node labeled "Without personal data", keeping every
-  other column, after the Data file; it takes over what the Data file fed,
-  and is selected. Nothing is dropped until you press it.
+  table, report or export carries them." Beside it, **Add a Select columns
+  node without them** puts a **Select columns** node labeled "Without
+  personal data", keeping every other column, after the Data file; it takes
+  over what the Data file fed, and is selected. Nothing is dropped until you
+  press it.
 - **Show the *n* columns** lists each column on two lines: its name, a
   personal-data mark and its missing codes — declared, and suspected ones with
   a `?` — then its label, its value labels count, its type where it says
@@ -548,7 +545,7 @@ the data already carries one).
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Weight column** | text | `weight` | — | The column holding the weights. The hint under it lists which results are weighted and which are not (the two tables below). |
+| **Weight column** | text | `weight` | — | The column that holds each respondent's weight: `weight` unless you name another. Its **ⓘ**, a tall tip that opens beside the field where there is room, lists the results that are weighted, those weighted except a part, and those that are unweighted and say so (the tables below). |
 
 These nodes use the applied weight, and their output names it (`Weight` or
 `weight` among the statistics). In the weighted tables and charts a weight
@@ -805,19 +802,16 @@ on the node before a Save.
 The editor offers **ALL of the following** / **ANY of the following**, the
 operators = ≠ > ≥ < ≤ **in**, **not in**, **chose**, **did not choose**, and
 value pickers that show value labels. In the flow's inspector each of these
-is a list as wide as the field: each variable with its label and scale under
-it (under "From *name*" below a **Data file**), a long column name wrapped
-after its `_`; each operator with what it asks ("is at least", "is among its
-answers (a question answered more than once)"); each answer's code with its
-label under it ("Capital region" under `1`); and a filter box in a list of
-more than ten (see
-[Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers)).
-Closed, the condition reads as a sentence, `region = Capital region (1)`. Its variables
-are those available at this node — the codebook's, and those made upstream,
-such as `quality_score` or a recode — so you can, for example, keep only
-`quality_score` = `0`. A condition that nests groups opens as JSON.
-Conditions typed as raw text are refused ("raw string conditions cannot be
-evaluated on data").
+is a list, with what each operator asks and each answer's label under its
+code; the codes of **in** and **not in** stay a **choose codes** checklist
+(see [Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers)
+and [Lists in the inspector](Studio-Flows#lists-in-the-inspector)). Closed,
+the condition reads as a sentence, `region = Capital region (1)`. Its
+variables are those available at this node — the codebook's, and those made
+upstream, such as `quality_score` or a recode — so you can, for example,
+keep only `quality_score` = `0`. A condition that nests groups opens as
+JSON. Conditions typed as raw text are refused ("raw string conditions
+cannot be evaluated on data").
 
 ### Index / scale
 
@@ -850,10 +844,10 @@ the preferences can go into a crosstab, a cluster or a regression.
 - **MaxDiff question** is a list of the questionnaire's MaxDiff questions
   (**— pick a MaxDiff question —**), each by its name with its question text
   under it. A stored name the questionnaire does not have is kept and marked
-  "(not in the questionnaire)", and the engine check names it at **Check** and at Save:
-  "Parameter 'question' of md_scores: no MaxDiff question named 'q_mdx'; this
-  questionnaire has: q_md." With no MaxDiff question in the questionnaire the
-  field is a text box.
+  "(not in the questionnaire)" after it in the field, and the engine check
+  names it at **Check** and at Save: "Parameter 'question' of md_scores: no
+  MaxDiff question named 'q_mdx'; this questionnaire has: q_md." With no
+  MaxDiff question in the questionnaire the field is a text box.
 - One variable per item, `q_md_score_1`, `q_md_score_2`, …, labeled
   "MaxDiff score: *item*", interval, from −1 (picked worst every time it was
   shown) to 1 (picked best every time). A respondent who was never shown an
@@ -1425,10 +1419,10 @@ To draw the matrix, connect its `table` to a **Result chart** (Kind
 `analyze.correspondence` — "Correspondence analysis of a crosstab, or of the
 attributes checked for each brand." It gives the dimensions and their share
 of the inertia, and where each row and column lies on the map, with
-contributions and quality. A table of counts says cell by cell which brands are seen as modern
-and which as good value; the map shows it at a glance: a brand lies toward
-the attributes it gets more of than the average brand does. Connect any of its
-tables to a **Result chart** to draw the map.
+contributions and quality. A table of counts says cell by cell which brands
+are seen as modern and which as good value; the map shows it at a glance: a
+brand lies toward the attributes it gets more of than the average brand
+does. Connect any of its tables to a **Result chart** to draw the map.
 
 **In:** `data` (SurveyData) → **Out:** `table` (Table), `rows` (Table), `columns` (Table), `stat` (Stat)
 
@@ -1681,12 +1675,11 @@ group's base (`Capital (n = 170–197)` when it differs between variables).
 `analyze.drivers` — "Which of several predictors matter most for an
 outcome." It gives each one's share of R², by Johnson's relative weights or
 the Shapley value (LMG), beside the correlations and standardized betas. A
-regression's
-coefficients answer another question — what changes when one rating moves and
-the others stay put — and when the ratings correlate, as ratings of one brand
-do, a coefficient can shrink or even flip sign because a neighbor took its
-share. Key drivers splits the model's R² between the drivers instead, so the
-shares add up to R² (100 %).
+regression's coefficients answer another question — what changes when one
+rating moves and the others stay put — and when the ratings correlate, as
+ratings of one brand do, a coefficient can shrink or even flip sign because
+a neighbor took its share. Key drivers splits the model's R² between the
+drivers instead, so the shares add up to R² (100 %).
 
 **In:** `data` (SurveyData) → **Out:** `table` (Table), `stat` (Stat)
 
@@ -2259,7 +2252,7 @@ its confidence interval.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Variable** | variable | required | — | The variable. |
-| **Answer code** | answer code | required | — | The answer whose share you want, picked from the **Variable**'s value labels (`1`, with "Yes" under it). For a variable without value labels it is typed as JSON: `1` or `"yes"`. |
+| **Answer code** | answer code | required | — | The answer whose share you want, picked from the **Variable**'s value labels, such as `1` ("Yes"). For a variable without value labels it is typed as JSON: `1` or `"yes"`. |
 | **Confidence** | number | `0.95` | 0–1 | Confidence level between 0 and 1. |
 | **Weighted** | checkbox | off | — | Use the applied weight. |
 
@@ -2299,8 +2292,8 @@ labels.
 
 The **Model** list names each code under it: `ols` ("linear"), `logit`
 ("logistic, two answers"), `ordinal` ("ordinal logit, ordered answers").
-`auto` never picks the ordinal
-model, so a flow saved before it existed runs as it did.
+`auto` never picks the ordinal model, so a flow saved before it existed runs
+as it did.
 
 **The ordinal model** is for an outcome of ordered answers — very
 dissatisfied to very satisfied — which is neither a number an ordinary
@@ -2403,9 +2396,9 @@ design reads:
 | `paired` | **Variable**, **Second measurement**, **Confidence** | **Second measurement** |
 | `one_sample` | **Variable**, **Test value**, **Confidence** | — |
 
-**Group A** and **Group B** list the answers of the **Groups** variable,
-each code with its label under it (`1` "Male", `2` "Female", …), including the bands of a **Bands** node. Leave
-both empty when **Groups** has exactly two values.
+**Group A** and **Group B** list the answers of the **Groups** variable —
+`1` ("Male"), `2` ("Female"), … — including the bands of a **Bands** node.
+Leave both empty when **Groups** has exactly two values.
 
 **Rules** (errors):
 
@@ -2482,10 +2475,9 @@ have reaches.
 
 The **Search** list names each code under it: `best` ("every
 combination"), `greedy` ("extend the winner"), `fixed` ("the Portfolio as it
-is"). The inspector shows
-**Largest portfolio** and **Always include** for `best` and `greedy`, and
-**Portfolio** for `fixed`; the node's card reads "up to 3, best", or for a
-fixed portfolio "fixed portfolio" and its options.
+is"). The inspector shows **Largest portfolio** and **Always include** for
+`best` and `greedy`, and **Portfolio** for `fixed`; the node's card reads
+"up to 3, best", or for a fixed portfolio "fixed portfolio" and its options.
 
 - Each respondent is counted once however many options they chose — that is
   what makes it *unduplicated* reach rather than a sum of percentages. The
@@ -2566,23 +2558,22 @@ A chart is drawn as its node runs: one that cannot be drawn (a Likert chart
 of items without a scale) fails its own node, with the reason, in a preview
 and in a run — not the **Save report** or the preview after it.
 
-**Palette `theme`.** Every chart's **Palette** (a **Heatmap**'s **Color map**)
-offers `theme` ("the report's chart colors (Save report's Look)" under it
-in the list): the chart
-takes its colors from the **Look** of the **Save report** it is saved in — the
-**Chart colors** you set there (see
-[Chart colors](Studio-Reports#chart-colors)), with its text color, grid lines
-and typeface. Left empty, those are the engine's default chart colors, eight
-colors any two of which readers with protanopia or deuteranopia can tell
-apart. In the report — its `.md` figures and its `.html` alike — the chart is
-drawn in that report's colors. In a preview, and on a **Live tile** after a
-run, it is drawn in the look of the flow's own **Save report** node — in the
-default chart colors when the flow has none, or when its **Save report**
-nodes name different looks. Its colors never come from the house style;
-only the p in a **Result chart**'s note follows the house style's
-**P values** there (see [P values](Studio-Reports#p-values)). A named
-palette (`muted`, `RdBu`, `YlOrRd`, …) keeps its own colors whatever the
-report's **Look** says. With `theme`:
+**Palette `theme`.** Every chart's **Palette** offers `theme`, with "the
+report's chart colors (Save report's Look)" under it in the list, and a
+**Heatmap**'s **Color map** suggests `theme`: the chart takes its colors from
+the **Look** of the **Save report** it is saved in — the **Chart colors** you
+set there (see [Chart colors](Studio-Reports#chart-colors)), with its text
+color, grid lines and typeface. Left empty, those are the engine's default
+chart colors, eight colors any two of which readers with protanopia or
+deuteranopia can tell apart. In the report — its `.md` figures and its `.html`
+alike — the chart is drawn in that report's colors. In a preview, and on a
+**Live tile** after a run, it is drawn in the look of the flow's own **Save
+report** node — in the default chart colors when the flow has none, or when
+its **Save report** nodes name different looks. Its colors never come from the
+house style; only the p in a **Result chart**'s note follows the house style's
+**P values** there (see [P values](Studio-Reports#p-values)). A named palette
+(`muted`, `RdBu`, `YlOrRd`, …) keeps its own colors whatever the report's
+**Look** says. With `theme`:
 
 - a series takes the next color of **Series**, an answer of an ordered scale
   a step of **Magnitude** (light to dark), and a Likert chart, a correlation
@@ -2647,9 +2638,9 @@ Show says"), `stacked_100` ("stacked to 100 %"), `histogram` ("histogram of
 a number, in Bins"), `donut` ("donut: the parts of a whole"); `code` ("the
 codebook's order"), `value` ("largest first"); `bonferroni` ("Bonferroni");
 `theme` ("the report's chart colors (Save report's Look)"). **Bins** suggests
-`auto`, `10` and
-`0, 18, 25, 35, 50, 65`. The card reads `satisfaction by region` with
-**Split by** set, and the variable alone for a donut.
+`auto`, `10` and `0, 18, 25, 35, 50, 65`. The card reads
+`satisfaction by region` with **Split by** set, and the variable alone for a
+donut.
 
 **The fields each form reads.** The inspector shows only those (see
 [Reading this page](#reading-this-page)): **By** with **Show** `count` and a
@@ -2889,8 +2880,8 @@ or Kendall), or their means by group."
 
 The **Method** list names each code under it: `pearson` ("Pearson r"),
 `spearman` ("Spearman rho, answers as they are"), `kendall` ("Kendall
-tau-b"). `spearman` draws the
-chart the node always has; a flow saved before **Method** existed keeps it.
+tau-b"). `spearman` draws the chart the node always has; a flow saved before
+**Method** existed keeps it.
 **Color map** suggests `theme`, `YlOrRd`, `Blues`, `viridis` and `RdBu_r` as
 you type.
 
@@ -3052,9 +3043,9 @@ Key drivers"), `partworths` ("Conjoint part-worths"), `scree` ("scree
 plot"), `loadings` ("loadings heatmap"), `profile` ("cluster profiles"),
 `coefficients` ("coefficients or odds ratios"), `heatmap` ("correlation
 heatmap"), `sentiment` ("sentiment split"), `map` ("perceptual map"),
-`curves` ("price curves"). With **— default —** first, that is more than ten
-entries, so the list opens with a filter box ("Filter chart kinds…"): type
-"maxdiff" to keep `utilities` and `scores`.
+`curves` ("price curves"). Its list has more than ten entries, so it opens
+with a filter box ("Filter chart kinds…"): type "maxdiff" to keep
+`utilities` and `scores`.
 
 **What it draws** — the first kind of each row is what `auto` draws:
 
@@ -3185,8 +3176,9 @@ names them by those labels ("Response date (month)"). It leaves out a
 multiple-choice question, a ranking and an open answer (not a Date question's),
 as **Split by** does; with **Measure** `mean`, **Measure variable** leaves out
 nominal and multiple-choice questions. A variable already stored stays listed,
-with the reason after it (`aware` "(several answers: not one wave or date)"). A variable with value labels, or
-of numbers, is read as waves: a point per code, in the order of the codes,
+with the reason after it in the field (`aware` "(several answers: not one
+wave or date)"). A variable with value labels, or of numbers, is read as
+waves: a point per code, in the order of the codes,
 each named by its label ("Spring 2026", "Summer 2026"); a wave the codebook
 declares between the first and the last, with no data yet, is a gap. A column
 of dates, or text most of which reads as ISO 8601 dates, is grouped by
@@ -3313,10 +3305,11 @@ column means (`<name>.dictionary.json`) and a script that runs the model and
 writes the per-respondent estimates back (`<name>.hb.R`). The field's **ⓘ**
 adds, in a paragraph of its own: "It has no weight column, since the HB
 packages take none, so an applied weight is not in it. Weight the individual
-utilities when you aggregate them." A run of the flow keeps all three under **Files**; **Run all** keeps
-them only when the flow lists them among its outputs (as the example study's
-`segments` flow does), and the line under the field says so: "Run all
-doesn't keep these files: run this flow on its own to get them."
+utilities when you aggregate them." A run of the flow keeps all three under
+**Files**; **Run all** keeps them only when the flow lists them among its
+outputs (as the example study's `segments` flow does), and the line under
+the field says so: "Run all doesn't keep these files: run this flow on its
+own to get them."
 
 Why export rather than estimate here: hierarchical Bayes takes minutes of
 MCMC, and a flow run has one CPU and a few minutes for everything. A cut-down
@@ -3560,8 +3553,8 @@ footer** is on (the default).
 `output.tabbook` — "Every chosen question crossed by a banner of segments,
 in an Excel workbook with a contents page and notes. Each question has a
 sheet of its own, with its bases, counts, percentages and the Banner table's
-significance letters." The tab book an agency hands a client after fieldwork: the whole study by
-the segments that matter, in one file.
+significance letters." The tab book an agency hands a client after
+fieldwork: the whole study by the segments that matter, in one file.
 
 **In:** `data` (SurveyData) → **Out:** `stat` (Stat)
 

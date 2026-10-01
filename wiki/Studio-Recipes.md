@@ -2,9 +2,9 @@
 
 Step-by-step solutions to the tasks people ask about most. Each recipe is the
 short path; the linked pages have every option and caveat. A flow node's
-choice is written as its code, with the name its list in the inspector shows
-under it in parentheses: **Design** `independent` ("two groups") — the field
-shows `independent`.
+choice is written as its code followed, in parentheses, by the name its list
+in the inspector shows under it: **Design** `independent` ("two groups"); the
+field itself shows `independent`.
 
 **Contents**
 
@@ -522,8 +522,8 @@ One pair — in a flow, after your cleaning steps:
 2. **Run to here**. The statistics give `r`, `p_value`, `n` and the 95 %
    interval `lower` – `upper`.
 
-For two rating scales, choose **Method** `kendall` ("Kendall tau-b") (or leave
-the default, Spearman): rank correlations suit answers on a 1–5 scale, and
+For two rating scales, choose **Method** `kendall` ("Kendall tau-b"), or leave
+the default, Spearman: rank correlations suit answers on a 1–5 scale, and
 tau-b allows for their many ties. Pearson and Kendall leave the codebook's
 missing codes out and say how many (`missing_codes`); the default Spearman
 counts them as answers unless **Missing values** comes first.
@@ -549,7 +549,7 @@ effective base; Spearman and Kendall stay unweighted and say so.
 1. Add **t-test** (Analyze). **Design** is `independent` ("two groups").
 2. **Variable** `satisfaction_score`, **Groups** `gender`.
 3. When **Groups** has more than two answers, pick the two in **Group A**
-   (`1`, "Male" under it) and **Group B** (`2`, "Female"); with exactly two, leave both
+   `1` ("Male") and **Group B** `2` ("Female"); with exactly two, leave both
    empty.
 4. Leave **Variances** at `welch` ("Welch's t") — it does not assume the two
    groups vary equally. `student` pools the variances.
@@ -599,8 +599,8 @@ ones compared.
 When the same people answered twice — a rating before and after a message,
 the same scale about two brands — compare each respondent with themselves:
 
-- **Means:** **t-test** with **Design** `paired — two variables, same
-  people`, **Variable** `rating_before`, **Second measurement**
+- **Means:** **t-test** with **Design** `paired` ("two variables, same
+  people"), **Variable** `rating_before`, **Second measurement**
   `rating_after`. The footer gives t, df, p, the mean difference (before −
   after) with its CI, **Cohen's d (d_z)** and the incomplete pairs left out.
 - **Ratings as ranks:** **Paired tests**, check **Variables** `rating_before`
@@ -710,9 +710,9 @@ by side only.
    on the same scale, such as `trust_acme`, `trust_globex`, `trust_initech`
    (1 = No trust … 5 = Full).
 2. Leave **Neutral answer** `split` ("half on either side"), or choose
-   `side` ("in a panel at the right") to keep the middle answer apart. **Sort items**
-   `top2` puts the item with the largest top-2 share first; `listed` keeps
-   the order of **Items**.
+   `side` ("in a panel at the right") to keep the middle answer apart.
+   **Sort items** `top2` puts the item with the largest top-2 share first;
+   `listed` keeps the order of **Items**.
 3. **Run to here**. Each item is a bar centered on the neutral answer, with
    its bottom-2 and top-2 shares at the ends. The title is what the labels
    share ("Trust"), each bar the rest with its base ("Acme (n = 485)"), and
@@ -783,10 +783,11 @@ Satisfaction month by month since launch, a line per segment.
 
 1. After your cleaning steps (and **Apply weight**), add **Trend**
    (Visualize).
-2. **Time**: `created_at` ("Response date (created_at)" under it), at the
-   end of the list under **Beside the answers** — in a long list, typing
-   "created" in its filter box finds it (or your wave variable, for a wave-by-wave tracker). **Period**
-   `month` (`week` for an ISO week, Monday to Sunday).
+2. **Time**: `created_at` ("Response date (created_at)"), or your wave
+   variable for a wave-by-wave tracker. `created_at` is at the end of the
+   list, under **Beside the answers**; in a long list, type "created" in its
+   filter box to find it. **Period** `month` (`week` for an ISO week, Monday
+   to Sunday).
 3. **Measure** `percent`, **Measure variable** `satisfaction`, **Answer
    codes** `4` and `5` checked — a top-2 box. (`mean` tracks the average;
    `count` the respondents.)
@@ -817,8 +818,9 @@ Draw a report's charts in your brand's colors and typeface.
    scale, light to dark), the two **Diverging** ends (a Likert chart's
    disagree and agree sides), **Chart text** and **Chart typeface**
    (`Inter, sans-serif`) as you like.
-3. On each chart node, set **Palette** to `theme — the report's chart colors
-   (Save report's Look)` (a **Heatmap**'s **Color map** to `theme`).
+3. On each chart node, set **Palette** to `theme` ("the report's chart
+   colors (Save report's Look)"), and a **Heatmap**'s **Color map** to
+   `theme`.
 4. **Preview report**. The charts are drawn in your colors, in the `.md`'s
    figures and the `.html` alike, and their node previews and Live tiles
    follow.
@@ -874,9 +876,8 @@ Which attribute ratings matter most for overall satisfaction?
    attribute ratings (`rate_price`, `rate_service`, `rate_range`,
    `rate_staff`).
 2. Leave **Importance** at `relative_weights` ("Johnson's relative
-   weights"), or choose `shapley` ("Shapley value (LMG)") (at most 15
-   drivers); the two
-   agree closely.
+   weights"), or choose `shapley` ("Shapley value (LMG)"), which takes at
+   most 15 drivers; the two agree closely.
 3. **Run to here**. The table ranks the drivers by **% of R²** — together the
    100 % of what the model explains — beside each one's correlation (**r**),
    standardized **Beta** with its p, and **VIF**; the footer gives R²,
