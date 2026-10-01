@@ -133,6 +133,9 @@ and edit locks, API keys.
 | Run history shown | the latest 50 runs |
 | Output download links | valid 5 minutes |
 | Flow and connector names | lower-case letters, digits, `_`; start with a letter; up to 63 characters; not `survey` |
+| A node's output **File name** | letters a–z, digits, `-`, `_` and `.`, with `/` between folders; up to 100 characters; always in `outputs/` |
+| Data file reading | the formats `.csv`, `.tsv`, `.txt`, `.xlsx`, `.xlsm`, `.xls`, `.sav`, `.dta`, `.parquet`; a file's columns are worked out from its first 50,000 rows; a reading that has not answered in 5 minutes is dropped, and read again when a Data file node asks for it |
+| **Write table** column names | up to 63 bytes each (a Cyrillic letter takes two) |
 | Report custom CSS | anything except the sequence `</` |
 
 ## Statistics in flows
@@ -198,7 +201,7 @@ answers** node. → [[Coding Open Answers|Studio-Open-Answer-Coding]]
 |---|---|
 | Saves | kept for the life of the project; History lists the latest 100 |
 | Comments | up to 4,000 characters; the oldest 500 of a project are loaded |
-| File upload | up to 50 MB per file; name up to 128 characters |
+| File upload | up to 50 MB per file, refused in the Upload dialog before it is sent; the stored name up to 128 characters, its extension kept; a workbook over 20 MB gets a warning that it reads slowly |
 | File download links | valid 5 minutes |
 | Connector rows | 100,000 per run (Google Sheets 50,000; Excel 365 10,000); a larger table fails the whole run |
 | Schedules | 5-field cron, UTC, checked every minute |
