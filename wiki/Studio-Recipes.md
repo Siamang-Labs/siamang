@@ -1,7 +1,10 @@
 # Recipes
 
 Step-by-step solutions to the tasks people ask about most. Each recipe is the
-short path; the linked pages have every option and caveat.
+short path; the linked pages have every option and caveat. A flow node's
+choice is written as its code, with the name its list in the inspector shows
+under it in parentheses: **Design** `independent` ("two groups") — the field
+shows `independent`.
 
 **Contents**
 
@@ -515,11 +518,11 @@ questions by age group, gender and area.
 One pair — in a flow, after your cleaning steps:
 
 1. Add **Correlation** (Analyze): **X** `age`, **Y** `spend_month`,
-   **Method** `pearson — Pearson r`.
+   **Method** `pearson` ("Pearson r").
 2. **Run to here**. The statistics give `r`, `p_value`, `n` and the 95 %
    interval `lower` – `upper`.
 
-For two rating scales, choose **Method** `kendall — Kendall tau-b` (or leave
+For two rating scales, choose **Method** `kendall` ("Kendall tau-b") (or leave
 the default, Spearman): rank correlations suit answers on a 1–5 scale, and
 tau-b allows for their many ties. Pearson and Kendall leave the codebook's
 missing codes out and say how many (`missing_codes`); the default Spearman
@@ -543,12 +546,12 @@ effective base; Spearman and Kendall stay unweighted and say so.
 
 ### Compare two groups with Welch's t-test
 
-1. Add **t-test** (Analyze). **Design** is `independent — two groups`.
+1. Add **t-test** (Analyze). **Design** is `independent` ("two groups").
 2. **Variable** `satisfaction_score`, **Groups** `gender`.
 3. When **Groups** has more than two answers, pick the two in **Group A**
    (`1 — Male`) and **Group B** (`2 — Female`); with exactly two, leave both
    empty.
-4. Leave **Variances** at `welch — Welch's t` — it does not assume the two
+4. Leave **Variances** at `welch` ("Welch's t") — it does not assume the two
    groups vary equally. `student` pools the variances.
 5. **Run to here**. The table gives each group's N, mean, SD and SE; the
    footer gives t, df, p, the **Mean difference** (Male − Female) with its
@@ -571,7 +574,7 @@ in the app by `message_arm`, the A/B message each respondent was shown.
 ### An ANOVA with post-hoc comparisons
 
 1. Add **Group means**: **Variable** `spend_month`, **By** `region`.
-2. **Test** `anova — one-way ANOVA`, **Post-hoc** `tukey — Tukey HSD`.
+2. **Test** `anova` ("one-way ANOVA"), **Post-hoc** `tukey` ("Tukey HSD").
 3. **Run to here**. The footer gives F, df, p and η², and "Post-hoc = Tukey
    HSD: 1 of 3 pairs differ at p < 0.05"; the table **Post-hoc: Tukey HSD**
    under the means lists every pair of regions with the difference, its 95 %
@@ -681,7 +684,7 @@ stacked to 100 %.
 1. After your cleaning steps (and **Apply weight**, if the data is weighted),
    add **Bar chart** (Visualize): **Variable** `satisfaction`, **Split by**
    `region`.
-2. **Layout** `stacked_100 — stacked to 100 %`. (`grouped` puts each
+2. **Layout** `stacked_100` ("stacked to 100 %"). (`grouped` puts each
    region's bars side by side; with **Show** `percent` they are % of the
    region too.)
 3. Optional: **Sort** `value` puts the regions with the largest share of the
@@ -706,8 +709,8 @@ by side only.
 1. Add **Likert chart** (Visualize) and check the **Items**: statements rated
    on the same scale, such as `trust_acme`, `trust_globex`, `trust_initech`
    (1 = No trust … 5 = Full).
-2. Leave **Neutral answer** `split — half on either side`, or choose `side —
-   in a panel at the right` to keep the middle answer apart. **Sort items**
+2. Leave **Neutral answer** `split` ("half on either side"), or choose
+   `side` ("in a panel at the right") to keep the middle answer apart. **Sort items**
    `top2` puts the item with the largest top-2 share first; `listed` keeps
    the order of **Items**.
 3. **Run to here**. Each item is a bar centered on the neutral answer, with
@@ -755,7 +758,7 @@ its banner gives the columns.
 How a number spreads — ages, amounts, minutes.
 
 1. Add **Bar chart**: **Variable** `age` (an interval or ratio variable),
-   **Layout** `histogram — histogram of a number, in Bins`.
+   **Layout** `histogram` ("histogram of a number, in Bins").
 2. **Bins**: leave `auto` (Freedman and Diaconis's width; whole-number
    answers get a whole width), type a number of bins (`10`), or type the
    edges you report in (`18, 25, 35, 50, 65, 100`).
@@ -869,8 +872,9 @@ Which attribute ratings matter most for overall satisfaction?
 1. Add **Key drivers** (Analyze): **Outcome** `overall_sat`, **Drivers** the
    attribute ratings (`rate_price`, `rate_service`, `rate_range`,
    `rate_staff`).
-2. Leave **Importance** at `relative_weights — Johnson's relative weights`,
-   or choose `shapley — Shapley value (LMG)` (at most 15 drivers); the two
+2. Leave **Importance** at `relative_weights` ("Johnson's relative
+   weights"), or choose `shapley` ("Shapley value (LMG)") (at most 15
+   drivers); the two
    agree closely.
 3. **Run to here**. The table ranks the drivers by **% of R²** — together the
    100 % of what the model explains — beside each one's correlation (**r**),
@@ -893,7 +897,7 @@ or **Derive**. Respondents missing the outcome or any driver are left out
 
 Which regions (or segments) go with which brands?
 
-1. Add **Perceptual map** (Analyze): **Table** `crosstab — Rows by Columns`,
+1. Add **Perceptual map** (Analyze): **Table** `crosstab` ("Rows by Columns"),
    **Rows** `region`, **Columns** `brand_used`.
 2. **Run to here**. The first table gives each dimension's share of the
    inertia; the **rows** and **columns** tables give each point's
@@ -925,7 +929,7 @@ eight yes/no feelings of a wide multiple choice as **Attributes**.
    how likely the respondent would be to buy at their bargain price and at
    their getting-expensive price (1–5, 5 = definitely).
 2. In a flow, add **Price sensitivity** (Analyze), **Method**
-   `van_westendorp — four price questions`, and choose **Too cheap**,
+   `van_westendorp` ("four price questions"), and choose **Too cheap**,
    **Cheap (a bargain)**, **Expensive (getting expensive)** and **Too
    expensive**. For NMS, choose the two likelihood questions as well; leave
    **Likelihood as probability (NMS)** empty for 5 → 0.7, 4 → 0.5, 3 → 0.3,
@@ -957,7 +961,7 @@ For an outcome of ordered answers — very dissatisfied to very satisfied:
 
 1. Add **Regression** (Analyze): **Outcome** `satisfaction` (an ordinal
    variable), **Predictors** `age`, `region`, `trust_acme`.
-2. **Model** `ordinal — ordinal logit, ordered answers`.
+2. **Model** `ordinal` ("ordinal logit, ordered answers").
 3. **Run to here**. The table lists each coefficient with its standard
    error, z, p, odds ratio and 95 % interval, then the thresholds between
    neighboring answers (`Very dissatisfied / Dissatisfied`); the statistics

@@ -91,13 +91,14 @@ when you switch projects, and while a colleague's edits are shown to you.
 | `Ctrl/Cmd + Z` | undo | |
 | `Shift + Ctrl/Cmd + Z` | redo | `Ctrl/Cmd + Y` does not redo on flows |
 | double-click a node | select it and **Run to here** | Canvas view |
-| `F` | turn [focus mode](Studio-Flows#focus-mode) on or off: the canvas takes the whole window, the palette and the inspector stay | Canvas view only, nothing in List or Report; the key marked F in any keyboard layout; not with `Ctrl`, `Cmd` or `Alt` |
-| `Esc` | clear the selected node; with none selected, leave focus mode | Canvas view only; an open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first; a node or wire that has the keyboard focus while none is selected keeps it (press `F` instead); in full screen the first `Esc` leaves full screen |
+| `F` | turn [focus mode](Studio-Flows#focus-mode) on or off: the canvas takes the whole window, the palette and the inspector stay | Canvas view only, nothing in List or Report; the key marked F in any keyboard layout; not with `Ctrl`, `Cmd` or `Alt`; not on a list field of the inspector, where a letter picks a value |
+| `Esc` | clear the selected node; with none selected, leave focus mode | Canvas view only; an open dialog, a menu, a list open in the inspector, an **ⓘ** tip or the text field that has the focus uses it first; a node or wire that has the keyboard focus while none is selected keeps it (press `F` instead); in full screen the first `Esc` leaves full screen |
 
 `Delete`, `Backspace`, `Ctrl/Cmd + D` and undo/redo are ignored while the
-cursor is in a field, in the **Report** view, and while a colleague holds the
-edit lock. `F` is ignored while a text field or a dropdown has the focus and
-while a dialog or a menu is open (a focused checkbox or switch does not stop
+cursor is in a field or on a list field of the inspector, open or closed, in
+the **Report** view, and while a colleague holds the edit lock. `F` is
+ignored while a text field or a list field has the focus and while a list, a
+dialog or a menu is open (a focused checkbox or switch does not stop
 it, nor does a **Data file** node's **Reading options** left open in the
 inspector), and `Ctrl/Cmd + F` stays the browser's Find. With **More** open,
 `Esc` closes it and the next `Esc` is the canvas's; `Tab` out of an open
@@ -107,6 +108,29 @@ survives a Save and is cleared when you leave the flow.
 With the keyboard, `Tab` reaches the canvas's buttons — **Zoom in**, **Zoom
 out**, **Fit view**, **Focus mode** and, in focus mode, **Full screen** —
 right after the palette, before the nodes and wires.
+
+## Flow inspector lists
+
+A parameter with a fixed set of values is a list in the flow inspector (see
+[Lists in the inspector](Studio-Flows#lists-in-the-inspector)).
+
+| Keys | Where | Action |
+|---|---|---|
+| `Enter`, `Space`, `↓` or `↑` | on the field | open the list on the chosen value (`Home` / `End`: on the first / last) |
+| a letter | on the field | open the list on the first value that starts with it; a list of more than ten opens with the letter in its filter box. `F` does not toggle focus mode here |
+| `↑` / `↓` | in the list | move one row; past the last, round to the first |
+| `Home` / `End` | in the list | the first / the last row (in a filter box, only while it is empty) |
+| `Page Up` / `Page Down` | in the list | about a screenful up / down, stopping at the first and the last row |
+| letters | in a list of ten or fewer | jump to the first value that starts with them |
+| letters | in a filter box | keep the entries that contain every word typed |
+| `Enter` or `Space` | in the list | choose the lit row (`Space` types a space in a filter box) |
+| `Esc` | in the list | close the list, back on the field; in a filter box with text, the first `Esc` empties the box and the second closes the list. Focus mode and the node's selection stay |
+| `Tab` / `Shift + Tab` | in the list | close the list and move on to the next field / stay on the field |
+| `Esc` | on the closed field | clear the selected node, as on any button of the inspector |
+
+`Delete`, `Backspace`, `Ctrl/Cmd + D` and `Ctrl/Cmd + Z` do nothing to the
+node from a list field, open or closed; `Ctrl/Cmd + S` and `Ctrl/Cmd +
+Enter` still save and preview.
 
 ## Flows List view and the node picker
 

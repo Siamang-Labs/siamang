@@ -396,7 +396,7 @@ writes a p-value in node previews and Live tiles; see
 
 The **Chart colors** disclosure puts your colors — a brand palette, a house
 typeface — into the report's charts. It colors the charts whose **Palette**
-is `theme — the report's chart colors (Save report's Look)` (a **Heatmap**'s
+is `theme` ("the report's chart colors (Save report's Look)") (a **Heatmap**'s
 **Color map** `theme`); a chart that names a palette of its own keeps it. The
 section says: "For the charts whose Palette is theme (a Heatmap's Color map
 theme), in this report and in their previews. A chart that names a palette of

@@ -43,7 +43,7 @@ error until you fill it in. The inspector marks every other parameter
 |---|---|
 | variable | a dropdown of the variables available at this node (`name — label`), filtered to the scales the node accepts. A stored variable of another scale stays shown as what the node reads, with its scale: "q_md_score_1 (interval — Rows takes nominal / ordinal)" — an error of the check for a codebook variable, a warning for one a node of the flow makes. A made variable has the scale the nearest node upstream that makes it gives it (a Recode of a derived variable is ratio, like its source), and the dropdown offers it with that scale; a name the codebook has keeps the codebook's. An arm an **Assign to a condition** script writes is offered as a nominal variable ("assigned by a script") when the codebook does not list it. A field that can read columns the codebook does not describe lists them last, under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the survey's responses carry — `created_at — Response date (created_at)`, `updated_at — Last change (updated_at)`, `started_at — Start time (started_at)`. A field leaves out what its node refuses as soon as it is picked: a **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not offer multiple-choice questions, rankings or open answers, and a **Trend**'s **Measure variable** for a mean no nominal or multiple-choice question; a stored one stays shown with the reason (`aware (several answers: not one wave or date)`) |
 | variables (several) | a checklist of the same variables, filtered the same way; a checked variable the list would not offer stays in it, with its scale or "(not in codebook)", and can be unchecked |
-| choice | a dropdown of the allowed values (**— default —** leaves the default). Where the code is a statistician's shorthand, the option shows its name beside it — `welch_anova — Welch's ANOVA`, `fdr_bh — Benjamini-Hochberg`; the stored value and the generated script keep the code |
+| choice | a list of the allowed values, as wide as the field. The field shows the code chosen; in the list, where the code is a statistician's shorthand, its name is on the line under it — "Welch's ANOVA" under `welch_anova`, "Benjamini-Hochberg" under `fdr_bh`. An optional field's list starts with **— default —**, which leaves the default, with "the node's default: …" under it. The stored value and the generated script keep the code. A list of more than ten opens with a filter box. How the lists work: [Lists in the inspector](Studio-Flows#lists-in-the-inspector) |
 | answer code | an answer of the variable another parameter names, picked from that variable's value labels (`1 — Male`): a dropdown (**— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be checked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads "5 (not an answer of gender)" in a dropdown and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1 — Male`; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1" (not an answer of gender)`. Where the field reads a list of variables, the answers are those of the first one checked. When that variable has no value labels, the field is a JSON box instead |
 | whole number, number | a number box; the placeholder shows the default |
 | checkbox | checked = on |
@@ -54,6 +54,11 @@ error until you fill it in. The inspector marks every other parameter
 | file name | a file the node writes: a field labeled **File name**, the name typed between a fixed `outputs/` and the file's ending (`outputs/` `client_q3` `.xlsx`); a **Format** list under it where the node writes several. A `/` in the name makes folders. The lines under it say where a run leaves the file and what is wrong with a name (see [Where files go](#where-files-go)) |
 | codeframe | a dropdown of the project's codeframes by path (`analysis/<name>.codeframe.json`; **— choose a codeframe —** when none is chosen), with **Edit codeframe…**, or **New codeframe…** when none is chosen (see [Code open answers](#code-open-answers)) |
 | upload | a file the node reads: a list, by name, of the uploads under **Files** the field can read, with the chosen file's size and date under it and **Upload…** and **Type a name…** (**Type another name…** once a file is chosen) under that (see [Where files go](#where-files-go)) |
+
+**Choices on this page** are written as their code, followed by the name the
+list shows on the line under it: `welch_anova` ("Welch's ANOVA"). Look for
+the code in the list, with the name under it; the field shows the code
+alone.
 
 **The variables available at a node** are the questionnaire's codebook
 variables, then those that nodes upstream of it make — a **Recode**,
@@ -244,10 +249,11 @@ chosen kind of file show: for a text file **Header rows**, **Skip rows**,
 **Delimiter**, **Encoding** and **Decimal mark**; for a workbook **Header
 rows**, **Skip rows**, **Sheet** and **Decimal mark**; none for SPSS, Stata
 and Parquet, which say all of it themselves (an option set for another kind
-of file still shows, so it can be cleared). An option left on auto says what
-was found: "auto — found ;" in **Delimiter**, "found: Sheet1" in an empty
-**Sheet**. Each choice reads as a value and its meaning, such as `cp1251 —
-Windows-1251, Cyrillic (Russian Excel's CSV)`.
+of file still shows, so it can be cleared). An option left on auto says in
+its field what was found: "auto — found ;" in **Delimiter**, "found: Sheet1"
+in an empty **Sheet**. In each option's list a value has its meaning on the
+line under it, such as "Windows-1251, Cyrillic (Russian Excel's CSV)" under
+`cp1251`; these lists have no **— default —**, since `auto` is the default.
 
 **Missing codes per file.** When **Missing codes** names columns the file
 does not have — codes left from a file the node read before, which a run
@@ -1329,8 +1335,8 @@ a weight is applied."
 | **Y** | variable | required | ordinal / interval / ratio variables | Second variable. |
 | **Method** | choice | `spearman` | `pearson`, `spearman`, `kendall` | Spearman and Kendall (tau-b) correlate ranks and suit rating scales; Pearson measures a straight-line relationship and gives a 95 % CI. Pearson is weighted when a weight is applied, the rank methods are not and say so. Pearson and Kendall leave the codebook's missing codes (a 9 = Refused) out and say how many. Spearman, the default, counts them as answers — as this node always has, so flows made before keep their numbers — and says so in missing_codes_counted; run Missing values first to leave them out. |
 
-The dropdown reads `pearson — Pearson r`, `spearman — Spearman rho`,
-`kendall — Kendall tau-b`. What each gives:
+The list names each code under it: `pearson` ("Pearson r"), `spearman`
+("Spearman rho"), `kendall` ("Kendall tau-b"). What each gives:
 
 | Method | Statistics |
 |---|---|
@@ -1417,8 +1423,8 @@ tables to a **Result chart** to draw the map.
 | **Counts as yes (attributes)** | answer code | — | — | The code, or a list of codes, that counts as checking an attribute. Empty works for 0/1 variables. Shown only with **Table** `attributes`. |
 | **Dimensions in the tables** | whole number | `2` | 1–10 | How many dimensions the rows and columns tables give coordinates, contributions and cos² for; the map shows the first two, and the inertia table lists them all. |
 
-The **Table** dropdown reads `crosstab — Rows by Columns` and `attributes —
-Attributes checked for each answer of Rows`; the node's card reads `region ×
+The **Table** list has `crosstab` ("Rows by Columns") and `attributes`
+("Attributes checked for each answer of Rows"); the node's card reads `region ×
 satisfaction`, or `brand × modern, good_value, friendly` for attributes.
 
 - **Two layouts.** `crosstab` crosses two questions: **Rows** `region`,
@@ -1670,8 +1676,8 @@ shares add up to R² (100 %).
 | **Drivers** | variables (several) | required | — | Two or more numeric predictors — ratings of attributes, scores, 0/1 variables. A nominal variable with more than two answers has no amounts to weigh; make a 0/1 variable per answer with Explode multiple choice or Derive. |
 | **Importance** | choice | `relative_weights` | `relative_weights`, `shapley` | relative_weights is Johnson's method, which splits R² through the orthogonal variables closest to the drivers (as R's rwa). shapley averages each driver's gain in R² over every order in which the drivers could enter the model (LMG, as R's relaimpo) — exact, for at most 15 drivers. Both add up to R², shown as 100 %; they agree closely. |
 
-The **Importance** dropdown reads `relative_weights — Johnson's relative
-weights` and `shapley — Shapley value (LMG)`; the card reads `satisfaction ~
+The **Importance** list has `relative_weights` ("Johnson's relative
+weights") and `shapley` ("Shapley value (LMG)"); the card reads `satisfaction ~
 price, service, range, staff`.
 
 **The table** has one row per driver, the largest share first — **Rank**,
@@ -1750,10 +1756,10 @@ all.
 | **Score variable prefix** | text | `factor_` | — | The scores are named <prefix>1, <prefix>2, … — with Add factor scores on. The prefix itself is not a variable. Shown only with **Add factor scores** checked. |
 | **Seed (parallel analysis)** | whole number | `42` | — | Shown only with **Number of factors by** `parallel`. |
 
-The dropdowns read `minres — minimum residual`, `principal — principal
-axis`, `ml — maximum likelihood`; `varimax — orthogonal`, `promax —
-oblique`, `oblimin — oblique, quartimin`; `kaiser — eigenvalues above 1`,
-`parallel — parallel analysis`.
+The lists name each code under it: `minres` ("minimum residual"),
+`principal` ("principal axis"), `ml` ("maximum likelihood"); `varimax`
+("orthogonal"), `promax` ("oblique"), `oblimin` ("oblique, quartimin");
+`kaiser` ("eigenvalues above 1"), `parallel` ("parallel analysis").
 
 **The outputs.** The preview shows the three tables one under another, each
 under its output's name.
@@ -1875,10 +1881,11 @@ every pair of groups."
 | **Post-hoc** | choice | `none` | `none`, `tukey`, `games_howell`, `dunn` | Every pair of groups compared after the test — Tukey's HSD after ANOVA, Games-Howell after Welch's ANOVA, Dunn after Kruskal-Wallis. The pairs appear under the table. |
 | **Dunn p adjustment** | choice | `holm` | `holm`, `bonferroni` | How Dunn's p-values allow for the number of pairs. Tukey and Games-Howell allow for it themselves. Shown only with **Post-hoc** `dunn` (and a **Test** other than `auto`). |
 
-The **Test** dropdown reads `student — Student's t`, `welch — Welch's t`,
-`anova — one-way ANOVA`, `welch_anova — Welch's ANOVA`, `mannwhitney —
-Mann-Whitney U`, `kruskal — Kruskal-Wallis H`; **Post-hoc** reads `tukey —
-Tukey HSD`, `games_howell — Games-Howell`, `dunn — Dunn's test`.
+The **Test** list names each code under it: `student` ("Student's t"),
+`welch` ("Welch's t"), `anova` ("one-way ANOVA"), `welch_anova` ("Welch's
+ANOVA"), `mannwhitney` ("Mann-Whitney U"), `kruskal` ("Kruskal-Wallis H");
+**Post-hoc** has `tukey` ("Tukey HSD"), `games_howell` ("Games-Howell"),
+`dunn` ("Dunn's test").
 
 **`auto`** (the default, and what every flow saved before **Test** existed
 runs) picks by the variable's scale and the number of groups: Student's
@@ -1991,9 +1998,10 @@ rated by everyone, three brands each respondent has heard of or not.
 | **p-value** | choice | `auto` | `auto`, `exact`, `approximate` | Auto is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar (and the pairs of Cochran's Q): fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise. |
 | **Pairwise comparisons (Friedman, Cochran's Q)** | choice | `holm` | `holm`, `bonferroni`, `none` | A Wilcoxon signed-rank test (after Friedman) or a McNemar test (after Cochran's Q) for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them. Shown with **Test** `friedman`, `cochran` or `auto` (auto is Friedman for three or more). |
 
-The **Test** dropdown reads `wilcoxon — Wilcoxon signed-rank`, `mcnemar —
-McNemar, yes/no`, `friedman — Friedman, three or more`, `cochran — Cochran's
-Q, three or more yes/no`. `auto` never picks Cochran's Q: choose it by hand.
+The **Test** list names each code under it: `wilcoxon` ("Wilcoxon
+signed-rank"), `mcnemar` ("McNemar, yes/no"), `friedman` ("Friedman, three
+or more"), `cochran` ("Cochran's Q, three or more yes/no"). `auto` never
+picks Cochran's Q: choose it by hand.
 
 **Counts as yes (McNemar, Cochran's Q)** is a checklist of the first
 variable's answers (`4 High`, `5 Full`) — check 4 and 5 for a top-two box.
@@ -2117,8 +2125,8 @@ purchase intent at set prices."
 | **Prices** | JSON | — | — | The price of each question, as a list in the same order, e.g. `[4.99, 6.99, 8.99]`. |
 | **Counts as would buy** | answer code | — | — | The answer code, or a list of codes, that means would buy — a top-two box such as [4, 5] on a likelihood scale. Empty works for 0/1 questions. |
 
-**The fields follow Method.** The dropdown reads `van_westendorp — four price
-questions` and `gabor_granger — buy or not at set prices`:
+**The fields follow Method.** Its list has `van_westendorp` ("four price
+questions") and `gabor_granger` ("buy or not at set prices"):
 
 | Method | Fields shown | Marked required |
 |---|---|---|
@@ -2268,8 +2276,9 @@ labels.
 | **Predictors** | variables (several) | required | — | Nominal predictors are dummy-coded against their first category. |
 | **Model** | choice | `auto` | `auto`, `ols`, `logit`, `ordinal` | auto fits a logit when Outcome has two values and a linear model otherwise. ordinal is the proportional-odds (cumulative logit) model of three or more ordered answers — thresholds between the answers, one coefficient per predictor with its odds ratio and 95 % Wald interval, McFadden's pseudo-R²; a positive coefficient makes the higher answers more likely, as R's MASS::polr. It leaves the codebook's missing codes out and says how many. All three use the weight when one is applied. |
 
-The **Model** dropdown reads `ols — linear`, `logit — logistic, two answers`,
-`ordinal — ordinal logit, ordered answers`. `auto` never picks the ordinal
+The **Model** list names each code under it: `ols` ("linear"), `logit`
+("logistic, two answers"), `ordinal` ("ordinal logit, ordered answers").
+`auto` never picks the ordinal
 model, so a flow saved before it existed runs as it did.
 
 **The ordinal model** is for an outcome of ordered answers — very
@@ -2362,9 +2371,10 @@ Cohen's d."
 | **Test value** | number | `0` | — | One sample: the value the mean is tested against. |
 | **Confidence** | number | `0.95` | 0.5–0.999 | — |
 
-**The fields follow Design.** The dropdown reads `independent — two groups`,
-`paired — two variables, same people`, `one_sample — a mean against a
-value`, and the inspector shows only what that design reads:
+**The fields follow Design.** Its list names each code under it:
+`independent` ("two groups"), `paired` ("two variables, same people"),
+`one_sample` ("a mean against a value"); the inspector shows only what that
+design reads:
 
 | Design | Fields shown | Marked required |
 |---|---|---|
@@ -2449,8 +2459,9 @@ have reaches.
 | **Always include** | variables (several) | empty | — | Options that are in the portfolio whatever they add — shelf space already committed. |
 | **Portfolio** | variables (several) | empty | — | For Search = fixed: exactly these options — each one's reach, what only it reaches, and the reach and frequency of all of them together. Empty reads every option. |
 
-The **Search** dropdown reads `best — every combination`, `greedy — extend
-the winner`, `fixed — the Portfolio as it is`. The inspector shows
+The **Search** list names each code under it: `best` ("every
+combination"), `greedy` ("extend the winner"), `fixed` ("the Portfolio as it
+is"). The inspector shows
 **Largest portfolio** and **Always include** for `best` and `greedy`, and
 **Portfolio** for `fixed`; the node's card reads "up to 3, best", or for a
 fixed portfolio "fixed portfolio" and its options.
@@ -2535,7 +2546,8 @@ of items without a scale) fails its own node, with the reason, in a preview
 and in a run — not the **Save report** or the preview after it.
 
 **Palette `theme`.** Every chart's **Palette** (a **Heatmap**'s **Color map**)
-offers `theme — the report's chart colors (Save report's Look)`: the chart
+offers `theme` ("the report's chart colors (Save report's Look)" under it
+in the list): the chart
 takes its colors from the **Look** of the **Save report** it is saved in — the
 **Chart colors** you set there (see
 [Chart colors](Studio-Reports#chart-colors)), with its text color, grid lines
@@ -2608,12 +2620,13 @@ split by a second variable, grouped or stacked, like the chart of a crosstab
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes. |
 
-The dropdowns read `count — respondents`, `percent — % of those who
-answered`; `grouped — side by side`, `stacked — stacked, as Show says`,
-`stacked_100 — stacked to 100 %`, `histogram — histogram of a number, in
-Bins`, `donut — donut: the parts of a whole`; `code — the codebook's order`,
-`value — largest first`; `bonferroni — Bonferroni`; `theme — the report's
-chart colors (Save report's Look)`. **Bins** suggests `auto`, `10` and
+The lists name each code under it: `count` ("respondents"), `percent` ("%
+of those who answered"); `grouped` ("side by side"), `stacked` ("stacked, as
+Show says"), `stacked_100` ("stacked to 100 %"), `histogram` ("histogram of
+a number, in Bins"), `donut` ("donut: the parts of a whole"); `code` ("the
+codebook's order"), `value` ("largest first"); `bonferroni` ("Bonferroni");
+`theme` ("the report's chart colors (Save report's Look)"). **Bins** suggests
+`auto`, `10` and
 `0, 18, 25, 35, 50, 65`. The card reads `satisfaction by region` with
 **Split by** set, and the variable alone for a donut.
 
@@ -2853,8 +2866,9 @@ or Kendall), or their means by group."
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Color map** | text | `YlOrRd` | a matplotlib colormap, or `theme` | A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colors of the report the chart is saved in — its Save report Look's sequential color for the means, its diverging pair for a correlation matrix, with its text color, grid and font. |
 
-The **Method** dropdown reads `pearson — Pearson r`, `spearman — Spearman
-rho, answers as they are`, `kendall — Kendall tau-b`. `spearman` draws the
+The **Method** list names each code under it: `pearson` ("Pearson r"),
+`spearman` ("Spearman rho, answers as they are"), `kendall` ("Kendall
+tau-b"). `spearman` draws the
 chart the node always has; a flow saved before **Method** existed keeps it.
 **Color map** suggests `theme`, `YlOrRd`, `Blues`, `viridis` and `RdBu_r` as
 you type.
@@ -2921,8 +2935,9 @@ battery's lean reads at a glance.
 | **Figure height (in)** | number | `6` | 2–30 | A battery whose labels need more room makes the figure taller. |
 | **Palette** | choice | `RdBu` | `RdBu`, `BrBG`, `PuOr`, `RdYlBu`, `PiYG`, `coolwarm`, `theme` | A diverging palette, the low answers in its first color; the neutral answer is gray. Theme takes the colors of the report the chart is saved in — the diverging pair of its Save report's Look (low end first), with its text color, grid and font. |
 
-The dropdowns read `split — half on either side`, `side — in a panel at the
-right`, `top2 — largest top-2 share first`, `listed — in the order of Items`.
+The lists name each code under it: `split` ("half on either side"), `side`
+("in a panel at the right"), `top2` ("largest top-2 share first"), `listed`
+("in the order of Items").
 
 ```
                                   Trust
@@ -3002,19 +3017,23 @@ distribution). The table alone says how the weight was used.
 
 **The Kind field** says under it what the connected result suits and what
 `auto` draws — "Group means (means.table) suits means — means with 95 %
-intervals; means_sd — means ± 1 SD. Auto draws means." — and marks every
-other kind "(not for this result)". With nothing connected it reads "Connect
-an analysis's table (or Proportion CI's stat) to see the charts it suits."
-The dropdown names each kind: `auto — the chart the result suits`, `means —
-means with 95 % intervals`, `means_sd — means ± 1 SD`, `interval — a share
-and its interval`, `stacked — NPS: detractors, passives, promoters`, `reach —
-TURF reach curve`, `items — TURF: each option's reach`, `utilities — MaxDiff
-utilities`, `scores — MaxDiff scores`, `shares — shares`, `importance —
-importance: Conjoint, Key drivers`, `partworths — Conjoint part-worths`,
-`scree — scree plot`, `loadings — loadings heatmap`, `profile — cluster
-profiles`, `coefficients — coefficients or odds ratios`, `heatmap —
-correlation heatmap`, `sentiment — sentiment split`, `map — perceptual map`,
-`curves — price curves`.
+intervals; means_sd — means ± 1 SD. Auto draws means." — and in its list
+every other kind has "(not for this result)" after its name, under its code.
+With nothing connected it reads "Connect an analysis's table (or Proportion
+CI's stat) to see the charts it suits." A screen reader hears that line with
+the field. The list names each kind under its code: `auto` ("the chart the
+result suits"), `means` ("means with 95 % intervals"), `means_sd` ("means ±
+1 SD"), `interval` ("a share and its interval"), `stacked` ("NPS:
+detractors, passives, promoters"), `reach` ("TURF reach curve"), `items`
+("TURF: each option's reach"), `utilities` ("MaxDiff utilities"), `scores`
+("MaxDiff scores"), `shares` ("shares"), `importance` ("importance: Conjoint,
+Key drivers"), `partworths` ("Conjoint part-worths"), `scree` ("scree
+plot"), `loadings` ("loadings heatmap"), `profile` ("cluster profiles"),
+`coefficients` ("coefficients or odds ratios"), `heatmap` ("correlation
+heatmap"), `sentiment` ("sentiment split"), `map` ("perceptual map"),
+`curves` ("price curves"). With **— default —** first, that is more than ten
+entries, so the list opens with a filter box ("Filter chart kinds…"): type
+"maxdiff" to keep `utilities` and `scores`.
 
 **What it draws** — the first kind of each row is what `auto` draws:
 
@@ -3125,9 +3144,10 @@ wave, completes per week.
 | **Figure height (in)** | number | `6` | 2–30 | — |
 | **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text color, grid and font. The others are seaborn's palettes. |
 
-The dropdowns read `percent — % choosing the Answer codes`, `mean — mean of
-the Measure variable`, `count — respondents (weighted: sum of weights)` and
-`week — ISO week, Monday to Sunday`. **Measure variable** is shown with
+The lists name each code under it: `percent` ("% choosing the Answer
+codes"), `mean` ("mean of the Measure variable"), `count` ("respondents
+(weighted: sum of weights)"), and **Period**'s `week` ("ISO week, Monday to
+Sunday"). **Measure variable** is shown with
 `percent` and `mean`, **Answer codes** with `percent`, **Confidence band**
 and **Minimum base** with `percent` and `mean` — a count has no band and is
 its own base. The card reads `satisfaction = 4, 5 over created_at`, `mean
@@ -3535,8 +3555,9 @@ the segments that matter, in one file.
 | **Means** | checkbox | on | — | The mean and standard deviation of an interval or ratio question per column (not tested). |
 | **File name** | file name | `outputs/tabbook.xlsx` | — | The workbook's name before a fixed `.xlsx`, in `outputs/`. A node added from the palette gets `<flow>_tabbook` (`outputs/<flow>_tabbook.xlsx`), numbered when the flow already has one. |
 
-The **Percentages** dropdown reads `column — of each column's respondents`,
-`row — of each answer's respondents`, `none — counts only`. **Level** and
+The **Percentages** list names each code under it: `column` ("of each
+column's respondents"), `row` ("of each answer's respondents"), `none`
+("counts only"). **Level** and
 **Multiple comparisons** are shown only while **Significance letters** is
 checked. The card reads the banner and the file: `gender, region →
 outputs/tabbook.xlsx`.
