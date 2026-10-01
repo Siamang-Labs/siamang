@@ -221,11 +221,11 @@ survey never asked for.
   object storage like any upload; a flow reads it only when it names it. See
   [What Studio reads from a data file](Studio-Files#what-studio-reads-from-a-data-file).
 - **Personal-data hints are hints.** Files and the **Data file** node point
-  out the columns whose names or values look like an e-mail or IP address, a
+  out the columns whose names or values look like an email or IP address, a
   location, a name, a phone number, an address or a participant ID — a
   Qualtrics export's `IPAddress`, `LocationLatitude` and `RecipientEmail`, a
   `PROLIFIC_PID`. Nothing is dropped for you, and the hints go by names (in
-  English and Russian) and by the look of e-mail and IP addresses: a column
+  English and Russian) and by the look of email and IP addresses: a column
   of names called `q12`, or an open answer that holds a phone number, is not
   pointed out. Check the columns yourself.
 - **Drop such columns early.** **Add a Select columns node without them**, in

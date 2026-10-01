@@ -90,14 +90,15 @@ when you switch projects, and while a colleague's edits are shown to you.
 | `Shift + Ctrl/Cmd + Z` | redo | `Ctrl/Cmd + Y` does not redo on flows |
 | double-click a node | select it and **Run to here** | Canvas view |
 | `F` | turn [focus mode](Studio-Flows#focus-mode) on or off: the canvas takes the whole window, the palette and the inspector stay | Canvas view only, nothing in List or Report; the key marked F in any keyboard layout; not with `Ctrl`, `Cmd` or `Alt` |
-| `Esc` | clear the selected node; with none selected, leave focus mode | Canvas view only; an open dialog, a menu, an **ⓘ** tip or the text field you type in uses it first; in full screen the first `Esc` leaves full screen |
+| `Esc` | clear the selected node; with none selected, leave focus mode | Canvas view only; an open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first; a node or wire that has the keyboard focus while none is selected keeps it (press `F` instead); nothing while a Data file's **Reading options** is open; in full screen the first `Esc` leaves full screen |
 
 `Delete`, `Backspace`, `Ctrl/Cmd + D` and undo/redo are ignored while the
 cursor is in a field, in the **Report** view, and while a colleague holds the
-edit lock. `F` is ignored while you type in a text field and while a dialog
-or a menu is open (a focused checkbox or switch does not stop it), and
-`Ctrl/Cmd + F` stays the browser's Find. On a flow, undo history survives a
-Save and is cleared when you leave the flow.
+edit lock. `F` is ignored while a text field or a dropdown has the focus,
+while a dialog or a menu is open, and while a **Data file** node's **Reading
+options** is open in the inspector (a focused checkbox or switch does not stop
+it), and `Ctrl/Cmd + F` stays the browser's Find. On a flow, undo history
+survives a Save and is cleared when you leave the flow.
 
 With the keyboard, `Tab` reaches the canvas's buttons — **Zoom in**, **Zoom
 out**, **Fit view**, **Focus mode** and, in focus mode, **Full screen** —

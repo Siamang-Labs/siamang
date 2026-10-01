@@ -407,15 +407,21 @@ messages, comments and previews stay visible.
   corner (tooltip "Focus mode (F)") — or press `F` on the **Canvas** view.
   While the mode is on, the button is highlighted, its arrows point inward,
   and its tooltip reads "Exit focus mode (F or Esc)". `F` is the key marked F
-  in any keyboard layout, a Russian one included. It does nothing while you
-  type in a text field, while a dialog or a menu is open, or with `Ctrl`,
+  in any keyboard layout, a Russian one included. It does nothing while a
+  text field or a dropdown has the keyboard focus (a dropdown takes letters
+  to pick an option), while a dialog or a menu is open, or with `Ctrl`,
   `Cmd` or `Alt` held — `Ctrl/Cmd + F` stays the browser's Find. A focused
   checkbox or switch (such as **Live: recompute on new responses**) does not
-  stop it. A screen reader hears "Focus mode on" or "Focus mode off".
+  stop it. While a **Data file** node's **Reading options** is open in the
+  inspector, neither `F` nor `Esc` does anything: click **Reading options**
+  to close it, or use the button. A screen reader hears "Focus mode on" or
+  "Focus mode off".
 - **`Esc`** turns it off too, unless something uses `Esc` first: an open
-  dialog, a menu such as **More ▾**, an **ⓘ** tip, or the text field you are
-  typing in. On the canvas, `Esc` first clears the selected node, wherever you
-  clicked last; the next `Esc` leaves focus mode.
+  dialog, a menu such as **More ▾**, an **ⓘ** tip, or the text field or
+  dropdown that has the focus. On the canvas, `Esc` first clears the selected
+  node, wherever you clicked last; the next `Esc` leaves focus mode. While a
+  node or a wire has the keyboard focus (after `Tab`) and none is selected,
+  `Esc` is the canvas's own and the mode stays: press `F` or use the button.
 - **The Canvas view's only.** **List** and **Report** show the topbar, tabs
   and full header even with the mode on, and `F` and `Esc` do not change it
   there. Switch back to **Canvas** and focus mode is as you left it.
@@ -532,7 +538,7 @@ took (`120 ms`, `1.4 s`).
 |---|---|
 | **Title** | the flow's title |
 | **Description** | shown in the flows table and the methods draft |
-| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node, such as `satisfaction.md — Save report (save)` (hint: "the report Run all keeps and puts in the combined report: one of this flow's Save report nodes"). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." **Run all** keeps this report, puts it into the combined report, and counts the flow as failed when the file was not written; another **Save report** of the flow it keeps only when the flow declares that file among its outputs (see [What Run all keeps](#what-run-all-keeps)). It follows the Save report node's **File name** when you change that. A Report path saved earlier that no node writes stays in the list as "*path* — no node saves this", with "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." (see [The combined report](#the-combined-report)) |
+| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node, such as `satisfaction.md — Save report (save)` (hint: "the report Run all keeps and puts in the combined report: one of this flow's Save report nodes"). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list as "*path* — no node saves this", with "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
 | **Live: recompute on new responses** | Live mode (see [Live mode](#live-mode)) |
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
@@ -1047,7 +1053,9 @@ The log lists what was kept ("outputs: outputs/tables/tables.md, …").
    its **Report path** names was not written, the flow is marked failed with
    "report outputs/tables.md was not written: the flow's Report path names a
    file none of its nodes saves — set it to the Path of its Save report
-   node". Its script did run, so the flows that read its tables still run.
+   node" (the node's Path is its **File name** now: choose that node in
+   **Report path**). Its script did run, so the flows that read its tables
+   still run.
    The Save already warns about such a flow (see
    [The combined report](#the-combined-report)).
 4. **Once every flow has had its turn**, Studio writes the **combined
@@ -1150,7 +1158,9 @@ list, or written by other means, may name a file no **Save report** node of the
 flow saves; the list then shows it as "*path* — no node saves this", and
 **Check** and the Save warn: "The flow's Report path is “outputs/tables.md”,
 but no Save report step saves there: Run all will fail this flow. Set it to the
-Path of a Save report step, or clear it."
+Path of a Save report step, or clear it." — that is, choose one of the flow's
+**Save report** nodes in the list (the "Path" is the node's **File name**
+now), or **— none —**.
 
 **After a failure** the combined report is still written from the flows that
 succeeded, its title marked incomplete — *Digital Life & Wellbeing 2026
@@ -1466,14 +1476,15 @@ and what says it is not, is listed under
 | `Ctrl/Cmd + Enter` | anywhere in the editor | preview up to the selected node (the whole draft when none is selected) |
 | double-click a node | Canvas | preview up to it |
 | `F` | Canvas | [focus mode](#focus-mode) on / off (the key marked F in any keyboard layout); nothing in List or Report |
-| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, an **ⓘ** tip or the text field you type in uses it first; in full screen the first `Esc` leaves full screen |
+| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first, and so does a node or wire that has the keyboard focus while none is selected; nothing while a Data file's **Reading options** is open; in full screen the first `Esc` leaves full screen |
 | `↑` / `↓`, `Enter` | List | move between nodes; preview up to the focused one |
 | `Ctrl/Cmd + K` | List | open the node picker |
 
 Delete, duplicate and undo are ignored while you type in a field, in the
 Report view, and while a colleague holds the edit lock. `F` is ignored while
-you type in a text field or while a dialog or menu is open, and
-`Ctrl/Cmd + F` stays the browser's Find. See
+a text field or a dropdown has the focus, while a dialog or menu is open and
+while a Data file's **Reading options** is open, and `Ctrl/Cmd + F` stays the
+browser's Find. See
 [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]].
 
 ## See also

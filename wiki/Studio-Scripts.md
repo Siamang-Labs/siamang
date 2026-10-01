@@ -342,10 +342,11 @@ tab; the Codebook tab has no button to add a variable) so the data labels it;
 a codebook variable that a custom script writes is not reported as unused.
 Only a write in the code itself counts: while the template's example is still
 a comment (`// if (…) answers.speeder = 1;`), nothing writes `speeder`, and
-the Save warns `UNUSED_VARIABLE` for it. In the Codebook tab, **Used by**
-then reads "referred to by the custom script *name*" for `speeder`, and
-**Delete** asks before removing the entry; it reads **unused** only while
-the write is still inside a comment. Keep the entry either way.
+the Save warns `UNUSED_VARIABLE` for it. Once the code itself writes
+`answers.speeder`, **Used by** in the Codebook tab reads "referred to by the
+custom script *name*" for `speeder`, and **Delete** asks before removing the
+entry; while the write is still inside a comment it reads **unused**. Keep
+the entry either way.
 Studio already records each response's duration for you (see
 [[Data Quality|Studio-Data-Quality]]); this example shows the mechanics.
 

@@ -55,16 +55,13 @@ Three rules make sure a report arrives:
    under "Other location, kept as it was written", with the reason ("This file
    isn't in outputs/, so a run doesn't keep it under Files.") and **Save it as
    … instead**.
-2. Make it the flow's **Report path** (Flow settings, click the empty canvas)
-   if you want **Run all** to keep it and put it in the
-   [combined report](#the-combined-report). The **Report path** is chosen from
-   a list of the flow's **Save report** nodes. The Report view sets it for
-   you, and changing the **Save report** node's **File name** afterward moves
-   the **Report path** with it. A **Save report** that is not the Report path
-   is kept by a run of the flow but not by **Run all**, and its field says so.
-   A **Report path** saved earlier that names a file the flow does not write
-   makes the flow fail in **Run all**; **Check** and the Save warn about it
-   first.
+2. Make it the flow's **Report path** (Flow settings, click the empty canvas;
+   the Report view sets it for you) if you want **Run all** to keep it and put
+   it in the [combined report](#the-combined-report). A **Save report** that
+   is not the Report path is kept by a run of the flow but not by **Run all**,
+   and its field says so. How the **Report path** follows its node, and the
+   warning for one that names no node's file, are in
+   [The combined report](Studio-Flows#the-combined-report).
 3. There is no PDF writer. A name typed with `.pdf` is answered under the
    field — "Reports are saved as Markdown and HTML — for a PDF, open the HTML
    and print it." — with a fix that drops it. Print or convert the HTML
@@ -151,7 +148,8 @@ interactive charts — tick Also HTML first"; see
 [Interactive charts](#interactive-charts)), **Also Excel** ("Every
 table of the report in one workbook beside it (Path with .xlsx): a sheet per
 table with its statistics under it, and a Contents sheet first; charts are
-left out" — the node's **Also save tables to Excel**, off by default; see
+left out" — the node's **Also save tables to Excel**, off by default, its
+"Path" being the node's **File name**; see
 [Tables in Excel](#tables-in-excel)), and an icon that shows the **Save
 report** node on the canvas. Without one: "This flow saves no report
 yet. Add a section: it creates the **Save report** node and wires the section
@@ -167,11 +165,11 @@ get this one." with **Make it the flow's report**. **Change the file name**
 selects the **Save report** node on the canvas and puts the cursor in its
 **File name**.
 
-**Show on the canvas** — that icon, and the item of the same name in each
-section's and each output's **⋮** menu — switches to the **Canvas** view with
-the node selected in the inspector, and moves the keyboard focus onto the
-node. With [focus mode](Studio-Flows#focus-mode) on, the topbar and the
-project tabs step aside again as the canvas comes back.
+**Show on the canvas** — the title row's canvas icon, and the item of the
+same name in each section's and each output's **⋮** menu — switches to the
+**Canvas** view with the node selected in the inspector, and moves the
+keyboard focus onto the node. With [focus mode](Studio-Flows#focus-mode) on,
+the topbar and the project tabs step aside again as the canvas comes back.
 
 ### Sections
 
@@ -474,20 +472,11 @@ of its own. A palette you choose is yours to check.
   [provenance footer](#the-provenance-footer): with it off, reports from
   platform runs — single runs, **Run all**, schedules, Live — and from a
   research bundle's `run.sh` have no footer.
-- **Combined report** — where **Run all** writes the combined report ("where
-  Run all writes the merged report: a Markdown file inside the project"): the
-  path with its folders, typed before a fixed `.md` (placeholder
-  `reports/report`), and under it "After Run all: Files and Reports →
-  reports/report.md, with an .html copy beside it". A name typed with another
-  ending is answered there — "Take .docx off the name: the combined report is
-  Markdown (.md), with an .html copy beside it — for Word or a PDF, open the
-  .html." with **Use reports/report** — and so is a character a name here
-  cannot have. A path Run all refuses (outside the project, or not Markdown),
-  or a problem in a path you have just typed, keeps **Save report settings**
-  and **Apply to every flow** disabled; a path saved earlier that Run all
-  takes does not. One saved without an `.md` ending is shown under "Kept as it
-  was written", with **Save it as … instead**. The **combined** badge on the
-  Reports screen follows this path.
+- **Combined report** — where **Run all** writes the combined report: a path
+  typed before a fixed `.md` (`reports/report.md` when left empty), with an
+  `.html` copy beside it; the **combined** badge on the Reports screen
+  follows it. The field's rules and messages are under
+  [Settings → Reports](Studio-Project-Settings#reports).
 - **House style** — the same form as the **Look** tab. A project started
   from the example study begins with one: the Look its six flows' reports
   use (**Typeface** **modern**, **Tables** **zebra**, teal **Links** and six
@@ -882,16 +871,13 @@ combined report written, and the last one stays.
 
 A flow whose **Report path** names a file it did not write counts as failed
 ("report outputs/tables.md was not written: the flow's Report path names a
-file none of its nodes saves — set it to the Path of its Save report node");
-the other flows, including those that read its tables, go on. The **Report
-path** is chosen from the flow's **Save report** nodes, so it names a file the
-flow writes: the Report view sets it, changing the node's **File name** moves
-the **Report path** along, and deleting that node clears the **Report path**
-it set. A **Report path** saved earlier that no **Save report** node writes is
-listed as "*path* — no node saves this" and caught before **Run all**:
-**Check** and the Save warn "The flow's Report path is “outputs/tables.md”, but
-no Save report step saves there: Run all will fail this flow. Set it to the
-Path of a Save report step, or clear it."
+file none of its nodes saves — set it to the Path of its Save report node";
+the node's Path is its **File name** now, so choose that node in **Report
+path**); the other flows, including those that read its tables, go on. The
+**Report path** is chosen from the flow's **Save report** nodes and follows
+its node, so this happens only to one saved earlier or set through the API,
+which **Check** and the Save warn about first — see
+[The combined report](Studio-Flows#the-combined-report).
 
 **Run all** also stores each successful flow's own report (its `.md`, `.html`,
 figures and the workbook of its tables) and its tab books under

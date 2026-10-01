@@ -533,7 +533,7 @@ answers already collected from the codebook. A message at the bottom says
 what went or stayed, such as "Removed variable q7 too", with **Undo**, which
 brings back the questions and their entries in one step and selects the item
 again. A **Skip to** that named a deleted question now points at nothing,
-and the message says so. Afterwards the keyboard focus is on the selected
+and the message says so. Afterward, the keyboard focus is on the selected
 page in the rail. See
 [When a question is deleted](Studio-Codebook-and-Variables#when-a-question-is-deleted).
 Moving an item never touches the codebook.

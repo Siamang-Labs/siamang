@@ -156,8 +156,8 @@ with no styling, for a diff or a repository."
   problem is said on that line instead, with a one-click fix when there is
   one, and keeps **Save report settings** and **Apply to every flow** off
   until you fix it: a name with `..` ("“..” and “.” can't be folders here:
-  the file has to stay in the project."), a character other than letters
-  a–z, digits, `-`, `_` and `.`, or another ending, such as
+  the file has to stay in the project."), a character other than Latin
+  letters (A–Z, a–z), digits, `-`, `_` and `.`, or another ending, such as
   `reports/report.docx` ("Take .docx off the name: the combined report is
   Markdown (.md), with an .html copy beside it — for Word or a PDF, open the
   .html.", with **Use reports/report**). A path saved earlier that **Run
