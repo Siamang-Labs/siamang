@@ -95,7 +95,8 @@ Pressing **Save** does three things:
    state.
 
 The **Save badge** in the topbar shows the project's current state from any
-tab; click it to open that Save in History.
+tab; click it to open that Save in History. In the flow editor's focus mode,
+which hides the topbar, the badge sits beside the flow's name.
 
 | Badge | Meaning |
 |---|---|

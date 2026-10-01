@@ -45,7 +45,8 @@ While you follow:
   reach the server about 1.5 seconds after she stops typing);
 - the version chip reads **Version 17 · being edited**;
 - **Save** is disabled (its tooltip says "Anna is editing"), editing and
-  undo/redo do nothing, and `Ctrl/Cmd + S` has no effect;
+  undo/redo do nothing, nodes on a flow's canvas cannot be moved, and
+  `Ctrl/Cmd + S` has no effect;
 - you can still select things, read the Inspector, preview, and **comment**.
 
 ### Take over

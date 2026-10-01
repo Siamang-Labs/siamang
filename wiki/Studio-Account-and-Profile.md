@@ -3,13 +3,17 @@
 Everything personal to you, as opposed to your organization, lives under the
 avatar in the top-right corner: your name, your password, how the app looks in
 this browser, and your personal API keys. This page also explains the parts of
-the topbar that are always on screen and the banners that can appear under it.
+the topbar that are on every screen and the banners that can appear under it.
 
 ---
 
 ## The topbar
 
-The topbar is the same on every screen:
+The topbar is the same on every screen. The one exception is the flow
+editor's **Canvas** view in [focus mode](Studio-Flows#focus-mode), which hides
+the topbar and the project tabs until you turn it off, switch to **List** or
+**Report**, or leave the editor; the **Save badge** then sits beside the
+flow's name.
 
 ```
  Siamang Studio  Beta   [AR  Brand Awareness Study ▾]  ● valid #17        Pro trial · 27d   (JD)
