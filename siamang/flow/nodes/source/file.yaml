@@ -75,7 +75,7 @@ params:
   missing:
     kind: string
     label: Missing codes
-    help: 'Codes that mean no answer in this file. Per column — sought_advice: -9; source_1: -7, -8 (a ; between columns) — or for every column that holds them: -7, -8, -9 (a negative code is left alone in a column of other negative amounts). Missing values then turns them into blanks, and tables leave them out. The file''s schema lists the codes it suspects in each column.'
+    help: 'Codes that mean no answer in this file. Per column — q5: -9; q6_1: -7, -8 (a ; between columns) — or for every column that holds them: -7, -8, -9 (a negative code is left alone in a column of other negative amounts). Missing values then turns them into blanks, and tables leave them out. The file''s schema lists the codes it suspects in each column.'
   dictionary:
     kind: path
     label: Dictionary (JSON)

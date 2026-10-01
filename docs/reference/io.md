@@ -273,7 +273,7 @@ embedded in a `.sav` / `.dta`; then, by `codebook`:
 
 The questionnaire is attached to the `SurveyData` **only when it describes
 the file**: a national survey or a client's file whose `region` or
-`age_group` shares a name with a survey variable keeps its own names and
+`gender` shares a name with a survey variable keeps its own names and
 labels. `1;3` cells of the questionnaire's multiple-choice questions — and
 `1,3`, as Qualtrics writes several answers (in its export, or wherever every
 comma-joined part is the question's code) — are split into lists when it
@@ -292,7 +292,7 @@ metadata, no questionnaire) the result has the file's own codebook too (it had
 none before).
 
 `missing` are codes that mean no answer — per column, `{column: codes}` or
-the text `"sought_advice: -9; source_1: -7, -8"` (`file_codebook.missing_text`
+the text `"q5: -9; q6_1: -7, -8"` (`file_codebook.missing_text`
 writes it; a name holding `;` or `:` in double quotes), or for every column,
 `"-7, -8, -9"` or a list — added to the missing codes of each variable whose
 column holds one (the questionnaire's variables are copied, not changed). A

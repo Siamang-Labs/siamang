@@ -930,8 +930,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   texts, scales guessed from the values. With the questionnaire's codebook a
   choice-text export's answers become their codes, and a multiple-choice
   question's `1,3` (Qualtrics) or `Acme,Initech` becomes the list of its
-  codes. `missing=` declares missing codes per column (`"sought_advice: -9;
-  source_1: -7"`, or `{column: codes}`) or for every column holding one
+  codes. `missing=` declares missing codes per column (`"q5: -9; q6_1: -7"`, or
+  `{column: codes}`) or for every column holding one
   (`"-7, -8, -9"`; a negative code spares a column of other negative
   amounts).
   `inspect_snapshot(path, …, rows=None)` returns, as JSON and without an

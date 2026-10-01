@@ -555,14 +555,14 @@ def test_a_matching_questionnaire_turns_choice_texts_into_codes(tmp_path):
 def _national_survey(path):
     frame = pd.DataFrame(
         {
-            "sought_debt_advice": [1, 2, 2, -9, 1, 2, 1, 2],
-            "debt_advice_source_1": [0, 1, -7, -7, 1, 0, 0, 1],
-            "sex": [1, 2, 1, 2, 2, 1, 1, 2],
-            "age_group": [1, 2, 3, 4, 5, 6, 7, 2],
+            "saves_regularly": [1, 2, 2, -9, 1, 2, 1, 2],
+            "saving_for_1": [0, 1, -7, -7, 1, 0, 0, 1],
+            "dwelling": [1, 2, 1, 2, 2, 1, 1, 2],
+            "age_band": [1, 2, 3, 4, 5, 6, 7, 2],
             "region": [1, 3, 5, 7, 9, 11, 12, 2],
             "gender": [1, 2, 1, 2, 1, 2, 1, 2],
             "aware": ["yes; really", "no", "yes", "no", "yes", "no", "yes", "no"],
-            "total_wealth": [1500.5, -2300.0, 800.25, -7.0, 0.0, 12000.0, 55.5, -120.75],
+            "balance_change": [1500.5, -2300.0, 800.25, -7.0, 0.0, 12000.0, 55.5, -120.75],
         }
     )
     frame.to_excel(path, index=False)
@@ -580,14 +580,21 @@ def test_a_file_from_elsewhere_keeps_its_own_names_and_labels(project, tmp_path)
     # A text column named like a multiple-choice question is not split.
     assert data.frame["aware"].iloc[0] == "yes; really"
     assert list(data.variables) == list(data.frame.columns)
-    assert data.variables["sought_debt_advice"].scale == "nominal"
-    assert data.variables["age_group"].scale == "ordinal"
-    assert data.variables["total_wealth"].scale == "interval"
+    assert data.variables["saves_regularly"].scale == "nominal"
+    assert data.variables["age_band"].scale == "ordinal"
+    assert data.variables["balance_change"].scale == "interval"
     schema = inspect_snapshot(path, questionnaire=survey)
     assert schema["codebook"] == "file"
     assert schema["questionnaire"]["matches"] is False
     assert set(schema["questionnaire"]["shared"]) == {"region", "gender", "aware"}
     assert all(schema["variables"][name]["inferred"] for name in schema["variables"])
+    # Said in a sentence that names the columns and agrees in number with them.
+    assert (
+        "3 of the file's 8 columns share names with questionnaire variables (region, gender, "
+        "aware), but 2 of them (region, aware) hold answers that don't fit their variables, "
+        "so they keep the file's own labels. Set Codebook to questionnaire to use the "
+        "questionnaire's."
+    ) in schema["notes"]
     # Codebook: questionnaire says it is the survey's data after all.
     forced = read_snapshot(path, questionnaire=survey, codebook="questionnaire")
     assert forced.questionnaire is survey
@@ -615,6 +622,21 @@ def test_a_small_file_sharing_common_names_is_not_the_survey_s_data(project, tmp
     match = schema["questionnaire"]
     assert (match["columns"], match["variables"], len(match["shared"])) == (4, 8, 3)
     assert read_snapshot(path, questionnaire=survey).variables["gender"].labels == {}
+    # The note counts the answer columns it means, beside the table's width.
+    assert (
+        "3 of the file's 4 answer columns (5 in all, response metadata aside) share names "
+        "with questionnaire variables (gender, age, comment), but 3 names in common don't "
+        "make the file the survey's data, so they keep the file's own labels. Set Codebook "
+        "to questionnaire to use the questionnaire's."
+    ) in schema["notes"]
+    # One shared column is named, in the singular.
+    (tmp_path / "one.csv").write_text("id,age,score\n1,young,4\n2,old,5\n", encoding="utf-8")
+    one = inspect_snapshot(tmp_path / "one.csv", questionnaire=survey)
+    assert (
+        "age shares its name with a questionnaire variable, but its answers don't fit it, so "
+        "it keeps the file's own labels. Set Codebook to questionnaire to use the "
+        "questionnaire's."
+    ) in one["notes"]
 
 
 def test_the_survey_s_own_export_still_reads_with_the_questionnaire(project, tmp_path):
@@ -662,25 +684,25 @@ def test_a_table_a_flow_wrote_is_still_the_survey_s(project, tmp_path):
 def test_missing_codes_are_suspected_and_can_be_declared(tmp_path):
     path = _national_survey(tmp_path / "survey.xlsx")
     columns = {c["name"]: c for c in inspect_snapshot(path)["columns"]}
-    assert columns["sought_debt_advice"]["suspected_missing"] == [-9]
-    assert columns["debt_advice_source_1"]["suspected_missing"] == [-7]
+    assert columns["saves_regularly"]["suspected_missing"] == [-9]
+    assert columns["saving_for_1"]["suspected_missing"] == [-7]
     # A column of genuine negative amounts is not suspected.
-    assert columns["total_wealth"]["suspected_missing"] == []
+    assert columns["balance_change"]["suspected_missing"] == []
     assert suspected_missing(pd.Series([1, 2, 3, 99, 1, 2])) == [99]
     assert suspected_missing(pd.Series([-7, -7, -7])) == [-7]
     assert suspected_missing(pd.Series([1999, 2005, 2011])) == []
     data = read_snapshot(path, missing="-7, -9")
-    assert data.variables["sought_debt_advice"].missing_values == (-9,)
-    assert data.variables["debt_advice_source_1"].missing_values == (-7,)
-    assert data.variables["sex"].missing_values == ()
+    assert data.variables["saves_regularly"].missing_values == (-9,)
+    assert data.variables["saving_for_1"].missing_values == (-7,)
+    assert data.variables["dwelling"].missing_values == ()
     blanked = data.apply_missing_values()
-    assert blanked.frame["sought_debt_advice"].isna().sum() == 1
+    assert blanked.frame["saves_regularly"].isna().sum() == 1
     declared = {c["name"]: c for c in inspect_snapshot(path, missing=[-7, -9])["columns"]}
-    assert declared["sought_debt_advice"]["missing"] == [-9]
-    assert declared["sought_debt_advice"]["suspected_missing"] == []
+    assert declared["saves_regularly"]["missing"] == [-9]
+    assert declared["saves_regularly"]["suspected_missing"] == []
     # Only the column named, in the {column: codes} form.
-    only = read_snapshot(path, missing={"debt_advice_source_1": [-7]})
-    assert only.variables["sought_debt_advice"].missing_values == ()
+    only = read_snapshot(path, missing={"saving_for_1": [-7]})
+    assert only.variables["saves_regularly"].missing_values == ()
 
 
 def test_columns_that_hold_personal_data_are_pointed_out(tmp_path):
@@ -692,7 +714,7 @@ def test_columns_that_hold_personal_data_are_pointed_out(tmp_path):
         "LocationLatitude": "location",
         "LocationLongitude": "location",
     }
-    assert personal_data("prolific_id") == "participant ID"
+    assert personal_data("PROLIFIC_PID") == "participant ID"
     assert personal_data("Телефон") == "phone"
     assert personal_data("contact", pd.Series(["a@example.org", "b@example.org", None])) == "e-mail"
     assert personal_data("satisfaction", pd.Series([1, 2])) is None
@@ -855,9 +877,9 @@ def test_check_flow_knows_a_data_file_s_columns(project, tmp_path):
     flow = _flow(
         [
             ("src", "source.file", {"path": str(path)}),
-            ("fr", "analyze.freq", {"variable": "sought_debt_advice"}),
-            ("xt", "analyze.crosstab", {"row": "sex", "col": "age_group"}),
-            ("ds", "analyze.descriptives", {"variables": ["sex"]}),
+            ("fr", "analyze.freq", {"variable": "saves_regularly"}),
+            ("xt", "analyze.crosstab", {"row": "dwelling", "col": "age_band"}),
+            ("ds", "analyze.descriptives", {"variables": ["dwelling"]}),
         ],
         [("src", "fr"), ("src", "xt"), ("src", "ds")],
     )
@@ -898,7 +920,7 @@ def test_check_flow_knows_a_data_file_s_columns(project, tmp_path):
     runnable = _flow(
         [
             ("src", "source.file", {"path": str(path)}),
-            ("fr", "analyze.freq", {"variable": "sought_debt_advice"}),
+            ("fr", "analyze.freq", {"variable": "saves_regularly"}),
         ],
         [("src", "fr")],
     )
@@ -916,10 +938,10 @@ def test_each_branch_is_checked_against_its_own_source(project, tmp_path):
     flow = _flow(
         [
             ("src", "source.file", {"path": str(path)}),
-            ("fr", "analyze.freq", {"variable": "sought_debt_advice"}),
+            ("fr", "analyze.freq", {"variable": "saves_regularly"}),
             ("sim", "source.simulated", {}),
             ("fq", "analyze.freq", {"variable": "trust_acme"}),
-            ("bad", "analyze.freq", {"variable": "sought_debt_advice"}),
+            ("bad", "analyze.freq", {"variable": "saves_regularly"}),
         ],
         [("src", "fr"), ("sim", "fq"), ("sim", "bad")],
     )
@@ -958,7 +980,7 @@ def test_the_cli_check_reads_the_flow_s_data_files(project, tmp_path, monkeypatc
     flow = _flow(
         [
             ("src", "source.file", {"path": "survey.xlsx"}),
-            ("fr", "analyze.freq", {"variable": "sought_debt_advice"}),
+            ("fr", "analyze.freq", {"variable": "saves_regularly"}),
         ],
         [("src", "fr")],
     )
@@ -1299,9 +1321,9 @@ def test_missing_codes_per_column_spare_other_columns(tmp_path):
     path = tmp_path / "survey.xlsx"
     pd.DataFrame(
         {
-            "sought_advice": [1, 2, 2, -9, 1, 2, 1, 2],
-            "source_1": [0, 1, -7, -7, 1, 0, 0, 1],
-            "net_wealth": [1500.5, -2300.0, 800.25, -7.0, 0.0, 12000.0, 55.5, -120.75],
+            "q5": [1, 2, 2, -9, 1, 2, 1, 2],
+            "q6_1": [0, 1, -7, -7, 1, 0, 0, 1],
+            "balance": [1500.5, -2300.0, 800.25, -7.0, 0.0, 12000.0, 55.5, -120.75],
             "age": [18, 45, 97, 99, 98, 60, 33, 51],
             "rating": [1, 2, 3, 4, 5, 99, 3, 2],
         }
@@ -1311,23 +1333,23 @@ def test_missing_codes_per_column_spare_other_columns(tmp_path):
         for column in inspect_snapshot(path)["columns"]
         if column["suspected_missing"]
     }
-    assert suspected == {"sought_advice": [-9], "source_1": [-7], "rating": [99]}
+    assert suspected == {"q5": [-9], "q6_1": [-7], "rating": [99]}
     text = missing_text(suspected)
-    assert text == "sought_advice: -9; source_1: -7; rating: 99"
+    assert text == "q5: -9; q6_1: -7; rating: 99"
     assert parse_missing(text) == suspected
     data = read_snapshot(path, missing=text)
     declared = {name: data.variables[name].missing_values for name in data.variables}
     assert declared == {
-        "sought_advice": (-9,),
-        "source_1": (-7,),
-        "net_wealth": (),
+        "q5": (-9,),
+        "q6_1": (-7,),
+        "balance": (),
         "age": (),
         "rating": (99,),
     }
     # Codes for every column spare a column of other negative amounts.
     every = read_snapshot(path, missing="-9, -7").variables
-    assert every["source_1"].missing_values == (-7,)
-    assert every["net_wealth"].missing_values == ()
+    assert every["q6_1"].missing_values == (-7,)
+    assert every["balance"].missing_values == ()
     assert parse_missing('-9; "a;b": 99; income: -7') == {
         EVERY_COLUMN: [-9],
         "a;b": [99],

@@ -115,8 +115,8 @@ guess). A file whose `region` happens to share a name with your survey's
 
 **Missing codes.** `inspect_snapshot` lists the codes that look like missing
 codes in each column (`-7`, `-8`, `-9`, `99` …) — suspected, not applied.
-Say which are, per column — `read_snapshot(path, missing="sought_advice: -9;
-source_1: -7")` — or for every column that holds them, `missing="-7, -8, -9"`
+Say which are, per column — `read_snapshot(path, missing="q5: -9; q6_1: -7")`
+— or for every column that holds them, `missing="-7, -8, -9"`
 (a negative code is then left alone in a column of other negative amounts, a
 balance). `apply_missing_values()` (the **Missing values** node) blanks them
 and tables leave them out. Per column is safer: a `99` that is "refused" in
@@ -125,7 +125,7 @@ one column is an age of 99 in another.
 **Personal data.** Each column of the schema says whether it looks like it
 holds personal data (`"e-mail"`, `"IP address"`, `"location"`, `"name"`,
 `"phone"`, `"participant ID"`, `"address"`) — a Qualtrics export's
-`IPAddress`, `LocationLatitude`, `RecipientEmail`, a `prolific_id`. Drop such
+`IPAddress`, `LocationLatitude`, `RecipientEmail`, a `PROLIFIC_PID`. Drop such
 columns first (a **Select columns** node) unless the analysis needs them.
 
 **Qualtrics, the recommended route.** Import the survey's `.qsf`

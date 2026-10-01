@@ -134,7 +134,6 @@ _PERSONAL_NAMES: dict[str, frozenset[str]] = {
     ),
     "participant ID": frozenset(
         {
-            "prolific_id",
             "prolificid",
             "prolific_pid",
             "pid",
@@ -195,10 +194,10 @@ EVERY_COLUMN = "*"
 def parse_missing(value: Any) -> list[Any] | dict[str, list[Any]]:
     """Missing codes as a node or a caller gives them: ``"-7, -8, -9"`` (commas
     or spaces between them) for every column that holds them, a list, or
-    ``{column: codes}`` — also as text, ``"sought_advice: -9; source_1: -7,
-    -8"`` (a ``;`` between columns; a name holding ``;`` or ``:`` in double
-    quotes). Codes given without a column in such a text are every column's
-    (under :data:`EVERY_COLUMN`)."""
+    ``{column: codes}`` — also as text, ``"q5: -9; q6_1: -7, -8"`` (a ``;``
+    between columns; a name holding ``;`` or ``:`` in double quotes). Codes
+    given without a column in such a text are every column's (under
+    :data:`EVERY_COLUMN`)."""
 
     if value is None or (isinstance(value, str) and not value.strip()):
         return []
@@ -227,7 +226,7 @@ def _per_column(text: str) -> dict[str, list[Any]]:
 
 def missing_text(codes: Mapping[str, Iterable[Any]]) -> str:
     """``{column: codes}`` as the Missing codes text :func:`parse_missing`
-    reads back: ``"sought_advice: -9; source_1: -7"``."""
+    reads back: ``"q5: -9; q6_1: -7"``."""
 
     parts = []
     for column, values in codes.items():
