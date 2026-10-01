@@ -315,7 +315,7 @@ Set the parameters:
 | **Report section** | **Heading** · **Text** | *Satisfaction by region* · a sentence of context |
 | | **Captions** | one per connected item |
 | | **Note** | *Base: all respondents, weighted by region.* |
-| **Save report** | **Title** · **Path** | *Customer Pulse 2026* · `outputs/satisfaction.md` |
+| **Save report** | **Title** · **File name** | *Customer Pulse 2026* · `satisfaction` — already filled in from the flow's name; it is saved as `outputs/satisfaction.md` |
 | **Live tile** | **Kind** · **Label** · **Show** | `number` · *Respondents so far* · `rows` |
 
 Connect the Banner table's `table`, the Bar chart's `chart`, the NPS `table` and the

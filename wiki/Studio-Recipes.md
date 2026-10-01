@@ -493,8 +493,9 @@ Every question of the study by the client's segments, in one Excel file.
    Contents sheet), or check the ones the client asked for — a number you
    check shows its mean.
 4. Keep **Percentages** `column`, **Counts** and **Significance letters**
-   on; **Path** `outputs/tabbook.xlsx`, or a name of your own
-   (`outputs/client_q3.xlsx`).
+   on. **File name** already reads `<flow>_tabbook`; type a name of your own
+   between the fixed `outputs/` and `.xlsx` if you like (`client_q3`, saved
+   as `outputs/client_q3.xlsx`).
 5. **Save** and **Run**. The preview shows what it would write; the run
    keeps the workbook.
 6. On **Reports**, pick **Tab book** and press **Excel** (or download it from
@@ -979,8 +980,14 @@ screens and age group.
 
 ### Export the cleaned data for R
 
-1. End your cleaning flow with **Export file**, **Path** `outputs/clean.R`.
-2. **Save changes** and **▶ Run** the flow.
+1. End your cleaning flow with **Export file**: type `clean` in **File name**
+   and choose **Format** **R bundle (.R)**. The line under it reads "After a
+   run: Files → outputs/*flow*/clean.R" and "Beside it: clean.csv,
+   clean.dictionary.json".
+2. **Save changes** and **▶ Run** the flow on its own — **Run all** keeps an
+   **Export file**'s files only when the flow lists them among its outputs,
+   and the field says "Run all doesn't keep these files: run this flow on its
+   own to get them."
 3. The run writes three files, on the run's card and under **Files** as
    `outputs/<flow>/clean.R`, `clean.csv` and `clean.dictionary.json`.
    Download all three into one folder.
@@ -990,8 +997,8 @@ screens and age group.
    column's `label` attribute.
 
 The export carries what the flow made — recodes, bands, factor scores, the
-weight column. `outputs/codebook.json` writes the codebook alone, and
-`outputs/clean.sav` a labeled SPSS file that R's `haven` reads.
+weight column. **Format** **Codebook only (.json)** writes the codebook
+alone, and **SPSS (.sav)** a labeled SPSS file that R's `haven` reads.
 → [Export file](Studio-Node-Reference#export-file) ·
 [[Data Exports|Studio-Data-Exports]]
 
@@ -1047,11 +1054,15 @@ or deleted until they are done.
 
 ### Analyze a file you uploaded
 
-1. **Files → Upload** the data file (for example `panel.csv`).
-2. On its row, click the copy icon ("Copy the path a flow reads it by:
-   assets/panel.csv").
-3. In a flow, add a **Data file** source and paste `assets/panel.csv` into
-   **File**, then connect your analysis.
+1. In a flow, add a **Data file** source.
+2. In its **File**, choose the upload by name (for example
+   `panel_wave2.csv`), or press **Upload…** under the list to upload it from
+   here — the dialog, **Upload a data file**, says which files a Data file
+   reads, and selects the file once it is stored. A file uploaded earlier
+   under **Files** is in the list already.
+3. If a dictionary was uploaded beside it, the **Dictionary (JSON)** field
+   offers **Use panel_wave2.dictionary.json**. Then connect your
+   analysis.
 
 Runs, **Run all** and **Run to here** read the upload directly; a research
 bundle made with data brings the uploads its flows name.

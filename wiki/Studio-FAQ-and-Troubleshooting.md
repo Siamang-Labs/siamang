@@ -552,12 +552,17 @@ A rename takes the flow as it was last saved, so Studio refuses it while you
 have unsaved changes to that flow. Save (or undo) them, then rename.
 
 **My Data file node cannot find the file I uploaded.**
-Give the node's **File** the upload's path, `assets/<name>` — the copy icon
-on the file's row in **Files** copies it ("Copy the path a flow reads it by").
-Runs, **Run all** and **Run to here** read it from there. If the run log
+Choose it by name in the node's **File** list, or upload it from there with
+**Upload…**. Files may store a file under another name than it had on your
+computer (`Опрос.csv` becomes `Opros.csv`); the Upload dialog says the stored
+name before you upload. A value saved earlier as a path, such as
+`./assets/panel_wave2.csv`, shows under "Other location, kept as it was
+written" — "A run only brings in files uploaded under Files, so it won't
+find this one." — with **Use the uploaded panel_wave2.csv** when Files has
+it. An upload deleted since shows as "*name* — not in Files". If the run log
 says "note: assets/*name* is not among this project's Files", the name is
 wrong or the file was deleted.
-→ [[Files|Studio-Files]]
+→ [Where files go](Studio-Node-Reference#where-files-go) · [[Files|Studio-Files]]
 
 **The topbar and the project tabs are gone in the flow editor.**
 Focus mode is on: it gives the **Canvas** view the whole window. Press `F`
@@ -749,11 +754,15 @@ base. Check the answers you track — `4` and `5` for a top-2 box. The checklist
 does not offer missing codes; this appears for a code typed or stored before.
 
 **Where is my tab book?**
-A run of the flow writes it to the node's **Path** and keeps it as
-`outputs/<flow>/tabbook.xlsx`: on the **Reports** screen as **Tab book**
-(with an **Excel** button), in **Files** and on the run's card. A preview
-runs the node but keeps no file ("Not kept: a preview never keeps the files
-nodes write. …"), and a **Path** outside `outputs/` is not kept at all.
+A run of the flow writes it under the node's **File name** and keeps it as
+`outputs/<flow>/<name>.xlsx` — a Tab book added from the palette is named
+`<flow>_tabbook` — on the **Reports** screen (with an **Excel** button), in
+**Files** and on the run's card. The field says where: "After a run: Files →
+outputs/*flow*/*name*.xlsx". A preview runs the node but keeps no file ("Not
+kept: a preview never keeps the files nodes write. …"). A path saved earlier
+outside `outputs/` is not kept at all; the field shows it under "Other
+location" with "This file isn't in outputs/, so a run doesn't keep it under
+Files." and a one-click fix.
 → [Tab books](Studio-Reports#tab-books)
 
 **My tab book left a question out.**
@@ -821,7 +830,11 @@ error. The bundle's README says so; install the engine revision it names.
 
 **The report is empty or missing.**
 A report needs a **Report section** connected to a **Save report** node, and the
-flow must have run. Output paths must be under `outputs/`.
+flow must have run. The node's **File name** field keeps the report in
+`outputs/`; a path saved earlier outside it shows as "Other location", with a
+fix. **Run all** keeps only the report that is the flow's **Report path**;
+another **Save report** is kept by a run of that flow on its own, and its
+field says so.
 → [[Reports|Studio-Reports]]
 
 **"The table clean_responses does not exist yet: it is written by 1. Clean raw responses. Run that flow (or Run all) first, then this one."**
@@ -834,17 +847,19 @@ after `cleaning` read `clean_responses`, and `segments` reads
 [Tables between flows](Studio-Flows#tables-between-flows).
 
 **A flow is missing from the combined report, or Run all says "report … was not written".**
-The combined report takes each flow's **Report path** (flow settings). A flow
-without one is left out. A path the flow does not write fails that flow:
+The combined report takes each flow's **Report path** (flow settings), a
+list of the flow's **Save report** nodes. A flow with **— none —** is left
+out. A path the flow does not write — saved earlier, or set through the API
+— fails that flow, and the list shows it as "*path* — no node saves this":
 "report outputs/*x*.md was not written: the flow's Report path names a file
 none of its nodes saves — set it to the Path of its Save report node". The
 flow's tables were still written, so the flows that read them run, and the
 combined report is marked incomplete. The Save warns about this beforehand
 (`REPORT_PATH_UNWRITTEN`: "The flow's Report path is “…”, but no Save report
 step saves there: Run all will fail this flow. Set it to the Path of a Save
-report step, or clear it."). Changing the **Path** of a flow's **Save
-report** node moves the Report path it had set along with it, and deleting
-the node clears it.
+report step, or clear it."). Choose one of the flow's reports in **Report
+path**. Changing the **File name** of a flow's **Save report** node moves
+the Report path along with it, and deleting the node clears it.
 
 **Live tiles are stale.**
 Tiles show the flow's last *completed* run, or a newer **Run all** that ran
