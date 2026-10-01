@@ -386,8 +386,12 @@ full header, whether focus mode is on or not. The inspector keeps its width
 **Focus mode** gives the canvas the whole window. The topbar, the project
 tabs and the page margins are hidden, and the editor's header shrinks to one
 row: **← All flows**, the title with the flow's state ("saved", "edited",
-"new, not saved yet" or "view only"), **↶ ↷**, **Canvas | List | Report**,
-**Check**, **More ▾**, **▶ Run** and **Save changes**. A long title is shown
+"new, not saved yet" or "view only") and the project's **Save badge**, **↶
+↷**, **Canvas | List | Report**, **Check**, **More ▾**, **▶ Run** and **Save
+changes**. The badge comes along from the hidden topbar: the current Save's
+number and check, such as `● valid #17` ("saving…" while a Save is in
+progress), and a click opens that Save in **History** (see
+[Save](Studio-Key-Concepts#save)). A long title is shown
 whole while the row has room and ends in "…" only when the row is full; click
 it to read or edit all of it. Below about 1,200 pixels wide the state word is
 left out (**Save changes** or **Saved** says the same) and the header may take
@@ -474,6 +478,16 @@ name and type.
   the order in the report.
 - To remove a wire, use **remove** next to it in the inspector's
   **Connections** (or **disconnect** in the List view).
+
+**To move a node,** drag it. It follows the pointer with its wires, the
+minimap shows while you drag, and near the canvas's edge the view scrolls
+along with you. When you let go, the node settles on the canvas's grid, a few
+pixels at most from where you dropped it. A move is one change, however far
+you drag: one **Undo** puts the node back, and a drag that ends where it
+began changes nothing. The canvas selects one node at a time, so nodes move
+one at a time too; `Shift` + drag pans the canvas rather than drawing a
+selection box. While you follow a colleague who holds the edit lock, you can
+select nodes but not move them.
 
 The canvas pans and zooms with the mouse, or with the buttons in its
 bottom-left corner: **Zoom in** (+), **Zoom out** (−) and **Fit view**, which
@@ -783,7 +797,10 @@ sync**).
 
 One person edits a flow at a time. Colleagues who open it see "**Name** is
 editing — you are following their changes live … Your own edits are off until
-you take over; comments stay open." with **Take over**. See
+you take over; comments stay open." with **Take over**. While they follow,
+they can select nodes, preview and comment, but not edit, move nodes on the
+canvas or save. If a colleague takes over while you are dragging a node, the
+node goes back to where the flow has it. See
 [[Working Together|Studio-Collaboration]].
 
 ---

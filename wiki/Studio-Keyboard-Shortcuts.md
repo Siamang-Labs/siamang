@@ -158,6 +158,8 @@ browser.
 | Drag a question card | move it within the page, into or out of a block, or onto another page in the page rail |
 | Drag a page in the rail | reorder the questionnaire (the **↑** / **↓** buttons above the page do the same) |
 | Drag a node from the palette onto the canvas | add it where you drop it (clicking a palette item adds it too) |
+| Drag a node on the canvas | move it: it follows the pointer with its wires, the minimap shows, and it settles on the grid when you let go; one **Undo** step; one node at a time; not while you follow a colleague |
+| `Shift` + drag on the canvas | pan, as a plain drag on an empty spot does (there is no selection box) |
 | Drag from a node's output to another node's input | connect them |
 | Double-click a node | **Run to here** |
 | Double-click a page in the Logic map | open it in **Structure** |
