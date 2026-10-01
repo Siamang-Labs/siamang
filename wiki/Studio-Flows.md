@@ -337,7 +337,7 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
 │ › Prepare 16 │                                   ↓               │ Preview   ▶ Run to here│
 │ › Analyze 26 │                              [Save report]        │ Connections            │
 │ › Visualize 7│                                                   │ Comments               │
-│ › Output   8 │   [+ − ⤢]                              minimap    │ Checks 0 errors · …    │
+│ › Output   8 │   [+ − Fit view · Focus mode]          minimap    │ Checks 0 errors · …    │
 └──────────────┴──────────────────────────────────────────────────┴────────────────────────┘
 ```
 
@@ -354,9 +354,13 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
 | **▶ Run** | runs the flow as of the current Save; disabled for a new or edited flow (tooltip "Save first") and for a flow that failed the engine check at the current Save ("Fix this flow's errors and save first") |
 | **Save changes** / **Saved** | opens the Save dialog (`Ctrl/Cmd + S`) |
 
+The **Focus mode** button is not in the header: it sits with the canvas's
+zoom buttons (see [Focus mode](#focus-mode)).
+
 ### Three views
 
-- **Canvas** — the diagram: palette, canvas, inspector.
+- **Canvas** — the diagram: palette, canvas, inspector. [Focus mode](#focus-mode)
+  belongs to this view.
 - **List** — the same flow as a table, in dependency order, operable entirely
   from the keyboard: "The same flow as a list, in dependency order — and the
   keyboard path through it: ↑ ↓ move between nodes and open each in the
@@ -373,7 +377,59 @@ Satisfaction by region            ↶ ↷  [Canvas|List|Report]  Check  More ▾
 - **Report** — the report the flow writes, as a document you can edit. See
   [[Reports|Studio-Reports]].
 
-The inspector keeps its width (drag the divider) per browser.
+**List** and **Report** always show the topbar, the project tabs and the
+full header, whether focus mode is on or not. The inspector keeps its width
+(drag the divider) per browser.
+
+### Focus mode
+
+**Focus mode** gives the canvas the whole window. The topbar, the project
+tabs and the page margins are hidden, and the editor's header shrinks to one
+row: **← All flows**, the title with the flow's state ("saved", "edited",
+"new, not saved yet" or "view only"), **↶ ↷**, **Canvas | List | Report**,
+**Check**, **More ▾**, **▶ Run** and **Save changes**. A long title is shown
+whole while the row has room and ends in "…" only when the row is full; click
+it to read or edit all of it. Below about 1,200 pixels wide the state word is
+left out (**Save changes** or **Saved** says the same) and the header may take
+two rows. The palette and the inspector stay docked, the full height of the
+window, and work as usual; the canvas takes the space between them, with its
+buttons and minimap. Banners (the edit lock's, the engine check's), dialogs,
+messages, comments and previews stay visible.
+
+- **On and off.** Click **Focus mode** — the button with two diagonal arrows
+  under **Zoom in**, **Zoom out** and **Fit view** in the canvas's bottom-left
+  corner (tooltip "Focus mode (F)") — or press `F` on the **Canvas** view.
+  While the mode is on, the button is highlighted, its arrows point inward,
+  and its tooltip reads "Exit focus mode (F or Esc)". `F` is the key marked F
+  in any keyboard layout, a Russian one included. It does nothing while you
+  type in a text field, while a dialog or a menu is open, or with `Ctrl`,
+  `Cmd` or `Alt` held — `Ctrl/Cmd + F` stays the browser's Find. A focused
+  checkbox or switch (such as **Live: recompute on new responses**) does not
+  stop it. A screen reader hears "Focus mode on" or "Focus mode off".
+- **`Esc`** turns it off too, unless something uses `Esc` first: an open
+  dialog, a menu such as **More ▾**, an **ⓘ** tip, or the text field you are
+  typing in. On the canvas, `Esc` first clears the selected node, wherever you
+  clicked last; the next `Esc` leaves focus mode.
+- **The Canvas view's only.** **List** and **Report** show the topbar, tabs
+  and full header even with the mode on, and `F` and `Esc` do not change it
+  there. Switch back to **Canvas** and focus mode is as you left it.
+- **Full screen.** In focus mode, where the browser allows it, **Full screen**
+  (a monitor with an arrow) appears under **Focus mode** and puts the whole
+  page in full screen, so dialogs and messages still show. `Esc` or the button
+  (tooltip "Exit full screen (Esc)") leaves full screen and keeps focus mode.
+  Turning focus mode off, or switching to **List** or **Report**, leaves full
+  screen too; coming back to **Canvas** brings focus mode back, not full
+  screen. A browser that refuses gets "Could not switch to full screen. The
+  browser does not allow it on this page."
+- **Remembered in this browser.** The next flow you open opens the way you
+  left the last one. Leaving the editor — **All flows**, the browser's Back
+  button, a link — brings the topbar and tabs back. Where the browser does not
+  let Studio store the choice, the mode still holds until you leave the
+  editor.
+- **Narrow windows** keep the editor's layout for their width (the inspector
+  under the canvas at 1,080 pixels or less, everything stacked at 640 or
+  less). On a phone, focus mode keeps **All flows** in the header, so there is
+  always a way back.
 
 ### The palette
 
@@ -419,8 +475,13 @@ name and type.
 - To remove a wire, use **remove** next to it in the inspector's
   **Connections** (or **disconnect** in the List view).
 
-The canvas pans and zooms (the **+ − ⤢** controls, or the mouse); it opens
-fitted to the whole flow, and a minimap appears while you move.
+The canvas pans and zooms with the mouse, or with the buttons in its
+bottom-left corner: **Zoom in** (+), **Zoom out** (−) and **Fit view**, which
+fits the whole flow in the window. Under them are **Focus mode** and, in focus
+mode, **Full screen** (see [Focus mode](#focus-mode)). With the keyboard,
+`Tab` reaches these buttons right after the palette, before the nodes and
+wires. The canvas opens fitted to the whole flow, and a minimap appears while
+you move.
 
 ### Node cards and status lights
 
@@ -1331,11 +1392,15 @@ and what says it is not, is listed under
 | `Ctrl/Cmd + S` | anywhere in the editor | Save |
 | `Ctrl/Cmd + Enter` | anywhere in the editor | preview up to the selected node (the whole draft when none is selected) |
 | double-click a node | Canvas | preview up to it |
+| `F` | Canvas | [focus mode](#focus-mode) on / off (the key marked F in any keyboard layout); nothing in List or Report |
+| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, an **ⓘ** tip or the text field you type in uses it first; in full screen the first `Esc` leaves full screen |
 | `↑` / `↓`, `Enter` | List | move between nodes; preview up to the focused one |
 | `Ctrl/Cmd + K` | List | open the node picker |
 
 Delete, duplicate and undo are ignored while you type in a field, in the
-Report view, and while a colleague holds the edit lock. See
+Report view, and while a colleague holds the edit lock. `F` is ignored while
+you type in a text field or while a dialog or menu is open, and
+`Ctrl/Cmd + F` stays the browser's Find. See
 [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]].
 
 ## See also
