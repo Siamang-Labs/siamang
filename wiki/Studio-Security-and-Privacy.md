@@ -208,6 +208,34 @@ it, and leave out a chart — or send the report without **Interactive charts
 in HTML** — when those values should not travel. See
 [Interactive charts](Studio-Reports#interactive-charts).
 
+### Data files you upload
+
+A data file you upload under [[Files|Studio-Files]] — a panel file, a
+client's spreadsheet, a Qualtrics export — may hold personal data your own
+survey never asked for.
+
+- **Reading it keeps no answer.** Each data upload is read once it is stored,
+  in the same isolated sandbox with no network access that flows run in, and
+  Studio keeps only what describes it: its rows and columns, each column's
+  name, label, type, scale and codes, and two hints. The file itself stays in
+  object storage like any upload; a flow reads it only when it names it. See
+  [What Studio reads from a data file](Studio-Files#what-studio-reads-from-a-data-file).
+- **Personal-data hints are hints.** Files and the **Data file** node point
+  out the columns whose names or values look like an e-mail or IP address, a
+  location, a name, a phone number, an address or a participant ID — a
+  Qualtrics export's `IPAddress`, `LocationLatitude` and `RecipientEmail`, a
+  `PROLIFIC_PID`. Nothing is dropped for you, and the hints go by names (in
+  English and Russian) and by the look of e-mail and IP addresses: a column
+  of names called `q12`, or an open answer that holds a phone number, is not
+  pointed out. Check the columns yourself.
+- **Drop such columns early.** **Add a Select columns node without them**, in
+  the node's [Columns panel](Studio-Node-Reference#the-columns-panel), puts a
+  **Select columns** node right after the **Data file**, so no table,
+  report, chart tile or export a flow makes downstream carries them. A
+  research bundle **with data** still contains the upload as it is, so when
+  the columns are not needed at all, delete the upload and upload a copy
+  without them.
+
 ---
 
 ## Cookies and browser storage
@@ -337,6 +365,9 @@ Tell respondents, in the survey's consent text or privacy notice:
   an ephemeral, isolated sandbox with **no network access**, one CPU, memory
   and time ceilings set by your plan, and no way to change anything outside
   its own output folder.
+- **Uploaded data files are read in the same sandbox**, as untrusted input:
+  the engine works out their columns there, and only that description comes
+  back (see [Data files you upload](#data-files-you-upload)).
 - **Imported Python is never executed.** A `questionnaire.py` you import is
   read as text. Anything the reader cannot follow is reported with line
   numbers, not run.
@@ -515,6 +546,9 @@ For the current legal texts see the
   link parameter, panel ids and invitation tokens included. Store and share
   them like the personal data they may be, and check what is in the data
   before you check **Include the data collected so far** in a deposit.
+- Leave out the columns of personal data that an uploaded data file carries
+  and the analysis does not need, as early in the flow as you can (see
+  [Data files you upload](#data-files-you-upload)).
 - Remove people from the organization when they leave, and revoke API keys
   you no longer use.
 
