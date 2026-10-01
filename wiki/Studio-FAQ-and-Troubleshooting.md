@@ -559,6 +559,15 @@ says "note: assets/*name* is not among this project's Files", the name is
 wrong or the file was deleted.
 → [[Files|Studio-Files]]
 
+**The topbar and the project tabs are gone in the flow editor.**
+Focus mode is on: it gives the **Canvas** view the whole window. Press `F`
+(outside a text field), or `Esc` once nothing is selected, or click **Focus
+mode** under the canvas's zoom buttons ("Exit focus mode (F or Esc)").
+**List** and **Report** always show the topbar and tabs, and so does every
+screen outside the editor; the Save badge sits beside the flow's name while
+the mode is on. Studio remembers the choice in this browser.
+→ [Focus mode](Studio-Flows#focus-mode)
+
 **Can Run to here change a project table?**
 No. A preview never writes project tables: a **Write table** node it reaches
 says "Not written: a preview never writes project tables. A run writes N rows

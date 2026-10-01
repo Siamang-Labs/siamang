@@ -141,6 +141,12 @@ report** node on the canvas. Without one: "This flow saves no report
 yet. Add a section: it creates the **Save report** node and wires the section
 into it."
 
+**Show on the canvas** — that icon, and the item of the same name in each
+section's and each output's **⋮** menu — switches to the **Canvas** view with
+the node selected in the inspector, and moves the keyboard focus onto the
+node. With [focus mode](Studio-Flows#focus-mode) on, the topbar and the
+project tabs step aside again as the canvas comes back.
+
 ### Sections
 
 **+ Add section** ("A heading, a paragraph of Markdown, and any tables or
