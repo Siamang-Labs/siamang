@@ -568,7 +568,8 @@ set how far apart the controls were — a crosstab's settings ran past the
 bottom of the screen.
 
 Below the inspector, the **Checks** block lists the flow's problems ("Checks
-2 errors · 0 warnings", up to twelve); click one to select its node.
+2 errors · 0 warnings", "1 error" for one, up to twelve); click one to select
+its node.
 
 ### Node ids
 
@@ -604,6 +605,16 @@ t-test's **Groups** does). They offer, in this order:
 - the variables brought by a table the flow reads (see
   [Tables between flows](#tables-between-flows)), labeled "from table
   *table* · made by *flow*".
+
+**Below a Data file** the pickers offer the file's own columns, grouped under
+"From *name*" (the file's name, as its **File** lists it), then the variables
+the nodes between make, under "Made in this flow" — or "From the
+questionnaire and this flow" when the file is this survey's data, the only
+case in which the questionnaire's variables come with it. A file from
+elsewhere keeps its own names, labels and scales, even where a column shares
+a name with a survey variable. While the file is being read, or cannot be,
+the fields below it take a typed column name ("a column of the file"). See
+[Data file](Studio-Node-Reference#data-file).
 
 The same list is behind the **Filter rows** condition editor and the
 variable names listed under a formula. A stored name that is in none of
@@ -694,8 +705,15 @@ Studio checks a flow twice:
   variables that are neither in the codebook nor made by a node of the flow
   or brought by a table it reads — "variable: \"q99\" is neither in the
   codebook nor made by this flow or a table it reads." These light the nodes
-  and fill the **Checks** block. A codebook variable of the wrong scale is a
-  red error here, as it is for the engine — for example 'y: "brands" is
+  and fill the **Checks** block. Below a **Data file** the names are checked
+  against the file's columns instead — "variable: "q99" is not a column of
+  assets/household_survey.xlsx, nor made by this flow." — and a scale only
+  guessed from the file's values is a warning where it does not fit, not an
+  error ("… looks ratio (as guessed from its file's values); this node
+  expects nominal/ordinal."); names below a file not read yet are not
+  checked. The engine checks the same at **Check**, at Save and before a
+  preview. A codebook variable of the wrong scale is a red error here, as it
+  is for the engine — for example 'y: "brands" is
   nominal; this node expects ordinal/interval/ratio.' One that a node of the
   flow makes is a warning, as in the engine, and the flow still runs:
   'row: "factor_1" is interval (as fa makes it); this node expects
@@ -867,7 +885,7 @@ need not be), and the draft must pass the engine's check.
 
 | Node output | Preview |
 |---|---|
-| data (SurveyData) | "N rows × M columns" and the first 20 rows — handy for counting what each cleaning step removed |
+| data (SurveyData) | "N rows × M columns" and the first 20 rows — handy for counting what each cleaning step removed. Each column's header gives its name, label, type and scale, a column that looks like personal data is marked **!**, an empty cell reads "—", and a cell's text is shown as it is, never read as Markdown or HTML |
 | table | the table (first 50 rows), with its statistics under it (a number below 0.0001 keeps four significant digits and its exponent there too, `p = 1.304e-09`). Its p-values are written as the house style's **P values** says (**Settings → Reports**; see [P values](Studio-Reports#p-values)) — at **< 0.001**, `< 0.001` in a p column and `p < 0.001` under the table — in the first 50 rows of a longer table, the node's other tables and a bare table alike. A node with several tables shows them all, the others each under its output's name: the **pairs** of Friedman or Cochran's Q under **Paired tests**, the **variance** and **correlations** tables under **Factor analysis**'s loadings, the **variance** under **Principal components**, the **rows** and **columns** under a **Perceptual map**'s dimensions, the **curves** under **Price sensitivity**'s price points (an empty one, such as the pairs of a two-variable test, is left out). The post-hoc pairs of **Group means** print under its means table |
 | chart | the rendered chart — the picture a run draws, a chart of **Palette** `theme` in the look of the flow's **Save report**, its note's p (a **Result chart** of a t-test) as the house style's **P values** says. A **Trend** shows the table of its points under the picture. A chart that cannot be drawn (a Likert chart of items without a scale, a Result chart of a result it cannot draw) fails its own node, with the reason, not the report after it |
 | stat | the statistics as a list of names and values. A number below 0.0001 is written with four significant digits and its exponent, as the table's footer writes it — a p of `1.132e-24`, not 0. A number below 1 that four significant digits hold is written as it is — a **Paired tests** p of `0.002343`, a **Bartlett p** of `0.00227` — as the footer writes it too. Every number reads as the footer writes it: a whole number the engine keeps as a decimal keeps its `.0` (a Welch t-test's `df` of `8.0`, the `n` of a Spearman correlation), and a count has none. Studio adds a thousands comma (`1,198`), which the footer does not. A p below the threshold of the house style's **P values** reads as the bound, `< 0.01` |
@@ -975,8 +993,10 @@ Live recompute).
 files uploaded under [[Files|Studio-Files]] that the project's flows name —
 the upload chosen in a **Data file** node's **File** (and **Dictionary
 (JSON)**), which the flow stores as `assets/<name>`. Other uploads are not
-copied. When one cannot be, the log says
-why before the script runs: "note: assets/panel.csv is not among this
+copied. The log names the version of each upload the run read — "read
+assets/panel_wave2.csv (sha256 …)", the start of its content's hash — so two
+runs over a replaced upload can be told apart. When one cannot be copied, the
+log says why before the script runs: "note: assets/panel.csv is not among this
 project's Files", "note: assets/panel.csv is listed under Files but its
 content is gone" or "note: uploads cannot be read (*reason*)"; the node that
 reads it then fails with the path it looked for.
