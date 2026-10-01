@@ -146,12 +146,11 @@ pictures" — the node's parameter of the same name, off by default; with
 **Also HTML** unchecked the box is grayed out and reads "Only the HTML has
 interactive charts — tick Also HTML first"; see
 [Interactive charts](#interactive-charts)), **Also Excel** ("Every
-table of the report in one workbook beside it (Path with .xlsx): a sheet per
-table with its statistics under it, and a Contents sheet first; charts are
-left out" — the node's **Also save tables to Excel**, off by default, its
-"Path" being the node's **File name**; see
-[Tables in Excel](#tables-in-excel)), and an icon that shows the **Save
-report** node on the canvas. Without one: "This flow saves no report
+table of the report in one workbook beside it, named as the report with
+.xlsx: a sheet per table with its statistics under it, and a Contents sheet
+first; charts are left out" — the node's **Also save tables to Excel**, off
+by default; see [Tables in Excel](#tables-in-excel)), and an icon that shows
+the **Save report** node on the canvas. Without one: "This flow saves no report
 yet. Add a section: it creates the **Save report** node and wires the section
 into it."
 
@@ -871,9 +870,8 @@ combined report written, and the last one stays.
 
 A flow whose **Report path** names a file it did not write counts as failed
 ("report outputs/tables.md was not written: the flow's Report path names a
-file none of its nodes saves — set it to the Path of its Save report node";
-the node's Path is its **File name** now, so choose that node in **Report
-path**); the other flows, including those that read its tables, go on. The
+file none of its nodes saves — choose one of its Save report nodes in Report
+path"); the other flows, including those that read its tables, go on. The
 **Report path** is chosen from the flow's **Save report** nodes and follows
 its node, so this happens only to one saved earlier or set through the API,
 which **Check** and the Save warn about first — see

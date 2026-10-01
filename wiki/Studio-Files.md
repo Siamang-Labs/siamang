@@ -31,9 +31,7 @@ Uploads and run outputs
  panel_wave2.csv              84.6 KB    Sep 28, 2026   [copy] [download] [delete]
    assets/panel_wave2.csv
    1,200 rows × 24 columns · possible missing codes in 3 columns
-   Looks like personal data: email (e-mail). Leave these out early — the Data
-   file node can add a Select columns node without them — or delete the file
-   and upload it without them.
+   ● Looks like personal data ⓘ
  report.html                  212.4 KB   Sep 20, 2026          [download] [delete]
    outputs/tables/report.html
  report_fig_1.png             31.0 KB    Sep 20, 2026          [download] [delete]
@@ -48,11 +46,12 @@ The **Codeframes** section is described [below](#codeframes). Under
 
 | Column | Shows |
 |---|---|
-| **Name** | the file name, with its stored path underneath (for example `assets/panel_wave2.csv` for an upload, `outputs/tables/report_fig_1.png` for a run output), and an icon for images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`), reports (`.md`, `.html`) and other files. Under an upload a **Data file** node can read, what Studio read from it (see [What Studio reads from a data file](#what-studio-reads-from-a-data-file)). On a phone, the size and date show under the name instead of in their own columns |
+| **Name** | the file name, with its stored path underneath (for example `assets/panel_wave2.csv` for an upload, `outputs/tables/report_fig_1.png` for a run output), and an icon for images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`), reports (`.md`, `.html`) and other files. Under an upload a **Data file** node can read, what Studio read from it, and a **Looks like personal data** mark when some of its columns look like personal data (see [What Studio reads from a data file](#what-studio-reads-from-a-data-file)). On a phone, the size and date show under the name instead of in their own columns |
 | **Size** | the stored size |
-| **Updated** | for an upload, the date its content last changed: uploading new content under the same name changes it, uploading the same content again does not. For a run output, the date it first appeared under that path: a later run that replaces it keeps that date |
+| **Updated** | the date the file's content last changed. For an upload, uploading new content under the same name changes it, uploading the same content again does not. For a run output, a run that writes the file with new content changes it, and a run that writes the same content again does not |
 
-The list is newest first by **Updated**.
+The list is newest first by **Updated**, so an output that a run has just
+rewritten with new content moves to the top.
 
 Each row has icon buttons:
 
@@ -106,23 +105,27 @@ Rules:
 - **A workbook over 20 MB** gets a warning: "A workbook this large reads
   slowly: saved as CSV or Parquet it reads in a fraction of the time."
 - **Names are cleaned.** Cyrillic letters (Russian and Ukrainian) are spelled
-  in Latin and accents are dropped (`café.csv` → `cafe.csv`). Then every run
-  of characters other than Latin letters (A–Z, a–z), digits, `.`, `_` and `-`
-  becomes `_`, leading and trailing dots and underscores are removed, and the
-  name is cut to 128 characters, **keeping its extension**:
-  `Logo final (v2).png` is stored as `Logo_final_v2_.png`, `Волна 2.csv` as
-  `Volna_2.csv`. A name with nothing left in Latin letters, such as one in
+  in Latin and accents are dropped (`café.csv` → `cafe.csv`). No other letters
+  are spelled in Latin: other Cyrillic letters (Serbian `ђ`, Kazakh `қ`,
+  Belarusian `ў`), Greek letters, and letters such as `ß`, `æ`, `ø` and `ł`
+  are left to the next step. Then every run of characters other than Latin
+  letters (A–Z, a–z), digits, `.`, `_` and `-` becomes `_`, leading and
+  trailing dots and underscores are removed, and the name is cut to 128
+  characters, **keeping its extension**: `Logo final (v2).png` is stored as
+  `Logo_final_v2_.png`, `Волна 2.csv` as `Volna_2.csv`, `Straße.csv` as
+  `Stra_e.csv`. A name with nothing left in Latin letters, such as one in
   Chinese or Greek, is stored as `upload_<8 characters>.<extension>` — the
   same for the same name. A browser sends a double quote in a file name as
   `%22`, so `Survey "A".csv` is stored as `Survey_22A_22.csv`.
 - **The dialog says the stored name** in one sentence that says what happened
   to this name, such as "It will be saved in Files as Volna_2.csv: Cyrillic
-  letters are spelled in Latin and spaces become _." or "Studio can't spell
-  this name in Latin letters, so it will be saved in Files as
-  upload_431a963b.csv." A name with nothing to keep, such as `...`, is
-  refused ("Nothing of this name can be kept: …"), and so is a name with `..`
-  in it ("A flow can never read a file whose name has “..” in it. …"): no run
-  would ever bring such a file in.
+  letters are spelled in Latin and spaces become _.", "It will be saved in
+  Files as Stra_e.csv: letters Studio can't spell in Latin become _." or
+  "Studio can't spell this name in Latin letters, so it will be saved in
+  Files as upload_431a963b.csv." A name with nothing to keep, such as `...`,
+  is refused ("Nothing of this name can be kept: …"), and so is a name with
+  `..` in it ("A flow can never read a file whose name has “..” in it. …"):
+  no run would ever bring such a file in.
 - **The same name replaces the existing file.** The dialog warns first:
   "Files already has *name*: this upload replaces it, and every flow that
   reads it reads the new file from its next run." Rename the file on your
@@ -173,7 +176,8 @@ here:
 
 - a flow's outputs are kept under `outputs/<flow>/<file>` and **replaced every
   time that flow runs**, so Files always holds the latest run's version (earlier
-  runs keep their own file lists in the run history);
+  runs keep their own file lists in the run history); its **Updated** date
+  moves only when the run changed its content;
 - **Run all** stores each flow's report (the `.md`, its `.html` and the
   figures it shows) under `outputs/<flow>/` as soon as that flow finishes, as a
   run of that flow alone would, and then its combined report, by default
@@ -217,13 +221,15 @@ Under the file's name, the row then says:
   **Mark them as missing in these columns** in its
   [Columns panel](Studio-Node-Reference#the-columns-panel)), such codes count
   as answers: they show in frequencies and change a mean.
-- **Looks like personal data:** the columns whose names (in English or
-  Russian) or values look like an email or IP address, a location, a name, a
-  phone number, an address or a participant ID (Prolific, MTurk), each with
-  its kind — "email (e-mail)" — then "Leave these out early — the Data file
-  node can add a Select columns node without them — or delete the file and
-  upload it without them." It is a hint, never a drop: nothing is removed
-  until you act (see
+- **Looks like personal data**, a short warning mark, when some columns'
+  names (in English or Russian) or values look like an email or IP address, a
+  location, a name, a phone number, an address or a participant ID (Prolific,
+  MTurk). Its **ⓘ** (point at it or click it; `Esc` closes it) names those
+  columns, each with its kind — "email (e-mail)" — then says "Leave these out
+  early — the Data file node can add a Select columns node without them — or
+  delete the file and upload it without them." A screen reader reads the same
+  words as the **ⓘ** button's description. It is a hint, never a drop:
+  nothing is removed until you act (see
   [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload)).
 - "Reading its columns…" while the file is being read. The screen asks again
   every few seconds until it can say what the file holds. A reading that has
@@ -260,8 +266,9 @@ rows to the `responses` table.
    options**.
 4. If the panel finds codes that look like missing codes, click **Mark them as
    missing in these columns**, and add a **Missing values** node below to turn
-   them into blanks. If it names columns that look like personal data, click
-   **Add a Select columns node without them**.
+   them into blanks. If it shows **Looks like personal data** (its **ⓘ**
+   names the columns), click **Add a Select columns node without them** beside
+   it.
 5. Add your analyses below. Their pickers list the file's columns under
    "From panel_wave2.csv". The questionnaire's variables are offered too only
    when the file is this survey's data.

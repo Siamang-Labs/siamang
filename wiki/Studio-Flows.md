@@ -412,16 +412,19 @@ messages, comments and previews stay visible.
   to pick an option), while a dialog or a menu is open, or with `Ctrl`,
   `Cmd` or `Alt` held — `Ctrl/Cmd + F` stays the browser's Find. A focused
   checkbox or switch (such as **Live: recompute on new responses**) does not
-  stop it. While a **Data file** node's **Reading options** is open in the
-  inspector, neither `F` nor `Esc` does anything: click **Reading options**
-  to close it, or use the button. A screen reader hears "Focus mode on" or
-  "Focus mode off".
+  stop it, and neither does a **Data file** node's **Reading options** left
+  open in the inspector. A screen reader hears "Focus mode on" or "Focus mode
+  off".
 - **`Esc`** turns it off too, unless something uses `Esc` first: an open
   dialog, a menu such as **More ▾**, an **ⓘ** tip, or the text field or
   dropdown that has the focus. On the canvas, `Esc` first clears the selected
-  node, wherever you clicked last; the next `Esc` leaves focus mode. While a
-  node or a wire has the keyboard focus (after `Tab`) and none is selected,
-  `Esc` is the canvas's own and the mode stays: press `F` or use the button.
+  node, wherever you clicked last; the next `Esc` leaves focus mode. With
+  **More ▾** open, `Esc` closes it and gives its button the focus, and the
+  mode stays; the next `Esc` clears a selected node or leaves the mode.
+  `Tab` out of an open **More ▾** closes it, so `F` works again as soon as
+  the focus has left it. While a node or a wire has the keyboard focus (after `Tab`) and
+  none is selected, `Esc` is the canvas's own and the mode stays: press `F`
+  or use the button.
 - **The Canvas view's only.** **List** and **Report** show the topbar, tabs
   and full header even with the mode on, and `F` and `Esc` do not change it
   there. Switch back to **Canvas** and focus mode is as you left it.
@@ -544,7 +547,8 @@ took (`120 ms`, `1.4 s`).
 | **Comments** | comments on the flow as a whole |
 
 **With a node selected:** its category and title with an **ⓘ** for what the
-node does, **Duplicate (⌘D)** and **Delete (Del)** icons, its own problems,
+node does, **Duplicate (Ctrl+D)** (**Duplicate (⌘D)** on a Mac, iPad or
+iPhone) and **Delete (Del)** icons, its own problems,
 **Node id**, the
 parameters (only those its current choices read — see
 [Parameters and variable pickers](#parameters-and-variable-pickers)), the
@@ -642,7 +646,8 @@ survey's responses carry — `created_at — Response date (created_at)`,
 `updated_at — Last change (updated_at)` and `started_at — Start time
 (started_at)` — and the checks know them. A flow that reads them from a **Data
 file** or **Simulated data**, which have none unless the file brings the
-column, gets a warning. **Time** lists **Waves and dates** first (labeled
+column, gets a warning; a **Data file** whose read columns include the
+timestamp gets none. **Time** lists **Waves and dates** first (labeled
 codes, ordinal variables, date columns, a Date question's answers), then
 **Other variables**.
 
@@ -668,7 +673,8 @@ Files → outputs/*flow*/*name*"), what is written beside it, whether **Run
 all** keeps it, and what is wrong with a name — with a one-click fix such as
 **Use tabbook_2** when another node already writes that file. A file a node
 reads is picked by name from the uploads under **Files** it can read, with
-**Upload…** and **Type a name…** under the list. The flow still stores the
+**Upload…** and **Type a name…** (**Type another name…** once a file is
+chosen) under the list. The flow still stores the
 whole path (`outputs/<name>.xlsx`, `assets/<name>`), so flows saved earlier
 and the generated script read what they always did. See
 [Where files go](Studio-Node-Reference#where-files-go).
@@ -771,12 +777,12 @@ Studio checks a flow twice:
   run this flow." — or lists each problem by node. The engine's verdict is the
   one that counts. Studio tells the engine which response timestamps its
   responses carry (`created_at`, `updated_at`, `started_at`, not
-  `submitted_at`) and adds four checks of its own: a step's text
+  `submitted_at`) and adds four checks of its own: a node's text
   that is not one line (the error `PARAM_LINE_BREAK`, see
   [One-line texts](Studio-Node-Reference#reading-this-page)), a data source
   naming a table or environment no project can have (the errors
   `SOURCE_TABLE_NAME` and `SOURCE_ENVIRONMENT_NAME`), a **Report path**
-  that no **Save report** step writes (the warning `REPORT_PATH_UNWRITTEN`,
+  that no **Save report** node writes (the warning `REPORT_PATH_UNWRITTEN`,
   for a flow saved that way before the Report path became a list; see
   [The combined report](#the-combined-report)), and a response timestamp
   read from a **Data file** or **Simulated data** (the warning
@@ -1052,10 +1058,9 @@ The log lists what was kept ("outputs: outputs/tables/tables.md, …").
 3. **A missing report is that flow's failure.** When a flow runs but the file
    its **Report path** names was not written, the flow is marked failed with
    "report outputs/tables.md was not written: the flow's Report path names a
-   file none of its nodes saves — set it to the Path of its Save report
-   node" (the node's Path is its **File name** now: choose that node in
-   **Report path**). Its script did run, so the flows that read its tables
-   still run.
+   file none of its nodes saves — choose one of its Save report nodes in
+   Report path". Its script did run, so the flows that read its tables still
+   run.
    The Save already warns about such a flow (see
    [The combined report](#the-combined-report)).
 4. **Once every flow has had its turn**, Studio writes the **combined
@@ -1157,10 +1162,9 @@ flow's report** in the Report view. A **Report path** saved before it became a
 list, or written by other means, may name a file no **Save report** node of the
 flow saves; the list then shows it as "*path* — no node saves this", and
 **Check** and the Save warn: "The flow's Report path is “outputs/tables.md”,
-but no Save report step saves there: Run all will fail this flow. Set it to the
-Path of a Save report step, or clear it." — that is, choose one of the flow's
-**Save report** nodes in the list (the "Path" is the node's **File name**
-now), or **— none —**.
+but no Save report node saves there: Run all will fail this flow. Choose one of
+the flow's Save report nodes in Report path, or clear it." (**— none —** clears
+it.)
 
 **After a failure** the combined report is still written from the flows that
 succeeded, its title marked incomplete — *Digital Life & Wellbeing 2026
@@ -1476,15 +1480,14 @@ and what says it is not, is listed under
 | `Ctrl/Cmd + Enter` | anywhere in the editor | preview up to the selected node (the whole draft when none is selected) |
 | double-click a node | Canvas | preview up to it |
 | `F` | Canvas | [focus mode](#focus-mode) on / off (the key marked F in any keyboard layout); nothing in List or Report |
-| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first, and so does a node or wire that has the keyboard focus while none is selected; nothing while a Data file's **Reading options** is open; in full screen the first `Esc` leaves full screen |
+| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first, and so does a node or wire that has the keyboard focus while none is selected; in full screen the first `Esc` leaves full screen |
 | `↑` / `↓`, `Enter` | List | move between nodes; preview up to the focused one |
 | `Ctrl/Cmd + K` | List | open the node picker |
 
 Delete, duplicate and undo are ignored while you type in a field, in the
 Report view, and while a colleague holds the edit lock. `F` is ignored while
-a text field or a dropdown has the focus, while a dialog or menu is open and
-while a Data file's **Reading options** is open, and `Ctrl/Cmd + F` stays the
-browser's Find. See
+a text field or a dropdown has the focus and while a dialog or menu is open,
+and `Ctrl/Cmd + F` stays the browser's Find. See
 [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]].
 
 ## See also

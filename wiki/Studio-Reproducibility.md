@@ -413,7 +413,7 @@ read assets/panel_wave2.csv (sha256 4be1c07a93d2f518)
 To check that a file you hold is the one a run read, compare the first 16
 characters of `sha256sum panel_wave2.csv` with that line. A research bundle
 with data records the full hash of each upload it carries in
-`data/responses.manifest.json`, under `uploads`. On **Files**, an upload's
+`data/responses.manifest.json`, under `uploads`. On **Files**, a file's
 **Updated** date says when its content last changed (see
 [The Files screen](Studio-Files#the-files-screen)).
 

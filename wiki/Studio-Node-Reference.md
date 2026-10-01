@@ -53,7 +53,7 @@ error until you fill it in. The inspector marks every other parameter
 | formula | a monospaced box, with the variables available at this node listed under it |
 | file name | a file the node writes: a field labeled **File name**, the name typed between a fixed `outputs/` and the file's ending (`outputs/` `client_q3` `.xlsx`); a **Format** list under it where the node writes several. A `/` in the name makes folders. The lines under it say where a run leaves the file and what is wrong with a name (see [Where files go](#where-files-go)) |
 | codeframe | a dropdown of the project's codeframes by path (`analysis/<name>.codeframe.json`; **— choose a codeframe —** when none is chosen), with **Edit codeframe…**, or **New codeframe…** when none is chosen (see [Code open answers](#code-open-answers)) |
-| upload | a file the node reads: a list, by name, of the uploads under **Files** the field can read, with the chosen file's size and date under it and **Upload…** and **Type a name…** under that (see [Where files go](#where-files-go)) |
+| upload | a file the node reads: a list, by name, of the uploads under **Files** the field can read, with the chosen file's size and date under it and **Upload…** and **Type a name…** (**Type another name…** once a file is chosen) under that (see [Where files go](#where-files-go)) |
 
 **The variables available at a node** are the questionnaire's codebook
 variables, then those that nodes upstream of it make — a **Recode**,
@@ -184,7 +184,8 @@ the list:
   upload's name, such as `./assets/panel_wave2.csv` — is shown under "Other
   location, kept as it was written": "A run only brings in files uploaded
   under Files, so it won't find this one.", with **Use the uploaded
-  panel_wave2.csv** when Files has it.
+  panel_wave2.csv** when Files has it. A **Data file**'s
+  [Columns panel](#the-columns-panel) then says **not read**.
 - A required file left empty is an error on the node: "No file chosen yet:
   pick one of the project's Files, or upload one."
 
@@ -246,9 +247,7 @@ and Parquet, which say all of it themselves (an option set for another kind
 of file still shows, so it can be cleared). An option left on auto says what
 was found: "auto — found ;" in **Delimiter**, "found: Sheet1" in an empty
 **Sheet**. Each choice reads as a value and its meaning, such as `cp1251 —
-Windows-1251, Cyrillic (Russian Excel's CSV)`. While **Reading options** is
-open, the flow editor's `F` and `Esc` do nothing (see
-[Focus mode](Studio-Flows#focus-mode)); close it to use them.
+Windows-1251, Cyrillic (Russian Excel's CSV)`.
 
 **Missing codes per file.** When **Missing codes** names columns the file
 does not have — codes left from a file the node read before, which a run
@@ -259,7 +258,8 @@ file doesn't have: …" with **Remove them** (**Remove it** for one).
 
 Under the parameters, once a **File** is chosen, the **Columns** panel shows
 what the node read from the file with these options — its head says **read**,
-**reading…**, **not in Files** or **cannot read**:
+**reading…**, **not in Files**, **not read** (a **File** under "Other
+location") or **cannot read**:
 
 - "*rows* rows × *columns* columns" and how the file was read: the format,
   the delimiter, the encoding (or "with a byte-order mark"), a decimal comma,
@@ -285,13 +285,15 @@ what the node read from the file with these options — its head says **read**,
   columns — see Missing codes above." with **Undo**. When some are marked and
   others not, the button reads **Add this file's missing codes (*n*
   columns)**.
-- **Looks like personal data:** the columns whose names or values look like
-  an email, an IP address, a location, a name, a phone number, an address or
-  a participant ID — "An analysis rarely needs these; leave them out early so
-  no table, report or export carries them." — with **Add a Select columns node
-  without them**: a **Select columns** node labeled "Without personal data",
-  keeping every other column, is put after the Data file, takes over what the
-  Data file fed, and is selected. Nothing is dropped until you press it.
+- **Looks like personal data**, a short warning mark, when some columns'
+  names or values look like an email, an IP address, a location, a name, a
+  phone number, an address or a participant ID. Its **ⓘ** names those
+  columns, each with its kind ("email (e-mail)"), and says "An analysis
+  rarely needs these; leave them out early so no table, report or export
+  carries them." Beside it, **Add a Select columns node without them** puts a
+  **Select columns** node labeled "Without personal data", keeping every
+  other column, after the Data file; it takes over what the Data file fed,
+  and is selected. Nothing is dropped until you press it.
 - **Show the *n* columns** lists each column on two lines: its name, a
   personal-data mark and its missing codes — declared, and suspected ones with
   a `?` — then its label, its value labels count, its type where it says
@@ -312,7 +314,13 @@ read says why in words: the encoding it looks like and what to set, a line
 with a different number of fields than the table ("Line 4 has 3 fields where
 the table has 2 …"), the sheets a workbook has, an empty file, or a format
 the node does not read. When the chosen file is not in **Files**, the panel
-says only **not in Files**; the note under **File** says the rest.
+says only **not in Files**; the note under **File** says the rest. A **File**
+under "Other location" is never read: the panel says **not read** and "Only
+a file uploaded under Files is read for its columns. Choose the upload under
+File above (upload it first if it isn't there), and its columns show here.",
+with no **Read again**. The field's **Use the uploaded …** (for an older
+path) or **Use *name*** (for a typed name), where it offers one, or its list
+chooses the upload.
 
 #### The file's columns in the flow
 
@@ -3224,8 +3232,10 @@ choose a column the data has." Below a **Data file** whose columns have been
 read, a timestamp is known only if the file has that column (see
 [The file's columns in the flow](#the-files-columns-in-the-flow)); otherwise
 it is an error like any name the file lacks ("time: "created_at" is not a
-column of assets/panel_wave2.csv, nor made by this flow."). Either way the
-Save also gives the warning above, naming Data file.
+column of assets/panel_wave2.csv, nor made by this flow."), and the Save
+also gives the warning above, naming Data file. A file whose read columns
+include the timestamp gets no warning, on the canvas or at Save; one not
+read yet gets the warning at Save.
 
 What only the data can tell stops the node when it runs, with the reason: a
 code that is no answer ("Trust: Acme has no answer 7; its answers are 1 = No
@@ -3418,7 +3428,7 @@ footer** is on (the default).
 | **Also save HTML** | checkbox | on | — | Also write the styled `.html` twin next to the Markdown. |
 | **Interactive charts in HTML** | checkbox | off | — | The HTML draws its charts in the reader's browser — a tooltip on every bar, point and cell with its value and base, a legend whose entries hide and show their series, zoom where it helps — and still opens offline, so it can be sent to a client as it is. For that it carries the chart libraries (Vega, Vega-Lite and Vega-Embed, about 0.8 MB, written in once) and each chart's numbers — what it draws, and a scatter plot's points and a box plot's outliers, the respondents' values it plots. Each chart's picture stays in the HTML for printing and for readers without scripts; the Markdown and the Excel workbook are unchanged. Applies only with Also save HTML. |
 | **Table of contents** | checkbox | off | — | Add a table of contents. |
-| **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (its File name with `.xlsx`) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
+| **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it, named as the report with `.xlsx` — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
 | **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). Its p_values says how the report writes a p-value — exact, as computed (the default); 0.01, one below 0.01 as < 0.01; or 0.001, one below 0.001 as < 0.001 — in its tables' cells and statistics lines, the Markdown as the HTML, the Excel workbook (a number format, so the cell keeps its number) and the charts' notes (< .01); the results and their exports keep the exact p. Otherwise the Markdown's text is unaffected. |
 
 - **The Excel workbook** (`<name>.xlsx` beside `<name>.md`) is
