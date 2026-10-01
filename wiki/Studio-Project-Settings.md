@@ -148,12 +148,24 @@ with no styling, for a diff or a repository."
   Reports already stored keep the footer they were made with. Previews
   (**Run to here**, **Preview all**) never print the footer. See
   [The provenance footer](Studio-Reports#the-provenance-footer).
-- **Combined report** — "where Run all writes the merged report; Markdown,
-  inside the project". Default `reports/report.md`. A path that is absolute,
-  contains `..` or does not end in `.md` / `.markdown` shows "A combined report
-  must be a Markdown path inside the project, like reports/report.md." The
-  **Reports** screen marks the report at this path with the **combined**
-  badge, including a custom path.
+- **Combined report** — "where Run all writes the merged report: a Markdown
+  file inside the project". You type the folders and the name, such as
+  `reports/full`, before a fixed `.md`; empty, it is the default
+  `reports/report.md`. The line under it says where it goes: "After Run all:
+  Files and Reports → reports/full.md, with an .html copy beside it". A
+  problem is said on that line instead, with a one-click fix when there is
+  one, and keeps **Save report settings** and **Apply to every flow** off
+  until you fix it: a name with `..` ("“..” and “.” can't be folders here:
+  the file has to stay in the project."), a character other than letters
+  a–z, digits, `-`, `_` and `.`, or another ending, such as
+  `reports/report.docx` ("Take .docx off the name: the combined report is
+  Markdown (.md), with an .html copy beside it — for Word or a PDF, open the
+  .html.", with **Use reports/report**). A path saved earlier that **Run
+  all** accepts, such as one with Cyrillic letters, shows the same advice but
+  does not keep the other report settings from being saved. A path saved
+  earlier without a Markdown ending is shown under "Kept as it was written",
+  with **Save it as *path*.md instead**. The **Reports** screen marks the
+  report at this path with the **combined** badge, including a custom path.
 - **House style** — the report theme form (typeface, density, table style,
   page size, **P values**, sizes, figures, captions, colors, and the chart
   colors of the charts whose **Palette** is `theme`), described on
