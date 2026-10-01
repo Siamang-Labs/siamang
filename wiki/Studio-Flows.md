@@ -465,7 +465,9 @@ and **Heatmap**, "shapley" **Key drivers**, "gabor" **Price sensitivity**,
 group with a match. The
 List view's node picker (`Ctrl/Cmd + K`) searches the same way.
 Each item shows the title and a short name (`crosstab`), plus `· platform` for
-nodes that need the project database. Hover an item for its description.
+nodes that need the project database. Hover an item for its description
+(a node on the canvas gives it too): its paragraphs a blank line apart and
+a list's items each on a line after "•", without code type.
 
 - **Click** an item to add the node to the right of the last node.
 - **Drag** an item onto the canvas to drop it where you want.
@@ -545,7 +547,7 @@ took (`120 ms`, `1.4 s`).
 |---|---|
 | **Title** | the flow's title |
 | **Description** | shown in the flows table and the methods draft |
-| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node — the file it writes, such as `satisfaction.md`, with the node and its report's title on the line under it ("Save report (save) · Satisfaction by region") (hint: "the report Run all keeps and puts in the combined report: one of this flow's Save report nodes"). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list, with "(no node saves this)" after it in the field and under it in the list, and the line under the field reads "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
+| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node — the file it writes, such as `satisfaction.md`, with the node and its report's title on the line under it ("Save report (save) · Satisfaction by region") (its **ⓘ**: "The flow's report: the one Run all keeps and puts in the combined report. Pick one of this flow's Save report nodes."). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list, with "(no node saves this)" after it in the field and under it in the list, and the line under the field reads "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
 | **Live: recompute on new responses** | Live mode (see [Live mode](#live-mode)) |
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
@@ -575,11 +577,36 @@ way, such as `clean_responses_2`. The
 flow's **Report path** stays with the original **Save report** node.
 
 What a node does and what each parameter means sit behind the **ⓘ** beside
-the node's title and beside each label, rather than printed under it: hover
-over it, or click it to keep it open (Esc or a click elsewhere closes it). A
-screen reader reads the same text with the control. Printed in full, the help
-set how far apart the controls were — a crosstab's settings ran past the
-bottom of the screen.
+the node's title and beside each label, rather than printed under it. Printed
+in full, the help set how far apart the controls were — a crosstab's
+settings ran past the bottom of the screen.
+
+- **Opening a tip.** Point at the **ⓘ** with the mouse, and the tip goes
+  when the pointer leaves both the **ⓘ** and the tip; or click (tap) it to
+  keep it open, and click it again, click elsewhere or press `Esc` to close
+  it. Scrolling the page or the inspector, or resizing the window, closes it
+  too.
+- **How a tip reads.** A longer help comes in short paragraphs, with a list
+  where a field has several options or cases — often each value with what it
+  does, as in a **Data file**'s **Missing codes** ("Type them in one of two
+  ways:", then each way as an item). Values, codes, column and file names are
+  set in code type, as in the field. A tip with a list is a little wider.
+- **Where it opens.** Under its **ⓘ**, or over it when there is no room
+  below; a short tip may cover the field under the label, as any tooltip
+  does. A tip too tall for either, such as **Apply weight**'s **Weight
+  column**, goes beside the whole field — in the usual layout to its left,
+  over the canvas — when there is room; otherwise it takes the taller side
+  and scrolls inside itself. It never covers its own **ⓘ**. A tip you clicked
+  open that scrolls follows `↑`, `↓`, `Page Up`, `Page Down`, `Home` and
+  `End` while its **ⓘ** has the focus.
+- **`Esc`** closes the tip, and nothing else: not a list, not focus mode,
+  not the node's selection. The tip stays closed while the pointer is still
+  on the **ⓘ**; move away and back to open it again. The focus goes back to
+  the **ⓘ** when you had clicked the tip open (or were in it), and stays in
+  the field you are typing in when the tip had opened under the mouse.
+- **A screen reader** reads the same text with the control, each paragraph
+  and list item as a sentence of its own, a list item after its bullet or
+  number.
 
 Below the inspector, the **Checks** block lists the flow's problems ("Checks
 2 errors · 0 warnings", "1 error" for one, up to twelve); click one to select

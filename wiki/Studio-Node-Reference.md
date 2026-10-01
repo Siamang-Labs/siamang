@@ -213,11 +213,13 @@ Nodes with no input that produce **SurveyData**. A flow needs at least one.
 ### Data file
 
 `source.file` — reads a data file uploaded under [[Files|Studio-Files]] as it
-comes, and brings **its own columns** into the flow. The palette describes it
-as "A data file from Files: CSV (in any encoding, with , ; tab or | between
-fields), Excel, SPSS, Stata or Parquet. Its columns come into the flow with
-it: their names, the labels of a label row (a Qualtrics export's question
-texts), value labels and missing codes where the format keeps them."
+comes, and brings **its own columns** into the flow. Its **ⓘ** describes it
+in two paragraphs: "A data file from Files: CSV, Excel, SPSS, Stata or
+Parquet. A CSV may be in any encoding, with a comma (`,`), a semicolon (`;`),
+a tab or a vertical bar (`|`) between the fields." and "Its columns come into
+the flow with it: their names, the labels of a label row (a Qualtrics
+export's question texts), and value labels and missing codes where the
+format keeps them."
 
 It reads `.csv`, `.tsv` and `.txt` (text tables in any encoding, separated by
 commas, semicolons, tabs or vertical bars), `.xlsx`, `.xlsm` and `.xls`,
@@ -242,7 +244,7 @@ The inspector shows the parameters in this order: **File**, **Codebook**, the
 | **Sheet** | text | — | — | Excel: the sheet to read, by its name or its number (1 is the first). Empty reads the first sheet that holds a table. |
 | **Delimiter** | choice | `auto` | `auto`, `,`, `;`, `tab`, `\|` | Text files: what separates the fields — comma, "semicolon (Excel with Russian or European settings)", "tab (Excel's Unicode text)", vertical bar. `auto` tries each on the first rows. |
 | **Encoding** | choice | `auto` | `auto`, `utf-8`, `utf-16`, `cp1251`, `koi8-r`, `cp866`, `cp1252`, `cp1250`, `iso-8859-1` | Text files: how the letters are written. `cp1251` is "Windows-1251, Cyrillic (Russian Excel's CSV)", `utf-16` "Excel's Unicode text". `auto` reads a byte-order mark, then UTF-8, then the most likely Windows code page. |
-| **Decimal mark** | choice | `auto` | `auto`, `.`, `,` | How numbers write their fraction, 4.5 or 4,5, in a text file and for numbers an Excel sheet keeps as text. `auto` reads a comma where the numbers are written so, and leaves values as ambiguous as `1,500` as text when nothing tells. |
+| **Decimal mark** | choice | `auto` | `auto`, `.`, `,` | How numbers write their fraction, `4.5` or `4,5`, in a text file and for numbers an Excel sheet keeps as text. `auto` reads a decimal comma where the numbers are written with one: in a text file with a semicolon, a tab or a vertical bar between the fields (not a comma), and in a sheet where its text numbers show it. A text file always gets a mark; when nothing in a sheet tells, `auto` leaves values as ambiguous as `1,500` as text, and the **Columns** panel says so — pick the mark here to read them as numbers. |
 | **Missing codes** | text | — | — | Codes that mean no answer in this file, per column — `q5: -9` and `q6_1: -7, -8`, one column a line (or `;` between them) — or for every column that holds them: `-7, -8, -9` (a negative code is then left alone in a column of other negative amounts). **Missing values** turns them into blanks, and tables leave them out. A box of a few lines; the empty box shows "e.g. q5: -9 (a line per column)". |
 | **Dictionary (JSON)** | upload | — | the `.json` uploads | Optional: the file's codebook as a data dictionary (`<name>.dictionary.json`, as a Siamang export writes it); its labels, scales and missing codes describe the file's columns. `<name>.dictionary.json` files are listed first, and when the one named after **File** is in **Files** the field offers **Use *name*.dictionary.json**. |
 
@@ -301,9 +303,9 @@ location") or **cannot read**:
 - **Looks like personal data**, a short warning mark, when some columns'
   names or values look like an email, an IP address, a location, a name, a
   phone number, an address or a participant ID. Its **ⓘ** names those
-  columns, each with its kind ("email (e-mail)"), and says "An analysis
-  rarely needs these; leave them out early so no table, report or export
-  carries them." Beside it, **Add a Select columns node without them** puts a
+  columns, each with its kind ("`email` (e-mail)"), and says, in a paragraph
+  of its own, "An analysis rarely needs these; leave them out early so no
+  table, report or export carries them." Beside it, **Add a Select columns node without them** puts a
   **Select columns** node labeled "Without personal data", keeping every
   other column, after the Data file; it takes over what the Data file fed,
   and is selected. Nothing is dropped until you press it.
@@ -835,15 +837,15 @@ reliability** first.
 ### MaxDiff scores
 
 `prepare.maxdiff_scores` — "One counting-score variable per MaxDiff item, per
-respondent — best minus worst over the times it was shown — so the
-preferences can go into a crosstab, a cluster or a regression."
+respondent: best minus worst over the times the item was shown." With them,
+the preferences can go into a crosstab, a cluster or a regression.
 
 **In:** `data` (SurveyData) → **Out:** `data` (SurveyData), `stat` (Stat)
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **MaxDiff question** | text | required | — | The question's id or name. Its design is read from the questionnaire. |
-| **Variable prefix** | text | — | — | Each item's score is <prefix><item code>. Defaults to the question and _score_, so item 3 of q_md becomes q_md_score_3. |
+| **Variable prefix** | text | — | — | Each item's score is `<prefix><item code>`. Defaults to the question and `_score_`, so item 3 of `q_md` becomes `q_md_score_3`. |
 
 - **MaxDiff question** is a list of the questionnaire's MaxDiff questions
   (**— pick a MaxDiff question —**), each by its name with its question text
@@ -911,7 +913,7 @@ write-up.
 | **Battery to check** | variables (several) | empty | — | A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these; a flat pattern (the same answer throughout) is straightlining, never a duplicate, since two straightliners of one column match whoever they are. |
 | **Duplicates also match on** | variables (several) | empty | — | Other answers a duplicate must repeat as well as the battery, such as age, gender and a few questions of their own. Two honest respondents can answer a battery alike, and both are dropped as one person submitting twice; the more answers two responses must share, the surer the match. Empty, the battery alone decides. |
 | **Answers that must agree** | JSON object | empty | — | left variable: right variable. A respondent answering them differently is flagged as contradictory. |
-| **Attention checks** | JSON object | empty | — | variable: the answer a reading respondent gives. |
+| **Attention checks** | JSON object | empty | — | The answer a reading respondent gives to each attention check, as variable: answer, e.g. `{"q9": 3}`. Any other answer is flagged; a skipped check is not. **Fill from the questionnaire**, below the box, fills it in from the questions marked as attention checks. |
 | **Straightlining tolerance** | number | `0.0` | at least 0.0 | Standard deviation across the battery at or below which a response counts as flat. 0 means literally identical answers. |
 | **Mode** | choice | `flag` | `flag`, `drop` | Flag adds the columns and keeps everyone; drop also removes the flagged responses. |
 | **Flags column** | text | `quality_flags` | — | New variable holding the names of the failed checks (empty when clean). |
@@ -1421,9 +1423,9 @@ To draw the matrix, connect its `table` to a **Result chart** (Kind
 ### Perceptual map
 
 `analyze.correspondence` — "Correspondence analysis of a crosstab, or of the
-attributes checked for each brand — the dimensions and their share of the
-inertia, and where each row and column lies on the map, with contributions and
-quality." A table of counts says cell by cell which brands are seen as modern
+attributes checked for each brand." It gives the dimensions and their share
+of the inertia, and where each row and column lies on the map, with
+contributions and quality. A table of counts says cell by cell which brands are seen as modern
 and which as good value; the map shows it at a glance: a brand lies toward
 the attributes it gets more of than the average brand does. Connect any of its
 tables to a **Result chart** to draw the map.
@@ -1561,9 +1563,10 @@ answering)" row.
 
 ### Data check
 
-`analyze.data_check` — "The data against its codebook before any analysis —
-values outside the valid range, codes without a label, duplicate IDs, columns
-nobody declared — with how many rows each and examples."
+`analyze.data_check` — "The data against its codebook before any analysis:
+each problem, with how many rows have it and examples." It finds problems
+such as values outside the valid range, codes without a label, duplicate IDs
+and columns nobody declared.
 
 **In:** `data` (SurveyData) → **Out:** `table` (Table), `stat` (Stat)
 
@@ -1675,9 +1678,10 @@ group's base (`Capital (n = 170–197)` when it differs between variables).
 
 ### Key drivers
 
-`analyze.drivers` — "Which of several predictors matter most for an outcome —
-each one's share of R² by Johnson's relative weights or the Shapley value
-(LMG), beside the correlations and standardized betas." A regression's
+`analyze.drivers` — "Which of several predictors matter most for an
+outcome." It gives each one's share of R², by Johnson's relative weights or
+the Shapley value (LMG), beside the correlations and standardized betas. A
+regression's
 coefficients answer another question — what changes when one rating moves and
 the others stay put — and when the ratings correlate, as ratings of one brand
 do, a coefficient can shrink or even flip sign because a neighbor took its
@@ -1862,7 +1866,7 @@ implies.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **MaxDiff question** | text | required | — | The question's id or name. Its design is read from the questionnaire, so nothing has to be re-entered here. |
-| **Estimate** | choice | `both` | `both`, `counts`, `utilities` | Counting is best minus worst over shown and anyone can recount it. Utilities are a conditional logit on the choices the design actually showed. |
+| **Estimate** | choice | `both` | `both`, `counts`, `utilities` | How each item is scored. `both`: the counting score and the utilities, with the share each implies. `counts`: the counting score alone — best minus worst over the times shown, which anyone can recount. `utilities`: the utilities, a conditional logit on the choices the design actually showed, with the counting score still beside them. A **Result chart**'s `utilities` and `shares` need `both` or `utilities`. |
 
 The design is read from the questionnaire, so the only thing to name is the
 question. Utilities come from an **aggregate** conditional logit; individual
@@ -2011,7 +2015,7 @@ rated by everyone, three brands each respondent has heard of or not.
 | **Test** | choice | `auto` | `auto`, `wilcoxon`, `mcnemar`, `friedman`, `cochran` | Auto runs Wilcoxon signed-rank for two variables and Friedman for more. McNemar is for two yes/no questions, Cochran's Q for three or more. Wilcoxon and Friedman rank the answers, so they refuse a nominal variable. |
 | **Counts as yes (McNemar, Cochran's Q)** | answer code | — | — | The answer code, or a list of codes, that counts as yes; every other answer counts as no. Empty works for 0/1 variables such as the ones Explode multiple choice makes. Shown only with **Test** `mcnemar` or `cochran`. |
 | **Same answer twice (Wilcoxon)** | choice | `wilcox` | `wilcox`, `pratt` | wilcox drops the respondents who gave both the same answer before ranking, as R and SPSS do; pratt ranks them with the others and leaves them out of the sums. Shown with every **Test** but `mcnemar` and `cochran` (Friedman's pairwise tests use it too). |
-| **p-value** | choice | `auto` | `auto`, `exact`, `approximate` | Auto is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar (and the pairs of Cochran's Q): fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise. |
+| **p-value** | choice | `auto` | `auto`, `exact`, `approximate` | Whether the p-value is exact or an approximation. `auto` is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar (and the pairs of Cochran's Q): fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise. `exact` is exact, for Wilcoxon up to 1,000 pairs (past that the normal approximation, with a note); `approximate` always takes the approximation. |
 | **Pairwise comparisons (Friedman, Cochran's Q)** | choice | `holm` | `holm`, `bonferroni`, `none` | A Wilcoxon signed-rank test (after Friedman) or a McNemar test (after Cochran's Q) for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them. Shown with **Test** `friedman`, `cochran` or `auto` (auto is Friedman for three or more). |
 
 The **Test** list names each code under it: `wilcoxon` ("Wilcoxon
@@ -2119,11 +2123,11 @@ it ran.
 
 ### Price sensitivity
 
-`analyze.price` — "What respondents would pay — Van Westendorp's price
-sensitivity meter from four price questions (the optimal and indifference
-price points and the range of acceptable prices, with Newton-Miller-Smith
-trial and revenue if asked), or a Gabor-Granger demand and revenue curve from
-purchase intent at set prices."
+`analyze.price` — "What respondents would pay, by one of two methods":
+Van Westendorp's price sensitivity meter, from four price questions — the
+optimal and indifference price points and the range of acceptable prices,
+with Newton-Miller-Smith trial and revenue if asked — or a Gabor-Granger
+demand and revenue curve, from purchase intent at set prices.
 
 **In:** `data` (SurveyData) → **Out:** `table` (Table), `curves` (Table), `stat` (Stat)
 
@@ -2134,9 +2138,9 @@ purchase intent at set prices."
 | **Cheap (a bargain)** | variable | — | interval / ratio variables | "At what price would it be a bargain — a great buy for the money?" |
 | **Expensive (getting expensive)** | variable | — | interval / ratio variables | "At what price would it start to seem expensive, though still worth considering?" |
 | **Too expensive** | variable | — | interval / ratio variables | "At what price would it be so expensive that you would not consider buying it?" |
-| **Likelihood at the cheap price (NMS)** | variable | — | — | Optional, for the Newton-Miller-Smith extension: how likely the respondent would be to buy at the price they called cheap, on a scale Calibration turns into a probability. |
+| **Likelihood at the cheap price (NMS)** | variable | — | — | Optional, for the Newton-Miller-Smith extension: how likely the respondent would be to buy at the price they called cheap, on a scale that **Likelihood as probability (NMS)** turns into a probability. |
 | **Likelihood at the expensive price (NMS)** | variable | — | — | How likely the respondent would be to buy at the price they called expensive. |
-| **Likelihood as probability (NMS)** | JSON | — | — | Each likelihood code with its purchase probability, e.g. `{"5": 0.7, "4": 0.5, "3": 0.3, "2": 0.1, "1": 0}` — what empty means (definitely would buy … definitely would not). |
+| **Likelihood as probability (NMS)** | JSON | — | — | Each likelihood code with its purchase probability, e.g. `{"5": 0.7, "4": 0.5, "3": 0.3, "2": 0.1, "1": 0}`. Left empty, these are used, for a five-point scale from `5` (definitely would buy) to `1` (definitely would not). |
 | **Would buy at each price** | variables (several) | — | — | Gabor-Granger: one question per price — "Would you buy it at 9.99?" — asked of every respondent. A respondent missing any of them is left out; a sequential design that skips prices should fill in the implied answers first. |
 | **Prices** | JSON | — | — | The price of each question, as a list in the same order, e.g. `[4.99, 6.99, 8.99]`. |
 | **Counts as would buy** | answer code | — | — | The answer code, or a list of codes, that means would buy — a top-two box such as [4, 5] on a likelihood scale. Empty works for 0/1 questions. |
@@ -2177,7 +2181,8 @@ question's answers when it has value labels.
   "Prices cannot be negative.", "A Gabor-Granger demand curve needs two or
   more prices."
 - "Calibration is read only with the two likelihood questions — choose them,
-  or clear Calibration." (a warning).
+  or clear Calibration." (a warning; the message's Calibration is the
+  **Likelihood as probability (NMS)** field).
 
 **Van Westendorp.** At every price anyone named, the curves give the share
 who would call it too cheap, cheap (and *not cheap*, the rest), expensive
@@ -2368,10 +2373,10 @@ alpha-if-deleted are all computed with the weight, and the statistics add
 
 ### t-test
 
-`analyze.ttest` — "Compares means — of two groups (Welch's or Student's
+`analyze.ttest` — compares means: of two groups (Welch's or Student's
 t-test), of two measurements of the same respondents (paired), or of one
-variable against a value — with t, df, p, the mean difference and its CI, and
-Cohen's d."
+variable against a value. "It reports t, df, p, the mean difference and its
+CI, and Cohen's d."
 
 **In:** `data` (SurveyData) → **Out:** `table` (Table), `stat` (Stat)
 
@@ -2469,7 +2474,7 @@ have reaches.
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Options** | variables (several) | required | — | One 0/1 column per option. Run prepare.explode on a multiple-choice question to get them. |
+| **Options** | variables (several) | required | — | One 0/1 column per option. Run **Explode multiple choice** on a multiple-choice question to get them. |
 | **Largest portfolio** | whole number | `3` | at least 1 | — |
 | **Search** | choice | `best` | `best`, `greedy`, `fixed` | Best tries every combination. Greedy extends the previous winner and is fast, but can miss the best portfolio — the table says which ran. Fixed searches nothing and reads the Portfolio below. |
 | **Always include** | variables (several) | empty | — | Options that are in the portfolio whatever they add — shelf space already committed. |
@@ -2606,9 +2611,9 @@ with a weighted table beside it:
 
 ### Bar chart
 
-`visualize.bar` — "Distribution of a variable as counts or percentages —
-split by a second variable, grouped or stacked, like the chart of a crosstab
-— or its mean by group; a histogram of a number, or a donut."
+`visualize.bar` — "Distribution of a variable as counts or percentages, or
+its mean by group; a histogram of a number, or a donut. Split by a second
+variable, grouped or stacked, it is the chart of a crosstab."
 
 **In:** `data` (SurveyData) → **Out:** `chart` (Chart)
 
@@ -2876,7 +2881,7 @@ or Kendall), or their means by group."
 |---|---|---|---|---|
 | **Items** | variables (several) | required | — | The items to show. |
 | **By** | variable | — | nominal / ordinal variables | Each item's mean in each group of this variable (weighted when a weight is applied). With a named Color map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Color map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name. Without By, the heatmap is the correlation matrix of the items. |
-| **Method** | choice | `spearman` | `pearson`, `spearman`, `kendall` | The correlation drawn without By, over the respondents who answered every item. Spearman, the default, reads the answers as it always has (a missing code such as 9 = Refused counts as an answer; run Missing values first to leave it out). Pearson and Kendall leave the codebook's missing codes out and say so, as Correlation matrix does; Pearson is weighted when a weight is applied, Kendall says it is not. |
+| **Method** | choice | `spearman` | `pearson`, `spearman`, `kendall` | The correlation drawn without By, over the respondents who answered every item. Spearman, the default, reads the answers as it always has (a missing code such as 9 = Refused counts as an answer; run Missing values first to leave it out). Pearson and Kendall leave the codebook's missing codes out and say so, as Correlation matrix does; Pearson is weighted when a weight is applied, Spearman and Kendall are not — with a weight applied, Spearman's title says so, and Kendall says it is not. |
 | **Title** | text | — | — | Chart title. |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
@@ -3008,7 +3013,7 @@ respondents."
 ### Result chart
 
 `visualize.result_chart` — "The chart that suits an analysis's result, drawn
-from the numbers it computed — group means with their confidence intervals, a
+from the numbers it computed: group means with their confidence intervals, a
 scree plot, TURF's reach curve, key drivers, a perceptual map, price
 sensitivity curves." Because it draws the analysis's own numbers rather than
 the data again, the picture never disagrees with the table beside it.
@@ -3137,9 +3142,9 @@ is not applied)".
 
 ### Trend
 
-`visualize.trend` — "A measure over waves or dates — the percent choosing an
-answer, a mean, or the count of respondents — with one line per group, its
-confidence band and the base of every point, as a chart and as a table." The
+`visualize.trend` — "A measure over waves or dates, as a chart and as a
+table: the percent choosing an answer, a mean, or the count of respondents.
+One line per group, with its confidence band and the base of every point." The
 chart of a tracking study: satisfaction month by month, awareness wave by
 wave, completes per week.
 
@@ -3158,7 +3163,7 @@ wave, completes per week.
 | **Title** | text | — | — | Empty takes what is tracked ("Overall satisfaction: % Satisfied or Very satisfied", "Mean Trust: Acme", "Respondents"), with "by *Split by*". |
 | **Figure width (in)** | number | `10` | 2–30 | The figure itself, in inches — the axis labels scale with it. |
 | **Figure height (in)** | number | `6` | 2–30 | — |
-| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text color, grid and font. The others are seaborn's palettes. |
+| **Palette** | choice | `muted` | `muted`, `deep`, `pastel`, `dark`, `colorblind`, `Set2`, `tab10`, `theme` | Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes. Whatever the palette, past four lines each line's points also take a shape of their own. |
 
 The lists name each code under it: `percent` ("% choosing the Answer
 codes"), `mean` ("mean of the Measure variable"), `count` ("respondents
@@ -3306,9 +3311,9 @@ Three files, so that estimating individual-level utilities on your own machine
 needs no rewriting: the choices (`<name>.csv`), a dictionary saying what every
 column means (`<name>.dictionary.json`) and a script that runs the model and
 writes the per-respondent estimates back (`<name>.hb.R`). The field's **ⓘ**
-adds: "It has no weight column (the HB packages take none), so an applied
-weight is not in it: weight the individual utilities when you aggregate
-them." A run of the flow keeps all three under **Files**; **Run all** keeps
+adds, in a paragraph of its own: "It has no weight column, since the HB
+packages take none, so an applied weight is not in it. Weight the individual
+utilities when you aggregate them." A run of the flow keeps all three under **Files**; **Run all** keeps
 them only when the flow lists them among its outputs (as the example study's
 `segments` flow does), and the line under the field says so: "Run all
 doesn't keep these files: run this flow on its own to get them."
@@ -3338,8 +3343,8 @@ flow lists them among its outputs; a run of the flow keeps them always.
 ### Export file
 
 `output.export_file` — "Write the data as a file (format by extension:
-.parquet .csv .xlsx .sav .dta) with its dictionary, as an R bundle (.R), or
-the dictionary alone (.json)."
+`.parquet`, `.csv`, `.xlsx`, `.sav`, `.dta`) with its dictionary, as an R
+bundle (`.R`), or the dictionary alone (`.json`)."
 
 **In:** `data` (SurveyData) → **Out:** none (writes files, a table or a tile)
 
@@ -3552,10 +3557,10 @@ footer** is on (the default).
 
 ### Tab book (Excel)
 
-`output.tabbook` — "Every chosen question crossed by a banner of segments —
-one sheet each, with its bases, counts, percentages and the Banner table's
-significance letters — in an Excel workbook with a contents page and notes."
-The tab book an agency hands a client after fieldwork: the whole study by
+`output.tabbook` — "Every chosen question crossed by a banner of segments,
+in an Excel workbook with a contents page and notes. Each question has a
+sheet of its own, with its bases, counts, percentages and the Banner table's
+significance letters." The tab book an agency hands a client after fieldwork: the whole study by
 the segments that matter, in one file.
 
 **In:** `data` (SurveyData) → **Out:** `stat` (Stat)

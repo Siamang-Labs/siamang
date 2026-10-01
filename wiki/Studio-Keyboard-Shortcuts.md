@@ -135,6 +135,18 @@ space above (see
 node from a list field, open or closed; `Ctrl/Cmd + S` and `Ctrl/Cmd +
 Enter` still save and preview.
 
+## Tips behind an ⓘ
+
+The help of a field or a node sits behind the **ⓘ** beside its label (see
+[The inspector](Studio-Flows#the-inspector)); pointing at it with the mouse
+opens it too.
+
+| Keys | Action |
+|---|---|
+| `Enter` or `Space` on an **ⓘ** | open its tip and keep it open; press again to close it |
+| `Esc` | close the open tip, and nothing else: an open list, focus mode and the node's selection stay. The focus goes back to the **ⓘ** when you had opened the tip yourself, and stays in the field you are typing in when the tip had opened under the mouse |
+| `↑` / `↓`, `Page Up` / `Page Down`, `Home` / `End` on the **ⓘ** | scroll a tip you opened that is too tall for the window |
+
 ## Flows List view and the node picker
 
 The **List** view shows the same flow as a table you can work from the

@@ -631,10 +631,11 @@ wrong, set the option under the node's **Reading options**.
 **Numbers with a decimal comma (`4,5`) come in as text.**
 **Decimal mark** on auto reads a comma where the file's numbers are written
 so — with `;` or tabs between the fields, also in a column whose first
-decimals come late. A column of nothing but values like `1,500` (one and a
-half, or fifteen hundred?) stays text, with a note in the **Columns** panel,
-until you set **Decimal mark** to `,` or `.`. In a file with `,` between the
-fields, a comma is never a decimal mark.
+decimals come late. In an Excel sheet, a column of nothing but values like
+`1,500` (one and a half, or fifteen hundred?) stays text, with a note in the
+**Columns** panel, until you set **Decimal mark** to `,` or `.`; a text file
+always gets a mark. In a file with `,` between the fields, a comma is never a
+decimal mark.
 
 **How do I analyze the data I collected in Qualtrics?**
 Import the survey's `.qsf` in the Builder and Save; export the data from

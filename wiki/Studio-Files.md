@@ -225,10 +225,11 @@ Under the file's name, the row then says:
   names (in English or Russian) or values look like an email or IP address, a
   location, a name, a phone number, an address or a participant ID (Prolific,
   MTurk). Its **ⓘ** (point at it or click it; `Esc` closes it) names those
-  columns, each with its kind — "email (e-mail)" — then says "Leave these out
-  early — the Data file node can add a Select columns node without them — or
-  delete the file and upload it without them." A screen reader reads the same
-  words as the **ⓘ** button's description. It is a hint, never a drop:
+  columns, each with its kind — "`email` (e-mail)" — then, in a paragraph of
+  its own, "Leave these out early, in one of two ways:", followed by a list:
+  "in a flow: the Data file node can add a Select columns node without them"
+  and "here in Files: delete the file and upload it without them". A screen
+  reader reads the same words as the **ⓘ** button's description. It is a hint, never a drop:
   nothing is removed until you act (see
   [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload)).
 - "Reading its columns…" while the file is being read. The screen asks again
