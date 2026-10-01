@@ -41,15 +41,15 @@ here is exactly what the generated script does.
 Flows  Load → Clean → Analyze → Report · run history          [More ▾] [+ New flow] [▶ Run flow]
 
 Flows  6 · one document each under flows/
-┌───────────────┬───────────────────────────────────────┬──────────────────────────────────┬───────────────────────────────────┬──────────────┐
-│ Flow          │ Description                           │ Last run                         │ Report                            │              │
-│ cleaning      │ 1. Clean raw responses                │ ● Sep 23, 2026, 9:14 AM · 0m 11s │ outputs/data_quality.md           │ review run ⋮ │
-│ tables        │ 2. Key tables                         │ ● Sep 23, 2026, 9:12 AM          │ outputs/key_tables.md             │ review run ⋮ │
-│ usage         │ 3. Screen use                         │ ● Sep 23, 2026, 9:12 AM          │ outputs/screen_use.md             │ review run ⋮ │
-│ wellbeing     │ 4. Wellbeing: scales and drivers      │ ● Sep 23, 2026, 9:12 AM          │ outputs/wellbeing.md              │ review run ⋮ │
-│ wellbeing_app │ 5. The app: features, reach and price │ ● Sep 23, 2026, 9:12 AM          │ outputs/app_features_and_price.md │ review run ⋮ │
-│ segments      │ 6. Segments                           │ ● Sep 23, 2026, 9:12 AM          │ outputs/segments.md               │ review run ⋮ │
-└───────────────┴───────────────────────────────────────┴──────────────────────────────────┴───────────────────────────────────┴──────────────┘
+┌───────────────┬───────────────────────────────────────┬──────────────────────────────────┬─────────────────────────────────────────────────┬──────────────┐
+│ Flow          │ Description                           │ Last run                         │ Report                                          │              │
+│ cleaning      │ 1. Clean raw responses                │ ● Sep 23, 2026, 9:14 AM · 0m 11s │ outputs/cleaning/data_quality.md                │ review run ⋮ │
+│ tables        │ 2. Key tables                         │ ● Sep 23, 2026, 9:12 AM          │ outputs/tables/key_tables.md                    │ review run ⋮ │
+│ usage         │ 3. Screen use                         │ ● Sep 23, 2026, 9:12 AM          │ outputs/usage/screen_use.md                     │ review run ⋮ │
+│ wellbeing     │ 4. Wellbeing: scales and drivers      │ ● Sep 23, 2026, 9:12 AM          │ outputs/wellbeing/wellbeing.md                  │ review run ⋮ │
+│ wellbeing_app │ 5. The app: features, reach and price │ ● Sep 23, 2026, 9:12 AM          │ outputs/wellbeing_app/app_features_and_price.md │ review run ⋮ │
+│ segments      │ 6. Segments                           │ ● Sep 23, 2026, 9:12 AM          │ outputs/segments/segments.md                    │ review run ⋮ │
+└───────────────┴───────────────────────────────────────┴──────────────────────────────────┴─────────────────────────────────────────────────┴──────────────┘
 
 Pipeline  the order Run all runs them · a flow after the flows whose tables it reads
    ● cleaning ── ● tables ── ● usage ── ● wellbeing ── ● wellbeing_app ── ● segments
@@ -85,7 +85,7 @@ tables it reads, alphabetical where that leaves a choice (see
 | **Flow** | the flow's name (its file name), with a red **errors** pill when the flow did not pass the engine's check at the current Save (see [A flow with errors](#a-flow-with-errors)) and an amber **cycle** pill when it and another flow read each other's tables (see [Flows that read each other's tables](#flows-that-read-each-others-tables)); hover a pill for the details |
 | **Description** | the flow's title (or description) |
 | **Last run** | status dot, start time and duration ("0m 34s") of the flow's latest finished run — started by hand, by a schedule or by Live — or of the latest **Run all** that ran it, whichever is newer; "running" while a run of the flow is in progress; "never" when the flow has not finished a run since the last **Reset history** |
-| **Report** | the flow's **Report path**, or "—" |
+| **Report** | where a run leaves the flow's report under **Files** and **Reports**: its **Report path** in the flow's own folder, such as `outputs/cleaning/data_quality.md` for a Report path of `outputs/data_quality.md` (the tooltip reads "After a run: …"), or "—" |
 
 **Last run** comes from the server, so it survives a reload of the page, and
 it is read again when a **Run all** you started finishes. A **Run all** counts
@@ -125,7 +125,7 @@ selected.
 | **Flow** | the flow to run, in **Run all** order; the hint gives its place in that order, e.g. "step 2 of 3 — runs after cleaning" or "step 1 of 3 — runs first" ("flows run against the current Save" when the project has one flow). "runs after" names every flow before it in the order, not only the flows whose tables it reads |
 | **Description** | read-only |
 | **Runs as** | read-only, `scripts/<name>.py` — the generated script |
-| **Report** | read-only, the report path, "written when the run completes" |
+| **Report** | read-only, where the run leaves the flow's report, `outputs/<flow>/<name>.md` — the hint reads "where the run leaves it under Files and Reports" |
 
 Buttons: **Open on canvas** and **Run** ("Already running…" while a run of that
 flow is in progress). Running one flow runs only that flow — not the flows
@@ -269,7 +269,7 @@ What follows a rename:
 | Thing | After the rename |
 |---|---|
 | The flow document | stored as `flows/<new>.flow.json`; the old file is gone from the new Save. History records "Rename flow *old* to *new*" |
-| Its default report path | a **Report path** and **Save report** path that were `outputs/<old>.md` become `outputs/<new>.md`; a path you chose yourself stays |
+| Its default file names | the names its output nodes got from the flow's name follow the new one: a **Report path** and **Save report** file of `outputs/<old>.md` become `outputs/<new>.md`, and `outputs/<old>_tabbook.xlsx`, `outputs/<old>_data.csv`, `outputs/<old>_maxdiff_choices.csv` and `outputs/<old>_conjoint_choices.csv` change the same way, in whichever of the node's formats was chosen since. A numbered one, such as `outputs/<old>_tabbook_2.xlsx`, moves when the flow still has the name it was numbered after. A name you chose yourself stays, even one that starts like a default: `outputs/<old>_2024.md` is not renamed |
 | Schedules | move to the new name, still active or paused as they were |
 | Comments | move with the flow (the flow's and its nodes') |
 | Live | the Live screen and a public Live link keep showing the flow's latest tiles until its next run |
@@ -302,7 +302,9 @@ flow under a new name. Schedules are not copied." The name offered is
 (copy)". The same name rules apply as for a rename; the button is
 **Duplicate**. The copy is taken from the flow as it is saved now, and its
 default report path follows its new name, so the copy does not write over
-the original's report. History records "Duplicate flow *name* as *copy*".
+the original's report. The copy's other default file names (its tab books',
+an **Export file**'s, the HB data's) follow its new name the same way.
+History records "Duplicate flow *name* as *copy*".
 A duplicate counts toward the plan's flow cap. From the editor, the copy
 opens once it is saved.
 
@@ -456,7 +458,12 @@ nodes that need the project database. Hover an item for its description.
 - **Drag** an item onto the canvas to drop it where you want.
 
 A new node gets an id from its short name (`crosstab`, then `crosstab_2`, …)
-and its parameters' defaults. A **Save report** node added from the palette
+and its parameters' defaults. A node that writes a file gets one named after
+the flow: `<flow>.md` for a **Save report**, `<flow>_tabbook.xlsx` for a
+**Tab book (Excel)**, `<flow>_data.csv` for an **Export file**,
+`<flow>_maxdiff_choices.csv` and `<flow>_conjoint_choices.csv` for the HB
+data nodes — all in `outputs/`, and numbered (`<flow>_tabbook_2.xlsx`) when
+the flow already names that file. A **Save report** node added from the palette
 also starts with the project's report house style, when it has one, as its
 **Look** (see
 [[Reports|Studio-Reports]]).
@@ -525,7 +532,7 @@ took (`120 ms`, `1.4 s`).
 |---|---|
 | **Title** | the flow's title |
 | **Description** | shown in the flows table and the methods draft |
-| **Report path** | the report file this flow declares (placeholder `outputs/report.md`); **Run all** puts this file into the combined report — and counts the flow as failed when the file was not written — and the flows table and **Run flow** dialog show it. It follows the **Save report** node's **Path** when you change that (see [The combined report](#the-combined-report)) |
+| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node, such as `satisfaction.md — Save report (save)` (hint: "the report Run all keeps and puts in the combined report: one of this flow's Save report nodes"). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." **Run all** keeps this report, puts it into the combined report, and counts the flow as failed when the file was not written; another **Save report** of the flow it keeps only when the flow declares that file among its outputs (see [What Run all keeps](#what-run-all-keeps)). It follows the Save report node's **File name** when you change that. A Report path saved earlier that no node writes stays in the list as "*path* — no node saves this", with "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." (see [The combined report](#the-combined-report)) |
 | **Live: recompute on new responses** | Live mode (see [Live mode](#live-mode)) |
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
@@ -548,8 +555,9 @@ A copied report section keeps its outputs, their order, captions and sizes,
 and joins the report once you connect it to **Save report**. A copy of a node
 that saves a file saves to a new name, such as `outputs/tabbook_2.xlsx` for a
 tab book saved at `outputs/tabbook.xlsx`, skipping names the flow's nodes
-already use, so the two files do not overwrite each other; a copied **Write
-table** writes a new table the same way, such as `clean_responses_2`. The
+already use, whatever the case of their letters, so the two files do not
+overwrite each other; a copied **Write table** writes a new table the same
+way, such as `clean_responses_2`. The
 flow's **Report path** stays with the original **Save report** node.
 
 What a node does and what each parameter means sit behind the **ⓘ** beside
@@ -635,6 +643,19 @@ MaxDiff questions. Mappings, weighting targets and other codes are typed as JSON
 (`{"1": 0.45, "2": 0.55}`); an empty JSON box shows the example its help
 gives.
 
+**A node's files are never typed as paths.** A file a node writes is a
+**File name** typed between a fixed `outputs/` and the file's ending (a
+**Format** list under it when the node writes several, as **Export file**
+does), and the lines under it say where a run leaves the file ("After a run:
+Files → outputs/*flow*/*name*"), what is written beside it, whether **Run
+all** keeps it, and what is wrong with a name — with a one-click fix such as
+**Use tabbook_2** when another node already writes that file. A file a node
+reads is picked by name from the uploads under **Files** it can read, with
+**Upload…** and **Type a name…** under the list. The flow still stores the
+whole path (`outputs/<name>.xlsx`, `assets/<name>`), so flows saved earlier
+and the generated script read what they always did. See
+[Where files go](Studio-Node-Reference#where-files-go).
+
 **The inspector follows the node's choices.** A node that runs different
 tests shows only the fields the chosen one reads — a **t-test**'s **Groups**,
 **Group A**, **Group B** and **Variances** with **Design** `independent`, its
@@ -707,11 +728,12 @@ Studio checks a flow twice:
   the next, and 5 is followed by 3."); a **Trend**'s mean of a nominal or
   multiple-choice question, a multiple-choice **Time** or **Split by**, and a
   missing code among its **Answer codes** ("9 (Refused) is a missing code of
-  Trust: Acme, not an answer: …"); a **Tab book (Excel)** whose **Path** is no
+  Trust: Acme, not an answer: …"); a **Tab book (Excel)** whose file is no
   workbook, or whose banner holds a multiple-choice question (and, as
-  warnings, a **Path** outside `outputs/` or a ranking or open answer named
-  in its **Questions**); a **Save report** whose **Look** names chart colors
-  the engine refuses ("theme: chart_text_color: '#cccccc' on the charts' white
+  warnings, a file outside `outputs/` or a ranking or open answer named in
+  its **Questions** — the file problems only for a path saved before the
+  **File name** field, which keeps `outputs/` and `.xlsx` fixed); a **Save
+  report** whose **Look** names chart colors the engine refuses ("theme: chart_text_color: '#cccccc' on the charts' white
   background has a contrast of 1.6:1; text needs at least 4.5:1."); an ordinal
   **Regression** of a nominal outcome (`VARIABLE_SCALE`:
   "Region is nominal: its answers (Capital, North, South) have no order, …");
@@ -731,7 +753,8 @@ Studio checks a flow twice:
   naming a table or environment no project can have (the errors
   `SOURCE_TABLE_NAME` and `SOURCE_ENVIRONMENT_NAME`), a **Report path**
   that no **Save report** step writes (the warning `REPORT_PATH_UNWRITTEN`,
-  see [The combined report](#the-combined-report)), and a response timestamp
+  for a flow saved that way before the Report path became a list; see
+  [The combined report](#the-combined-report)), and a response timestamp
   read from a **Data file** or **Simulated data** (the warning
   `RESPONSE_TIME_SOURCE`, see [Trend](Studio-Node-Reference#trend)).
 
@@ -850,7 +873,7 @@ need not be), and the draft must pass the engine's check.
 | stat | the statistics as a list of names and values. A number below 0.0001 is written with four significant digits and its exponent, as the table's footer writes it — a p of `1.132e-24`, not 0. A number below 1 that four significant digits hold is written as it is — a **Paired tests** p of `0.002343`, a **Bartlett p** of `0.00227` — as the footer writes it too. Every number reads as the footer writes it: a whole number the engine keeps as a decimal keeps its `.0` (a Welch t-test's `df` of `8.0`, the `n` of a Spearman correlation), and a count has none. Studio adds a thousands comma (`1,198`), which the footer does not. A p below the threshold of the house style's **P values** reads as the bound, `< 0.01` |
 | report | the report as rendered, with a **Rendered \| Markdown** switch in the Report view |
 | table write | what a run would do, without doing it: "Not written: a preview never writes project tables. A run writes 812 rows to table 'clean_responses' (if it exists: replace)." |
-| tab book | the **Tab book (Excel)** runs and shows its statistic (**Workbook**, **Sheets written**, **Questions skipped**, …) with "Not kept: a preview never keeps the files nodes write. A run writes outputs/tabbook.xlsx." |
+| tab book | the **Tab book (Excel)** runs and shows its statistic (**Workbook**, **Sheets written**, **Questions skipped**, …) with "Not kept: a preview never keeps the files nodes write. A run writes outputs/tabbook.xlsx." (the node's file) |
 | file, tile | "This node has no preview (its output is a file or a table write)." |
 
 A preview is written when it runs, so after you change the house style's
@@ -949,9 +972,10 @@ timed out and was marked failed"), and the project's Activity gets a
 Live recompute).
 
 **Uploads a flow reads.** Before the sandbox starts, Studio copies in the
-files uploaded under [[Files|Studio-Files]] that the project's flows name by
-their path, `assets/<name>` — the **File** (and **Dictionary (JSON)**) of a
-**Data file** node. Other uploads are not copied. When one cannot be, the log says
+files uploaded under [[Files|Studio-Files]] that the project's flows name —
+the upload chosen in a **Data file** node's **File** (and **Dictionary
+(JSON)**), which the flow stores as `assets/<name>`. Other uploads are not
+copied. When one cannot be, the log says
 why before the script runs: "note: assets/panel.csv is not among this
 project's Files", "note: assets/panel.csv is listed under Files but its
 content is gone" or "note: uploads cannot be read (*reason*)"; the node that
@@ -1040,15 +1064,18 @@ other does not read back) to get a meaningful order.
 ### What Run all keeps
 
 - The **combined report**, with its `.html` twin and figures.
-- **Each successful flow's report** — its `.md`, the `.html` twin (when
-  **Also save HTML** is on), the workbook of its tables (`<name>.xlsx`, when
-  **Also save tables to Excel** is checked) and the figures the `.md` names —
-  stored as soon as that flow finishes, under `outputs/<flow>/` in **Files**
-  and on **Reports**, where a single run of the flow stores it. It replaces
-  the flow's previous report there. Run all runs the flows in one working
-  copy, so two flows may save to the same default `outputs/report.md`: a
-  flow keeps only the twins its own **Save report** writes, never another
-  flow's workbook or HTML left under that name.
+- **Each successful flow's report** — the one its **Report path** names: its
+  `.md`, the `.html` twin (when **Also save HTML** is on), the workbook of its
+  tables (`<name>.xlsx`, when **Also save tables to Excel** is checked) and
+  the figures the `.md` names — stored as soon as that flow finishes, under
+  `outputs/<flow>/` in **Files** and on **Reports**, where a single run of the
+  flow stores it. It replaces the flow's previous report there. Another
+  **Save report** of the flow is kept only when the flow declares its file
+  among its outputs (below). Run all runs the flows
+  in one working copy, so two flows may save to the same name (older flows
+  often kept the default `outputs/report.md`): a flow keeps only the twins
+  its own **Save report** writes, never another flow's workbook or HTML left
+  under that name.
 - **Each successful flow's tab books** — the workbook every **Tab book
   (Excel)** node writes under `outputs/` — stored the same way.
 - **What each flow's Live tile nodes published** — its tiles and the charts
@@ -1068,7 +1095,13 @@ all's card — each only when that flow wrote it during this Run all, so a file
 an earlier flow left under the same name is never taken for another's. Other
 files the flows write under `outputs/` — an **Export file** of a flow built
 on the canvas, say — are not kept by Run all: run the flow on its own (or
-schedule it) for those. Open the reports from **Reports**.
+schedule it) for those. The node's **File name** field says which, worked out
+from the flow as Run all reads it: "Run all doesn't keep these files: run
+this flow on its own to get them." for an **Export file** or the HB data, and
+"Run all keeps a report only when it is the flow's Report path (in the Flow
+panel, with no node selected): run this flow on its own to get this one."
+for a **Save report** that is not the Report path. Open the reports from
+**Reports**.
 
 ### The combined report
 
@@ -1086,17 +1119,18 @@ with a **combined** badge. The path can be changed in **Settings →
 Reports**; the badge follows it.
 
 The sections follow the order in which the flows ran. A flow without a
-**Report path** is left out. Keep the **Report path** equal to the **Save
-report** node's **Path**. Studio keeps them together where it can: the Report
-view sets both when it creates the node, changing that node's **Path** in the
-inspector (or clearing it back to the default `outputs/report.md`) moves the
-**Report path** along, and deleting the node clears the **Report path** it
-set. A **Report path** you pointed elsewhere yourself is left alone. When the
-**Report path** names a file no **Save report** node of the flow saves — typed
-by hand, or saved that way before — **Check** and the Save warn: "The flow's
-Report path is “outputs/tables.md”, but no Save report step saves there: Run
-all will fail this flow. Set it to the Path of a Save report step, or clear
-it."
+**Report path** is left out. The **Report path** is one of the flow's **Save
+report** nodes, chosen in the Flow settings (see [The inspector](#the-inspector)),
+and Studio keeps the two together: the Report view sets both when it creates
+the node, changing that node's **File name** moves the **Report path** along,
+and deleting the node clears the **Report path** it set. A node added from the
+palette sets no **Report path**: choose it in the list, or press **Make it the
+flow's report** in the Report view. A **Report path** saved before it became a
+list, or written by other means, may name a file no **Save report** node of the
+flow saves; the list then shows it as "*path* — no node saves this", and
+**Check** and the Save warn: "The flow's Report path is “outputs/tables.md”,
+but no Save report step saves there: Run all will fail this flow. Set it to the
+Path of a Save report step, or clear it."
 
 **After a failure** the combined report is still written from the flows that
 succeeded, its title marked incomplete — *Digital Life & Wellbeing 2026
@@ -1372,7 +1406,7 @@ Simulated data (n 500, seed 42)
                     ↓
             Report section ("Satisfaction by region", captions, base in the note)
                     ↓
-            Save report (outputs/satisfaction.md, + HTML)
+            Save report (outputs/satisfaction_by_region.md, + HTML)
 ```
 
 1. **+ New flow**, title "Satisfaction by region". Delete the starting
@@ -1381,7 +1415,9 @@ Simulated data (n 500, seed 42)
 2. Add the Prepare nodes from the palette and wire each `data` output to the
    next node's `data` input.
 3. Add the analysis and chart nodes, then switch to **Report** and **+ Add
-   section**: it creates **Save report** and sets the flow's **Report path**.
+   section**: it creates **Save report**, saving to
+   `outputs/satisfaction_by_region.md` (the flow's name), and sets the flow's
+   **Report path** to it.
    Add the banner, the means table and the chart as outputs and write the
    captions.
 4. **Preview report**, then **Check**, then **Save changes**, then **▶ Run**.

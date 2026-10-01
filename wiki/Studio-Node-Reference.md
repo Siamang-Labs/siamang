@@ -51,7 +51,9 @@ error until you fill it in. The inspector marks every other parameter
 | JSON object, JSON | a text box that must contain valid JSON; it is read when you leave the box, and a parse error is shown under it. Where the help gives an example, the empty box shows it (`[18, 30, 45, 65, 100]`) |
 | condition | the Builder's condition editor, over the variables available at this node |
 | formula | a monospaced box, with the variables available at this node listed under it |
-| file path | a text box; paths are relative to the project, e.g. `outputs/clean.csv`. For a **Data file** the hint reads "assets/<name> — a file uploaded under Files", for an output node "outputs/… under Files" |
+| file name | a file the node writes: a field labeled **File name**, the name typed between a fixed `outputs/` and the file's ending (`outputs/` `client_q3` `.xlsx`); a **Format** list under it where the node writes several. A `/` in the name makes folders. The lines under it say where a run leaves the file and what is wrong with a name (see [Where files go](#where-files-go)) |
+| codeframe | a dropdown of the project's codeframes by path (`analysis/<name>.codeframe.json`; **— choose a codeframe —** when none is chosen), with **Edit codeframe…**, or **New codeframe…** when none is chosen (see [Code open answers](#code-open-answers)) |
+| upload | a file the node reads: a list, by name, of the uploads under **Files** the field can read, with the chosen file's size and date under it and **Upload…** and **Type a name…** under that (see [Where files go](#where-files-go)) |
 
 **The variables available at a node** are the questionnaire's codebook
 variables, then those that nodes upstream of it make — a **Recode**,
@@ -102,11 +104,88 @@ then has no script until you fix it. A flow saved before this check with
 such a text is left out of a research bundle (see
 [What is inside](Studio-Reproducibility#what-is-inside)).
 
-**Where files go.** On the platform, only files a node writes **under
-`outputs/`** are kept after a run and appear in **Files** (as
-`outputs/<flow>/<file>`) and on the run's card. Give every path parameter of an
-output node a value that starts with `outputs/`. A file a flow *reads* on the
-platform is an upload under **Files**, named by its path `assets/<name>` (see
+### Where files go
+
+No file is typed as a path. The flow still stores the whole path —
+`outputs/client_q3.xlsx`, `assets/panel_wave2.csv` — so flows saved earlier,
+the engine's check and the generated script read what they always read.
+
+**A file a node writes** goes in `outputs/`, the only folder a run keeps: it
+appears in **Files** as `outputs/<flow>/<file>` and on the run's card. The
+**File name** field keeps `outputs/` and the file's ending fixed, so you type
+only the name:
+
+- **The ending comes from the format.** A name typed with an ending the node
+  writes, such as `tabs.xlsx`, loses it and keeps the format (no
+  `tabs.xlsx.xlsx`); a pasted `outputs/` is dropped, and a space becomes `_`
+  as you type. An ending the node cannot write is answered under the field —
+  for a **Save report**, "Reports are saved as Markdown and HTML — for a PDF,
+  open the HTML and print it." — with a fix such as **Use satisfaction**.
+- **A name uses letters a–z, digits, `-`, `_` and `.`**, with `/` between
+  folders, at most 100 characters. Other characters are named — "A file name
+  here can use letters a–z, digits, -, _ and . — not “(” or “)”." for
+  `Q3 (final)` — with **Use Q3_final**. While the name has a problem, the
+  field does not say where the file will be.
+- **Two nodes writing one file** are pointed out: "Another node (tabbook)
+  already writes outputs/tabbook.xlsx — this one would replace it.", with
+  **Use tabbook_2**. Names that differ only in the case of their letters count
+  as one file, as they do on a Mac or on Windows. When another flow of the
+  project saves a file of the same name, the field says so too: Studio keeps
+  each flow's copy apart, but in a downloaded research bundle one would
+  replace the other.
+- **Where it ends up.** "After a run: Files → outputs/*flow*/*name*" (**Files**
+  becomes a link once a run has made the file), "Beside it: …" for what the
+  node writes next to it, and what **Run all** leaves out, such as "Run all
+  doesn't keep this file: run this flow on its own to get it." (see
+  [What Run all keeps](Studio-Flows#what-run-all-keeps)).
+- **A node added from the palette is named after the flow** —
+  `outputs/<flow>.md`, `<flow>_tabbook.xlsx`, `<flow>_data.csv`,
+  `<flow>_maxdiff_choices.csv`, `<flow>_conjoint_choices.csv` — numbered when
+  the flow already names that file. An empty field stores nothing and shows,
+  as its placeholder, the name the engine then writes, where the node has one
+  (`report` for a **Save report**, `tabbook` for a **Tab book (Excel)**).
+- **A path saved earlier** that the field cannot show as a name — outside
+  `outputs/`, with no ending, or with an ending the node cannot write — is
+  shown as it was written, under "Other location, kept as it was written",
+  with the reason ("This file isn't in outputs/, so a run doesn't keep it
+  under Files.") and a button such as **Save it as outputs/tabs.xlsx
+  instead**.
+- A required name left empty is an error on the node: "No file name yet: type
+  the name to save it under."
+
+**A file a node reads** is an upload under [[Files|Studio-Files]]. The field
+lists, by name, only the uploads it can read — a **Data file**'s **File** the
+data files, its **Dictionary (JSON)** the `.json` files — and the note under
+it gives the chosen file's size and upload date (a data file's rows × columns
+first), then "Each run reads the file as it is in Files at that moment." Under
+the list:
+
+- **Upload…** opens **Upload a data file** (or **Upload a dictionary**), which
+  says what it takes, refuses a file of another kind, even one dragged in, and
+  selects the new upload once it is stored.
+- **Type a name…** (**Type another name…** once a file is chosen) names a file
+  that is not uploaded yet, such as one a connector will deliver. You type the
+  name only (`assets/` is added), and the field says "*name* isn't in this
+  project's Files: upload it before the run, or choose another file." A name
+  with characters Files would change is answered with the name Files stores,
+  such as **Use Wave_3_final_.csv**. **Choose from Files** goes back to the
+  list.
+- With no uploads the field reads "No files uploaded yet. Upload a CSV, Excel,
+  SPSS, Stata or Parquet file (up to 50 MB)."; while the project's files load,
+  "Loading this project's files…"; when they cannot be loaded, it says so,
+  with **Try again**.
+- An upload deleted since stays chosen as "*name* — not in Files", with the
+  same sentence. A chosen upload the field would not offer stays too, marked
+  "can't be read as data" or "not a dictionary (.json)".
+- A value saved earlier that a run cannot bring in — a path that is not an
+  upload's name, such as `./assets/panel_wave2.csv` — is shown under "Other
+  location, kept as it was written": "A run only brings in files uploaded
+  under Files, so it won't find this one.", with **Use the uploaded
+  panel_wave2.csv** when Files has it.
+- A required file left empty is an error on the node: "No file chosen yet:
+  pick one of the project's Files, or upload one."
+
+Only the uploads a flow names are copied into its run (see
 [Data file](#data-file)).
 
 ---
@@ -128,20 +207,21 @@ labels the columns it knows.
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **File** | file path | required | — | Path of the data file, relative to the project. On the platform: an upload's path, `assets/<name>` (the hint reads "assets/<name> — a file uploaded under Files"). |
-| **Dictionary (JSON)** | file path | — | — | Optional `<name>.dictionary.json`; found automatically when next to the file. |
+| **File** | upload | required | — | The data file, chosen by name from the uploads under **Files** a Data file reads, or uploaded from here with **Upload…** (stored as `assets/<name>`). |
+| **Dictionary (JSON)** | upload | — | — | Optional: a data dictionary, chosen from the `.json` uploads (`<name>.dictionary.json` first). When `<name>.dictionary.json` of the chosen **File** is in **Files**, the field offers **Use *name*.dictionary.json**. |
 
 - **On the platform** the node reads a file you uploaded under
-  [[Files|Studio-Files]], by the path shown under the file's name there (the
-  copy icon beside it copies "the path a flow reads it by"), for example
-  `assets/ev_q2_labeled.sav`. Runs, **Run all** and **Run to here** all get
-  it.
+  [[Files|Studio-Files]], chosen by its name in **File** — for example
+  `panel_wave2.csv` — or uploaded from the node with **Upload…** (see
+  [Where files go](#where-files-go)). Runs, **Run all** and **Run to here**
+  all get it.
 - Only the uploads a flow names are copied into its run. An uploaded
-  dictionary is therefore not found "next to the file" on the platform: name
-  it in **Dictionary (JSON)** as well (`assets/ev_q2.dictionary.json`).
+  dictionary is therefore not found "next to the file" on the platform:
+  choose it in **Dictionary (JSON)** as well — the field offers **Use
+  panel_wave2.dictionary.json** when the file is `panel_wave2.csv`.
 - An upload that is missing shows in the run's log before the node fails:
-  "note: assets/panel.csv is not among this project's Files" (or "… is listed
-  under Files but its content is gone").
+  "note: assets/panel_wave2.csv is not among this project's Files" (or "… is
+  listed under Files but its content is gone").
 - In a research bundle made **with the responses so far**, the uploads the
   flows name are included at the same path; in a bundle without data, put
   the file there yourself (see [[Reproducibility|Studio-Reproducibility]]).
@@ -796,7 +876,7 @@ were written too. You build the codeframe in the codeframe editor. See
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Codeframe** | file path | required | — | The codeframe file (`analysis/<name>.codeframe.json`) — its themes, the answers coded by hand (kept as fingerprints, never as texts) and the rules that code the rest, including answers collected later. |
+| **Codeframe** | codeframe | required | — | The codeframe file (`analysis/<name>.codeframe.json`) — its themes, the answers coded by hand (kept as fingerprints, never as texts) and the rules that code the rest, including answers collected later. |
 | **Theme variable** | text | — | — | Defaults to the name the codeframe carries. A codeframe that gives an answer several themes makes a multiple-choice variable (a list of codes per answer). |
 | **Also add sentiment** | checkbox | off | — | A sentiment variable beside the theme, and each theme's negative / neutral / positive split in the table. Only when the codeframe was built with it — the stat says when it was not. |
 
@@ -3022,15 +3102,18 @@ hierarchical-Bayes packages read.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **MaxDiff question** | text | required | — | The question's id or name. Its design is read from the questionnaire. |
-| **Path** | file path | required | — | Output CSV path under `outputs/`, e.g. `outputs/brands.csv`. The dictionary and R script are written beside it. |
+| **File name** | file name | required | — | The name before a fixed `.csv`, in `outputs/`; a node added from the palette gets `<flow>_maxdiff_choices`. The dictionary and R script are written beside it. |
 
 Three files, so that estimating individual-level utilities on your own machine
 needs no rewriting: the choices (`<name>.csv`), a dictionary saying what every
 column means (`<name>.dictionary.json`) and a script that runs the model and
-writes the per-respondent estimates back (`<name>.hb.R`). The **Path** help
-adds: "The file has no weight column (the HB packages take none), so an
-applied weight is not in it; weight the individual utilities when you
-aggregate them."
+writes the per-respondent estimates back (`<name>.hb.R`). The field's **ⓘ**
+adds: "It has no weight column (the HB packages take none), so an applied
+weight is not in it: weight the individual utilities when you aggregate
+them." A run of the flow keeps all three under **Files**; **Run all** keeps
+them only when the flow lists them among its outputs (as the example study's
+`segments` flow does), and the line under the field says so: "Run all
+doesn't keep these files: run this flow on its own to get them."
 
 Why export rather than estimate here: hierarchical Bayes takes minutes of
 MCMC, and a flow run has one CPU and a few minutes for everything. A cut-down
@@ -3048,10 +3131,11 @@ long format, a column dictionary and an R script.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Conjoint question** | text | required | — | The question's id or name. Its attributes and design are read from the questionnaire. |
-| **Path** | file path | required | — | Output CSV path under `outputs/`. The dictionary and R script are written beside it. |
+| **File name** | file name | required | — | The name before a fixed `.csv`, in `outputs/`; a node added from the palette gets `<flow>_conjoint_choices`. The dictionary and R script are written beside it. |
 
 As for MaxDiff, the file has no weight column: weight the individual
-part-worths when you aggregate them.
+part-worths when you aggregate them. **Run all** keeps the files only when the
+flow lists them among its outputs; a run of the flow keeps them always.
 
 ### Export file
 
@@ -3063,16 +3147,22 @@ the dictionary alone (.json)."
 
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
-| **Path** | file path | required | — | .parquet, .csv, .xlsx, .sav or .dta write the data and <name>.dictionary.json beside it. .R writes <name>.csv, <name>.dictionary.json and an R script that reads them with factors and NA for the missing codes. .json writes the codebook alone. |
+| **File name** | file name | required | — | The file's name, in `outputs/`; a node added from the palette gets `<flow>_data`. **Format** under it picks the kind of file — its ending. |
 
-What each extension writes, for **Path** `outputs/clean.<ext>`:
+**Format** offers **CSV (.csv)** (a new node's), **Excel (.xlsx)**, **SPSS
+(.sav)**, **Stata (.dta)**, **Parquet (.parquet)**, **R bundle (.R)** and
+**Codebook only (.json)**. There is no `.xls`: an `.xls` name would hold an
+`.xlsx` workbook, which Excel warns about, so a typed `clean.xls` is answered
+"Choose Excel (.xlsx): an .xls name would hold an .xlsx workbook, and Excel
+warns about that." with **Use clean as Excel (.xlsx)**. What each format
+writes, for **File name** `clean`:
 
-| Extension | Files |
+| Format | Files |
 |---|---|
-| `.parquet`, `.csv`, `.xlsx` | the data and `clean.dictionary.json` |
-| `.sav`, `.dta` | the data with its labels inside (variable labels, value labels, declared missing values) and `clean.dictionary.json` |
-| `.R` | an **R bundle**: `clean.csv`, `clean.dictionary.json` and `clean.R` |
-| `.json` | the data dictionary (codebook) alone, no data — an error when the data has no codebook |
+| **CSV**, **Excel**, **Parquet** | the data (`clean.csv`, `clean.xlsx`, `clean.parquet`) and `clean.dictionary.json` |
+| **SPSS**, **Stata** | the data with its labels inside (variable labels, value labels, declared missing values) and `clean.dictionary.json` |
+| **R bundle (.R)** | `clean.csv`, `clean.dictionary.json` and `clean.R` |
+| **Codebook only (.json)** | the data dictionary (codebook) alone, no data — an error when the data has no codebook |
 
 **The R bundle.** `clean.R` reads `clean.csv` (as UTF-8) and its dictionary
 (with the `jsonlite` package) into a data frame named `survey_data`: the
@@ -3088,10 +3178,13 @@ answer. The script finds its two files beside itself, whether you run it with
 An `.xlsx` keeps text as text: an open answer such as `=HYPERLINK(…)` is
 written as the string it is, never as a formula Excel would run.
 
-The files appear in **Files** and as download chips on the run's card — as
-long as **Path** starts with `outputs/`. Written after the cleaning and
-weighting steps, the export carries the variables the flow made (recodes,
-bands, factor scores, a weight column) with their labels.
+A run of the flow keeps the files: they appear in **Files** and as download
+chips on the run's card. **Run all** keeps them only when the flow lists them
+among its outputs (as the example study's `cleaning` flow lists its R bundle);
+for a flow built on the canvas the line under the field says "Run all doesn't
+keep these files: run this flow on its own to get them." Written after the
+cleaning and weighting steps, the export carries the variables the flow made
+(recodes, bands, factor scores, a weight column) with their labels.
 
 ### Live tile
 
@@ -3170,14 +3263,14 @@ footer** is on (the default).
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Title** | text | required | — | The report's title. |
-| **Path** | file path | `outputs/report.md` | — | Where the Markdown file is written. Keep it under `outputs/`. |
+| **File name** | file name | `outputs/report.md` | — | The report's name before a fixed `.md`, in `outputs/`. A node the Report view creates, or one added from the palette, gets the flow's name (`outputs/<flow>.md`). |
 | **Also save HTML** | checkbox | on | — | Also write the styled `.html` twin next to the Markdown. |
 | **Interactive charts in HTML** | checkbox | off | — | The HTML draws its charts in the reader's browser — a tooltip on every bar, point and cell with its value and base, a legend whose entries hide and show their series, zoom where it helps — and still opens offline, so it can be sent to a client as it is. For that it carries the chart libraries (Vega, Vega-Lite and Vega-Embed, about 0.8 MB, written in once) and each chart's numbers — what it draws, and a scatter plot's points and a box plot's outliers, the respondents' values it plots. Each chart's picture stays in the HTML for printing and for readers without scripts; the Markdown and the Excel workbook are unchanged. Applies only with Also save HTML. |
 | **Table of contents** | checkbox | off | — | Add a table of contents. |
 | **Also save tables to Excel** | checkbox | off | — | Every table of the report in one workbook beside it (Path with .xlsx) — a sheet per table, named by its caption or its section's heading, with its statistics under it, and a Contents sheet first. Banner tables keep their significance letters and Group means its post-hoc pairs on a sheet of their own; charts are left out. |
 | **Look** | report look | — | — | Typefaces, measure, table style and page size of the rendered report, and the chart colors and font of every chart in it whose Palette is theme (in the Markdown's figures too). Its p_values says how the report writes a p-value — exact, as computed (the default); 0.01, one below 0.01 as < 0.01; or 0.001, one below 0.001 as < 0.001 — in its tables' cells and statistics lines, the Markdown as the HTML, the Excel workbook (a number format, so the cell keeps its number) and the charts' notes (< .01); the results and their exports keep the exact p. Otherwise the Markdown's text is unaffected. |
 
-- **The Excel workbook** (`outputs/report.xlsx` for the default **Path**) is
+- **The Excel workbook** (`<name>.xlsx` beside `<name>.md`) is
   the report's tables as a spreadsheet: numbers stay numbers, and text stays
   text — an answer, label or caption that begins with `=` is never turned into
   a formula. Its first sheet, **Contents**, carries the report's title and one
@@ -3239,17 +3332,28 @@ footer** is on (the default).
   `theme={"p_values": "0.01"}`. Any other value is named on the node: "theme:
   p_values: '0.05' is not one of exact, 0.01, 0.001." See
   [P values](Studio-Reports#p-values).
-- Keep **Path** under `outputs/`; set the same file as the flow's **Report
-  path** (Flow settings) if you want this report in the combined report of
-  **Run all**. The Report view does both for you when it creates the node;
-  changing the node's **Path** (or clearing it back to `outputs/report.md`)
-  moves a **Report path** that named the old file along with it, and deleting
-  the node clears the **Report path** it set. A node added from the palette
-  sets no **Report path**. A **Report path** that no **Save report** node of
-  the flow writes gets a warning at **Check** and at Save ("… but no Save
-  report step saves there: Run all will fail this flow. …").
-- There is no PDF output: a path ending in `.pdf` fails. Print the HTML
-  instead.
+- The line under **File name** says where a run leaves the report ("After a
+  run: Files → outputs/*flow*/*name*.md") and what is written beside it
+  (`<name>.html` with **Also save HTML**, `<name>.xlsx` with **Also save
+  tables to Excel**, and `<name>_fig_1.png`, "a picture per chart").
+- Choose this node as the flow's **Report path** (Flow settings, with no node
+  selected) if you want this report kept by **Run all** and in its combined
+  report. The Report view does both for you when it creates the node;
+  changing the node's **File name** moves a **Report path** that named the old
+  file along with it, and deleting the node clears the **Report path** it
+  set. A node added from the palette sets no **Report path**, and its field
+  says "Run all keeps a report only when it is the flow's Report path (in the
+  Flow panel, with no node selected): run this flow on its own to get this
+  one." A **Report path** that no **Save report** node of the flow writes
+  (saved that way earlier) gets a warning at **Check** and at Save ("… but no
+  Save report step saves there: Run all will fail this flow. …").
+- There is no PDF output. A typed `.pdf` is answered under the field —
+  "Reports are saved as Markdown and HTML — for a PDF, open the HTML and print
+  it." — and so are `.html` ("The report is saved as Markdown (.md); Also save
+  HTML puts an .html copy beside it."), `.docx` ("Reports are saved as
+  Markdown and HTML — Word opens the .html copy.") and `.xlsx`. A path ending
+  in `.pdf` saved earlier fails at the run; the field shows it under "Other
+  location, kept as it was written", with a fix.
 
 ### Tab book (Excel)
 
@@ -3271,12 +3375,13 @@ the segments that matter, in one file.
 | **Level** | number | `0.05` | 0.001–0.2 | The letters' significance level. |
 | **Multiple comparisons** | choice | `none` | `none`, `bonferroni` | `bonferroni` divides **Level** by the number of pairs of columns tested. |
 | **Means** | checkbox | on | — | The mean and standard deviation of an interval or ratio question per column (not tested). |
-| **Path** | file path | `outputs/tabbook.xlsx` | — | An .xlsx file under outputs/, where the run keeps it. |
+| **File name** | file name | `outputs/tabbook.xlsx` | — | The workbook's name before a fixed `.xlsx`, in `outputs/`. A node added from the palette gets `<flow>_tabbook` (`outputs/<flow>_tabbook.xlsx`), numbered when the flow already has one. |
 
 The **Percentages** dropdown reads `column — of each column's respondents`,
 `row — of each answer's respondents`, `none — counts only`. **Level** and
 **Multiple comparisons** are shown only while **Significance letters** is
-checked. The card reads `gender, region → outputs/tabbook.xlsx`.
+checked. The card reads the banner and the file: `gender, region →
+outputs/tabbook.xlsx`.
 
 **The workbook.**
 
@@ -3332,8 +3437,9 @@ Interval and ratio variables are not taken by default; name them in
 **Percentages**, **Test** ("two-sided z-test of column proportions at 0.05,
 within each banner variable") and, on weighted data, **Weight**. A preview
 runs the node and shows it, with "Not kept: a preview never keeps the files
-nodes write. A run writes outputs/tabbook.xlsx." A run keeps the workbook as
-`outputs/<flow>/tabbook.xlsx`: on the run's card, in **Files**, and on the
+nodes write. A run writes outputs/tabbook.xlsx." (the node's file). A run
+keeps the workbook as `outputs/<flow>/<name>.xlsx`, as the line under **File
+name** says: on the run's card, in **Files**, and on the
 **Reports** screen as **Tab book** (see
 [The Reports screen](Studio-Reports#the-reports-screen)). **Run all** keeps it
 too. The Methods draft says what it holds: "every nominal, ordinal and
@@ -3343,13 +3449,13 @@ cross-tabulated by a banner of Gender and Region into a tab book in Excel
 percentages and counts), with significance letters beside each column
 percentage …".
 
-**Rules.** Errors: a **Path** that is not a workbook ("path: A tab book is an
+**Rules.** Errors: a path that is not a workbook ("path: A tab book is an
 Excel workbook: its path must end in .xlsx (got 'outputs/tabs.csv')."), a
 banner variable with several answers ("Brands heard of (unaided) holds
 multiple-choice answers, and a banner column is a group of respondents that
 no one else is in. Explode it first (prepare.explode) and use its columns, or
 choose another banner variable.") and "With Percentages none and Counts off
-the tables would be empty — turn one of them on." Warnings: a **Path**
+the tables would be empty — turn one of them on." Warnings: a path
 outside `outputs/` ("path: 'tabs.xlsx' is not under outputs/, where a run
 keeps what it writes."), "Significance letters compare column percentages,
 so the sheets show them only with Percentages column; with row percentages or
@@ -3361,6 +3467,13 @@ ranking: every respondent orders every option, so each option would read 100
 When it runs, a banner variable of more than 30 different values stops the
 node: "Postcode has 212 different values: too many columns for a banner.
 Band it first (prepare.bands) or choose a variable of a few groups."
+
+The **File name** field keeps `outputs/` and `.xlsx` fixed, so the
+not-a-workbook error and the outside-`outputs/` warning come only from a path
+saved earlier, which the field shows as it was written, under "Other
+location, kept as it was written", with a one-click fix. A typed `tabs.csv`
+is answered under the field: "A tab book is an Excel workbook: it is saved as
+.xlsx."
 
 ### Write table
 
