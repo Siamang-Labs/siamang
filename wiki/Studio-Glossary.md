@@ -112,6 +112,12 @@ asks which one the respondent would choose.
 system (Sheets, a warehouse, storage, a CRM) or imports one.
 → [[Connectors|Studio-Connectors]]
 
+**Data file** — the flow source that reads a file uploaded under **Files**
+(CSV in any encoding, Excel, SPSS, Stata, Parquet, a Qualtrics export) as it
+comes, and brings the file's own columns into the flow; the questionnaire
+labels it only when the file is the survey's data.
+→ [Data file](Studio-Node-Reference#data-file)
+
 **Deadline** — a date and time set in the questionnaire (in **Source**) after
 which a published environment accepts no more responses; one source of the
 environment's **closing date**, shown on its card as **Closes `<date>`**.
@@ -247,7 +253,10 @@ declared with its label in the Codebook and exported as a declared missing
 value to SPSS and Stata. The tests you choose by hand leave missing codes out
 and say how many; a few older defaults count them as answers and say so
 ("Missing codes counted as answers", or `missing_codes_counted` in
-Correlation and Compare groups) until **Missing values** clears them.
+Correlation and Compare groups) until **Missing values** clears them. In an
+uploaded data file, Studio points out codes that look like missing codes
+(−7, −8, −9, 99 …); they count as answers until you declare them in the
+**Data file** node's **Missing codes**.
 → [Missing codes](Studio-Codebook-and-Variables#missing-codes)
 
 **Net** — in a codeframe, the themes that share a **Net** name, counted
@@ -311,6 +320,12 @@ or quotas.
 regions, segments) and attributes (or answers) as points, near each other when
 they go together more than chance would have it.
 → [Perceptual map](Studio-Node-Reference#perceptual-map)
+
+**Personal-data hint** — on **Files** and in a **Data file** node, the
+columns of an uploaded file whose names or values look like an e-mail or IP
+address, a location, a name, a phone number, an address or a participant ID.
+A hint to leave them out early, never a drop.
+→ [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload)
 
 **Piping** — inserting an earlier answer into text: `{answer:var}`,
 `{label:var}` (or `{var:var}`). → [[Logic and Branching|Studio-Logic-and-Branching]]
