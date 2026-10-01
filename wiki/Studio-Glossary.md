@@ -191,6 +191,11 @@ each as a Save of its own. A flow that fails the engine check at Save cannot
 run until fixed; the rest of the project is not affected.
 → [[Analysis Flows|Studio-Flows]]
 
+**Focus mode** — the flow editor's **Canvas** view with the whole window: the
+topbar, the project tabs and the page margins hidden, the header one row.
+`F` or the **Focus mode** button under the canvas's zoom buttons turns it on
+and off. → [Focus mode](Studio-Flows#focus-mode)
+
 **Frozen workspace** — an organization that support has made read-only. Not
 the same as the end of a trial, which moves the organization to the Free plan.
 
@@ -421,7 +426,8 @@ project table.
 with generated code stored alongside it. → [[History and Versions|Studio-History-and-Versions]]
 
 **Save badge** — the topbar indicator of the project's current Save and its
-state: `valid`, `warnings`, `errors`, `checking`, `unsaved`.
+state: `valid`, `warnings`, `errors`, `checking`, `unsaved`. In the flow
+editor's focus mode it sits beside the flow's name.
 
 **Scale** — a variable's measurement level: nominal, ordinal, interval or
 ratio.
