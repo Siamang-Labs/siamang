@@ -58,8 +58,9 @@ previewing up to a **Write table** node is safe.
 Variables you create in a flow — with **Recode**, **Derive**, **Bands**,
 **Index / scale**, **Explode multiple choice**, **MaxDiff scores**,
 **Response quality**, **Speeders & partials**, and the scores of a **Factor
-analysis** — are offered by the variable dropdowns and checklists of the
-nodes after them, labeled "*label* · made by *node*": a recoded variable can
+analysis** — are offered by the variable lists and checklists of the
+nodes after them, labeled "*label* · made by *node*" (in a list, on the line
+under the name, with the scale after it): a recoded variable can
 go straight into a **Crosstab**, a quality score into a **Filter rows**, a
 derived measure into **Group means**. See
 [Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers).
@@ -479,8 +480,8 @@ Things to know:
   the columns it writes — labels, scales and value labels — with the table, so
   the variables the cleaning flow *created* (`satisfaction_3`,
   `quality_score`, `cluster`) arrive in the reading flow labeled. Its
-  variable dropdowns offer them as "from table clean_responses · made by
-  cleaning", and naming one passes the engine check at Save. A table last
+  variable lists offer them with "from table clean_responses · made by
+  cleaning" under the name, and naming one passes the engine check at Save. A table last
   written before tables kept their variables has no labels for them yet: run
   the cleaning flow once more. A weight column travels too; **Apply weight**
   takes its name as text.

@@ -256,8 +256,10 @@ rows to the `responses` table.
    decimal comma, Windows-1251 or UTF-16 ("Unicode text"). If the file has a
    dictionary (`<name>.dictionary.json`), upload it too.
 2. In the flow, add a **Data file** node and choose the file by name in its
-   **File** list, such as `panel_wave2.csv`; the note under the list gives its
-   rows × columns, size and upload date. If you uploaded its dictionary,
+   **File** list, such as `panel_wave2.csv`. Each upload in the list has its
+   size and upload date under its name (a data file this screen has read,
+   its rows × columns first), and a long name wraps there; the note under
+   the field gives the chosen file's rows × columns, size and upload date. If you uploaded its dictionary,
    **Dictionary (JSON)** offers it: click **Use
    panel_wave2.dictionary.json**.
 3. Check the node's **Columns** panel: how the file was read, where its labels
@@ -269,8 +271,9 @@ rows to the `responses` table.
    them into blanks. If it shows **Looks like personal data** (its **ⓘ**
    names the columns), click **Add a Select columns node without them** beside
    it.
-5. Add your analyses below. Their pickers list the file's columns under
-   "From panel_wave2.csv". The questionnaire's variables are offered too only
+5. Add your analyses below. Their pickers list the file's columns under the
+   heading "From panel_wave2.csv", each column's label and scale under its
+   name; a list of more than ten has a filter box ("Filter variables…"). The questionnaire's variables are offered too only
    when the file is this survey's data.
 6. Click **Run to here** on a node to see its result, or save and run the
    flow (or **Run all**).

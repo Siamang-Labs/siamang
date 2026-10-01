@@ -111,7 +111,10 @@ right after the palette, before the nodes and wires.
 
 ## Flow inspector lists
 
-A parameter with a fixed set of values is a list in the flow inspector (see
+Every picker of the flow inspector — a parameter's choices, a variable, an
+answer code, a file a node reads, the flow's **Report path**, a **Filter
+rows** condition's parts — is a list, and so are a report item's width and
+space above (see
 [Lists in the inspector](Studio-Flows#lists-in-the-inspector)).
 
 | Keys | Where | Action |
@@ -122,7 +125,7 @@ A parameter with a fixed set of values is a list in the flow inspector (see
 | `Home` / `End` | in the list | the first / the last row (in a filter box, only while it is empty) |
 | `Page Up` / `Page Down` | in the list | about a screenful up / down, stopping at the first and the last row |
 | letters | in a list of ten or fewer | jump to the first value that starts with them |
-| letters | in a filter box | keep the entries that contain every word typed |
+| letters | in a filter box | keep the entries whose name or line under it contains every word typed; the empty entry (**— pick a variable —**) is left out once you type |
 | `Enter` or `Space` | in the list | choose the lit row (`Space` types a space in a filter box) |
 | `Esc` | in the list | close the list, back on the field; in a filter box with text, the first `Esc` empties the box and the second closes the list. Focus mode and the node's selection stay |
 | `Tab` / `Shift + Tab` | in the list | close the list and move on to the next field / stay on the field |

@@ -41,19 +41,19 @@ error until you fill it in. The inspector marks every other parameter
 
 | Type | How you set it in the inspector |
 |---|---|
-| variable | a dropdown of the variables available at this node (`name — label`), filtered to the scales the node accepts. A stored variable of another scale stays shown as what the node reads, with its scale: "q_md_score_1 (interval — Rows takes nominal / ordinal)" — an error of the check for a codebook variable, a warning for one a node of the flow makes. A made variable has the scale the nearest node upstream that makes it gives it (a Recode of a derived variable is ratio, like its source), and the dropdown offers it with that scale; a name the codebook has keeps the codebook's. An arm an **Assign to a condition** script writes is offered as a nominal variable ("assigned by a script") when the codebook does not list it. A field that can read columns the codebook does not describe lists them last, under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the survey's responses carry — `created_at — Response date (created_at)`, `updated_at — Last change (updated_at)`, `started_at — Start time (started_at)`. A field leaves out what its node refuses as soon as it is picked: a **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not offer multiple-choice questions, rankings or open answers, and a **Trend**'s **Measure variable** for a mean no nominal or multiple-choice question; a stored one stays shown with the reason (`aware (several answers: not one wave or date)`) |
+| variable | a list of the variables available at this node, filtered to the scales the node accepts: each by its name, with its label and scale on the line under it (`satisfaction` over "Overall satisfaction · ordinal"), under headings where they come from different places (**From *name*** below a **Data file**). A list of more than ten opens with a filter box ("Filter variables…"); see [Lists in the inspector](Studio-Flows#lists-in-the-inspector). The empty entry reads **— pick a variable —** for a required field and **— none —** for an optional one. A stored variable of another scale stays shown as what the node reads, with the reason after its name: `q_md_score_1` "(interval — Rows takes nominal / ordinal)" — an error of the check for a codebook variable, a warning for one a node of the flow makes. A made variable has the scale the nearest node upstream that makes it gives it (a Recode of a derived variable is ratio, like its source), and the list offers it with that scale; a name the codebook has keeps the codebook's. An arm an **Assign to a condition** script writes is offered as a nominal variable ("assigned by a script") when the codebook does not list it. A field that can read columns the codebook does not describe lists them last, under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the survey's responses carry — `created_at` ("Response date (created_at)"), `updated_at` ("Last change (updated_at)"), `started_at` ("Start time (started_at)"). A field leaves out what its node refuses as soon as it is picked: a **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not offer multiple-choice questions, rankings or open answers, and a **Trend**'s **Measure variable** for a mean no nominal or multiple-choice question; a stored one stays shown with the reason (`aware` "(several answers: not one wave or date)") |
 | variables (several) | a checklist of the same variables, filtered the same way; a checked variable the list would not offer stays in it, with its scale or "(not in codebook)", and can be unchecked |
 | choice | a list of the allowed values, as wide as the field. The field shows the code chosen; in the list, where the code is a statistician's shorthand, its name is on the line under it — "Welch's ANOVA" under `welch_anova`, "Benjamini-Hochberg" under `fdr_bh`. An optional field's list starts with **— default —**, which leaves the default, with "the node's default: …" under it. The stored value and the generated script keep the code. A list of more than ten opens with a filter box. How the lists work: [Lists in the inspector](Studio-Flows#lists-in-the-inspector) |
-| answer code | an answer of the variable another parameter names, picked from that variable's value labels (`1 — Male`): a dropdown (**— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be checked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads "5 (not an answer of gender)" in a dropdown and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1 — Male`; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1" (not an answer of gender)`. Where the field reads a list of variables, the answers are those of the first one checked. When that variable has no value labels, the field is a JSON box instead |
+| answer code | an answer of the variable another parameter names, picked from that variable's value labels: a list of the codes, each with its label under it ("Male" under `1`; **— pick an answer —** when the field is required, **— none —** otherwise), or a checklist where several answers may be checked. A t-test's **Group A** and **Group B** and a **Trend**'s **Answer codes** leave the codebook's missing codes out — its missing answers and its `missing_values` alike (both nodes refuse a missing code there). A stored code that is not among them reads `5` "(not an answer of gender)" in a list and "5 is not an answer of gender" under a checklist. A code stored as text is read as the node reads it: a t-test and a Trend find their answers by their text, so a **Group A** of `"1"` shows as `1`, with "Male" under it in the list; **Proportion CI**'s answer, the **Counts as yes** of McNemar and Cochran's Q, a **Perceptual map**'s **Counts as yes (attributes)** and **Price sensitivity**'s **Counts as would buy** compare codes by type, so there text "1" is not the answer 1 and shows as given, `"1"` "(not an answer of gender)". Where the field reads a list of variables, the answers are those of the first one checked. When that variable has no value labels, the field is a JSON box instead |
 | whole number, number | a number box; the placeholder shows the default |
 | checkbox | checked = on |
 | text | a text box; where the text names a new variable or column, the hint says "names a new variable". A few text boxes suggest values as you type — a **Bar chart**'s **Bins** (`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a **Heatmap**'s **Color map** (`theme`, `YlOrRd`, `Blues`, `viridis`, `RdBu_r`) — and take any other value the node reads |
 | JSON object, JSON | a text box that must contain valid JSON; it is read when you leave the box, and a parse error is shown under it. Where the help gives an example, the empty box shows it (`[18, 30, 45, 65, 100]`) |
-| condition | the Builder's condition editor, over the variables available at this node |
+| condition | the Builder's condition editor, over the variables available at this node; in the inspector its variable, operator, value and **ALL** / **ANY** are lists (see [Filter rows](#filter-rows)) |
 | formula | a monospaced box, with the variables available at this node listed under it |
 | file name | a file the node writes: a field labeled **File name**, the name typed between a fixed `outputs/` and the file's ending (`outputs/` `client_q3` `.xlsx`); a **Format** list under it where the node writes several. A `/` in the name makes folders. The lines under it say where a run leaves the file and what is wrong with a name (see [Where files go](#where-files-go)) |
-| codeframe | a dropdown of the project's codeframes by path (`analysis/<name>.codeframe.json`; **— choose a codeframe —** when none is chosen), with **Edit codeframe…**, or **New codeframe…** when none is chosen (see [Code open answers](#code-open-answers)) |
-| upload | a file the node reads: a list, by name, of the uploads under **Files** the field can read, with the chosen file's size and date under it and **Upload…** and **Type a name…** (**Type another name…** once a file is chosen) under that (see [Where files go](#where-files-go)) |
+| codeframe | a list of the project's codeframes by path (`analysis/<name>.codeframe.json`; **— choose a codeframe —** when none is chosen), with **Edit codeframe…**, or **New codeframe…** when none is chosen (see [Code open answers](#code-open-answers)) |
+| upload | a file the node reads: a list, by name, of the uploads under **Files** the field can read, each with its size and upload date on the line under it (a data file that **Files** has read with its rows × columns first); a long name wraps in the list and is cut short with "…" in the field. The chosen file's size and date are also under the field, then **Upload…** and **Type a name…** (**Type another name…** once a file is chosen) (see [Where files go](#where-files-go)) |
 
 **Choices on this page** are written as their code, followed by the name the
 list shows on the line under it: `welch_anova` ("Welch's ANOVA"). Look for
@@ -163,10 +163,16 @@ only the name:
 
 **A file a node reads** is an upload under [[Files|Studio-Files]]. The field
 lists, by name, only the uploads it can read — a **Data file**'s **File** the
-data files, its **Dictionary (JSON)** the `.json` files — and the note under
-it gives the chosen file's size and upload date (a data file's rows × columns
-first), then "Each run reads the file as it is in Files at that moment." Under
-the list:
+data files, its **Dictionary (JSON)** the `.json` files — each with its size
+and upload date on the line under it, a data file that **Files** has read
+with its rows and columns first ("160 rows × 16 columns · 24.6 KB · uploaded
+Jun 2, 2026"). A long name, such as
+`ev_owner_charging_experience_panel_wave_3_june_2026_weighted_final_v2.sav`,
+wraps in the list after its `_` and `.`, and is cut short with "…" in the
+field; point at the field to read it whole. The note under the field gives
+the chosen file's size and upload date (a data file's rows × columns first),
+then "Each run reads the file as it is in Files at that moment." Under the
+note:
 
 - **Upload…** opens **Upload a data file** (or **Upload a dictionary**), which
   says what it takes, refuses a file of another kind, even one dragged in, and
@@ -182,9 +188,10 @@ the list:
   SPSS, Stata or Parquet file (up to 50 MB)."; while the project's files load,
   "Loading this project's files…"; when they cannot be loaded, it says so,
   with **Try again**.
-- An upload deleted since stays chosen as "*name* — not in Files", with the
-  same sentence. A chosen upload the field would not offer stays too, marked
-  "can't be read as data" or "not a dictionary (.json)".
+- An upload deleted since stays chosen, with "(not in Files)" after its
+  name, and the same sentence. A chosen upload the field would not offer
+  stays too, marked "(can't be read as data)" or "(not a dictionary
+  (.json))".
 - A value saved earlier that a run cannot bring in — a path that is not an
   upload's name, such as `./assets/panel_wave2.csv` — is shown under "Other
   location, kept as it was written": "A run only brings in files uploaded
@@ -711,7 +718,7 @@ a reviewer reads in the generated script.
 `{"1": "Under 30", "2": "30 or over"}` for `if age < 30 then 1 else 2` — the
 example the empty box shows. Tables of the new variable then print the labels,
 not `1` and `2`, and a **t-test**'s **Group A** and **Group B** downstream offer
-`1 — Under 30` and `2 — 30 or over`. To cut a number into ranges, **Bands**
+`1` ("Under 30") and `2` ("30 or over"). To cut a number into ranges, **Bands**
 writes the labels for you.
 
 **The formula language.**
@@ -795,7 +802,15 @@ on the node before a Save.
 
 The editor offers **ALL of the following** / **ANY of the following**, the
 operators = ≠ > ≥ < ≤ **in**, **not in**, **chose**, **did not choose**, and
-value pickers that show value labels (`Capital region (1)`). Its variables
+value pickers that show value labels. In the flow's inspector each of these
+is a list as wide as the field: each variable with its label and scale under
+it (under "From *name*" below a **Data file**), a long column name wrapped
+after its `_`; each operator with what it asks ("is at least", "is among its
+answers (a question answered more than once)"); each answer's code with its
+label under it ("Capital region" under `1`); and a filter box in a list of
+more than ten (see
+[Parameters and variable pickers](Studio-Flows#parameters-and-variable-pickers)).
+Closed, the condition reads as a sentence, `region = Capital region (1)`. Its variables
 are those available at this node — the codebook's, and those made upstream,
 such as `quality_score` or a recode — so you can, for example, keep only
 `quality_score` = `0`. A condition that nests groups opens as JSON.
@@ -830,10 +845,10 @@ preferences can go into a crosstab, a cluster or a regression."
 | **MaxDiff question** | text | required | — | The question's id or name. Its design is read from the questionnaire. |
 | **Variable prefix** | text | — | — | Each item's score is <prefix><item code>. Defaults to the question and _score_, so item 3 of q_md becomes q_md_score_3. |
 
-- **MaxDiff question** is a dropdown of the questionnaire's MaxDiff questions
-  (**— pick a MaxDiff question —**), each as `name — question text`. A stored
-  name the questionnaire does not have is kept and marked "(not in the
-  questionnaire)", and the engine check names it at **Check** and at Save:
+- **MaxDiff question** is a list of the questionnaire's MaxDiff questions
+  (**— pick a MaxDiff question —**), each by its name with its question text
+  under it. A stored name the questionnaire does not have is kept and marked
+  "(not in the questionnaire)", and the engine check names it at **Check** and at Save:
   "Parameter 'question' of md_scores: no MaxDiff question named 'q_mdx'; this
   questionnaire has: q_md." With no MaxDiff question in the questionnaire the
   field is a text box.
@@ -1040,15 +1055,16 @@ were written too. You build the codeframe in the codeframe editor. See
 | **Theme variable** | text | — | — | Defaults to the name the codeframe carries. A codeframe that gives an answer several themes makes a multiple-choice variable (a list of codes per answer). |
 | **Also add sentiment** | checkbox | off | — | A sentiment variable beside the theme, and each theme's negative / neutral / positive split in the table. Only when the codeframe was built with it — the stat says when it was not. |
 
-- **Codeframe** is a dropdown of the project's codeframes (**— choose a
-  codeframe —**), with a line under it: "Choose a codeframe document of this
+- **Codeframe** is a list of the project's codeframes
+  (**— choose a codeframe —**), with a line under it, which a screen reader
+  hears with the field: "Choose a codeframe document of this
   project." or "No codeframe document exists in this project." The button
   under it opens the codeframe editor: **New codeframe…** when none is
   chosen — it asks for the open-text variable and a name, sets the new file on
   the node at once and shows the answers this flow's **Responses** node
   reads — and **Edit codeframe…** for the chosen one. A new codeframe is a
-  document only once saved in its editor; until then the dropdown lists it as
-  "*path* (not saved)" and the line reads "*path* is not saved yet: it is kept
+  document only once saved in its editor; until then the field shows it with
+  "(not saved)" after it, and the line reads "*path* is not saved yet: it is kept
   in this tab until you save it in its editor." (in another tab: "*path* is
   not saved in this project: it was started and never saved. Start it again,
   or choose another codeframe."). There is no button to code with the AI
@@ -2238,7 +2254,7 @@ its confidence interval.
 | Parameter | Type | Default | Allowed | Meaning |
 |---|---|---|---|---|
 | **Variable** | variable | required | — | The variable. |
-| **Answer code** | answer code | required | — | The answer whose share you want, picked from the **Variable**'s value labels (`1 — Yes`). For a variable without value labels it is typed as JSON: `1` or `"yes"`. |
+| **Answer code** | answer code | required | — | The answer whose share you want, picked from the **Variable**'s value labels (`1`, with "Yes" under it). For a variable without value labels it is typed as JSON: `1` or `"yes"`. |
 | **Confidence** | number | `0.95` | 0–1 | Confidence level between 0 and 1. |
 | **Weighted** | checkbox | off | — | Use the applied weight. |
 
@@ -2382,8 +2398,8 @@ design reads:
 | `paired` | **Variable**, **Second measurement**, **Confidence** | **Second measurement** |
 | `one_sample` | **Variable**, **Test value**, **Confidence** | — |
 
-**Group A** and **Group B** list the answers of the **Groups** variable
-(`1 — Male`, `2 — Female`, …), including the bands of a **Bands** node. Leave
+**Group A** and **Group B** list the answers of the **Groups** variable,
+each code with its label under it (`1` "Male", `2` "Female", …), including the bands of a **Bands** node. Leave
 both empty when **Groups** has exactly two values.
 
 **Rules** (errors):
@@ -3156,14 +3172,15 @@ trust_acme over wave` or `respondents over created_at`.
 **Time.** The picker lists the codebook's variables — **Waves and dates**
 first (labeled codes, ordinal variables, date columns, a Date question's
 answers), then **Other variables** — and, under **Beside the answers**, the
-timestamps the survey's responses carry: `created_at — Response date
-(created_at)` (when the response came in — the usual choice), `updated_at —
-Last change (updated_at)` and `started_at — Start time (started_at)`. The axis
+timestamps the survey's responses carry: `created_at` ("Response date
+(created_at)" under it; when the response came in — the usual choice),
+`updated_at` ("Last change (updated_at)") and `started_at` ("Start time
+(started_at)"). Each group is a heading in the list. The axis
 names them by those labels ("Response date (month)"). It leaves out a
 multiple-choice question, a ranking and an open answer (not a Date question's),
 as **Split by** does; with **Measure** `mean`, **Measure variable** leaves out
 nominal and multiple-choice questions. A variable already stored stays listed,
-with the reason (`aware (several answers: not one wave or date)`). A variable with value labels, or
+with the reason after it (`aware` "(several answers: not one wave or date)"). A variable with value labels, or
 of numbers, is read as waves: a point per code, in the order of the codes,
 each named by its label ("Spring 2026", "Summer 2026"); a wave the codebook
 declares between the first and the last, with no data yet, is a gap. A column
