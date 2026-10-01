@@ -601,13 +601,16 @@ The file is read when it is uploaded, and again when the node's reading
 options change; meanwhile the node's **Columns** panel says "Reading the
 file's columns… Nodes below it aren't checked for names until it is read."
 Then the pickers below list the file's columns under "From *name*". A
-**File** under "Other location" is not read at all, though its **Columns**
-panel stays at "Asking what the file holds…" — choose the upload from the
-list. If the panel says **cannot read**, fix what it names (the
-encoding, the delimiter, the sheet, the header rows) under **Reading
-options** and click **Read again**. The questionnaire's variables are
-offered below a file only when the file is this survey's data; if it is and
-the panel says the file keeps its own labels, set **Codebook** to
+**File** under "Other location" is not read at all: its **Columns** panel
+says **not read** — "Only a file uploaded under Files is read for its
+columns. Choose the upload under File above (upload it first if it isn't
+there), and its columns show here." — and has no **Read again**. Click the
+field's **Use the uploaded …** (for an older path) or **Use *name*** (for a
+typed name), or choose the upload from the list. If the panel says **cannot
+read**, fix what it names (the encoding, the delimiter, the sheet, the header
+rows) under **Reading options** and click **Read again**. The questionnaire's
+variables are offered below a file only when the file is this survey's data;
+if it is and the panel says the file keeps its own labels, set **Codebook** to
 `questionnaire`.
 → [The file's columns in the flow](Studio-Node-Reference#the-files-columns-in-the-flow)
 
@@ -946,13 +949,13 @@ list of the flow's **Save report** nodes. A flow with **— none —** is left
 out. A path the flow does not write — saved earlier, or set through the API
 — fails that flow, and the list shows it as "*path* — no node saves this":
 "report outputs/*x*.md was not written: the flow's Report path names a file
-none of its nodes saves — set it to the Path of its Save report node" (the
-node's Path is its **File name** now). The flow's tables were still written,
-so the flows that read them run, and the combined report is marked
-incomplete. The Save warns about this beforehand (`REPORT_PATH_UNWRITTEN`:
-"The flow's Report path is “…”, but no Save report step saves there: Run all
-will fail this flow. Set it to the Path of a Save report step, or clear
-it."). Choose one of the flow's reports in **Report path**, or **— none —**.
+none of its nodes saves — choose one of its Save report nodes in Report
+path". The flow's tables were still written, so the flows that read them
+run, and the combined report is marked incomplete. The Save warns about this
+beforehand (`REPORT_PATH_UNWRITTEN`: "The flow's Report path is “…”, but no
+Save report node saves there: Run all will fail this flow. Choose one of the
+flow's Save report nodes in Report path, or clear it."). Choose one of the
+flow's reports in **Report path**, or **— none —**.
 → [The combined report](Studio-Flows#the-combined-report)
 
 **Live tiles are stale.**

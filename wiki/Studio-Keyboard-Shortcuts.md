@@ -1,7 +1,9 @@
 # Keyboard Shortcuts
 
 Every shortcut Studio has, grouped by where it works. `Ctrl/Cmd` means `Cmd`
-on macOS and `Ctrl` elsewhere.
+on macOS and `Ctrl` elsewhere. Tooltips name the keys of your keyboard:
+**Undo (Ctrl+Z)** and **Redo (Ctrl+Shift+Z)** on Windows, Linux and Android,
+**Undo (⌘Z)** and **Redo (⇧⌘Z)** on a Mac, iPad or iPhone.
 
 > **Note.** `Ctrl/Cmd + S` saves only in the **Builder** and on a **flow's
 > canvas**. On other screens it does nothing in Studio, and your browser's own
@@ -18,7 +20,7 @@ on macOS and `Ctrl` elsewhere.
 | `Enter` or `Space` | activate a focused row or card that opens something (a Save in History, a list row) |
 | `Esc` | close the open menu or popover: the account menu, the organization/project switcher, **More** menus, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu; the focus goes back to the button that opened it |
 | `↑` / `↓`, `Home` / `End` in an open menu | move through its items (the menu takes the focus when it opens): the account menu, the organization/project switcher, a row's **⋮** menu, the Builder's **+ Question**, **Library**, **+ Page** and **Add script** menus, the Data export menu |
-| `Tab` in an open menu | close the menu and move on to the next control |
+| `Tab` in an open menu | close the menu and move on to the next control; in a toolbar's **More** menu (the Builder, Flows and a flow, the codeframe editor, History, Distribute), `Tab` first moves through its items, and leaving it closes it |
 | `←` / `→`, `Home` / `End` on a focused tab | move between the tabs of **Organization settings**, **Profile settings**, **Project settings**, a Save in **History** and the codeframe editor (**Answers**, **Suggested words**, **Test a phrase**), without opening one |
 | `Enter` or `Space` on a focused tab | open that tab (a settings tab with unsaved changes asks **Discard unsaved changes?** first); `Tab` then moves into the tab's content |
 
@@ -90,14 +92,16 @@ when you switch projects, and while a colleague's edits are shown to you.
 | `Shift + Ctrl/Cmd + Z` | redo | `Ctrl/Cmd + Y` does not redo on flows |
 | double-click a node | select it and **Run to here** | Canvas view |
 | `F` | turn [focus mode](Studio-Flows#focus-mode) on or off: the canvas takes the whole window, the palette and the inspector stay | Canvas view only, nothing in List or Report; the key marked F in any keyboard layout; not with `Ctrl`, `Cmd` or `Alt` |
-| `Esc` | clear the selected node; with none selected, leave focus mode | Canvas view only; an open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first; a node or wire that has the keyboard focus while none is selected keeps it (press `F` instead); nothing while a Data file's **Reading options** is open; in full screen the first `Esc` leaves full screen |
+| `Esc` | clear the selected node; with none selected, leave focus mode | Canvas view only; an open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first; a node or wire that has the keyboard focus while none is selected keeps it (press `F` instead); in full screen the first `Esc` leaves full screen |
 
 `Delete`, `Backspace`, `Ctrl/Cmd + D` and undo/redo are ignored while the
 cursor is in a field, in the **Report** view, and while a colleague holds the
-edit lock. `F` is ignored while a text field or a dropdown has the focus,
-while a dialog or a menu is open, and while a **Data file** node's **Reading
-options** is open in the inspector (a focused checkbox or switch does not stop
-it), and `Ctrl/Cmd + F` stays the browser's Find. On a flow, undo history
+edit lock. `F` is ignored while a text field or a dropdown has the focus and
+while a dialog or a menu is open (a focused checkbox or switch does not stop
+it, nor does a **Data file** node's **Reading options** left open in the
+inspector), and `Ctrl/Cmd + F` stays the browser's Find. With **More** open,
+`Esc` closes it and the next `Esc` is the canvas's; `Tab` out of an open
+**More** closes it too. On a flow, undo history
 survives a Save and is cleared when you leave the flow.
 
 With the keyboard, `Tab` reaches the canvas's buttons — **Zoom in**, **Zoom

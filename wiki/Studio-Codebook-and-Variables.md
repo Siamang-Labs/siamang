@@ -531,8 +531,9 @@ A message at the bottom of the screen says what happened:
 | "Kept variable comment — this questionnaire has been published, and exports label the data collected under it" | kept for answers collected |
 | "… The Skip to of q9 now points at nothing" | a target lost its question (the message is a warning) |
 
-Its **Undo** button (tooltip "Undo (⌘Z)") brings back the deleted items and
-their entries in one step and selects the item again. The message stays at
+Its **Undo** button (tooltip "Undo (Ctrl+Z)", or "Undo (⌘Z)" on a Mac, iPad
+or iPhone) brings back the deleted items and their entries in one step and
+selects the item again. The message stays at
 least 8 seconds, and longer while you point at it or it has the keyboard
 focus; it goes when you make another edit. After that, **↶** or
 `Ctrl/Cmd + Z` still undo the deletion, and they select the item again too.

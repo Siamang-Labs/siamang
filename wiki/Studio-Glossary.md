@@ -326,10 +326,11 @@ regions, segments) and attributes (or answers) as points, near each other when
 they go together more than chance would have it.
 → [Perceptual map](Studio-Node-Reference#perceptual-map)
 
-**Personal-data hint** — on **Files** and in a **Data file** node, the
-columns of an uploaded file whose names or values look like an email or IP
-address, a location, a name, a phone number, an address or a participant ID.
-A hint to leave them out early, never a drop.
+**Personal-data hint** — on **Files** and in a **Data file** node, the mark
+**Looks like personal data**, whose **ⓘ** names the columns of an uploaded
+file whose names or values look like an email or IP address, a location, a
+name, a phone number, an address or a participant ID. A hint to leave them
+out early, never a drop.
 → [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload)
 
 **Piping** — inserting an earlier answer into text: `{answer:var}`,
