@@ -12,28 +12,42 @@ params:
     kind: variables
     default: []
     label: Battery to check
-    help: A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these; a flat pattern (the same answer throughout) is straightlining, never a duplicate, since two straightliners of one column match whoever they are.
+    help: |-
+      A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these.
+
+      A flat pattern (the same answer throughout) is straightlining, never a duplicate: two straightliners who picked the same answer match whoever they are.
   duplicates_also:
     kind: variables
     default: []
     label: Duplicates also match on
-    help: Other answers a duplicate must repeat as well as the battery, such as age, gender and a few questions of their own. Two honest respondents can answer a battery alike, and both are dropped as one person submitting twice; the more answers two responses must share, the surer the match. Empty, the battery alone decides.
+    help: |-
+      Other answers a duplicate must repeat as well as the battery, such as age, gender and a few questions of their own.
+
+      Two honest respondents can answer a battery alike, and both are then dropped as one person submitting twice. The more answers two responses must share, the surer the match.
+
+      Left empty, the battery alone decides.
   pairs:
     kind: mapping
     default: {}
     label: Answers that must agree
-    help: 'left variable: right variable. A respondent answering them differently is flagged as contradictory.'
+    help: |-
+      Pairs of variables that should agree, such as the same fact asked twice, or a question and its reversed twin after recoding. Write each pair as left variable: right variable, e.g. `{"q4": "q17"}`.
+
+      A respondent answering them differently is flagged as contradictory.
   expected:
     kind: mapping
     default: {}
     label: Attention checks
-    help: 'variable: the answer a reading respondent gives.'
+    help: |-
+      The answer a reading respondent gives to each attention check, as variable: answer, e.g. `{"q9": 3}`. Any other answer is flagged; a skipped check is not.
+
+      Fill from the questionnaire, below the box, fills this in from the questions marked as attention checks.
   max_sd:
     kind: float
     default: 0.0
     minimum: 0.0
     label: Straightlining tolerance
-    help: Standard deviation across the battery at or below which a response counts as flat. 0 means literally identical answers.
+    help: Standard deviation across the battery at or below which a response counts as flat. `0` means literally identical answers.
   mode:
     kind: enum
     values:
@@ -41,7 +55,7 @@ params:
     - drop
     default: flag
     label: Mode
-    help: Flag adds the columns and keeps everyone; drop also removes the flagged responses.
+    help: '`flag` adds the columns and keeps everyone; `drop` also removes the flagged responses.'
   flags_column:
     kind: string
     default: quality_flags

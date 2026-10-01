@@ -1,7 +1,7 @@
 type: visualize.bar
 category: visualize
 title: Bar chart
-description: Distribution of a variable as counts or percentages — split by a second variable, grouped or stacked, like the chart of a crosstab — or its mean by group; a histogram of a number, or a donut.
+description: Distribution of a variable as counts or percentages, or its mean by group; a histogram of a number, or a donut. Split by a second variable, grouped or stacked, it is the chart of a crosstab.
 inputs:
   data: SurveyData
 outputs:
@@ -25,7 +25,12 @@ params:
     - percent
     default: count
     label: Show
-    help: Count, or percent of the respondents who answered — for a multiple-choice question the share who named each option, so the bars add up to more than 100 % (the chart says so). With By the bars are means.
+    help: |-
+      What the bars show:
+      - `count` — the count of each answer.
+      - `percent` — percent of the respondents who answered. For a multiple-choice question, the share who named each option, so the bars add up to more than 100 % (the chart says so).
+
+      With By the bars are means.
   split:
     kind: variable
     scales:
@@ -43,7 +48,15 @@ params:
     - donut
     default: grouped
     label: Layout
-    help: 'With Split by: the groups'' bars side by side, stacked, or stacked to 100 % of each group (percentages, whatever Show says); a multiple-choice question''s options overlap and are drawn side by side only. histogram: an interval or ratio variable in Bins, as counts or percent — with Split by, a panel per group. donut: one variable''s answers as the parts of a whole, their percentages on the slices and the base in the middle (not with Split by, By or a multiple-choice question).'
+    help: |-
+      How the chart is drawn:
+      - `grouped` — with Split by, the groups' bars side by side
+      - `stacked` — with Split by, the groups' bars stacked
+      - `stacked_100` — with Split by, stacked to 100 % of each group (percentages, whatever Show says)
+      - `histogram` — an interval or ratio variable in Bins, as counts or percent; with Split by, a panel per group
+      - `donut` — one variable's answers as the parts of a whole, their percentages on the slices and the base in the middle (not with Split by, By or a multiple-choice question)
+
+      With Split by, a multiple-choice question's options overlap, so they are drawn side by side only.
   sort:
     kind: enum
     values:
@@ -51,7 +64,14 @@ params:
     - value
     default: code
     label: Sort
-    help: Code keeps the codebook's order; value draws the largest bar first (with Split by, the answer most given overall — or, when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order). Colors follow the answer, not its place — the same in a Top N chart and a donut of the same question. Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot.
+    help: |-
+      The order of the bars:
+      - `code` — the codebook's order.
+      - `value` — the largest bar first. With Split by, the answer most given overall first; when the answers are a scale, the groups with the largest share of its top answer first, the scale kept in order.
+
+      Colors follow the answer, not its place: the same in a Top N chart and a donut of the same question.
+
+      Any setting but the defaults (Show count, no Split by, Sort code, no Top N, intervals, histogram or donut) draws the newer chart, with its base and notes under the plot.
   horizontal:
     kind: bool
     default: false
@@ -66,17 +86,31 @@ params:
     minimum: 1
     maximum: 100
     label: Top N
-    help: Only the N answers given most — with Split by, given most overall; for a multiple-choice question, the options named most; for a number of many values, its N values given most (up to 30). Empty draws every answer. In a donut the rest are combined as Other.
+    help: |-
+      Only the N answers given most:
+      - with Split by, given most overall
+      - for a multiple-choice question, the options named most
+      - for a number of many values, its N values given most (up to 30)
+
+      Empty draws every answer. In a donut the rest are combined as Other.
   other:
     kind: bool
     default: false
     label: Combine the rest as Other
-    help: With Top N, one more bar for the answers after the top N — for a multiple-choice question, the respondents who named any of them — drawn gray and last. Off, the rest are left out; the note under the chart says how many.
+    help: |-
+      With Top N, one more bar for the answers after the top N, drawn gray and last. For a multiple-choice question, that bar is the respondents who named any of them.
+
+      Off, the rest are left out; the note under the chart says how many.
   intervals:
     kind: bool
     default: false
     label: Confidence intervals
-    help: An error bar on each percentage (Wilson's interval, on Kish's effective base when weighted — each group's own base with Split by) and on each mean by group (the interval Group means draws when it leaves the missing codes out — Student's t, weighted the linearization interval; the Bar chart always leaves them out). Drawn on bars side by side (Layout grouped) only; counts have none.
+    help: |-
+      An error bar on each percentage and on each mean by group:
+      - a percentage — Wilson's interval, on Kish's effective base when weighted (with Split by, each group's own base).
+      - a mean by group — the interval Group means draws when it leaves the missing codes out (Student's t; when weighted, the linearization interval). The Bar chart always leaves the missing codes out.
+
+      Drawn on bars side by side (Layout grouped) only; counts have none.
   confidence:
     kind: float
     default: 0.95
@@ -87,7 +121,14 @@ params:
     kind: bool
     default: false
     label: Significance letters
-    help: With Split by, Show percent and Layout grouped. The groups of Split by are lettered A, B, … (under their names) in the Banner table's order, and a bar carries the letters of the groups whose share of that answer is significantly lower — the Banner table's two-sided z-test of column proportions, on the group's respondents who answered (Kish's effective base when weighted); a group below 30 is not tested. The Tab book shows the same comparisons, under the letters its banner gives these columns — the same letters only when Split by is the banner's first variable.
+    help: |-
+      Letters that mark significant differences between the groups of Split by. Applies only with Split by, Show percent and Layout grouped.
+
+      Each group is lettered A, B, … (under its name) in the Banner table's order. A bar carries the letters of the groups whose share of that answer is significantly lower.
+
+      The test is the Banner table's two-sided z-test of column proportions, on the group's respondents who answered (Kish's effective base when weighted). A group below 30 is not tested.
+
+      The Tab book shows the same comparisons, under the letters its banner gives these columns: the same letters only when Split by is the banner's first variable.
   level:
     kind: float
     default: 0.05
@@ -105,7 +146,13 @@ params:
     kind: string
     default: auto
     label: Bins
-    help: 'auto: Freedman and Diaconis''s width (whole-number answers take a whole width); a number: that many bins of equal width; two numbers or more: the bins'' edges, increasing, separated by commas (0, 18, 25, 35, 50, 65). At most 100 bins.'
+    help: |-
+      The histogram's bins, in one of three forms:
+      - `auto` — Freedman and Diaconis's width (whole-number answers take a whole width)
+      - a number, such as `10` — that many bins of equal width
+      - two numbers or more — the bins' edges, increasing, separated by commas: `0, 18, 25, 35, 50, 65`
+
+      At most 100 bins.
   min_slice:
     kind: float
     default: 3
@@ -142,7 +189,10 @@ params:
     - theme
     default: muted
     label: Palette
-    help: Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes.
+    help: |-
+      `theme` takes the colors of the report the chart is saved in: the chart colors of its Save report's Look, with its text color, grid and font. By default those are eight colors any two of which readers with protanopia or deuteranopia can tell apart.
+
+      The others are seaborn's palettes.
 subtitle:
 - when: layout=donut
   text: '{variable}'

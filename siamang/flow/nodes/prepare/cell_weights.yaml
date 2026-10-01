@@ -18,6 +18,7 @@ params:
     kind: mapping
     required: true
     label: Targets (code → share)
+    help: 'The share each code of the variable should have after weighting, e.g. `{"1": 0.48, "2": 0.52}`. Shares or counts both work: they are scaled to add up to 1.'
   weight_column:
     kind: string
     default: weight

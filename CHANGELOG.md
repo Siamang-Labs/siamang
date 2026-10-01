@@ -1023,6 +1023,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lines, one per option set; `FlowRunner` binds `survey` to `None` without a
   questionnaire. `charset-normalizer` and `xlrd` are dependencies.
 
+- **A node's help reads in paragraphs and lists.** A help that named six
+  options and two cases, its examples and asides in dashes and parentheses,
+  was one long sentence in a builder's tooltip. A node's `description` and a
+  parameter's `help` may now carry a small markup: paragraphs a blank line
+  apart, a line that starts with `- ` for an item (`1. `, `2. ` … for a step)
+  and `` `code` `` for a value, a code, a column or a file name — nothing else.
+  A text of more than one paragraph or with a list is a literal block
+  (`help: |-`). The longer texts of the bundled nodes are rewritten in it: what
+  the field is for first, then each option as `` `value` — what it does `` in
+  the order of `values` (or each form with an example), then what follows. The
+  facts are the same; a few say more exactly what the code does (the Data
+  file's Codebook takes the questionnaire when at least half of the file's
+  answer columns are its variables and they are at least half of its
+  variables; Decimal mark leaves an ambiguous `1,500` as text only in a sheet;
+  a negative missing code is left alone in a column of negative amounts only
+  when it is given for every column; Data check finds problems *such as* the
+  four it names; the Trend's points take a shape past four lines whatever the
+  palette), two name the field a builder shows rather than an id (Explode
+  multiple choice, Likelihood as probability (NMS)), and Cell weights'
+  Targets gains a help. A few also gain a fact the code already had: Bands'
+  upper-boundary option, that a skipped attention check is not flagged, the
+  weight column's default, what each `none` value does, what Paired tests'
+  `exact` and `approximate` p-values do, that a Heatmap's Spearman matrix is
+  not weighted, and which MaxDiff Estimate a Result chart's `utilities` and
+  `shares` need. A reader that shows the text as it is —
+  `siamang flow nodes --json`, a builder that does not draw the markup — reads
+  the same words: a blank line between paragraphs and a dash before an item
+  read as plain text, and the backticks are the only marks. Only `description`
+  and `help` change, so every stored flow renders the code it rendered.
+
 ### Removed
 
 - `UIConfig.effective_google_fonts_url` and the `"google_fonts"` URL of each

@@ -1,7 +1,10 @@
 type: analyze.drivers
 category: analyze
 title: Key drivers
-description: Which of several predictors matter most for an outcome — each one's share of R² by Johnson's relative weights or the Shapley value (LMG), beside the correlations and standardized betas.
+description: |-
+  Which of several predictors matter most for an outcome.
+
+  It gives each one's share of R², by Johnson's relative weights or the Shapley value (LMG), beside the correlations and standardized betas.
 inputs:
   data: SurveyData
 outputs:
@@ -12,12 +15,18 @@ params:
     kind: variable
     required: true
     label: Outcome
-    help: What the drivers explain — a rating, a score, a likelihood to recommend. A respondent missing it or any driver is left out; the codebook's missing codes count as missing.
+    help: |-
+      What the drivers explain, such as a rating, a score or a likelihood to recommend.
+
+      A respondent missing it or any driver is left out; the codebook's missing codes count as missing.
   predictors:
     kind: variables
     required: true
     label: Drivers
-    help: Two or more numeric predictors — ratings of attributes, scores, 0/1 variables. A nominal variable with more than two answers has no amounts to weigh; make a 0/1 variable per answer with Explode multiple choice or Derive.
+    help: |-
+      Two or more numeric predictors, such as ratings of attributes, scores or 0/1 variables.
+
+      A nominal variable with more than two answers has no amounts to weigh. Make a 0/1 variable per answer with Explode multiple choice or Derive, and use those.
   method:
     kind: enum
     values:
@@ -25,7 +34,12 @@ params:
     - shapley
     default: relative_weights
     label: Importance
-    help: relative_weights is Johnson's method, which splits R² through the orthogonal variables closest to the drivers (as R's rwa). shapley averages each driver's gain in R² over every order in which the drivers could enter the model (LMG, as R's relaimpo) — exact, for at most 15 drivers. Both add up to R², shown as 100 %; they agree closely.
+    help: |-
+      How each driver's share of R² is worked out:
+      - `relative_weights` — Johnson's method, which splits R² through the orthogonal variables closest to the drivers (as R's rwa)
+      - `shapley` — averages each driver's gain in R² over every order in which the drivers could enter the model (LMG, as R's relaimpo); exact, for at most 15 drivers
+
+      Both add up to R², shown as 100 %; they agree closely.
 subtitle: '{y} ~ {predictors}'
 imports:
 - from siamang.data import drivers

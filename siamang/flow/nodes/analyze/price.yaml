@@ -1,7 +1,10 @@
 type: analyze.price
 category: analyze
 title: Price sensitivity
-description: What respondents would pay — Van Westendorp's price sensitivity meter from four price questions (the optimal and indifference price points and the range of acceptable prices, with Newton-Miller-Smith trial and revenue if asked), or a Gabor-Granger demand and revenue curve from purchase intent at set prices.
+description: |-
+  What respondents would pay, by one of two methods:
+  - Van Westendorp's price sensitivity meter, from four price questions: the optimal and indifference price points and the range of acceptable prices, with Newton-Miller-Smith trial and revenue if asked
+  - a Gabor-Granger demand and revenue curve, from purchase intent at set prices
 inputs:
   data: SurveyData
 outputs:
@@ -16,14 +19,20 @@ params:
     - gabor_granger
     default: van_westendorp
     label: Method
-    help: van_westendorp reads four prices each respondent named and finds where their cumulative curves cross. gabor_granger reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximizing price among them.
+    help: |-
+      Which method to run:
+      - `van_westendorp` — reads four prices each respondent named and finds where their cumulative curves cross
+      - `gabor_granger` — reads a yes or no to buying at each of a set of prices and finds the demand and the revenue-maximizing price among them
   too_cheap:
     kind: variable
     scales:
     - interval
     - ratio
     label: Too cheap
-    help: 'Van Westendorp: "At what price would it be so cheap that you would doubt its quality?" A respondent missing any of the four prices, or whose prices are not in the order too cheap ≤ cheap ≤ expensive ≤ too expensive, is left out and counted.'
+    help: |-
+      Van Westendorp: "At what price would it be so cheap that you would doubt its quality?"
+
+      A respondent is left out, and counted, when any of the four prices is missing or the prices are not in the order too cheap ≤ cheap ≤ expensive ≤ too expensive.
   cheap:
     kind: variable
     scales:
@@ -48,7 +57,7 @@ params:
   likelihood_cheap:
     kind: variable
     label: Likelihood at the cheap price (NMS)
-    help: 'Optional, for the Newton-Miller-Smith extension: how likely the respondent would be to buy at the price they called cheap, on a scale Calibration turns into a probability.'
+    help: 'Optional, for the Newton-Miller-Smith extension: how likely the respondent would be to buy at the price they called cheap, on a scale that Likelihood as probability (NMS) turns into a probability.'
   likelihood_expensive:
     kind: variable
     label: Likelihood at the expensive price (NMS)
@@ -56,19 +65,25 @@ params:
   calibration:
     kind: json
     label: Likelihood as probability (NMS)
-    help: 'Each likelihood code with its purchase probability, e.g. {"5": 0.7, "4": 0.5, "3": 0.3, "2": 0.1, "1": 0} — what empty means (definitely would buy … definitely would not).'
+    help: |-
+      Each likelihood code with its purchase probability, e.g. `{"5": 0.7, "4": 0.5, "3": 0.3, "2": 0.1, "1": 0}`.
+
+      Left empty, these are used, for a five-point scale from `5` (definitely would buy) to `1` (definitely would not).
   intent:
     kind: variables
     label: Would buy at each price
-    help: 'Gabor-Granger: one question per price — "Would you buy it at 9.99?" — asked of every respondent. A respondent missing any of them is left out; a sequential design that skips prices should fill in the implied answers first.'
+    help: |-
+      Gabor-Granger: one question per price, such as "Would you buy it at 9.99?", asked of every respondent.
+
+      A respondent missing any of them is left out. A sequential design that skips prices should fill in the implied answers first.
   price_points:
     kind: json
     label: Prices
-    help: The price of each question, as a list in the same order, e.g. [4.99, 6.99, 8.99].
+    help: The price of each question, as a list in the same order, e.g. `[4.99, 6.99, 8.99]`.
   yes_codes:
     kind: json
     label: Counts as would buy
-    help: The answer code, or a list of codes, that means would buy — a top-two box such as [4, 5] on a likelihood scale. Empty works for 0/1 questions.
+    help: The answer code, or a list of codes, that means would buy — a top-two box such as `[4, 5]` on a likelihood scale. Empty works for 0/1 questions.
 subtitle:
 - when: method=gabor_granger
   text: 'Gabor-Granger: {intent}'

@@ -42,7 +42,12 @@ params:
     - fisher
     default: chi2
     label: Test
-    help: Chi-square with Cramér's V, on Kish's effective base when weighted. Fisher's exact test suits small counts; for 2 × 2 it gives the odds ratio and its 95 % CI, larger tables use the Fisher-Freeman-Halton test (exact, or from 20,000 random tables with a fixed seed when there are too many to sum). Fisher counts respondents, unweighted, and leaves the codebook's missing codes out of the table and the test; chi-square keeps them as rows and columns of their own, as it always has, and says so.
+    help: |-
+      Which significance test the table gets:
+      - `chi2` — chi-square with Cramér's V, on Kish's effective base when weighted. It keeps the codebook's missing codes as rows and columns of their own, as it always has, and says so.
+      - `fisher` — Fisher's exact test, which suits small counts. It counts respondents, unweighted, and leaves the codebook's missing codes out of the table and the test.
+
+      For a 2 × 2 table Fisher gives the odds ratio and its 95 % CI. Larger tables use the Fisher-Freeman-Halton test: exact, or from 20,000 random tables with a fixed seed when there are too many to sum.
 subtitle: '{row} × {col}'
 checks:
 - when: test=False & method=fisher

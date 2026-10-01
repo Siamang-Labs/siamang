@@ -17,7 +17,10 @@ params:
     - nominal
     - ordinal
     label: By
-    help: Each item's mean in each group of this variable (weighted when a weight is applied). With a named Color map it is drawn as it always was, over the respondents who answered every item, a missing code such as 99 = Not applicable counting as an answer (run Missing values first to leave it out). With Color map theme each cell is the mean of the group's respondents who answered the item, as Group means gives it, the codebook's missing codes left out and counted, long items numbered and each group's base under its name.
+    help: |-
+      Each item's mean in each group of this variable (weighted when a weight is applied). How the means are taken depends on Color map:
+      - a named color map — drawn as it always was, over the respondents who answered every item. A missing code such as `99` = Not applicable counts as an answer; run the Missing values node first to leave it out.
+      - `theme` — each cell is the mean of the group's respondents who answered the item, as Group means gives it. The codebook's missing codes are left out and counted, long items are numbered, and each group's base is under its name.
   method:
     kind: enum
     values:
@@ -26,7 +29,11 @@ params:
     - kendall
     default: spearman
     label: Method
-    help: The correlation drawn without By, over the respondents who answered every item. Spearman, the default, reads the answers as it always has (a missing code such as 9 = Refused counts as an answer; run Missing values first to leave it out). Pearson and Kendall leave the codebook's missing codes out and say so, as Correlation matrix does; Pearson is weighted when a weight is applied, Kendall says it is not.
+    help: |-
+      The correlation drawn without By, over the respondents who answered every item:
+      - `pearson` — weighted when a weight is applied. It leaves the codebook's missing codes out and says so, as Correlation matrix does.
+      - `spearman` — the default. It is not weighted; when a weight is applied, its title says so. It reads the answers as it always has, so a missing code such as `9` = Refused counts as an answer; run the Missing values node first to leave it out.
+      - `kendall` — not weighted; when a weight is applied, it says so. It leaves the codebook's missing codes out and says so.
   title:
     kind: string
     label: Title
@@ -47,7 +54,10 @@ params:
     kind: string
     default: YlOrRd
     label: Color map
-    help: A matplotlib colormap, used when means are shown by a group; a correlation matrix keeps its own diverging scale. Type theme for the colors of the report the chart is saved in — its Save report Look's sequential color for the means, its diverging pair for a correlation matrix, with its text color, grid and font.
+    help: |-
+      A matplotlib colormap, such as `YlOrRd`, used when means are shown by a group; a correlation matrix keeps its own diverging scale.
+
+      Type `theme` for the colors of the report the chart is saved in: its Save report Look's sequential color for the means and its diverging pair for a correlation matrix, with its text color, grid and font.
 checks:
 - when: by & method!=spearman
   severity: warning

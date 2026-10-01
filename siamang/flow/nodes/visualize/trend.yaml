@@ -1,7 +1,7 @@
 type: visualize.trend
 category: visualize
 title: Trend
-description: A measure over waves or dates — the percent choosing an answer, a mean, or the count of respondents — with one line per group, its confidence band and the base of every point, as a chart and as a table.
+description: 'A measure over waves or dates, as a chart and as a table: the percent choosing an answer, a mean, or the count of respondents. One line per group, with its confidence band and the base of every point.'
 inputs:
   data: SurveyData
 outputs:
@@ -17,7 +17,12 @@ params:
       submitted_at: Submission time (submitted_at)
       updated_at: Last change (updated_at)
       started_at: Start time (started_at)
-    help: A wave code (one point per wave, ordered by code, its labels on the axis) or a date — a date column, or text in ISO 8601 such as the responses' created_at (2026-05-25 09:00:00+00:00). Times with a zone are read in UTC.
+    help: |-
+      The waves or dates the measure is tracked over, in one of two forms:
+      - a wave code — one point per wave, ordered by code, its labels on the axis
+      - a date — a date column, or text in ISO 8601 such as the responses' `created_at` (`2026-05-25 09:00:00+00:00`)
+
+      Times with a zone are read in UTC.
   period:
     kind: enum
     values:
@@ -28,7 +33,12 @@ params:
     - year
     default: month
     label: Period
-    help: How dates are grouped into points. A week is an ISO week, Monday to Sunday, labeled by its ISO year and number (2026-W22). Every period between the first and the last is on the axis, an empty one as a gap. Not used for a wave code.
+    help: |-
+      How dates are grouped into points. Not used for a wave code.
+
+      A `week` is an ISO week, Monday to Sunday, labeled by its ISO year and number (`2026-W22`).
+
+      Every period between the first and the last is on the axis, an empty one as a gap.
   measure:
     kind: enum
     values:
@@ -37,7 +47,11 @@ params:
     - count
     default: percent
     label: Measure
-    help: 'percent: the share of those who answered that gave one of the Answer codes. mean: the mean of a numeric (or ordinal) variable. count: the number of respondents — the sum of weights when weighted.'
+    help: |-
+      What each point is:
+      - `percent` — the share of those who answered that gave one of the Answer codes
+      - `mean` — the mean of a numeric (or ordinal) variable
+      - `count` — the number of respondents; the sum of weights when weighted
   variable:
     kind: variable
     label: Measure variable
@@ -45,7 +59,7 @@ params:
   codes:
     kind: json
     label: Answer codes
-    help: The answer counted, or a list of them counted together (a top-2 box), e.g. [4, 5]. For a multiple-choice question, choosing any of them.
+    help: The answer counted, or a list of them counted together (a top-2 box), e.g. `[4, 5]`. For a multiple-choice question, choosing any of them.
   by:
     kind: variable
     scales:
@@ -57,7 +71,12 @@ params:
     kind: bool
     default: true
     label: Confidence band
-    help: The 95% interval of each point — a percent's Wilson score interval, as the Bar chart's intervals, or the mean's t interval, on Kish's effective base when weighted. A point with fewer respondents than Minimum base is drawn without it; the table gives its interval.
+    help: |-
+      The 95% interval of each point, on Kish's effective base when weighted:
+      - a percent — its Wilson score interval, as the Bar chart's intervals
+      - a mean — its t interval
+
+      A point with fewer respondents than Minimum base is drawn without it; the table gives its interval.
   min_base:
     kind: int
     default: 30
@@ -93,7 +112,12 @@ params:
     - theme
     default: muted
     label: Palette
-    help: Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart; past four lines each line's points also take a shape of their own), with its text color, grid and font. The others are seaborn's palettes.
+    help: |-
+      `theme` takes the colors of the report the chart is saved in: the chart colors of its Save report's Look, with its text color, grid and font. By default those are eight colors any two of which readers with protanopia or deuteranopia can tell apart.
+
+      The others are seaborn's palettes.
+
+      Past four lines, each line's points also take a shape of their own.
 subtitle:
 - when: measure=percent
   text: '{variable} = {codes} over {time}'

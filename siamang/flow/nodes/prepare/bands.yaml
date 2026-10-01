@@ -16,16 +16,19 @@ params:
     - interval
     - ratio
     label: Variable
-    help: Its missing codes (a 999 "Refused") are left out before cutting, so they never land in a band.
+    help: Its missing codes (a `999` "Refused") are left out before cutting, so they never land in a band.
   bins:
     kind: json
     required: true
     label: Boundaries
-    help: 'Increasing numbers, e.g. [18, 30, 45, 65, 100]. A band includes its lower boundary and runs up to, not including, the next; values outside every band stay blank.'
+    help: |-
+      Increasing numbers, e.g. `[18, 30, 45, 65, 100]`.
+
+      A band includes its lower boundary and runs up to, not including, the next, unless Bands include their upper boundary is checked. Values outside every band stay blank.
   labels:
     kind: json
     label: Band labels
-    help: 'One fewer than the boundaries, e.g. ["18–29", "30–44", "45–64", "65+"]. Defaults to "18 to under 30" and so on.'
+    help: 'One fewer than the boundaries, e.g. `["18–29", "30–44", "45–64", "65+"]`. Defaults to "18 to under 30" and so on.'
   into:
     kind: string
     required: true

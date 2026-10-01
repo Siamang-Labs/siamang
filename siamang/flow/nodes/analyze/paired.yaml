@@ -13,7 +13,14 @@ params:
     kind: variables
     required: true
     label: Variables
-    help: Two for Wilcoxon or McNemar, three or more for Friedman or Cochran's Q — asked of the same respondents, on the same answer scale. Differences are the first minus the second (for Friedman's pairs, A − B), as in the paired t-test. A respondent missing any of them is left out of all of them; the codebook's missing codes count as missing.
+    help: |-
+      The questions to compare, asked of the same respondents on the same answer scale:
+      - two for Wilcoxon or McNemar
+      - three or more for Friedman or Cochran's Q
+
+      Differences are the first minus the second (for Friedman's pairs, A − B), as in the paired t-test.
+
+      A respondent missing any of them is left out of all of them; the codebook's missing codes count as missing.
   test:
     kind: enum
     values:
@@ -24,7 +31,15 @@ params:
     - cochran
     default: auto
     label: Test
-    help: Auto runs Wilcoxon signed-rank for two variables and Friedman for more. McNemar is for two yes/no questions, Cochran's Q for three or more. Wilcoxon and Friedman rank the answers, so they refuse a nominal variable.
+    help: |-
+      The test that compares the variables:
+      - `auto` — Wilcoxon signed-rank for two variables, Friedman for more
+      - `wilcoxon` — Wilcoxon signed-rank, for two variables
+      - `mcnemar` — McNemar, for two yes/no questions
+      - `friedman` — Friedman, for three or more variables
+      - `cochran` — Cochran's Q, for three or more yes/no questions
+
+      Wilcoxon and Friedman rank the answers, so they refuse a nominal variable.
   yes_codes:
     kind: json
     label: Counts as yes (McNemar, Cochran's Q)
@@ -36,7 +51,10 @@ params:
     - pratt
     default: wilcox
     label: Same answer twice (Wilcoxon)
-    help: wilcox drops the respondents who gave both the same answer before ranking, as R and SPSS do; pratt ranks them with the others and leaves them out of the sums.
+    help: |-
+      What happens to the respondents who gave both the same answer:
+      - `wilcox` — drops them before ranking, as R and SPSS do
+      - `pratt` — ranks them with the others and leaves them out of the sums
   p_value:
     kind: enum
     values:
@@ -45,7 +63,15 @@ params:
     - approximate
     default: auto
     label: p-value
-    help: 'Auto is exact for small samples — Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them; McNemar (and the pairs of Cochran''s Q): fewer than 25 respondents who answered the two differently — and the normal (Wilcoxon) or chi-square (McNemar) approximation otherwise.'
+    help: |-
+      Whether the p-value is exact or an approximation:
+      - `auto` — exact for small samples, the approximation otherwise
+      - `exact` — exact, for Wilcoxon up to 1,000 pairs; past that the normal approximation, with a note
+      - `approximate` — always the normal (Wilcoxon) or chi-square (McNemar) approximation
+
+      `auto` is exact for:
+      - Wilcoxon: up to 50 pairs with no ties or zeros, or up to 13 with them
+      - McNemar (and the pairs of Cochran's Q): fewer than 25 respondents who answered the two differently
   posthoc:
     kind: enum
     values:
@@ -54,7 +80,13 @@ params:
     - none
     default: holm
     label: Pairwise comparisons (Friedman, Cochran's Q)
-    help: A Wilcoxon signed-rank test (after Friedman) or a McNemar test (after Cochran's Q) for every pair of variables, its p-value adjusted for the number of pairs by Holm's step-down method or by Bonferroni. The pairs output holds them.
+    help: |-
+      A Wilcoxon signed-rank test (after Friedman) or a McNemar test (after Cochran's Q) for every pair of variables, its p-value adjusted for the number of pairs. The pairs output holds them.
+
+      Pick how the p-values are adjusted, or skip the comparisons:
+      - `holm` — by Holm's step-down method
+      - `bonferroni` — by Bonferroni
+      - `none` — no pairwise comparisons
 subtitle: '{test}: {variables}'
 checks:
 - when: test!=mcnemar & test!=cochran & yes_codes

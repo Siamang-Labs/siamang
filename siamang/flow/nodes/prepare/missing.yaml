@@ -18,7 +18,7 @@ params:
     kind: variables
     default: []
     label: Drop rows missing in
-    help: 'For drop_rows: rows with a blank in any of these variables are dropped.'
+    help: 'With Action `drop_rows`: rows with a blank in any of these variables are dropped.'
 template:
 - |
   {out.data} = {in.data}.apply_missing_values()

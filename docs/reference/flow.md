@@ -622,6 +622,32 @@ preview: table
   Response date (created_at)`, `submitted_at`, `updated_at`, `started_at`),
   which `check_flow` knows though no codebook declares them. The registry
   payload carries them as `"extra": [{"name": …, "label": …}]`.
+- `description` and each parameter's `help` are what a builder's palette and
+  inspector say. A long one may carry a little structure, which a builder can
+  draw and any other reader takes as text: paragraphs a blank line apart, a
+  line that starts with `- ` for an item (`1. `, `2. ` … for a step), and
+  `` `code` `` in backticks for a value, a code, a column or a file name.
+  Nothing else: no headings, emphasis, links or HTML. A single new line inside
+  a paragraph is a space, not a break. A text of more than one paragraph or
+  with a list is a literal block (`help: |-`), one paragraph or item a line:
+
+  ```yaml
+  missing:
+    kind: string
+    label: Missing codes
+    help: |-
+      Codes in this file that mean no answer, such as `-9` for "don't know".
+
+      Type them in one of two ways:
+      - per column, one column per line: `q5: -9` or `q6_1: -7, -8`
+      - for every column that holds them: `-7, -8, -9`
+  ```
+
+  The bundled nodes write a help this way: what the field is for, then each
+  option as `` `value` — what it does `` in the order of `values` (or each
+  form with an example), then what follows. A list's items end with a period
+  only when one of them is two sentences, and a help that applies with one
+  value of another field starts with it: "With Design `` `paired` ``: …".
 - Inputs are a type name or `{type, many, optional}`; `type` may be a list.
 - `template`: placeholders `{in.<port>}`, `{out.<port>}` (variable names),
   `{<param>!r}` (the parameter as a Python literal: a condition becomes

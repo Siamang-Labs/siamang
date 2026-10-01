@@ -16,7 +16,7 @@ params:
     kind: json
     required: true
     label: Products
-    help: 'Name → one level code per attribute, e.g. {"Ours": {"brand": 1, "price": 15}}. A half-specified product has no utility.'
+    help: 'Name → one level code per attribute, e.g. `{"Ours": {"brand": 1, "price": 15}}`. A half-specified product has no utility.'
   include_none:
     kind: bool
     default: false

@@ -12,7 +12,10 @@ params:
     kind: variable
     required: true
     label: Outcome
-    help: Two values → logistic (auto); otherwise linear. Ordered answers (dissatisfied … satisfied) → choose ordinal; a nominal outcome (a region) has no order, and ordinal refuses it.
+    help: |-
+      The variable the model explains. With Model on `auto`, an outcome with two values gets a logistic model, and any other a linear one.
+
+      For ordered answers, such as dissatisfied … satisfied, choose `ordinal` in Model. A nominal outcome, such as a region, has no order, and `ordinal` refuses it.
   predictors:
     kind: variables
     required: true
@@ -27,7 +30,16 @@ params:
     - ordinal
     default: auto
     label: Model
-    help: auto fits a logit when Outcome has two values and a linear model otherwise. ordinal is the proportional-odds (cumulative logit) model of three or more ordered answers — thresholds between the answers, one coefficient per predictor with its odds ratio and 95 % Wald interval, McFadden's pseudo-R²; a positive coefficient makes the higher answers more likely, as R's MASS::polr. It leaves the codebook's missing codes out and says how many. All three use the weight when one is applied.
+    help: |-
+      The kind of model fitted:
+      - `auto` — fits a logit when Outcome has two values and a linear model otherwise
+      - `ols` — a linear model
+      - `logit` — a logistic model
+      - `ordinal` — the proportional-odds (cumulative logit) model of three or more ordered answers
+
+      `ordinal` gives thresholds between the answers, one coefficient per predictor with its odds ratio and 95 % Wald interval, and McFadden's pseudo-R². A positive coefficient makes the higher answers more likely, as R's MASS::polr. It leaves the codebook's missing codes out and says how many.
+
+      Every model uses the weight when one is applied.
 subtitle: '{y} ~ {predictors}'
 imports:
 - from siamang.reporting.model_tables import regression_table

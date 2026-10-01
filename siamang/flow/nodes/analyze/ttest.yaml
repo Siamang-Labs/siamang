@@ -1,7 +1,13 @@
 type: analyze.ttest
 category: analyze
 title: t-test
-description: Compares means — of two groups (Welch's or Student's t-test), of two measurements of the same respondents (paired), or of one variable against a value — with t, df, p, the mean difference and its CI, and Cohen's d.
+description: |-
+  Compares means:
+  - of two groups (Welch's or Student's t-test)
+  - of two measurements of the same respondents (paired)
+  - of one variable against a value
+
+  It reports t, df, p, the mean difference and its CI, and Cohen's d.
 inputs:
   data: SurveyData
 outputs:
@@ -16,7 +22,11 @@ params:
     - one_sample
     default: independent
     label: Design
-    help: Independent compares two groups of respondents; paired compares two variables answered by the same respondents; one_sample compares a mean with a fixed value.
+    help: |-
+      What the t-test compares:
+      - `independent` — compares two groups of respondents
+      - `paired` — compares two variables answered by the same respondents
+      - `one_sample` — compares a mean with a fixed value
   y:
     kind: variable
     required: true
@@ -31,11 +41,14 @@ params:
     - nominal
     - ordinal
     label: Groups
-    help: 'Independent: the variable that splits the respondents into the groups compared — one answer each; for a multiple-choice question, run Explode multiple choice and use one option''s 0/1 column.'
+    help: |-
+      With Design `independent`: the variable that splits the respondents into the groups compared, one answer each.
+
+      For a multiple-choice question, run Explode multiple choice and use one option's 0/1 column.
   group_a:
     kind: json
     label: Group A
-    help: 'Independent: the code of the first group — needed only when Groups has more than two values.'
+    help: 'With Design `independent`: the code of the first group — needed only when Groups has more than two values.'
   group_b:
     kind: json
     label: Group B
@@ -47,7 +60,10 @@ params:
     - student
     default: welch
     label: Variances
-    help: Welch's test does not assume the two groups vary equally and is the safer default; Student's pools the variances.
+    help: |-
+      How the t-test treats the two groups' variances:
+      - `welch` — Welch's test, which does not assume the two groups vary equally; the safer default
+      - `student` — Student's test, which pools the variances
   y2:
     kind: variable
     scales:
@@ -55,12 +71,12 @@ params:
     - interval
     - ratio
     label: Second measurement
-    help: 'Paired: the variable compared with Variable, respondent by respondent.'
+    help: 'With Design `paired`: the variable compared with Variable, respondent by respondent.'
   test_value:
     kind: float
     default: 0
     label: Test value
-    help: 'One sample: the value the mean is tested against.'
+    help: 'With Design `one_sample`: the value the mean is tested against.'
   confidence:
     kind: float
     default: 0.95

@@ -32,7 +32,7 @@ params:
     kind: int
     default: 42
     label: Seed
-    help: The random draws of ten k-means++ starts; the start with the smallest within-cluster sum of squares is kept, so the clusters do not depend on the order of the rows.
+    help: The random draws of ten k-means++ starts. The start with the smallest within-cluster sum of squares is kept, so the clusters do not depend on the order of the rows.
   standardize:
     kind: bool
     default: true
@@ -44,7 +44,12 @@ params:
     - interval
     - ratio
     label: Number clusters by
-    help: Optional, one of the Items. Empty, the clusters are numbered by size, largest first; set, by this item's mean, lowest first. Two segments of close sizes swap numbers when a few respondents come or go, and a name given to a number (with Derive) then lands on the other segment; numbered by the item that tells them apart, each keeps its number.
+    help: |-
+      How the clusters are numbered:
+      - left empty — by size, largest first
+      - one of the Items — by this item's mean, lowest first
+
+      Two segments of close sizes swap numbers when a few respondents come or go, and a name given to a number (with Derive) then lands on the other segment. Numbered by the item that tells them apart, each keeps its number.
 subtitle: '{k} clusters → {into}'
 template:
 # Number clusters by is written only when it is set, so a stored flow renders

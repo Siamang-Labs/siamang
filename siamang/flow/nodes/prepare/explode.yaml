@@ -17,7 +17,7 @@ params:
   prefix:
     kind: string
     label: Column prefix
-    help: Defaults to the variable's own name and an underscore, so option 1 becomes brand_1.
+    help: Defaults to the variable's own name and an underscore, so option 1 becomes `brand_1`.
   drop:
     kind: bool
     default: false
