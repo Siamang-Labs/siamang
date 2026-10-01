@@ -408,17 +408,21 @@ messages, comments and previews stay visible.
   While the mode is on, the button is highlighted, its arrows point inward,
   and its tooltip reads "Exit focus mode (F or Esc)". `F` is the key marked F
   in any keyboard layout, a Russian one included. It does nothing while a
-  text field or a dropdown has the keyboard focus (a dropdown takes letters
-  to pick an option), while a dialog or a menu is open, or with `Ctrl`,
-  `Cmd` or `Alt` held — `Ctrl/Cmd + F` stays the browser's Find. A focused
+  text field has the keyboard focus, on a list field of the inspector (a
+  letter there picks a value — see
+  [Lists in the inspector](#lists-in-the-inspector)), while one of those
+  lists, a dialog or a menu is open, or with `Ctrl`, `Cmd` or `Alt` held —
+  `Ctrl/Cmd + F` stays the browser's Find. A focused
   checkbox or switch (such as **Live: recompute on new responses**) does not
   stop it, and neither does a **Data file** node's **Reading options** left
   open in the inspector. A screen reader hears "Focus mode on" or "Focus mode
   off".
 - **`Esc`** turns it off too, unless something uses `Esc` first: an open
-  dialog, a menu such as **More ▾**, an **ⓘ** tip, or the text field or
-  dropdown that has the focus. On the canvas, `Esc` first clears the selected
-  node, wherever you clicked last; the next `Esc` leaves focus mode. With
+  dialog, a menu such as **More ▾**, a list open in the inspector (its `Esc`
+  closes only the list; the node stays selected), an **ⓘ** tip, or the text
+  field that has the focus. On the canvas, `Esc` first clears the selected
+  node, wherever you clicked last — on a closed list field of the inspector
+  too, as on any of its buttons; the next `Esc` leaves focus mode. With
   **More ▾** open, `Esc` closes it and gives its button the focus, and the
   mode stays; the next `Esc` clears a selected node or leaves the mode.
   `Tab` out of an open **More ▾** closes it, so `F` works again as soon as
@@ -693,20 +697,89 @@ when there is another: "**Confidence intervals** (with (Show = count and Sort
 = code and Layout ≠ histogram and Layout ≠ donut) or Layout = grouped)". A value kept that way is not checked and does not stop
 the flow — the run ignores it, and so does the engine's check at Save. A field
 a choice needs is
-marked required. A choice whose code is shorthand shows its name beside it
-(`welch_anova — Welch's ANOVA`) — the node's own name where one code means
-different things in two nodes: `ordinal` reads `ordinal — ordinal logit,
-ordered answers` in a **Regression**'s **Model** and stays a scale in a
-**Recode**. See
+marked required. A choice field shows the code it stores (`welch_anova`);
+its list has, under a code that is shorthand, its name ("Welch's ANOVA") —
+the node's own name where one code means different things in two nodes:
+`ordinal` has "ordinal logit, ordered answers" under it in a **Regression**'s
+**Model**, and stays a scale in a **Recode**. See
+[Lists in the inspector](#lists-in-the-inspector), and
 [Reading this page](Studio-Node-Reference#reading-this-page) in the node
-reference for the full list.
+reference for each node's names.
 
 **A Result chart's Kind** says under it what the connected analysis suits and
 what `auto` draws — "Group means (means.table) suits means — means with 95 %
-intervals; means_sd — means ± 1 SD. Auto draws means." — and marks the other
-kinds "(not for this result)". Before anything is connected it reads "Connect
-an analysis's table (or Proportion CI's stat) to see the charts it suits."
+intervals; means_sd — means ± 1 SD. Auto draws means." — and in its list
+each other kind has "(not for this result)" after its name, under its code.
+Before anything is connected it reads "Connect an analysis's table (or
+Proportion CI's stat) to see the charts it suits." It has more than ten
+kinds, so its list opens with a filter box ("Filter chart kinds…").
 See [Result chart](Studio-Node-Reference#result-chart).
+
+### Lists in the inspector
+
+A parameter with a fixed set of values — a **t-test**'s **Design**, a **Data
+file**'s **Encoding**, a chart's **Palette** — is a list drawn by Studio, not
+the browser's menu. The field shows the value chosen as the flow stores it
+(`welch_anova`); an optional parameter left on its default reads
+**— default —**.
+
+- **Opening it.** Click the field, or press `Enter`, `Space`, `↓` or `↑` on it
+  (`Home` and `End` open it on the first and the last choice). The list opens
+  under the field, or over it where there is more room, exactly as wide as
+  the field. A list taller than the room it has scrolls, and a shade at its
+  top or bottom edge says there are more choices that way. While it is open the
+  field keeps its focused look, so a list that opens upward over other
+  fields is clearly its own. Clicking the field's label puts the focus on the
+  field without opening it.
+- **What it shows.** Each choice is its value with, on the line under it, its
+  name or what it does — "Welch's ANOVA" under `welch_anova`, "Windows-1251,
+  Cyrillic (Russian Excel's CSV)" under `cp1251` — wrapped onto more lines
+  when it is long. A value that needs no name, such as `none`, stands alone.
+  The chosen one has a ✓. An optional parameter's list starts with
+  **— default —**, which leaves the parameter unset, with the value that
+  means under it ("the node's default: auto"). A **Data file**'s reading options
+  have no **— default —**, since `auto` is their default; left on `auto`, the
+  field says what it found, such as "auto — found ;".
+- **Keys in the list.** `↑` and `↓` move one row (past the last, round to the
+  first), `Home` and `End` to the first and the last, `Page Up` and `Page
+  Down` about a screenful; typing the first letters of a value jumps to it.
+  `Enter` or `Space` chooses, as a click does. `Esc` closes the list and puts
+  the focus back on the field; `Tab` closes it and moves on to the next field
+  (`Shift + Tab` stays on the field). One row is lit at a time — the one the
+  keys reached, or the one under a moving pointer — and `Enter` picks that
+  one.
+- **A long list** — more than ten entries, such as a **Result chart**'s
+  **Kind** — opens with a filter box over it, the cursor in it ("Filter chart
+  kinds…"). Type part of a value or of what is under it: the list keeps the
+  entries that contain every word you typed, upper or lower case alike, and
+  says so when none does ("No chart kind matches “zzz”"). The empty entry,
+  such as **— default —**, is listed only while the box is empty. `↑`, `↓`,
+  `Page Up` and `Page Down` move through what is left (`Home` and `End` too
+  while the box is empty), `Enter` chooses the lit entry, the first `Esc`
+  empties the box (the chosen entry is lit again) and the second closes the
+  list; `Tab` closes it. On a touch screen the box takes the focus only when
+  you tap it, so the keyboard does not cover the list.
+- **Closing it** without a choice: `Esc`, a click outside it, scrolling the
+  inspector or the page, or dragging the canvas. Scrolling inside the list
+  does not close it.
+- **On the closed field** a letter picks as it would in a browser's menu: it
+  opens the list on the first value that starts with it, and a long list
+  opens with the letter in its filter box. So `F` there does not toggle
+  [focus mode](#focus-mode). While a list is open, `F` and `Esc` are the
+  list's: `Esc` closes only the list, and focus mode and the node's selection
+  stay. `Esc` on the closed field clears the node's selection, as on any
+  button of the inspector.
+- **The editor's keys stay out.** `Delete`, `Backspace`, `Ctrl/Cmd + D` and
+  `Ctrl/Cmd + Z` on a list field, open or closed, do not delete, duplicate or
+  undo the node, as in any field; `Ctrl/Cmd + S` and `Ctrl/Cmd + Enter` still
+  save and preview.
+- **While you follow a colleague** (the editor reads "view only"), the lists
+  still open, so you can read what each choice does, but choosing one changes
+  nothing.
+- **A screen reader** hears the field as a button named by its label and its
+  value ("Test optional welch_anova"), described by its **ⓘ** help, which
+  opens a list; each choice is read with what is under it, and the chosen
+  one as selected.
 
 ### Checks
 
@@ -1480,14 +1553,16 @@ and what says it is not, is listed under
 | `Ctrl/Cmd + Enter` | anywhere in the editor | preview up to the selected node (the whole draft when none is selected) |
 | double-click a node | Canvas | preview up to it |
 | `F` | Canvas | [focus mode](#focus-mode) on / off (the key marked F in any keyboard layout); nothing in List or Report |
-| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, an **ⓘ** tip or the text field or dropdown that has the focus uses it first, and so does a node or wire that has the keyboard focus while none is selected; in full screen the first `Esc` leaves full screen |
+| `Esc` | Canvas | clear the selected node, then leave focus mode; nothing in List or Report. An open dialog, a menu, a list open in the inspector, an **ⓘ** tip or the text field that has the focus uses it first, and so does a node or wire that has the keyboard focus while none is selected; in full screen the first `Esc` leaves full screen |
 | `↑` / `↓`, `Enter` | List | move between nodes; preview up to the focused one |
 | `Ctrl/Cmd + K` | List | open the node picker |
 
-Delete, duplicate and undo are ignored while you type in a field, in the
-Report view, and while a colleague holds the edit lock. `F` is ignored while
-a text field or a dropdown has the focus and while a dialog or menu is open,
-and `Ctrl/Cmd + F` stays the browser's Find. See
+Delete, duplicate and undo are ignored while you type in a field or are on
+a list field of the inspector, in the Report view, and while a colleague
+holds the edit lock. `F` is ignored while a text field or a list field has
+the focus and while a list, a dialog or a menu is open, and `Ctrl/Cmd + F`
+stays the browser's Find. The keys of an inspector list are under
+[Lists in the inspector](#lists-in-the-inspector). See
 [[Keyboard Shortcuts|Studio-Keyboard-Shortcuts]].
 
 ## See also

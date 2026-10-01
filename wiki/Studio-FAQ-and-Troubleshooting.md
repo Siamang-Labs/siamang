@@ -588,7 +588,8 @@ wrong or the file was deleted.
 
 **The topbar and the project tabs are gone in the flow editor.**
 Focus mode is on: it gives the **Canvas** view the whole window. Press `F`
-(outside a text field or a dropdown), or `Esc` once nothing is selected, or
+(outside a text field or a list field of the inspector, where a letter picks
+a value), or `Esc` once nothing is selected and no list is open, or
 click **Focus mode** under the canvas's zoom buttons ("Exit focus mode (F or
 Esc)").
 **List** and **Report** always show the topbar and tabs, and so does every
