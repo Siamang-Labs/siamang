@@ -75,7 +75,7 @@ along the edges:
   `"questionnaire"`: it knows both, the questionnaire's scales for its own
   names). A column's scale the schema marks `inferred` (guessed from the
   values) that does not fit a parameter is a `VARIABLE_SCALE` **warning** —
-  `Parameter 'variables' of ds: 'sex' looks nominal (as guessed from its file's
+  `Parameter 'variables' of ds: 'dwelling' looks nominal (as guessed from its file's
   values), expected ordinal | interval | ratio.` — never an error;
 - below a file given as `None`, names are not checked at all (the file's
   columns are not known yet; the run reads them);
@@ -318,7 +318,7 @@ of labels under the names, `3` with a row dropped after it — a Qualtrics CSV),
 or a number from 1), **Delimiter** (`auto`, `,`, `;`, `tab`, `|`),
 **Encoding** (`auto`, `utf-8`, `utf-16`, `cp1251`, `koi8-r`, `cp866`,
 `cp1252`, `cp1250`, `iso-8859-1`), **Decimal mark** (`auto`, `.`, `,`),
-**Missing codes** (`missing`: per column, `sought_advice: -9; source_1: -7`,
+**Missing codes** (`missing`: per column, `q5: -9; q6_1: -7`,
 or `-7, -8, -9` for every column that holds them) and **Dictionary**. A
 number given for a choice written as text (`header_rows: 2`) is that choice.
 The template
@@ -326,7 +326,7 @@ writes only the options set, one per line:
 
 ```python
 n_src = read_snapshot(
-    "assets/was.csv",
+    "assets/household.csv",
     delimiter=";",
     encoding="cp1251",
     questionnaire=survey,

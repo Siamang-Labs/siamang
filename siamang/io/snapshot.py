@@ -479,17 +479,7 @@ def _load(
             "kept as it is."
         )
     if match is not None and choice == "auto" and not describes and match.shared:
-        why = (
-            f"{len(match.conflicts)} of them hold answers that do not fit the variable "
-            f"({', '.join(sorted(match.conflicts)[:5])})"
-            if len(match.conflicts) * 4 > len(match.shared)
-            else "too few for the file to be its data"
-        )
-        notes.append(
-            f"{len(match.shared)} of the file's {match.columns} columns share names with the "
-            f"questionnaire's variables — {why} — so they keep the file's own labels "
-            "(Codebook: questionnaire gives them the questionnaire's)."
-        )
+        notes.append(_shared_names_note(match, len(frame.columns)))
     options = dict(table.options) if table is not None else {}
     return _Loaded(
         source=source,
@@ -504,6 +494,51 @@ def _load(
         converted=converted,
         kept_text=kept,
         inferred=inferred,
+    )
+
+
+def _shared_names_note(match: QuestionnaireMatch, total: int) -> str:
+    """Why columns named as the questionnaire's variables keep the file's own
+    labels, in words a researcher reads under the file: the column by name
+    when there is one, the count of the file's answer columns when there are
+    several (``match.columns`` leaves response metadata out, so it is said
+    beside the table's own width), and what to set to use the
+    questionnaire's instead."""
+
+    shared = list(match.shared)
+    misfits = [name for name in shared if name in match.conflicts]
+    fix = "Set Codebook to questionnaire to use the questionnaire's."
+    if len(shared) == 1:
+        (name,) = shared
+        why = (
+            "but its answers don't fit it"
+            if misfits
+            else "but one name in common doesn't make the file the survey's data"
+        )
+        return (
+            f"{name} shares its name with a questionnaire variable, {why}, so it keeps "
+            f"the file's own labels. {fix}"
+        )
+    listed = ", ".join(shared[:5]) + (f" and {len(shared) - 5} more" if len(shared) > 5 else "")
+    columns = (
+        f"{match.columns} answer columns ({total} in all, response metadata aside)"
+        if total != match.columns
+        else f"{match.columns} columns"
+    )
+    if len(misfits) * 4 > len(shared):
+        named = ", ".join(misfits[:5]) + (
+            f" and {len(misfits) - 5} more" if len(misfits) > 5 else ""
+        )
+        why = (
+            f"{named} holds answers that don't fit its variable"
+            if len(misfits) == 1
+            else f"{len(misfits)} of them ({named}) hold answers that don't fit their variables"
+        )
+    else:
+        why = f"{len(shared)} names in common don't make the file the survey's data"
+    return (
+        f"{len(shared)} of the file's {columns} share names with questionnaire variables "
+        f"({listed}), but {why}, so they keep the file's own labels. {fix}"
     )
 
 
