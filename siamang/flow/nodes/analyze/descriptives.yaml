@@ -23,7 +23,10 @@ params:
     - nominal
     - ordinal
     label: By group
-    help: Optional. One row per variable and group; a blank or a missing code of the group variable is no group. A multiple-choice question gives one group per option, and they overlap.
+    help: |-
+      Optional. One row per variable and group.
+
+      A blank or a missing code of the group variable is no group. A multiple-choice question gives one group per option, and they overlap.
   detail:
     kind: bool
     default: false
@@ -35,7 +38,10 @@ params:
     - means
     default: long
     label: Layout
-    help: 'With By group. long: a row per variable and group with N, mean, SD, median, minimum and maximum. means: a row per variable and a column per group with its mean, a compact profile of the groups; their sizes are under the table.'
+    help: |-
+      How the table is laid out with By group:
+      - `long` — a row per variable and group with N, mean, SD, median, minimum and maximum
+      - `means` — a row per variable and a column per group with its mean, a compact profile of the groups; their sizes are under the table
 subtitle: '{variables}'
 checks:
 - when: layout=means

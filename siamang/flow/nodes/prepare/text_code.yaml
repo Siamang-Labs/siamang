@@ -1,7 +1,10 @@
 type: prepare.text_code
 category: prepare
 title: Code open answers
-description: Apply a codeframe to an open-text variable — each answer gets the themes a coder gave it, else the ones the codeframe's rules find, the same way at every run, with no model and no network.
+description: |-
+  Apply a codeframe to an open-text variable: each answer gets the themes a coder gave it, else the ones the codeframe's rules find.
+
+  It codes the same way at every run, with no model and no network.
 inputs:
   data: SurveyData
 outputs:
@@ -13,7 +16,11 @@ params:
     kind: path
     required: true
     label: Codeframe
-    help: The codeframe file (analysis/<name>.codeframe.json) — its themes, the answers coded by hand (kept as fingerprints, never as texts) and the rules that code the rest, including answers collected later.
+    help: |-
+      The codeframe file (`analysis/<name>.codeframe.json`). It holds:
+      - its themes
+      - the answers coded by hand, kept as fingerprints, never as texts
+      - the rules that code the rest, including answers collected later
   into:
     kind: string
     creates: variable
@@ -23,7 +30,10 @@ params:
     kind: bool
     default: false
     label: Also add sentiment
-    help: A sentiment variable beside the theme, and each theme's negative / neutral / positive split in the table. Only when the codeframe was built with it — the stat says when it was not.
+    help: |-
+      A sentiment variable beside the theme, and each theme's negative / neutral / positive split in the table.
+
+      Only when the codeframe was built with sentiment: the stat says when it was not.
 subtitle: '{codeframe}'
 imports:
 - from siamang.data import text_coding

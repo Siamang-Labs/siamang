@@ -1,7 +1,14 @@
 type: analyze.data_check
 category: analyze
 title: Data check
-description: The data against its codebook before any analysis — values outside the valid range, codes without a label, duplicate IDs, columns nobody declared — with how many rows each and examples.
+description: |-
+  The data against its codebook before any analysis: each problem, with how many rows have it and examples.
+
+  It finds problems such as:
+  - values outside the valid range
+  - codes without a label
+  - duplicate IDs
+  - columns nobody declared
 inputs:
   data: SurveyData
 outputs:

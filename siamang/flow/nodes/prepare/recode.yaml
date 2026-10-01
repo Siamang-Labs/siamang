@@ -19,7 +19,7 @@ params:
     kind: string
     creates: variable
     label: New variable
-    help: Defaults to <variable>_recoded.
+    help: Defaults to `<variable>_recoded`.
   label:
     kind: string
     label: Label

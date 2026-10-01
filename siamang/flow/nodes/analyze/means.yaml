@@ -39,7 +39,18 @@ params:
     - kruskal
     default: auto
     label: Test
-    help: Auto chooses by scale and groups (t-test or ANOVA for interval data, Mann-Whitney or Kruskal-Wallis for ordinal). Student and Welch compare two groups (Welch does not assume equal variances), ANOVA and Welch's ANOVA two or more, Mann-Whitney and Kruskal-Wallis compare ranks. A test chosen here reports df and an effect size and leaves the codebook's missing codes out. Auto counts them as answers, as it always has, and says so (Missing codes counted as answers); run Missing values first to leave them out.
+    help: |-
+      The significance test that compares the groups:
+      - `auto` — chooses by scale and groups: a t-test or ANOVA for interval data, Mann-Whitney or Kruskal-Wallis for ordinal
+      - `student` — compares two groups
+      - `welch` — compares two groups and does not assume equal variances
+      - `anova` or `welch_anova` — compare two or more groups
+      - `mannwhitney` — compares the ranks of two groups
+      - `kruskal` — compares the ranks of two or more groups
+
+      A test chosen here reports df and an effect size and leaves the codebook's missing codes out.
+
+      `auto` counts missing codes as answers, as it always has, and says so (Missing codes counted as answers). Run the Missing values node first to leave them out.
   posthoc:
     kind: enum
     values:
@@ -49,7 +60,13 @@ params:
     - dunn
     default: none
     label: Post-hoc
-    help: Every pair of groups compared after the test — Tukey's HSD after ANOVA, Games-Howell after Welch's ANOVA, Dunn after Kruskal-Wallis. The pairs appear under the table.
+    help: |-
+      Compares every pair of groups after the test. The pairs appear under the table.
+
+      Each one needs its own Test:
+      - `tukey` — Tukey's HSD, with Test `anova`
+      - `games_howell` — Games-Howell, with Test `welch_anova`
+      - `dunn` — Dunn's test, with Test `kruskal`
   adjust:
     kind: enum
     values:

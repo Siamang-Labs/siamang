@@ -24,7 +24,10 @@ params:
     - kendall
     default: spearman
     label: Method
-    help: Spearman and Kendall (tau-b) correlate ranks and suit rating scales; Pearson measures straight-line relationships and is weighted when a weight is applied.
+    help: |-
+      Which correlation to compute:
+      - `pearson` — measures straight-line relationships; weighted when a weight is applied
+      - `spearman` or `kendall` (tau-b) — correlate ranks and suit rating scales; not weighted, and say so
   missing:
     kind: enum
     values:
@@ -32,7 +35,10 @@ params:
     - listwise
     default: pairwise
     label: Missing answers
-    help: Pairwise uses, for each pair, everyone who answered both, so N can differ between pairs; listwise keeps only the respondents who answered every variable.
+    help: |-
+      Which respondents each pair uses:
+      - `pairwise` — for each pair, everyone who answered both, so N can differ between pairs
+      - `listwise` — only the respondents who answered every variable
   adjust:
     kind: enum
     values:
@@ -42,7 +48,13 @@ params:
     - fdr_bh
     default: none
     label: p adjustment
-    help: Allows for the number of pairs tested — Holm and Bonferroni hold the chance of any false finding at 5 %, fdr_bh (Benjamini-Hochberg) the share of false findings among the significant ones. The marks then follow the adjusted p.
+    help: |-
+      Allows for the number of pairs tested:
+      - `none` — each pair's p as it is
+      - `holm` or `bonferroni` — holds the chance of any false finding at 5 %
+      - `fdr_bh` (Benjamini-Hochberg) — holds the share of false findings among the significant ones
+
+      The marks then follow the adjusted p.
   layout:
     kind: enum
     values:
@@ -50,7 +62,10 @@ params:
     - pairs
     default: matrix
     label: Layout
-    help: Matrix prints the lower triangle with * p < .05, ** p < .01, *** p < .001; pairs gives one row per pair with the coefficient, p and N.
+    help: |-
+      How the table is laid out:
+      - `matrix` — the lower triangle, marked `*` p < .05, `**` p < .01, `***` p < .001
+      - `pairs` — one row per pair with the coefficient, p and N
 subtitle: '{items} · {method}'
 template: |
   {out.table} = {in.data}.report.correlation_matrix(

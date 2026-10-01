@@ -1,7 +1,10 @@
 type: prepare.maxdiff_scores
 category: prepare
 title: MaxDiff scores
-description: One counting-score variable per MaxDiff item, per respondent — best minus worst over the times it was shown — so the preferences can go into a crosstab, a cluster or a regression.
+description: |-
+  One counting-score variable per MaxDiff item, per respondent: best minus worst over the times the item was shown.
+
+  With them, the preferences can go into a crosstab, a cluster or a regression.
 inputs:
   data: SurveyData
 outputs:
@@ -16,7 +19,7 @@ params:
   prefix:
     kind: string
     label: Variable prefix
-    help: Each item's score is <prefix><item code>. Defaults to the question and _score_, so item 3 of q_md becomes q_md_score_3.
+    help: Each item's score is `<prefix><item code>`. Defaults to the question and `_score_`, so item 3 of `q_md` becomes `q_md_score_3`.
 subtitle: '{question} → scores'
 imports:
 - from siamang.data import maxdiff

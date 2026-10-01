@@ -26,7 +26,10 @@ params:
     - rows
     default: value
     label: Show
-    help: 'rows: the number of respondents in the data connected.'
+    help: |-
+      What the tile shows of the value connected:
+      - `value` — the value itself
+      - `rows` — the number of respondents in the data connected
 subtitle: '{label}'
 imports:
 - from siamang.flow import live

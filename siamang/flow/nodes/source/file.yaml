@@ -1,7 +1,10 @@
 type: source.file
 category: source
 title: Data file
-description: 'A data file from Files: CSV (in any encoding, with , ; tab or | between fields), Excel, SPSS, Stata or Parquet. Its columns come into the flow with it: their names, the labels of a label row (a Qualtrics export''s question texts), value labels and missing codes where the format keeps them.'
+description: |-
+  A data file from Files: CSV, Excel, SPSS, Stata or Parquet. A CSV may be in any encoding, with a comma (`,`), a semicolon (`;`), a tab or a vertical bar (`|`) between the fields.
+
+  Its columns come into the flow with it: their names, the labels of a label row (a Qualtrics export's question texts), and value labels and missing codes where the format keeps them.
 outputs:
   data: SurveyData
 params:
@@ -17,7 +20,17 @@ params:
     - questionnaire
     default: auto
     label: Codebook
-    help: 'Where the variables'' labels, scales and value labels come from. auto: the questionnaire''s when the file is this survey''s data (half of its answer columns are the questionnaire''s variables and half of those variables are in it, or its dictionary labels them as the questionnaire does; and their answers fit them), else the file''s own — its names, a label row, scales guessed from the values. When the file''s schema has been read, the flow is checked and run with what auto decided then, so an edited questionnaire does not change it until the flow is checked again. file: always the file''s own, for data from elsewhere whose columns happen to share names with the questionnaire. questionnaire: always the questionnaire''s, for the columns it knows.'
+    help: |-
+      Where the variables' labels, scales and value labels come from:
+      - `auto` — the questionnaire's when the file is this survey's data, else the file's own: its names, a label row, and scales guessed from the values
+      - `file` — always the file's own, for data from elsewhere whose columns happen to share names with the questionnaire
+      - `questionnaire` — always the questionnaire's, for the columns it knows
+
+      `auto` treats the file as this survey's data when its answers fit the questionnaire's variables and either of these holds:
+      - at least half of its answer columns are the questionnaire's variables, and they are at least half of the questionnaire's variables
+      - its dictionary labels them as the questionnaire does
+
+      Once the file has been read, this field shows what `auto` decided. The flow is checked and run with that decision, so an edited questionnaire does not change it until the flow is checked again.
   header_rows:
     kind: enum
     values:
@@ -27,7 +40,12 @@ params:
     - '3'
     default: auto
     label: Header rows
-    help: 'Rows at the top that are not answers, the names first. 1: the names only. 2: the names, then a row of labels (question texts), which label the variables. 3: names, labels and a row that is left out (the ImportId row of a Qualtrics CSV). auto finds a Qualtrics export (its ImportId row, or StartDate and ResponseId with a row of texts under them) and reads one row otherwise.'
+    help: |-
+      How many rows at the top are not answers, starting with the names:
+      - `auto` — finds a Qualtrics export (its `ImportId` row, or `StartDate` and `ResponseId` with a row of texts under them), and reads one row otherwise
+      - `1` — the names only
+      - `2` — the names, then a row of labels (question texts), which label the variables
+      - `3` — names, labels and a row that is left out (the `ImportId` row of a Qualtrics CSV)
   skip_rows:
     kind: int
     minimum: 0
@@ -47,7 +65,12 @@ params:
     - '|'
     default: auto
     label: Delimiter
-    help: 'Text files: what separates the fields. Excel saves CSV with ; where the comma is the decimal mark (Russian and most European settings), "Unicode text" with tabs. auto tries each on the first rows.'
+    help: |-
+      Text files: what separates the fields. `auto` tries each on the first rows.
+
+      What Excel saves:
+      - CSV where the comma is the decimal mark (Russian and most European settings): a semicolon, `;`
+      - "Unicode text": `tab`
   encoding:
     kind: enum
     values:
@@ -62,7 +85,12 @@ params:
     - iso-8859-1
     default: auto
     label: Encoding
-    help: 'Text files: how the letters are written. cp1251 is Windows-1251, what Russian Excel saves "CSV (comma delimited)" in; utf-16 is Excel''s "Unicode text". auto reads a byte-order mark, then UTF-8, then the most likely Windows code page.'
+    help: |-
+      Text files: how the letters are written. `auto` reads a byte-order mark, then UTF-8, then the most likely Windows code page.
+
+      What Excel saves:
+      - "CSV (comma delimited)" from Russian Excel: `cp1251` (Windows-1251)
+      - "Unicode text": `utf-16`
   decimal:
     kind: enum
     values:
@@ -71,15 +99,33 @@ params:
     - ','
     default: auto
     label: Decimal mark
-    help: 'How numbers write their fraction, 4.5 or 4,5: in a text file, and for numbers an Excel sheet keeps as text. auto reads a comma where the numbers are written so (with ; between the fields; in a sheet, where its text numbers show it), and leaves values as ambiguous as 1,500 as text when nothing tells.'
+    help: |-
+      How numbers write their fraction: `4.5` or `4,5`. This applies to a text file, and to numbers an Excel sheet keeps as text.
+
+      `auto` reads a decimal comma where the numbers are written with one:
+      - in a text file with a semicolon, a tab or a vertical bar between the fields, not a comma
+      - in a sheet, where its text numbers show it
+
+      When nothing in a sheet tells, `auto` leaves values as ambiguous as `1,500` as text, and the Columns panel below says so. Pick the mark here to read them as numbers.
   missing:
     kind: string
     label: Missing codes
-    help: 'Codes that mean no answer in this file. Per column — q5: -9; q6_1: -7, -8 (a ; between columns) — or for every column that holds them: -7, -8, -9 (a negative code is left alone in a column of other negative amounts). Missing values then turns them into blanks, and tables leave them out. The file''s schema lists the codes it suspects in each column.'
+    help: |-
+      Codes in this file that mean no answer, such as `-9` for "don't know".
+
+      Type them in one of two ways:
+      - per column, one column per line: `q5: -9` or `q6_1: -7, -8`
+      - for every column that holds them: `-7, -8, -9`
+
+      On one line, put a semicolon between the columns: `q5: -9; q6_1: -7, -8`.
+
+      The Missing values node then turns them into blanks, and tables leave them out. A negative code given for every column is left alone in a column of other negative amounts, such as a balance.
+
+      The Columns panel below lists the codes that look like missing codes, with a button that adds them here.
   dictionary:
     kind: path
     label: Dictionary (JSON)
-    help: The file's codebook as a data dictionary (<name>.dictionary.json, as a Siamang export writes it), uploaded under Files. Its labels, scales and missing codes describe the file's columns.
+    help: The file's codebook as a data dictionary (`<name>.dictionary.json`, as a Siamang export writes it), uploaded under Files. Its labels, scales and missing codes describe the file's columns.
 subtitle: '{path}'
 imports:
 - from siamang.io import read_snapshot

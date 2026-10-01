@@ -16,7 +16,14 @@ params:
     kind: formula
     required: true
     label: Formula
-    help: 'e.g. round(spend_year / 12, 2), or: if age < 30 then 1 else 2. Functions: mean, sum, min, max, abs, round, log, coalesce. A missing answer stays missing; dividing by zero gives missing, not infinity.'
+    help: |-
+      How the new variable is computed from the others, for example:
+      - `round(spend_year / 12, 2)`
+      - `if age < 30 then 1 else 2`
+
+      Functions: `mean`, `sum`, `min`, `max`, `abs`, `round`, `log`, `coalesce`.
+
+      A missing answer stays missing, and dividing by zero gives missing, not infinity.
   label:
     kind: string
     label: Label
@@ -33,7 +40,7 @@ params:
   labels:
     kind: mapping
     label: Value labels
-    help: 'For a formula that yields codes: code → label, e.g. {"1": "Under 30", "2": "30 or over"}. Set the scale to ordinal or nominal with them.'
+    help: 'For a formula that yields codes: code → label, e.g. `{"1": "Under 30", "2": "30 or over"}`. Set the scale to `ordinal` or `nominal` with them.'
 subtitle: '{name} = {formula}'
 template: |
   # The formula travels as text, not as a lambda: what the researcher wrote is

@@ -37,7 +37,14 @@ params:
     - dunn
     default: none
     label: Post-hoc
-    help: Dunn's test compares every pair of groups after Kruskal-Wallis — one line per pair with z and the adjusted p. With it the codebook's missing codes are left out of the test too, and the result says how many; without it they are counted as answers, as they always were, and the result says so (missing_codes_counted) — so the Kruskal-Wallis result can change. Run Missing values first to have both leave them out.
+    help: |-
+      Dunn's test compares every pair of groups after Kruskal-Wallis: one line per pair with z and the adjusted p.
+
+      The choice also changes what happens to the codebook's missing codes:
+      - `none` — they are counted as answers, as they always were, and the result says so in `missing_codes_counted`
+      - `dunn` — they are left out of the test too, and the result says how many
+
+      So the Kruskal-Wallis result can change with this choice. Run the Missing values node first to have both leave them out.
   adjust:
     kind: enum
     values:

@@ -1,7 +1,10 @@
 type: visualize.result_chart
 category: visualize
 title: Result chart
-description: The chart that suits an analysis's result, drawn from the numbers it computed — group means with their confidence intervals, a scree plot, TURF's reach curve, key drivers, a perceptual map, price sensitivity curves. Connect the analysis's table (the variance or loadings of a factor analysis or PCA); connect its stat too for the base of a regression's intervals (its table says how the weight was used).
+description: |-
+  The chart that suits an analysis's result, drawn from the numbers it computed: group means with their confidence intervals, a scree plot, TURF's reach curve, key drivers, a perceptual map, price sensitivity curves.
+
+  Connect the analysis's table (for a factor analysis or PCA, its variance or loadings). For a regression, connect its stat too, for the base of its intervals; its table says how the weight was used.
 inputs:
   result:
     type:
@@ -36,7 +39,24 @@ params:
     - curves
     default: auto
     label: Kind
-    help: 'Auto draws the chart the result suits. means (the 95 % confidence interval) and means_sd (± 1 SD): Group means, Descriptive statistics, t-test, Paired tests. interval: Proportion CI. stacked: Net Promoter Score. reach (a search) and items (a fixed portfolio): TURF. utilities, scores and shares: MaxDiff (utilities with Estimate both or utilities). importance: Conjoint and Key drivers; partworths: Conjoint. shares: Share of preference, Code open answers, and the yes shares of McNemar and Cochran''s Q. scree and loadings: Principal components and Factor analysis, from their variance and loadings outputs. profile: Cluster. coefficients: Regression (the ordinal logit''s odds ratios, without its thresholds). heatmap: Correlation matrix. sentiment: Code open answers with sentiment. map: Perceptual map, from any of its tables. curves: Price sensitivity — Van Westendorp''s curves and price points (with the NMS trial curve), or Gabor-Granger''s demand and revenue.'
+    help: |-
+      `auto` draws the chart the result suits. The other kinds, and the results they draw:
+      - `means` (the 95 % confidence interval) and `means_sd` (± 1 SD) — Group means, Descriptive statistics, t-test, Paired tests
+      - `interval` — Proportion CI
+      - `stacked` — Net Promoter Score
+      - `reach` (a search) and `items` (a fixed portfolio) — TURF
+      - `utilities` — MaxDiff with Estimate `both` or `utilities`
+      - `scores` — MaxDiff
+      - `shares` — MaxDiff with Estimate `both` or `utilities`, Share of preference, Code open answers, and the yes shares of McNemar and Cochran's Q
+      - `importance` — Conjoint and Key drivers
+      - `partworths` — Conjoint
+      - `scree` and `loadings` — Principal components and Factor analysis, from their variance and loadings outputs
+      - `profile` — Cluster
+      - `coefficients` — Regression (the ordinal logit's odds ratios, without its thresholds)
+      - `heatmap` — Correlation matrix
+      - `sentiment` — Code open answers with sentiment
+      - `map` — Perceptual map, from any of its tables
+      - `curves` — Price sensitivity: Van Westendorp's curves and price points (with the NMS trial curve), or Gabor-Granger's demand and revenue
   title:
     kind: string
     label: Title
@@ -66,7 +86,13 @@ params:
     - theme
     default: muted
     label: Palette
-    help: The colors of the bars, points and series. Net Promoter Score and sentiment keep their own red–gray–blue, the heatmaps their diverging scale, and Key drivers, the Perceptual map and Price sensitivity their own color-blind-safe pairs. Theme takes every color from the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), its series, its diverging pair for the red–gray–blue and the heatmaps, its text color, grid and font.
+    help: |-
+      The colors of the bars, points and series. These keep their own colors:
+      - Net Promoter Score and sentiment: their red–gray–blue
+      - the heatmaps: their diverging scale
+      - Key drivers, the Perceptual map and Price sensitivity: their own color-blind-safe pairs
+
+      `theme` takes every color from the report the chart is saved in: the chart colors of its Save report's Look for its series, its diverging pair for the red–gray–blue and the heatmaps, and its text color, grid and font. By default the Look's chart colors are eight colors any two of which readers with protanopia or deuteranopia can tell apart.
 subtitle: '{kind}'
 imports:
 - from siamang.reporting import result_charts

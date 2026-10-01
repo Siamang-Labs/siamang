@@ -1,7 +1,10 @@
 type: analyze.correspondence
 category: analyze
 title: Perceptual map
-description: Correspondence analysis of a crosstab, or of the attributes checked for each brand — the dimensions and their share of the inertia, and where each row and column lies on the map, with contributions and quality.
+description: |-
+  Correspondence analysis of a crosstab, or of the attributes checked for each brand.
+
+  It gives the dimensions and their share of the inertia, and where each row and column lies on the map, with contributions and quality.
 inputs:
   data: SurveyData
 outputs:
@@ -17,7 +20,10 @@ params:
     - attributes
     default: crosstab
     label: Table
-    help: crosstab counts the respondents in each pair of answers of Rows and Columns (a multiple-choice variable counts each answer chosen). attributes counts, for each answer of Rows — the brand, in data with a row per respondent and brand — the respondents who checked each of the Attributes.
+    help: |-
+      What the map is drawn from:
+      - `crosstab` — counts the respondents in each pair of answers of Rows and Columns. A multiple-choice variable counts each answer chosen.
+      - `attributes` — counts, for each answer of Rows, the respondents who checked each of the Attributes. Rows is then the brand, in data with a row per respondent and brand.
   row:
     kind: variable
     required: true
@@ -32,11 +38,14 @@ params:
     - nominal
     - ordinal
     label: Columns
-    help: 'Crosstab: the points of the other kind — the answers crossed with Rows.'
+    help: 'With Table `crosstab`: the points of the other kind — the answers crossed with Rows.'
   attributes:
     kind: variables
     label: Attributes
-    help: 'Attributes: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes; a blank or a missing code counts as unchecked.'
+    help: |-
+      With Table `attributes`: two or more 0/1 variables, one per attribute ("is modern", "good value"), such as the ones Explode multiple choice makes.
+
+      A blank or a missing code counts as unchecked.
   yes_codes:
     kind: json
     label: Counts as yes (attributes)

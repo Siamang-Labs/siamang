@@ -62,7 +62,10 @@ params:
     - theme
     default: muted
     label: Palette
-    help: Theme takes the colors of the report the chart is saved in — the chart colors of its Save report's Look (by default eight colors any two of which readers with protanopia or deuteranopia can tell apart), with its text color, grid and font. The others are seaborn's palettes.
+    help: |-
+      `theme` takes the colors of the report the chart is saved in: the chart colors of its Save report's Look, with its text color, grid and font. By default those are eight colors any two of which readers with protanopia or deuteranopia can tell apart.
+
+      The others are seaborn's palettes.
 subtitle: '{x} vs {y}'
 template: |
   {out.chart} = {in.data}.plot.scatter({x!r}, {y!r}, hue={hue!r}, trendline={trendline!r}, title={title!r}, figsize=({width!r}, {height!r}), palette={palette!r})

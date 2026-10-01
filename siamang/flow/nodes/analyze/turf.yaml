@@ -12,7 +12,7 @@ params:
     kind: variables
     required: true
     label: Options
-    help: One 0/1 column per option. Run prepare.explode on a multiple-choice question to get them.
+    help: One 0/1 column per option. Run Explode multiple choice on a multiple-choice question to get them.
   max_size:
     kind: int
     default: 3
@@ -26,7 +26,13 @@ params:
     - fixed
     default: best
     label: Search
-    help: Best tries every combination. Greedy extends the previous winner and is fast, but can miss the best portfolio — the table says which ran. Fixed searches nothing and reads the Portfolio below.
+    help: |-
+      How the portfolios are found:
+      - `best` — tries every combination.
+      - `greedy` — extends the previous winner. It is fast, but can miss the best portfolio.
+      - `fixed` — searches nothing and reads the Portfolio below.
+
+      The table says which search ran.
   include:
     kind: variables
     default: []
@@ -36,7 +42,10 @@ params:
     kind: variables
     default: []
     label: Portfolio
-    help: 'For Search = fixed: exactly these options — each one''s reach, what only it reaches, and the reach and frequency of all of them together. Empty reads every option.'
+    help: |-
+      With Search `fixed`: exactly these options. Empty reads every option.
+
+      The table gives each one's reach, what only it reaches, and the reach and frequency of all of them together.
 subtitle:
 - when: method=fixed
   text: fixed portfolio {portfolio}

@@ -1,7 +1,7 @@
 type: prepare.speeders
 category: prepare
 title: Speeders & partials
-description: Add duration_s and partial columns and drop responses that were too fast or incomplete.
+description: Add `duration_s` and `partial` columns and drop responses that were too fast or incomplete.
 inputs:
   data: SurveyData
 outputs:

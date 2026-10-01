@@ -1,7 +1,7 @@
 type: output.tabbook
 category: output
 title: Tab book (Excel)
-description: Every chosen question crossed by a banner of segments — one sheet each, with its bases, counts, percentages and the Banner table's significance letters — in an Excel workbook with a contents page and notes.
+description: Every chosen question crossed by a banner of segments, in an Excel workbook with a contents page and notes. Each question has a sheet of its own, with its bases, counts, percentages and the Banner table's significance letters.
 inputs:
   data: SurveyData
 outputs:
@@ -10,7 +10,17 @@ params:
   questions:
     kind: variables
     label: Questions
-    help: Empty is every nominal, ordinal and multiple-choice variable of the codebook, except the banner variables, the weight, the response metadata, open answers (an OpenText question, or words without answer labels — they would go into the workbook word for word) and rankings (every option would read 100 %); the Notes sheet says why each is left out. Named here, any question is tabulated as asked, and an interval or ratio one shows its mean.
+    help: |-
+      Empty is every nominal, ordinal and multiple-choice variable of the codebook, except:
+      - the banner variables
+      - the weight
+      - the response metadata
+      - open answers (an OpenText question, or words without answer labels): they would go into the workbook word for word
+      - rankings: every option would read 100 %
+
+      The Notes sheet says why each is left out.
+
+      Named here, any question is tabulated as asked, and an interval or ratio one shows its mean.
   banner:
     kind: variables
     required: true
@@ -27,7 +37,11 @@ params:
     - none
     default: column
     label: Percentages
-    help: 'column: of the column''s respondents who answered. row: of the answer''s respondents across each banner variable. none: counts only.'
+    help: |-
+      What the percentages are of:
+      - `column` — the column's respondents who answered
+      - `row` — the answer's respondents across each banner variable
+      - `none` — no percentages: counts only
   counts:
     kind: bool
     default: true
@@ -36,7 +50,10 @@ params:
     kind: bool
     default: true
     label: Significance letters
-    help: The Banner table's test — a two-sided z-test of column proportions within each banner variable, on the base of those who answered (Kish's effective base when weighted); a column below 30 is not tested. The letters sit in their own cells beside the column percentages, and are shown only with them.
+    help: |-
+      The Banner table's test: a two-sided z-test of column proportions within each banner variable, on the base of those who answered (Kish's effective base when weighted). A column below 30 is not tested.
+
+      The letters sit in their own cells beside the column percentages, and are shown only with them.
   level:
     kind: float
     default: 0.05

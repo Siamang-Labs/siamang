@@ -21,7 +21,11 @@ params:
     - utilities
     default: both
     label: Estimate
-    help: Counting is best minus worst over shown and anyone can recount it. Utilities are a conditional logit on the choices the design actually showed.
+    help: |-
+      How each item is scored:
+      - `both` — the counting score and the utilities, with the share each implies
+      - `counts` — the counting score alone: best minus worst over the times shown, which anyone can recount
+      - `utilities` — the utilities, a conditional logit on the choices the design actually showed (the counting score stays beside them)
 subtitle: '{question} · {method}'
 template: |
   # The design comes from the questionnaire, not from a parameter: it is what

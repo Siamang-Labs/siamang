@@ -32,7 +32,10 @@ params:
     - parallel
     default: kaiser
     label: Number of factors by
-    help: When Factors is empty. kaiser keeps the eigenvalues above 1; parallel keeps the factors whose eigenvalue beats the 95th percentile of 100 random data sets of the same size, drawn from Seed.
+    help: |-
+      The rule for the number of factors when Factors is empty:
+      - `kaiser` — keeps the factors with an eigenvalue above 1
+      - `parallel` — keeps the factors whose eigenvalue beats the 95th percentile of 100 random data sets of the same size, drawn from Seed
   method:
     kind: enum
     values:
@@ -41,7 +44,13 @@ params:
     - ml
     default: minres
     label: Extraction
-    help: minres (minimum residual) as psych and factor_analyzer; principal is iterated principal axis factoring; ml is maximum likelihood, as R's factanal, and adds a test of fit; it is started from 14 fixed points and keeps the best, and warns when they disagree (often a sign of too many factors).
+    help: |-
+      How the factors are extracted:
+      - `minres` — minimum residual, as psych and factor_analyzer
+      - `principal` — iterated principal axis factoring
+      - `ml` — maximum likelihood, as R's factanal, with a test of fit
+
+      `ml` is started from 14 fixed points and keeps the best. It warns when they disagree, which is often a sign of too many factors.
   rotation:
     kind: enum
     values:
@@ -51,7 +60,11 @@ params:
     - none
     default: varimax
     label: Rotation
-    help: varimax keeps the factors uncorrelated. promax and oblimin let them correlate and report how much (the correlations output); their loadings are the pattern matrix.
+    help: |-
+      How the factors are rotated:
+      - `varimax` — keeps the factors uncorrelated.
+      - `promax` or `oblimin` — let the factors correlate and report how much, in the correlations output. Their loadings are the pattern matrix.
+      - `none` — no rotation.
   sort:
     kind: bool
     default: false
@@ -72,7 +85,7 @@ params:
     kind: string
     default: factor_
     label: Score variable prefix
-    help: The scores are named <prefix>1, <prefix>2, … — with Add factor scores on. The prefix itself is not a variable.
+    help: The scores are named `<prefix>1`, `<prefix>2`, … — with Add factor scores on. The prefix itself is not a variable.
   seed:
     kind: int
     default: 42
