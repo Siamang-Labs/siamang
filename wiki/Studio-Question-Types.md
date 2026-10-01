@@ -202,7 +202,8 @@ choice's code (`q7` becomes `q7_1`, `q7_2`, `q7_3`; `_2` is added to a name
 that is taken). Each is nominal, coded `0` No / `1` Yes, and takes the choice's
 label as its variable label. Studio keeps them in step with the choices: a new
 choice gets a new variable, a removed choice's variable leaves the codebook,
-and relabeling a choice relabels its variable. Clicking **array** collapses
+and relabeling a choice relabels its variable, unless you wrote that
+variable's label yourself. Clicking **array** collapses
 them back into one variable (`q7`) with the choices as value labels. A
 Multiple choice that takes its options from its variable's value labels (no
 **Choices** of its own) gets those labels as its choices when you click
@@ -404,8 +405,9 @@ them: the question bank's *Trust in institutions*, headed `0` … `10`, stores
   without column headers too — so it stores, labels and leaves out as missing
   the same codes as the other rows; removing a row removes its variable and
   its codebook entry, and the other rows keep theirs (and their data
-  columns). A row variable's label follows its statement, as "<question
-  text> — <statement>".
+  columns). A row variable's label follows the question text and its
+  statement, as "<question text> — <statement>", until you write a label of
+  your own.
   Rename a row's variable in the **Variable** section, which has a name field
   for each row ("Matrix rows write one variable each, in the order of Options
   → Rows; rename a row's variable here."). A matrix whose rows came from its

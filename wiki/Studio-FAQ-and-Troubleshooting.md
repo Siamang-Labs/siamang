@@ -164,8 +164,30 @@ entry…"). A new Id would leave the script writing the entry.
 
 **"…the codebook still declares a variable "q2" that no question collects and nothing writes…" in Validation → Structure.**
 An earlier version of the Builder left the old codebook entry behind when
-you renamed the question's variable. The Id is fine: delete the entry in
-**Builder → Codebook**, where it is listed **unused**.
+you renamed the question's variable or deleted the question. The Id is fine:
+delete the entry in **Builder → Codebook**, where it is listed **unused**.
+Deleting a question now takes its entries along, except those something
+still refers to or that label answers already collected; the Codebook lists
+those as **referred to by …** or **answers collected**, and the Save's
+`UNUSED_VARIABLE` warning for them is expected.
+→ [When a question is deleted](Studio-Codebook-and-Variables#when-a-question-is-deleted)
+
+**My variable label changed when I edited the question text.**
+A variable's label follows the question — its text, a Matrix statement, a
+wide choice — for as long as it is the label Studio gave it, so a label that
+read "q8" becomes "How often do you drive?" as you type. One **Undo**
+restores both. Write a label of your own in the **Variable** section or the
+Codebook tab and it stays, whatever you change in the question afterward.
+→ [Labels that follow the question](Studio-Codebook-and-Variables#labels-that-follow-the-question)
+
+**I deleted a question, but its variable is still in the Codebook.**
+Its entry stayed because something still refers to it — the Codebook's
+**Used by** reads "referred to by …" — or because the survey has been
+published and exports label the answers already collected under it (**answers
+collected**). The message after the deletion said which. Change what refers
+to it first if that is left over too, then **Delete** the entry; Studio asks
+before deleting such an entry.
+→ [When a question is deleted](Studio-Codebook-and-Variables#when-a-question-is-deleted)
 
 **A branch rule never fires.**
 A rule with an empty condition never matches — it is not an "otherwise".

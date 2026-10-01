@@ -51,17 +51,26 @@ When you add a question, Studio creates its variable for you:
   per task plus a version variable (see
   [[MaxDiff and Conjoint|Studio-MaxDiff-and-Conjoint]]). If a name is taken —
   by a variable, a codebook entry or another question's Id — `_2`, `_3`, … is
-  added.
-- **Label** — the question's text when the variable is created, or its **Id**
-  while the text is still "New question" (so most new questions get the Id);
-  for a wide Multiple choice, each choice's label; for a Matrix row, "<question
-  text> — <statement>". Write a real label — it is what SPSS, the Data tab and
-  every table show.
+  added. A name counts as taken when the codebook still declares any variable
+  the new question would write, its `<variable>_other` included, so a new
+  Matrix never takes over the `q7_1` a deleted question left in the codebook
+  for answers already collected (see
+  [When a question is deleted](#when-a-question-is-deleted)).
+- **Label** — the question's text, or its **Id** while the text is still "New
+  question"; for a wide Multiple choice, each choice's label; for a Matrix
+  row, "<question text> — <statement>"; for MaxDiff and Conjoint, "<question
+  text> — task 1, best", "<question text> — task 1" and "<question text> —
+  design version". The label **follows the question** as you edit it, for as
+  long as it is the label Studio gave it (see
+  [Labels that follow the question](#labels-that-follow-the-question)). It is
+  what SPSS, the Data tab and every table show, so write your own when the
+  question text makes a poor one.
 - **An extra variable for Other** — a question with **Add “Other (please
   specify)”** on also gets `<variable>_other` (for a wide Multiple choice,
   `<Id>_other`) for the typed text: nominal, text, labeled "<question text> —
-  other (please specify)". Its **Used by** is the question, and it follows the
-  question's variable when you rename it.
+  other (please specify)". Its label follows the question text the same way.
+  Its **Used by** is the question, and it follows the question's variable
+  when you rename it.
 - **Scale** — from the type:
 
   | Type | Scale |
@@ -74,6 +83,29 @@ When you add a question, Studio creates its variable for you:
   the codes that **Other**, **None of the above** and **N/A** store (see
   [Value labels](#value-labels) and
   [Codes for Other, None of the above and N/A](Studio-Question-Types#codes-for-other-none-of-the-above-and-na)).
+
+### Labels that follow the question
+
+A variable's label is Studio's until you write one. While it is, every edit
+of what it is made from relabels it: the question text (the Id while there is
+no text yet), a Matrix row's statement, a wide Multiple choice's choice, a
+MaxDiff's or Conjoint's text — typed in the Inspector, or taken from
+**Reword** with **Use this**. One **Undo** restores the text and the label
+together. Edits that do not change Studio's label, such as **Required** or
+**Randomize option order**, leave it as it is.
+
+- **A label you write** — in the Variable card or the Codebook tab — stays,
+  through every later edit of the question, even when its choice or
+  statement changes. A label you clear stays empty.
+- **A label in a whole document** — from **Apply** in the Source tab, or an
+  import — follows only if it is exactly the one Studio would give; anything
+  else stays as written.
+- **Older projects.** A label an earlier version of the Builder left at the
+  question's Id or its variable's name (`q7`) follows at the next edit of the
+  text.
+- A Matrix without statements, and a wide Multiple choice whose choices do
+  not line up with its variables, show their variable labels to respondents
+  as the rows or the options. Studio never relabels those.
 
 ---
 
@@ -89,7 +121,7 @@ In the Builder, select the question: its **Variable** section (marked
 | name | editable, including each variable of a wide Multiple choice and each row variable of a Matrix; applied when you leave the field or press `Enter` (see [Renaming a variable](#renaming-a-variable)). MaxDiff and Conjoint variables are named by the question and cannot be renamed here. |
 | scale | **nominal**, **ordinal**, **interval**, **ratio** |
 | **Variable label (as in SPSS)** | the label |
-| value labels | shown read-only as `1=Strongly disagree · 2 · …` |
+| value labels | shown read-only as `code=label` pairs, such as `1=Option 1 · 2=Option 2`; a label that is not what respondents see for its code is followed by **≠** (pointing at it shows "Respondents see “…”"; see [Labels that are not what respondents see](#labels-that-are-not-what-respondents-see)) |
 | **Min** / **Max** | the valid range; shown only when the scale is **ratio** or **interval** |
 
 Under the cards, a Matrix adds "Matrix rows write one variable each, in the
@@ -109,13 +141,14 @@ table:
 | **Variable** | the name; a **no entry** pill means a question writes this variable but the codebook has no entry for it |
 | **Label** | editable in place (`—` when empty) |
 | **Scale** | editable in place |
-| **Values** | **N labels** (click to open the row), or the valid range as `18 … 99`, or the data type (click to open the row) |
-| **Used by** | the Id of each question that writes the variable (for `<variable>_other`, the question whose Other text it holds) — click to jump to it in **Structure** — or **unused** |
-| (last) | **Delete**, for a variable no question uses |
+| **Values** | **N labels** (click to open the row), followed by **≠** when one of them is not what respondents see; or the valid range as `18 … 99`; or the data type (click to open the row) |
+| **Used by** | the Id of each question that writes the variable (for `<variable>_other`, the question whose Other text it holds) — click to jump to it in **Structure**. For an entry no question writes: what still refers to it, such as "referred to by the logic of q9 and 2 more" (pointing at it, or opening the row, lists them all); **answers collected** when the survey has been published and a question of its last Save wrote it (see [When a question is deleted](#when-a-question-is-deleted)); **unused** when neither holds |
+| (last) | **Delete**, for an entry no question writes. For one something refers to, or one kept for answers collected, it asks first and says why — "Delete region?", "The logic of q9, a quota and the flow satisfaction_by_region still refer to it." |
 
 An **unused** entry whose name is a question's Id is usually what an earlier
 version of the Builder left behind when it renamed that question's variable
-(`q2` renamed to `comment` kept `q2`). **Validation → Structure** lists it —
+(`q2` renamed to `comment` kept `q2`) or deleted its question; Studio now
+removes a deleted question's entries itself. **Validation → Structure** lists it —
 "q2: the codebook still declares a variable "q2" that no question collects
 and nothing writes — delete it in the Codebook tab" — and **Delete** removes
 it. The question's Id can stay as it is. If a custom script writes that name
@@ -132,8 +165,30 @@ Opening a row shows three more fields: **Value labels** (code and label rows,
 its label here until the question changes that code's choice or scale
 point"), **Description** and **Missing codes**
 ("code, then its label — e.g. -9 Refused, -8 Don't know"; see
-[Missing codes](#missing-codes)). With no questions yet the tab says "No
-variables yet — every question you add creates one."
+[Missing codes](#missing-codes)). For an entry no question writes, it also
+lists everything under **Referred to by**; for one kept for answers
+collected, it says "This questionnaire has been published, and exports label
+the data collected under this variable from this entry." With no questions
+yet the tab says "No variables yet — every question you add creates one."
+
+### Labels that are not what respondents see
+
+A value label that is not what respondents see for its code carries a small
+**≠** — in the **Values** column, after the Inspector's `code=label` pair,
+and in the opened row, where a line under the label says what respondents
+see: "Respondents see “Very satisfied”". A screen reader hears that line on
+the label's field, and the **N labels** button as "5 labels, 1 not what
+respondents see".
+
+Respondents see a text of their own for a choice, a Matrix column header, a
+Likert scale's end labels (under its first and last point), a MaxDiff item,
+**Other**, **None of the above** and **N/A** (in the question's wording or
+the survey's), and a Conjoint's "none" option. There is no mark for a scale
+point that shows only its number, a question with no choices of its own (its
+respondents see the value labels themselves), a wide Multiple choice's
+yes/no, or a label Studio wrote, such as `5 — Very satisfied`. The mark is a
+note, not a problem: a label written for the analysis, such as "Top box", is
+often what you want.
 
 The valid range is edited in the Variable card, not in the Codebook tab. A
 variable that has a valid range and no value labels shows its range in
@@ -167,7 +222,7 @@ in step with the question — but only as far as the question changes:
 | Type | Value labels come from |
 |---|---|
 | Single choice, Multiple choice (array layout), Ranking | the choices, plus the codes Other and None of the above store |
-| Multiple choice (wide layout) | `0` No, `1` Yes on every per-choice variable; the choice's label becomes the variable label |
+| Multiple choice (wide layout) | `0` No, `1` Yes on every per-choice variable; the choice's label becomes the variable label, unless you wrote that label yourself |
 | Likert scale | the points: `1 — <left label>`, `2`, …, `N — <right label>`, plus the N/A code |
 | Matrix | the columns, under the codes they store — `1` … *n* for a matrix you build — plus the N/A code, on every row variable |
 | MaxDiff | the items, on every task variable |
@@ -188,11 +243,11 @@ concept label.** Then that code takes the question's new label. So:
 - a code you added by hand in the Codebook, which the question never had,
   stays.
 
-The same goes for the variable labels that follow a part of the question: a
-wide Multiple choice variable takes its choice's new label only when that
-choice is relabeled, and a Matrix row variable is relabeled "<question text> —
-<statement>" only when the question text or that statement changes. A label
-you write for either in the Codebook stays through every other edit.
+Variable labels — a wide Multiple choice variable's choice label, a Matrix
+row's "<question text> — <statement>" — follow their own rule: they follow
+the question for as long as they are the labels Studio gave them, and never
+once you have written one (see
+[Labels that follow the question](#labels-that-follow-the-question)).
 
 A choice question with no choices of its own takes its options from these
 value labels (see
@@ -335,8 +390,8 @@ codebook entry, and the rows below keep theirs, so their data columns stay
 where they were. A new row gets the next free `<base>_<n>`, with the first
 row's value labels, missing codes and valid range. Each row
 variable's label reads "<question text> — <statement>" and follows edits of
-the statement; a label you write yourself in the Codebook tab stays until the
-question text or that statement changes.
+the question text and the statement until you write a label of your own,
+which then stays for good.
 
 The answer stored for a row is the code of the chosen column, as the value
 labels give it: `1` … *n* in a matrix you build, `0` … `10` in *Trust in
@@ -360,7 +415,8 @@ codebook lists it. See [Matrix](Studio-Question-Types#matrix).
   each choice (`brands` becomes `brands_1`, `brands_2`; a question that takes
   its options from its variable's value labels gets them as its choices first,
   one variable per option), each coded `0` No / `1` Yes and labeled with its
-  choice. Adding, removing or relabeling a choice keeps the variables in step,
+  choice. Adding, removing or relabeling a choice keeps the variables in step
+  (a variable whose label you wrote yourself keeps it),
   and clicking **array** collapses them back into one variable. In the data
   each per-choice variable is `1` when the option was chosen, `0` when the
   question was answered without it, and empty when the question was not
@@ -430,6 +486,72 @@ What renaming does **not** do:
 
 Renaming a **page** updates its references for you too (branch rules,
 **Default next**, **Skip to** and page scripts).
+
+---
+
+## When a question is deleted
+
+Deleting a question — or a block or a page with questions in it, with the
+trash button in the Inspector (see
+[Adding, moving and deleting](Studio-Builder-Overview#adding-moving-and-deleting))
+— also deletes the codebook entries only those questions wrote: their
+variables, the `<variable>_other` of **Other (please specify)**, and the
+entries a question kept from its earlier types (a Single choice converted to
+a Matrix still has its old variable, so that converting it back finds it).
+An entry stays when:
+
+- **another question writes it** — nothing is said;
+- **something still refers to it**: a **Show if**, **Hide if** or branch rule
+  (hand-written conditions included), piped text (`{answer:…}`, `{label:…}`)
+  in a question, a page, a redirect address or the survey's wording, a quota,
+  a script (the variable of **Assign to a condition**, or custom JavaScript
+  that reads or writes it), a flow, a codeframe, or a pinned widget under
+  **Data → Insights** (named "a Data dashboard widget" in **Used by**);
+- **it labels answers already collected**: the survey has been published and
+  a question of its last Save wrote it. SPSS and Stata exports label the
+  answers collected so far from the current Save's codebook (see
+  [Codebook drift across versions](#codebook-drift-across-versions)), so the
+  entry stays for them. The survey counts as published when an environment is
+  live, paused or closed, when a redeploy failed while its link still serves
+  the version before, or when the project has responses. A question added
+  since the last Save was never published, and its entries go.
+
+A **Skip to**, or a script aimed at the deleted question (**Timer on
+question**, **Shuffle options**, **Validate fields match**, or a custom
+script's target), keeps nothing: it points at a question, and no codebook
+entry can stand in for one. The next Save's check marks it as an error until
+you point it somewhere else.
+
+A message at the bottom of the screen says what happened:
+
+| Message | Meaning |
+|---|---|
+| "Removed variable q7 too", "Removed variables q7_1, q7_2 and 3 more too" | the entries went with the question |
+| "Kept variable q7 — the logic of q9 still refers to it" | something refers to it (with several: "… — something still refers to each (see Used by in the Codebook)") |
+| "Kept variable comment — this questionnaire has been published, and exports label the data collected under it" | kept for answers collected |
+| "… The Skip to of q9 now points at nothing" | a target lost its question (the message is a warning) |
+
+Its **Undo** button (tooltip "Undo (⌘Z)") brings back the deleted items and
+their entries in one step and selects the item again. The message stays at
+least 8 seconds, and longer while you point at it or it has the keyboard
+focus; it goes when you make another edit. After that, **↶** or
+`Ctrl/Cmd + Z` still undo the deletion, and they select the item again too.
+A deletion that changes nothing in the codebook and leaves no target
+pointing at nothing shows no message.
+
+An entry that stayed shows in the Codebook tab as **referred to by …** or
+**answers collected**, and asks before you delete it. No question writes it
+any more, so the next Save warns `UNUSED_VARIABLE` ("Variable 'comment' is
+registered but not used in questionnaire."). That is expected, and the Save
+can still be published after the warnings are confirmed. If what refers to
+the entry is itself left over, change it first, then delete the entry.
+
+> **Note.** These checks are made when a question, block or page is
+> deleted. Removing a Matrix row or a wide Multiple choice's choice, lowering
+> a MaxDiff's number of tasks, or switching a Multiple choice's **Data
+> layout** removes the entries the question stops writing at once, unless
+> another question writes them — even when a condition reads one or answers
+> were collected under it. One **Undo** brings them back.
 
 ---
 

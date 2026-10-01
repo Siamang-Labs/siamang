@@ -63,8 +63,10 @@ variable `q1`. Make it your first question:
 2. In **Options**, edit the **Choices** — each has a **Code** (what is stored)
    and a **Label** (what is shown). **+ Option** adds one; pressing `Enter` in
    a label adds the next row.
-3. Open **Variable** and give the variable a real **Variable label (as in
-   SPSS)** — e.g. *Source of awareness*. This is your codebook entry.
+3. Open **Variable**: the **Variable label (as in SPSS)** already reads your
+   question text, and follows it while you edit. Give it a shorter label of
+   your own if you like — e.g. *Source of awareness* — and that one stays.
+   This is your codebook entry.
 4. Add a second question: at the bottom of the pages rail on the left, press
    **+ Question**. The menu has two columns — **Types** and **Presets**.
    Choose **Open text** and write *Anything else you would like to tell us?*
