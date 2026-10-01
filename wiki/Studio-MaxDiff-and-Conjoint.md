@@ -345,10 +345,12 @@ dictionary and a script that runs it."
 | Parameter | Values |
 |---|---|
 | **MaxDiff question** | the question's Id |
-| **Path** | "Written as `<name>.csv`, with `<name>.dictionary.json` and `<name>.hb.R` beside it. The file has no weight column (the HB packages take none), so an applied weight is not in it; weight the individual utilities when you aggregate them." |
+| **File name** | the file's name in `outputs/`, before a fixed `.csv` — "It is saved as a CSV file (.csv) in outputs/, with <name>.dictionary.json and <name>.hb.R beside it. It has no weight column (the HB packages take none), so an applied weight is not in it: weight the individual utilities when you aggregate them." A node added from the palette gets `<flow>_maxdiff_choices` |
 
-You then run hierarchical Bayes on your own machine, with as many draws as it
-needs.
+A run of the flow keeps the three files under **Files**; **Run all** keeps
+them only when the flow lists them among its outputs, and the line under
+**File name** says which. You then run hierarchical Bayes on your own
+machine, with as many draws as it needs.
 
 ### Conjoint node
 
@@ -395,10 +397,13 @@ part-worths, the base adds the weighted total, and the summary names the
 
 **Conjoint data for HB** writes "A conjoint's choices in the long format R's
 hierarchical Bayes packages read, with a column dictionary and a script that
-runs it." Parameters: **Conjoint question** and **Path** (written as
-`<name>.csv`, `<name>.dictionary.json` and `<name>.hb.R`). As for MaxDiff,
-the file has no weight column: an applied weight is not in it, so weight the
-individual utilities when you aggregate them.
+runs it." Parameters: **Conjoint question** and **File name** (the name in
+`outputs/` before a fixed `.csv`; written as `<name>.csv`,
+`<name>.dictionary.json` and `<name>.hb.R`; `<flow>_conjoint_choices` for a
+node added from the palette). As for MaxDiff, the file has no weight column:
+an applied weight is not in it, so weight the individual utilities when you
+aggregate them, and **Run all** keeps the files only when the flow lists
+them among its outputs.
 
 ---
 
