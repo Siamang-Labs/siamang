@@ -229,8 +229,8 @@ Under the file's name, the row then says:
   its own, "Leave these out early, in one of two ways:", followed by a list:
   "in a flow: the Data file node can add a Select columns node without them"
   and "here in Files: delete the file and upload it without them". A screen
-  reader reads the same words as the **ⓘ** button's description. It is a hint, never a drop:
-  nothing is removed until you act (see
+  reader reads the same words as the **ⓘ** button's description. It is a
+  hint, never a drop: nothing is removed until you act (see
   [Data files you upload](Studio-Security-and-Privacy#data-files-you-upload)).
 - "Reading its columns…" while the file is being read. The screen asks again
   every few seconds until it can say what the file holds. A reading that has
@@ -258,11 +258,11 @@ rows to the `responses` table.
    dictionary (`<name>.dictionary.json`), upload it too.
 2. In the flow, add a **Data file** node and choose the file by name in its
    **File** list, such as `panel_wave2.csv`. Each upload in the list has its
-   size and upload date under its name (a data file this screen has read,
-   its rows × columns first), and a long name wraps there; the note under
-   the field gives the chosen file's rows × columns, size and upload date. If you uploaded its dictionary,
-   **Dictionary (JSON)** offers it: click **Use
-   panel_wave2.dictionary.json**.
+   size and upload date under its name (for a data file **Files** has read,
+   its rows × columns first), and a long name wraps; the note under the
+   field gives the chosen file's rows × columns, size and upload date. If
+   you uploaded its dictionary, **Dictionary (JSON)** offers it: click
+   **Use panel_wave2.dictionary.json**.
 3. Check the node's **Columns** panel: how the file was read, where its labels
    and scales come from, and its columns. If a title was read as the names or
    the wrong sheet was read, set the option it names under **Reading
@@ -274,8 +274,9 @@ rows to the `responses` table.
    it.
 5. Add your analyses below. Their pickers list the file's columns under the
    heading "From panel_wave2.csv", each column's label and scale under its
-   name; a list of more than ten has a filter box ("Filter variables…"). The questionnaire's variables are offered too only
-   when the file is this survey's data.
+   name; a list of more than ten has a filter box ("Filter variables…"). The
+   questionnaire's variables are offered too only when the file is this
+   survey's data.
 6. Click **Run to here** on a node to see its result, or save and run the
    flow (or **Run all**).
 

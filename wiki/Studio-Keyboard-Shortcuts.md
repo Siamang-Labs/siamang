@@ -113,15 +113,17 @@ right after the palette, before the nodes and wires.
 
 Every picker of the flow inspector — a parameter's choices, a variable, an
 answer code, a file a node reads, the flow's **Report path**, a **Filter
-rows** condition's parts — is a list, and so are a report item's width and
-space above (see
-[Lists in the inspector](Studio-Flows#lists-in-the-inspector)).
+rows** condition's variable, operator, answer and **ALL** / **ANY** — is a
+list, and so are a report item's width and space above (see
+[Lists in the inspector](Studio-Flows#lists-in-the-inspector)). The codes of
+a condition with **in** or **not in** are a **choose codes** checklist
+instead.
 
 | Keys | Where | Action |
 |---|---|---|
 | `Enter`, `Space`, `↓` or `↑` | on the field | open the list on the chosen value (`Home` / `End`: on the first / last) |
 | a letter | on the field | open the list on the first value that starts with it; a list of more than ten opens with the letter in its filter box. `F` does not toggle focus mode here |
-| `↑` / `↓` | in the list | move one row; past the last, round to the first |
+| `↑` / `↓` | in the list | move one row; wraps around at either end (past the last to the first, and back) |
 | `Home` / `End` | in the list | the first / the last row (in a filter box, only while it is empty) |
 | `Page Up` / `Page Down` | in the list | about a screenful up / down, stopping at the first and the last row |
 | letters | in a list of ten or fewer | jump to the first value that starts with them |
@@ -129,7 +131,7 @@ space above (see
 | `Enter` or `Space` | in the list | choose the lit row (`Space` types a space in a filter box) |
 | `Esc` | in the list | close the list, back on the field; in a filter box with text, the first `Esc` empties the box and the second closes the list. Focus mode and the node's selection stay |
 | `Tab` / `Shift + Tab` | in the list | close the list and move on to the next field / stay on the field |
-| `Esc` | on the closed field | clear the selected node, as on any button of the inspector |
+| `Esc` | on the closed field | clear the selected node (Canvas view only), as on any button of the inspector |
 
 `Delete`, `Backspace`, `Ctrl/Cmd + D` and `Ctrl/Cmd + Z` do nothing to the
 node from a list field, open or closed; `Ctrl/Cmd + S` and `Ctrl/Cmd +
@@ -144,8 +146,8 @@ opens it too.
 | Keys | Action |
 |---|---|
 | `Enter` or `Space` on an **ⓘ** | open its tip and keep it open; press again to close it |
-| `Esc` | close the open tip, and nothing else: an open list, focus mode and the node's selection stay. The focus goes back to the **ⓘ** when you had opened the tip yourself, and stays in the field you are typing in when the tip had opened under the mouse |
-| `↑` / `↓`, `Page Up` / `Page Down`, `Home` / `End` on the **ⓘ** | scroll a tip you opened that is too tall for the window |
+| `Esc` | close the open tip, and nothing else: an open list, focus mode and the node's selection stay. The focus goes back to the **ⓘ** when you opened the tip yourself, and stays in the field you are typing in when the tip opened on hover |
+| `↑` / `↓`, `Page Up` / `Page Down`, `Home` / `End` on the **ⓘ** | scroll a tip you opened that scrolls (one too tall for the room it opens in) |
 
 ## Flows List view and the node picker
 

@@ -466,8 +466,8 @@ group with a match. The
 List view's node picker (`Ctrl/Cmd + K`) searches the same way.
 Each item shows the title and a short name (`crosstab`), plus `· platform` for
 nodes that need the project database. Hover an item for its description
-(a node on the canvas gives it too): its paragraphs a blank line apart and
-a list's items each on a line after "•", without code type.
+(a node on the canvas gives it too), in plain text: its paragraphs a blank
+line apart and a list's items each on a line after "•" or its number.
 
 - **Click** an item to add the node to the right of the last node.
 - **Drag** an item onto the canvas to drop it where you want.
@@ -547,7 +547,7 @@ took (`120 ms`, `1.4 s`).
 |---|---|
 | **Title** | the flow's title |
 | **Description** | shown in the flows table and the methods draft |
-| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node — the file it writes, such as `satisfaction.md`, with the node and its report's title on the line under it ("Save report (save) · Satisfaction by region") (its **ⓘ**: "The flow's report: the one Run all keeps and puts in the combined report. Pick one of this flow's Save report nodes."). The line under it says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list, with "(no node saves this)" after it in the field and under it in the list, and the line under the field reads "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
+| **Report path** | which of the flow's **Save report** nodes writes the flow's report, chosen from a list rather than typed: **— none —** and one entry per Save report node — the file it writes, such as `satisfaction.md`, with the node and its report's title on the line under it: "Save report (save) · Satisfaction by region". Its **ⓘ** reads "The flow's report: the one Run all keeps and puts in the combined report. Pick one of this flow's Save report nodes." The note under the field says where a run leaves the report — "After a run: Files → outputs/*flow*/*name*.md" — or, with **— none —**, "None: Run all doesn't keep this flow's report or put it in the combined report."; a flow with no Save report node reads "Add a Save report node (or a section in the Report view) first." A Report path saved earlier that no node writes stays in the list, with "(no node saves this)" after it in the field (see [Lists in the inspector](#lists-in-the-inspector)), and the note under the field reads "No Save report node writes this file, so Run all fails this flow. Choose one of the flow's reports." What **Run all** does with the report, and how the Report path follows its node: [The combined report](#the-combined-report) |
 | **Live: recompute on new responses** | Live mode (see [Live mode](#live-mode)) |
 | **Preview run** | the last preview's summary ("last run: 7 nodes ok") and **Preview all**, which previews the whole draft |
 | **Comments** | comments on the flow as a whole |
@@ -590,7 +590,7 @@ settings ran past the bottom of the screen.
   where a field has several options or cases — often each value with what it
   does, as in a **Data file**'s **Missing codes** ("Type them in one of two
   ways:", then each way as an item). Values, codes, column and file names are
-  set in code type, as in the field. A tip with a list is a little wider.
+  in monospace, as in the field. A tip with a list is a little wider.
 - **Where it opens.** Under its **ⓘ**, or over it when there is no room
   below; a short tip may cover the field under the label, as any tooltip
   does. A tip too tall for either, such as **Apply weight**'s **Weight
@@ -602,8 +602,8 @@ settings ran past the bottom of the screen.
 - **`Esc`** closes the tip, and nothing else: not a list, not focus mode,
   not the node's selection. The tip stays closed while the pointer is still
   on the **ⓘ**; move away and back to open it again. The focus goes back to
-  the **ⓘ** when you had clicked the tip open (or were in it), and stays in
-  the field you are typing in when the tip had opened under the mouse.
+  the **ⓘ** when you clicked the tip open (or were in it), and stays in the
+  field you are typing in when the tip opened on hover.
 - **A screen reader** reads the same text with the control, each paragraph
   and list item as a sentence of its own, a list item after its bullet or
   number.
@@ -662,8 +662,8 @@ the fields below it take a typed column name ("a column of the file"). See
 
 The same variables are behind the **Filter rows** condition editor and the
 variable names listed under a formula. A stored name that is in none of
-these stays, with "(not in codebook)" after it in the field and under it in
-the list.
+these stays, with "(not in codebook)" after it in the field (see
+[Lists in the inspector](#lists-in-the-inspector)).
 
 **A Filter rows condition** is built in the inspector from the same lists:
 
@@ -678,7 +678,8 @@ the list.
 - The value of a labeled variable with `=`, `≠`, **chose** or **did not
   choose** lists each answer's code with its label under it ("Satisfied"
   under `4`), after an empty **—**. A stored value that is no answer stays,
-  with "(not an answer of *variable*)".
+  with "(not an answer of *variable*)" after it in the field. With **in** or
+  **not in** the value is a **choose codes** checklist instead.
 - With two or more rows, **ALL of the following** ("every condition holds")
   or **ANY of the following** ("at least one condition holds").
 
@@ -703,25 +704,25 @@ A field that can read columns the codebook does not describe lists them last,
 under **Beside the answers**: a **Trend**'s **Time** offers the timestamps the
 survey's responses carry — `created_at` ("Response date (created_at)"
 under it), `updated_at` ("Last change (updated_at)") and `started_at`
-("Start time (started_at)") — and the checks know them. A flow that reads them from a **Data
-file** or **Simulated data**, which have none unless the file brings the
-column, gets a warning; a **Data file** whose read columns include the
-timestamp gets none. **Time** lists **Waves and dates** first (labeled
-codes, ordinal variables, date columns, a Date question's answers), then
-**Other variables** — each a heading in its list.
+("Start time (started_at)") — and the checks know them. A flow that reads
+them from a **Data file** or **Simulated data**, which have none unless the
+file brings the column, gets a warning; a **Data file** whose read columns
+include the timestamp gets none. **Time** lists **Waves and dates** first
+(labeled codes, ordinal variables, date columns, a Date question's answers),
+then **Other variables** — each a heading in its list.
 
 A picker leaves out what its node refuses as soon as it is picked: a
 **Trend**'s **Time** and **Split by** and a **Bar chart**'s **Split by** do not
 offer multiple-choice questions, rankings or open answers, and a **Trend**'s
 **Measure variable** with **Measure** `mean` does not offer nominal or
 multiple-choice questions. A variable already stored stays, with the reason
-after it in the field and under it in the list: `aware` "(several answers:
-not one wave or date)".
+after it in the field: `aware` "(several answers: not one wave or date)".
 
-A few text fields suggest values as you type:
-a **Bar chart**'s **Bins** (`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a
-**Heatmap**'s **Color map** (`theme` beside four matplotlib maps). **MaxDiff scores** lists the questionnaire's
-MaxDiff questions, each with its text under it. Mappings, weighting targets and other codes are typed as JSON
+A few text fields suggest values as you type: a **Bar chart**'s **Bins**
+(`auto`, `10`, `0, 18, 25, 35, 50, 65`) and a **Heatmap**'s **Color map**
+(`theme` beside four matplotlib maps). **MaxDiff scores** lists the
+questionnaire's MaxDiff questions, each with its text under it. Mappings,
+weighting targets and other codes are typed as JSON
 (`{"1": 0.45, "2": 0.55}`); an empty JSON box shows the example its help
 gives.
 
@@ -733,13 +734,12 @@ Files → outputs/*flow*/*name*"), what is written beside it, whether **Run
 all** keeps it, and what is wrong with a name — with a one-click fix such as
 **Use tabbook_2** when another node already writes that file. A file a node
 reads is picked by name from the uploads under **Files** it can read, each
-with its size and upload date on the line under it — a data file that
-**Files** has read with its rows and columns first: "160 rows × 16 columns ·
-24.6 KB · uploaded Jun 2, 2026" — with **Upload…** and **Type a name…**
-(**Type another name…** once a file is chosen) under the list. The flow still stores the
-whole path (`outputs/<name>.xlsx`, `assets/<name>`), so flows saved earlier
-and the generated script read what they always did. See
-[Where files go](Studio-Node-Reference#where-files-go).
+with its size and upload date under its name (see
+[Lists in the inspector](#lists-in-the-inspector)), with **Upload…** and
+**Type a name…** (**Type another name…** once a file is chosen) under the
+list. The flow still stores the whole path (`outputs/<name>.xlsx`,
+`assets/<name>`), so flows saved earlier and the generated script read what
+they always did. See [Where files go](Studio-Node-Reference#where-files-go).
 
 **The inspector follows the node's choices.** A node that runs different
 tests shows only the fields the chosen one reads — a **t-test**'s **Groups**,
@@ -760,9 +760,10 @@ its list has, under a code that is shorthand, its name ("Welch's ANOVA") —
 the node's own name where one code means different things in two nodes:
 `ordinal` has "ordinal logit, ordered answers" under it in a **Regression**'s
 **Model**, and stays a scale in a **Recode**. See
-[Lists in the inspector](#lists-in-the-inspector), and
-[Reading this page](Studio-Node-Reference#reading-this-page) in the node
-reference for each node's names.
+[Lists in the inspector](#lists-in-the-inspector); the node reference gives
+each node's names in its section
+([Reading this page](Studio-Node-Reference#reading-this-page) says how they
+are written).
 
 **A Result chart's Kind** says under it what the connected analysis suits and
 what `auto` draws — "Group means (means.table) suits means — means with 95 %
@@ -780,20 +781,23 @@ file**'s **Encoding**, a chart's **Palette** — is a list drawn by Studio, not
 the browser's menu. So is every other picker of the inspector: a variable,
 an answer code, a file a node reads (**File**, **Dictionary (JSON)**), the
 flow's **Report path**, a **Codeframe**, a **MaxDiff question**, an **Export
-file**'s **Format**, and a **Filter rows** condition's variable, operator,
-value and **ALL** / **ANY** — and, in the Report view, an item's width and
-space above. The field shows the value chosen, a choice as the flow stores
-it (`welch_anova`); an optional parameter left on its default reads
-**— default —**.
+file**'s **Format**, a **Filter rows** condition's variable, operator,
+answer (with `=`, `≠`, **chose** or **did not choose**) and **ALL** /
+**ANY**, and an item's width and space above (in the Report view, and under
+a **Report section**'s **Size and placement**). The field shows the value
+chosen, a choice as the flow stores it (`welch_anova`); an optional
+parameter left on its default reads **— default —**.
 
 - **Opening it.** Click the field, or press `Enter`, `Space`, `↓` or `↑` on it
   (`Home` and `End` open it on the first and the last choice). The list opens
   under the field, or over it where there is more room, exactly as wide as
   the field. A list taller than the room it has scrolls, and a shade at its
-  top or bottom edge says there are more choices that way. While it is open the
-  field keeps its focused look, so a list that opens upward over other
-  fields is clearly its own. Clicking the field's label puts the focus on the
-  field without opening it.
+  top or bottom edge says there are more choices that way. While it is open
+  the field keeps its highlighted border (and, for a list of ten or fewer,
+  its focus ring), so a list that opens upward over other fields is clearly
+  its own. Clicking the field's label puts the focus on the field without
+  opening it — not for a file a node reads (**File**, **Dictionary
+  (JSON)**), whose label does nothing: click its field.
 - **What it shows.** Each entry is its value or name with, on the line under
   it, what helps choose it, wrapped onto more lines when it is long:
   - a choice: its name or what it does — "Welch's ANOVA" under
@@ -810,10 +814,11 @@ it (`welch_anova`); an optional parameter left on its default reads
 
   Groups have headings, which the keys pass by: "From *name*" for a **Data
   file**'s columns, then "Made in this flow" (or "From the questionnaire and
-  this flow"); a **Trend**'s **Time** has "Waves and dates", "Other
-  variables" and "Beside the answers". A long name, a column name such as
+  this flow"); a **Trend**'s **Time** has **Waves and dates**, **Other
+  variables** and **Beside the answers**. A long name, a column name such as
   `satisfaction_with_rapid_charging_speed_on_long_highway_trips` or a file
-  name such as `ev_owner_charging_experience_panel_wave_3_june_2026_weighted_final_v2.sav`,
+  name such as
+  `ev_owner_charging_experience_panel_wave_3_june_2026_weighted_final_v2.sav`,
   wraps after a `_`, `.` or `/` rather than in the middle of a word, and so
   does a heading made of one; a screen reader still reads the name whole.
   The chosen one has a ✓. An optional parameter's list starts with
@@ -824,13 +829,16 @@ it (`welch_anova`); an optional parameter left on its default reads
 - **In the closed field** the chosen name is on one line, cut short with "…"
   when it is longer than the field; point at the field to read all of it,
   with what is under it in the list. A stored value the field would not
-  offer stays chosen, with the reason after it in the field and under it in
-  the list: "(not in codebook)", "(*scale* — *field* takes …)", "(several
-  answers: not one group)", "(not an answer of *variable*)", "(not in
+  offer stays chosen, with the reason in parentheses after it in the field,
+  such as "(not in codebook)"; in the list the same words, without the
+  parentheses, are in amber on the line under it. Reasons include "(not in
+  codebook)", "(*scale* — *field* takes …)", "(several answers: not one
+  group)", "(several answers: not one wave or date)", "(an open answer: code
+  it first)", "(nominal: no mean)", "(not an answer of *variable*)", "(not in
   Files)", "(can't be read as data)", "(not a dictionary (.json))", "(no node
-  saves this)", "(not saved)" or "(not in the questionnaire)".
-- **Keys in the list.** `↑` and `↓` move one row (past the last, round to the
-  first), `Home` and `End` to the first and the last, `Page Up` and `Page
+  saves this)", "(not saved)" and "(not in the questionnaire)".
+- **Keys in the list.** `↑` and `↓` move one row, wrapping around at either
+  end; `Home` and `End` go to the first and the last, `Page Up` and `Page
   Down` about a screenful; typing the first letters of a value jumps to it.
   `Enter` or `Space` chooses, as a click does. `Esc` closes the list and puts
   the focus back on the field; `Tab` closes it and moves on to the next field
@@ -859,18 +867,19 @@ it (`welch_anova`); an optional parameter left on its default reads
   opens with the letter in its filter box. So `F` there does not toggle
   [focus mode](#focus-mode). While a list is open, `F` and `Esc` are the
   list's: `Esc` closes only the list, and focus mode and the node's selection
-  stay. `Esc` on the closed field clears the node's selection, as on any
-  button of the inspector.
+  stay. In the **Canvas** view, `Esc` on the closed field clears the node's
+  selection, as on any button of the inspector.
 - **The editor's keys stay out.** `Delete`, `Backspace`, `Ctrl/Cmd + D` and
   `Ctrl/Cmd + Z` on a list field, open or closed, do not delete, duplicate or
   undo the node, as in any field; `Ctrl/Cmd + S` and `Ctrl/Cmd + Enter` still
   save and preview.
-- **While you follow a colleague** (the editor reads "view only"), the lists
-  still open, so you can read what each choice does, but choosing one changes
-  nothing.
-- **A screen reader** hears the field as a button named by its label and its
-  value ("Test optional welch_anova"), described by its **ⓘ** help, which
-  opens a list; each choice is read with what is under it, and the chosen
+- **While you follow a colleague** (the banner reads "*name* is editing —
+  you are following their changes live …"; in focus mode the flow's name has
+  "view only" beside it), the lists still open, so you can read what each
+  choice does, but choosing one changes nothing.
+- **A screen reader** hears the field as a button that opens a list, named
+  by its label and its value ("Test optional welch_anova") and described by
+  its **ⓘ** help; each choice is read with what is under it, and the chosen
   one as selected. A required field says "required", and a long list's
   filter box is named after its field ("Rows filter variables"); as you type,
   it says how many entries are left ("3 variables").

@@ -581,9 +581,9 @@ name before you upload. A value saved earlier as a path, such as
 `./assets/panel_wave2.csv`, shows under "Other location, kept as it was
 written" — "A run only brings in files uploaded under Files, so it won't
 find this one." — with **Use the uploaded panel_wave2.csv** when Files has
-it. An upload deleted since shows with "(not in Files)" after its name. If the run log
-says "note: assets/*name* is not among this project's Files", the name is
-wrong or the file was deleted.
+it. An upload deleted since shows with "(not in Files)" after its name. If
+the run log says "note: assets/*name* is not among this project's Files",
+the name is wrong or the file was deleted.
 → [Where files go](Studio-Node-Reference#where-files-go) · [[Files|Studio-Files]]
 
 **The topbar and the project tabs are gone in the flow editor.**
@@ -633,9 +633,9 @@ wrong, set the option under the node's **Reading options**.
 so — with `;` or tabs between the fields, also in a column whose first
 decimals come late. In an Excel sheet, a column of nothing but values like
 `1,500` (one and a half, or fifteen hundred?) stays text, with a note in the
-**Columns** panel, until you set **Decimal mark** to `,` or `.`; a text file
-always gets a mark. In a file with `,` between the fields, a comma is never a
-decimal mark.
+**Columns** panel, until you set **Decimal mark** to `,` or `.`. In a text
+file, auto always settles on one mark. In a file with `,` between the
+fields, a comma is never a decimal mark.
 
 **How do I analyze the data I collected in Qualtrics?**
 Import the survey's `.qsf` in the Builder and Save; export the data from
@@ -822,15 +822,16 @@ given: …"); it does not warn of the chart of the defaults (Show count, no
 Split by, Sort code), which draws every value as it always did.
 
 **My Trend has no `created_at` to pick.**
-It is at the end of the **Time** list, under the heading **Beside the answers**, with
-`updated_at` and `started_at` — the timestamps the survey's responses carry,
-which the codebook does not list. (There is no `submitted_at`: Studio's
-responses do not have one, and the check calls it an unknown variable.) A flow
-that reads an uploaded file or simulated data has them only when the data has
-those columns: the node warns ("time: "created_at" is a timestamp of the
-survey's responses, and this node reads Data file: the run stops unless that
-data has a column created_at. …"), and the run stops with "The data has no
-column 'created_at' to read Time from." when it does not.
+It is at the end of the **Time** list, under the heading **Beside the
+answers**, with `updated_at` and `started_at` — the timestamps the survey's
+responses carry, which the codebook does not list. (There is no
+`submitted_at`: Studio's responses do not have one, and the check calls it an
+unknown variable.) A flow that reads an uploaded file or simulated data has
+them only when the data has those columns: the node warns ("time:
+"created_at" is a timestamp of the survey's responses, and this node reads
+Data file: the run stops unless that data has a column created_at. …"), and
+the run stops with "The data has no column 'created_at' to read Time from."
+when it does not.
 → [Trend](Studio-Node-Reference#trend)
 
 **"created_at spans 905 days: too many points for one chart. Choose a longer Period."**

@@ -268,10 +268,12 @@ usual gap from the block before it (**Density** sets how much): **More** is
 for two results that belong apart, **No space** for a chart that belongs right
 under its table. The width and space-above lists open and work as the flow
 inspector's lists do (see
-[Lists in the inspector](Studio-Flows#lists-in-the-inspector)). A row that has been sized, or given a space of its own, says
-so while folded: its control is drawn darker and names the choices on hover. The same control is in the **Report section** node's inspector, under
-**Size and placement** (where a statistic, again, reads "one line"). Size
-and placement reach the `.html` only.
+[Lists in the inspector](Studio-Flows#lists-in-the-inspector)). A row that
+has been sized, or given a space of its own, says so while folded: its
+control is drawn darker and names the choices on hover. The same control is
+in the **Report section** node's inspector, under **Size and placement**
+(where a statistic, again, reads "one line"). Size and placement reach the
+`.html` only.
 
 ### Preview report
 
@@ -398,13 +400,13 @@ writes a p-value in node previews and Live tiles; see
 
 The **Chart colors** disclosure puts your colors — a brand palette, a house
 typeface — into the report's charts. It colors the charts whose **Palette**
-is `theme` ("the report's chart colors (Save report's Look)") (a **Heatmap**'s
-**Color map** `theme`); a chart that names a palette of its own keeps it. The
-section says: "For the charts whose Palette is theme (a Heatmap's Color map
-theme), in this report and in their previews. A chart that names a palette of
-its own keeps it. Hex colors only: the charts are drawn by matplotlib, not by
-a browser. Empty is the engine's default, a set readers with protanopia or
-deuteranopia can tell apart."
+is `theme` ("the report's chart colors (Save report's Look)"), and a
+**Heatmap** whose **Color map** is `theme`; a chart that names a palette of
+its own keeps it. The section says: "For the charts whose Palette is theme
+(a Heatmap's Color map theme), in this report and in their previews. A chart
+that names a palette of its own keeps it. Hex colors only: the charts are
+drawn by matplotlib, not by a browser. Empty is the engine's default, a set
+readers with protanopia or deuteranopia can tell apart."
 
 | Control | What it colors | Empty means |
 |---|---|---|
