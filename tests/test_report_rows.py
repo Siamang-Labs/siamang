@@ -44,7 +44,9 @@ def _shape(html: str) -> list[str]:
     body = _body(html)
     shape: list[str] = []
     for match in re.finditer(
-        r'<div class="siamang-row[^"]*"[^>]*>(.*?)\n</div>|<figure class="siamang-figure|<(h1|h2|p)\b',
+        # A row ends at the </div> after its last figure: a table's figure
+        # has one of its own inside it (its scroll box).
+        r'<div class="siamang-row[^"]*"[^>]*>(.*?</figure>)\n</div>|<figure class="siamang-figure|<(h1|h2|p)\b',
         body,
         re.S,
     ):
@@ -94,7 +96,10 @@ def test_text_a_full_width_figure_a_page_break_or_a_space_above_start_again():
 def test_a_lone_narrow_figure_is_not_wrapped():
     html = _html(Report(title="R").add(FRAME, width="60%", align="left"))
     assert "siamang-row" not in _body(html)
-    assert '<figure class="siamang-figure" data-align="left" style="--fig-w:60%">' in html
+    assert (
+        '<figure class="siamang-figure" data-align="left" style="--fig-w:60%;--fig-share:0.6">'
+        in html
+    )
 
 
 def test_the_row_hangs_from_the_edge_its_figures_name_or_the_left():
@@ -126,10 +131,14 @@ def test_every_stylesheet_sets_rows_and_stacks_them_on_a_phone():
     for density in ("compact", "comfortable", "spacious"):
         css = ReportTheme(density=density).stylesheet()
         assert ".siamang-row {" in css
-        assert "flex: 0 0 var(--fig-w, var(--report-figure-width));" in css
+        # A share of the line less its share of the gaps (tests/test_report_row_fit.py).
+        assert (
+            "flex: 0 0 calc(var(--fig-w, var(--report-figure-width)) - var(--report-block-gap)"
+            in css
+        )
         assert "@media (max-width: 480px)" in css
         # Only a table holds its figure open; a chart is drawn to its width.
-        assert ".siamang-row > .siamang-figure:has(table) { min-width: min-content; }" in css
+        assert ".siamang-figure:has(> .siamang-scroll) { min-width: min-content; }" in css
 
 
 _HARNESS = r"""

@@ -416,15 +416,31 @@ block), checked where they are written rather than where they are rendered.
 Like the theme, they reach the HTML only.
 
 Tables and charts narrower than the page that follow one another **share a
-row** (`<div class="siamang-row">`, a wrapping flex row): as many as fit on a
-line — two at `"48%"`, a `"66%"` and a `"33%"`, three at `"33%"` — with the
-theme's gap between them, and the rest wrap under them. A table that needs
-more than its share takes what it needs and wraps; on a screen narrower than
-480px each takes the whole width. Text, a full-width figure, or a figure with
-a `break_before` or a `space_before` starts again; the row hangs from the edge
+row** (`<div class="siamang-row">`, a wrapping flex row as wide as the
+column): as many as fit on a line, with the theme's gap between them, and the
+rest wrap under them. A **percentage is a share of the line**, the gaps taken
+out of the shares: two at `"50%"`, a `"66%"` and a `"33%"`, three at `"33%"`
+fit with the gap between them (each figure's `--fig-share` is its width as a
+fraction, `0.5` for `"50%"`; `theme.figure_share`). **Any other length is the
+figure's own width**, in a row as alone, with the gap beside it: in the
+default 720px measure (a 672px column inside its 24px margins) two of
+`"326px"` fill a line with the 20px gap between them, two of `"360px"` take a
+line each. A table sits in a box (`.siamang-scroll`) that scrolls sideways on
+screen: its figure takes what the table needs, up to the column, and a table
+wider than the column scrolls inside it rather than run past the column or
+over the figure beside it (on paper a table is printed whole). The box holds
+the table's statistics line too, so with `caption_position="above"` a table
+reads caption, table, statistics. A caption breaks a word longer than its
+figure. On a screen narrower than 480px every narrow figure takes the whole
+width, in a row or not. Text, a full-width figure, or a figure with a
+`break_before` or a `space_before` starts again; the row hangs from the edge
 its figures all name (`align`, else the theme's `figure_align`), or from the
-left when they disagree. A theme whose `figure_width` is narrower than the
-page therefore sets every run of figures in rows.
+left when they disagree, and a line that holds a table wider than the page
+starts at the left edge whatever the row's alignment, so a printed table
+runs past the right edge only (where the browser shrinks the page to fit).
+A theme whose `figure_width` is narrower than the page therefore sets every
+run of figures in rows. A width, a figure's own or the theme's
+`figure_width`, is more than zero: `"0px"` and `"-20%"` are refused.
 
 `sample_report(theme)` builds a short report using every kind of block, from
 literals rather than from data, so a theme can be previewed without a run.

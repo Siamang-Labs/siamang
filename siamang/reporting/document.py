@@ -32,7 +32,7 @@ import pandas as pd
 from siamang.reporting import chart_theme, p_values, vega
 from siamang.reporting.charts import SurveyChart
 from siamang.reporting.tables import SurveyTable, frame_to_html, stat_item
-from siamang.reporting.theme import _LENGTH, ReportTheme
+from siamang.reporting.theme import _LENGTH, ReportTheme, _is_width, figure_share
 
 # (kind, payload) blocks. payload depends on kind:
 #   "md"    -> str
@@ -81,6 +81,9 @@ def layout_problem(placement: object) -> str | None:
     width = placement.get("width")
     if width is not None and not _LENGTH.match(str(width)):
         return f"width: {width!r} is not a CSS length (a number and a unit, e.g. '60%', '320px')."
+    # A length, but not a width: zero or less is drawn as nothing in a row.
+    if width is not None and not _is_width(width):
+        return f"width: {width!r} is not a width of more than zero (e.g. '50%', '320px')."
     align = placement.get("align")
     if align is not None and align not in _ALIGN:
         return f"align: {align!r} is not one of {', '.join(_ALIGN)}."
@@ -191,15 +194,20 @@ def _figure(
     `width` and `align` come from the block (Report.add), falling back to the
     theme; the width is an inline custom property rather than an inline rule, so
     a stylesheet can still override it and nothing here writes CSS syntax the
-    theme does not own. `space_before` is one too (`--fig-space`), standing in
-    for the theme's gap between blocks above this one.
+    theme does not own. With it goes `--fig-share`, the width as the share of a
+    row's line it stands for (theme.figure_share: 0.5 for 50%, 1 for a length
+    such as 320px), which a row takes the gaps between its figures out of.
+    `space_before` is one too (`--fig-space`), standing in for the theme's gap
+    between blocks above this one.
     """
 
     align = str(layout.get("align") or theme.figure_align)
+    width = layout.get("width")
     props = [
         f"{name}:{_esc(value)}"
         for name, value in (
-            ("--fig-w", layout.get("width")),
+            ("--fig-w", width),
+            ("--fig-share", figure_share(width) if width else None),
             ("--fig-space", layout.get("space_before")),
         )
         if value
@@ -227,11 +235,12 @@ def _row(figures: list[tuple[str, Mapping[str, object]]], theme: ReportTheme) ->
     """Narrow figures that follow one another, set side by side.
 
     One figure is returned as it is. Several go into a `siamang-row`, a
-    wrapping flex row: as many as fit share a line (two at 48%, 66% and 33%,
-    three at 33%), the rest wrap under them, and on a phone each takes the
-    whole width. The row hangs from the edge they all name, or from the left
-    when they disagree; it keeps the first figure's page break and the space
-    it asked for above it, since the row is what now starts there.
+    wrapping flex row: as many as fit share a line (two at 50%, 66% and 33%,
+    three at 33%, two of 326px in a 672px column), the rest wrap under them,
+    and on a phone each takes the whole width (as one alone does). The row
+    hangs from the edge they all name, or from the left when they disagree;
+    it keeps the first figure's page break and the space it asked for above
+    it, since the row is what now starts there.
     """
 
     if len(figures) == 1:
@@ -814,6 +823,10 @@ class Report:
                     if isinstance(component, SurveyTable)
                     else frame_to_html(p_values.cells(component, tabulated=True), rounded=False)
                 )
+                # In a box that scrolls sideways on screen, so a table wider
+                # than its figure, or than the column, never runs over what is
+                # beside it (the theme's `.siamang-scroll`).
+                inner = f'<div class="siamang-scroll">\n{inner}\n</div>'
                 place(_figure(inner, caption, label, layout, theme), layout)
             elif kind == "chart":
                 figures += 1

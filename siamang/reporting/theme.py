@@ -84,6 +84,37 @@ _LENGTH = re.compile(r"^-?\d+(\.\d+)?(px|pt|pc|em|rem|ch|ex|%|cm|mm|in|vw|vh)$")
 _COLOR = re.compile(r"^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+|(rgb|hsl)a?\([^;{}<>]*\))$")
 
 
+def _is_width(value: object) -> bool:
+    """Whether ``value`` is a length (``_LENGTH``) of more than zero, as a
+    figure's width must be. ``"0px"`` and ``"-20%"`` are lengths, but not a
+    figure's width: a figure 0px wide is drawn as nothing; a negative width
+    the browser drops, so the figure alone runs across the page; and in a
+    row the share of the gaps leaves either less than nothing, so a chart in
+    it is drawn zero pixels wide."""
+
+    text = str(value)
+    if not _LENGTH.match(text):
+        return False
+    number = re.match(r"-?\d+(\.\d+)?", text)
+    return number is not None and float(number.group()) > 0
+
+
+def figure_share(width: object) -> str:
+    """How much of a row's line a figure of ``width`` stands for, as the number
+    the row's stylesheet takes the gaps between figures out of (``--fig-share``).
+
+    A percentage is a share of the line — ``"50%"`` is ``"0.5"`` — so two at
+    50% fit side by side with the gap between them. Any other length is the
+    figure's own width, ``"1"``: a picture typed in as 320px is 320px wide in
+    a row as well as alone, and the gap goes beside it.
+    """
+
+    text = str(width).strip()
+    if text.endswith("%"):
+        return f"{float(text[:-1]) / 100:g}"
+    return "1"
+
+
 class ReportThemeError(ValueError):
     """A theme field was given a value the stylesheet could not use."""
 
@@ -210,6 +241,7 @@ class ReportTheme:
             "--report-cell-pad": pad,
             "--report-table-font-size": self.table_font_size or "0.87em",
             "--report-figure-width": self.figure_width or "100%",
+            "--report-figure-share": figure_share(self.figure_width) if self.figure_width else "1",
         }
 
     def stylesheet(self) -> str:
@@ -320,6 +352,13 @@ def _validate(theme: ReportTheme) -> None:
             raise ReportThemeError(
                 f"{name}: {value!r} is not a CSS length (a number and a unit, e.g. '720px', '60%')."
             )
+    # The width every figure without its own takes: as a figure's own width
+    # (document.layout_problem), more than zero.
+    if theme.figure_width is not None and not _is_width(theme.figure_width):
+        raise ReportThemeError(
+            f"figure_width: {theme.figure_width!r} is not a width of more than zero "
+            "(e.g. '50%', '480px')."
+        )
     for name in _COLORS:
         value = getattr(theme, name)
         if value is not None and not _COLOR.match(str(value)):
@@ -460,39 +499,62 @@ _FIGURE = """\
   line-height: 1.45;
 }}
 .siamang-number {{ color: var(--report-text); font-weight: 600; }}
+/* A word longer than its figure (a variable's name in a caption) breaks
+   rather than run out of the figure, over the one beside it. */
+.siamang-figcaption {{ overflow-wrap: anywhere; }}
 /* The `margin` above sets the sides; the space above a figure is the gap every
    other block has, or the item's own (`space_before`). Without this the
    shorthand zeroed it, and a table sat flush under the caption before it. */
 .siamang-report > * + .siamang-figure {{ margin-top: var(--fig-space, var(--report-block-gap)); }}
+/* A table's figure takes what the table needs, if that is more than its
+   width; a table wider than the column scrolls sideways inside its figure on
+   screen (`.siamang-scroll` holds it, no wider than the report — the
+   container `cqw` measures) rather than run past the column, or over the
+   figure beside it. On paper there is nothing to scroll: a table is printed
+   whole. A chart does not hold its figure open: a picture scales, and an
+   interactive one is redrawn to the width it is given — held at the width it
+   was first drawn at, it could never be drawn narrower. */
+.siamang-figure:has(> .siamang-scroll) {{ min-width: min-content; }}
+/* Laid out as the figure is, so a table and the statistics under it sit as
+   they did straight in the figure: the table across its width, the line 8px
+   under it. */
+.siamang-scroll {{ display: flex; flex-direction: column; gap: 8px; }}
+@media screen {{
+  .siamang-report {{ container-type: inline-size; }}
+  .siamang-scroll {{ overflow-x: auto; max-width: 100cqw; }}
+}}
 /* Narrow figures that follow one another share a row (Report.to_html groups
-   them): as many as fit on a line, the rest wrap under them. The gutter
-   between them is padding inside each, and the row reaches half a gutter past
-   the column on either side, so a figure's width is a share of the line and
-   two at 48% or a 66% and a 33% fit with the gap between them. */
+   them): as many as fit on a line, the rest wrap under them, with the theme's
+   gap between them; the row is the column's width, on paper as on screen. A
+   percentage is a share of the line, and the gaps come out of the shares
+   (`--fig-share` is the width as a fraction, 0.5 for 50%): two at 50%, a 66%
+   and a 33%, three at 33% fit with the gap between them. Any other length is
+   the figure's own width (share 1), the gap beside it: two of 326px fill a
+   672px column with the 20px gap between them. */
 .siamang-row {{
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  row-gap: var(--report-block-gap);
-  margin-left: calc(var(--report-block-gap) / -2);
-  margin-right: calc(var(--report-block-gap) / -2);
+  gap: var(--report-block-gap);
 }}
 .siamang-report > * + .siamang-row {{ margin-top: var(--fig-space, var(--report-block-gap)); }}
-.siamang-row[data-align="center"] {{ justify-content: center; }}
-.siamang-row[data-align="right"] {{ justify-content: flex-end; }}
+/* `safe`: a line that holds an item wider than itself (a table printed whole)
+   starts at the left edge and runs past the right, where the browser shrinks
+   the page to fit it; centered, it would run past both edges, and what runs
+   past the left one is not printed. The plain value first, for a browser
+   that does not know `safe`. */
+.siamang-row[data-align="center"] {{ justify-content: center; justify-content: safe center; }}
+.siamang-row[data-align="right"] {{ justify-content: flex-end; justify-content: safe flex-end; }}
 .siamang-row > .siamang-figure {{
   margin: 0;
-  flex: 0 0 var(--fig-w, var(--report-figure-width));
-  padding: 0 calc(var(--report-block-gap) / 2);
+  flex: 0 0 calc(var(--fig-w, var(--report-figure-width)) - var(--report-block-gap) * (1 - var(--fig-share, var(--report-figure-share))));
 }}
-/* A table that needs more than its share takes what it needs and wraps
-   rather than run over its neighbor. A chart does not: a picture scales, and
-   an interactive one is redrawn to the width it is given — held at the width
-   it was first drawn at, it could never be drawn narrower. */
-.siamang-row > .siamang-figure:has(table) {{ min-width: min-content; }}
 /* On a phone each takes the whole width: a half of 360px is too narrow to
-   read a table in. */
+   read a table in. So does a narrow figure that is not in a row (alone, or
+   kept apart by a page break, a space above or a statistic): a third of a
+   phone's column is a chart no one can read. */
 @media (max-width: 480px) {{
+  .siamang-figure {{ width: 100%; }}
   .siamang-row > .siamang-figure {{ flex-basis: 100%; }}
 }}"""
 
