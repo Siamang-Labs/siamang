@@ -58,7 +58,7 @@ def test_the_space_is_an_inline_custom_property_beside_the_width():
     )
     assert '<figure class="siamang-figure" data-align="center">' in html
     assert '<figure class="siamang-figure" data-align="center" style="--fig-space:48px">' in html
-    assert 'style="--fig-w:60%;--fig-space:0px"' in html
+    assert 'style="--fig-w:60%;--fig-share:0.6;--fig-space:0px"' in html
 
 
 def test_the_markdown_says_nothing_about_the_space():

@@ -1061,6 +1061,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Side by side, a width is what it says, and nothing runs over its
+  neighbor.** The gap between figures in a row was padding inside each, with
+  the row reaching half a gap past the column on either side. So a width that
+  is not a percentage lost the gap (two figures of `320px` drew 300px pictures
+  in a row, and 320px alone); a printed report with a row reached past its
+  paper and was shrunk on every page; a table wider than its share went past
+  the column, and one not in a row ran out of its figure; and a word longer
+  than its figure — a variable's name in a caption — ran over the figure
+  beside it. The gap is now the row's own and the row is the column: a
+  percentage is a share of the line, the gaps taken out of the shares (two at
+  50%, a 66% and a 33%, three at 33% fit, as they did), any other length the
+  figure's own width with the gap beside it (`--fig-share`,
+  `theme.figure_share`). A table sits in a box that scrolls sideways on
+  screen, its figure taking what the table needs up to the column; a caption
+  breaks a word that does not fit. On a phone (under 480px) every narrow
+  figure takes the whole width, not only one in a row: a figure alone, or
+  kept apart from its neighbor by a page break, a space above or a
+  statistic, kept its share, and a third of a phone is a chart no one can
+  read. A centered or right-hand row that holds a table wider than the paper
+  starts it at the left edge (`justify-content: safe …`): printed, it ran
+  past both edges, and what ran past the left one was not printed. A width
+  (`Report.add(width=…)`, `layout_problem`, the theme's `figure_width`) is
+  more than zero: `"0px"` or `"-20%"` drew a chart zero pixels wide in a row.
+  Two things change for a stylesheet that reads the markup: a table and its
+  statistics line are in the `.siamang-scroll` box, so a selector such as
+  `.siamang-figure > table` no longer matches; and with
+  `caption_position="above"` the statistics now sit under the table
+  (caption, table, statistics, as a table's notes go under it) rather than
+  between the caption and the table.
+
 - **An uploaded file loads into its columns.** A CSV Excel saved with `;`
   (Russian and European settings) collapsed into one column — with a comma in
   a row, pandas moved its leading fields into a hidden index and a preview
