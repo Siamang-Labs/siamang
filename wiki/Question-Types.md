@@ -69,6 +69,44 @@ An unanswered variable leaves the placeholder as written, so an author sees what
 is missing. The same placeholders work in a page's `title` and `body`, the final and
 screen-out pages included (see [[Pages, Blocks and Structure|Pages-Blocks-and-Structure]]).
 
+They work in what the respondent reads as the **answers**, too:
+
+| Question | Piped |
+| :--- | :--- |
+| `SingleChoice`, `MultiChoice`, `Ranking` | each option's label (a choice's `label`, or the value label it comes from), in every display — radio, buttons, the dropdown's list, its button and its search, a choice with a picture; an option image's `alt` and `caption`; `metadata["other_label"]` and "None of the above" |
+| `LikertScale` | `left_label`, `right_label`, a `na_option` text |
+| `Matrix` | the statements (`subquestions`, or the row variables' labels), the column headers, a `na_option` text |
+
+```python
+sg.SingleChoice("Which {label:brand} plan do you have?", var=plan, choices=[
+    sg.Option(1, "{label:brand} Basic"),
+    sg.Option(2, "{label:brand} Pro"),
+])
+```
+
+- What is piped is only what is **shown**, wherever it is read — the label, a screen
+  reader's name for the choice or the cell (`aria-label`), an image's `alt`. The
+  answer stored is the option's code, as always, and the codebook, the exports and
+  the analysis keep the label as authored, placeholder and all.
+- A placeholder whose question is not answered yet stays as written, as in a title.
+  One answered on the same page fills in as soon as it is answered.
+- An option never pipes its own question: `{label:plan}` among `plan`'s options
+  stays as written (it would change under the respondent's hand as they answer),
+  and so does a `{label:plan}` inside another question's label that the option
+  inserts.
+- `{label:x}` inserts the label as the respondent read it: a later "Why did you
+  choose {label:plan}?" reads "Why did you choose Acme Pro?".
+- A piped label is text, never markup: an answer such as `<b>` shows as typed.
+- A `MaxDiff`'s items and a `Conjoint`'s attributes and levels are **not** piped:
+  they are the design, and every respondent must compare the same items for
+  their choices to be comparable (a piped item would also be a different item for
+  each respondent, and could repeat another). `lint()` reports a placeholder there
+  (`PIPE_IN_DESIGN`); their `text` and `hint` pipe as any question's do.
+
+`lint()` checks every placeholder in an option as in a question's text: one that
+names no variable (`PIPE_UNKNOWN_VARIABLE`), one answered later or the question's
+own (`PIPE_FORWARD_REFERENCE`) — see [[Validation and Linting|Validation-and-Linting]].
+
 ---
 
 ## `SingleChoice`

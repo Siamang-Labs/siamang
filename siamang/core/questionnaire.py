@@ -18,6 +18,7 @@ from siamang.core.question import (
     MultiChoice,
     NumericInput,
     Question,
+    Ranking,
     SingleChoice,
     answer_key_aliases,
     choice_codes,
@@ -1123,11 +1124,112 @@ def _contradictory_visibility_warnings(survey: Questionnaire) -> list[LintWarnin
 _PIPE_RE = re.compile(r"\{(answer|var|label):([A-Za-z0-9_]+)\}")
 
 
+def _option_texts(code: Any, label: Any, media: Any) -> list[tuple[str, str]]:
+    """An answer option's label, and its image's alt text and caption — each
+    named on its own, so that the author knows which of them to fix."""
+
+    texts = [(f"option {code!r}", str(label))]
+    if media is not None:
+        texts += [
+            (f"the {field} of option {code!r}", text)
+            for field, text in (
+                ("alt text", getattr(media, "alt", None)),
+                ("caption", getattr(media, "caption", None)),
+            )
+            if text
+        ]
+    return texts
+
+
+def _choice_texts(question: Question) -> list[tuple[str, str]]:
+    """The options a choice question offers, as the compiler sends them: its
+    ``choices``, else its variable's value labels — for a wide MultiChoice
+    without one choice per variable, each variable's label."""
+
+    choices = getattr(question, "choices", None) or []
+    variables = question.var if isinstance(question.var, list) else [question.var]
+    wide = isinstance(question, MultiChoice) and question.mode == "wide"
+    if choices and (not wide or len(choices) == len(variables)):
+        texts: list[tuple[str, str]] = []
+        for option in choices:
+            texts += _option_texts(option.code, option.label, option.media)
+        return texts
+    if wide:
+        return [(f"option {v.name!r}", str(v.label or v.name)) for v in variables]
+    labels = getattr(variables[0], "labels", None) or {}
+    return [(f"option {code!r}", str(label)) for code, label in labels.items()]
+
+
+def _answer_texts(question: Question) -> list[tuple[str, str]]:
+    """What a respondent reads as the answers of ``question``, each with where
+    it is: the runtime pipes ``{answer:x}`` / ``{label:x}`` in these as in the
+    question's text — the options (and an option image's alt text and
+    caption), Other's label, a scale's end labels and N/A, a matrix's
+    statements and column headers. A MaxDiff's and a Conjoint's are its
+    design and are not piped (``_design_texts``)."""
+
+    texts: list[tuple[str, str]] = []
+    if isinstance(question, SingleChoice | MultiChoice | Ranking):
+        texts += _choice_texts(question)
+    if question.other_specify and isinstance(question, SingleChoice | MultiChoice):
+        other_label = (question.metadata or {}).get("other_label")
+        if other_label:
+            texts.append(("its Other label", str(other_label)))
+    if isinstance(question, LikertScale):
+        texts += [
+            (where, text)
+            for where, text in (
+                ("its left label", question.left_label),
+                ("its right label", question.right_label),
+            )
+            if text
+        ]
+    if isinstance(question, Matrix):
+        statements = (
+            question.subquestions
+            if question.subquestions is not None
+            else [v.label or v.name for v in question.var]
+        )
+        texts += [(f"row {i}", str(text)) for i, text in enumerate(statements, start=1)]
+        texts += [(f"column {code!r}", header) for code, header in question.columns()]
+    if isinstance(question, LikertScale | Matrix) and isinstance(question.na_option, str):
+        texts.append(("its N/A label", question.na_option))
+    return texts
+
+
+def _design_texts(question: Question) -> list[tuple[str, str]]:
+    """A MaxDiff's items and its Best and Worst, a Conjoint's attributes,
+    levels and None: the runtime shows them as written."""
+
+    texts: list[tuple[str, str]] = []
+    if isinstance(question, MaxDiff):
+        texts += [
+            (where.replace("option", "item", 1), text) for where, text in _choice_texts(question)
+        ]
+        texts += [
+            ("its Best label", question.best_label),
+            ("its Worst label", question.worst_label),
+        ]
+    elif isinstance(question, Conjoint):
+        for attribute in question.attributes:
+            texts.append((f"attribute {attribute.name}", attribute.label or ""))
+            for level in attribute.levels:
+                texts += [
+                    (f"{where.replace('option', 'level', 1)} of attribute {attribute.name}", text)
+                    for where, text in _option_texts(level.code, level.label, level.media)
+                ]
+        if question.none_label:
+            texts.append(("its None label", question.none_label))
+    return texts
+
+
 def _piping_warnings(survey: Questionnaire) -> list[LintWarning]:
     """Piped text — ``{answer:var}``, ``{label:var}`` in a question's text,
-    hint or a page's title / body — must name a variable that exists and is
-    answered on an earlier page (or earlier on the same page); otherwise the
-    respondent sees the placeholder itself."""
+    hint or answer options or a page's title / body — must name a variable
+    that exists and is answered on an earlier page (or earlier on the same
+    page); otherwise the respondent sees the placeholder itself. An answer
+    option never pipes its own question's answer, and a MaxDiff's or a
+    Conjoint's design is never piped at all."""
 
     warnings: list[LintWarning] = []
     known = set(survey.variables.keys()) if survey.variables else set()
@@ -1154,62 +1256,86 @@ def _piping_warnings(survey: Questionnaire) -> list[LintWarning]:
             )
             for page in pages
         ]
+
+    def warn(code: str, message: str, location: str) -> None:
+        warnings.append(
+            LintWarning(code=code, severity="warning", message=message, location=location)
+        )
+
     for location, texts, questions in pages_items:
         for text, _what in texts:
             for kind, name in _PIPE_RE.findall(text or ""):
                 if name not in known:
-                    warnings.append(
-                        LintWarning(
-                            code="PIPE_UNKNOWN_VARIABLE",
-                            severity="warning",
-                            message=(
-                                f"Page '{location}' pipes {{{kind}:{name}}}, but no variable "
-                                f"'{name}' exists; the respondent will see the placeholder."
-                            ),
-                            location=location,
-                        )
+                    warn(
+                        "PIPE_UNKNOWN_VARIABLE",
+                        f"Page '{location}' pipes {{{kind}:{name}}}, but no variable "
+                        f"'{name}' exists; the respondent will see the placeholder.",
+                        location,
                     )
                 elif name not in seen:
-                    warnings.append(
-                        LintWarning(
-                            code="PIPE_FORWARD_REFERENCE",
-                            severity="warning",
-                            message=(
-                                f"Page '{location}' pipes {{{kind}:{name}}} before '{name}' is "
-                                "answered; it stays empty on this page."
-                            ),
-                            location=location,
-                        )
+                    warn(
+                        "PIPE_FORWARD_REFERENCE",
+                        f"Page '{location}' pipes {{{kind}:{name}}} before '{name}' is "
+                        "answered; the respondent sees the placeholder on this page.",
+                        location,
                     )
         for question in questions:
             question_id = question_fallback_id(question)
             for field_text in (question.text or "", question.hint or ""):
                 for kind, name in _PIPE_RE.findall(field_text):
                     if name not in known:
-                        warnings.append(
-                            LintWarning(
-                                code="PIPE_UNKNOWN_VARIABLE",
-                                severity="warning",
-                                message=(
-                                    f"Question '{question_id}' pipes {{{kind}:{name}}}, but no "
-                                    f"variable '{name}' exists; the respondent will see the "
-                                    "placeholder."
-                                ),
-                                location=question_id,
-                            )
+                        warn(
+                            "PIPE_UNKNOWN_VARIABLE",
+                            f"Question '{question_id}' pipes {{{kind}:{name}}}, but no "
+                            f"variable '{name}' exists; the respondent will see the "
+                            "placeholder.",
+                            question_id,
                         )
                     elif name not in seen:
-                        warnings.append(
-                            LintWarning(
-                                code="PIPE_FORWARD_REFERENCE",
-                                severity="warning",
-                                message=(
-                                    f"Question '{question_id}' pipes {{{kind}:{name}}} before "
-                                    f"'{name}' is answered; it stays empty there."
-                                ),
-                                location=question_id,
-                            )
+                        warn(
+                            "PIPE_FORWARD_REFERENCE",
+                            f"Question '{question_id}' pipes {{{kind}:{name}}} before "
+                            f"'{name}' is answered; the respondent sees the placeholder "
+                            "there.",
+                            question_id,
                         )
+            own = set(question_answer_keys(question))
+            for where, field_text in _answer_texts(question):
+                for kind, name in _PIPE_RE.findall(field_text):
+                    if name not in known:
+                        warn(
+                            "PIPE_UNKNOWN_VARIABLE",
+                            f"Question '{question_id}' pipes {{{kind}:{name}}} in {where}, "
+                            f"but no variable '{name}' exists; the respondent will see "
+                            "the placeholder.",
+                            question_id,
+                        )
+                    elif name in own:
+                        warn(
+                            "PIPE_FORWARD_REFERENCE",
+                            f"Question '{question_id}' pipes {{{kind}:{name}}}, its own "
+                            f"answer, in {where}; an answer option never shows its own "
+                            "question's answer, so the respondent sees the placeholder.",
+                            question_id,
+                        )
+                    elif name not in seen:
+                        warn(
+                            "PIPE_FORWARD_REFERENCE",
+                            f"Question '{question_id}' pipes {{{kind}:{name}}} in {where} "
+                            f"before '{name}' is answered; the respondent sees the "
+                            "placeholder there.",
+                            question_id,
+                        )
+            for where, field_text in _design_texts(question):
+                for kind, name in _PIPE_RE.findall(field_text):
+                    what = "MaxDiff" if isinstance(question, MaxDiff) else "Conjoint"
+                    warn(
+                        "PIPE_IN_DESIGN",
+                        f"{what} question '{question_id}' has {{{kind}:{name}}} in "
+                        f"{where}; a {what}'s design is shown as written, the same for "
+                        "every respondent, so the respondent sees the placeholder.",
+                        question_id,
+                    )
             seen.update(question_answer_keys(question))
     return warnings
 

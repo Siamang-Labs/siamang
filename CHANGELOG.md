@@ -958,6 +958,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with no scale, and `sampled` is true only when the file goes on past the
   rows read.
 
+- **Answer options pipe earlier answers.** `{answer:x}` / `{var:x}` /
+  `{label:x}` are filled in where a respondent reads the answers, as in a
+  question's text and hint: the options of a `SingleChoice`, `MultiChoice` and
+  `Ranking` in every display (radio, buttons, the dropdown's list, button and
+  search, a choice's picture with its `alt` text and caption), "Other"
+  (`metadata["other_label"]`) and "None of the above", a `LikertScale`'s end
+  labels and N/A, and a `Matrix`'s statements, column headers and N/A (and,
+  in a payload that carries them, the runtime's picture choice and a
+  slider's labels). Only what is shown is piped:
+  the text and the names a screen reader reads (a choice's label, a matrix
+  cell's `aria-label`, an image's `alt`). The answer stored is the option's
+  code, as before, and the questionnaire, its codebook and every export (the
+  data dictionary, a `.sav`'s value labels) keep the label as authored,
+  placeholder and all. A placeholder whose question is not answered stays as
+  typed; one answered on the same page fills in as soon as it is (a question
+  is drawn again when an answer its options pipe changes). An option never
+  pipes its own question's answer, which would change under the respondent's
+  hand — nor by way of another question's label that it inserts and that
+  pipes it. `{label:x}` inserts the label as the respondent read it ("Why
+  {label:plan}?" reads "Why Acme Pro?" for an option "{label:brand} Pro"); a
+  respondent's own text is never piped again. A label is text, as before, so
+  a piped answer cannot add markup. Whether any of a question's answers pipes
+  is worked out once per question, and one whose answers do not shows them
+  with no scan, however many it has. A `MaxDiff`'s items, Best and Worst and
+  a `Conjoint`'s attributes, levels and None are not piped: they are the
+  design, which every respondent must see alike for their choices to be
+  compared and an item's utility to mean one thing (a piped item could also
+  repeat another); their text and hint pipe as any question's do. `lint()`
+  reads every text the runtime pipes: `PIPE_UNKNOWN_VARIABLE` and
+  `PIPE_FORWARD_REFERENCE` name a placeholder in an option ("in option 2",
+  "in the alt text of option 2", "in the caption of option 2", "in its left
+  label", "in row 1", "in column 3"), the latter also one that
+  pipes the option's own question, and the new `PIPE_IN_DESIGN` reports one
+  in a MaxDiff's or a Conjoint's design, which the respondent sees as typed.
+
 ### Changed
 
 - **The survey's typefaces come with the survey, not from Google Fonts.** Every
@@ -1060,6 +1095,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **A question's options are named by its title as the respondent reads
+  it.** The name a screen reader gives a question's answers — the group of a
+  choice, a scale, a matrix or a picture choice, a slider, the dropdown's
+  search box and list — was the title as written, `{label:brand}` and all,
+  while the title on screen was piped. It is piped too now. And
+  `PIPE_FORWARD_REFERENCE` said a placeholder answered only later "stays
+  empty"; it stays as typed, and the message says so.
 
 - **Side by side, a width is what it says, and nothing runs over its
   neighbor.** The gap between figures in a row was padding inside each, with

@@ -17,6 +17,7 @@ from siamang.core import (
     LikertScale,
     Matrix,
     MaxDiff,
+    Media,
     MissingValue,
     MultiChoice,
     OpenText,
@@ -24,6 +25,7 @@ from siamang.core import (
     Page,
     Questionnaire,
     Quota,
+    Ranking,
     SingleChoice,
     Variable,
     compare,
@@ -416,6 +418,192 @@ def test_lint_flags_piped_text_that_names_unknown_or_later_variables():
     assert len(forward) == 1 and "{label:color}" in forward[0].message
     # A page title piping an earlier answer is fine.
     assert all("{answer:name}" not in f.message for f in findings)
+    # The placeholder stays on screen: it does not go empty.
+    assert "the respondent sees the placeholder there" in forward[0].message
+
+
+def _brand() -> Variable:
+    return Variable("brand", "nominal", labels={1: "Acme", 2: "Globex"})
+
+
+def _pipes(findings) -> list[tuple[str, str]]:
+    return [(f.code, f.message) for f in findings if f.code.startswith("PIPE_")]
+
+
+def test_lint_checks_what_an_answer_option_pipes_as_it_does_a_title():
+    """The runtime pipes an option's label, so the lint reads it: a variable
+    that does not exist, one answered later, and the question's own answer —
+    which an option never shows."""
+
+    plan = Variable(
+        "plan",
+        "nominal",
+        labels={1: "{label:brand} Basic", 2: "{label:brand} Pro", 3: "Same as {label:plan}"},
+    )
+    store = Variable("store", "nominal", labels={1: "North", 2: "South"})
+    region = Variable("region", "nominal", labels={1: "East", 2: "West"})
+    survey = Questionnaire(
+        title="T",
+        pages=[
+            Page("first", items=[SingleChoice("Brand?", var=_brand())]),
+            Page(
+                "second",
+                items=[
+                    SingleChoice("Plan?", var=plan),
+                    SingleChoice(
+                        "Store?",
+                        var=store,
+                        choices=[
+                            Option(1, "{label:region} North"),
+                            Option(2, "{answer:nickname} South"),
+                        ],
+                    ),
+                ],
+            ),
+            Page("third", items=[SingleChoice("Region?", var=region)]),
+        ],
+    )
+    assert _pipes(survey.lint()) == [
+        (
+            "PIPE_FORWARD_REFERENCE",
+            "Question 'plan' pipes {label:plan}, its own answer, in option 3; an answer "
+            "option never shows its own question's answer, so the respondent sees the "
+            "placeholder.",
+        ),
+        (
+            "PIPE_FORWARD_REFERENCE",
+            "Question 'store' pipes {label:region} in option 1 before 'region' is answered; "
+            "the respondent sees the placeholder there.",
+        ),
+        (
+            "PIPE_UNKNOWN_VARIABLE",
+            "Question 'store' pipes {answer:nickname} in option 2, but no variable "
+            "'nickname' exists; the respondent will see the placeholder.",
+        ),
+    ]
+
+
+def test_lint_reads_every_text_a_respondent_reads_as_an_answer():
+    """Options from choices, from the codebook and from a wide question's
+    variables, an option image's alt text and caption, Other, a Ranking's
+    items, a scale's ends and N/A, a matrix's statements, headers and N/A."""
+
+    nope = "{answer:nope}"
+    picture = Media("p.png", alt=f"Box {nope}", caption=f"Caption {nope}")
+    wide = [
+        Variable("w_a", "nominal", label=f"A {nope}", labels={0: "No", 1: "Yes"}),
+        Variable("w_b", "nominal", label="B", labels={0: "No", 1: "Yes"}),
+    ]
+    agree = {1: f"Disagree {nope}", 2: "Agree"}
+    rows = [Variable("m_a", "ordinal", label=f"Row {nope}", labels=agree)]
+    survey = _survey(
+        SingleChoice(
+            "Pick?",
+            var=Variable("pick", "nominal", labels={1: "One", 2: "Two"}),
+            choices=[Option(1, f"One {nope}", media=picture), Option(2, "Two")],
+            other_specify=True,
+            metadata={"other_label": f"Other {nope}"},
+        ),
+        MultiChoice("Tick?", var=Variable("tick", "nominal", labels={1: f"Codebook {nope}"})),
+        MultiChoice("Wide?", vars=wide),
+        Ranking(
+            "Rank?",
+            var=Variable("rank", "nominal", labels={1: "x"}),
+            choices=[Option(1, f"Item {nope}")],
+        ),
+        LikertScale(
+            "Scale?",
+            var=Variable("scale", "ordinal", labels=AGREE5),
+            left_label=f"Left {nope}",
+            right_label=f"Right {nope}",
+            na_option=f"NA {nope}",
+        ),
+        Matrix("Grid?", var=rows, na_option=f"None {nope}"),
+        Matrix(
+            "Rows?", var=rows, subquestions=[f"Statement {nope}"], column_labels=["A", f"B {nope}"]
+        ),
+    )
+    found = [message for code, message in _pipes(survey.lint())]
+    assert all(code == "PIPE_UNKNOWN_VARIABLE" for code, _ in _pipes(survey.lint()))
+    where = [message.split(" pipes {answer:nope} in ")[1].split(", but")[0] for message in found]
+    assert where == [
+        "option 1",
+        "the alt text of option 1",
+        "the caption of option 1",
+        "its Other label",
+        "option 1",
+        "option 'w_a'",
+        "option 1",
+        "its left label",
+        "its right label",
+        "its N/A label",
+        "row 1",
+        "column 1",
+        "its N/A label",
+        "row 1",
+        "column 2",
+    ]
+
+
+def test_a_maxdiff_or_conjoint_design_is_shown_as_written():
+    """A design's items are not piped — every respondent compares the same
+    ones — so a placeholder there is reported as one the respondent will see.
+    Its text pipes as any question's does."""
+
+    items = {1: "{label:brand} Plus", 2: "B", 3: "C", 4: "D"}
+    md_vars = _maxdiff_variables(1, labels=items)
+    attributes = [
+        Attribute(
+            "price",
+            [
+                Option(1, "{label:brand} low", media=Media("low.png", caption="{label:brand}")),
+                Option(2, "High"),
+            ],
+            label="Price",
+        ),
+        Attribute("size", [Option(1, "Small"), Option(2, "Large")], label="{answer:brand} size"),
+    ]
+    survey = Questionnaire(
+        title="T",
+        pages=[
+            Page("first", items=[SingleChoice("Brand?", var=_brand())]),
+            Page(
+                "second",
+                items=[
+                    MaxDiff(
+                        "Best for {label:brand}?",
+                        md_vars,
+                        tasks=1,
+                        per_task=3,
+                        best_label="Best {label:brand}",
+                        id="md",
+                    ),
+                    Conjoint(
+                        "Which {label:brand} offer?",
+                        _conjoint_variables(1),
+                        attributes=attributes,
+                        tasks=1,
+                        none_label="No {label:brand}",
+                    ),
+                ],
+            ),
+        ],
+    )
+    findings = _pipes(survey.lint())
+    assert {code for code, _ in findings} == {"PIPE_IN_DESIGN"}
+    assert [message.split(" in ")[1].split(";")[0] for _, message in findings] == [
+        "item 1",
+        "its Best label",
+        "level 1 of attribute price",
+        "the caption of level 1 of attribute price",
+        "attribute size",
+        "its None label",
+    ]
+    assert findings[0][1] == (
+        "MaxDiff question 'md' has {label:brand} in item 1; a MaxDiff's design is "
+        "shown as written, the same for every respondent, so the respondent sees the "
+        "placeholder."
+    )
 
 
 # ─── MaxDiff ─────────────────────────────────────────────────────────────────

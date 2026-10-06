@@ -77,8 +77,91 @@ function MediaGallery({ media }) {
    {label:x} the label of the chosen option(s) (falls back to the raw
    value for questions without options). Unanswered → the placeholder
    stays, so an author sees at once what is missing. */
+const PIPE_TOKENS = /\{(answer|label|var):([a-zA-Z0-9_]+)\}/g;
+const PIPE_TOKEN = /\{(answer|label|var):[a-zA-Z0-9_]+\}/;
+function hasPipe(text) {
+  return typeof text === "string" && text.indexOf("{") !== -1 && PIPE_TOKEN.test(text);
+}
+
+/* The keys a question stores its own answer under: its id, its Other text,
+   a wide question's variables, a matrix's rows. An answer option never pipes
+   one of them — "{label:q}" among q's own options would change under the
+   respondent's hand as they answer — so such a placeholder stays as typed. */
+function ownAnswerKeys(q) {
+  const keys = new Set();
+  if (q.id) keys.add(q.id);
+  if (q.otherKey) keys.add(q.otherKey);
+  for (const o of Array.isArray(q.options) ? q.options : []) if (o && o.var) keys.add(o.var);
+  for (const r of Array.isArray(q.rows) ? q.rows : []) if (r && r.id) keys.add(r.id);
+  return keys;
+}
+
+/* What a respondent reads as a question's answers, where the runtime pipes
+   as it does in its title: the options' labels (and an option image's alt
+   text and caption), Other's label, a scale's end labels and N/A, a matrix's
+   statements and column headers, a slider's labels. A MaxDiff's items and a
+   Conjoint's levels are its design — every respondent is shown the same
+   items, so that their choices can be compared — and are shown as written. */
+function answerTexts(q) {
+  if (q.kind === "maxdiff" || q.kind === "conjoint") return [];
+  const texts = [q.otherLabel, q.leftLabel, q.rightLabel, q.naOption, q.minLabel, q.maxLabel];
+  for (const o of Array.isArray(q.options) ? q.options : []) {
+    if (!o) continue;
+    texts.push(o.label);
+    if (o.media) texts.push(o.media.alt, o.media.caption);
+  }
+  for (const c of Array.isArray(q.columns) ? q.columns : []) texts.push(c);
+  for (const r of Array.isArray(q.rows) ? q.rows : []) if (r) texts.push(r.label);
+  if (q.labels && typeof q.labels === "object") texts.push(...Object.values(q.labels));
+  return texts;
+}
+
+/* What piping a question needs, worked out once per question object (the
+   page's items do not change while it is shown): whether its title or hint
+   pipes, whether any of its answers does (most do not — their labels are
+   then shown with no scan at all), whose answers they may not pipe, and
+   whether an option has a condition. */
+const _piping = new WeakMap();
+function pipingOf(q) {
+  let info = _piping.get(q);
+  if (info) return info;
+  info = {
+    text: hasPipe(q.title) || hasPipe(q.description),
+    options: answerTexts(q).some(hasPipe),
+    own: ownAnswerKeys(q),
+    gated: Array.isArray(q.options) && q.options.some((o) => o && (o.showIf !== undefined || o.hideIf !== undefined)),
+  };
+  _piping.set(q, info);
+  return info;
+}
+
+const keepText = (text) => text;
+/* The function a question shows its answers' texts through: the text as it
+   is when none of them pipes, else the text piped from `answers` — but never
+   from the question's own answer. It returns text, which React renders as
+   text: a piped answer cannot add markup. */
+function optionPiper(q, answers) {
+  const info = pipingOf(q);
+  if (!info.options || !answers) return keepText;
+  return (text) => pipeText(text, answers, info.own, 0);
+}
+/* An option's image with its alt text and caption piped. */
+function pipedMedia(media, pipe) {
+  if (!media || pipe === keepText) return media;
+  return { ...media, alt: pipe(media.alt), caption: pipe(media.caption) };
+}
+/* The question's title as its controls' accessible name: piped, as the
+   title the respondent reads is. */
+function questionName(q, answers) {
+  return pipingOf(q).text ? processPipedText(q.title, answers) : q.title;
+}
+
 let _pipeLabelIndex = null;
 const _pipeOtherIndex = {};
+// The own answer keys of the question each piped variable belongs to, for a
+// question whose labels pipe: {label:x} inserts the label as the respondent
+// read it, piped too.
+const _pipeOwnIndex = {};
 function pipeLabelIndex() {
   if (_pipeLabelIndex) return _pipeLabelIndex;
   const index = {};
@@ -114,6 +197,10 @@ function pipeLabelIndex() {
       if (q.kind === "likert" && q.naOption && q.id) {
         index[q.id] = { [String(q.naCode !== undefined ? q.naCode : "na")]: q.naOption };
       }
+      if (pipingOf(q).options) {
+        const own = pipingOf(q).own;
+        for (const key of own) _pipeOwnIndex[key] = own;
+      }
     }
   };
   for (const p of pages) {
@@ -123,7 +210,10 @@ function pipeLabelIndex() {
   _pipeLabelIndex = index;
   return index;
 }
-function pipeValue(type, key, answers) {
+/* `own`: the keys the text being piped may not show (see pipeText); a label
+   piped into it carries them on, so that an option cannot show its own
+   question's answer by way of another question's label either. */
+function pipeValue(type, key, answers, depth = 0, own = null) {
   let val = answers[key];
   if (val && typeof val === "object" && !Array.isArray(val) && "code" in val) val = val.text && val.code === "__other__" ? val.text : val.code;
   if (val === null || val === undefined || val === "") return null;
@@ -132,18 +222,33 @@ function pipeValue(type, key, answers) {
     const other = _pipeOtherIndex[key];
     const one = (v) => {
       if (other && String(v) === other.code && answers[other.key]) return String(answers[other.key]);
-      return labels && labels[String(v)] !== undefined ? String(labels[String(v)]) : String(v);
+      if (!labels || labels[String(v)] === undefined) return String(v);
+      const label = String(labels[String(v)]);
+      // A label that pipes was read piped ("Acme Pro" for "{label:brand}
+      // Pro"), and is inserted so. A respondent's own text never is: only
+      // an author's label is scanned, and a few levels deep at most. It
+      // shows neither its own question's answers nor those the text it goes
+      // into may not.
+      if (!(depth < 3 && _pipeOwnIndex[key] && hasPipe(label))) return label;
+      const inner = own ? new Set([...own, ..._pipeOwnIndex[key]]) : _pipeOwnIndex[key];
+      return pipeText(label, answers, inner, depth + 1);
     };
     return Array.isArray(val) ? val.map(one).join(", ") : one(val);
   }
   return Array.isArray(val) ? val.join(", ") : String(val);
 }
-function processPipedText(text, answers) {
+/* `own`: keys never piped here (a question's own answers, for its options);
+   their placeholders stay as typed. */
+function pipeText(text, answers, own, depth) {
   if (!text || typeof text !== 'string' || !answers) return text;
-  return text.replace(/\{(answer|label|var):([a-zA-Z0-9_]+)\}/g, (match, type, key) => {
-    const piped = pipeValue(type, key, answers);
+  return text.replace(PIPE_TOKENS, (match, type, key) => {
+    if (own && own.has(key)) return match;
+    const piped = pipeValue(type, key, answers, depth, own);
     return piped === null ? match : piped;
   });
+}
+function processPipedText(text, answers) {
+  return pipeText(text, answers, null, 0);
 }
 /* Redirect URL templates: ``{url:NAME}`` is the query parameter the
    respondent arrived with (a panel's respondent id), ``{answer:x}`` etc.
@@ -263,10 +368,12 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
   const handleOtherText = (text) => {
     onChange({ code: currentCode, text });
   };
+  // What an option shows is piped; what it stores (`value`) is its code.
+  const pipe = optionPiper(q, answers);
 
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-      <div className={"sd-choices" + (isButtons ? " sd-choices--buttons" : "")} role="radiogroup" aria-label={q.title}>
+      <div className={"sd-choices" + (isButtons ? " sd-choices--buttons" : "")} role="radiogroup" aria-label={questionName(q, answers)}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = currentCode === opt.code;
           return (
@@ -279,8 +386,8 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
                 onChange={() => handleChange(opt.code)}
               />
               <span className="sd-radio__decorator" aria-hidden="true"></span>
-              <span className="sd-choice-label">{opt.label}</span>
-              {opt.media ? <MediaItem media={opt.media} /> : null}
+              <span className="sd-choice-label">{pipe(opt.label)}</span>
+              {opt.media ? <MediaItem media={pipedMedia(opt.media, pipe)} /> : null}
             </label>
           );
         })}
@@ -294,7 +401,7 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
               onChange={() => handleChange(OTHER)}
             />
             <span className="sd-radio__decorator" aria-hidden="true"></span>
-            <span className="sd-choice-label">{q.otherLabel || runtimeTexts().other}</span>
+            <span className="sd-choice-label">{pipe(q.otherLabel) || runtimeTexts().other}</span>
           </label>
         )}
         {isOtherSelected && (
@@ -359,6 +466,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
   const effectiveCount = v.length;
   // An exclusive answer is whole by itself: the minimum asks for no more.
   const exclusiveChosen = v.some(isExclusive);
+  const pipe = optionPiper(q, answers);
 
   return (
     <QuestionShell
@@ -371,7 +479,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
       answers={answers}
       media={q.media}
     >
-      <div className="sd-choices" role="group" aria-label={q.title}>
+      <div className="sd-choices" role="group" aria-label={questionName(q, answers)}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = v.includes(opt.code);
           const disabled = !checked && q.max && v.length >= q.max;
@@ -388,8 +496,8 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
                 onChange={() => toggle(opt.code)}
               />
               <span className="sd-checkbox__decorator" aria-hidden="true"></span>
-              <span className="sd-choice-label">{opt.label}</span>
-              {opt.media ? <MediaItem media={opt.media} /> : null}
+              <span className="sd-choice-label">{pipe(opt.label)}</span>
+              {opt.media ? <MediaItem media={pipedMedia(opt.media, pipe)} /> : null}
             </label>
           );
         })}
@@ -404,7 +512,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
               onChange={toggleOther}
             />
             <span className="sd-checkbox__decorator" aria-hidden="true"></span>
-            <span className="sd-choice-label">{q.otherLabel || runtimeTexts().other}</span>
+            <span className="sd-choice-label">{pipe(q.otherLabel) || runtimeTexts().other}</span>
           </label>
         )}
         {isOtherSelected && (
@@ -435,10 +543,11 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
   const stars = q.display === "stars";
   const [hover, setHover] = useState(null);
   const points = Array.from({ length: q.points }, (_, i) => i + start);
+  const pipe = optionPiper(q, answers);
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
       <div className={"sd-rating" + (stars ? " sd-rating--stars" : "")}>
-        <div className="sd-rating__scale" role="radiogroup" aria-label={q.title} onMouseLeave={() => setHover(null)}>
+        <div className="sd-rating__scale" role="radiogroup" aria-label={questionName(q, answers)} onMouseLeave={() => setHover(null)}>
           {points.map((n) => {
             // Stars fill up to the chosen (or hovered) one; numbers select one point.
             const lit = stars && typeof value === "number" && n <= (hover ?? value);
@@ -459,8 +568,8 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
           })}
         </div>
         <div className="sd-rating__labels">
-          <span>{q.leftLabel}</span>
-          <span>{q.rightLabel}</span>
+          <span>{pipe(q.leftLabel)}</span>
+          <span>{pipe(q.rightLabel)}</span>
         </div>
         {q.naOption ? (
           <div className="sd-rating__na">
@@ -472,7 +581,7 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
                 onChange={() => onChange(NA)}
               />
               <span className="sd-radio__decorator" aria-hidden="true"></span>
-              <span className="sd-choice-label">{q.naOption}</span>
+              <span className="sd-choice-label">{pipe(q.naOption)}</span>
             </label>
           </div>
         ) : null}
@@ -511,6 +620,11 @@ function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
   // aria-invalid — each until it is answered. The message goes with the next
   // click, as every question's does.
   const missing = held ? new Set(unansweredRows(q, v)) : null;
+  // The headers, statements and N/A as the respondent reads them — piped,
+  // in the visible text and in each cell's accessible name alike.
+  const pipe = optionPiper(q, answers);
+  const columns = pipe === keepText ? q.columns : q.columns.map((c) => pipe(c));
+  const naOption = pipe(q.naOption);
 
   const handleKeyDown = (e, rowIdx, colIdx) => {
     let row = rowIdx;
@@ -544,50 +658,53 @@ function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
       <div className="sd-matrix-wrapper">
         {/* --sd-matrix-cols: on a narrow screen each row is a card of this
             many answers, each under its column's label (style.css). */}
-        <table className="sd-matrix" role="radiogroup" aria-label={q.title} style={{ "--sd-matrix-cols": width }}>
+        <table className="sd-matrix" role="radiogroup" aria-label={questionName(q, answers)} style={{ "--sd-matrix-cols": width }}>
           <thead>
             <tr>
               <th></th>
-              {q.columns.map((c, i) => <th key={i}>{c}</th>)}
-              {q.naOption ? <th className="sd-matrix__na-header">{q.naOption}</th> : null}
+              {columns.map((c, i) => <th key={i}>{c}</th>)}
+              {q.naOption ? <th className="sd-matrix__na-header">{naOption}</th> : null}
             </tr>
           </thead>
           <tbody>
-            {q.rows.map((row, rowIdx) => (
-              <tr key={row.id} className={missing && missing.has(row.id) ? "is-missing" : undefined}>
-                <td>{row.label}</td>
-                {q.columns.map((_, colIdx) => {
-                  const code = matrixColumnCode(q, colIdx);
-                  const selected = v[row.id] === code;
-                  return (
-                    <td key={colIdx}>
+            {q.rows.map((row, rowIdx) => {
+              const statement = pipe(row.label);
+              return (
+                <tr key={row.id} className={missing && missing.has(row.id) ? "is-missing" : undefined}>
+                  <td>{statement}</td>
+                  {q.columns.map((_, colIdx) => {
+                    const code = matrixColumnCode(q, colIdx);
+                    const selected = v[row.id] === code;
+                    return (
+                      <td key={colIdx}>
+                        <button
+                          type="button"
+                          className={"sd-matrix__cell" + (selected ? " is-selected" : "")}
+                          aria-label={`${statement}: ${columns[colIdx]}`}
+                          aria-pressed={selected}
+                          {...cellProps(row, rowIdx, colIdx)}
+                          onClick={() => onChange({ ...v, [row.id]: code })}
+                        />
+                        <span className="sd-matrix__col-label" aria-hidden="true" onClick={() => onChange({ ...v, [row.id]: code })}>{columns[colIdx]}</span>
+                      </td>
+                    );
+                  })}
+                  {q.naOption ? (
+                    <td>
                       <button
                         type="button"
-                        className={"sd-matrix__cell" + (selected ? " is-selected" : "")}
-                        aria-label={`${row.label}: ${q.columns[colIdx]}`}
-                        aria-pressed={selected}
-                        {...cellProps(row, rowIdx, colIdx)}
-                        onClick={() => onChange({ ...v, [row.id]: code })}
+                        className={"sd-matrix__cell" + (sameCode(v[row.id], rowNaCode(row)) ? " is-selected" : "")}
+                        aria-label={`${statement}: ${naOption}`}
+                        aria-pressed={sameCode(v[row.id], rowNaCode(row))}
+                        {...cellProps(row, rowIdx, q.columns.length)}
+                        onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}
                       />
-                      <span className="sd-matrix__col-label" aria-hidden="true" onClick={() => onChange({ ...v, [row.id]: code })}>{q.columns[colIdx]}</span>
+                      <span className="sd-matrix__col-label" aria-hidden="true" onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}>{naOption}</span>
                     </td>
-                  );
-                })}
-                {q.naOption ? (
-                  <td>
-                    <button
-                      type="button"
-                      className={"sd-matrix__cell" + (sameCode(v[row.id], rowNaCode(row)) ? " is-selected" : "")}
-                      aria-label={`${row.label}: ${q.naOption}`}
-                      aria-pressed={sameCode(v[row.id], rowNaCode(row))}
-                      {...cellProps(row, rowIdx, q.columns.length)}
-                      onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}
-                    />
-                    <span className="sd-matrix__col-label" aria-hidden="true" onClick={() => onChange({ ...v, [row.id]: rowNaCode(row) })}>{q.naOption}</span>
-                  </td>
-                ) : null}
-              </tr>
-            ))}
+                  ) : null}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -617,6 +734,7 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
     // A click on the thumb where it waits changes nothing, so no change event
     // comes: letting go of the pointer answers the value it shows.
     const settle = (e) => { if (!touched) onChange(Number(e.currentTarget.value)); };
+    const pipe = optionPiper(q, answers);
     return (
       <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
         <div className={"siamang-slider" + (touched ? "" : " is-untouched")}>
@@ -633,7 +751,7 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
             aria-valuemax={max}
             aria-valuenow={touched ? v : undefined}
             aria-valuetext={touched ? undefined : "Not answered"}
-            aria-label={q.title}
+            aria-label={questionName(q, answers)}
           />
           <div className="siamang-slider__value" style={{
             color: touched ? "var(--siamang-accent)" : "var(--siamang-muted)",
@@ -644,14 +762,14 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
             <div className="siamang-slider__labels">
               {Array.from({ length: totalSteps + 1 }, (_, i) => min + i * step).map((n) => (
                 <span key={n} className={"siamang-slider__tick" + (touched && v === n ? " is-active" : "")}>
-                  {labels[n] !== undefined ? labels[n] : n}
+                  {labels[n] !== undefined ? pipe(labels[n]) : n}
                 </span>
               ))}
             </div>
           ) : (
             <div className="siamang-slider__end-labels">
-              <span>{labels[min] !== undefined ? labels[min] : (q.minLabel || `${min}`)}</span>
-              <span>{labels[max] !== undefined ? labels[max] : (q.maxLabel || `${max}`)}</span>
+              <span>{labels[min] !== undefined ? pipe(labels[min]) : (pipe(q.minLabel) || `${min}`)}</span>
+              <span>{labels[max] !== undefined ? pipe(labels[max]) : (pipe(q.maxLabel) || `${max}`)}</span>
             </div>
           )}
         </div>
@@ -784,9 +902,15 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
   const otherText = isObject ? value.text || "" : "";
   const isOtherSelected = !!q.otherSpecify && sameCode(currentCode, OTHER);
 
-  const visible = visibleOptions(q, answers);
+  // The options as the respondent reads them: the button, the list and the
+  // search all go by the piped label.
+  const pipe = optionPiper(q, answers);
+  const name = questionName(q, answers);
+  const visible = pipe === keepText
+    ? visibleOptions(q, answers)
+    : visibleOptions(q, answers).map((o) => ({ ...o, label: pipe(o.label) }));
   const offered = q.otherSpecify && !otherIsAnOption(q)
-    ? [...visible, { code: OTHER, label: q.otherLabel || runtimeTexts().other }]
+    ? [...visible, { code: OTHER, label: pipe(q.otherLabel) || runtimeTexts().other }]
     : visible;
   const filtered = search
     ? offered.filter((o) => String(o.label).toLowerCase().includes(search.toLowerCase()))
@@ -902,7 +1026,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
               aria-controls={listId}
               aria-autocomplete="list"
               aria-activedescendant={filtered[active] ? optionId(active) : undefined}
-              aria-label={q.title}
+              aria-label={name}
               autoFocus
             />
             {/* The options are reached from the search box
@@ -910,7 +1034,7 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
                 list long enough to scroll is a stop of its own (Chromium
                 130+), inside the menu, so Tab left the menu open with the
                 focus on it. */}
-            <div className="siamang-search-dropdown__options" role="listbox" id={listId} aria-label={q.title} tabIndex={-1}>
+            <div className="siamang-search-dropdown__options" role="listbox" id={listId} aria-label={name} tabIndex={-1}>
               {filtered.map((opt, i) => (
                 <div
                   key={String(opt.code)}
@@ -941,12 +1065,14 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
 }
 
 function ImageChoice({ q, value, onChange, num, error, onBlur, answers }) {
+  const pipe = optionPiper(q, answers);
   return (
     <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-      <div className="sd-image-choices" role="radiogroup" aria-label={q.title}>
+      <div className="sd-image-choices" role="radiogroup" aria-label={questionName(q, answers)}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = value === opt.code;
           const imageUrl = opt.imageUrl || (opt.media && opt.media.kind === "image" ? opt.media.url : null);
+          const label = pipe(opt.label);
           return (
             <button
               key={String(opt.code)}
@@ -956,9 +1082,9 @@ function ImageChoice({ q, value, onChange, num, error, onBlur, answers }) {
               aria-pressed={checked}
             >
               {imageUrl && (
-                <img className="sd-image-choice__img" src={imageUrl} alt={opt.label} loading="lazy" />
+                <img className="sd-image-choice__img" src={imageUrl} alt={label} loading="lazy" />
               )}
-              <span className="sd-image-choice__label">{opt.label}</span>
+              <span className="sd-image-choice__label">{label}</span>
             </button>
           );
         })}
@@ -975,6 +1101,7 @@ function Ranking({ q, value, onChange, num, error, onBlur, answers }) {
   const [dragOverIdx, setDragOverIdx] = useState(null);
   // Touch support
   const [touchIdx, setTouchIdx] = useState(null);
+  const pipe = optionPiper(q, answers);
 
   const add = (code) => {
     if (q.max && ranked.length >= q.max) return;
@@ -1013,7 +1140,7 @@ function Ranking({ q, value, onChange, num, error, onBlur, answers }) {
             >
               <span className="sd-ranking__handle" aria-hidden="true">⋮⋮</span>
               <span className="sd-ranking__rank">{idx + 1}</span>
-              <span className="sd-ranking__label">{opt.label}</span>
+              <span className="sd-ranking__label">{pipe(opt.label)}</span>
               <span className="sd-ranking__actions">
                 <button type="button" className="sd-ranking__btn" aria-label="Remove" onClick={() => remove(code)}>✕</button>
               </span>
@@ -1036,7 +1163,7 @@ function Ranking({ q, value, onChange, num, error, onBlur, answers }) {
                 >
                   <span className="sd-ranking__handle" aria-hidden="true">+</span>
                   <span className="sd-ranking__rank">—</span>
-                  <span className="sd-ranking__label">{opt.label}</span>
+                  <span className="sd-ranking__label">{pipe(opt.label)}</span>
                 </div>
               );
             })}
@@ -1261,8 +1388,9 @@ function _QuestionDispatcher({ q, qId, value, setAnswer, num, error, held, handl
    causes every other question on the page to re-render". The memo
    skips this work for questions whose value, error, and identity
    didn't change. `answers` is only relevant when the question pipes
-   text from another answer ({answer:x} / {var:x} / {label:x}); for
-   the common case where it doesn't, we ignore answers changes. */
+   text from another answer ({answer:x} / {var:x} / {label:x}) into its
+   title, hint or answer options, or gates an option on one; for the
+   common case where it doesn't, we ignore answers changes. */
 const Question = React.memo(_QuestionDispatcher, (prev, next) => {
   if (prev.q !== next.q) return false;
   if (prev.qId !== next.qId) return false;
@@ -1273,19 +1401,18 @@ const Question = React.memo(_QuestionDispatcher, (prev, next) => {
   if (prev.setAnswer !== next.setAnswer) return false;
   if (prev.handleBlur !== next.handleBlur) return false;
   if (prev.onAutoAdvance !== next.onAutoAdvance) return false;
-  const pipes = (s) => typeof s === "string" && /\{(answer|var|label):/.test(s);
-  if (pipes(next.q.title) || pipes(next.q.description)) {
-    if (prev.answers !== next.answers) return false;
-  }
+  if (prev.answers === next.answers) return true;
+  // A title, a hint or an answer option that pipes another answer, and an
+  // option's show_if/hide_if, read the other answers: such a question is
+  // drawn again when they change — an option's label as soon as the answer
+  // it pipes is given, on the same page. Whether it does is worked out once
+  // per question (pipingOf), not at every change.
+  const piping = pipingOf(next.q);
+  if (piping.text || piping.options || piping.gated) return false;
   // Option order can be changed through answers.__options__ (randomize
   // scripts / author-declared randomization) — re-render when it does.
   const optOrder = (a) => (a && a.__options__ ? a.__options__[next.qId] : undefined);
   if (optOrder(prev.answers) !== optOrder(next.answers)) return false;
-  // Per-option show_if/hide_if gates read other answers.
-  const hasGatedOptions =
-    Array.isArray(next.q.options) &&
-    next.q.options.some((o) => o && (o.showIf !== undefined || o.hideIf !== undefined));
-  if (hasGatedOptions && prev.answers !== next.answers) return false;
   return true;
 });
 

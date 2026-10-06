@@ -145,6 +145,9 @@ every level:
 | `MISSING_CODE_NOT_IN_LABELS` | warning | A declared missing-value code is not among the variable's value labels. |
 | `ADDED_CODE_WITHOUT_LABEL` | warning | A question stores "Other (please specify)" or "None of the above" as a code (`metadata["other_code"]`, default `-66`; `metadata["none_code"]`, default `-77`) that its variable has no value label for — the answer would arrive with no text. |
 | `RANGE_LABEL_MISMATCH` | warning | A variable labels values that fall outside its `valid_range`. |
+| `PIPE_UNKNOWN_VARIABLE` | warning | A placeholder (`{answer:x}`, `{var:x}`, `{label:x}`) in a page's title or body, a question's text or hint, or an answer option names no variable; the respondent sees the placeholder. |
+| `PIPE_FORWARD_REFERENCE` | warning | A placeholder pipes a variable answered only later — or, in an answer option, its own question's answer, which an option never shows; the respondent sees the placeholder there. |
+| `PIPE_IN_DESIGN` | warning | A `MaxDiff`'s items, Best or Worst, or a `Conjoint`'s attributes, levels or None hold a placeholder: a design is shown as written, the same for every respondent. |
 
 ### Extra `strict` checks
 
