@@ -188,7 +188,7 @@ function runtimeTexts() {
   const ui = window.SURVEY || {};
   if (__runtimeTexts && __runtimeTexts.ui === ui) return __runtimeTexts.texts;
   const texts = {
-    nextSection: ui.nextButtonText || "Next section \u2192",
+    next: ui.nextButtonText || "Next \u2192",
     previous: ui.prevButtonText || "\u2190 Previous",
     submit: ui.submitButtonText || "Submit responses",
     submitting: ui.submittingText || "Submitting your responses\u2026",
@@ -212,7 +212,9 @@ function runtimeTexts() {
     page: ui.pageText || "Page",
     of_total: ui.ofTotalText || "of",
     welcome: ui.welcomeText || "Welcome",
-    section: ui.sectionText || "Section {n} of {total}",
+    // The label between the first and the last page: the survey's own text,
+    // or else the bar's "Page n of m" in its page_text and of_total_text.
+    section: ui.sectionText || null,
     finalSection: ui.finalSectionText || "Final thoughts",
     estimatedTime: ui.estimatedTimeText || null,
     of: ui.ofText || "of",
@@ -881,7 +883,14 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
           }
         }
         const trace = buildDesignTrace(n.currentPage, cur >= 0 ? cur : n.pageIdx, answers, visibilityEngine);
-        post(Object.assign({ type: "siamang:trace", next: nextVisible, skipped: skipped, position: n.pageIdx + 1, total: n.pages.length }, trace));
+        // `position` of `total` counts the visible pages, end pages
+        // included; `step` of `steps` counts the pages the respondent
+        // answers, as their "Page n of m" does (no step on an end page).
+        post(Object.assign({
+          type: "siamang:trace", next: nextVisible, skipped: skipped,
+          position: n.pageIdx + 1, total: n.pages.length,
+          step: n.position >= 0 ? n.position + 1 : null, steps: n.contentTotal,
+        }, trace));
       } catch (e) { /* a trace must never break the survey */ }
     };
     emit();
@@ -1079,7 +1088,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, heldRows
           disabled={busy}
           aria-busy={checking ? "true" : undefined}
         >
-          {submitting ? uiTexts.submitting : (isLast ? uiTexts.submit : uiTexts.nextSection)}
+          {submitting ? uiTexts.submitting : (isLast ? uiTexts.submit : uiTexts.next)}
         </button>
       </div>
     </div>
@@ -1647,17 +1656,27 @@ function App() {
   const showBar = showProgress && progressStyle !== "dots";
   const showDots = showProgress && (progressStyle === "dots" || progressStyle === "both");
 
-  // Where the respondent is, in words. The section label — "Welcome" on the
-  // first page they answer, "Final thoughts" on the last, "Section n of m"
+  // Where the respondent is, in words. The page label — "Welcome" on the
+  // first page they answer, "Final thoughts" on the last, "Page n of m"
   // between — is the page's eyebrow and the text beside the bar; without
-  // section labels (show_section_numbers=False) the bar says "Page n of m".
-  // Both count the pages the respondent answers, in their order.
+  // page labels (show_section_numbers=False) the bar says "Page n of m" on
+  // every page. Both count the pages the respondent answers, in their order,
+  // and "Page n of m" is what a screen reader is told on every page.
+  // Between the first page and the last the label is that same "Page n of
+  // m", in page_text and of_total_text, so one translation words both.
+  // section_text, when the survey has one, fills {page} and {pages}, the
+  // numbers "Page n of m" uses, and still {n} and {total}, which leave the
+  // first page out, for a text written for the old "Section {n} of {total}".
+  const pageLabel = nav.position < 0 ? ""
+    : `${uiTexts.page} ${nav.position + 1} ${uiTexts.of_total} ${nav.contentTotal}`;
   const sectionLabel = nav.position < 0 ? null
     : nav.position === 0 ? uiTexts.welcome
     : nav.position === nav.contentTotal - 1 ? uiTexts.finalSection
-    : fillText(uiTexts.section, { n: nav.position, total: nav.contentTotal - 1 });
-  const pageLabel = nav.position < 0 ? ""
-    : `${uiTexts.page} ${nav.position + 1} ${uiTexts.of_total} ${nav.contentTotal}`;
+    : uiTexts.section ? fillText(uiTexts.section, {
+      page: nav.position + 1, pages: nav.contentTotal,
+      n: nav.position, total: nav.contentTotal - 1,
+    })
+    : pageLabel;
   const showSections = ui.showSectionNumbers !== false;
   const progressText = ui.showProgressText === false ? null : (showSections ? sectionLabel : pageLabel);
 
@@ -1783,6 +1802,11 @@ function App() {
               // One dot per page the respondent answers; an end page is not
               // a step.
               if (isTerminalPage(p)) return null;
+              // A page without a title is named by the count the bar and the
+              // page label use, in the survey's word for "Page": an end page
+              // between two pages is no step. aria-current says which dot is
+              // the current page.
+              const step = nav.pages.slice(0, i).filter((q) => !isTerminalPage(q)).length + 1;
               // Only a page on the path that led here can be gone back to;
               // a dot ahead would skip required questions and routing.
               const reachable = nav.canGoBackTo(i);
@@ -1790,7 +1814,7 @@ function App() {
               return (
                 <button key={i} type="button"
                   className={"siamang-step-dot" + (i === nav.pageIdx ? " is-active" : "") + (seen ? " is-complete" : "")}
-                  aria-label={`${p.title || "Page " + (i + 1)}${i === nav.pageIdx ? " (current)" : ""}`}
+                  aria-label={p.title || `${uiTexts.page} ${step}`}
                   aria-current={i === nav.pageIdx ? "step" : undefined}
                   onClick={() => handleDot(i)}
                   disabled={submitting || checking || !reachable}

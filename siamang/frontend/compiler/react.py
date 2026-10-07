@@ -82,8 +82,8 @@ def compile_react_payload(
         "showHeader": ui.show_title or bool(ui.institution_name) or bool(ui.logo_url),
         "showTitle": ui.show_title,
         "showProgress": options.get("show_progress", True),
-        # The section label above a page's title ("Welcome", "Section 2 of 5",
-        # "Final thoughts") and the text beside the progress bar.
+        # The label above a page's title ("Welcome", "Page 2 of 5", "Final
+        # thoughts") and the text beside the progress bar.
         "showSectionNumbers": ui.show_section_numbers,
         "showProgressText": ui.show_progress_text,
         "estimatedMinutes": ui.estimated_minutes,
@@ -148,7 +148,7 @@ def compile_react_payload(
         if question_fallback_id(question) not in page_names
     }
 
-    # A page carries no section label ("Welcome", "Section 2 of 5"): the
+    # A page carries no label of where it is ("Welcome", "Page 2 of 5"): the
     # runtime works it out from the pages the respondent actually goes through,
     # in their order and without the terminal pages, and words it from the UI
     # texts.

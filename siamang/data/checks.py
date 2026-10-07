@@ -85,6 +85,9 @@ METADATA_COLUMNS = frozenset(
         "tab_switches",
         "hidden_seconds",
         "pastes",
+        # The page an interview was on, which a platform's response export
+        # may add: response metadata, not a variable the codebook lacks.
+        "last_page",
     }
 )
 

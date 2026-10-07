@@ -166,8 +166,8 @@ A host that serves the survey page another way than the bundle — Studio's prev
 | `show_title` | `True` | If `True`, displays the questionnaire's title in the header. `False` hides it even when the header is shown for a logo or an institution. |
 | `institution_name` | `None` | The name of the academic institution or research organization, displayed beneath the title. |
 | `study_subtitle` | `None` | Subtitle text displayed below the institution name. |
-| `show_section_numbers` | `True` | If `True`, each page carries a section label above its title — "Welcome" on the first page the respondent answers, "Final thoughts" on the last, "Section *n* of *m*" between — and the progress bar's text is that label. `False` drops the labels, and the bar's text becomes "Page *n* of *m*" (`page_text` / `of_total_text`). Both count the pages the respondent answers, in their order, without the end pages. |
-| `show_progress_text` | `True` | If `True`, the progress bar has its text beside it (the section label, or "Page *n* of *m*"); `False` leaves the bar alone. |
+| `show_section_numbers` | `True` | If `True`, each page carries a label above its title — "Welcome" on the first page the respondent answers, "Final thoughts" on the last, "Page *n* of *m*" between (`welcome_text`, `final_section_text`; between them `section_text`, else `page_text` / `of_total_text`) — and the progress bar's text is that label. `False` drops the labels, and the bar's text becomes "Page *n* of *m*" (`page_text` / `of_total_text`). Both count the pages the respondent answers, in their order, without the end pages. |
+| `show_progress_text` | `True` | If `True`, the progress bar has its text beside it (the page's label, or "Page *n* of *m*"); `False` leaves the bar alone. |
 | `estimated_minutes` | `None` | Optional estimate of the time required to complete the survey, displayed under the title of the first page the respondent answers ("About 12 minutes"; `estimated_time_text` words it). |
 
 ### 5. Footer

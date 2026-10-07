@@ -432,14 +432,16 @@ two words of `institution_name` — e.g. "Riverside Health Collective" → "RH")
 `logo_position`, `show_title`, `institution_name`, `study_subtitle`,
 `show_section_numbers`, `show_progress_text`, and `estimated_minutes`.
 
-Where the respondent is: every page they answer has a section label above its title —
-"Welcome" on the first, "Final thoughts" on the last, "Section *n* of *m*" between —
+Where the respondent is: every page they answer has a label above its title —
+"Welcome" on the first, "Final thoughts" on the last, "Page *n* of *m*" between —
 and the progress bar shows the same label beside it. The count is the respondent's own:
 the pages they go through, in their order (after `randomize_pages`, say), without the
-end pages (final, screen-out, redirect), so the last question page is at 100 %.
-`show_section_numbers=False` drops the labels, and the bar says "Page *n* of *m*"
-instead (`page_text`, `of_total_text`); `show_progress_text=False` leaves the bar
-without text. The page dots, too, are one per page the respondent answers.
+end pages (final, screen-out, redirect), so the last question page is at 100 % and
+the second of four is "Page 2 of 4". `show_section_numbers=False` drops the labels,
+and the bar says "Page *n* of *m*" on every page (`page_text`, `of_total_text`);
+`show_progress_text=False` leaves the bar without text. The page dots, too, are one
+per page the respondent answers, and a page without a title names its dot by the same
+count ("Page 2").
 
 The header appears when there is something in it: the title (`show_title=True`), a
 logo or an institution. `show_title=False` hides the questionnaire's title even when
@@ -453,17 +455,17 @@ the header is shown for a logo or an institution.
 
 Every fixed phrase the runtime shows has a `UIConfig` field; `None` (the default) keeps
 the English text in the table. Replacing all of them is how a survey runs in another
-language. In a template, `{name}` is replaced by the value named (`{n}`, `{total}`,
-`{minutes}`, …) and `{link}` is where the link goes.
+language. In a template, `{name}` is replaced by the value named (`{page}`, `{pages}`,
+`{n}`, `{minutes}`, …) and `{link}` is where the link goes.
 
 | Field | English default | Where |
 | :--- | :--- | :--- |
-| `next_button_text` / `prev_button_text` / `submit_button_text` | `Next section →` / `← Previous` / `Submit responses` | the page's buttons |
+| `next_button_text` / `prev_button_text` / `submit_button_text` | `Next →` / `← Previous` / `Submit responses` | the page's buttons |
 | `submitting_text` / `saving_text` | `Submitting your responses…` / `Saving…` | while submitting / for a moment at each autosave, above the page card's top right corner |
 | `required_text` | `This question requires an answer.` | an unanswered required question |
 | `required_rows_text` | `Please answer every row.` | a required matrix answered in some rows but not all (`{n}`: the rows left); the rows are marked |
-| `welcome_text` / `section_text` / `final_section_text` | `Welcome` / `Section {n} of {total}` / `Final thoughts` | the section label above a page's title and beside the progress bar |
-| `page_text` / `of_total_text` | `Page` / `of` | "Page *n* of *m*": beside the bar without section labels, and for screen readers |
+| `welcome_text` / `section_text` / `final_section_text` | `Welcome` / `Page {page} of {pages}` / `Final thoughts` | the label above a page's title and beside the progress bar: on the first page, the pages between, the last page. Without a `section_text` the pages between read "Page *n* of *m*" in `page_text` and `of_total_text`, so one translation covers the label and the bar. `{page}` and `{pages}` count the pages the respondent answers; `{n}` and `{total}` leave the first page out (page 2 of 4 is "1" of "3"), as the earlier default "Section {n} of {total}" did, so a text written for it reads as it did |
+| `page_text` / `of_total_text` | `Page` / `of` | "Page *n* of *m*": beside the bar without page labels, between the first and the last page without a `section_text`, and for screen readers; `page_text` also names a step dot of a page without a title ("Page 2") |
 | `estimated_time_text` | `About {minutes} minutes` (`About 1 minute`) | under the first page's title, with `estimated_minutes` |
 | `of_text` / `selected_text` | `of` / `selected` | a multiple choice's counter "2 of 3 selected" (and screen-reader labels) |
 | `min_choices_text` / `max_reached_text` | `Select at least {n} more` / `Maximum reached` | a multiple choice's counter and its message on Next |

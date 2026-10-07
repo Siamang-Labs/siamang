@@ -729,7 +729,7 @@ survey.deploy(backend="supabase", frontend="vercel", ui=ui)
 ```
 
 Every fixed phrase of the runtime has a `UIConfig` field too (`next_button_text`,
-`welcome_text`, `section_text="Section {n} of {total}"`, `other_text`,
+`welcome_text`, `section_text="Page {page} of {pages}"`, `other_text`,
 `quota_full_title`, …; `None` keeps the English) — the list with defaults is in the
 wiki's *Frontend and Theming* page.
 

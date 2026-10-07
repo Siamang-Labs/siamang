@@ -1012,6 +1012,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A respondent reads pages, as the author writes them.** The runtime's own
+  words said "section" where the author builds pages: the Next button read
+  "Next section →", and the label above a page's title and beside the
+  progress bar read "Section *n* of *m*", counted without the first page —
+  the second page of four was "Section 1 of 3" while a screen reader was told
+  "Page 2 of 4". The Next button now reads "Next →" (the last question page
+  keeps "Submit responses" when no end page follows it), and the pages
+  between the first and the last read "Page 2 of 4", as the bar does without
+  page labels (`show_section_numbers=False`) and as a screen reader is told:
+  the same "Page *n* of *m*" in the survey's `page_text` and
+  `of_total_text`, so one translation words the label, the bar and what a
+  screen reader hears; "Welcome" and "Final thoughts" stay. `section_text`,
+  when a survey has one, fills `{page}` and `{pages}`, and still `{n}` and
+  `{total}`, which leave the first page out as before, so a survey that
+  words the label itself ("Teil {n} von {total}") reads as it did, and a
+  survey's own `next_button_text` is its own. To keep the old wording, set
+  `next_button_text="Next section →"` and
+  `section_text="Section {n} of {total}"` in its `UIConfig`. A step dot of a
+  page without a title is named by the same count, in `page_text`
+  ("Page 2"): it counted the end pages before it and added an English
+  "(current)", which `aria-current` already says. The design-mode
+  walkthrough trace (`siamang:trace`, which a host such as Siamang Studio
+  shows beside its preview) carries the count as `step` of `steps` (none on
+  an end page), beside `position` of `total`, which counts every visible
+  page. Nothing a respondent sees or a screen reader reads by default says
+  "section".
+
 - **The survey's typefaces come with the survey, not from Google Fonts.** Every
   compiled survey linked `fonts.googleapis.com` and so fetched its fonts from
   `fonts.gstatic.com`: each respondent's address and browser went to Google as
@@ -1125,6 +1152,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **Check data counts `last_page` as response metadata.** A survey platform's
+  response export can carry `last_page`, the page an interview was on, beside
+  `captcha`, `tab_switches`, `hidden_seconds` and `pastes`.
+  `file_codebook.METADATA_COLUMNS` already treated it as response metadata,
+  but Check data reported the column as "in the data but not in the
+  codebook" and counted it as a variable. `checks.METADATA_COLUMNS` lists it
+  too, so it is named with the other response metadata, and a default tab
+  book leaves out a variable named `last_page`, as it does `captcha` or
+  `pastes`.
 
 - **A scale answers from the keyboard and a screen reader as it looks.** Every
   point of a 0–10 scale (an NPS) or a row of stars was a toggle button of its

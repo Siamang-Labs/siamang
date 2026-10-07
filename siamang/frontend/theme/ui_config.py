@@ -126,6 +126,9 @@ class UIConfig:
     show_title: bool = True
     institution_name: str | None = None
     study_subtitle: str | None = None
+    # The label above each page's title and beside the progress bar
+    # (welcome_text, section_text, final_section_text); off, the bar says
+    # "Page n of m" (page_text, of_total_text).
     show_section_numbers: bool = True
     show_progress_text: bool = True
     estimated_minutes: int | None = None
@@ -139,9 +142,9 @@ class UIConfig:
     custom_css: str | None = None
 
     # --- i18n UI strings ---------------------------------------------------
-    next_button_text: str | None = None
-    prev_button_text: str | None = None
-    submit_button_text: str | None = None
+    next_button_text: str | None = None  # "Next →"
+    prev_button_text: str | None = None  # "← Previous"
+    submit_button_text: str | None = None  # "Submit responses"
     submitting_text: str | None = None
     required_text: str | None = None
     saving_text: str | None = None
@@ -151,8 +154,9 @@ class UIConfig:
     resume_title: str | None = None
     resume_action: str | None = None
     restart_action: str | None = None
-    page_text: str | None = None
-    of_total_text: str | None = None
+    # "Page n of m" (see section_text) and a step dot's "Page n":
+    page_text: str | None = None  # "Page"
+    of_total_text: str | None = None  # "of"
     retry_title: str | None = None
     retry_body: str | None = None
     retry_action: str | None = None
@@ -164,7 +168,13 @@ class UIConfig:
     # template is replaced by the value named.
     # Where the respondent is (see show_section_numbers):
     welcome_text: str | None = None  # "Welcome"
-    section_text: str | None = None  # "Section {n} of {total}"
+    # The pages between the first and the last; None reads "Page {page} of
+    # {pages}" in page_text and of_total_text, as the bar and a screen reader
+    # do. {page} and {pages} count every page the respondent answers, as
+    # "Page n of m" does; {n} and {total} leave the first page out, as the
+    # earlier default "Section {n} of {total}" did, so a text written for it
+    # reads as it did.
+    section_text: str | None = None
     final_section_text: str | None = None  # "Final thoughts"
     estimated_time_text: str | None = None  # "About {minutes} minutes"
     # Answering:

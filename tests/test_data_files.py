@@ -18,6 +18,7 @@ import pytest
 
 from siamang.core import Variable, VariableMap
 from siamang.data import SurveyData
+from siamang.data.checks import check
 from siamang.flow import FlowRunner, check_flow, default_registry, generate_flow
 from siamang.io import (
     READ_FORMATS,
@@ -1170,6 +1171,7 @@ def _studio_export(survey, rows=40):
         "tab_switches": 0,
         "hidden_seconds": 3,
         "pastes": 0,
+        "last_page": "brands",
         **{f"url_{name}": "x" for name in ("utm_source", "utm_medium", "utm_campaign", "ref", "p")},
         "id": 1,
         "_created_at": "2026-01-02T10:05:00+00:00",
@@ -1194,6 +1196,12 @@ def test_studio_s_own_data_export_is_the_survey_s_data(project, tmp_path):
     assert schema["questionnaire"]["columns"] == len(survey.variables)
     data = read_snapshot(path, questionnaire=survey)
     assert data.variables["region"].labels == survey.variables["region"].labels
+    # Check data names last_page, the page the interview was on, with the
+    # signals beside it as response metadata, not as a column the codebook
+    # lacks.
+    checked = check(data)
+    assert "last_page" not in checked.table[checked.table["Code"] == "EXTRA_COLUMN"].to_string()
+    assert "last_page" in checked.stats["Not in the codebook, as expected"]
     flow = _flow(
         [
             ("f", "source.file", {"path": str(path)}),

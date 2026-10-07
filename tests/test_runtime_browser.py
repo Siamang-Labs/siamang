@@ -4268,13 +4268,13 @@ def test_progress_counts_the_pages_a_respondent_answers(tmp_path):
     # and 100 %, and there is a dot per question page only.
     assert [row[:4] for row in seen] == [
         ["Welcome", "Welcome", "0%", 4],
-        ["Section 1 of 3", "Section 1 of 3", "33%", 4],
-        ["Section 2 of 3", "Section 2 of 3", "67%", 4],
+        ["Page 2 of 4", "Page 2 of 4", "33%", 4],
+        ["Page 3 of 4", "Page 3 of 4", "67%", 4],
         ["Final thoughts", "Final thoughts", "100%", 4],
     ]
 
 
-def test_without_section_labels_the_bar_says_page_n_of_m(tmp_path):
+def test_without_page_labels_the_bar_says_page_n_of_m(tmp_path):
     ui = {"show_section_numbers": False, "page_text": "Seite", "of_total_text": "von"}
     seen = run_in_browser(_sections_document(**ui), _WALK, tmp_path)
     assert [row[:2] for row in seen] == [
@@ -4287,10 +4287,10 @@ def test_without_section_labels_the_bar_says_page_n_of_m(tmp_path):
 
 def test_the_progress_text_can_be_switched_off(tmp_path):
     seen = run_in_browser(_sections_document(show_progress_text=False), _WALK, tmp_path)
-    assert [row[:3] for row in seen][1] == [None, "Section 1 of 3", "33%"]
+    assert [row[:3] for row in seen][1] == [None, "Page 2 of 4", "33%"]
 
 
-def test_section_labels_follow_the_respondents_order_of_pages(tmp_path):
+def test_page_labels_follow_the_respondents_order_of_pages(tmp_path):
     document = _sections_document()
     document["scripts"] = [{"type": "randomize_pages"}]
     seen = run_in_browser(document, _WALK, tmp_path, init=_FIXED_RANDOM)
@@ -4298,9 +4298,186 @@ def test_section_labels_follow_the_respondents_order_of_pages(tmp_path):
     assert [row[4] for row in seen] == ["Page 1", "Page 3", "Page 4", "Page 2"]
     assert [row[1] for row in seen] == [
         "Welcome",
-        "Section 1 of 3",
-        "Section 2 of 3",
+        "Page 2 of 4",
+        "Page 3 of 4",
         "Final thoughts",
+    ]
+
+
+# A respondent reads "page" where the author does: the Next button, the label
+# above a page's title, the text beside the bar and what a screen reader is
+# told. The survey's own words (its title, the page titles, the questions) are
+# the author's; everything else on every page and at the end, visible or named
+# for a screen reader, is read for "section".
+_RESPONDENT_READS = """
+    const reads = () => page.evaluate(() => {
+        const out = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            if (!n.parentElement.closest("script, style, template")) out.push(n.textContent);
+        }
+        const names = ["aria-label", "aria-valuetext", "aria-roledescription", "title", "placeholder", "alt"];
+        for (const el of document.querySelectorAll("*")) {
+            for (const name of names) if (el.getAttribute(name)) out.push(el.getAttribute(name));
+        }
+        return out.join("\\n");
+    });
+    const text = (sel) => page.evaluate((s) => { const el = document.querySelector(s); return el ? el.textContent : null; }, sel);
+    const seen = [];
+    for (let k = 0; k < 4; k++) {
+        seen.push({
+            button: await text(".sd-navigation__next-btn, .sd-navigation__complete-btn"),
+            bar: await text(".siamang-progress__text"),
+            eyebrow: await text(".sd-page__eyebrow"),
+            announced: await text(".siamang-announce"),
+            reads: await reads(),
+        });
+        await page.click(".sd-navigation__next-btn, .sd-navigation__complete-btn");
+        await page.waitForTimeout(250);
+    }
+    await page.waitForSelector(".sd-completedpage");
+    seen.push({ reads: await reads() });
+    return seen;
+"""
+
+
+def _pages_document(*, end_page: bool, **ui: Any) -> dict[str, Any]:
+    document = _sections_document(**ui)
+    document["title"] = "Parks"
+    if not end_page:
+        document["pages"] = document["pages"][:4]
+    return document
+
+
+@pytest.mark.parametrize("end_page", [True, False], ids=["end-page", "no-end-page"])
+def test_a_respondent_reads_pages_by_default(tmp_path, end_page):
+    seen = run_in_browser(_pages_document(end_page=end_page), _RESPONDENT_READS, tmp_path)
+    labels = ["Welcome", "Page 2 of 4", "Page 3 of 4", "Final thoughts"]
+    assert [row["bar"] for row in seen[:4]] == labels
+    assert [row["eyebrow"] for row in seen[:4]] == labels
+    # A screen reader is told the bar's count on every page.
+    assert [row["announced"] for row in seen[:4]] == [f"Page {i} of 4" for i in range(1, 5)]
+    # Next is "Next →"; the last question page submits under its own label,
+    # unless an end page comes after it.
+    last = "Next \u2192" if end_page else "Submit responses"
+    assert [row["button"] for row in seen[:4]] == ["Next \u2192"] * 3 + [last]
+    for row in seen:
+        assert "section" not in row["reads"].lower(), row["reads"]
+
+
+@pytest.mark.parametrize(
+    ("section_text", "between"),
+    [
+        # A text written for the old default reads as it did: {n} and {total}
+        # leave the first page out.
+        ("{n} of {total}", ["1 of 3", "2 of 3"]),
+        ("Seite {page} von {pages}", ["Seite 2 von 4", "Seite 3 von 4"]),
+        ("Teil {n}/{total} \u00b7 {page}/{pages}", ["Teil 1/3 \u00b7 2/4", "Teil 2/3 \u00b7 3/4"]),
+    ],
+)
+def test_a_surveys_own_page_label_and_next_button_are_its_own(tmp_path, section_text, between):
+    ui = {"section_text": section_text, "next_button_text": "Weiter"}
+    seen = run_in_browser(_pages_document(end_page=True, **ui), _RESPONDENT_READS, tmp_path)
+    assert [row["bar"] for row in seen[1:3]] == between
+    assert [row["eyebrow"] for row in seen[1:3]] == between
+    assert [row["button"] for row in seen[:4]] == ["Weiter"] * 4
+
+
+def _screen_out_between_document(**ui: Any) -> dict[str, Any]:
+    """Three untitled question pages with a Screen-out page after the first,
+    which the first page's default_next goes past, and an end page."""
+
+    def page(i: int) -> dict[str, Any]:
+        return {
+            "name": f"p{i}",
+            "items": [{"type": "OpenText", "id": f"t{i}", "var": f"t{i}", "text": "?"}],
+        }
+
+    return {
+        "schema_version": "1.0",
+        "title": "Parks",
+        "ui": {"progress_style": "both", **ui},
+        "variables": {f"t{i}": {"scale": "nominal", "dtype": "str"} for i in range(1, 4)},
+        "pages": [
+            {**page(1), "default_next": "p2"},
+            {"name": "out", "kind": "disqualification"},
+            page(2),
+            page(3),
+            {"name": "done", "kind": "final", "title": "Thanks"},
+        ],
+    }
+
+
+# On every question page: what each step dot is named and which is current,
+# the text beside the bar and what a screen reader is told — then Next.
+_DOTS_READ = """
+    const seen = [];
+    for (let k = 0; k < 3; k++) {
+        seen.push(await page.evaluate(() => {
+            const dots = [...document.querySelectorAll(".siamang-step-dot")];
+            const text = (sel) => { const el = document.querySelector(sel); return el ? el.textContent : null; };
+            return {
+                dots: dots.map((d) => d.getAttribute("aria-label")),
+                current: dots.findIndex((d) => d.getAttribute("aria-current") === "step"),
+                bar: text(".siamang-progress__text"),
+                announced: text(".siamang-announce"),
+            };
+        }));
+        await page.click(".sd-navigation__next-btn, .sd-navigation__complete-btn");
+        await page.waitForTimeout(250);
+    }
+    return seen;
+"""
+
+
+@pytest.mark.parametrize(
+    ("ui", "page_word", "of_word"),
+    [
+        ({}, "Page", "of"),
+        # The survey's "Page" and "of" word the dots and, without its own
+        # section_text, the label between the first page and the last.
+        ({"page_text": "Seite", "of_total_text": "von"}, "Seite", "von"),
+    ],
+    ids=["default", "translated"],
+)
+def test_a_step_dot_and_the_page_label_count_as_the_bar_does(tmp_path, ui, page_word, of_word):
+    seen = run_in_browser(_screen_out_between_document(**ui), _DOTS_READ, tmp_path)
+    # An end page between two pages is no step: the second question page is
+    # page 2 for its dot, its label, the bar and a screen reader alike. The
+    # current dot is marked by aria-current, not by its name.
+    assert [row["dots"] for row in seen] == [[f"{page_word} {i}" for i in (1, 2, 3)]] * 3
+    assert [row["current"] for row in seen] == [0, 1, 2]
+    between = f"{page_word} 2 {of_word} 3"
+    assert [row["bar"] for row in seen] == ["Welcome", between, "Final thoughts"]
+    assert [row["announced"] for row in seen] == [f"{page_word} {i} {of_word} 3" for i in (1, 2, 3)]
+
+
+def test_the_walkthrough_trace_counts_the_pages_a_respondent_answers(tmp_path):
+    """A host's walkthrough can print where the page is beside its preview:
+    `step` of `steps` is the respondent's "Page n of m" (none on an end page),
+    while `position` of `total` counts every visible page, end pages
+    included."""
+
+    scenario = """
+        const last = async () => {
+            await page.waitForTimeout(300);
+            const t = await page.evaluate(() => window.__traces[window.__traces.length - 1]);
+            return [t.page, t.position, t.total, t.step, t.steps];
+        };
+        const seen = [];
+        for (let k = 0; k < 3; k++) {
+            seen.push(await last());
+            await page.click(".sd-navigation__next-btn, .sd-navigation__complete-btn");
+        }
+        seen.push(await last());
+        return seen;
+    """
+    seen = run_in_browser(_screen_out_between_document(), scenario, tmp_path, init=_TRACES)
+    assert seen == [
+        ["p1", 1, 5, 1, 3],
+        ["p2", 3, 5, 2, 3],
+        ["p3", 4, 5, 3, 3],
+        ["done", 5, 5, None, 3],
     ]
 
 
