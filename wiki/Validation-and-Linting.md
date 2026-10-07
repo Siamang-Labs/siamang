@@ -99,12 +99,14 @@ survey.validate(strict=True)   # also fails on strict-level lint *errors*
 ## `Questionnaire.lint`
 
 ```python
-def lint(self, level: str = "basic") -> list[LintWarning]: ...
+def lint(self, level: str = "basic", *, ui: UIConfig | None = None) -> list[LintWarning]: ...
 ```
 
 Returns a list of `LintWarning` objects (never raises, except on an invalid
 `level`). Pass `level="basic"` (default) or `level="strict"`. Unlike `validate`,
-linting reports *all* findings at once so you can triage them.
+linting reports *all* findings at once so you can triage them. Pass the
+survey's `UIConfig` as `ui` to check the addresses it sends a respondent to as
+well (`URL_NOT_HTTPS`).
 
 ### `LintWarning`
 
@@ -148,6 +150,13 @@ every level:
 | `PIPE_UNKNOWN_VARIABLE` | warning | A placeholder (`{answer:x}`, `{var:x}`, `{label:x}`) in a page's title or body, a question's text or hint, or an answer option names no variable; the respondent sees the placeholder. |
 | `PIPE_FORWARD_REFERENCE` | warning | A placeholder pipes a variable answered only later — or, in an answer option, its own question's answer, which an option never shows; the respondent sees the placeholder there. |
 | `PIPE_IN_DESIGN` | warning | A `MaxDiff`'s items, Best or Worst, or a `Conjoint`'s attributes, levels or None hold a placeholder: a design is shown as written, the same for every respondent. |
+
+Two are about what a respondent's browser is given:
+
+| Code | Severity | Meaning |
+| :--- | :--- | :--- |
+| `BODY_HTML_REMOVED` | warning | A page's `body` holds HTML the runtime is not given (`siamang.core.safe_html`): something that would run a script (`<script>`, an `on…` attribute, `srcdoc`, a `javascript:` link, inline `<svg>`), a frame other than a YouTube or Vimeo player, a form, a page-wide `<style>`, `<meta>`, `<base>` or `<link>`, CSS that loads something or covers the page, an address of another scheme. The message names the first five in words and counts any more; the rest of the body is shown. Harmless formatting the list does not hold (Word's `<o:p>`) is dropped without a warning. |
+| `URL_NOT_HTTPS` | warning | A page's `redirect_url` — or, with `ui`, `UIConfig.redirect_url`, `screen_out_redirect_url`, `quota_full_redirect_url` or `privacy_url` — is an `http://` address, which a browser warns about or blocks on an `https://` survey. (Any scheme but `http` and `https` is refused outright: `Page` and `UIConfig` raise.) |
 
 ### Extra `strict` checks
 

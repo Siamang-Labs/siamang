@@ -53,7 +53,19 @@ def validate_document(document: Any) -> None:
         return
     error = jsonschema.exceptions.best_match(errors)
     location = "/".join(str(part) for part in error.absolute_path) or "document"
-    raise DocumentError(f"{location}: {error.message}")
+    raise DocumentError(f"{location}: {_message(error)}")
+
+
+def _message(error: Any) -> str:
+    """jsonschema's message, but not one that repeats a long value: "'…' is
+    too long" would quote a whole page body (up to a megabyte) back."""
+
+    if error.validator == "maxLength" and isinstance(error.instance, str):
+        return (
+            f"is {len(error.instance):,} characters long, more than the "
+            f"{error.validator_value:,} it may have"
+        )
+    return str(error.message)
 
 
 def migrate(document: dict[str, Any]) -> dict[str, Any]:

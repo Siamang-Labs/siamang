@@ -494,10 +494,21 @@ class Questionnaire:
             self._validate_page_expressions_for_export(target)
         self.validate()
 
-    def lint(self, level: str = "basic") -> list[LintWarning]:
+    def lint(self, level: str = "basic", *, ui: Any = None) -> list[LintWarning]:
+        """What is wrong with the questionnaire, or worth a second look.
+
+        ``ui`` (a :class:`~siamang.frontend.theme.ui_config.UIConfig`) adds
+        the checks of the addresses the survey's settings send a respondent to
+        (``URL_NOT_HTTPS``).
+        """
+
         if level not in {"basic", "strict"}:
             raise ValueError("lint level must be either 'basic' or 'strict'.")
         warnings: list[LintWarning] = []
+        # What the survey shows a respondent that is not what the author wrote
+        # (the parts of a body the runtime is not given) and where it sends
+        # them over plain HTTP — at every level, whatever else is found.
+        warnings.extend(_safety_warnings(self, ui))
         if not self.pages and not self.blocks:
             warnings.append(
                 LintWarning(
@@ -572,6 +583,67 @@ class Questionnaire:
                         )
                     )
         return warnings
+
+
+def _safety_warnings(survey: Questionnaire, ui: Any = None) -> list[LintWarning]:
+    """``BODY_HTML_REMOVED`` for a page whose body holds what the runtime is
+    not given (siamang.core.safe_html: a script, a frame other than a YouTube
+    or Vimeo player, a form, a page-wide style, an address of another scheme);
+    ``URL_NOT_HTTPS`` for an ``http://`` address a respondent is sent to."""
+
+    from siamang.core.safe_html import sanitize_html_report
+    from siamang.core.safe_url import is_plain_http
+    from siamang.frontend.theme.ui_config import NAVIGATION_FIELDS
+
+    warnings: list[LintWarning] = []
+    for page in survey.pages:
+        if page.body:
+            report = sanitize_html_report(page.body)
+            messages = report.messages(dangerous_only=True)
+            if messages:
+                shown = messages[:5]
+                more = len(messages) - len(shown)
+                warnings.append(
+                    LintWarning(
+                        code="BODY_HTML_REMOVED",
+                        severity="warning",
+                        message=(
+                            f"Page '{page.name}': its body is shown without what could run "
+                            "a script or change the page. "
+                            + " ".join(shown)
+                            + (f" And {more} more." if more > 0 else "")
+                        ),
+                        location=page.name,
+                    )
+                )
+        if is_plain_http(page.redirect_url):
+            warnings.append(
+                LintWarning(
+                    code="URL_NOT_HTTPS",
+                    severity="warning",
+                    message=(
+                        f"Page '{page.name}' sends the respondent to an http:// address "
+                        f"({page.redirect_url}); a browser warns about or blocks it on an "
+                        "https:// survey. Use https://."
+                    ),
+                    location=page.name,
+                )
+            )
+    for name in NAVIGATION_FIELDS:
+        value = getattr(ui, name, None) if ui is not None else None
+        if is_plain_http(value):
+            warnings.append(
+                LintWarning(
+                    code="URL_NOT_HTTPS",
+                    severity="warning",
+                    message=(
+                        f"ui.{name} is an http:// address ({value}); a browser warns about "
+                        "or blocks it on an https:// survey. Use https://."
+                    ),
+                    location=f"ui.{name}",
+                )
+            )
+    return warnings
 
 
 def _question_variables(question: Question):

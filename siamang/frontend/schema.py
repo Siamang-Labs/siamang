@@ -7,6 +7,7 @@ SurveyJS-compatible payload via ``to_surveyjs()``.
 
 from __future__ import annotations
 
+import html
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -37,7 +38,9 @@ class SurveySchema:
             "pages": [self._strip_internal(page) for page in self.pages],
             "showProgressBar": "top" if self.show_progress else "off",
             "showPrevButton": self.allow_back,
-            "completedHtml": f"<h3>{self.completion_text}</h3>",
+            # SurveyJS draws completedHtml as HTML; the message is text, as the
+            # React runtime shows it.
+            "completedHtml": f"<h3>{html.escape(self.completion_text, quote=False)}</h3>",
         }
         if self.description:
             payload["description"] = self.description

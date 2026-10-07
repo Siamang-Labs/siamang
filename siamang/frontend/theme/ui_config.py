@@ -4,12 +4,46 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from siamang.core.safe_url import check_navigation_url
+from siamang.frontend.theme.tokens import CHECKS
+
 _DENSITY_VALUES = {"compact", "comfortable", "spacious"}
 _FONT_PAIR_VALUES = {"serif", "sans", "mixed"}
 _LOGO_POSITIONS = {"left", "right", "center"}
 _QUESTION_STYLES = {"plain", "divided", "carded", "accent"}
 _FONT_PRESET_VALUES = {"academic", "modern", "humanist"}
 _THEME_VALUES = {"light", "dark", "system"}
+
+# The tokens written into the stylesheet, by format (tokens.CHECKS): a value
+# outside its format could end its declaration and write CSS of its own.
+TOKEN_FIELDS: dict[str, str] = {
+    "primary_color": "color",
+    "accent_color": "color",
+    "background_color": "color",
+    "surface_color": "color",
+    "text_color": "color",
+    "muted_text_color": "color",
+    "border_color": "color",
+    "error_color": "color",
+    "error_soft_color": "color",
+    "warn_color": "color",
+    "font_family": "font",
+    "heading_font_family": "font",
+    "ui_font_family": "font",
+    "mono_font_family": "font",
+    "font_size": "length",
+    "width": "length",
+    "radius": "length",
+    "line_height": "line_height",
+}
+
+# The addresses a respondent is sent to or opens (safe_url): http(s) only.
+NAVIGATION_FIELDS = (
+    "privacy_url",
+    "redirect_url",
+    "screen_out_redirect_url",
+    "quota_full_redirect_url",
+)
 
 
 # ─── Font preset definitions ─────────────────────────────────────────────────
@@ -245,6 +279,15 @@ class UIConfig:
             raise ValueError(f"font_preset must be one of: {sorted(_FONT_PRESET_VALUES)}.")
         if self.default_theme not in _THEME_VALUES:
             raise ValueError(f"default_theme must be one of: {sorted(_THEME_VALUES)}.")
+        for name, kind in TOKEN_FIELDS.items():
+            value = getattr(self, name)
+            if value is None:
+                continue
+            problem = CHECKS[kind](value)
+            if problem:
+                raise ValueError(f"{name}: {value!r}: {problem}.")
+        for name in NAVIGATION_FIELDS:
+            check_navigation_url(getattr(self, name), name)
 
     @property
     def effective_accent(self) -> str:

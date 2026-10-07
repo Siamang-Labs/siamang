@@ -250,22 +250,76 @@ function pipeText(text, answers, own, depth) {
 function processPipedText(text, answers) {
   return pipeText(text, answers, null, 0);
 }
+/* An address the respondent is sent to or opens, as a browser reads it
+   (spaces and control characters at either end and tabs and line breaks
+   inside dropped), when it is an http(s) one; else null. The compiler sends
+   no other (siamang.core.safe_url): this is the last check before
+   location.href, where a javascript: address would run as the survey. */
+function safeNavigationUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  const value = url.replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, "").replace(/[\t\n\r]/g, "");
+  return /^https?:\/\/[^\/\\\s]/i.test(value) ? value : null;
+}
 /* Redirect URL templates: ``{url:NAME}`` is the query parameter the
    respondent arrived with (a panel's respondent id), ``{answer:x}`` etc.
    pipe answers; every value is URL-encoded. An unknown placeholder is
-   removed rather than sent to a third party as literal braces. */
+   removed rather than sent to a third party as literal braces. What comes
+   out is an http(s) address or null (safeNavigationUrl). */
 function redirectTemplate(url, answers) {
-  if (!url || typeof url !== "string") return url || null;
+  if (!url || typeof url !== "string") return null;
   let params = null;
   try { params = new URLSearchParams(window.location.search); } catch (e) { params = null; }
-  return url.replace(/\{(url|answer|label|var):([a-zA-Z0-9_]+)\}/g, (match, type, key) => {
+  return safeNavigationUrl(url.replace(/\{(url|answer|label|var):([a-zA-Z0-9_]+)\}/g, (match, type, key) => {
     if (type === "url") return encodeURIComponent((params && params.get(key)) || "");
     const piped = pipeValue(type, key, answers || {});
     return piped === null ? "" : encodeURIComponent(piped);
-  });
+  }));
 }
 /* The same for HTML bodies: piped values are escaped so an answer can never
-   inject markup into the page. */
+   inject markup into the page. The body itself is the compiler's sanitized
+   HTML (siamang.core.safe_html); SafeHtml puts it in the page. */
+/* The last line before a body's HTML becomes part of the page. The compiler
+   sends it sanitized; this reads it as the browser does — in an inert
+   <template>, where nothing loads or runs — and takes out what could run a
+   script once it is in the page: script-capable and form elements, frames
+   other than the YouTube and Vimeo players the compiler writes, foreign
+   content (svg, math), on… handlers and srcdoc, and javascript:, vbscript:
+   and data: addresses (a data: picture aside). The browser's own URL parser
+   reads each address, so no spelling of a scheme gets past it. On the
+   compiler's output it changes nothing. */
+const _BODY_DROPPED = new Set(["SCRIPT", "STYLE", "LINK", "META", "BASE", "OBJECT", "EMBED",
+  "APPLET", "FRAME", "FRAMESET", "TEMPLATE", "NOSCRIPT", "FORM", "INPUT", "BUTTON", "SELECT",
+  "TEXTAREA", "PORTAL"]);
+const _BODY_PLAYER = /^https:\/\/(www\.youtube-nocookie\.com\/embed\/|player\.vimeo\.com\/video\/)/;
+const _BODY_URLS = new Set(["href", "src", "poster", "action", "formaction", "cite", "background",
+  "data", "xlink:href"]);
+const _BODY_PICTURE = /^data:image\/(png|jpe?g|pjpeg|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon)[;,]/i;
+function cleanBodyFragment(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html || "";
+  for (const el of Array.from(template.content.querySelectorAll("*"))) {
+    const tag = el.tagName.toUpperCase();
+    if (el.namespaceURI !== "http://www.w3.org/1999/xhtml" || _BODY_DROPPED.has(tag)
+        || (tag === "IFRAME" && !_BODY_PLAYER.test(el.getAttribute("src") || ""))) {
+      el.remove();
+      continue;
+    }
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith("on") || name === "srcdoc") {
+        el.removeAttribute(attr.name);
+      } else if (_BODY_URLS.has(name)) {
+        let protocol = "";
+        try { protocol = new URL(attr.value, document.baseURI).protocol; } catch (e) { protocol = ""; }
+        const picture = (tag === "IMG" || name === "poster") && _BODY_PICTURE.test(attr.value.trim());
+        if (protocol === "javascript:" || protocol === "vbscript:" || (protocol === "data:" && !picture)) {
+          el.removeAttribute(attr.name);
+        }
+      }
+    }
+  }
+  return template.content;
+}
 function processPipedHtml(html, answers) {
   if (!html || typeof html !== 'string' || !answers) return html;
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -1416,4 +1470,4 @@ const Question = React.memo(_QuestionDispatcher, (prev, next) => {
   return true;
 });
 
-Object.assign(window, { Question, QuestionShell, processPipedText, processPipedHtml });
+Object.assign(window, { Question, QuestionShell, processPipedText, processPipedHtml, safeNavigationUrl });

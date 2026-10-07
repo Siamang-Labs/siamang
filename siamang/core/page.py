@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 from siamang.core.block import Block
 from siamang.core.expression import Expression
 from siamang.core.question import Question
+from siamang.core.safe_html import check_html_length
+from siamang.core.safe_url import check_navigation_url
 
 #: Page kinds that end the survey when the respondent reaches them.
 TERMINAL_KINDS = ("disqualification", "final", "redirect")
@@ -43,15 +45,21 @@ class Page:
     # Custom page kinds (None == ordinary question page).
     kind: str | None = None
     # HTML shown above the page's questions (on a content page it is the
-    # page; on a terminal page, the message). Author-trusted, not sanitized;
-    # {answer:x} / {label:x} are piped in, escaped.
+    # page; on a terminal page, the message). Kept as written; the compilers
+    # send the runtime what siamang.core.safe_html.sanitize_html keeps of it
+    # (formatting, links, pictures, audio and video, YouTube and Vimeo
+    # players — no script). {answer:x} / {label:x} are piped in, escaped.
+    # At most safe_html.MAX_HTML_LENGTH characters.
     body: str | None = None
-    redirect_url: str | None = None  # for redirect (or any terminal) pages
+    # For redirect (or any terminal) pages: an http(s) address (safe_url).
+    redirect_url: str | None = None
     redirect_delay: int | None = None  # seconds before redirect (default 5)
 
     def __post_init__(self) -> None:
         if self.kind is not None and self.kind not in PAGE_KINDS:
             raise ValueError(f"Unknown page kind: {self.kind!r}. Use one of {PAGE_KINDS} or None.")
+        check_navigation_url(self.redirect_url, "redirect_url")
+        check_html_length(self.body, "the body")
 
     @property
     def is_terminal(self) -> bool:

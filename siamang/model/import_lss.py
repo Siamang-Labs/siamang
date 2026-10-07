@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from siamang.model._import_safety import imported_html, imported_url
 from siamang.model.document import SCHEMA_VERSION, DocumentError
 from siamang.model.import_qsf import Skipped, _code, _ident, _number, _suffix, _text
 
@@ -172,8 +173,9 @@ class _Importer:
             document["options"] = options
         document["variables"] = self.variables
         document["pages"] = pages
-        if self.settings.get("surveyls_url"):
-            document["ui"] = {"redirect_url": self.settings["surveyls_url"]}
+        url = imported_url(self.settings.get("surveyls_url"), "End URL", self.warnings)
+        if url:
+            document["ui"] = {"redirect_url": url}
         return document
 
     def _collect(self) -> None:
@@ -720,7 +722,7 @@ class _Importer:
                     "name": self.page_names.claim("welcome"),
                     "kind": "content",
                     "title": _rich(self.settings.get("surveyls_title", "")) or "Welcome",
-                    "body": html.unescape(welcome),
+                    "body": imported_html(html.unescape(welcome), "Welcome text", self.warnings),
                 }
             )
         fmt = (self.survey.get("format") or "G").upper()
@@ -764,7 +766,7 @@ class _Importer:
                     continue
                 page: dict[str, Any] = {"name": self.page_names.claim(base), "title": title}
                 if body:
-                    page["body"] = "\n".join(body)
+                    page["body"] = imported_html("\n".join(body), f"'{title}'", self.warnings)
                 if items:
                     page["items"] = items
                 else:
@@ -780,7 +782,7 @@ class _Importer:
                     "name": self.page_names.claim("end"),
                     "kind": "final",
                     "title": "Thank you",
-                    "body": html.unescape(end_text),
+                    "body": imported_html(html.unescape(end_text), "End text", self.warnings),
                 }
             )
         if not pages:

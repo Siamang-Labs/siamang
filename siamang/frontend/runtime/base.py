@@ -28,6 +28,13 @@ class RuntimeRenderContext:
     the stylesheet in a bundle. A host that puts the stylesheet somewhere else
     — inline in a page it serves — passes the URL (ending in ``/``) it serves
     the files at.
+
+    ``csp`` is a Content-Security-Policy the pages carry in a
+    ``<meta http-equiv>`` right after ``<meta charset>`` (before anything it
+    governs); None writes none, as before. :mod:`siamang.frontend.csp` says
+    what the runtime needs and builds one (``survey_csp``), and a host that
+    writes the policy after the build puts it in the same place
+    (``insert_csp_meta``).
     """
 
     schema: SurveySchema
@@ -37,6 +44,7 @@ class RuntimeRenderContext:
     survey_id: str | None = None
     survey: Questionnaire | None = None
     font_base: str = FONT_BASE
+    csp: str | None = None
 
 
 class RuntimeAdapter(ABC):

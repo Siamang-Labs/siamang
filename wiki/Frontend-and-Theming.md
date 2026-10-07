@@ -174,6 +174,39 @@ Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`
 `stylesheet`, `static_assets`) — see
 [`docs/reference/frontend.md`](https://github.com/hanelias/siamang/blob/main/docs/reference/frontend.md).
 
+
+### A Content-Security-Policy for the bundle
+
+What an author writes reaches the survey's page only as data: every text travels in
+the page's inline `<script>` written so it cannot end the element, a page's body is
+sanitized (see [[Pages, Blocks and Structure|Pages-Blocks-and-Structure]]), a theme
+token has a strict format, and an address a respondent is sent to is `http(s)`. A
+Content-Security-Policy is the second line, binding whatever gets past the first.
+Custom scripts (`Script`) and `UIConfig.custom_css` are unchanged: they run as the
+author wrote them, by design, so a host whose authors are not trusted should not
+offer them.
+`FrontendBuilder(csp=policy)` (or `RuntimeRenderContext.csp`) writes it in a
+`<meta http-equiv="Content-Security-Policy">` right after `<meta charset>` of
+`index.html` and `closed.html`; None, the default, writes none. A host that writes the
+policy after the build puts it there with `siamang.frontend.csp.insert_csp_meta`,
+which refuses a page that does not start as the runtime's.
+
+`siamang.frontend.csp.survey_csp(page, connect_src=[ingest], captcha=…)` builds what
+the React runtime needs:
+
+| Directive | Sources | Why |
+| :--- | :--- | :--- |
+| `default-src` | `'none'` | Anything the rows below do not name. |
+| `script-src` | `'self'`, `'unsafe-eval'`, the inline script's hash (or `'unsafe-inline'` without `page`), Turnstile with `captcha=True` | `bundle.js`, `vendor/react*.js`, `env.js`; `window.SURVEY`/`window.PAGES` (`inline_script_hashes`). **`'unsafe-eval'` is required**: show/hide and routing conditions are compiled with `new Function` and custom scripts run as an `AsyncFunction` — without it every condition reads as true (a `show_if` always shows, a `hide_if` always hides, the first routing rule wins) and no custom script runs. With the hash and no `'unsafe-inline'`, no inline handler or `javascript:` address can run. |
+| `style-src` | `'self' 'unsafe-inline'` | `style.css`; a body's `style=""`. |
+| `font-src` | `'self'` | The bundled typefaces in `fonts/`; add the hosts a custom stylesheet's `@font-face` uses. |
+| `img-src`, `media-src` | `'self' https: data:` | The logo, a question's and an option's media, a body's pictures and media (narrow them to a list of hosts of your own). |
+| `frame-src` | `https://www.youtube-nocookie.com https://player.vimeo.com` (+ Turnstile) | The players a body may hold. |
+| `connect-src` | `'self'` + the ingest origin | Where `env.js` sends the answers, and a custom script's `api.get`/`api.post`. |
+| `object-src`, `base-uri`, `form-action` | `'none'` | The runtime has no plug-in, `<base>` or `<form>`. |
+
+A `<meta>` policy cannot carry `frame-ancestors`, `report-to` or `sandbox`; send those
+as a header (both are enforced, the stricter winning).
 ---
 
 ## Backend client templates
@@ -286,6 +319,20 @@ deployed survey. The defaults aim for a calm, research-grade aesthetic: a serif 
 font, a narrow line measure, a single accent colour, and comfortable spacing. Pass
 it to deployment via `survey.deploy(..., ui=UIConfig(...))` or to a
 `FrontendBuilder`. The fields group into seven areas.
+
+The colors, sizes and font stacks are written into the stylesheet, so each has a
+strict format, checked when the `UIConfig` is made (`ValueError` otherwise;
+`siamang.frontend.theme.tokens`): a **color** is `#rgb`, `#rgba`, `#rrggbb`,
+`#rrggbbaa`, `rgb()`/`rgba()`/`hsl()`/`hsla()`/`hwb()`/`lab()`/`lch()`/`oklab()`/
+`oklch()` of numbers, or a CSS color name; a **length** (`font_size`, `width`,
+`radius`) is a number with a unit (`15.5px`, `1.1rem`, `60%`), `0`,
+`calc()`/`min()`/`max()`/`clamp()` of those or a keyword (`auto`, `medium`…);
+`line_height` may also be a number alone; a **font stack** is family names
+separated by commas, a name with digits or punctuation in quotes
+(`"Source Serif 4", Georgia, serif`). None can hold `; { } < > \ @` or `url()` —
+that is what `custom_css` is for. The addresses a respondent opens or is sent to
+(`privacy_url`, `redirect_url`, `screen_out_redirect_url`,
+`quota_full_redirect_url`) are `http://` or `https://` written out.
 
 ### Palette
 

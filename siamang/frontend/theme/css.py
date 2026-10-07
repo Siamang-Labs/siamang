@@ -17,7 +17,8 @@ focus states — not a flashy product onboarding flow.
 from __future__ import annotations
 
 from siamang.frontend.theme.fonts import FONT_BASE, font_face_css
-from siamang.frontend.theme.ui_config import UIConfig
+from siamang.frontend.theme.tokens import css_text, css_value
+from siamang.frontend.theme.ui_config import TOKEN_FIELDS, UIConfig
 
 _DENSITY_SPACING = {
     "compact": ("18px", "10px", "8px", "24px"),
@@ -463,21 +464,29 @@ def compile_css(ui: UIConfig, *, font_base: str = FONT_BASE) -> str:
     """
 
     density = _density_vars(ui.density)
+    default = UIConfig()
+
+    def token(field: str, value: object) -> str:
+        # The second line behind UIConfig's check: a value outside its format
+        # is written as the default, so no token can end its declaration.
+        kind = TOKEN_FIELDS[field]
+        return css_value(value, kind, css_value(getattr(default, field), kind, "initial"))
+
     base = _CSS_TEMPLATE.format(
-        primary=ui.primary_color,
-        accent=ui.effective_accent,
-        background=ui.background_color,
-        surface=ui.surface_color,
-        text=ui.text_color,
-        muted=ui.muted_text_color,
-        border=ui.border_color,
-        font=ui.font_family,
-        heading_font=ui.effective_heading_font,
-        mono=ui.mono_font_family,
-        font_size=ui.font_size,
-        line_height=ui.line_height,
-        width=ui.width,
-        radius=ui.radius,
+        primary=token("primary_color", ui.primary_color),
+        accent=token("primary_color", ui.effective_accent),
+        background=token("background_color", ui.background_color),
+        surface=token("surface_color", ui.surface_color),
+        text=token("text_color", ui.text_color),
+        muted=token("muted_text_color", ui.muted_text_color),
+        border=token("border_color", ui.border_color),
+        font=token("font_family", ui.font_family),
+        heading_font=token("font_family", ui.effective_heading_font),
+        mono=token("mono_font_family", ui.mono_font_family),
+        font_size=token("font_size", ui.font_size),
+        line_height=token("line_height", ui.line_height),
+        width=token("width", ui.width),
+        radius=token("radius", ui.radius),
         gap_section=density["section"],
         gap_item=density["gap"],
         gap_control=density["control"],
@@ -489,5 +498,7 @@ def compile_css(ui: UIConfig, *, font_base: str = FONT_BASE) -> str:
     if faces:
         base = faces + "\n" + base
     if ui.custom_css:
-        return base + "\n/* user overrides */\n" + ui.custom_css
-    return base
+        base = base + "\n/* user overrides */\n" + ui.custom_css
+    # A host may inline the stylesheet in a <style>: "</style" in a custom
+    # stylesheet must not end it.
+    return css_text(base)

@@ -12,14 +12,17 @@ from __future__ import annotations
 
 import hashlib
 import html
-import json
 from importlib import resources
 from string import Template
 from typing import Any
 
+from siamang.core.safe_html import json_for_script
 from siamang.frontend.compiler.react import compile_react_payload
+from siamang.frontend.csp import csp_meta
 from siamang.frontend.runtime.base import RuntimeAdapter, RuntimeRenderContext
 from siamang.frontend.theme.fonts import font_face_css
+from siamang.frontend.theme.tokens import css_text, css_value
+from siamang.frontend.theme.ui_config import TOKEN_FIELDS, UIConfig
 
 _CLOSED_REASONS = {
     "deadline": (
@@ -146,6 +149,7 @@ class ReactRuntime(RuntimeAdapter):
         scripts_block = '<script src="bundle.js" defer></script>'
 
         return self._index_template.substitute(
+            csp_meta=csp_meta(context.csp),
             language=html.escape(context.schema.language),
             title=html.escape(context.schema.title),
             density=html.escape(context.ui.density),
@@ -153,8 +157,10 @@ class ReactRuntime(RuntimeAdapter):
             theme=html.escape(theme),
             react_integrity=html.escape(react_integrity),
             react_dom_integrity=html.escape(react_dom_integrity),
-            survey_json=json.dumps(payload["SURVEY"], ensure_ascii=False),
-            pages_json=json.dumps(payload["PAGES"], ensure_ascii=False),
+            # Every text of the survey travels in these two literals, inside an
+            # inline <script>: written so that none can end it (</script>).
+            survey_json=json_for_script(payload["SURVEY"]),
+            pages_json=json_for_script(payload["PAGES"]),
             analytics_script=analytics_script,
             scripts_block=scripts_block,
         )
@@ -170,6 +176,7 @@ class ReactRuntime(RuntimeAdapter):
             heading = ui.closed_title or heading
             message = ui.closed_body or message
         return self._closed_template.substitute(
+            csp_meta=csp_meta(context.csp),
             language=html.escape(context.schema.language),
             title=html.escape(context.schema.title),
             heading=html.escape(heading),
@@ -178,25 +185,34 @@ class ReactRuntime(RuntimeAdapter):
 
     def stylesheet(self, context: RuntimeRenderContext) -> str:
         ui = context.ui
+        # UIConfig refuses a token outside its format; css_value is the second
+        # line — a value that is not one is written as the default — so no
+        # token can end its declaration whatever made the UIConfig.
+        default = UIConfig()
+
+        def token(field: str, value: Any) -> str:
+            kind = TOKEN_FIELDS[field]
+            return css_value(value, kind, css_value(getattr(default, field), kind, "initial"))
+
         tokens: dict[str, Any] = {
-            "primary": ui.primary_color,
-            "accent": ui.effective_accent,
-            "bg": ui.background_color,
-            "surface": ui.surface_color,
-            "text": ui.text_color,
-            "muted": ui.muted_text_color,
-            "border": ui.border_color,
-            "font": ui.effective_body_font,
-            "heading_font": ui.effective_heading_font,
-            "ui_font": ui.effective_ui_font,
-            "mono": ui.mono_font_family,
-            "font_size": ui.font_size,
-            "line_height": ui.line_height,
-            "width": ui.width,
-            "radius": ui.radius,
-            "error": ui.error_color,
-            "error_soft": ui.error_soft_color,
-            "warn": ui.warn_color,
+            "primary": token("primary_color", ui.primary_color),
+            "accent": token("primary_color", ui.effective_accent),
+            "bg": token("background_color", ui.background_color),
+            "surface": token("surface_color", ui.surface_color),
+            "text": token("text_color", ui.text_color),
+            "muted": token("muted_text_color", ui.muted_text_color),
+            "border": token("border_color", ui.border_color),
+            "font": token("font_family", ui.effective_body_font),
+            "heading_font": token("font_family", ui.effective_heading_font),
+            "ui_font": token("ui_font_family", ui.effective_ui_font),
+            "mono": token("mono_font_family", ui.mono_font_family),
+            "font_size": token("font_size", ui.font_size),
+            "line_height": token("line_height", ui.line_height),
+            "width": token("width", ui.width),
+            "radius": token("radius", ui.radius),
+            "error": token("error_color", ui.error_color),
+            "error_soft": token("error_soft_color", ui.error_soft_color),
+            "warn": token("warn_color", ui.warn_color),
         }
         css = self._style_template.substitute(tokens)
         # The typefaces the stacks name, from the survey's own host (the
@@ -212,7 +228,9 @@ class ReactRuntime(RuntimeAdapter):
             css = faces + "\n" + css
         if ui.custom_css:
             css = css + "\n/* user overrides */\n" + ui.custom_css
-        return css
+        # A host may inline the stylesheet in a <style> (a preview): no
+        # "</style" in a custom stylesheet may end it there.
+        return css_text(css)
 
     def static_assets(self) -> dict[str, str | bytes]:
         bundle_src, compiled_ok = self._get_or_compile()

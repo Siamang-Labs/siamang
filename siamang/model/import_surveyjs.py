@@ -38,12 +38,14 @@ What is reported as skipped
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from siamang.model._import_safety import imported_html, imported_url
 from siamang.model.document import SCHEMA_VERSION, DocumentError
 from siamang.model.import_qsf import Skipped, _code, _ident, _number, _suffix, _text
 
@@ -155,7 +157,7 @@ class _Importer:
                     "name": self.page_names.claim("end"),
                     "kind": "final",
                     "title": "Thank you",
-                    "body": completed,
+                    "body": imported_html(completed, "completedHtml", self.warnings),
                 }
             )
         if not pages:
@@ -167,8 +169,9 @@ class _Importer:
             document["options"] = options
         document["variables"] = self.variables
         document["pages"] = pages
-        if self.payload.get("navigateToUrl"):
-            document["ui"] = {"redirect_url": str(self.payload["navigateToUrl"])}
+        url = imported_url(self.payload.get("navigateToUrl"), "navigateToUrl", self.warnings)
+        if url:
+            document["ui"] = {"redirect_url": url}
         return document
 
     def _options(self) -> dict[str, Any]:
@@ -215,7 +218,7 @@ class _Importer:
         if title:
             page["title"] = title
         if body:
-            page["body"] = "\n".join(body)
+            page["body"] = imported_html("\n".join(body), f"page '{name}'", self.warnings)
         if items:
             if str(page_in.get("questionsOrder") or "") == "random":
                 page["items"] = [{"type": "Block", "randomize": True, "items": items}]
@@ -274,10 +277,16 @@ class _Importer:
         self.converted[name] = out
         if etype in {"html", "image"}:
             out.kind = "none"
+            # An image element is a picture: its address and text are
+            # attribute values, escaped (the body is sanitized as a whole when
+            # the page is made).
             out.body = (
                 _html(q.get("html"), self.locale)
                 if etype == "html"
-                else (f'<img src="{q.get("imageLink", "")}" alt="{text}">')
+                else (
+                    f'<img src="{html.escape(str(q.get("imageLink") or ""))}" '
+                    f'alt="{html.escape(text)}">'
+                )
             )
             return out
         if etype in _UNSUPPORTED:

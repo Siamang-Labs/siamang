@@ -261,6 +261,21 @@ function runtimeTexts() {
   return texts;
 }
 
+/* A page's body: the compiler's sanitized HTML with the answers piped in
+   (processPipedHtml), put in the page through cleanBodyFragment — not as
+   innerHTML, so nothing in it runs even for a moment. */
+function SafeHtml({ html, className }) {
+  const ref = useRef(null);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fragment = cleanBodyFragment(html);
+    while (el.firstChild) el.removeChild(el.firstChild);
+    el.appendChild(fragment);
+  }, [html]);
+  return <div ref={ref} className={className} />;
+}
+
 /* A wording template with a link in it: "{link}" is where the link goes
    (after the text when the template has none). */
 function TextWithLink({ template, values, href, label }) {
@@ -695,7 +710,8 @@ function Footer() {
   const links = [];
   if (ui.institution) links.push({ key: "i", node: <span>{ui.institution.split("—")[0].trim()}</span> });
   const texts = runtimeTexts();
-  if (ui.privacyUrl) links.push({ key: "p", node: <a href={ui.privacyUrl} rel="noopener" target="_blank">{texts.privacy}</a> });
+  const privacyUrl = safeNavigationUrl(ui.privacyUrl);
+  if (privacyUrl) links.push({ key: "p", node: <a href={privacyUrl} rel="noopener" target="_blank">{texts.privacy}</a> });
   if (ui.contactEmail) links.push({ key: "c", node: <a href={"mailto:" + ui.contactEmail}>{texts.contact}</a> });
   if (!links.length && !ui.ethics) return null;
   return (
@@ -926,7 +942,7 @@ function SurveyPage({ page, store, visibilityEngine, setAnswer, errors, heldRows
           engine-kind "content" pages only, so an ordinary page's introduction
           never reached the respondent. */}
       {page.body
-        ? <div className="sd-page__html sd-page__body" dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body, answers) }} />
+        ? <SafeHtml className="sd-page__html sd-page__body" html={processPipedHtml(page.body, answers)} />
         : null}
       {page.blocks
         ? page.blocks
@@ -1127,7 +1143,7 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
     <div className={wrapCls}>
       <h2 className={titleCls}>{processPipedText(page.title, answers) || (screenedOut ? uiTexts.screenOutTitle : uiTexts.completedTitle)}</h2>
       {page.body
-        ? <div className={"sd-page__html " + bodyCls} dangerouslySetInnerHTML={{ __html: processPipedHtml(page.body, answers) }} />
+        ? <SafeHtml className={"sd-page__html " + bodyCls} html={processPipedHtml(page.body, answers)} />
         : <p className={bodyCls}>{uiTexts.completedBody}</p>}
       {(submitId || submittedAt) && !screenedOut ? (
         <dl className="sd-completedpage__meta">

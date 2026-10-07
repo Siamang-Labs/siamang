@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import html
-import json
 from importlib import resources
 from string import Template
 
+from siamang.core.safe_html import json_for_script
+from siamang.core.safe_url import navigation_url
 from siamang.frontend import constants
+from siamang.frontend.csp import csp_meta
 from siamang.frontend.runtime.base import RuntimeAdapter, RuntimeRenderContext
 
 _CLOSED_REASONS = {
@@ -40,8 +42,10 @@ class SurveyJSRuntime(RuntimeAdapter):
         self._closed_template = _load_template("closed.html.tpl")
 
     def render_html(self, context: RuntimeRenderContext) -> str:
-        schema_json = json.dumps(context.schema.to_surveyjs(), ensure_ascii=False)
+        # Inside an inline <script>: no text of the survey may end it.
+        schema_json = json_for_script(context.schema.to_surveyjs())
         return self._index_template.substitute(
+            csp_meta=csp_meta(context.csp),
             language=html.escape(context.schema.language),
             title=html.escape(context.schema.title),
             surveyjs_js=constants.surveyjs_js_url(self.version),
@@ -58,6 +62,7 @@ class SurveyJSRuntime(RuntimeAdapter):
     def render_closed_page(self, context: RuntimeRenderContext, reason: str) -> str:
         heading, message = _CLOSED_REASONS.get(reason, _CLOSED_REASONS["closed"])
         return self._closed_template.substitute(
+            csp_meta=csp_meta(context.csp),
             language=html.escape(context.schema.language),
             title=html.escape(context.schema.title),
             css_href=context.css_href,
@@ -128,9 +133,10 @@ def _footer_html(context: RuntimeRenderContext) -> str:
     links: list[str] = []
     if ui.institution_name:
         links.append(f"<span>{html.escape(ui.institution_name)}</span>")
-    if ui.privacy_url:
+    privacy_url = navigation_url(ui.privacy_url)
+    if privacy_url:
         links.append(
-            f'<a href="{html.escape(ui.privacy_url)}" rel="noopener" target="_blank">Privacy</a>'
+            f'<a href="{html.escape(privacy_url)}" rel="noopener" target="_blank">Privacy</a>'
         )
     if ui.contact_email:
         links.append(f'<a href="mailto:{html.escape(ui.contact_email)}">Contact</a>')

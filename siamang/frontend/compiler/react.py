@@ -21,6 +21,7 @@ once at load time instead of interpreting a JSON AST on every render.
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -50,6 +51,8 @@ from siamang.core.question import (
     question_output_name,
 )
 from siamang.core.questionnaire import Questionnaire
+from siamang.core.safe_html import sanitize_html
+from siamang.core.safe_url import navigation_url
 from siamang.frontend.theme.ui_config import UIConfig
 
 
@@ -85,7 +88,9 @@ def compile_react_payload(
         "showProgressText": ui.show_progress_text,
         "estimatedMinutes": ui.estimated_minutes,
         "ethics": ui.ethics_statement or "",
-        "privacyUrl": ui.privacy_url or "",
+        # The addresses a respondent opens or is sent to are http(s) (the
+        # model refuses any other), sent as a browser reads them.
+        "privacyUrl": navigation_url(ui.privacy_url) or "",
         "contactEmail": ui.contact_email or "",
         # The completion screen: the UI's wording first, then the compiler
         # options (`completion_text` is the document's "Message").
@@ -112,9 +117,9 @@ def compile_react_payload(
         "progressStyle": ui.progress_style,
         "defaultTheme": ui.default_theme,
         "allowThemeSwitch": ui.allow_theme_switch,
-        "redirectUrl": ui.redirect_url,
-        "screenOutRedirectUrl": ui.screen_out_redirect_url,
-        "quotaFullRedirectUrl": ui.quota_full_redirect_url,
+        "redirectUrl": navigation_url(ui.redirect_url),
+        "screenOutRedirectUrl": navigation_url(ui.screen_out_redirect_url),
+        "quotaFullRedirectUrl": navigation_url(ui.quota_full_redirect_url),
         "requireAccessCode": ui.require_access_code,
         "accessCodes": ui.access_codes,
         "accessTitle": ui.access_title,
@@ -306,9 +311,12 @@ def _compile_page(
     if page.kind is not None:
         payload["kind"] = page.kind
     if page.body is not None:
-        payload["body"] = page.body
-    if page.redirect_url is not None:
-        payload["redirectUrl"] = page.redirect_url
+        # The runtime shows the body as HTML: it gets what is safe of it
+        # (siamang.core.safe_html) — no script, frame, form or page-wide style.
+        payload["body"] = sanitize_html(page.body)
+    redirect_url = navigation_url(page.redirect_url)
+    if redirect_url is not None:
+        payload["redirectUrl"] = redirect_url
     if page.redirect_delay is not None:
         payload["redirectDelay"] = page.redirect_delay
 
@@ -904,7 +912,8 @@ def _value_to_js(value: Any) -> str | None:
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int | float):
-        return repr(value)
+        # nan and inf have no JS literal; the AST evaluator takes them.
+        return repr(value) if math.isfinite(value) else None
     if isinstance(value, str):
         return _js_string(value)
     if isinstance(value, list | tuple | set):
@@ -912,7 +921,9 @@ def _value_to_js(value: Any) -> str | None:
         if any(i is None for i in items):
             return None
         return "[" + ",".join(items) + "]"
-    return repr(value)
+    # Anything else has no literal the compiler vouches for: the condition
+    # goes to the AST evaluator rather than into code the runtime compiles.
+    return None
 
 
 def _js_string(s: str) -> str:

@@ -81,6 +81,7 @@ The `FrontendBuilder` orchestrates the compilation pipeline. It combines a `Runt
 class FrontendBuilder:
     runtime: RuntimeAdapter = SurveyJSRuntime()
     ui: UIConfig = UIConfig()
+    csp: str | None = None
 
     def build(
         self,
@@ -103,15 +104,19 @@ A runtime may add its own static assets on top: `ReactRuntime` contributes `bund
 
 The typefaces come with the bundle too: under `fonts/`, the woff2 files the stylesheet's `@font-face` rules use and the SIL Open Font License text of each family (see [Typography](#2-typography)). Nothing in a compiled survey is fetched from a font CDN.
 
+What an author writes reaches the pages only as data: the survey's texts travel in the inline `<script>` written so that no text can end it (`siamang.core.safe_html.json_for_script`), a page's body as `siamang.core.safe_html.sanitize_html` keeps it (formatting, links, pictures, audio and video, YouTube and Vimeo players; no script, other frame, form or page-wide style). `csp` is a Content-Security-Policy written in a `<meta http-equiv>` right after `<meta charset>` of `index.html` and `closed.html` (None writes none); `siamang.frontend.csp.survey_csp` builds what the React runtime needs — `default-src 'none'`, `script-src 'self' 'unsafe-eval'` and the inline script's hash (conditions are compiled with `new Function`, so `'unsafe-eval'` is required), `style-src 'self' 'unsafe-inline'`, `font-src 'self'`, `img-src`/`media-src 'self' https: data:`, `frame-src` the two players, `connect-src` the ingest, `object-src`/`base-uri`/`form-action 'none'` — and `insert_csp_meta` puts a policy there in a page built elsewhere. `inline_script_hashes` reads the page with an HTML parser, as a browser does: a `<script` inside an inline stylesheet or a comment is not hashed in place of the real script. Custom scripts (`Script`) and `UIConfig.custom_css` are unchanged: they run as the author wrote them, by design, so a host whose authors are not trusted should not offer them.
+
 ---
 
 ## `UIConfig` — The Design System
 
 The `UIConfig` dataclass defines the visual appearance, typography, layout, branding, and localization strings for the deployed survey. Siamang defaults to a clean, highly readable "academic" design system featuring a narrow line measure, comfortable vertical spacing, and a classic serif body font [3].
 
+The colors, sizes and font stacks are written into the stylesheet, so each has a strict format, checked when the `UIConfig` is made (`ValueError` otherwise, `siamang.frontend.theme.tokens`): a color is hex, `rgb()`/`hsl()`/`hwb()`/`lab()`/`lch()`/`oklab()`/`oklch()` of numbers or a CSS color name; a length a number with a unit, `0`, `calc()`/`min()`/`max()`/`clamp()` of those or a keyword; `line_height` may be a number alone; a font stack is family names separated by commas, a name with digits in quotes. None can hold `; { } < > \ @` or `url()`. The addresses a respondent opens or is sent to (`privacy_url`, `redirect_url`, `screen_out_redirect_url`, `quota_full_redirect_url`) are `http://` or `https://` written out.
+
 ### 1. Color Palette
 
-All colors are specified as standard CSS hex color codes (e.g., `"#2c5f8a"`).
+Colors are usually CSS hex codes (e.g., `"#2c5f8a"`); any format listed above is accepted.
 
 | Property | Default | Description |
 | :--- | :--- | :--- |
@@ -169,7 +174,7 @@ A host that serves the survey page another way than the bundle — Studio's prev
 
 | Property | Default | Description |
 | :--- | :--- | :--- |
-| `privacy_url` | `None` | Optional link to the organization's privacy policy, displayed in the footer. |
+| `privacy_url` | `None` | Optional link to the organization's privacy policy, displayed in the footer: an `http(s)://` address. |
 | `contact_email` | `None` | Optional contact email address, rendered as a `mailto:` link in the footer. |
 | `ethics_statement` | `None` | Optional text block displaying the research ethics approval statement or reference number. |
 
@@ -209,7 +214,7 @@ page_error_body, app_error_title, app_error_body, reload_action
 | `progress_style` | `"bar"` | The style of the progress indicator. Allowed values: `"bar"` (linear progress bar with its text), `"dots"` (step-by-step dots only), or `"both"`. The compiler option `show_progress=False` hides the indicator — bar and dots — whatever the style. A dot is a button back to a page the respondent has already seen on the way to the current one (not while `allow_back` is `False`); dots ahead of the current page, and dots of pages the routing skipped, are disabled — a jump forward would pass required questions and routing. |
 | `default_theme` | `"light"` | The theme the respondent starts on. Allowed values: `"light"`, `"dark"`, or `"system"` (respects browser preference). A starting point, not a decision — see `allow_theme_switch`. |
 | `allow_theme_switch` | `True` | Whether the respondent may change it. On, the runtime shows a light/dark button and remembers the choice for this survey. Off, the button is not shown and the survey stays on `default_theme` for everyone — set it where the instrument has to look the same across the sample, and leave it on where the respondent's comfort matters more. |
-| `redirect_url` | `None` | Optional URL to automatically redirect the respondent to after successful submission (triggered after a 5-second countdown). |
+| `redirect_url` | `None` | Optional URL to automatically redirect the respondent to after successful submission (triggered after a 5-second countdown): an `http(s)://` address written out, which `{url:NAME}` and `{answer:x}` may follow. |
 | `allow_back` | `True` | If `True`, displays the "Previous" button. Setting this to `False` disables backward navigation (the button, `Esc`, the swipe and the page dots), which is useful for fixed-order surveys where allowing respondents to modify past answers would break branching logic or experimental designs [4]. |
 | `enable_analytics` | `False` | If `True` and deployed to Vercel, automatically injects the Vercel Web Analytics script. |
 | `require_access_code` | `False` | If `True`, displays an access gate requiring respondents to enter a valid code before starting the survey. |
@@ -221,7 +226,7 @@ page_error_body, app_error_title, app_error_body, reload_action
 
 ### 8. Custom Stylesheets
 
-* `custom_css: str | None = None`: A raw CSS string appended to the compiled stylesheet. This serves as an escape hatch, allowing researchers to override any aspect of the design system.
+* `custom_css: str | None = None`: A raw CSS string appended to the compiled stylesheet. This serves as an escape hatch, allowing researchers to override any aspect of the design system. The stylesheet writes `</` as `<\/` (the same to CSS), so it can be inlined in a `<style>` element without ending it.
 
 ---
 

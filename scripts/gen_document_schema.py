@@ -30,6 +30,7 @@ from siamang.core.question import (
     Ranking,
     SingleChoice,
 )
+from siamang.core.safe_html import MAX_HTML_LENGTH
 from siamang.core.script import _VALID_TRIGGERS
 from siamang.core.variable import _VALID_DTYPES, _VALID_MISSING_KINDS, _VALID_ROLES, _VALID_SCALES
 from siamang.frontend.theme.ui_config import (
@@ -246,7 +247,8 @@ DEFS: dict[str, Any] = {
             "name": NONEMPTY,
             "kind": {"enum": ["content", "disqualification", "final", "redirect"]},
             "title": STRING,
-            "body": STRING,
+            # siamang.core.safe_html.MAX_HTML_LENGTH: the sanitizer's bound.
+            "body": {"type": "string", "maxLength": MAX_HTML_LENGTH},
             "redirect_url": STRING,
             "redirect_delay": {"type": "integer", "minimum": 0},
             "items": {"type": "array", "items": ref("item")},

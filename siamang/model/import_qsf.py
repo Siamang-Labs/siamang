@@ -41,6 +41,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from siamang.model._import_safety import imported_html, imported_url
 from siamang.model.document import SCHEMA_VERSION, DocumentError
 
 _MAX_SOURCE = 20_000_000
@@ -752,6 +753,8 @@ class _Importer:
             else None
         )
         if redirect:
+            redirect = imported_url(redirect, "End of survey", self.warnings)
+        if redirect:
             kind = "redirect"
         elif flag.lower().startswith("screen") or condition is not None:
             kind = "disqualification"
@@ -770,7 +773,7 @@ class _Importer:
         if condition is not None:
             page["show_if"] = condition
         if redirect:
-            page["redirect_url"] = str(redirect)
+            page["redirect_url"] = redirect
         return page
 
     def _block_pages(
@@ -818,7 +821,7 @@ class _Importer:
                     self.page_of[qid] = name
             page: dict[str, Any] = {"name": name, "title": description}
             if body:
-                page["body"] = "\n".join(body)
+                page["body"] = imported_html("\n".join(body), f"'{description}'", self.warnings)
             if items:
                 if randomize and randomize not in {"", "None"}:
                     if randomize != "RandomizeAll":
@@ -961,7 +964,9 @@ class _Importer:
         so = self.options_element
         ui: dict[str, Any] = {}
         if so.get("SurveyTermination") == "Redirect" and so.get("EOSRedirectURL"):
-            ui["redirect_url"] = str(so["EOSRedirectURL"])
+            url = imported_url(so["EOSRedirectURL"], "Survey options", self.warnings)
+            if url:
+                ui["redirect_url"] = url
         return ui
 
 

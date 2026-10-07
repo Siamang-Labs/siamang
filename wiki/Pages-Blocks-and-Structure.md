@@ -46,7 +46,7 @@ class Page:
 | `hide_if` | `Expression \| str \| None` | `None` | Hide the page when this is true. |
 | `kind` | `str \| None` | `None` | Page kind (see below); `None` is an ordinary question page. |
 | `body` | `str \| None` | `None` | HTML shown above the page's questions; on a content page it is the page, on a terminal page the message. See [Page bodies](#page-bodies). |
-| `redirect_url` | `str \| None` | `None` | Target URL for terminal pages that redirect. |
+| `redirect_url` | `str \| None` | `None` | Target URL for terminal pages that redirect: an `http://` or `https://` address written out (`ValueError` otherwise); `{url:NAME}` / `{answer:x}` may follow the scheme. |
 | `redirect_delay` | `int \| None` | `None` | Seconds before redirecting (runtime default 5). |
 
 ### Properties and methods
@@ -72,10 +72,39 @@ pages remain navigable.
 
 ### Page bodies
 
-`body` is **HTML** — `<p>`, `<b>`, `<a href="…">`, `<ul>` — not Markdown, and it is
-inserted as written (it is the author's, not sanitized). It is shown on every kind of
-page: above the questions on an ordinary page, alone on a content page, as the message
-of a terminal page. `{answer:x}` / `{var:x}` / `{label:x}` pipe earlier answers into
+`body` is **HTML** — `<p>`, `<b>`, `<a href="…">`, `<ul>` — not Markdown. It is shown on
+every kind of page: above the questions on an ordinary page, alone on a content page, as
+the message of a terminal page. The page keeps it as written; the runtime is given what
+`siamang.core.safe_html.sanitize_html` keeps of it:
+
+- **Kept:** text formatting (paragraphs, headings, emphasis, lists, quotes, code,
+  tables, `<details>`, `<font>`…), `class`, `id` and a `style` of layout, color and type;
+  links to `http(s):`, `mailto:` and `tel:` (a link with `target="_blank"` gets
+  `rel="noopener noreferrer"`); pictures from `http(s):` and `data:` PNG, JPEG, GIF,
+  WebP, AVIF and BMP; `<audio>` and `<video>` from `http(s):`; a YouTube or Vimeo
+  player — an `<iframe>` of either (or of a watch page, `youtu.be` or `vimeo.com` link)
+  is rebuilt from the video's id on `www.youtube-nocookie.com/embed/` or
+  `player.vimeo.com/video/`, its start time and player options kept, with the
+  provider's `allow` list and `referrerpolicy="strict-origin-when-cross-origin"`.
+- **Dropped:** whatever runs a script (`<script>`, `on…` attributes, `srcdoc`,
+  `javascript:` and `vbscript:` addresses, inline `<svg>` and `<math>`), any other frame,
+  `<object>`, `<embed>`, forms and their fields (their text stays), `<meta>`, `<base>`,
+  `<link>`, `<style>` (restyle a survey with `UIConfig.custom_css`), CSS that loads
+  something (`url()`) or covers the page (`position: fixed` or `absolute`) — spelled out or in CSS
+  escapes (`u\72l(`), which are reported the same way — an address of any other
+  scheme or whose scheme an answer would supply (`href="{answer:x}"`), and an `id`
+  the runtime uses itself (`SIAMANG_…`, `root`).
+
+A body is at most 1,000,000 characters (`safe_html.MAX_HTML_LENGTH`): `Page`, the
+document schema (`maxLength`) and `sanitize_html_report` refuse a longer one with a
+`ValueError` (a `DocumentError` on load) — show a picture from its `https://` address
+rather than writing it into the body as `data:`. An element with more than 100
+attributes (`MAX_ATTRIBUTES`) is dropped, its text kept; the attributes are counted
+before the parser reads them, so a body built to exhaust the sanitizer's memory
+cannot do so. `sanitize_html_report(body)` returns the HTML kept and what was dropped,
+each with a sentence for the author (each removal once, the first 500 harmless and the first 500 dangerous ones;
+`messages()` gives them as sentences to join); `lint()` reports the parts that would have
+run or changed the page as `BODY_HTML_REMOVED` (see [[Validation and Linting|Validation-and-Linting]]). `{answer:x}` / `{var:x}` / `{label:x}` pipe earlier answers into
 it — and into the page's `title` — on every kind of page, terminal ones included (see
 [[Question Types|Question-Types]]); a piped value is escaped, so an answer can never
 add markup.

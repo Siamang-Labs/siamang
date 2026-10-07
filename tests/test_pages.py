@@ -44,7 +44,7 @@ def test_factories_set_kind_and_fields():
 def test_is_terminal():
     assert DisqualificationPage("d").is_terminal
     assert FinalPage("f").is_terminal
-    assert RedirectPage("r", redirect_url="u").is_terminal
+    assert RedirectPage("r", redirect_url="https://u.example/").is_terminal
     assert not ContentPage("c", body="x").is_terminal
     assert not Page("normal").is_terminal
 

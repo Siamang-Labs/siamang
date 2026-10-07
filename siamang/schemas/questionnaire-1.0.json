@@ -463,7 +463,8 @@
           "type": "string"
         },
         "body": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 1000000
         },
         "redirect_url": {
           "type": "string"

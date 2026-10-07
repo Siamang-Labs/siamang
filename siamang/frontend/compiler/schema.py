@@ -9,6 +9,8 @@ from siamang.core.block import Block
 from siamang.core.page import Page
 from siamang.core.question import Question
 from siamang.core.questionnaire import Questionnaire
+from siamang.core.safe_html import sanitize_html
+from siamang.core.safe_url import navigation_url
 from siamang.core.serialization import question_to_dict
 from siamang.core.variable import VariableMap
 from siamang.frontend.compiler.logic import compile_expression
@@ -85,9 +87,10 @@ def _compile_page(page: Page) -> dict[str, Any]:
     if page.kind is not None:
         payload["kind"] = page.kind
     if page.body is not None:
-        payload["body"] = page.body
-    if page.redirect_url is not None:
-        payload["redirectUrl"] = page.redirect_url
+        payload["body"] = sanitize_html(page.body)
+    redirect_url = navigation_url(page.redirect_url)
+    if redirect_url is not None:
+        payload["redirectUrl"] = redirect_url
     if page.redirect_delay is not None:
         payload["redirectDelay"] = page.redirect_delay
     return payload

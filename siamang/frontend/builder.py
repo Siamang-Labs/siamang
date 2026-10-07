@@ -28,10 +28,14 @@ class FrontendBuilder:
 
     Every field is optional; sensible defaults are used.
     Swap any field to change one piece of the constructor.
+
+    ``csp`` is a Content-Security-Policy the bundle's pages carry in a
+    ``<meta>`` (:mod:`siamang.frontend.csp`); None, the default, writes none.
     """
 
     runtime: RuntimeAdapter = None  # type: ignore[assignment]
     ui: UIConfig = None  # type: ignore[assignment]
+    csp: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "runtime", self.runtime or SurveyJSRuntime())
@@ -59,6 +63,7 @@ class FrontendBuilder:
             env_src="env.js",
             survey_id=env.survey_id,
             survey=survey,
+            csp=self.csp,
         )
 
         # Runtime can provide its own stylesheet (full design system); the

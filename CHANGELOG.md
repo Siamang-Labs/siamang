@@ -2378,6 +2378,118 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `<name>.dictionary.json` (was `<name>_dictionary.json`), the name every other
   export uses, so `read_snapshot("<name>.csv")` finds it.
 
+### Security
+
+What an author writes — or a Qualtrics, LimeSurvey or SurveyJS file brings
+in — could run as a script in a respondent's browser, on the survey's origin,
+where every survey of a host keeps its respondents' answers. Each way in is
+closed where it is made. Custom scripts (`Script`) and `UIConfig.custom_css`
+are unchanged: they run as the author wrote them, by design, so a host whose
+authors are not trusted should not offer them. Surveys built with an earlier
+version keep their old `index.html` and `bundle.js`: rebuild and redeploy them
+to get these fixes.
+
+- **No text can end the page's script.** Every title, label, phrase of the
+  wording and address travels in `window.SURVEY` / `window.PAGES`, an inline
+  `<script>` in `index.html`; `json.dumps` left `<` alone, so a title holding
+  `</script><script>…` ran its own script. The React and SurveyJS runtimes now
+  write it with `siamang.core.safe_html.json_for_script`: `<`, `>`, `&`,
+  U+2028 and U+2029 as `\u` escapes — the same values, read back. SurveyJS
+  draws `completedHtml` as HTML, and the completion message went into it as
+  written; it goes in as text now, as the React runtime shows it.
+- **A page's body is shown as `sanitize_html` keeps it.** `Page.body` is HTML
+  the runtime put in the page as written: an `onerror=`, `<svg onload>`,
+  `<iframe srcdoc>`, a `javascript:` link, `<form>`, `<meta http-equiv=refresh>`,
+  `<base>`, `<link>` and `<style>` all worked. The compilers now send what
+  `siamang.core.safe_html.sanitize_html` keeps of it: text formatting, lists,
+  tables, `<details>`, `class`, `id` and `style` (layout, color and type —
+  no `url()`, no `position: fixed` or `absolute`, no CSS escape that would
+  spell one of them:
+  `u\72l(` is reported as dangerous too), links to `http(s):`, `mailto:` and
+  `tel:` (`target="_blank"` gets `rel="noopener noreferrer"`), pictures from
+  `http(s):` and `data:` PNG/JPEG/GIF/WebP/AVIF/BMP, `<audio>`/`<video>` from
+  `http(s):`, and YouTube and Vimeo players — rebuilt from the video's id on
+  `www.youtube-nocookie.com/embed/` or `player.vimeo.com/video/` with the
+  provider's `allow` list and `referrerpolicy="strict-origin-when-cross-origin"`
+  (a watch page, `youtu.be` or `vimeo.com` link becomes a player too). It reads
+  the input with `html.parser` and writes the output from what it read —
+  allowed elements, checked and escaped attributes, escaped text, no comment,
+  raw-text or foreign element — so the output has one reading whatever a
+  browser would have made of the input (`<noscript><p title="</noscript><img
+  onerror>">` included); attribute values are decoded as a browser decodes
+  them (`&region=` stays), addresses read as a browser reads them (`
+  JaVaScRiPt:`, `java&#x09;script:`), an answer piped into a link cannot
+  supply its scheme, and an `id` the runtime uses (`SIAMANG_…`, `root`) is
+  dropped. Idempotent. `sanitize_html_report` also returns what it dropped
+  (`HtmlRemoval`: the element, attribute, value, a reason, whether it was
+  dangerous and a sentence for the author; `messages()` gives each as a sentence
+  of its own, to be joined), and `lint()` reports the dangerous part of it as
+  `BODY_HTML_REMOVED`, at every level. The document keeps the body as written.
+  What sanitizing costs is bounded, since a host sanitizes what an editor
+  sends (`html.parser` is pure Python, about a second per megabyte, and builds
+  every attribute of a tag first, ~160 bytes of memory per 4 bytes of input):
+  a body is at most 1,000,000 characters (`MAX_HTML_LENGTH`; `Page`, the
+  schema's `maxLength` and `sanitize_html_report` refuse a longer one, the
+  schema without quoting it back); an element with more than 100 attributes
+  (`MAX_ATTRIBUTES`) is dropped, its text kept, counted before the parser
+  builds them; a report keeps each removal once, the first 500 harmless and
+  the first 500 dangerous ones. In the runtime a body goes into the page through
+  `cleanBodyFragment` — parsed in an inert `<template>` by the browser itself,
+  script-capable elements, handlers and `javascript:`/`vbscript:`/`data:`
+  addresses taken out — rather than `dangerouslySetInnerHTML`; on the
+  compiler's output it changes nothing.
+- **The importers bring in what will be shown.** A page body from a `.qsf`,
+  `.lss` or SurveyJS file is stored sanitized, with a warning naming what was
+  left out, in sentences (HTML longer than a body may be is left out whole);
+  an end-of-survey address that is not http(s) is not imported (a warning
+  says so); SurveyJS's `image` element writes its address and title as
+  escaped attribute values (an f-string put them in raw).
+- **A respondent is sent only to `http(s)://`.** `Page.redirect_url` and
+  `UIConfig.redirect_url`, `screen_out_redirect_url`,
+  `quota_full_redirect_url` and `privacy_url` must start with `http://` or
+  `https://` written out (`siamang.core.safe_url`); `javascript:`, `data:`,
+  `vbscript:`, a relative address, an address spelled to slip past a check
+  (` javascript:`, `java\tscript:`) and one whose scheme a placeholder would
+  supply (`{url:next}`) raise `ValueError` — a `DocumentError` when a document
+  is loaded. A `{url:NAME}`/`{answer:x}` template after the scheme is fine.
+  The compiler sends the address as a browser reads it, and the runtime
+  checks it once more before `location.href` and a link's `href`
+  (`safeNavigationUrl`). `lint(ui=…)` warns about an `http://` one
+  (`URL_NOT_HTTPS`); `Questionnaire.lint` takes the `UIConfig` as `ui`.
+- **A theme token cannot write CSS of its own.** Colors, sizes, widths and
+  font stacks were written into the stylesheet as they were, so
+  `red;} body{background:url(…)} :root{` added rules of its own — custom CSS
+  where a host does not allow it. `UIConfig` now checks their format
+  (`siamang.frontend.theme.tokens`): a color is hex, `rgb()`/`hsl()`/`hwb()`/
+  `lab()`/`lch()`/`oklab()`/`oklch()` of numbers or a CSS color name; a length
+  a number with a unit, `0`, `calc()`/`min()`/`max()`/`clamp()` of those or a
+  keyword; a line height also a number; a font stack quoted names and
+  identifiers separated by commas — none can hold `; { } < > \ @` or `url()`.
+  The stylesheets write a token outside its format as the default, and write
+  `</` as `<\/` (`css_text`), so `</style` in custom CSS cannot end a
+  `<style>` a host inlines the stylesheet into. Custom CSS itself is unchanged.
+- **A Content-Security-Policy slot.** `index.html` and `closed.html` have
+  `${csp_meta}` right after `<meta charset>`: `RuntimeRenderContext.csp` (and
+  `FrontendBuilder(csp=…)`) writes a `<meta http-equiv>` there; None, the
+  default, writes none, as before. `siamang.frontend.csp` says what the runtime
+  needs and builds it: `survey_csp(page, connect_src=…, captcha=…)` —
+  `default-src 'none'` for anything not named below; `script-src 'self'
+  'unsafe-eval'` and the inline script's hash
+  (`inline_script_hashes`), so no inline handler or `javascript:` address can
+  run; `'unsafe-eval'` is required, as conditions are compiled with `new
+  Function` and custom scripts run as an `AsyncFunction` (without it every
+  condition reads as true); `style-src 'self' 'unsafe-inline'` for a body's
+  `style=""`; `font-src 'self'`; `img-src`/`media-src 'self' https: data:`;
+  `frame-src` the two players (and Turnstile); `connect-src 'self'` and the
+  host's ingest; `object-src`, `base-uri`, `form-action 'none'`.
+  `insert_csp_meta` puts a policy in that place in a page built elsewhere and
+  refuses a page that does not start as the runtime's. `inline_script_hashes`
+  reads the page with an HTML parser, so a `<script` inside an inline
+  stylesheet or a comment is not hashed in place of the page's real script.
+- Compiled conditions no longer write a value with no JavaScript literal (a
+  dict, `nan`) as Python's `repr` into the code the runtime compiles: such a
+  condition goes to the AST evaluator.
+
 ## [0.6.0] — 2026-08-30
 
 Runtime documentation-parity release: everything the docs describe for the
