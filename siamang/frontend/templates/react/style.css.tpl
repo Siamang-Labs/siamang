@@ -1592,6 +1592,222 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   max-width: 180px;
 }
 
+/* ─── YouTube and Vimeo videos ─────────────────────────────────────────── */
+/* A video waits for the respondent's press: a box of the player's shape
+   holding a play button, then the player itself. 200 px each way at the
+   least, where YouTube's and Vimeo's players still show their controls (a
+   16:9 box on a 320 px phone would be under 200 px tall). */
+.siamang-media--embed { width: 100%; }
+.siamang-embed {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+  min-width: 200px;
+}
+/* A Shorts-like video: as tall as 70 % of the window (640 px at most), its
+   width from that, narrower only where the column is. */
+.siamang-embed--portrait {
+  aspect-ratio: 9 / 16;
+  width: min(100%, calc(min(70vh, 640px) * 9 / 16));
+  min-height: 356px;
+}
+.siamang-embed--classic { aspect-ratio: 4 / 3; }
+.siamang-embed--square { aspect-ratio: 1 / 1; max-width: 480px; }
+.siamang-embed--body { margin: 12px 0; }
+.siamang-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: var(--siamang-radius);
+}
+.siamang-embed__facade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--siamang-surface);
+  color: var(--siamang-text);
+  border: 1px solid var(--siamang-border);
+  border-radius: var(--siamang-radius);
+  font-family: var(--siamang-ui-font);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+/* Hover only where there is one: on a touch screen the last tap keeps
+   :hover, and the box that lands under the finger after Next stayed tinted. */
+@media (hover: hover) {
+  .siamang-embed__facade:hover {
+    background: color-mix(in srgb, var(--siamang-accent) 6%, var(--siamang-surface));
+  }
+  .siamang-embed__facade:hover .siamang-embed__glyph { transform: scale(1.06); }
+  .sd-choice-play:hover {
+    border-color: var(--siamang-accent);
+    background: color-mix(in srgb, var(--siamang-accent) 8%, var(--siamang-surface));
+  }
+}
+/* Inside the box (a question's media clips what is outside it), solid, as an
+   option row's ring is. */
+.siamang-embed__facade:focus-visible,
+.sd-choice-play:focus-visible,
+.siamang-player-dialog__close:focus-visible {
+  box-shadow: none;
+  outline: 2px solid color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+  outline-offset: -4px;
+}
+.sd-choice-play:focus-visible,
+.siamang-player-dialog__close:focus-visible { outline-offset: 2px; border-radius: 50%; }
+.siamang-player-dialog__close:focus-visible { border-radius: var(--siamang-radius); }
+.siamang-embed__glyph {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--siamang-accent);
+  transition: transform 120ms ease;
+}
+.siamang-embed__glyph svg { width: 26px; height: 26px; fill: #fff; }
+.siamang-embed__title { font-weight: 600; overflow-wrap: anywhere; }
+.siamang-embed__from { color: var(--siamang-muted); font-size: 0.82rem; }
+.siamang-embed__note {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  font-family: var(--siamang-ui-font);
+  font-size: 0.82rem;
+  text-align: center;
+  color: var(--siamang-text);
+  pointer-events: none;
+}
+.siamang-embed__note:empty { display: none; }
+.siamang-embed__note.is-shown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  background: var(--siamang-surface);
+  border: 1px solid var(--siamang-border);
+  border-radius: var(--siamang-radius);
+}
+
+/* An answer option's video: a Play button beside the option (outside its
+   label: pressing it never chooses the option), opening the player in a
+   window over the page. */
+.sd-choice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sd-choice-row > .sd-radio,
+.sd-choice-row > .sd-checkbox { flex: 1 1 auto; min-width: 0; }
+.sd-choice-play {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--siamang-border);
+  border-radius: 50%;
+  background: var(--siamang-surface);
+  color: var(--siamang-accent);
+  cursor: pointer;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+.sd-choice-play svg { width: 14px; height: 14px; fill: currentColor; margin-left: 2px; }
+@media (pointer: coarse) {
+  .sd-choice-play { width: 32px; height: 32px; }
+}
+/* On the dark surface the accent alone is too dim for the Play button's
+   glyph and ring (2.5:1 and 1.2:1 with the default accent), and for the
+   play box's circle: they take the accent mixed toward the text color, as
+   the focus ring does — 3:1 or more. The button is the only sign that an
+   option has a video. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sd-choice-play {
+    color: color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+    border-color: color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+  }
+  :root:not([data-theme="light"]) .siamang-embed__glyph {
+    background: color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+  }
+}
+:root[data-theme="dark"] .sd-choice-play {
+  color: color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+  border-color: color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+}
+:root[data-theme="dark"] .siamang-embed__glyph {
+  background: color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+}
+.siamang-player-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--siamang-border);
+  border-radius: var(--siamang-radius);
+  background: var(--siamang-surface);
+  color: var(--siamang-text);
+  overflow: auto;
+}
+.siamang-player-dialog::backdrop { background: rgb(0 0 0 / 0.6); }
+.siamang-player-dialog__bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px;
+}
+.siamang-player-dialog__close {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--siamang-border);
+  border-radius: var(--siamang-radius);
+  background: var(--siamang-surface);
+  color: var(--siamang-text);
+  font-family: var(--siamang-ui-font);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.siamang-player-dialog__close:hover { border-color: var(--siamang-accent); }
+.siamang-player-dialog .siamang-embed { max-width: none; border-radius: 0; }
+.siamang-player-dialog .siamang-embed--portrait { margin: 0 auto; }
+.siamang-player-dialog .siamang-embed iframe { border-radius: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .siamang-embed__facade,
+  .siamang-embed__glyph,
+  .sd-choice-play { transition: none; }
+  .siamang-embed__facade:hover .siamang-embed__glyph { transform: none; }
+}
+/* Forced colors drop the backgrounds: the box and the buttons keep a border,
+   the glyph the system's button text. */
+@media (forced-colors: active) {
+  .siamang-embed__facade,
+  .sd-choice-play { border: 1px solid ButtonText; }
+  .siamang-embed__glyph { border: 2px solid ButtonText; }
+  .siamang-embed__glyph svg,
+  .sd-choice-play svg { fill: ButtonText; }
+  .siamang-embed__facade:focus-visible,
+  .sd-choice-play:focus-visible,
+  .siamang-player-dialog__close:focus-visible { outline-color: CanvasText; }
+}
+
 /* ─── Saving indicator ────────────────────────────────────────────── */
 /* A box of no height right above the page card; "Saving…" hangs from it at
    the right, in the space the progress bar, the dots or the header leave

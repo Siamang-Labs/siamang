@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A YouTube or Vimeo video plays when the respondent presses play.** A
+  question's or an answer option's media can be a video of kind `embed`:
+  `Media("", kind="embed", provider="youtube", id="aBcDeFgHiJ0")` (`"vimeo"`
+  with the video's number; `key=` an unlisted Vimeo video's hash, `start=` a
+  second to start at, `aspect=` `"16:9"`, `"9:16"`, `"4:3"` or `"1:1"`). The
+  player is built from the provider and the id — on YouTube's
+  privacy-enhanced host (`www.youtube-nocookie.com/embed/ID?autoplay=1&rel=0&playsinline=1`)
+  or Vimeo's player with Do Not Track (`player.vimeo.com/video/ID?h=KEY&dnt=1&autoplay=1`),
+  `Media.player_src` — never from `url`, which is the video's page for a
+  person (filled in when empty). The kind is never inferred, and `Media`,
+  the document's JSON Schema and the runtime each check the provider's id
+  (eleven letters, digits, `-` or `_` on YouTube, digits on Vimeo), the hash,
+  a start of 0–86400 s and the shape.
+  - The respondent sees a play button in a box of the player's shape, at
+    least 200 × 200 px (a 16:9 player on a 320 px phone would be under
+    200 px tall), named
+    "Play video: *alt*" (the caption, then the question's title, without
+    one) and saying "Plays from YouTube when you press play". Nothing is
+    requested from YouTube or Vimeo before the press: no thumbnail, no
+    preconnect. The press puts the player in its place, with the provider's
+    own `allow` list (`siamang.core.media.PLAYER_ALLOW`, the list a body's
+    players already had), `allowfullscreen` and
+    `referrerpolicy="strict-origin-when-cross-origin"`, and moves the focus to
+    it; it starts where the browser allows.
+  - An option's video (radio buttons, buttons, checkboxes) is a Play button
+    beside the option, outside its label: the choice is still named after
+    the option alone, and pressing Play never chooses it. Play opens the
+    player in a native `<dialog>` named after the video: its alt text, else
+    its caption, else the option ("Play video: Acme"). Escape or Close closes
+    it and stops the video, the focus returns to the button, one player plays
+    at a time, and Escape there does not go back a page. In a
+    "buttons" list the option keeps the list's width beside its Play button.
+  - The Play button's glyph and ring, and the play box's circle, take the
+    accent mixed toward the text color on the dark theme, as the focus ring
+    does (3:1 or more); the boxes tint on hover only where the pointer can
+    hover, so a phone's last tap leaves none tinted.
+  - A page that cannot play a video says so: in a design preview
+    (`window.SIAMANG_DESIGN`) the box reads "This preview can't play
+    videos." and the runtime posts `{type: "siamang:embed-blocked", provider}`
+    to its host; in a sandboxed page (an opaque origin, where a player gets no
+    referrer and refuses to play) the press opens the video's page on YouTube
+    or Vimeo in a new tab, with `opener` cleared.
+  - Four wording fields: `media_play_text` ("Play video"),
+    `media_loads_from_text` ("Plays from {service} when you press play"),
+    `media_close_text` ("Close") and `media_preview_blocked_text` ("This
+    preview can't play videos.").
+  - The code generator writes the new fields, and a document round-trips
+    through Python unchanged. A document without an embed is written as
+    before, and any other address — `http(s)`, `data:`, relative — loads as
+    before.
+
+- **`click_to_play`** (`FrontendBuilder(click_to_play=True)`,
+  `RuntimeRenderContext.click_to_play`; off by default): a page body's
+  YouTube and Vimeo players wait for a press as a question's video does —
+  each becomes the same play button, in a box of the frame's
+  `width`/`height` shape, named after its `title` (an untitled player, which
+  the sanitizer titles "YouTube video player", shows no title and is named
+  "Play video: YouTube video"), its address kept on the box and checked
+  again when pressed (`SURVEY.clickToPlay`); a Vimeo player then loads with
+  `dnt=1` alone, whatever `dnt` the body repeated. Off, a body's players are
+  frames, as before.
+
+- **`siamang.frontend.csp.media_uses(document)` and `media_sources(document)`**:
+  every picture, sound, video and player a questionnaire document holds for
+  its pages — each question's media (in blocks too), each option's and
+  conjoint level's (also the ones a page never draws, such as an option's in
+  a dropdown), the logo, what each page's body loads once sanitized (`<img>` and
+  its `srcset`, a `<picture>`'s sources, a poster, `<video>`, `<audio>`,
+  their `<source>` and `<track>`, players) and every `url()` of the custom
+  stylesheet outside `@font-face` and `@import` — as `MediaUse(pointer,
+  where, directive, url, kind)` with a JSON pointer into the document, and
+  the sources of `img-src`, `media-src` and `frame-src` they need
+  (`MediaSources`: origins, `data:` for a picture in the document). With
+  `survey_csp(page, img_src=…, media_src=…, frame_src=…)` a survey loads its
+  own media and nothing else; a survey without a player gets
+  `frame-src 'none'`. Neither function judges an address.
+
 ## [0.6.5] — 2026-10-21
 
 ### Added

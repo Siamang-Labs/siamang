@@ -35,6 +35,13 @@ class RuntimeRenderContext:
     what the runtime needs and builds one (``survey_csp``), and a host that
     writes the policy after the build puts it in the same place
     (``insert_csp_meta``).
+
+    ``click_to_play`` turns the YouTube and Vimeo players a page's body holds
+    into a play button that loads the player when it is pressed, as a
+    question's own video (media of kind ``"embed"``) always is: nothing is
+    requested from the provider before. Off, the default, a body's player is
+    a frame as the author wrote it (rebuilt by :mod:`siamang.core.safe_html`).
+    The React runtime reads it as ``SURVEY.clickToPlay``.
     """
 
     schema: SurveySchema
@@ -45,6 +52,7 @@ class RuntimeRenderContext:
     survey: Questionnaire | None = None
     font_base: str = FONT_BASE
     csp: str | None = None
+    click_to_play: bool = False
 
 
 class RuntimeAdapter(ABC):

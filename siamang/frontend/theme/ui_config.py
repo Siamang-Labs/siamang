@@ -199,6 +199,13 @@ class UIConfig:
     invalid_url_text: str | None = None  # "Please enter a valid web address (https://…)."
     invalid_date_text: str | None = None  # "Please enter a valid date."
     invalid_time_text: str | None = None  # "Please enter a valid time."
+    # A YouTube or Vimeo video (media of kind "embed"), shown as a play button:
+    media_play_text: str | None = None  # "Play video"
+    # "Plays from {service} when you press play" ({service}: YouTube or Vimeo)
+    media_loads_from_text: str | None = None
+    media_close_text: str | None = None  # "Close" — the video window of an option
+    # "This preview can't play videos." — a preview whose page cannot play one
+    media_preview_blocked_text: str | None = None
     # The end of the interview:
     response_id_text: str | None = None  # "Response ID"
     submitted_text: str | None = None  # "Submitted"

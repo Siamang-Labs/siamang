@@ -367,7 +367,9 @@ class _Generator:
     def _media(self, payload: dict[str, Any]) -> Node:
         self.imports.add("Media")
         kwargs: list[tuple[str, Node]] = []
-        for key in ("kind", "alt", "caption"):
+        # A YouTube or Vimeo video (kind "embed") names its provider and id,
+        # which its player is built from.
+        for key in ("kind", "provider", "id", "key", "start", "aspect", "alt", "caption"):
             if payload.get(key) is not None:
                 kwargs.append((key, literal(payload[key])))
         if payload.get("autoplay"):
@@ -376,7 +378,7 @@ class _Generator:
             kwargs.append(("loop", Raw("True")))
         if payload.get("controls") is False:
             kwargs.append(("controls", Raw("False")))
-        return Call("Media", (literal(payload["url"]),), tuple(kwargs))
+        return Call("Media", (literal(payload.get("url", "")),), tuple(kwargs))
 
     def _var_ref(self, name: str, where: str) -> Node:
         if name not in self.variables:

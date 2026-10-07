@@ -130,6 +130,11 @@ class ReactRuntime(RuntimeAdapter):
             },
         )
 
+        if context.click_to_play:
+            # A body's players wait for the respondent's press (the host's
+            # choice; a question's own video always does).
+            payload["SURVEY"]["clickToPlay"] = True
+
         # Get SRI hashes for the CDN version
         version_integrity = _REACT_INTEGRITY.get("18.3.1", {})
         react_integrity = version_integrity.get("react", "")

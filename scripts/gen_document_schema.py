@@ -18,6 +18,7 @@ import typing
 from pathlib import Path
 from typing import Any
 
+from siamang.core.media import EMBED_ASPECTS, EMBED_PROVIDERS, MAX_START
 from siamang.core.question import (
     Conjoint,
     LikertScale,
@@ -137,17 +138,62 @@ DEFS: dict[str, Any] = {
         ],
     },
     "media": {
+        "description": (
+            "A file (image, video, audio) the page loads from url, or a YouTube or Vimeo "
+            "video (kind embed) whose player is built from provider and id; its url is the "
+            "video's page."
+        ),
         "type": "object",
         "properties": {
             "url": NONEMPTY,
-            "kind": {"enum": ["image", "video", "audio"]},
+            "kind": {"enum": ["image", "video", "audio", "embed"]},
             "alt": STRING,
             "caption": STRING,
             "autoplay": BOOL,
             "loop": BOOL,
             "controls": BOOL,
+            "provider": {"enum": sorted(EMBED_PROVIDERS)},
+            "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+            "key": {"type": "string", "pattern": "^[0-9a-f]{6,64}$"},
+            "start": {"type": "integer", "minimum": 0, "maximum": MAX_START},
+            "aspect": {"enum": list(EMBED_ASPECTS)},
         },
         "required": ["url"],
+        "allOf": [
+            {
+                "if": {"properties": {"kind": {"const": "embed"}}, "required": ["kind"]},
+                "then": {
+                    "required": ["provider", "id"],
+                    "allOf": [
+                        {
+                            "if": {
+                                "properties": {"provider": {"const": "youtube"}},
+                                "required": ["provider"],
+                            },
+                            "then": {
+                                "properties": {"id": {"pattern": "^[A-Za-z0-9_-]{11}$"}},
+                                "not": {"required": ["key"]},
+                            },
+                        },
+                        {
+                            "if": {
+                                "properties": {"provider": {"const": "vimeo"}},
+                                "required": ["provider"],
+                            },
+                            "then": {"properties": {"id": {"pattern": "^[0-9]{1,20}$"}}},
+                        },
+                    ],
+                },
+                "else": {
+                    "not": {
+                        "anyOf": [
+                            {"required": [name]}
+                            for name in ("provider", "id", "key", "start", "aspect")
+                        ]
+                    }
+                },
+            }
+        ],
         "additionalProperties": False,
     },
     "option": {

@@ -657,33 +657,47 @@ q_color = sg.SingleChoice(
 
 ## `Media`
 
-An image, video, or audio attachment for a question (`media=`) or option.
+An image, video, or audio attachment for a question (`media=`) or option — or a
+YouTube or Vimeo video (`kind="embed"`).
 
 ```python
 @dataclass(frozen=True, slots=True)
 class Media:
     url: str
-    kind: str | None = None           # "image" | "video" | "audio"
+    kind: str | None = None           # "image" | "video" | "audio" | "embed"
     alt: str | None = None
     caption: str | None = None
     autoplay: bool = False
     loop: bool = False
     controls: bool = True
+    provider: str | None = None       # embed: "youtube" | "vimeo"
+    id: str | None = None             # embed: the video's id
+    key: str | None = None            # embed: an unlisted Vimeo video's hash
+    start: int | None = None          # embed: start at this second (0–86400)
+    aspect: str | None = None         # embed: "16:9" | "9:16" | "4:3" | "1:1"
 ```
 
 | Field | Default | Description |
 | :--- | :--- | :--- |
-| `url` | *required* | URL to the media file. Non-empty. |
-| `kind` | `None` | `"image"`/`"video"`/`"audio"`; inferred from the URL extension if omitted. |
-| `alt` | `None` | Accessibility text (HTML `alt`). |
+| `url` | *required* (`""` allowed for an embed) | URL to the media file. Non-empty, except for an embed, where an empty URL is filled in with the video's page. |
+| `kind` | `None` | `"image"`/`"video"`/`"audio"`, inferred from the URL extension if omitted; `"embed"` is never inferred. |
+| `alt` | `None` | Accessibility text (HTML `alt`; an embed's play button and player are named after it). |
 | `caption` | `None` | Caption shown beneath the media. |
-| `autoplay` | `False` | Auto-play video/audio when visible. |
-| `loop` | `False` | Loop playback. |
-| `controls` | `True` | Show playback controls. |
+| `autoplay` | `False` | Auto-play video/audio when visible (a file only). |
+| `loop` | `False` | Loop playback (a file only). |
+| `controls` | `True` | Show playback controls (a file only). |
+| `provider` | `None` | An embed's video service: `"youtube"` or `"vimeo"`. |
+| `id` | `None` | The video's id: eleven letters, digits, `-` or `_` on YouTube; digits on Vimeo. |
+| `key` | `None` | An unlisted Vimeo video's hash (the second part of its link, or its `h=`): 6–64 of `0-9a-f`. |
+| `start` | `None` | Where the video starts, in whole seconds (0–86400). |
+| `aspect` | `None` | The player's shape; `"16:9"` when omitted (`"9:16"` for a Shorts video). |
 
 `kind` is inferred from the file extension (`png`/`jpg`/… → image, `mp4`/`webm`/… →
-video, `mp3`/`wav`/… → audio). A URL **without a recognisable extension** requires
+video, `mp3`/`wav`/… → audio). A URL **without a recognizable extension** requires
 `kind` to be passed explicitly, otherwise construction raises `ValueError`.
+The address is not judged: any `http(s)` or `data:` address (or a relative
+one) loads from wherever it points, as the page's `img-src` and `media-src`
+allow.
 
 ```python
 from siamang.core import Media
@@ -696,6 +710,57 @@ q_clip = sg.SingleChoice(
 # Extensionless URL: kind is required
 logo = Media("https://cdn.example.com/asset?id=42", kind="image", alt="Brand logo")
 ```
+
+### YouTube and Vimeo videos (`kind="embed"`)
+
+A YouTube or Vimeo video names its provider and its id; the player is built
+from them (`Media.player_src`), never from `url`:
+
+```python
+intro = Media("", kind="embed", provider="youtube", id="aBcDeFgHiJ0", start=62,
+              alt="How the study works")
+intro.url         # 'https://www.youtube.com/watch?v=aBcDeFgHiJ0' (filled in)
+intro.player_src  # 'https://www.youtube-nocookie.com/embed/aBcDeFgHiJ0?autoplay=1&rel=0&playsinline=1&start=62'
+
+unlisted = Media("", kind="embed", provider="vimeo", id="123456789", key="0a1b2c3d4e")
+unlisted.player_src  # 'https://player.vimeo.com/video/123456789?h=0a1b2c3d4e&dnt=1&autoplay=1'
+```
+
+The respondent sees a **play button** in a box of the player's shape (at least
+200 × 200 px), named "Play video: *alt*" (the caption, then the question's
+title, when there is no alt) and saying "Plays from YouTube when you press
+play". Nothing is requested from YouTube or Vimeo before the press — no
+thumbnail, no preconnect. Pressed, the button becomes the player, on
+YouTube's privacy-enhanced host (`www.youtube-nocookie.com`) or Vimeo's
+player with Do Not Track (`dnt=1`), with the provider's own `allow` list
+(`siamang.core.media.PLAYER_ALLOW`), `allowfullscreen` and
+`referrerpolicy="strict-origin-when-cross-origin"`, which both players need;
+it starts at once where the browser allows (iOS may ask for a second tap on
+the player), and the focus moves to it. `autoplay`, `loop` and `controls`
+are a file's and are ignored for an embed.
+
+An answer option's video (`SingleChoice` and `MultiChoice` as radio buttons,
+buttons or checkboxes) is a small **Play** button beside the option, outside
+its label: the choice keeps the option's name and pressing Play never
+chooses it. Play opens the player in a window over the page (a native
+`<dialog>` named after the video's alt text, else its caption, else the
+option, as in "Play video: Acme": Escape or **Close** closes it, which stops the
+video, and the focus returns to the button; one player at a time). `ImageChoice` draws
+pictures only, and a dropdown, `Matrix`, `Ranking`, `MaxDiff` and `Conjoint`
+draw no option media, as before.
+
+A page that cannot play a video says so instead: in a design preview
+(`window.SIAMANG_DESIGN`) the box reads "This preview can't play videos."
+and the runtime posts `{type: "siamang:embed-blocked", provider}` to the
+host; in a sandboxed page (an opaque origin, where a player gets no referrer
+and refuses to play) the press opens the video's page on YouTube or Vimeo
+in a new tab. The four phrases are the survey's wording
+([[Frontend and Theming|Frontend-and-Theming]]).
+
+In a document (`siamang.model`), an embed is
+`{"kind": "embed", "provider": "youtube", "id": "aBcDeFgHiJ0", "start": 62, "url": "https://www.youtube.com/watch?v=aBcDeFgHiJ0"}`;
+the JSON Schema checks each provider's id (and refuses a `key` on YouTube,
+and `provider`, `id`, `key`, `start` and `aspect` on a file).
 
 ## See also
 

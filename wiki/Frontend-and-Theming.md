@@ -212,6 +212,33 @@ Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`
 `stylesheet`, `static_assets`) — see
 [`docs/reference/frontend.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/frontend.md).
 
+### YouTube and Vimeo videos wait for a press
+
+A question's or an option's YouTube or Vimeo video (`Media(kind="embed")`, see
+[[Question Types|Question-Types]]) is a play button until the respondent presses
+it: nothing is requested from the provider before. The press loads the player on
+`www.youtube-nocookie.com` or `player.vimeo.com` (with `dnt=1`), its address built
+from the provider and the video's id, never from the media's url.
+
+A page body's players — the YouTube and Vimeo frames the sanitizer keeps — are frames
+as the author wrote them, unless the host asks otherwise:
+`FrontendBuilder(click_to_play=True)` (or `RuntimeRenderContext(click_to_play=True)`)
+sets `SURVEY.clickToPlay`, and each body player becomes the same play button, in a box
+of the frame's `width`/`height` shape (16:9 without them; 200 px each way at the
+least), named after its `title` (an untitled player — the sanitizer titles it "YouTube
+video player" — shows no title and is named "Play video: YouTube video"). The frame's
+address is kept on the box and checked again when the button is pressed; the player
+then starts at once (`autoplay=1`, and `dnt=1` alone on Vimeo, whatever `dnt` the body
+repeated). It is off by default: a body's players are frames, as before.
+
+A page that cannot play a video — the player gets no referrer there, and YouTube and
+Vimeo refuse it — says so: in a design preview (`window.SIAMANG_DESIGN`) the box reads
+`media_preview_blocked_text` and the runtime posts
+`{source: "siamang-runtime", type: "siamang:embed-blocked", provider}` to its host; in
+a sandboxed page (`window.origin` is `"null"`, such as a page served in a sandboxed
+iframe or under a CSP `sandbox`) the press opens the video's page on YouTube or Vimeo
+in a new tab, with no way back to the survey's (`opener` cleared), and says it cannot
+play when the browser refuses the tab.
 
 ### A Content-Security-Policy for the bundle
 
@@ -238,13 +265,49 @@ the React runtime needs:
 | `script-src` | `'self'`, `'unsafe-eval'`, the inline script's hash (or `'unsafe-inline'` without `page`), Turnstile with `captcha=True` | `bundle.js`, `vendor/react*.js`, `env.js`; `window.SURVEY`/`window.PAGES` (`inline_script_hashes`). **`'unsafe-eval'` is required**: show/hide and routing conditions are compiled with `new Function` and custom scripts run as an `AsyncFunction` — without it every condition reads as true (a `show_if` always shows, a `hide_if` always hides, the first routing rule wins) and no custom script runs. With the hash and no `'unsafe-inline'`, no inline handler or `javascript:` address can run. |
 | `style-src` | `'self' 'unsafe-inline'` | `style.css`; a body's `style=""`. |
 | `font-src` | `'self'` | The bundled typefaces in `fonts/`; add the hosts a custom stylesheet's `@font-face` uses. |
-| `img-src`, `media-src` | `'self' https: data:` | The logo, a question's and an option's media, a body's pictures and media (narrow them to a list of hosts of your own). |
-| `frame-src` | `https://www.youtube-nocookie.com https://player.vimeo.com` (+ Turnstile) | The players a body may hold. |
+| `img-src`, `media-src` | `'self' https: data:` | The logo, a question's and an option's media, a body's pictures and media (narrow them to the survey's own, below). |
+| `frame-src` | `https://www.youtube-nocookie.com https://player.vimeo.com` (+ Turnstile) | The players a question, an option or a body may hold. |
 | `connect-src` | `'self'` + the ingest origin | Where `env.js` sends the answers, and a custom script's `api.get`/`api.post`. |
 | `object-src`, `base-uri`, `form-action` | `'none'` | The runtime has no plug-in, `<base>` or `<form>`. |
 
 A `<meta>` policy cannot carry `frame-ancestors`, `report-to` or `sandbox`; send those
 as a header (both are enforced, the stricter winning).
+
+#### The media a survey uses
+
+`siamang.frontend.csp.media_uses(document)` lists every picture, sound, video and
+player a questionnaire document holds for its pages (an option's media in a dropdown
+and a conjoint level's too, which a page never draws), as `MediaUse(pointer, where,
+directive, url, kind)`:
+
+| Field | What |
+| :--- | :--- |
+| `pointer` | A JSON pointer into the document: `/pages/0/items/2/media/0`, `/pages/0/items/2/choices/1/media`, `/pages/1/items/0/attributes/0/levels/2/media`, `/ui/logo_url`, `/pages/3/body`, `/ui/custom_css` |
+| `where` | `question`, `option` (an answer option or a conjoint level), `logo`, `body`, `css` |
+| `directive` | `img-src` (pictures, a video's poster, the logo, a stylesheet's `url()`), `media-src` (video, audio, a `<source>` or `<track>` of one), `frame-src` (players) |
+| `url` | What the page loads: a file's address as written; an embed's player (`Media.player_src`); a body's address as `sanitize_html` keeps it (one use per `srcset` candidate); a stylesheet's `url()` outside `@font-face` and `@import` |
+| `kind` | `image`, `video`, `audio` or `embed`; `None` in a body or a stylesheet |
+
+It walks every question (a block's and a nested block's too), each option's and
+level's media, the logo, each page's body and the custom stylesheet, and passes over
+what is not a media a page could show. `media_sources(document)` turns them into the
+sources of each directive — `MediaSources(img, media, frame)`, sorted, each once: the
+origin of each `http(s)` address (`https` for a protocol-relative one), `data:` for a
+picture written into the document; nothing for a relative address (the page's own
+`'self'`). A policy that lets the survey load its own media and nothing else:
+
+```python
+from siamang.frontend.csp import insert_csp_meta, media_sources, survey_csp
+
+sources = media_sources(document)
+policy = survey_csp(page, connect_src=[ingest], img_src=sources.img,
+                    media_src=sources.media, frame_src=sources.frame)
+page = insert_csp_meta(page, policy)
+```
+
+A survey without players gets `frame-src 'none'`. Neither function judges an address:
+which hosts a survey may use is the host's own policy.
+
 ---
 
 ## Backend client templates
@@ -477,6 +540,9 @@ language. In a template, `{name}` is replaced by the value named (`{page}`, `{pa
 | `not_applicable_text` | `Not applicable` | `na_option=True` on a Likert scale or a matrix (a string `na_option` wins) |
 | `chars_remaining_text` | `{n} characters remaining` | an open answer near `max_chars` |
 | `ranking_hint_text` / `ranking_remaining_text` | `Tap or drag to rank` / `Remaining options` | a ranking |
+| `media_play_text` / `media_loads_from_text` | `Play video` / `Plays from {service} when you press play` | a YouTube or Vimeo video's play button: its name ("Play video: *alt*") and the line under it (`{service}`: YouTube or Vimeo) |
+| `media_close_text` | `Close` | the window an option's video plays in |
+| `media_preview_blocked_text` | `This preview can't play videos.` | a preview that cannot play a video (a design preview, a sandboxed page that cannot open the video's page) |
 | `resume_title` / `resume_action` / `restart_action` | `We saved your progress from earlier. Would you like to resume?` / `Resume` / `Start over` | the resume banner |
 | `retry_title` / `retry_body` / `retry_action` / `save_local_action` / `attempt_text` | `Submission failed` / `We could not save your responses.` / `Try again` / `Save locally and finish` / `Attempt {n} of {max}.` | a failed submission |
 | `completion_title` / `completion_body` | `Thank you for participating` / the `completion_text` option (`Thank you for your participation!`) | the completion screen; `completion_body` wins over `completion_text` |

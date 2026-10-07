@@ -31,11 +31,16 @@ class FrontendBuilder:
 
     ``csp`` is a Content-Security-Policy the bundle's pages carry in a
     ``<meta>`` (:mod:`siamang.frontend.csp`); None, the default, writes none.
+
+    ``click_to_play`` (off by default) shows the YouTube and Vimeo players of
+    a page's body as a play button that loads the player when pressed
+    (:class:`~siamang.frontend.runtime.base.RuntimeRenderContext`).
     """
 
     runtime: RuntimeAdapter = None  # type: ignore[assignment]
     ui: UIConfig = None  # type: ignore[assignment]
     csp: str | None = None
+    click_to_play: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "runtime", self.runtime or SurveyJSRuntime())
@@ -64,6 +69,7 @@ class FrontendBuilder:
             survey_id=env.survey_id,
             survey=survey,
             csp=self.csp,
+            click_to_play=self.click_to_play,
         )
 
         # Runtime can provide its own stylesheet (full design system); the

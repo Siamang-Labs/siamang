@@ -344,6 +344,13 @@ q_color = sg.SingleChoice(
 `mp4/webm/...` → video, `mp3/wav/...` → audio). The library refuses to
 guess for URLs without an extension — pass `kind=` explicitly.
 
+A YouTube or Vimeo video is `Media("", kind="embed", provider="youtube",
+id="aBcDeFgHiJ0")` (`provider="vimeo"` with the video's number, and `key=`
+for an unlisted one). The respondent sees a play button; the player, on
+YouTube's privacy-enhanced host or Vimeo's with Do Not Track, loads only
+when it is pressed. An option's video is a Play button beside the option
+that opens the player in a window.
+
 ---
 
 ## Quotas

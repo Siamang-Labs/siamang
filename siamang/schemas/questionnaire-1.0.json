@@ -190,6 +190,7 @@
       ]
     },
     "media": {
+      "description": "A file (image, video, audio) the page loads from url, or a YouTube or Vimeo video (kind embed) whose player is built from provider and id; its url is the video's page.",
       "type": "object",
       "properties": {
         "url": {
@@ -200,7 +201,8 @@
           "enum": [
             "image",
             "video",
-            "audio"
+            "audio",
+            "embed"
           ]
         },
         "alt": {
@@ -217,10 +219,133 @@
         },
         "controls": {
           "type": "boolean"
+        },
+        "provider": {
+          "enum": [
+            "vimeo",
+            "youtube"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{6,64}$"
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "aspect": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "4:3",
+            "1:1"
+          ]
         }
       },
       "required": [
         "url"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "embed"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "provider",
+              "id"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "provider": {
+                      "const": "youtube"
+                    }
+                  },
+                  "required": [
+                    "provider"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "id": {
+                      "pattern": "^[A-Za-z0-9_-]{11}$"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "key"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "provider": {
+                      "const": "vimeo"
+                    }
+                  },
+                  "required": [
+                    "provider"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "id": {
+                      "pattern": "^[0-9]{1,20}$"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "provider"
+                  ]
+                },
+                {
+                  "required": [
+                    "id"
+                  ]
+                },
+                {
+                  "required": [
+                    "key"
+                  ]
+                },
+                {
+                  "required": [
+                    "start"
+                  ]
+                },
+                {
+                  "required": [
+                    "aspect"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ],
       "additionalProperties": false
     },
@@ -2498,6 +2623,46 @@
           ]
         },
         "invalid_time_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "media_play_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "media_loads_from_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "media_close_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "media_preview_blocked_text": {
           "anyOf": [
             {
               "type": "string"

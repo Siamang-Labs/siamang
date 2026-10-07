@@ -23,10 +23,15 @@ function visibleOptions(q, answers) {
   return opts.filter((opt) => gateOption(opt, answers));
 }
 
-/* Render one media attachment as <img>/<video>/<audio>. Authors should keep
-   media URLs trusted; the runtime does not sanitise them. */
-function MediaItem({ media }) {
-  if (!media || !media.url) return null;
+/* Render one media attachment as <img>/<video>/<audio>, or a YouTube or
+   Vimeo video (kind "embed") as a play button (EmbedMedia). Authors should
+   keep media URLs trusted; the runtime does not sanitize a file's. `name` is
+   what a video's play button is called after when the media has no alt text
+   or caption (the question's title). */
+function MediaItem({ media, name }) {
+  if (!media) return null;
+  if (media.kind === "embed") return <EmbedMedia media={media} name={name} />;
+  if (!media.url) return null;
   const caption = media.caption ? <figcaption className="siamang-media__caption">{media.caption}</figcaption> : null;
   const wrap = (el) => (
     <figure className={"siamang-media siamang-media--" + media.kind}>
@@ -62,15 +67,269 @@ function MediaItem({ media }) {
   return null;
 }
 
-function MediaGallery({ media }) {
+function MediaGallery({ media, name }) {
   if (!media) return null;
   const items = Array.isArray(media) ? media : [media];
   if (!items.length) return null;
   return (
     <div className="siamang-media-gallery">
-      {items.map((m, i) => <MediaItem key={i} media={m} />)}
+      {items.map((m, i) => <MediaItem key={i} media={m} name={name} />)}
     </div>
   );
+}
+
+/* ─── YouTube and Vimeo videos ────────────────────────────────────────────
+   A video of kind "embed" names its provider and its id. The player's
+   address is built here from them, checked again — never from the media's
+   url, which is the video's page for a person to read — and nothing is
+   requested from the provider until the respondent presses play: no
+   thumbnail, no preconnect. The press loads the player on YouTube's
+   privacy-enhanced host or Vimeo's player with Do Not Track, with the
+   provider's own `allow` list and the referrer policy its player needs. */
+const _EMBED_START_MAX = 86400;
+const EMBED = Object.freeze({
+  youtube: Object.freeze({
+    label: "YouTube",
+    origin: "https://www.youtube-nocookie.com",
+    id: /^[A-Za-z0-9_-]{11}$/,
+    allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; "
+      + "picture-in-picture; web-share; fullscreen",
+    src: (m) => "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(m.id)
+      + "?autoplay=1&rel=0&playsinline=1" + (m.start ? "&start=" + m.start : ""),
+    watch: (m) => "https://www.youtube.com/watch?v=" + encodeURIComponent(m.id)
+      + (m.start ? "&t=" + m.start : ""),
+  }),
+  vimeo: Object.freeze({
+    label: "Vimeo",
+    origin: "https://player.vimeo.com",
+    id: /^[0-9]{1,20}$/,
+    key: /^[0-9a-f]{6,64}$/,
+    allow: "autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share",
+    src: (m) => "https://player.vimeo.com/video/" + encodeURIComponent(m.id) + "?"
+      + (m.key ? "h=" + encodeURIComponent(m.key) + "&" : "") + "dnt=1&autoplay=1"
+      + (m.start ? "#t=" + m.start + "s" : ""),
+    watch: (m) => "https://vimeo.com/" + encodeURIComponent(m.id)
+      + (m.key ? "/" + encodeURIComponent(m.key) : "") + (m.start ? "#t=" + m.start + "s" : ""),
+  }),
+});
+const _EMBED_SHAPES = { "16:9": "wide", "9:16": "portrait", "4:3": "classic", "1:1": "square" };
+
+/* The video a media of kind "embed" plays — its provider's entry, the
+   player's address, the video's page and the box's shape — or null (with a
+   warning) when the provider is unknown or the id is not one of its ids. */
+function embedOf(media) {
+  if (!media || media.kind !== "embed") return null;
+  const provider = media.provider;
+  const p = typeof provider === "string" && Object.prototype.hasOwnProperty.call(EMBED, provider)
+    ? EMBED[provider] : null;
+  const id = typeof media.id === "string" ? media.id : "";
+  const key = provider === "vimeo" && typeof media.key === "string" ? media.key : "";
+  if (!p || !p.id.test(id) || (key && !p.key.test(key))) {
+    try { console.warn("siamang: not a YouTube or Vimeo video, nothing shown:", provider, media.id); } catch (e) { /* no console */ }
+    return null;
+  }
+  const start = Number.isInteger(media.start) && media.start > 0 && media.start <= _EMBED_START_MAX
+    ? media.start : 0;
+  const video = { id, key, start };
+  return {
+    provider, label: p.label, allow: p.allow,
+    src: p.src(video), watch: p.watch(video),
+    shape: _EMBED_SHAPES[media.aspect] || "wide",
+  };
+}
+
+/* What a press of play does where the page is. In a design preview (a
+   host's editor, `window.SIAMANG_DESIGN`) a player cannot play — it gets no
+   referrer from the preview's page, and YouTube and Vimeo refuse it — so the
+   box says so and the host is told. In a sandboxed page (an opaque origin,
+   such as a page served in a sandboxed iframe or under a CSP `sandbox`) the
+   same holds, and the video opens on the provider's site instead. */
+function embedPlace() {
+  if (typeof window === "undefined") return "play";
+  if (window.SIAMANG_DESIGN) return "design";
+  if (window.origin === "null") return "away";
+  return "play";
+}
+/* The video's page in a new tab, with no way back to this one; false when the
+   browser refused the tab. */
+function openVideoPage(url) {
+  let tab = null;
+  try { tab = window.open(url, "_blank"); } catch (e) { tab = null; }
+  if (!tab) return false;
+  try { tab.opener = null; } catch (e) { /* cross-origin already */ }
+  return true;
+}
+/* What a press does: "play" (show the player), or "blocked" (say this
+   preview cannot), or nothing ("away": the video opened in a tab). */
+function pressPlay(provider, page) {
+  const place = embedPlace();
+  if (place === "design") {
+    postToDesignHost({ type: "siamang:embed-blocked", provider: provider });
+    return "blocked";
+  }
+  if (place === "away") return openVideoPage(page) ? "away" : "blocked";
+  return "play";
+}
+
+/* The player: the provider's frame, from the address embedOf built. */
+function playerFrame(src, allow, title) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("src", src);
+  frame.setAttribute("title", title);
+  frame.setAttribute("allow", allow);
+  frame.setAttribute("allowfullscreen", "");
+  frame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+  return frame;
+}
+
+const _PLAY_GLYPH = "M8 5.14v13.72a1 1 0 0 0 1.52.85l11.03-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z";
+function PlayGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={_PLAY_GLYPH} /></svg>
+  );
+}
+
+/* A question's video: the play button, the player once it is pressed. */
+function EmbedMedia({ media, name }) {
+  const embed = embedOf(media);
+  const [state, setState] = useState("idle");
+  const frameRef = useRef(null);
+  const fromId = React.useId();
+  useEffect(() => {
+    if (state === "play" && frameRef.current) frameRef.current.focus();
+  }, [state]);
+  if (!embed) return null;
+  const texts = runtimeTexts();
+  const own = media.alt || media.caption || "";
+  const press = () => {
+    const next = pressPlay(embed.provider, embed.watch);
+    if (next !== "away") setState(next);
+  };
+  return (
+    <figure className="siamang-media siamang-media--embed">
+      <div className={"siamang-embed siamang-embed--" + embed.shape}>
+        {state === "play" ? (
+          <iframe
+            ref={frameRef}
+            src={embed.src}
+            title={own || embed.label + " video"}
+            allow={embed.allow}
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        ) : (
+          <button
+            type="button"
+            className="siamang-embed__facade"
+            aria-label={texts.mediaPlay + ": " + (own || name || embed.label)}
+            aria-describedby={fromId}
+            onClick={press}
+          >
+            <span className="siamang-embed__glyph"><PlayGlyph /></span>
+            {own ? <span className="siamang-embed__title">{own}</span> : null}
+            <span className="siamang-embed__from" id={fromId}>
+              {fillText(texts.mediaLoadsFrom, { service: embed.label })}
+            </span>
+          </button>
+        )}
+        <span className="siamang-embed__note" role="status">
+          {state === "blocked" ? texts.mediaPreviewBlocked : ""}
+        </span>
+      </div>
+      {media.caption ? <figcaption className="siamang-media__caption">{media.caption}</figcaption> : null}
+    </figure>
+  );
+}
+
+/* An answer option's video: a Play button beside the option, outside its
+   label — so the choice keeps the option's name and pressing play never
+   chooses it — that opens the player in a window over the page. One player
+   at a time: opening one closes the last; closing it removes the player,
+   which stops it, and gives the focus back to the button. */
+let __playerDialog = null;
+function closePlayerDialog() {
+  if (__playerDialog && __playerDialog.open) __playerDialog.close();
+}
+function openPlayerDialog(embed, title, opener, blocked) {
+  closePlayerDialog();
+  const texts = runtimeTexts();
+  const dialog = document.createElement("dialog");
+  dialog.className = "siamang-player-dialog";
+  // Named as the button that opened it ("Play video: Acme"), so a screen
+  // reader says it holds a video, not just the option's label.
+  dialog.setAttribute("aria-label", texts.mediaPlay + ": " + title);
+  const bar = document.createElement("div");
+  bar.className = "siamang-player-dialog__bar";
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "siamang-player-dialog__close";
+  close.textContent = texts.mediaClose;
+  close.addEventListener("click", () => dialog.close());
+  bar.appendChild(close);
+  const box = document.createElement("div");
+  box.className = "siamang-embed siamang-embed--" + embed.shape;
+  if (blocked) {
+    const note = document.createElement("p");
+    note.className = "siamang-embed__note is-shown";
+    note.setAttribute("role", "status");
+    note.textContent = texts.mediaPreviewBlocked;
+    box.appendChild(note);
+  } else {
+    box.appendChild(playerFrame(embed.src, embed.allow, title));
+  }
+  dialog.appendChild(bar);
+  dialog.appendChild(box);
+  // Its keys are its own: Escape closes it (and does not go back a page),
+  // Enter and the digits do nothing to the survey under it.
+  dialog.addEventListener("keydown", (e) => e.stopPropagation());
+  // A press outside the window (on its backdrop) closes it too.
+  dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+  dialog.addEventListener("close", () => {
+    dialog.remove();
+    if (__playerDialog === dialog) __playerDialog = null;
+    if (opener && opener.isConnected) opener.focus();
+  });
+  document.body.appendChild(dialog);
+  __playerDialog = dialog;
+  dialog.showModal();
+  return dialog;
+}
+
+function OptionPlay({ media, name }) {
+  const embed = embedOf(media);
+  if (!embed) return null;
+  const texts = runtimeTexts();
+  const label = texts.mediaPlay + ": " + (name || media.alt || embed.label);
+  const press = (e) => {
+    const opener = e.currentTarget;
+    const next = pressPlay(embed.provider, embed.watch);
+    if (next === "away") return;
+    const title = media.alt || media.caption || name || embed.label + " video";
+    openPlayerDialog(embed, title, opener, next === "blocked");
+  };
+  return (
+    <button type="button" className="sd-choice-play" aria-label={label} title={label} onClick={press}>
+      <PlayGlyph />
+    </button>
+  );
+}
+
+/* An option's row (its <label>) as it was, or — the option has a video —
+   the row and the video's Play button side by side. */
+function withPlay(row, opt, pipe) {
+  if (!opt.media || opt.media.kind !== "embed") return row;
+  return (
+    <div className="sd-choice-row" key={row.key}>
+      {row}
+      <OptionPlay media={pipedMedia(opt.media, pipe)} name={pipe(opt.label)} />
+    </div>
+  );
+}
+/* The media an option shows inside its label: a file's (a video's is a Play
+   button beside it). */
+function rowMedia(opt, pipe) {
+  if (!opt.media || opt.media.kind === "embed") return null;
+  return <MediaItem media={pipedMedia(opt.media, pipe)} />;
 }
 
 /* Piping: {answer:x} / {var:x} insert the raw answer to variable x,
@@ -329,7 +588,143 @@ function cleanBodyFragment(html) {
       }
     }
   }
+  if ((window.SURVEY || {}).clickToPlay) bodyPlayersWaitForPress(template.content);
   return template.content;
+}
+
+/* With the host's clickToPlay (SURVEY.clickToPlay), a body's YouTube and
+   Vimeo players wait for the respondent as a question's video does: each
+   kept player becomes the same play button, in a box of the frame's shape
+   (its width and height, 16:9 without them; 200 px at the least), its
+   address kept on the box (data-src) and checked again when it is pressed
+   (onBodyPress). The <template>'s content is inert: nothing has loaded the
+   frame meanwhile. Without the flag a body's players are frames, as the
+   compiler wrote them. */
+const _BODY_FACADES = new WeakSet();
+/* The title the compiler's sanitizer writes on a player that had none
+   (siamang.core.safe_html _PLAYER_TITLES). */
+const _BODY_PLAYER_TITLES = Object.freeze({ youtube: "YouTube video player", vimeo: "Vimeo video player" });
+const _PIXELS = /^\s*\d+(?:\.\d+)?\s*(?:px)?\s*$/;
+let _bodyFacades = 0;
+function bodyPlayerProvider(src) {
+  if (typeof src !== "string" || !_BODY_PLAYER.test(src)) return null;
+  let url = null;
+  try { url = new URL(src); } catch (e) { return null; }
+  const parts = url.pathname.split("/").filter(Boolean);
+  if (url.host === "www.youtube-nocookie.com" && parts[0] === "embed"
+      && /^[A-Za-z0-9_-]{1,64}$/.test(parts[1] || "")) return "youtube";
+  if (url.host === "player.vimeo.com" && parts[0] === "video" && EMBED.vimeo.id.test(parts[1] || "")) return "vimeo";
+  return null;
+}
+/* The video's own page, for a page that cannot play it. */
+function bodyVideoPage(src, provider) {
+  const url = new URL(src);
+  const id = url.pathname.split("/").filter(Boolean)[1];
+  if (provider === "youtube") {
+    const list = url.searchParams.get("list");
+    if (id === "videoseries" && list) return "https://www.youtube.com/playlist?list=" + encodeURIComponent(list);
+    const start = parseInt(url.searchParams.get("start") || "", 10);
+    return EMBED.youtube.watch({ id, start: start > 0 && start <= _EMBED_START_MAX ? start : 0 });
+  }
+  const key = url.searchParams.get("h") || "";
+  return "https://vimeo.com/" + encodeURIComponent(id)
+    + (EMBED.vimeo.key.test(key) ? "/" + key : "") + (/^#t=[0-9hms.]+$/.test(url.hash) ? url.hash : "");
+}
+/* `src` with name=value in its query, its fragment kept. A name already there
+   keeps its place and takes this value, and any repeat of it goes: a
+   player written with dnt=0&dnt=0 loads with dnt=1 alone, not dnt=1&dnt=0. */
+function withParam(src, name, value) {
+  let url = null;
+  try { url = new URL(src); } catch (e) { return src; }
+  url.searchParams.set(name, value);
+  return url.toString();
+}
+function facadeButton(doc, label, title, from) {
+  const button = doc.createElement("button");
+  button.type = "button";
+  button.className = "siamang-embed__facade";
+  button.setAttribute("aria-label", label);
+  const fromId = "siamang-embed-from-" + (++_bodyFacades);
+  button.setAttribute("aria-describedby", fromId);
+  const glyph = doc.createElement("span");
+  glyph.className = "siamang-embed__glyph";
+  const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", _PLAY_GLYPH);
+  svg.appendChild(path);
+  glyph.appendChild(svg);
+  button.appendChild(glyph);
+  if (title) {
+    const name = doc.createElement("span");
+    name.className = "siamang-embed__title";
+    name.textContent = title;
+    button.appendChild(name);
+  }
+  const line = doc.createElement("span");
+  line.className = "siamang-embed__from";
+  line.id = fromId;
+  line.textContent = from;
+  button.appendChild(line);
+  return button;
+}
+function bodyPlayersWaitForPress(root) {
+  const texts = runtimeTexts();
+  for (const frame of Array.from(root.querySelectorAll("iframe"))) {
+    const src = frame.getAttribute("src") || "";
+    const provider = bodyPlayerProvider(src);
+    if (!provider) { frame.remove(); continue; }
+    const doc = frame.ownerDocument;
+    const box = doc.createElement("div");
+    box.className = "siamang-embed siamang-embed--body";
+    box.setAttribute("data-src", src);
+    const width = frame.getAttribute("width") || "";
+    const height = frame.getAttribute("height") || "";
+    if (_PIXELS.test(width) && _PIXELS.test(height) && parseFloat(width) > 0 && parseFloat(height) > 0) {
+      box.style.aspectRatio = parseFloat(width) + " / " + parseFloat(height);
+      box.style.maxWidth = Math.max(200, parseFloat(width)) + "px";
+    }
+    // The title the sanitizer gives an untitled player ("Vimeo video
+    // player") is not the author's: such a player shows no title, and is
+    // named as a question's video is.
+    const given = (frame.getAttribute("title") || "").trim();
+    const own = given === _BODY_PLAYER_TITLES[provider] ? "" : given;
+    const title = own || EMBED[provider].label + " video";
+    box.setAttribute("data-title", title);
+    box.appendChild(facadeButton(doc, texts.mediaPlay + ": " + title, own,
+      fillText(texts.mediaLoadsFrom, { service: EMBED[provider].label })));
+    const note = doc.createElement("span");
+    note.className = "siamang-embed__note";
+    note.setAttribute("role", "status");
+    box.appendChild(note);
+    frame.replaceWith(box);
+    _BODY_FACADES.add(box);
+  }
+}
+/* A press in a body: on one of the play buttons bodyPlayersWaitForPress
+   made (an author's look-alike is not one), its address checked again. */
+function onBodyPress(e) {
+  const button = e.target && e.target.closest ? e.target.closest(".siamang-embed__facade") : null;
+  const box = button ? button.closest(".siamang-embed") : null;
+  if (!box || !_BODY_FACADES.has(box)) return;
+  const src = box.getAttribute("data-src") || "";
+  const provider = bodyPlayerProvider(src);
+  if (!provider) return;
+  e.preventDefault();
+  const place = pressPlay(provider, bodyVideoPage(src, provider));
+  if (place === "away") return;
+  if (place === "blocked") {
+    const note = box.querySelector(".siamang-embed__note");
+    if (note) note.textContent = runtimeTexts().mediaPreviewBlocked;
+    return;
+  }
+  let play = withParam(src, "autoplay", "1");
+  if (provider === "vimeo") play = withParam(play, "dnt", "1");
+  const frame = playerFrame(play, EMBED[provider].allow, box.getAttribute("data-title") || "");
+  button.replaceWith(frame);
+  frame.focus();
 }
 function processPipedHtml(html, answers) {
   if (!html || typeof html !== 'string' || !answers) return html;
@@ -365,7 +760,7 @@ function QuestionShell({ num, title, required, description, error, errorId, chil
           {required ? <span className="sd-question__required-text" aria-hidden="true">*</span> : null}
         </h3>
         {processedDescription ? <p className="sd-question__description">{processedDescription}</p> : null}
-        <MediaGallery media={media} />
+        <MediaGallery media={media} name={processedTitle} />
       </div>
       {children}
       {error ? <div className="sd-question__error" id={errorId} role="alert">{error}</div> : null}
@@ -444,7 +839,7 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
       <div className={"sd-choices" + (isButtons ? " sd-choices--buttons" : "")} role="radiogroup" aria-label={questionName(q, answers)} {...answerAria(q, error)}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = currentCode === opt.code;
-          return (
+          return withPlay(
             <label key={String(opt.code)} className={"sd-radio" + (checked ? " sd-item--checked" : "")}>
               <input
                 type="radio"
@@ -455,8 +850,9 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
               />
               <span className="sd-radio__decorator" aria-hidden="true"></span>
               <span className="sd-choice-label">{pipe(opt.label)}</span>
-              {opt.media ? <MediaItem media={pipedMedia(opt.media, pipe)} /> : null}
-            </label>
+              {rowMedia(opt, pipe)}
+            </label>,
+            opt, pipe
           );
         })}
         {q.otherSpecify && !otherIsAnOption(q) && (
@@ -554,7 +950,7 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
         {visibleOptions(q, answers).map((opt) => {
           const checked = v.includes(opt.code);
           const disabled = !checked && q.max && v.length >= q.max;
-          return (
+          return withPlay(
             <label
               key={String(opt.code)}
               className={"sd-checkbox" + (checked ? " sd-item--checked" : "")}
@@ -568,8 +964,9 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
               />
               <span className="sd-checkbox__decorator" aria-hidden="true"></span>
               <span className="sd-choice-label">{pipe(opt.label)}</span>
-              {opt.media ? <MediaItem media={pipedMedia(opt.media, pipe)} /> : null}
-            </label>
+              {rowMedia(opt, pipe)}
+            </label>,
+            opt, pipe
           );
         })}
         {hasOther && !otherIsAnOption(q) && (

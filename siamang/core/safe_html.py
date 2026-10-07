@@ -71,6 +71,7 @@ from html import parser as _html_parser
 from html.entities import html5 as _HTML5_ENTITIES
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
+from siamang.core.media import PLAYER_ALLOW
 from siamang.core.safe_url import PLACEHOLDER, normalize_url, url_scheme
 
 __all__ = [
@@ -358,14 +359,9 @@ _PARAM_VALUE = re.compile(r"^[A-Za-z0-9_,.\-]{1,128}$")
 _TIME = re.compile(r"^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$")
 _VIMEO_TIME = re.compile(r"^t=\d+(?:\.\d+)?[hms\d]*$")
 #: What each provider's player is allowed in the survey's page (their own
-#: embed snippets' lists).
-_ALLOW = {
-    "youtube": (
-        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; "
-        "picture-in-picture; web-share; fullscreen"
-    ),
-    "vimeo": "autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share",
-}
+#: embed snippets' lists) — the same as a question's embedded video
+#: (:data:`siamang.core.media.PLAYER_ALLOW`).
+_ALLOW = PLAYER_ALLOW
 _PLAYER_TITLES = {"youtube": "YouTube video player", "vimeo": "Vimeo video player"}
 #: The attributes the sanitizer writes on a player itself, in this order.
 _PLAYER_OWN = ("title", "allow", "allowfullscreen", "referrerpolicy", "loading")

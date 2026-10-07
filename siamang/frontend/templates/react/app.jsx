@@ -258,6 +258,12 @@ function runtimeTexts() {
     saveLocalAction: ui.saveLocalAction || "Save locally and finish",
     completedTitle: ui.completedTitle || "Thank you for participating",
     completedBody: ui.completedBody || "Your responses help inform open research.",
+    // A YouTube or Vimeo video's play button, where it plays from, the
+    // Close of an option's video window, and a preview that cannot play.
+    mediaPlay: ui.mediaPlayText || "Play video",
+    mediaLoadsFrom: ui.mediaLoadsFromText || "Plays from {service} when you press play",
+    mediaClose: ui.mediaCloseText || "Close",
+    mediaPreviewBlocked: ui.mediaPreviewBlockedText || "This preview can't play videos.",
   };
   __runtimeTexts = { ui, texts };
   return texts;
@@ -275,7 +281,8 @@ function SafeHtml({ html, className }) {
     while (el.firstChild) el.removeChild(el.firstChild);
     el.appendChild(fragment);
   }, [html]);
-  return <div ref={ref} className={className} />;
+  // A press on a player's play button (with SURVEY.clickToPlay).
+  return <div ref={ref} className={className} onClick={onBodyPress} />;
 }
 
 /* A wording template with a link in it: "{link}" is where the link goes
@@ -752,7 +759,13 @@ function Footer() {
                      {type:"siamang:select", id, page}     (a click on a question)
                      {type:"siamang:scroll", y}           (as the page scrolls)
                      {type:"siamang:restored", page, y}   (a restore is done)
+                     {type:"siamang:embed-blocked", provider}
+                       (a YouTube or Vimeo video's play button was pressed:
+                       the preview cannot play it, and its box says so)
    Nothing else changes: the survey behaves exactly as respondents see it. */
+function postToDesignHost(msg) {
+  try { window.parent.postMessage(Object.assign({ source: "siamang-runtime" }, msg), "*"); } catch (e) { /* no parent */ }
+}
 /* Walkthrough trace (Studio's Test tab): what the logic decided on the
    current page for the current answers — which gated questions/blocks are
    visible, which next_if rules match, which skip_to would fire, and where
@@ -844,9 +857,7 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
   const [selectedId, setSelectedId] = useState(null);
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
-  const post = useCallback((msg) => {
-    try { window.parent.postMessage(Object.assign({ source: "siamang-runtime" }, msg), "*"); } catch (e) { /* no parent */ }
-  }, []);
+  const post = useCallback((msg) => postToDesignHost(msg), []);
   const navRef = useRef(nav);
   navRef.current = nav;
   // What the host asked for that waits for the page to be drawn (the layout

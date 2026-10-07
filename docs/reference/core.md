@@ -416,6 +416,13 @@ The `Media` class represents an external visual or auditory asset attached to a 
 | `autoplay` | `bool` | `False` | If `True`, the media starts playing automatically upon becoming visible (videos/audio only). |
 | `loop` | `bool` | `False` | If `True`, the media plays in an infinite loop. |
 | `controls` | `bool` | `True` | If `True`, displays media playback controls (play, pause, volume, etc.). |
+| `provider` | `str \| None` | `None` | A YouTube or Vimeo video (`kind="embed"`, never inferred): `"youtube"` or `"vimeo"`. |
+| `id` | `str \| None` | `None` | The video's id: eleven letters, digits, `-` or `_` on YouTube; digits on Vimeo. |
+| `key` | `str \| None` | `None` | An unlisted Vimeo video's hash (6–64 of `0-9a-f`). |
+| `start` | `int \| None` | `None` | Where the video starts, in whole seconds (0–86400). |
+| `aspect` | `str \| None` | `None` | The player's shape: `"16:9"` (when omitted), `"9:16"`, `"4:3"` or `"1:1"`. |
+
+An embed's player is built from `provider`, `id`, `key` and `start` (`Media.player_src`: YouTube's privacy-enhanced host, Vimeo's player with Do Not Track), never from `url`, which is the video's page (filled in when empty). The runtime shows a play button and loads the player only when it is pressed.
 
 ---
 

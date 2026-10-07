@@ -260,6 +260,38 @@ pipeline = DeployPipeline(
 result = pipeline.run(survey)
 ```
 
+### A policy of the survey's own media
+
+A bundle's pages carry the Content-Security-Policy the builder is given
+(`FrontendBuilder(csp=…)`; see [[Frontend and Theming|Frontend-and-Theming]]).
+`siamang.frontend.csp.media_sources(document)` lists the origins a survey's
+pictures, sounds, videos and players come from, so the policy can let the page
+load exactly those and nothing else; `click_to_play=True` has a page body's
+YouTube and Vimeo players wait for the respondent's press, as a question's
+video always does:
+
+```python
+from siamang.frontend import FrontendBuilder, ReactRuntime
+from siamang.frontend.csp import media_sources, survey_csp
+from siamang.model import to_document
+
+sources = media_sources(to_document(survey, options))
+policy = survey_csp(
+    connect_src=["https://ingest.example.org"],
+    img_src=sources.img,
+    media_src=sources.media,
+    frame_src=sources.frame,  # 'none' when the survey has no player
+)
+builder = FrontendBuilder(runtime=ReactRuntime(), csp=policy, click_to_play=True)
+```
+
+Built this way the policy allows the page's inline script as `'unsafe-inline'`
+(it is written before the page exists). A host that writes the policy after the
+build passes the built `index.html` as `survey_csp(page, …)`, which allows that
+script by its hash, and puts the policy in with `insert_csp_meta`. Neither
+`media_sources` nor the runtime judges an address: which hosts a survey may use
+is the host's own decision.
+
 ---
 
 ## Writing a custom adapter

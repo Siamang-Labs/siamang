@@ -82,6 +82,7 @@ class FrontendBuilder:
     runtime: RuntimeAdapter = SurveyJSRuntime()
     ui: UIConfig = UIConfig()
     csp: str | None = None
+    click_to_play: bool = False
 
     def build(
         self,
@@ -104,7 +105,9 @@ A runtime may add its own static assets on top: `ReactRuntime` contributes `bund
 
 The typefaces come with the bundle too: under `fonts/`, the woff2 files the stylesheet's `@font-face` rules use and the SIL Open Font License text of each family (see [Typography](#2-typography)). Nothing in a compiled survey is fetched from a font CDN.
 
-What an author writes reaches the pages only as data: the survey's texts travel in the inline `<script>` written so that no text can end it (`siamang.core.safe_html.json_for_script`), a page's body as `siamang.core.safe_html.sanitize_html` keeps it (formatting, links, pictures, audio and video, YouTube and Vimeo players; no script, other frame, form or page-wide style). `csp` is a Content-Security-Policy written in a `<meta http-equiv>` right after `<meta charset>` of `index.html` and `closed.html` (None writes none); `siamang.frontend.csp.survey_csp` builds what the React runtime needs — `default-src 'none'`, `script-src 'self' 'unsafe-eval'` and the inline script's hash (conditions are compiled with `new Function`, so `'unsafe-eval'` is required), `style-src 'self' 'unsafe-inline'`, `font-src 'self'`, `img-src`/`media-src 'self' https: data:`, `frame-src` the two players, `connect-src` the ingest, `object-src`/`base-uri`/`form-action 'none'` — and `insert_csp_meta` puts a policy there in a page built elsewhere. `inline_script_hashes` reads the page with an HTML parser, as a browser does: a `<script` inside an inline stylesheet or a comment is not hashed in place of the real script. Custom scripts (`Script`) and `UIConfig.custom_css` are unchanged: they run as the author wrote them, by design, so a host whose authors are not trusted should not offer them.
+What an author writes reaches the pages only as data: the survey's texts travel in the inline `<script>` written so that no text can end it (`siamang.core.safe_html.json_for_script`), a page's body as `siamang.core.safe_html.sanitize_html` keeps it (formatting, links, pictures, audio and video, YouTube and Vimeo players; no script, other frame, form or page-wide style). `csp` is a Content-Security-Policy written in a `<meta http-equiv>` right after `<meta charset>` of `index.html` and `closed.html` (None writes none); `siamang.frontend.csp.survey_csp` builds what the React runtime needs — `default-src 'none'`, `script-src 'self' 'unsafe-eval'` and the inline script's hash (conditions are compiled with `new Function`, so `'unsafe-eval'` is required), `style-src 'self' 'unsafe-inline'`, `font-src 'self'`, `img-src`/`media-src 'self' https: data:`, `frame-src` the two players, `connect-src` the ingest, `object-src`/`base-uri`/`form-action 'none'` — and `insert_csp_meta` puts a policy there in a page built elsewhere. `inline_script_hashes` reads the page with an HTML parser, as a browser does: a `<script` inside an inline stylesheet or a comment is not hashed in place of the real script. `media_uses(document)` lists every picture, sound, video and player a questionnaire document holds for its pages (an option's media in a dropdown and a conjoint level's too, which a page never draws) (`MediaUse(pointer, where, directive, url, kind)`, with a JSON pointer into the document), and `media_sources(document)` the origins of each directive (`MediaSources(img, media, frame)`), so that `survey_csp(page, img_src=…, media_src=…, frame_src=…)` lets a survey load its own media and nothing else; neither judges an address. Custom scripts (`Script`) and `UIConfig.custom_css` are unchanged: they run as the author wrote them, by design, so a host whose authors are not trusted should not offer them.
+
+A YouTube or Vimeo video of a question or an option (`Media(kind="embed")`) is a play button until the respondent presses it, and nothing is requested from the provider before. `click_to_play=True` (also `RuntimeRenderContext.click_to_play`) does the same for the players a page's body holds; off by default, they are frames as before.
 
 ---
 
@@ -194,6 +197,8 @@ invalid_phone_text, invalid_url_text, invalid_date_text, invalid_time_text,
 select_placeholder, search_placeholder, no_options_text, other_text,
 other_placeholder, none_of_above_text, not_applicable_text, chars_remaining_text,
 ranking_hint_text, ranking_remaining_text,
+# A YouTube or Vimeo video:
+media_play_text, media_loads_from_text, media_close_text, media_preview_blocked_text,
 # Saving, failing and ending:
 resume_title, resume_action, restart_action, retry_title, retry_body,
 retry_action, save_local_action, attempt_text, completion_title, completion_body,
