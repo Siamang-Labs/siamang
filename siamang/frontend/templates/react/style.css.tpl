@@ -58,6 +58,7 @@
     --siamang-muted: #9aa1ad;
     --siamang-border: #262b36;
     --siamang-error-soft: #2d1a1a;
+    --sd-design-ring: color-mix(in srgb, var(--siamang-primary) 55%, var(--siamang-text));
   }
 }
 
@@ -69,6 +70,7 @@
   --siamang-muted: #9aa1ad;
   --siamang-border: #262b36;
   --siamang-error-soft: #2d1a1a;
+  --sd-design-ring: color-mix(in srgb, var(--siamang-primary) 55%, var(--siamang-text));
 }
 :root[data-theme="light"] {
   /* No overrides needed — :root values already are light */
@@ -273,6 +275,7 @@ body { min-height: 100vh; }
   line-height: 1.25;
   margin: 0 0 6px;
   letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
 }
 
 .sd-page__description {
@@ -281,6 +284,7 @@ body { min-height: 100vh; }
   color: var(--siamang-muted);
   margin: 0 0 var(--siamang-section-gap);
   max-width: 56ch;
+  overflow-wrap: anywhere;
 }
 
 .sd-page__title + .sd-page__description { margin-top: 4px; }
@@ -291,8 +295,7 @@ body { min-height: 100vh; }
   color: var(--siamang-muted);
   margin: 4px 0 var(--siamang-section-gap);
 }
-.sd-page__title:not(:has(+ .sd-page__description)),
-.sd-page__title + .sd-question { margin-bottom: 0; }
+.sd-page__title:not(:has(+ .sd-page__description)) { margin-bottom: 0; }
 
 .sd-block {
   margin-top: calc(var(--siamang-section-gap) - 4px);
@@ -312,21 +315,57 @@ body { min-height: 100vh; }
 
 /* ─── Question ─────────────────────────────────────────────────────────── */
 
-.sd-question {
-  margin-top: var(--siamang-section-gap);
+/* Every question is in a slot (a transparent wrapper, design mode's click
+   target), so the space above a question is its slot's: a section gap — under
+   the page title too, whose own margin is 0 for it — and none at the top of
+   the page or under a block's title, which has its own. Written for the bare
+   question, these rules matched every question as its slot's first child and
+   the title sat flush on the first one. A page's Body keeps its own 1.25rem. */
+.sd-question-slot { margin-top: var(--siamang-section-gap); }
+.sd-question-slot:first-child { margin-top: 0; }
+/* Named by what is above the slot, and more specific than a question style's
+   own gap (carded's 10 px): none at the top of a block or under its title,
+   which has its own item gap, and none under a page's Body. In carded style
+   every other slot is 10 px from what is above it, the first one under the
+   title or the eyebrow too (the rules above give way to it), as 0.6.0 drew
+   it. */
+.sd-block > .sd-question-slot:first-child,
+.sd-block > .sd-block__title + .sd-question-slot,
+.sd-page > .sd-page__body + .sd-question-slot { margin-top: 0; }
+/* Design mode (a host's preview): the selected question's ring, on its slot,
+   so it neither moves nor reshapes the question (a card keeps its corners, a
+   rail its square end). 6 px out at most: inside the smallest gap beside a
+   question, a block title's 10 px at compact. */
+.sd-question-slot.is-design-selected {
+  outline: 2px solid var(--sd-design-ring, var(--siamang-primary));
+  outline-offset: 4px;
+  border-radius: 6px;
 }
-.sd-question:first-child,
-.sd-block .sd-question:first-of-type { margin-top: 0; }
-.sd-question + .sd-question { margin-top: var(--siamang-section-gap); }
-/* Design mode (Studio preview): question slots are click targets; the
-   selected one gets a ring. Slots are transparent wrappers otherwise. */
-.sd-question-slot + .sd-question-slot { margin-top: var(--siamang-section-gap); }
-.sd-question-slot.is-design-selected > .sd-question { outline: 2px solid var(--siamang-primary); outline-offset: 6px; border-radius: 6px; }
+/* A matrix wider than its question scrolls in a box that reaches half a
+   section gap into the page's margin on each side; the ring would cut through
+   its last column. The selected one is drawn to the question's own width
+   (clip-path: nothing moves), where the ring is. */
+.sd-question-slot.is-design-selected .sd-matrix-wrapper {
+  clip-path: inset(0 var(--sd-matrix-bleed));
+}
+/* The ring stays still while a question shakes for an error, so in design
+   mode a question shakes within the 4 px between it and its ring (2 px
+   around a card) and never crosses it. For every question, selected or not:
+   an animation turned off and on with the selection would play again. */
+.siamang-design .sd-question.has-error { animation-name: siamang-error-shake-small; }
+@keyframes siamang-error-shake-small {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-2px); }
+  30% { transform: translateX(2px); }
+  45% { transform: translateX(-1.5px); }
+  60% { transform: translateX(1.5px); }
+  75% { transform: translateX(-1px); }
+  90% { transform: translateX(1px); }
+}
 
 /* ─── Question style variants (Tweak) ─────────────────────────────── */
 
 /* "divided" — hairline rule between consecutive questions */
-.qstyle-divided .sd-question + .sd-question,
 .qstyle-divided .sd-question-slot + .sd-question-slot > .sd-question {
   border-top: 1px solid color-mix(in srgb, var(--siamang-border) 70%, transparent);
   padding-top: var(--siamang-section-gap);
@@ -354,13 +393,18 @@ body { min-height: 100vh; }
   border: 1px solid var(--siamang-border);
   border-radius: var(--siamang-radius);
   padding: calc(var(--siamang-section-gap) * 0.7) calc(var(--siamang-section-gap) * 0.85);
-  margin-top: 10px;
   box-shadow: 0 1px 2px rgba(15, 20, 25, 0.025);
 }
-.qstyle-carded .sd-question + .sd-question { margin-top: 10px; }
-.qstyle-carded .sd-block .sd-question:first-of-type { margin-top: 0; }
-/* For pages without blocks, questions sit directly in the page card */
-.qstyle-carded .sd-page > .sd-question:first-of-type { margin-top: var(--siamang-section-gap); }
+/* Cards 10 px apart (the first of a block still flush under its title). */
+.qstyle-carded .sd-question-slot { margin-top: 10px; }
+/* The ring hugs the card: 6 px out would sit in the middle of the 10 px
+   between two cards, as near the next card as its own. */
+.qstyle-carded .sd-question-slot.is-design-selected {
+  outline-offset: 2px;
+  border-radius: var(--siamang-radius);
+}
+/* A card's padding holds a wide matrix's box, inside the ring. */
+.qstyle-carded .sd-question-slot.is-design-selected .sd-matrix-wrapper { clip-path: none; }
 
 /* "accent" — left rail in accent color */
 .qstyle-accent .sd-question {
@@ -384,6 +428,9 @@ body { min-height: 100vh; }
   margin: 0;
   color: var(--siamang-text);
   display: block;
+  /* A word longer than the line (an address, a code) breaks rather than
+     running past the card and giving the page a sideways scroll. */
+  overflow-wrap: anywhere;
 }
 .sd-question__title > .sd-question__num {
   margin-right: 10px;
@@ -412,6 +459,7 @@ body { min-height: 100vh; }
   color: var(--siamang-muted);
   margin: 6px 0 0;
   max-width: 60ch;
+  overflow-wrap: anywhere;
 }
 
 /* Error state */
@@ -574,6 +622,11 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
 }
 
 .sd-choice-label { flex: 1; min-width: 0; }
+/* A word longer than the line (an address) breaks rather than running off
+   the card. Not beside a picture: a phone leaves that label a few letters'
+   width, where ordinary words would break too. */
+.sd-radio:not(:has(.siamang-media)) > .sd-choice-label,
+.sd-checkbox:not(:has(.siamang-media)) > .sd-choice-label { overflow-wrap: anywhere; }
 
 /* Buttons-style single choice */
 .sd-choices--buttons {
@@ -686,7 +739,12 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
 
 /* ─── Matrix ───────────────────────────────────────────────────────────── */
 
-.sd-matrix-wrapper { overflow-x: auto; margin: 0 calc(var(--siamang-section-gap) * -0.5); padding: 0 calc(var(--siamang-section-gap) * 0.5); }
+.sd-matrix-wrapper {
+  --sd-matrix-bleed: calc(var(--siamang-section-gap) * 0.5);
+  overflow-x: auto;
+  margin: 0 calc(var(--sd-matrix-bleed) * -1);
+  padding: 0 var(--sd-matrix-bleed);
+}
 
 .sd-matrix {
   width: 100%;
@@ -1479,15 +1537,43 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
 }
 
 /* ─── Saving indicator ────────────────────────────────────────────── */
+/* A box of no height right above the page card; "Saving…" hangs from it at
+   the right, in the space the progress bar, the dots or the header leave
+   above the card (20 px at the least). In the flow, it pushed the whole page
+   down a line for the 0.8 s it showed. */
+.siamang-saving {
+  position: relative;
+  height: 0;
+}
 .siamang-saving-indicator {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-family: var(--siamang-ui-font);
-  font-size: 0.74rem;
+  /* 13 px at most: with the 6 px under it, it fits the 20 px a phone leaves
+     above the card with no header and no progress, whatever the theme's
+     type size. */
+  font-size: min(0.74rem, 13px);
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 100%;
   color: var(--siamang-muted);
-  margin-left: auto;
-  animation: siamang-fade-in 200ms ease;
+  pointer-events: none;
+  animation: siamang-fade-opacity 200ms ease;
+}
+/* One line, the page's width at most: a long saving_text ends in "…"
+   rather than running off the left of a phone's screen. */
+.siamang-saving-indicator__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes siamang-fade-opacity {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .siamang-saving-indicator__dot {
@@ -1896,7 +1982,7 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
      and the answers on the right (Often, Always; Agree, Strongly agree) were
      off screen: each row is a card instead, its statement on top and its
      answers in one row under their own labels. */
-  .sd-matrix-wrapper { overflow-x: visible; margin: 0; padding: 0; }
+  .sd-matrix-wrapper { --sd-matrix-bleed: 0px; overflow-x: visible; }
   .sd-matrix, .sd-matrix tbody { display: block; }
   .sd-matrix thead { display: none; }
   .sd-matrix tbody tr {
@@ -1920,6 +2006,19 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   .sd-matrix tbody td:first-child {
     grid-column: 1 / -1;
     align-items: flex-start;
+  }
+  /* A row still to answer: the statement starts at the cell's edge here, so
+     the mark stands 8 px left of it rather than on its first letter. */
+  .sd-matrix tbody tr.is-missing td:first-child { box-shadow: none; position: relative; }
+  .sd-matrix tbody tr.is-missing td:first-child::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--siamang-error);
   }
   .sd-matrix__col-label {
     display: block;
@@ -2109,3 +2208,7 @@ body.viewport-print .sd-matrix__cell { border-color: #000; }
 .sd-page__html p { margin: 0 0 0.75em; }
 /* A page body above questions: set off from the first one. */
 .sd-page__body { margin-bottom: 1.25rem; }
+/* A picture an author floats in it (align, or a float in its style) is held
+   inside it, not hung over the first question. Not display: flow-root, which
+   would keep the last paragraph's margin from merging with the Body's. */
+.sd-page__body::after { content: ""; display: block; clear: both; }

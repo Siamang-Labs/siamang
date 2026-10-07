@@ -167,21 +167,20 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   // nothing is saved after that. See finish().
   const endedRef = useRef(false);
   const [saving, setSaving] = useState(false);
-  const [savedData, setSavedData] = useState(null);
-
-  // Load saved data on mount: offered back for a week (KEEP_MS), the time
-  // the survey's keys are kept at all (sweepKept).
-  useEffect(() => {
+  // What an earlier sitting saved, offered back for a week (KEEP_MS), the
+  // time the survey's keys are kept at all (sweepKept). Read before the first
+  // render, so the offer is on the page when it is first drawn: read after
+  // it, the banner came in above a page already drawn and pushed it down.
+  const [savedData, setSavedData] = useState(() => {
     try {
       const raw = keptGet(AUTO_SAVE_KEY);
-      if (raw) {
-        const data = JSON.parse(raw);
-        const age = Date.now() - new Date(data.savedAt).getTime();
-        if (age < KEEP_MS) setSavedData(data);
-        else keptRemove(AUTO_SAVE_KEY);
-      }
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (Date.now() - new Date(data.savedAt).getTime() < KEEP_MS) return data;
+      keptRemove(AUTO_SAVE_KEY);
     } catch (e) {}
-  }, []);
+    return null;
+  });
 
   const doSave = useCallback((currentAnswers, currentPage) => {
     const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));

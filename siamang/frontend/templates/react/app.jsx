@@ -737,9 +737,19 @@ function Footer() {
    Enabled when the host page sets window.SIAMANG_DESIGN before the bundle
    loads. The runtime then talks to its parent frame by postMessage:
      host → runtime  {type:"siamang:goto", page: <name|index>}
+                       (shown from its top)
                      {type:"siamang:select", id: <question id|null>}
+                       (scrolled into view when it is not)
+                     {type:"siamang:restore", page, id, y}   (page by its name)
+                       (a host that rebuilt its frame puts it back as the last
+                       one was: that page, that question selected, scrolled
+                       to y once the page and its pictures are in; without a
+                       y, or on a page it cannot show, from the top with the
+                       question in view)
      runtime → host  {type:"siamang:page", name, index, total}
                      {type:"siamang:select", id, page}     (a click on a question)
+                     {type:"siamang:scroll", y}           (as the page scrolls)
+                     {type:"siamang:restored", page, y}   (a restore is done)
    Nothing else changes: the survey behaves exactly as respondents see it. */
 /* Walkthrough trace (Studio's Test tab): what the logic decided on the
    current page for the current answers — which gated questions/blocks are
@@ -830,11 +840,23 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
   const enabled = typeof window !== "undefined" && !!window.SIAMANG_DESIGN;
   const selectable = enabled && window.SIAMANG_DESIGN.select !== false;
   const [selectedId, setSelectedId] = useState(null);
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
   const post = useCallback((msg) => {
     try { window.parent.postMessage(Object.assign({ source: "siamang-runtime" }, msg), "*"); } catch (e) { /* no parent */ }
   }, []);
   const navRef = useRef(nav);
   navRef.current = nav;
+  // What the host asked for that waits for the page to be drawn (the layout
+  // effect below): the page it sent the runtime to, shown from its top; the
+  // question it selected, brought into view; the place a restore puts the
+  // window at.
+  const asked = useRef({ page: null, top: false, reveal: false, restoring: false, y: null });
+  const [askCount, setAskCount] = useState(0);
+  const ask = useCallback((what) => {
+    Object.assign(asked.current, what);
+    setAskCount((n) => n + 1);
+  }, []);
   const pageName0 = nav.currentPage ? nav.currentPage.name : null;
   useEffect(() => {
     if (!enabled || !store || !visibilityEngine) return undefined;
@@ -871,21 +893,104 @@ function useDesignMode(nav, store, visibilityEngine, allPages) {
     const onMessage = (e) => {
       const d = e.data;
       if (!d || typeof d !== "object" || typeof d.type !== "string") return;
-      if (d.type === "siamang:goto") {
+      // A page the host names that can be shown (not one its own show_if
+      // hides): the runtime goes there; the rest waits for it to be drawn.
+      const go = (page) => {
         const pages = navRef.current.pages;
-        const idx = typeof d.page === "number" ? d.page : pages.findIndex((p) => p.name === d.page);
-        if (idx >= 0 && idx < pages.length && idx !== navRef.current.pageIdx) navRef.current.goTo(idx);
+        const idx = typeof page === "number" ? page : pages.findIndex((p) => p.name === page);
+        if (idx < 0 || idx >= pages.length || idx === navRef.current.pageIdx) return false;
+        navRef.current.goTo(idx);
+        asked.current.page = pages[idx].name;
+        return true;
+      };
+      if (d.type === "siamang:goto") {
+        if (go(d.page)) ask({ top: true });
       } else if (d.type === "siamang:select") {
+        const id = d.id || null;
+        // The host's answer to a click in the page names what is selected
+        // already, and in view: only a question selected elsewhere (in the
+        // host's own list of questions) is brought into view.
+        ask({ reveal: !!id && id !== selectedRef.current });
+        setSelectedId(id);
+      } else if (d.type === "siamang:restore") {
+        // A y belongs to the page it was read on: on another, the top.
+        const shown = navRef.current.currentPage;
+        const there = go(d.page) || d.page == null || (!!shown && shown.name === d.page);
+        const y = there && Number.isFinite(d.y) ? Math.max(0, d.y) : null;
         setSelectedId(d.id || null);
+        ask({ restoring: true, y, top: y == null, reveal: y == null && !!d.id });
       }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [enabled]);
+  }, [enabled, ask]);
   const pageName = nav.currentPage ? nav.currentPage.name : null;
+  // After the listener above: a host may answer the first page with a goto
+  // and a select, and they are heard.
   useEffect(() => {
     if (enabled && pageName) post({ type: "siamang:page", name: pageName, index: nav.pageIdx, total: nav.pages.length });
   }, [enabled, pageName, nav.pageIdx, nav.pages.length, post]);
+  // Where the window is, for a host that rebuilds its frame to put the next
+  // one back there (siamang:restore). Once a frame at most.
+  useEffect(() => {
+    if (!enabled) return undefined;
+    let frame = 0;
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; post({ type: "siamang:scroll", y: window.scrollY }); });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); if (frame) cancelAnimationFrame(frame); };
+  }, [enabled, post]);
+  // What the host asked for, once the page it sent the runtime to is drawn
+  // and before it is painted: no scroll is seen happening.
+  React.useLayoutEffect(() => {
+    const a = asked.current;
+    if (!enabled || (a.page && a.page !== pageName)) return;
+    a.page = null;
+    // Into view if any of it is out of view, by as little as it takes and at
+    // once; 16 px of room for the ring. The window only: the host's page
+    // around the frame does not scroll.
+    const reveal = () => {
+      const slot = [...document.querySelectorAll(".sd-question-slot")].find((el) => el.getAttribute("data-qid") === selectedId);
+      if (!slot) return;
+      const box = slot.getBoundingClientRect();
+      const room = window.innerHeight;
+      const by = box.top < 16 || box.height > room - 32 ? box.top - 16 : box.bottom > room - 16 ? box.bottom - room + 16 : 0;
+      if (by) window.scrollBy(0, by);
+    };
+    const { top, y } = a;
+    const wanted = a.reveal && !!selectedId;
+    a.top = false;
+    a.reveal = false;
+    if (a.restoring) {
+      // Once the page's pictures down to where the window goes are in (a
+      // picture without a size grows the page when it arrives) and its fonts,
+      // a second at most: the host shows the frame when it is told.
+      a.restoring = false;
+      a.y = null;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        window.scrollTo(0, y == null ? 0 : y);
+        if (wanted) reveal();
+        post({ type: "siamang:restored", page: pageName, y: window.scrollY });
+      };
+      const below = (y == null ? 0 : y) + window.innerHeight;
+      const pending = [...document.images].filter((img) => !img.complete && img.getBoundingClientRect().top + window.scrollY < below);
+      Promise.all([
+        document.fonts && document.fonts.ready,
+        ...pending.map((img) => new Promise((settle) => {
+          img.addEventListener("load", settle, { once: true });
+          img.addEventListener("error", settle, { once: true });
+        })),
+      ]).then(finish, finish);
+      setTimeout(finish, 1000);
+      return;
+    }
+    if (top) window.scrollTo(0, 0);
+    if (wanted) reveal();
+  }, [enabled, askCount, pageName, selectedId, post]);
   const onSelect = useCallback((id) => {
     if (!selectable) return;
     setSelectedId(id);
@@ -1227,6 +1332,17 @@ function App() {
 
   // ─── Autosave ───
   const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish: finishSaved } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef);
+  // A screen reader is told the first time the answers are saved, and not at
+  // every save after: a region always in the page, its text put in at that
+  // save and taken out with "Saving…" (which itself is aria-hidden).
+  const savingToldRef = useRef(false);
+  const [savingSaid, setSavingSaid] = useState("");
+  useEffect(() => {
+    if (saving && !savingToldRef.current) {
+      savingToldRef.current = true;
+      setSavingSaid(runtimeTexts().saving);
+    } else if (!saving) setSavingSaid("");
+  }, [saving]);
 
   // ─── Submission ───
   const { phase, setPhase, closedReason, setClosedReason, submitting, setSubmitting, submitId, submittedAt, submitAttempts, submitMessage, submit } = useSubmission(store, finishSaved, surveyId);
@@ -1575,7 +1691,7 @@ function App() {
   return (
     <>
       <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
-      <div id="survey" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <div id="survey" className={design.enabled ? "siamang-design" : undefined} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <Header />
         {savedData && (
           <div className="siamang-resume-banner" role="alert">
@@ -1636,14 +1752,25 @@ function App() {
             })}
           </nav>
         )}
+        {/* "Saving…" hangs above the page card's right corner from a box of
+            no height, so nothing moves while it shows (in the flow it pushed
+            the page down a line for 0.8 s after every answer). It is not a
+            status region itself: one put in with its text already inside was
+            read out by some screen readers and not by others. The region
+            under the page's announcement says it once, at the first save. */}
         {saving && (
-          <div className="siamang-saving-indicator" aria-live="polite" role="status">
-            <span className="siamang-saving-indicator__dot"></span>
-            {uiTexts.saving}
+          <div className="siamang-saving" aria-hidden="true">
+            <span className="siamang-saving-indicator">
+              <span className="siamang-saving-indicator__dot"></span>
+              <span className="siamang-saving-indicator__text">{uiTexts.saving}</span>
+            </span>
           </div>
         )}
         <div className="siamang-announce" role="status" aria-live="polite" aria-atomic="true" style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0,0,0,0)" }}>
           {nav.currentPage ? pageLabel : ""}
+        </div>
+        <div className="siamang-saving-status" role="status" aria-live="polite" style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0,0,0,0)" }}>
+          {savingSaid}
         </div>
         <main id="surveyContainer" role="main" aria-label={ui.title || "Questionnaire"}>
           {initializing && (

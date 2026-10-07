@@ -992,6 +992,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   label", "in row 1", "in column 3"), the latter also one that
   pipes the option's own question, and the new `PIPE_IN_DESIGN` reports one
   in a MaxDiff's or a Conjoint's design, which the respondent sees as typed.
+- **Design mode can put a rebuilt frame back where the last one was.** The
+  runtime posts where the window is as it scrolls (`siamang:scroll`), and
+  `siamang:restore` (`page` by its name, `id`, `y`) puts a frame on that page with that
+  question selected, scrolled to `y` once the page's pictures and fonts are in
+  (a second at most), then answers `siamang:restored`. A host that rebuilds
+  its frame after an edit, such as Siamang Studio's preview, can show the new
+  one only then, where the last one was, instead of a blank frame, page 1 and
+  the top of the page.
 
 ### Changed
 
@@ -1095,6 +1103,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **Nothing on the page moves while the answers are saved.** "Saving…" came
+  in above the page for 0.8 s, 2 s after an answer or a pause in typing, and
+  pushed the whole page down a line (24.8 px) and back up — on a respondent's
+  page as in a design-mode preview, and on the next page when Next came within 2 s
+  of the answer. It now hangs above the page card's right corner from a box of
+  no height, in the room the header, the progress bar or the dots leave above
+  the card, and fades in without moving: nothing shifts, and it covers
+  nothing, with or without a progress indicator, on a phone too. It is one
+  line no wider than the page, so a long `saving_text` ends in "…" rather
+  than running off the left of a phone's screen. It was a status region put
+  in with its text already inside, which some screen readers read out and
+  some did not; a region always in the page now says `saving_text` once, at
+  the first save of a sitting, and not after every answer.
+
+- **A saved interview is offered on the page as first drawn.** The offer to
+  resume was read after the first render and, on many reloads, came in above
+  a page already drawn and pushed it down (118 px on a desktop, 140 px on a
+  phone). It is read before the first render now.
+
+- **A page title is a section gap above its first question again, and
+  carded questions are 10 px apart.** Since every question is in a slot
+  (design mode's click target), the rules written for a bare question matched
+  every question as its slot's first child: the page title sat flush on the
+  first question, a page's section eyebrow without a title 6 px above it, and
+  carded questions a section gap apart instead of 10 px. The space above a
+  question is its slot's now, as 0.6.0 drew it: a section gap under the title
+  or the eyebrow (18, 28 or 40 px at compact, comfortable and spacious; 10 px
+  in carded style), the item gap under a block title, 10 px between cards. A page's Body keeps its
+  1.25rem.
+
+- **What an author writes stays in its place.** A picture floated in a page's
+  Body (`align`, or a float in its style) hung out of it over the first
+  question; the Body holds it now. A word longer than the line — an address,
+  a code — in a title, a hint or an option ran past the card and gave a
+  phone's page a sideways scroll; it breaks now. On a phone, a required matrix
+  row's mark was drawn over the first letter of its statement; it stands 8 px
+  to its left.
+
+- **Design mode's ring clears what is around it.** Design mode drew the
+  selected question's ring 8 px out from the question, which ran 9 px into a
+  page title right above it and would sit halfway between two cards 10 px
+  apart. It is drawn on the question's slot now, 6 px out (4 px around a
+  card): it moves nothing, keeps clear of every neighbor's text (about 4 px
+  at the least, with 20 px type), and leaves a card's corners and the
+  accent rail's end as they are. A selected matrix wider than its question,
+  whose scrolling box reaches into the page's margin, is drawn to the
+  question's width, so the ring does not cut its last column, and a selected
+  question with an error does not shake across it. In dark mode the ring is
+  the primary mixed with the text color, about 6:1 on the card instead of
+  2.6:1.
+
+- **Design mode keeps the host's place.** A question the host selects
+  (`siamang:select`) is scrolled into view when it is not, and a page it sends
+  the runtime to (`siamang:goto`) is shown from its top.
 
 - **A question's options are named by its title as the respondent reads
   it.** The name a screen reader gives a question's answers — the group of a

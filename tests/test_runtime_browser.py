@@ -3910,7 +3910,9 @@ def test_leaving_asks_first_only_once_the_respondent_has_answered(tmp_path):
         + """
         const untouched = await leaving();
         await page.fill("input.sd-input", "Ann");
-        await page.click("body");
+        // A click beside the page, not at the body's middle: with a section
+        // gap under the title, the field is there.
+        await page.click("body", { position: { x: 5, y: 5 } });
         return { untouched, answered: await leaving() };
     """
     )

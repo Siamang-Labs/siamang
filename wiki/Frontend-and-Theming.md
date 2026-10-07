@@ -285,6 +285,13 @@ as the interview is submitted or ended by a full quota), the theme choice
 posts it as a partial response — and keeps its own keys beside these (Studio:
 `siamang_respondent_<survey id>`, `siamang_ended_<survey id>`).
 
+The autosave is written 2 s after the last answer; "Saving…" (`saving_text`)
+then shows for 0.8 s above the page card's right corner, on one line that ends
+in "…" where the page is narrower. It takes no room, so nothing on the page
+moves. A screen reader is told once, at the first save of a sitting, and not
+after every answer. A saved interview's offer to resume is on the page when it
+is first drawn.
+
 - **Nothing before the respondent starts.** Opening a survey writes nothing: the
   interview's id is drawn in memory and kept at the first answer or the first move
   between pages (Resume and Start over count), and the transport's `onStart()` is called
@@ -404,7 +411,7 @@ language. In a template, `{name}` is replaced by the value named (`{n}`, `{total
 | Field | English default | Where |
 | :--- | :--- | :--- |
 | `next_button_text` / `prev_button_text` / `submit_button_text` | `Next section →` / `← Previous` / `Submit responses` | the page's buttons |
-| `submitting_text` / `saving_text` | `Submitting your responses…` / `Saving…` | while submitting / autosaving |
+| `submitting_text` / `saving_text` | `Submitting your responses…` / `Saving…` | while submitting / for a moment at each autosave, above the page card's top right corner |
 | `required_text` | `This question requires an answer.` | an unanswered required question |
 | `required_rows_text` | `Please answer every row.` | a required matrix answered in some rows but not all (`{n}`: the rows left); the rows are marked |
 | `welcome_text` / `section_text` / `final_section_text` | `Welcome` / `Section {n} of {total}` / `Final thoughts` | the section label above a page's title and beside the progress bar |
