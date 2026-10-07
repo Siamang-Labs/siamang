@@ -14,6 +14,9 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
+from siamang.reporting.errors import NoAnswersError
+
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
 
@@ -38,6 +41,30 @@ def _get_label(data: SurveyData, var_name: str) -> str:
     if data.variables and var_name in data.variables:
         return data.variables[var_name].label or var_name
     return var_name
+
+
+def _answered(data: SurveyData, columns: list[str], message: str) -> None:
+    """Raise :class:`~siamang.reporting.errors.NoAnswersError` with
+    ``message`` when no respondent answered all of ``columns`` — before a
+    figure is made: an empty axis (or a matrix of blanks) said nothing."""
+    if data.frame[list(dict.fromkeys(columns))].dropna().empty:
+        raise NoAnswersError(message)
+
+
+def _all_of(data: SurveyData, *names: str) -> str:
+    """Who answered none of what a chart needs, each by its label: "both A
+    and B", or "A, B and C" (a scatter plot's color too)."""
+    return _all_labeled([_get_label(data, name) for name in dict.fromkeys(names)])
+
+
+def _all_labeled(labels: list[str]) -> str:
+    """:func:`_all_of` of labels already given: "A", "both A and B", or "A, B
+    and C"."""
+    if len(labels) == 1:
+        return f"No respondent answered {labels[0]}."
+    if len(labels) == 2:
+        return f"No respondent answered both {labels[0]} and {labels[1]}."
+    return f"No respondent answered {', '.join(labels[:-1])} and {labels[-1]}."
 
 
 def _get_value_labels(data: SurveyData, var_name: str) -> dict[Any, str]:
@@ -84,8 +111,11 @@ def _weighted_means(
 
 
 def _format_value(value: float) -> str:
-    """A bar's label: whole counts as integers, weighted ones to one decimal."""
-    return str(int(round(value))) if abs(value - round(value)) < 1e-9 else f"{value:.1f}"
+    """A bar's label: whole counts as integers, weighted ones to one decimal,
+    rounded as a table rounds them (:func:`round_weighted`)."""
+    if abs(value - round(value)) < 1e-9:
+        return str(int(round_weighted(value, 0)))
+    return f"{round_weighted(value):.1f}"
 
 
 def _require_matplotlib():
@@ -357,6 +387,14 @@ class BarChart(SurveyChart):
         if not bars.is_classic(self):
             bars.draw(self)
             return
+        if self.by is None:
+            _answered(
+                self.data,
+                [self.column],
+                f"No respondent answered {_get_label(self.data, self.column)}.",
+            )
+        else:
+            _answered(self.data, [self.column, self.by], _all_of(self.data, self.column, self.by))
         if sns:
             chart_theme.set_theme(style="whitegrid", palette=self.palette)
 
@@ -507,6 +545,7 @@ class BoxPlot(SurveyChart):
     def _build(self) -> None:
         from siamang.reporting import chart_theme
 
+        _answered(self.data, [self.column, self.by], _all_of(self.data, self.column, self.by))
         if sns:
             chart_theme.set_theme(style="whitegrid", palette=self.palette)
 
@@ -637,6 +676,22 @@ class HeatMap(SurveyChart):
             return
         from siamang.reporting import chart_theme
 
+        if self.by is not None:
+            # The means are of respondents who answered every item and the
+            # group (the frame below), and the label ends the sentence: one
+            # that asks ("…live in?") is not followed by a colon.
+            _answered(
+                self.data,
+                [*self.columns, self.by],
+                "There is no mean to draw: no respondent answered every item and "
+                f"{_get_label(self.data, self.by)}.",
+            )
+        else:
+            _answered(
+                self.data,
+                self.columns,
+                "No respondent answered every item: there is no correlation to draw.",
+            )
         chart_theme.set_theme(style="whitegrid")
 
         fig, ax = plt.subplots(figsize=self.figsize)
@@ -775,6 +830,8 @@ class ScatterPlot(SurveyChart):
         from siamang.reporting import chart_theme
         from siamang.reporting.chart_parts import code_order
 
+        hue = [self.hue] if self.hue else []
+        _answered(self.data, [self.x, self.y, *hue], _all_of(self.data, self.x, self.y, *hue))
         chart_theme.set_theme(style="whitegrid", palette=self.palette)
 
         fig, ax = plt.subplots(figsize=self.figsize)

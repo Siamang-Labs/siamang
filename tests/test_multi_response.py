@@ -18,6 +18,7 @@ from siamang.core.expression import Expression, VarRef
 from siamang.data import SurveyData, multi, turf, weights
 from siamang.frontend.compiler.react import compile_react_payload
 from siamang.model.parse_python import parse_source
+from siamang.reporting import NoAnswersError
 
 # ─── fixtures ────────────────────────────────────────────────────────────────
 
@@ -521,7 +522,8 @@ def test_a_fixed_portfolio_of_nobody_reaches_nobody():
     out = turf.evaluate(frame, ["a", "b"])
     assert list(out["reach"]) == [0.0, 0.0, 0.0]
     assert list(out["frequency"]) == [0.0, 0.0, 0.0]
-    # Nobody answered at all: said, rather than a table of zeros over nothing.
+    # Nobody answered at all: said, rather than a table of zeros over nothing,
+    # in plain words (it said "hold no numbers … run prepare.explode first").
     empty = pd.DataFrame({"a": [None, None], "b": [None, None]}, dtype="Float64")
-    with pytest.raises(TypeError, match="hold no numbers"):
+    with pytest.raises(NoAnswersError, match="^No respondent answered any of the 2 options.$"):
         turf.evaluate(empty, ["a", "b"])

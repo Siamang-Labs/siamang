@@ -79,6 +79,11 @@ def _spec(kind: str, value: Any) -> dict[str, Any] | None:
     try:
         spec = make()
     except Exception as exc:  # noqa: BLE001 - the picture is kept, and the warning says why
+        from siamang.reporting.errors import NoAnswersError
+
+        if isinstance(exc, NoAnswersError):
+            # Nothing answered yet: no picture either, and nothing to warn of.
+            return None
         import warnings
 
         warnings.warn(

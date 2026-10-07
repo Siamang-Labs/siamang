@@ -65,6 +65,7 @@ of its own has none (``vega_lite()`` is None) and its report shows its picture.
 
 from __future__ import annotations
 
+import contextlib
 import math
 import re
 import textwrap
@@ -77,6 +78,7 @@ import pandas as pd
 
 from siamang.reporting import chart_theme, p_values, result_specs
 from siamang.reporting.charts import SurveyChart, _require_matplotlib, plt, sns
+from siamang.reporting.errors import NoAnswersError
 
 __all__ = [
     "KINDS",
@@ -282,7 +284,9 @@ def chart(
     The first result a renderer draws is drawn (with ``kind``, the first that
     can be drawn as it); the others lend it what they say, such as the weight.
     The chart is built here, so a result it cannot draw fails the node that
-    asked for it, with the reason, rather than the preview after it.
+    asked for it, with the reason, rather than the preview after it — except a
+    result no one answered (:class:`~siamang.reporting.errors.NoAnswersError`),
+    which the chart says where it is drawn.
     """
 
     if kind != "auto" and kind not in _all_kinds():
@@ -318,7 +322,12 @@ def chart(
         title=title or None,
         dpi=dpi,
     )
-    figure._ensure_built()
+    # No one answered: there is nothing wrong with the node, only nothing to
+    # draw yet. The chart says so where it is drawn — a report writes its
+    # message, a Live tile is empty — as every other chart does, and the run
+    # goes on.
+    with contextlib.suppress(NoAnswersError):
+        figure._ensure_built()
     return figure
 
 
@@ -943,11 +952,23 @@ def _group_mean_samples(table: Any) -> list[tuple[np.ndarray, np.ndarray | None]
     return samples
 
 
+def _nobody(frame: pd.DataFrame, message: str) -> None:
+    """Raise :class:`NoAnswersError` with ``message`` when no row of a
+    result's table has a respondent in it (its ``N``): a dot plot of no one
+    drew an empty axis, and a chart of a descriptives table of no one failed
+    in its own way."""
+    counts = pd.to_numeric(frame["N"], errors="coerce") if "N" in frame else pd.Series(dtype=float)
+    if frame.empty or not (counts.fillna(0) > 0).any():
+        raise NoAnswersError(message)
+
+
 def _draw_group_means(table: Any, chart: ResultChart) -> str:
     from siamang.data.intervals import mean_interval
+    from siamang.reporting.charts import _all_of
     from siamang.reporting.tables import _get_label
 
     frame = table.to_frame()
+    _nobody(frame, _all_of(table.data, table.column, table.by))
     by_label = str(frame.columns[0])
     labels = [str(value) for value in frame[by_label]]
     samples = _group_mean_samples(table)
@@ -1076,6 +1097,13 @@ def _draw_descriptives(table: Any, chart: ResultChart) -> str:
     data = table.data
     variables = data.variables
     by_label = None if not table.by else descriptives._label(variables, table.by)
+    asked = list(dict.fromkeys(table.columns))
+    what = (
+        descriptives._label(variables, asked[0])
+        if len(asked) == 1
+        else f"any of the {len(asked)} variables"
+    )
+    _nobody(frame, f"No respondent answered {what}" + (f" and {by_label}." if by_label else "."))
     raw = data.frame.reset_index(drop=True)
     weights = descriptives._weights(raw, data.weight)
     groups = (
@@ -1326,6 +1354,15 @@ def _draw_ttest(table: Any, chart: ResultChart) -> str:
     first = str(frame.columns[0])
     if table.kind == "paired":
         frame = frame.iloc[:2]  # the two measurements; their difference is the test's
+    from siamang.reporting.charts import _all_of
+
+    other = table.by if table.kind == "independent" else table.other
+    _nobody(
+        frame,
+        _all_of(table.data, table.column, other)
+        if other
+        else f"No respondent answered {_get_label(table.data, table.column)}.",
+    )
     confidence = float(table.confidence)
     intervals = [
         t_interval(row["Mean"], row["SD"], row["N"], confidence=confidence)
@@ -1389,9 +1426,12 @@ def _is_mcnemar_table(table: Any) -> bool:
 
 def _draw_paired(table: Any, chart: ResultChart) -> str:
     from siamang.data.intervals import t_interval
+    from siamang.reporting.charts import _all_labeled
 
     frame = table.to_frame()
     frame = frame[~frame["Variable"].astype(str).str.startswith("Difference (")]
+    # The same respondents answered every measurement, or none did.
+    _nobody(frame, _all_labeled([str(value) for value in frame["Variable"]]))
     intervals = [t_interval(row["Mean"], row["SD"], row["N"]) for _, row in frame.iterrows()]
     estimate, lower, upper, texts = _means_series(
         chart, intervals, list(frame["SD"]), list(frame["Mean"])
@@ -1443,6 +1483,11 @@ def _draw_mcnemar(table: Any, chart: ResultChart) -> str:
     second = columns[1][: -len(": yes")]
     total = frame.iloc[-1]
     n = int(total["Total"])
+    if n <= 0:
+        # No one answered both: two empty rows on an axis of 0-100 %.
+        from siamang.reporting.charts import _all_labeled
+
+        raise NoAnswersError(_all_labeled([first, second]))
     yes = [int(frame.iloc[0]["Total"]), int(total[columns[1]])]
     intervals = [proportion_interval(count, n) for count in yes]
     estimate = [interval.estimate * 100 for interval in intervals]
@@ -1480,6 +1525,10 @@ def _is_proportion(result: Any) -> bool:
 
 
 def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
+    if result.get("p") is None or not float(result.get("n") or 0) > 0:
+        # No one answered: a share of no one drew a large "0.0 %" on base 0.
+        named = getattr(result, "variable_label", None) or "the question"
+        raise NoAnswersError(f"No respondent answered {named}.")
     fig, ax = chart.figure()
     share, low, high = (float(result[key]) * 100 for key in ("p", "lower", "upper"))
     color = chart.colors(1)[0]
@@ -1534,6 +1583,10 @@ def _draw_proportion(result: dict[str, Any], chart: ResultChart) -> str:
 def _draw_nps(table: Any, chart: ResultChart) -> str:
     frame = table.to_frame().set_index("Group")
     stats = table.stats
+    if stats.get("NPS") is None:
+        # No one answered (the table's shares and score are None): a bar of
+        # nothing and a score of 0 read as a result.
+        raise NoAnswersError(f"There is no score: no respondent answered {stats.get('Variable')}.")
     fig, ax = chart.figure()
     colors = {"Detractors": _negative(), "Passives": _neutral(), "Promoters": _positive()}
     start = 0.0
@@ -2385,6 +2438,13 @@ def _draw_correlations(table: Any, chart: ResultChart) -> str:
         for label, column in zip(labels, columns, strict=True)
     ]
     count = len(columns)
+    if not (result.n.to_numpy()[np.triu_indices(count, 1)] > 0).any():
+        # No pair answered by anyone: a matrix of "n/a" said nothing.
+        raise NoAnswersError(
+            "No respondent answered every item: there is no correlation to draw."
+            if table.missing == "listwise"
+            else "No respondent answered any two of the items: there is no correlation to draw."
+        )
     values = result.coefficients.loc[columns, columns].to_numpy(dtype=float)
     p = (result.p_adjusted if table.adjust != "none" else result.p_values).loc[columns, columns]
     p = p.to_numpy(dtype=float)

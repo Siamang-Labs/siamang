@@ -16,6 +16,8 @@ from __future__ import annotations
 import textwrap
 from typing import Any
 
+from siamang.data.listwise import round_weighted
+
 #: The size of the footnote's text, in points.
 FOOTNOTE_SIZE = 9.0
 #: The size of a value written on or beside a bar, in points.
@@ -356,11 +358,12 @@ def code_text(code: Any) -> str:
 def count_text(value: float) -> str:
     """A count: whole numbers as integers, weighted ones to one decimal — or,
     from 100 on, whole too, as ``18,848`` reads and ``18848.4`` does not; the
-    thousands separated."""
-
+    thousands separated. A weighted count is rounded as a table rounds it
+    (:func:`~siamang.data.listwise.round_weighted`), so a bar, a donut's
+    center and a tooltip read what the table and the footer read."""
     if abs(value - round(value)) < 1e-9 or abs(value) >= 100:
-        return f"{int(round(value)):,}"
-    return f"{value:.1f}"
+        return f"{int(round_weighted(value, 0)):,}"
+    return f"{round_weighted(value):.1f}"
 
 
 def thousands_axis(axis: Any) -> None:

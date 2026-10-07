@@ -13,6 +13,7 @@ from siamang.core.questionnaire import Questionnaire
 from siamang.core.variable import ValidationIssue, Variable, VariableMap
 from siamang.data import multi
 from siamang.data.analysis import DataAnalysis
+from siamang.data.listwise import round_weighted
 from siamang.data.processing import DataProcessing
 from siamang.data.tables import SurveyTables
 
@@ -228,7 +229,7 @@ class SurveyData:
                 "scale": variable.scale,
                 "n": int(series.shape[0]),
                 "n_missing": int(series.isna().sum()) if series.shape[0] else 0,
-                "n_unique": int(series.nunique(dropna=True)) if series.shape[0] else 0,
+                "n_unique": _distinct(series) if series.shape[0] else 0,
             }
             if weights is not None:
                 # By position: selecting the weights by the answered rows' labels
@@ -238,7 +239,7 @@ class SurveyData:
                     if series.shape[0]
                     else np.zeros(len(weights), dtype=bool)
                 )
-                row["weighted_n_valid"] = round(float(weights[valid].sum()), 1)
+                row["weighted_n_valid"] = round_weighted(weights[valid].sum())
             rows.append(row)
         return pd.DataFrame(rows)
 
@@ -663,6 +664,16 @@ class SurveyData:
             output = Path(path or "survey_data.dta")
             return StataWriter().write(self, output, **kwargs)
         raise NotImplementedError(f"Unsupported export format: {fmt}")
+
+
+def _distinct(series: pd.Series) -> int:
+    """How many different answers a column holds. A multiple-choice answer is
+    a list of codes, which pandas cannot count as one (it raised "unhashable
+    type: 'list'" and stopped Describe on any survey with one): each set of
+    codes chosen counts as one answer."""
+    if multi.is_multi(series):
+        series = series.map(lambda value: tuple(value) if isinstance(value, list) else value)
+    return int(series.nunique(dropna=True))
 
 
 def _bin_labels(bins: list[int | float]) -> list[str]:

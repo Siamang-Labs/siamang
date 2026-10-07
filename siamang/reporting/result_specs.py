@@ -29,6 +29,7 @@ from typing import Any
 
 import numpy as np
 
+from siamang.data.listwise import round_weighted
 from siamang.reporting import vega
 from siamang.reporting.chart_specs import (
     VALUE_SIZE,
@@ -139,7 +140,7 @@ def count_base(value: Any) -> str | None:
         return None
     if float(number).is_integer():
         return vega.base_text(int(number))
-    return f"{number:,.1f} (weighted)"
+    return f"{round_weighted(number):,.1f} (weighted)"
 
 
 def _base_of(stats: dict[str, Any]) -> str | None:

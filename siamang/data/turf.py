@@ -36,6 +36,8 @@ from typing import Any
 
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
+
 __all__ = ["TurfTable", "evaluate", "item_reach", "labels_of", "portfolio_reach", "turf"]
 
 #: Refuse an exhaustive search bigger than this rather than appearing to hang.
@@ -47,6 +49,12 @@ def _chosen(frame: pd.DataFrame, items: Sequence[str]) -> pd.DataFrame:
     if missing:
         raise KeyError(f"columns not found: {', '.join(map(repr, missing))}")
     numeric = frame[list(items)].apply(pd.to_numeric, errors="coerce")
+    if len(items) and not frame[list(items)].notna().any().any():
+        # No answers at all (no responses yet, or none a filter left): said
+        # so, not "run prepare.explode first", which was not the trouble.
+        from siamang.reporting.errors import NoAnswersError
+
+        raise NoAnswersError(f"No respondent answered any of the {len(items)} options.")
     if numeric.isna().all().all() and len(items):
         raise TypeError(
             "TURF needs one 0/1 column per option. These columns hold no numbers "
@@ -227,7 +235,7 @@ def turf(
             "frequency",
         ],
     )
-    out.base = int(round(base))
+    out.base = int(round_weighted(base, 0))
     out.method = method
     out.labels = dict(labels or {})
     if weight:
@@ -374,7 +382,7 @@ def evaluate(
             "frequency",
         ],
     )
-    out.base = int(round(base))
+    out.base = int(round_weighted(base, 0))
     out.method = "fixed"
     if weight:
         out.attrs["weight"] = weight  # a chart of the table alone says it

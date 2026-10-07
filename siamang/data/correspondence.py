@@ -68,7 +68,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.data import multi
-from siamang.data.listwise import distinct, label_of, p_rounded, rounded
+from siamang.data.listwise import distinct, label_of, p_rounded, round_weighted, rounded
 from siamang.reporting import chart_theme
 from siamang.reporting.result_table import ResultTable
 
@@ -362,7 +362,7 @@ def analyze(
         )
     if weights is not None:
         stats["Weight"] = data.weight
-        stats["Weighted N"] = rounded(float(w[answered].sum()), 1)
+        stats["Weighted N"] = round_weighted(w[answered].sum())
     if empty:
         stats["Not in the map"] = f"{', '.join(empty)} (nobody counted in them)"
     excluded = int(len(frame) - n)

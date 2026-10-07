@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.reporting.chart_parts import Footnote, axes_points, chars_in, left_out_note, wrap
+from siamang.reporting.errors import NoAnswersError
 
 if TYPE_CHECKING:
     from siamang.reporting.charts import HeatMap
@@ -47,6 +48,11 @@ def draw(chart: HeatMap) -> None:
         raise ValueError(f"No variable {unknown[0]!r} in the data.")
     source, left_out = inference.without_missing_codes(data.frame, columns, data.variables)
     source = source.reset_index(drop=True)
+    if source[columns].dropna().empty:
+        # A correlation is of the respondents who answered every item: none
+        # did (no responses yet, or none a filter left), and a matrix of
+        # blanks said nothing.
+        raise NoAnswersError("No respondent answered every item: there is no correlation to draw.")
     weighted = data.weight is not None and method == "pearson"
     weights = None
     if weighted:
@@ -195,8 +201,8 @@ def draw_means(chart: HeatMap) -> None:
     answered = frame[columns].notna().any(axis=1)
     frame = frame[answered]
     if frame.empty:
-        raise ValueError(
-            f"No respondent answered an item and {_get_label(data, by)}: there is no mean to draw."
+        raise NoAnswersError(
+            f"There is no mean to draw: no respondent answered an item and {_get_label(data, by)}."
         )
     weighted = data.weight is not None
     weights = None

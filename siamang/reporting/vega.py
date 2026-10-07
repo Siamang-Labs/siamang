@@ -357,7 +357,11 @@ def base_text(n: int, weighted: float | None = None) -> str:
     """A tooltip's base: ``1,234 respondents`` (``, weighted 1,201.5``)."""
 
     text = f"{n:,} {'respondent' if n == 1 else 'respondents'}"
-    return text + (f" (weighted {weighted:,.1f})" if weighted is not None else "")
+    if weighted is None:
+        return text
+    from siamang.data.listwise import round_weighted
+
+    return text + f" (weighted {round_weighted(weighted):,.1f})"
 
 
 def hex_colour(colour: Any) -> str:

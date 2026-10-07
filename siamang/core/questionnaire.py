@@ -568,11 +568,24 @@ class Questionnaire:
             warnings.extend(_script_answer_key_warnings(self))
             warnings.extend(_script_target_scope_warnings(self))
             if self.variables is not None:
+                # Used: every key the runtime stores for a question — its
+                # variables and the text typed into "Other (please specify)"
+                # (<variable>_other, declared in the codebook so an export
+                # labels the column) — the arm a script assigns, and what a
+                # custom script writes.
                 used = {
-                    var.name
+                    key
                     for question in self.all_questions()
-                    for var in _question_variables(question)
+                    for key in question_answer_keys(question)
                 }
+                used.update(self.assigned_variables())
+                unused = sorted(set(self.variables) - used)
+                if unused and self.scripts:
+                    # ``siamang.model`` builds on ``siamang.core``: import here.
+                    from siamang.model.scripts import answer_keys_written
+
+                    for script in self.scripts:
+                        used.update(answer_keys_written(script, unused))
                 for name in sorted(set(self.variables) - used):
                     warnings.append(
                         LintWarning(

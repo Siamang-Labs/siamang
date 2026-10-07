@@ -800,7 +800,9 @@ tests, Proportion CI, Net Promoter Score, TURF, MaxDiff, Conjoint, Share of
 preference, Principal components, Factor analysis, Cluster (k-means),
 Regression, Correlation matrix, Code open answers, Key drivers, Perceptual map,
 Price sensitivity — connect the table of one of them.`, `Kind 'scree' does not suit this result: Group means draws 'means' or
-'means_sd'.`, `Unknown kind 'pie'; the kinds are auto, means, …`. `ResultChart`
+'means_sd'.`, `Unknown kind 'pie'; the kinds are auto, means, …`. A result no one answered is
+the exception: `chart()` returns, and drawing it raises `NoAnswersError` (a
+`ValueError`), whose message a report writes in the figure's place. `ResultChart`
 is a `SurveyChart`: `save()`, `plot()`, `show()`, `weight_note`, and a `Report`
 takes it like any chart; `chart.drawn` is the kind `auto` resolved to.
 

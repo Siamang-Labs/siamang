@@ -31,6 +31,7 @@ from siamang.flow.document import FlowError, FlowGraph, resolve_flow
 from siamang.flow.registry import Registry
 from siamang.flow.template import output_names, render_node
 from siamang.io.snapshot import read_snapshot
+from siamang.reporting.errors import NoAnswersError
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,15 +151,23 @@ class FlowRunner:
                         # A chart is built lazily; built here, what it cannot
                         # draw fails its own node, not the Save report after it.
                         chart = namespace.get(name)
-                        if callable(getattr(chart, "release", None)):
-                            # Rendered and let go: the run keeps every node's
-                            # output, and thirty open figures do not fit a
-                            # small sandbox. The picture is kept, so a preview
-                            # or a report at this resolution draws nothing again.
-                            chart.png()
-                            chart.release()
-                        elif callable(getattr(chart, "_ensure_built", None)):
-                            chart._ensure_built()
+                        try:
+                            if callable(getattr(chart, "release", None)):
+                                # Rendered and let go: the run keeps every
+                                # node's output, and thirty open figures do not
+                                # fit a small sandbox. The picture is kept, so a
+                                # preview or a report at this resolution draws
+                                # nothing again.
+                                chart.png()
+                                chart.release()
+                            elif callable(getattr(chart, "_ensure_built", None)):
+                                chart._ensure_built()
+                        except NoAnswersError:
+                            # Nothing answered yet: not the node's failure. The
+                            # chart says so where it is drawn (a report writes
+                            # its message, a Live tile is empty), as in the
+                            # generated script, which builds no chart here.
+                            pass
                 except Exception as exc:  # noqa: BLE001 - reported per node
                     ms = int((time.perf_counter() - started) * 1000)
                     runs.append(NodeRun(node_id, "error", ms, code, f"{type(exc).__name__}: {exc}"))

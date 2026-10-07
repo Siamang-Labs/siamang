@@ -28,6 +28,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
 from siamang.reporting.chart_parts import (
     VALUE_SIZE,
     Footnote,
@@ -44,6 +45,7 @@ from siamang.reporting.chart_parts import (
     wrap,
 )
 from siamang.reporting.charts import SurveyChart
+from siamang.reporting.errors import NoAnswersError
 
 NEUTRALS = ("split", "side")
 SORTS = ("top2", "listed")
@@ -594,6 +596,15 @@ def _count(chart: LikertChart, columns: list[str], scale: Scale) -> dict[str, An
             }
         )
     if not rows:
+        if not off:
+            # Nothing answered at all — no responses yet, or none left by a
+            # filter — rather than answers off the scale.
+            asked = (
+                _label(data, columns[0])
+                if len(columns) == 1
+                else f"any of the {len(columns)} items"
+            )
+            raise NoAnswersError(f"No respondent answered {asked}.")
         raise ValueError("None of the items has an answer on the scale.")
 
     def listed(codes: list[Any]) -> str:
@@ -642,7 +653,7 @@ def _table(
         record["Bottom-2" if scale.box == 2 else "Bottom box"] = round(row["bottom"], 1)
         record["N"] = row["n"]
         if weighted:
-            record["Weighted N"] = round(row["weighted"], 1)
+            record["Weighted N"] = round_weighted(row["weighted"])
         records.append(record)
     return pd.DataFrame(records)
 

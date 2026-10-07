@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`NoAnswersError`** (`siamang.reporting`): what a chart raises when no
+  respondent answered what it draws, with a plain message that says whose
+  answers are missing ("No respondent answered Brand.", with no full stop
+  after a label that asks a question) and is meant to be shown as it is — a
+  report writes it where the figure would be, and a dashboard can show an
+  empty tile with it. It is a `ValueError`, as these charts raised before. A
+  cluster analysis, principal components, a reliability and a TURF of no one
+  raise it too.
+
 - **Interactive charts.** Every chart of `siamang.reporting` can say what it
   draws as a **Vega-Lite 6** spec (`SurveyChart.vega_lite()`, `None` for a
   chart without an interactive form), made from the numbers its picture is
@@ -1095,6 +1104,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same words: a blank line between paragraphs and a dash before an item
   read as plain text, and the backticks are the only marks. Only `description`
   and `help` change, so every stored flow renders the code it rendered.
+- **With no answers, results that read 0 or 100 % are `None` now.** Code that
+  compared such a result to 0 or did arithmetic on it gets `None` instead
+  (written "—" in a table; see "A base with no answers prints no result" under
+  Fixed): among others the Frequencies' Total `%` and `Cumulative %`, the NPS
+  and its shares, `DataAnalysis.spearman`'s `rho` and `p_value`, and
+  `DataAnalysis.proportion_ci`'s `p`, `lower` and `upper`.
+  `DataAnalysis.kruskal`, `DataAnalysis.mannwhitney` and
+  `DataAnalysis.compare_groups` with fewer than two groups that have answers
+  return `statistic` and `p_value` `None` with a `note` instead of raising
+  `ValueError`. A chart, `pca`, `kmeans` or `reliability` of no answers raises
+  `NoAnswersError` (a `ValueError`) with a message that says who did not
+  answer, and so does a TURF of no answers, which raised `TypeError`: an
+  `except TypeError` no longer catches it.
 
 ### Removed
 
@@ -1103,6 +1125,165 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   more (see Changed).
 
 ### Fixed
+
+- **A scale answers from the keyboard and a screen reader as it looks.** Every
+  point of a 0–10 scale (an NPS) or a row of stars was a toggle button of its
+  own: eleven Tab stops on a 0–10 scale, each read out as "0, toggle button,
+  not pressed", with no place on the scale and no end label. A scale is one
+  radio group now: its points are radios, checked or not, and one of them is in
+  the tab order (the chosen one, else the first); the arrow keys move the
+  choice and the focus with it, Home and End go to the ends, and an arrow stops
+  at an end rather than jump to the other one. The end labels describe the end
+  points ("0, Not at all likely"), and a star is named by its count, as the
+  radio says its place ("3, radio button, 3 of 5"). An arrow with Alt, Ctrl or
+  Cmd is the browser's (Alt+Left goes back), and an arrow or Home and End on
+  the point already chosen saves nothing again. A focused number has the solid
+  ring an option's row has (below), where the soft ring of a text field was
+  all but invisible around a point not chosen; with forced colors the chosen
+  number is drawn in the system's Highlight, where its fill, which forced
+  colors drop, was all that told it. Otherwise it looks as it did.
+
+- **A dark theme's scale numbers can be read.** A number of a scale is a
+  button, and kept the browser's black text on a dark theme's card; it is
+  drawn in the page's text color now.
+
+- **A digit answers the scale the focus is in, and "1" then "0" is 10.** A
+  digit went to the page's first scale that had the point, whichever question
+  the respondent was at: "1" typed at the 0–10 scale changed the stars above
+  it, and 10 could not be typed at all. A digit answers the scale the focus is
+  in now, or the page's only scale when the focus is in no question, and
+  nothing from another question or when two scales share the page; "1" then
+  "0" within 0.8 s is 10, and a 0–4 scale takes "0". The focus goes to the
+  point chosen.
+
+- **The keyboard's focus shows on an option's row.** An option's input is
+  hidden under its decorator, and so was the focus ring drawn on it: tabbing
+  through a choice or a set of boxes showed nothing. The row has a solid
+  2 px ring in the accent mixed toward the text color, 3:1 or more on the
+  card in light and dark; a browser without `:has()` rings the decorator, and
+  with forced colors every focus is an outline in the system's text color. A
+  click with the mouse draws none.
+
+- **A text or number field is named by its question.** A text field, a text
+  box of several lines and a number field had no name, so a screen reader said
+  "edit text" and nothing of the question; each is named by its title as the
+  respondent reads it (an earlier answer piped in) and says `aria-invalid`
+  while its error shows, naming the error (`aria-describedby`), so a screen
+  reader on the field hears why after the alert was read out once. A choice's,
+  an image choice's and a scale's radio group say `aria-required` and, while
+  the error shows, `aria-invalid` and the error; a set of boxes says the last
+  two.
+
+- **A step dot is a target of its own size.** A respondent goes back with a
+  step dot, and the dot was a 10 px target. Its button is 24 px now (32 px on
+  a touch screen), the same 10 px dot drawn in it, so the dots stand 24 px
+  apart (32 px under a finger) where they stood 16 px apart. The row's margins
+  take back what the taller buttons add, so the page under one row of dots
+  stays where it was. Under a finger a button narrows, down to 24 px, when the
+  survey's steps would not fit one row at 32 px; dots too many for one row
+  even then wrap (on a 390 px phone, more than 14), and the second row moves
+  the page down.
+
+- **A long scale wraps into even rows of equal cells.** A 0–10 scale too wide
+  for its row wrapped as flex items: 0–8 in one row and 9 and 10, twice as
+  wide, in another. Its points are cells of one width — all in one row where
+  each keeps its least width (44 px, 40 px on a phone) and the gaps fit, else
+  two even rows (0–5, 6–10), and more only where two are still too narrow.
+  That is measured on the scale, not on the window, so a survey whose theme is
+  480 px wide wraps at a desktop's width, and an 8-point scale stays one row
+  in a 600 px window. The count of columns is a custom property set through
+  the CSSOM, as a matrix's is, so a strict CSP allows it.
+
+- **What is answered just before the page is left is kept.** The save waits
+  2 s after the last answer (a field's text 600 ms after its last key), and a
+  platform's transport reads it to send the partial response as the page is
+  hidden or closed: whatever was answered in those seconds was not in it, and
+  a reload a moment after an answer offered nothing to resume. The save still
+  waiting is written as the page is hidden or left (`visibilitychange` to
+  hidden and `pagehide`, in the capture phase on `window`), with the text
+  still in a field. `visibilitychange` is the document's, so the save is
+  written before a transport's own listener on the document reads it; leaving
+  the page, `pagehide` comes before the document turns hidden. A `pagehide`
+  listener a transport put on `window` before the runtime's runs before it,
+  as a window's own listeners run in the order they were put on.
+  The save a save timer asked for writes the answers as they are when it runs,
+  not as they were when it was asked for.
+
+- **A click on the next question lands where it was pressed.** Leaving a
+  required question unanswered says so at once, and it was said as the mouse
+  went down on the next question: the error came in above it and moved it
+  down, the button came up somewhere else and the click was lost. The check
+  waits for the press to end — the button let go, or a tap's click — and the
+  error shows after the click. A press whose end never reaches the page (the
+  button let go in another window) ends at the next key, a mouse moving with
+  no button down or the window losing the focus, so a respondent who goes on
+  with the keyboard still sees what is missing as a field is left.
+
+- **`UNUSED_VARIABLE` leaves alone what the survey writes.** Strict lint named
+  the text of "Other (please specify)" (`<variable>_other`, declared in the
+  codebook so an export labels the column) as unused, though the runtime
+  stores the typed text under it, and so an arm a script assigns and a
+  variable a custom script writes. Every key the runtime stores for a
+  question, every assigned arm and every answer a custom script writes count
+  as used now.
+
+- **Equal weighted counts print alike.** Code 1's weights (0.15 + 0.65 +
+  0.65) and code 2's (0.45 + 1.0) both come to 1.45, but as floats the first
+  sums to 1.4500000000000002 and printed 1.5 beside the second's 1.4 in one
+  frequency table; raked weights of the same respondents, in another row
+  order, gave a count of 4.55 that read 4.5 in one run and 4.6 in the next.
+  Every weighted count — a weighted N, base, total or cell in a table or a
+  footer; a chart's base, a bar's label, a donut's center, a tooltip and a
+  chart's description; a multiple choice's, a MaxDiff's and a TURF's whole
+  counts; an ordinal model's note of what the weights sum to — is rounded by
+  one helper (`siamang.data.listwise.round_weighted`) that puts the float's
+  noise aside first (nine decimals), so equal counts print alike, as 1.45
+  itself does: one donut read "weighted 1.5" in its center and "(weighted:
+  1.4)" under it. A crosstab's weighted counts are rounded by it too, not by
+  numpy's rounding, which scaled by ten first and could read a hair
+  differently.
+
+- **A base with no answers prints no result.** With no answers — a survey just
+  opened, a filter that left no one — the Frequencies' Total read 100.0 %
+  (Cumulative % too) beside N 0, and the NPS read 0 with every group at 0.0 %:
+  on an empty dashboard, results. They are None now, written "—" in the
+  Markdown, the HTML and the footer (an Excel file leaves the cell blank). A
+  chart of nothing — every form of the Bar chart, the box plot, the scatter
+  plot, both heatmaps, the Likert chart, the Trend, and the Result chart of an
+  NPS, Group means, Descriptives, a t-test, a paired test, a proportion or a
+  correlation matrix — drew an empty axis, a large "0.0 %", a matrix of blanks
+  or failed in a way of its own; it raises `NoAnswersError` now (see Added). A
+  report writes its message where the figure would be and goes on. A chart of
+  nothing is not a failed node: a preview (`FlowRunner`) built each chart at
+  its node and failed it ("ValueError: …"), and the Result chart, which is
+  built as it is made, failed even the generated script's run; both go on now,
+  and the chart says so where it is drawn. A Trend's table of no one has no
+  rows (Base 0): its node reads the table as it makes the chart, and failed
+  there, and a Live run stopped at it and published nothing after it. A Trend
+  whose time column is empty beside answers (a wave parameter never passed) is
+  a set-up mistake, and still says so as a `ValueError`. A Live tile's chart
+  has no spec and no warning. A message whose label asks a question puts the
+  label last ("There is no score: no respondent answered Would you recommend
+  us?"), and a scatter plot colored by a group names the group too.
+
+- **An analysis of no one prints no result.** A Spearman correlation of no
+  pairs read rho 0.0 and p 1.0, a proportion 0.0 % (0.0 – 0.0), and the
+  quality checks' and the coded themes' shares 0.0 % of no one: each is None
+  now. A chi-square test of a table with fewer than two rows or columns that
+  have answers is not run and says why, as Fisher's exact test did: with no
+  answers it stopped the flow in SciPy, and of one respondent it printed
+  χ² = 0 on df 0. Compare groups, Kruskal–Wallis and Mann–Whitney with fewer
+  than two groups that have answers are not run either (they stopped the
+  flow), and say why. An NPS of one respondent has no SE and no interval: an
+  SE of 0 and an interval from 100 to 100 read as certainty. A cluster
+  analysis, principal components, a reliability and a TURF of no one still
+  stop their node, since what follows needs their result, but say why in the
+  same plain words ("No respondent answered all 3 items."), where they said
+  "fewer than three complete rows" or "run prepare.explode first".
+
+- **Describe counts a multiple-choice column.** Describe raised "unhashable
+  type: 'list'" on any survey with a multiple-choice question and stopped its
+  flow; each set of codes chosen counts as one answer.
 
 - **Nothing on the page moves while the answers are saved.** "Saving…" came
   in above the page for 0.8 s, 2 s after an answer or a pause in typing, and

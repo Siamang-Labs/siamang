@@ -156,6 +156,17 @@ function questionName(q, answers) {
   return pipingOf(q).text ? processPipedText(q.title, answers) : q.title;
 }
 
+/* What a screen reader is told of a question's answer field or group, beside
+   its name: that it is required, and while its error shows, that it is
+   invalid and why (the error, by its id — QuestionShell's errorId). */
+function answerAria(q, error, { required = true } = {}) {
+  return {
+    "aria-required": required && q.required ? true : undefined,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": error ? q.id + "__err" : undefined,
+  };
+}
+
 let _pipeLabelIndex = null;
 const _pipeOtherIndex = {};
 // The own answer keys of the question each piped variable belongs to, for a
@@ -329,7 +340,10 @@ function processPipedHtml(html, answers) {
   });
 }
 
-function QuestionShell({ num, title, required, description, error, children, onBlur, answers, media }) {
+/* `errorId`: the id the error is given, for a field or a group that names
+   it in aria-describedby, so a screen reader on the field hears why it is
+   invalid after the alert has been read out once. */
+function QuestionShell({ num, title, required, description, error, errorId, children, onBlur, answers, media }) {
   const processedTitle = processPipedText(title, answers);
   const processedDescription = processPipedText(description, answers);
   // A question is checked when the focus leaves it, not when it moves
@@ -354,7 +368,7 @@ function QuestionShell({ num, title, required, description, error, children, onB
         <MediaGallery media={media} />
       </div>
       {children}
-      {error ? <div className="sd-question__error" role="alert">{error}</div> : null}
+      {error ? <div className="sd-question__error" id={errorId} role="alert">{error}</div> : null}
     </div>
   );
 }
@@ -426,8 +440,8 @@ function SingleChoice({ q, value, onChange, num, error, onBlur, answers, onAutoA
   const pipe = optionPiper(q, answers);
 
   return (
-    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-      <div className={"sd-choices" + (isButtons ? " sd-choices--buttons" : "")} role="radiogroup" aria-label={questionName(q, answers)}>
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} errorId={q.id + "__err"} onBlur={onBlur} answers={answers} media={q.media}>
+      <div className={"sd-choices" + (isButtons ? " sd-choices--buttons" : "")} role="radiogroup" aria-label={questionName(q, answers)} {...answerAria(q, error)}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = currentCode === opt.code;
           return (
@@ -529,11 +543,14 @@ function MultiChoice({ q, value, onChange, num, error, onBlur, answers }) {
       required={q.required}
       description={q.description}
       error={error}
+      errorId={q.id + "__err"}
       onBlur={onBlur}
       answers={answers}
       media={q.media}
     >
-      <div className="sd-choices" role="group" aria-label={questionName(q, answers)}>
+      {/* A group of boxes is not required as a whole for a screen reader
+          (aria-required is not a group's), only invalid while its error shows. */}
+      <div className="sd-choices" role="group" aria-label={questionName(q, answers)} {...answerAria(q, error, { required: false })}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = v.includes(opt.code);
           const disabled = !checked && q.max && v.length >= q.max;
@@ -598,23 +615,85 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
   const [hover, setHover] = useState(null);
   const points = Array.from({ length: q.points }, (_, i) => i + start);
   const pipe = optionPiper(q, answers);
+  // A radio group, as a screen reader and the keyboard expect one: one tab
+  // stop (the chosen point, else the first), the arrows and Home/End move the
+  // choice. Every point was a button of its own, announced as a toggle
+  // button with no place on the scale.
+  const tabIdx = Math.max(0, points.indexOf(value));
+  const ends = [pipe(q.leftLabel), pipe(q.rightLabel)];
+  const endId = (i) => (i === 0 && ends[0] ? q.id + "__lo" : i === points.length - 1 && ends[1] ? q.id + "__hi" : undefined);
+  const move = (e, i) => {
+    // With Alt, Ctrl or Cmd an arrow is the browser's (Alt+Left goes back).
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const to = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: points.length - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    const j = Math.min(points.length - 1, Math.max(0, to));
+    // At an end the choice stays: nothing to save again.
+    if (points[j] !== value) onChange(points[j]);
+    const items = e.currentTarget.parentElement.querySelectorAll(".sd-rating__item");
+    if (items[j]) items[j].focus();
+  };
+  // How many points a row of numbers holds: all of them where each still
+  // has its least width (the stylesheet's --sd-rating-min) and the gaps fit,
+  // else half of them, in two even rows (0-5, 6-10), and fewer only if those
+  // are still too narrow. Measured on the scale itself, so a narrow theme or
+  // embed wraps and a wide phone does not; the count goes in as a custom
+  // property through the CSSOM, which a strict CSP allows, as a matrix's
+  // --sd-matrix-cols does.
+  const scaleRef = useRef(null);
+  React.useLayoutEffect(() => {
+    const el = scaleRef.current;
+    if (stars || !el || typeof ResizeObserver !== "function") return undefined;
+    const fit = () => {
+      const width = el.clientWidth;
+      if (!(width > 0)) return;
+      const cs = getComputedStyle(el);
+      const gap = parseFloat(cs.columnGap) || 0;
+      const least = parseFloat(cs.getPropertyValue("--sd-rating-min")) || 44;
+      let cols = q.points;
+      for (let rows = 1; rows <= q.points; rows++) {
+        cols = Math.ceil(q.points / rows);
+        if (cols === 1 || (width - gap * (cols - 1)) / cols >= least) break;
+      }
+      el.style.setProperty("--sd-rating-cols", String(cols));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [stars, q.points]);
   return (
-    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} errorId={q.id + "__err"} onBlur={onBlur} answers={answers} media={q.media}>
       <div className={"sd-rating" + (stars ? " sd-rating--stars" : "")}>
-        <div className="sd-rating__scale" role="radiogroup" aria-label={questionName(q, answers)} onMouseLeave={() => setHover(null)}>
-          {points.map((n) => {
+        <div
+          ref={scaleRef}
+          className="sd-rating__scale"
+          role="radiogroup"
+          aria-label={questionName(q, answers)}
+          {...answerAria(q, error)}
+          onMouseLeave={() => setHover(null)}
+          style={stars ? undefined : { "--sd-rating-points": q.points }}
+        >
+          {points.map((n, i) => {
             // Stars fill up to the chosen (or hovered) one; numbers select one point.
             const lit = stars && typeof value === "number" && n <= (hover ?? value);
             const hot = stars && hover !== null && n <= hover;
+            // A star is named by its count, and the radio says where it is
+            // ("3, radio button, 3 of 5"): "3 of 5" said its place twice.
             return (
               <button
                 type="button"
                 key={n}
                 className={"sd-rating__item" + (value === n ? " is-selected" : "") + (lit || hot ? " is-lit" : "")}
                 onClick={() => onChange(n)}
+                onKeyDown={(e) => move(e, i)}
                 onMouseEnter={stars ? () => setHover(n) : undefined}
-                aria-pressed={value === n}
-                aria-label={stars ? `${n - start + 1} ${runtimeTexts().of} ${q.points}` : undefined}
+                role="radio"
+                aria-checked={value === n}
+                tabIndex={i === tabIdx ? 0 : -1}
+                aria-label={stars ? String(n - start + 1) : undefined}
+                aria-describedby={endId(i)}
               >
                 {stars ? <span className="sd-rating__star" aria-hidden="true">{lit || hot ? "\u2605" : "\u2606"}</span> : <span className="sd-rating__num">{n}</span>}
               </button>
@@ -622,8 +701,8 @@ function Likert({ q, value, onChange, num, error, onBlur, answers }) {
           })}
         </div>
         <div className="sd-rating__labels">
-          <span>{pipe(q.leftLabel)}</span>
-          <span>{pipe(q.rightLabel)}</span>
+          <span id={ends[0] ? q.id + "__lo" : undefined}>{ends[0]}</span>
+          <span id={ends[1] ? q.id + "__hi" : undefined}>{ends[1]}</span>
         </div>
         {q.naOption ? (
           <div className="sd-rating__na">
@@ -766,6 +845,29 @@ function Matrix({ q, value, onChange, num, error, held, onBlur, answers }) {
   );
 }
 
+/* What is typed into a text or number field goes into the answers when the
+   field is left, or 600 ms after the last key. commitPendingInputs puts what
+   is still waiting there at once, as the page is hidden or left
+   (useAutosave), so the save written then holds it. A field marks its commit
+   as waiting with each key (usePendingInput's mark) and every commit clears
+   it. */
+const pendingInputs = new Set();
+function commitPendingInputs() {
+  for (const ref of Array.from(pendingInputs)) {
+    pendingInputs.delete(ref);
+    if (ref.current) ref.current();
+  }
+}
+function usePendingInput(commit) {
+  const ref = useRef(null);
+  ref.current = commit;
+  useEffect(() => () => { pendingInputs.delete(ref); }, []);
+  return {
+    mark: () => { pendingInputs.add(ref); },
+    clear: () => { pendingInputs.delete(ref); },
+  };
+}
+
 /* Its valid range is checked by the survey, not here: when the field is left
    and on Next ("Minimum value is …" / "Maximum value is …", answerLimitError),
    the same way as a required answer — a message of the component's own was
@@ -845,18 +947,22 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
     }
   }, [value]);
   const commit = () => {
+    pending.clear();
     if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
     if (!inputRef.current) return;
     const raw = inputRef.current.value;
     onChange(raw === "" ? null : Number(raw));
   };
+  const pending = usePendingInput(commit);
   return (
-    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} errorId={q.id + "__err"} onBlur={onBlur} answers={answers} media={q.media}>
       <div className="sd-numeric">
         <input
           ref={inputRef}
           type="number"
           className="sd-input"
+          aria-label={questionName(q, answers)}
+          {...answerAria(q, error)}
           defaultValue={value ?? ""}
           min={q.min}
           max={q.max}
@@ -864,6 +970,7 @@ function NumericInput({ q, value, onChange, num, error, onBlur, answers }) {
           onInput={() => {
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(commit, 600);
+            pending.mark();
           }}
           onBlur={() => {
             commit();
@@ -893,13 +1000,16 @@ function OpenText({ q, value, onChange, num, error, onBlur, answers }) {
   }, [value]);
 
   const commit = () => {
+    pending.clear();
     if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
     if (inputRef.current) onChange(inputRef.current.value);
   };
+  const pending = usePendingInput(commit);
   const handleInput = (e) => {
     setChars(e.target.value.length);   // local-only state for the counter
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(commit, 600);
+    pending.mark();
   };
   const handleBlur = () => {
     commit();
@@ -910,10 +1020,12 @@ function OpenText({ q, value, onChange, num, error, onBlur, answers }) {
   const extraProps = q.multiline ? { rows: 4 } : { type: TEXT_INPUT_TYPES[q.format] || "text", inputMode: TEXT_INPUT_MODES[q.format] };
 
   return (
-    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={null} answers={answers} media={q.media}>
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} errorId={q.id + "__err"} onBlur={null} answers={answers} media={q.media}>
       <InputTag
         ref={inputRef}
         className="sd-input"
+        aria-label={questionName(q, answers)}
+        {...answerAria(q, error)}
         defaultValue={value ?? ""}
         placeholder={q.placeholder}
         maxLength={q.maxChars}
@@ -1121,8 +1233,8 @@ function SearchableDropdown({ q, value, onChange, num, error, onBlur, answers })
 function ImageChoice({ q, value, onChange, num, error, onBlur, answers }) {
   const pipe = optionPiper(q, answers);
   return (
-    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} onBlur={onBlur} answers={answers} media={q.media}>
-      <div className="sd-image-choices" role="radiogroup" aria-label={questionName(q, answers)}>
+    <QuestionShell num={num} title={q.title} required={q.required} description={q.description} error={error} errorId={q.id + "__err"} onBlur={onBlur} answers={answers} media={q.media}>
+      <div className="sd-image-choices" role="radiogroup" aria-label={questionName(q, answers)} {...answerAria(q, error)}>
         {visibleOptions(q, answers).map((opt) => {
           const checked = value === opt.code;
           const imageUrl = opt.imageUrl || (opt.media && opt.media.kind === "image" ? opt.media.url : null);

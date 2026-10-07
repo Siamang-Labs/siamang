@@ -26,7 +26,7 @@ from matplotlib.patches import Rectangle  # noqa: E402
 
 from siamang.core import Variable, VariableMap  # noqa: E402
 from siamang.data import SurveyData, factor, paired, text_coding, turf  # noqa: E402
-from siamang.reporting import Report  # noqa: E402
+from siamang.reporting import NoAnswersError, Report  # noqa: E402
 from siamang.reporting import result_charts as rc  # noqa: E402
 
 
@@ -724,8 +724,10 @@ def test_nothing_to_test_is_said_in_the_note():
 
 
 def test_empty_and_one_sided_results_draw():
-    empty = rc.chart({"p": 0.0, "lower": 0.0, "upper": 0.0, "n": 0.0})
-    assert "0.0 %" in _texts(empty._ax)
+    # A proportion of no one drew a large "0.0 %" on base 0: no one answered.
+    for empty in ({"p": None, "lower": None, "upper": None, "n": 0.0}, {"p": 0.0, "n": 0.0}):
+        with pytest.raises(NoAnswersError, match="^No respondent answered the question.$"):
+            rc.chart({"lower": 0.0, "upper": 0.0, **empty}).png()
     promoters = SurveyData(frame=pd.DataFrame({"nps": [9, 10, 10]})).report.nps("nps")
     bars = _bars(rc.chart(promoters)._ax)
     assert [bar.get_width() for bar in bars] == [0.0, 0.0, 100.0]

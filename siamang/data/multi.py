@@ -45,6 +45,15 @@ __all__ = [
 ]
 
 
+def _whole(count: float) -> int:
+    """A count, or a sum of weights, to a whole number as every weighted
+    count is rounded (:func:`siamang.data.listwise.round_weighted`): two sums
+    that are equal print alike, whatever order their weights were added in."""
+    from siamang.data.listwise import round_weighted  # listwise imports this module
+
+    return int(round_weighted(count, 0))
+
+
 def _is_list(value: Any) -> bool:
     return isinstance(value, list | tuple | set)
 
@@ -57,6 +66,10 @@ def is_multi(series: pd.Series) -> bool:
     an analysis should not have to be told which it is looking at.
     """
 
+    if series.empty:
+        # An empty column of dates maps to dates, whose any() pandas is
+        # deprecating (a Trend over a survey with no responses yet).
+        return False
     return bool(series.map(_is_list).any())
 
 
@@ -177,7 +190,7 @@ def frequencies(
             {
                 "value": code,
                 "label": (labels or {}).get(code, str(code)),
-                "count": int(round(count)),
+                "count": _whole(count),
                 "percent": round(count / base * 100, 1) if base else 0.0,
             }
         )
@@ -185,8 +198,8 @@ def frequencies(
     for row in rows:
         row["percent_answers"] = round(row["count"] / answers * 100, 1) if answers else 0.0
     out = MultiCounts(rows, columns=["value", "label", "count", "percent", "percent_answers"])
-    out.base = int(round(base))
-    out.answers = int(round(answers))
+    out.base = _whole(base)
+    out.answers = _whole(answers)
     return out
 
 
@@ -224,7 +237,7 @@ def crosstab(
     for group in groups:
         in_group = (df[by] == group) & answered
         total = float(weights[in_group].sum()) if weights is not None else float(in_group.sum())
-        bases[group] = int(round(total))
+        bases[group] = _whole(total)
         totals[group] = total
 
     rows = []
@@ -238,5 +251,5 @@ def crosstab(
         rows.append(row)
     out = MultiCounts(rows, columns=["value", "label", *(str(g) for g in groups)])
     out.base = bases
-    out.answers = int(round(sum(bases.values())))
+    out.answers = _whole(sum(bases.values()))
     return out

@@ -73,7 +73,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from siamang.data.listwise import distinct, label_of, listwise, rounded
+from siamang.data.listwise import distinct, label_of, listwise, round_weighted, rounded
 from siamang.reporting import chart_theme
 from siamang.reporting.result_table import ResultTable
 
@@ -617,7 +617,7 @@ def _weight_stats(stats: dict[str, Any], data: SurveyData, weights: np.ndarray |
     if data.weight is None or weights is None:
         return
     stats["Weight"] = data.weight
-    stats["Weighted N"] = rounded(float(weights.sum()), 1)
+    stats["Weighted N"] = round_weighted(weights.sum())
 
 
 def _number(value: Any) -> Any:

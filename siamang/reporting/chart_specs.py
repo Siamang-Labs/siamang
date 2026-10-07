@@ -19,6 +19,7 @@ from typing import Any
 
 import numpy as np
 
+from siamang.data.listwise import round_weighted
 from siamang.reporting import vega
 
 # ─── shared ──────────────────────────────────────────────────────────────────
@@ -268,6 +269,10 @@ def bar_spec(chart: Any, drawn: DrawnBars) -> dict[str, Any]:
         for column in range(count):
             value = values[index, column]
             finite = value == value
+            if finite and kind not in ("percent", "mean"):
+                # A weighted count as a table holds it: 1.45, not the
+                # 1.4500000000000002 one order of summing gives.
+                value = round_weighted(value, 9)
             row: dict[str, Any] = {
                 "label": labels[index],
                 "position": vega.plain(bars.positions[index]),

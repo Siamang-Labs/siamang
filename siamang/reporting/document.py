@@ -31,6 +31,7 @@ import pandas as pd
 
 from siamang.reporting import chart_theme, p_values, vega
 from siamang.reporting.charts import SurveyChart
+from siamang.reporting.errors import NoAnswersError
 from siamang.reporting.tables import SurveyTable, frame_to_html, stat_item
 from siamang.reporting.theme import _LENGTH, ReportTheme, _is_width, figure_share
 
@@ -266,6 +267,8 @@ def _spec_of(chart: SurveyChart) -> dict[str, object] | None:
 
     try:
         return chart.vega_lite()
+    except NoAnswersError:
+        raise  # no picture either: the report writes what the chart says instead
     except Exception as exc:  # noqa: BLE001 - the picture is kept, and the warning says why
         warnings.warn(
             f"{type(chart).__name__}: no interactive chart ({type(exc).__name__}: {exc}); "
@@ -601,10 +604,16 @@ class Report:
                 comp, caption = payload[0], payload[1]
                 assert isinstance(comp, SurveyChart)
                 name = f"{prefix}fig_{i}.png"
-                ref, _ = self._chart_ref(
-                    comp, name, asset_dir, embed_images, look=look, specs=specs
-                )
-                lines.append(f"![{caption or ''}]({ref})")
+                try:
+                    ref, _ = self._chart_ref(
+                        comp, name, asset_dir, embed_images, look=look, specs=specs
+                    )
+                except NoAnswersError as exc:
+                    # No respondent answered what it draws: the report says
+                    # so where the figure would be, and goes on.
+                    lines.append(f"*{exc}*")
+                else:
+                    lines.append(f"![{caption or ''}]({ref})")
                 if caption:
                     lines.append(f"*{caption}*")
             elif kind == "image":
@@ -830,9 +839,19 @@ class Report:
                 place(_figure(inner, caption, label, layout, theme), layout)
             elif kind == "chart":
                 figures += 1
-                ref, spec = self._chart_ref(
-                    component, f"fig_{i}.png", asset_dir, embed, theme, interactive=interactive
-                )
+                try:
+                    ref, spec = self._chart_ref(
+                        component, f"fig_{i}.png", asset_dir, embed, theme, interactive=interactive
+                    )
+                except NoAnswersError as exc:
+                    # No respondent answered what it draws: the figure says so
+                    # (in its caption's type), and the report goes on.
+                    note = f'<p class="siamang-figcaption">{_esc(str(exc))}</p>'
+                    place(
+                        _figure(note, caption, _number(theme, "figure", figures), layout, theme),
+                        layout,
+                    )
+                    continue
                 alt = _esc(caption or "")
                 inner = f'<img src="{ref}" alt="{alt}">'
                 if spec is not None:

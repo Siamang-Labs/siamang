@@ -47,6 +47,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
 from siamang.reporting.chart_parts import (
     Footnote,
     axes_points,
@@ -60,6 +61,7 @@ from siamang.reporting.chart_parts import (
     wrap,
 )
 from siamang.reporting.charts import SurveyChart, _get_label, _get_value_labels, _require_matplotlib
+from siamang.reporting.errors import NoAnswersError
 
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
@@ -120,6 +122,22 @@ class TrendPoints:
     scale_codes: tuple[float, ...] = ()
 
 
+#: The columns of :attr:`TrendPoints.points`.
+_POINT_COLUMNS = [
+    "position",
+    "period",
+    "group",
+    "group_label",
+    "value",
+    "lower",
+    "upper",
+    "base",
+    "weighted_base",
+    "effective_base",
+    "low",
+]
+
+
 def trend(
     data: SurveyData,
     time: str,
@@ -178,6 +196,11 @@ def trend(
 
     columns = [name for name in (time, variable, by) if name]
     cleaned, left_out = without_missing_codes(frame, columns, data.variables)
+    # No responses yet, or none a filter left (none who answered the measure):
+    # nothing to draw. A Time column empty beside answers is a set-up mistake
+    # (a wave parameter never passed), said as one below.
+    if cleaned.empty or (variable and not cleaned[variable].notna().any()):
+        raise NoAnswersError(f"No respondent answered {_get_label(data, variable or time)}.")
 
     # ── time ──
     keys, periods, time_note, dates, not_dates = _time_axis(data, cleaned[time], time, period)
@@ -305,22 +328,7 @@ def trend(
                     "low": measure != "count" and base < min_base,
                 }
             )
-    points = pd.DataFrame(
-        records,
-        columns=[
-            "position",
-            "period",
-            "group",
-            "group_label",
-            "value",
-            "lower",
-            "upper",
-            "base",
-            "weighted_base",
-            "effective_base",
-            "low",
-        ],
-    )
+    points = pd.DataFrame(records, columns=_POINT_COLUMNS)
 
     by_label = _get_label(data, by) if by else None
     table = _table(points, measure, by_label, weights is not None, min_base, confidence)
@@ -699,7 +707,7 @@ def _table(
         columns[by_label if by_label != "Period" else "Group"] = points["group_label"]
     if measure == "count":
         columns[name] = (
-            points["value"].round(1) if weighted else points["value"].round().astype("Int64")
+            round_weighted(points["value"]) if weighted else points["value"].round().astype("Int64")
         )
     else:
         columns[name] = points["value"].round(digits)
@@ -707,7 +715,7 @@ def _table(
         columns[f"Upper {level}"] = points["upper"].round(digits)
     columns["Base"] = points["base"].astype(int)
     if weighted:
-        columns["Weighted base"] = points["weighted_base"].round(1)
+        columns["Weighted base"] = round_weighted(points["weighted_base"])
         if measure != "count":
             columns["Effective base"] = points["effective_base"].round(1)
 
@@ -811,10 +819,22 @@ class TrendChart(SurveyChart):
 
     @property
     def table(self) -> ResultTable:
-        """The points as a table, with what they are in its statistics."""
+        """The points as a table, with what they are in its statistics.
+
+        With no respondent to count yet, a table of no rows (Base 0), not the
+        chart's :class:`~siamang.reporting.errors.NoAnswersError`: a flow
+        reads it as it makes the chart (the Trend node's template), and a
+        Live run stopped at that line, publishing nothing after it."""
         from siamang.reporting.result_table import ResultTable
 
-        points = self.points
+        try:
+            points = self.points
+        except NoAnswersError:
+            none = pd.DataFrame(columns=_POINT_COLUMNS)
+            by_label = _get_label(self.data, self.by) if self.by else None
+            weighted = self.data.weight is not None
+            frame = _table(none, self.measure, by_label, weighted, self.min_base, self.confidence)
+            return ResultTable(data=self.data, frame=frame, footer={"Base": 0})
         return ResultTable(data=self.data, frame=points.table, footer=points.stats)
 
     @property
@@ -1016,7 +1036,7 @@ def _notes(points: TrendPoints, count: int, drawn_band: bool, band: bool) -> lis
     whom = "respondents" if points.measure == "count" else "respondents who answered"
     base = f"Base: {respondents:,} {'respondent' if respondents == 1 else whom}"
     if points.weight is not None:
-        base += f" (weighted: {float(np.nansum(frame['weighted_base'])):,.1f})"
+        base += f" (weighted: {round_weighted(np.nansum(frame['weighted_base'])):,.1f})"
     sizes = frame.loc[frame["base"] > 0, "base"]
     if points.measure != "count" and len(sizes) > 1:
         low, high = int(sizes.min()), int(sizes.max())

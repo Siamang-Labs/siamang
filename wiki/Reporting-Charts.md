@@ -20,6 +20,21 @@ from siamang.reporting import BarChart, BoxPlot, HeatMap, LikertChart, ScatterPl
 The examples below assume `data` is the simulated `SurveyData` from
 [[Simulation]] / [[Analysis]].
 
+> **No answers, no chart.** A chart of a base no one answered — a survey just
+> opened, a filter that left no one — raises `siamang.reporting.NoAnswersError`
+> (a `ValueError`) when it is built, with a plain message that says whose answers
+> are missing: `No respondent answered Brand.` A [[Report|Report-Document]]
+> writes that message where the figure would be and goes on, and a flow's chart
+> node is not a failed node for it: the chart says so where it is drawn. Every
+> form of `BarChart`, `BoxPlot`, `ScatterPlot`, both heatmaps, `LikertChart`, the
+> Trend, and the Result chart of an NPS, Group means, Descriptives, a t-test, a
+> paired test, a proportion or a correlation matrix do. A label that asks a
+> question ends the message (`There is no score: no respondent answered Would
+> you recommend us?`). A Trend's `table` of no one has no rows (`Base` 0) rather
+> than raising, so a flow that reads it goes on; a Trend whose time column is
+> empty beside answers (a wave parameter never passed) raises a plain
+> `ValueError`, as a set-up mistake.
+
 ---
 
 ## Common interface

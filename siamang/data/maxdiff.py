@@ -28,6 +28,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.data.choice import ChoiceSets, MnlResult, mnl
+from siamang.data.listwise import round_weighted
 
 if TYPE_CHECKING:
     from siamang.core.question import MaxDiff
@@ -193,9 +194,11 @@ def counts(data: SurveyData, question: MaxDiff | str, *, weight: str | None = No
             {
                 "item": code,
                 "label": labels.get(code, str(code)),
-                "shown": int(round(shown)),
-                "best": int(round(best)),
-                "worst": int(round(worst)),
+                # Weighted, sums of weights: whole as every weighted count is
+                # rounded, so equal sums print alike.
+                "shown": int(round_weighted(shown, 0)),
+                "best": int(round_weighted(best, 0)),
+                "worst": int(round_weighted(worst, 0)),
                 "score": round((best - worst) / shown, 3) if shown else 0.0,
             }
         )

@@ -27,6 +27,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
+
 __all__ = ["ChoiceSets", "MnlResult", "mnl", "shares"]
 
 
@@ -209,7 +211,7 @@ def mnl(sets: ChoiceSets, *, max_iter: int = 200, shares: bool = True) -> MnlRes
     }
     if sets.weight is not None:
         stats["weighted"] = True
-        stats["effective_sets"] = round(float(weights.sum()), 1)
+        stats["effective_sets"] = round_weighted(weights.sum())
     if not fit.success:
         stats["message"] = str(fit.message)
     return MnlResult(table=table, stats=stats, coefficients=beta)

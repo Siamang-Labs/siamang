@@ -166,9 +166,47 @@ radio, checks or unchecks the box.
 Right after a click, while the focus the mouse left on a button or a link is still
 there, Enter and Space go on: the key would otherwise click again, and a MaxDiff or
 conjoint pick, which a second click takes back, would be lost. Esc goes back when
-going back is allowed, and the digits 1–9 pick that point on the page's first rating
-scale that has it. A matrix is a grid the arrow keys move through (see
+going back is allowed. A matrix is a grid the arrow keys move through (see
 [[Question Types|Question-Types]]).
+
+A rating scale — numbers (a 0–10 NPS too) or stars — is one radio group: Tab stops on
+it once (on the chosen point, else the first), the arrow keys move the choice and the
+focus with it, Home and End go to the ends, and an arrow stops at an end; with Alt,
+Ctrl or Cmd an arrow is the browser's (Alt+Left goes back). A screen reader hears each
+point as a radio of the group, checked or not, the end labels with the end points, and
+a star by its count. A digit answers the scale the focus is in — "1" then "0" within
+0.8 s is 10, "0" is the first point of a scale that starts at 0 — or, when the focus
+is in no question, the page's only scale; from another question, or with two scales
+on the page and the focus in neither, a digit does nothing.
+
+Tabbing through a choice or a set of boxes rings the option's row, and a scale's
+number the same way (2 px, the accent mixed toward the text color, 3:1 or more on the
+card in light and dark; in forced colors every focus is an outline in the system's
+text color, and a scale's chosen number is drawn in its Highlight). A scale's numbers
+are written in the page's text color, so a dark theme's card shows them. A text
+field, a text box and a number field are named by their question's title as the
+respondent reads it, and say `aria-invalid` while their error shows, with the error
+named by `aria-describedby`; a choice's, an image choice's and a scale's radio
+group say `aria-required`, and the same two while the error shows; a set of boxes
+says the last two.
+
+A step dot is a 24 px button around the same 10 px dot, so the dots stand 24 px
+apart; under a finger a button is 32 px, narrowing down to 24 px when the survey's
+steps would not fit one row at 32 px. Dots too many for one row even then wrap (on a
+390 px phone, more than 14), and the second row moves the page down.
+
+A scale's numbers are cells of one width: all in one row where each keeps its least
+width (`--sd-rating-min`: 44 px, 40 px on a phone) and the gaps fit, else two even
+rows (0–5 and 6–10 of a 0–10 scale), and more only where two are still too narrow.
+The runtime measures the scale itself, not the window, and sets the number of
+columns (`--sd-rating-cols`) through the CSSOM, so a narrow theme or embed wraps
+where a window as wide would not.
+
+A required question left unanswered says so as the focus leaves it — after the press
+that left it is over (the mouse button let go, a tap's click), so the message coming
+in above the next question never moves it from under the pointer. A press whose end
+never reaches the page (the button let go in another window) ends at the next key, a
+mouse moving with no button down or the window losing the focus.
 
 Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`,
 `stylesheet`, `static_assets`) — see
@@ -285,11 +323,21 @@ as the interview is submitted or ended by a full quota), the theme choice
 posts it as a partial response — and keeps its own keys beside these (Studio:
 `siamang_respondent_<survey id>`, `siamang_ended_<survey id>`).
 
-The autosave is written 2 s after the last answer; "Saving…" (`saving_text`)
-then shows for 0.8 s above the page card's right corner, on one line that ends
-in "…" where the page is narrower. It takes no room, so nothing on the page
-moves. A screen reader is told once, at the first save of a sitting, and not
-after every answer. A saved interview's offer to resume is on the page when it
+The autosave is written 2 s after the last answer (a field's text is taken 600 ms
+after its last key), and at once when the page is hidden or left — another tab, the
+app switcher, a locked phone, the tab closed or reloaded (`visibilitychange` to
+hidden and `pagehide`, in the capture phase on `window`): the save still waiting is
+written then, with the text still in a field. `visibilitychange` is the document's,
+so the save is written before a transport's own listener on the document reads it;
+leaving the page, `pagehide` comes first and the document turns hidden after it. A
+`pagehide` listener a transport puts on `window` before the runtime's runs before
+it, as a window's own listeners run in the order they were put on: a transport
+reads the save at `visibilitychange`. An answer given a moment before leaving is in
+the partial response and offered back on the next visit. "Saving…" (`saving_text`)
+shows for 0.8 s after a save the timer wrote, above the page card's right corner, on
+one line that ends in "…" where the page is narrower. It takes no room, so nothing
+on the page moves. A screen reader is told once, at the first save of a sitting, and
+not after every answer. A saved interview's offer to resume is on the page when it
 is first drawn.
 
 - **Nothing before the respondent starts.** Opening a survey writes nothing: the

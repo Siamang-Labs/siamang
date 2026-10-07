@@ -30,6 +30,15 @@ def _answered(series: pd.Series) -> pd.Series:
     return multi.responded(series) if multi.is_multi(series) else series.notna()
 
 
+#: Why a test of groups was not run: fewer than two groups have answers.
+_TOO_FEW_GROUPS = "fewer than two groups have answers ({})"
+
+
+def _too_few_groups(result: dict[str, Any], groups: int) -> dict[str, Any]:
+    """A test of groups that was not run: no statistic, no p, and why."""
+    return {"statistic": None, "p_value": None, **result, "note": _TOO_FEW_GROUPS.format(groups)}
+
+
 def unweighted_note(weight: str) -> str:
     """What a result that cannot use the data's weight says about it."""
     return f"unweighted (the weight '{weight}' is not applied)"
@@ -141,7 +150,10 @@ class DataAnalysis:
             values[column].dropna().astype(float).to_numpy() for _, values in used.groupby(group)
         ]
         if len(groups) < 2:
-            raise ValueError("kruskal() requires at least two non-empty groups.")
+            # No answers yet, or all in one group: nothing to compare. The
+            # test is not run, as compare_groups says, where it stopped the
+            # flow (a dashboard opened before the first response).
+            return self._unweighted(_too_few_groups({"groups": float(len(groups))}, len(groups)))
         statistic, p_value = kruskal(*groups)
         result = {
             "statistic": float(statistic),
@@ -157,6 +169,8 @@ class DataAnalysis:
             raise ImportError("mannwhitney() requires scipy to be installed.") from exc
         used = self.frame[[column, group]].dropna()
         grouped = list(used.groupby(group))
+        if len(grouped) < 2:
+            return self._unweighted(_too_few_groups({}, len(grouped)))
         if len(grouped) != 2:
             raise ValueError("mannwhitney() requires exactly two non-empty groups.")
         (group_a, values_a), (group_b, values_b) = grouped
@@ -180,7 +194,9 @@ class DataAnalysis:
             raise ImportError("spearman() requires scipy to be installed.") from exc
         frame = self.frame[[x, y]].dropna()
         if frame.empty:
-            return self._unweighted({"rho": 0.0, "p_value": 1.0, "n": 0.0})
+            # No pairs, no correlation: None ("—"), where rho 0.0 and p 1.0
+            # read as a finding.
+            return self._unweighted({"rho": None, "p_value": None, "n": 0.0})
         result = spearmanr(frame[x], frame[y])
         found = {
             "rho": float(result.statistic),
@@ -278,10 +294,10 @@ class DataAnalysis:
         for code, part in clean.groupby("g"):
             codes.append(code)
             samples.append(part["y"].to_numpy(dtype=float))
-        if len(samples) < 2:
-            raise ValueError(f"compare_groups() needs at least two non-empty groups of {group!r}.")
         two = test == "mannwhitney" or (test == "auto" and len(samples) == 2)
         try:
+            if len(samples) < 2:
+                raise inference.NotTestable(_TOO_FEW_GROUPS.format(len(samples)))
             if two:
                 if len(samples) != 2:
                     raise ValueError("mannwhitney needs exactly two non-empty groups.")
@@ -305,7 +321,9 @@ class DataAnalysis:
             result = {"test": None, "statistic": None, "p_value": None, "note": str(exc)}
         result["n"] = int(len(clean))
         if posthoc == "dunn":
-            if two:
+            if len(samples) < 2:
+                result["posthoc"] = f"not run: {_TOO_FEW_GROUPS.format(len(samples))}"
+            elif two:
                 result["posthoc"] = "not needed: with two groups the test compares the pair"
             else:
                 names = [str(labels.get(code, code)) for code in codes]
@@ -465,10 +483,11 @@ class DataAnalysis:
             weight_sq = float((weights**2).sum())
             n_eff = weight_sum**2 / weight_sq if weight_sum > 0 and weight_sq > 0 else 0.0
             if n_eff <= 0 or weight_sum <= 0:
+                # No answers (or no weight on them): no share, None ("—").
                 return {
-                    "p": 0.0,
-                    "lower": 0.0,
-                    "upper": 0.0,
+                    "p": None,
+                    "lower": None,
+                    "upper": None,
                     "n": 0.0,
                     "weight": self.weight_column,
                 }
@@ -477,7 +496,7 @@ class DataAnalysis:
         else:
             n = float(_answered(self.frame[column]).sum())
             if n <= 0:
-                return self._unweighted({"p": 0.0, "lower": 0.0, "upper": 0.0, "n": 0.0})
+                return self._unweighted({"p": None, "lower": None, "upper": None, "n": 0.0})
             p = float(_chose(self.frame[column], value).sum() / n)
         margin = z * ((p * (1 - p) / n) ** 0.5)
         lower = max(0.0, p - margin)

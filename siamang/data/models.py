@@ -91,6 +91,17 @@ def _complete(frame: pd.DataFrame, columns: list[str], weight: str | None) -> pd
     return frame[keep].dropna().reset_index(drop=True)
 
 
+def _anyone(complete: pd.DataFrame, items: list[str]) -> None:
+    """Raise :class:`~siamang.reporting.errors.NoAnswersError` when no
+    respondent answered every item — a survey with no responses yet, or a
+    filter that left none — in plain words, where the reason given was
+    "fewer than three complete rows" (or than clusters)."""
+    if len(complete) == 0:
+        from siamang.reporting.errors import NoAnswersError
+
+        raise NoAnswersError(f"No respondent answered all {len(items)} items.")
+
+
 def _numeric_items(
     frame: pd.DataFrame, items: list[str], weight: str | None
 ) -> tuple[pd.DataFrame, np.ndarray | None]:
@@ -318,6 +329,7 @@ def pca(
     if len(items) < 2:
         raise ValueError("pca needs at least two items.")
     data, weights = _numeric_items(frame, items, weight)
+    _anyone(data, items)
     if len(data) < 3:
         raise ValueError("pca: fewer than three complete rows.")
     matrix = data.to_numpy(dtype=float)
@@ -447,6 +459,7 @@ def kmeans(
     numeric = frame[items].apply(pd.to_numeric, errors="coerce")
     mask = numeric.notna().all(axis=1).to_numpy()
     complete = numeric[mask]
+    _anyone(complete, items)
     if len(complete) < k:
         raise ValueError("kmeans: fewer complete rows than clusters.")
     matrix = complete.to_numpy(dtype=float)
@@ -512,6 +525,7 @@ def reliability(
     if len(items) < 2:
         raise ValueError("reliability needs at least two items.")
     data, weights = _numeric_items(frame, items, weight)
+    _anyone(data, items)
     n = len(data)
     if n < 3:
         raise ValueError("reliability: fewer than three complete rows.")

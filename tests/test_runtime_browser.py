@@ -3300,6 +3300,8 @@ def test_without_one_the_runtime_keeps_its_own_once_the_respondent_starts(tmp_pa
         const first = await page.evaluate(() => localStorage.getItem("{key}"));
         const started = (await keys()).filter((key) => !key.startsWith("siamang_answers_"));
         await reload();
+        // The answer was saved as the page went: the reload offers it back.
+        await page.click("button:text-is('Resume')");
         const again = await page.evaluate(() => localStorage.getItem("{key}"));
     """
         + _FINISH_BODY_DOCUMENT

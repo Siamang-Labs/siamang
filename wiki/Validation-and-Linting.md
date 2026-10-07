@@ -171,7 +171,7 @@ Two are about what a respondent's browser is given:
 | `SCRIPT_STALE_QUESTION_ID` | warning | A custom script still names a question whose answer is stored under a different key (its id is not its variable) as a string or a bare identifier — outside the `answers[…]` / `__errors__[…]` / `__options__[…]` / `__timers__[…]` accesses the compiler translates. Comments, regular expressions, and strings that merely mention the id, do not count. |
 | `SCRIPT_TARGET_IS_A_PAGE` | warning | An `onQuestionShow` / `onAnswer` script targets a page name. The runtime dispatches those triggers with a question's key, so the script would never run. |
 | `SCRIPT_TARGET_IS_A_QUESTION` | warning | An `onPageEnter` / `onPageExit` script targets a question. The runtime dispatches those triggers with a page's name, so the script would never run. |
-| `UNUSED_VARIABLE` | warning | A registered variable is never used in the questionnaire. |
+| `UNUSED_VARIABLE` | warning | A registered variable nothing in the survey writes: no question stores an answer under it, no script assigns it as an arm (`Script.assign_condition`) and no custom script writes it (`answers.<name> = …`). The text of "Other (please specify)" (`<variable>_other`, declared so an export labels its column) is a question's answer and counts as used. |
 
 ```python
 from siamang.core import Variable, SingleChoice, Page, Questionnaire

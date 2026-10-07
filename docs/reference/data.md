@@ -196,6 +196,8 @@ These methods require `scipy` to be installed.
 
 The three rank tests have no standard weighted form, so they run on the respondents as they are. On weighted data each result also carries `"weight": "unweighted (the weight '<column>' is not applied)"`.
 
+With nothing to test — no responses yet, or a filter that left no one — none of them reports a result of no one: `kruskal` and `mannwhitney` with fewer than two groups that have answers are not run (`"statistic"` and `"p_value"` are `None`, and `"note"` says why; `mannwhitney` still raises `ValueError` with more than two groups), and `spearman` of no pairs gives `"rho"` and `"p_value"` `None` with `"n"` 0.
+
 #### A method chosen by hand
 
 These two compute with [`siamang.data.inference`](#siamangdatainference) and, unlike the three above, leave the codebook's declared missing codes out of both variables, reporting what they left out as `"missing_codes"` (`"Satisfaction: 12 (99 = Don't know)"`).
@@ -215,7 +217,7 @@ These two compute with [`siamang.data.inference`](#siamangdatainference) and, un
 ### Confidence Intervals & Sample Size
 
 * **`proportion_ci(column: str, value: Any, confidence: float = 0.95, weighted: bool = False) -> dict[str, Any]`**:
-  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"`, of the respondents who answered `column` (with `weighted=True`, the weighted share and Kish's effective base of those respondents; a missing weight counts as 0). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`. The result is a `siamang.data.intervals.Proportion`, a `dict` of those keys that also says what the share is of — `variable`, `value`, `confidence`, `variable_label`, `value_label` (attributes, so a Stat prints what it printed) — which the Result chart titles itself with (`Gender: Female`, `90 % confidence interval …`).
+  Calculates a normal-approximation confidence interval for a specific category proportion. Returns `"p"`, `"lower"`, `"upper"`, and `"n"`, of the respondents who answered `column` (with `weighted=True`, the weighted share and Kish's effective base of those respondents; a missing weight counts as 0). A weighted result adds `"weight"` (the column); an unweighted one on weighted data adds `"weight": "unweighted (the weight '<column>' is not applied)"`. The result is a `siamang.data.intervals.Proportion`, a `dict` of those keys that also says what the share is of — `variable`, `value`, `confidence`, `variable_label`, `value_label` (attributes, so a Stat prints what it printed) — which the Result chart titles itself with (`Gender: Female`, `90 % confidence interval …`). With no one who answered `column`, `"p"`, `"lower"` and `"upper"` are `None` and `"n"` is 0, and its Result chart raises `NoAnswersError`.
 * **`effective_sample_size() -> float`**:
   Calculates Kish's effective sample size (ESS) for weighted datasets: $ESS = \frac{(\sum w)^2}{\sum w^2}$. Raises a `ValueError` if no weight column is set.
 

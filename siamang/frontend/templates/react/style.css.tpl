@@ -620,6 +620,39 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   opacity: 0;
   pointer-events: none;
 }
+/* The input is hidden under its decorator, and the ring the keyboard's focus
+   drew on it was hidden with it: tabbing through the options showed nothing.
+   The option's row shows it, solid, as a star's does (the soft ring of a text
+   field is too faint around a row, in dark mode above all): the accent mixed
+   toward the text color, 3:1 or more on either theme. A browser without
+   :has() rings the decorator. */
+.sd-radio:has(> input:focus-visible),
+.sd-checkbox:has(> input:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+  outline-offset: -2px;
+}
+@supports not selector(:has(*)) {
+  .sd-radio > input:focus-visible + .sd-radio__decorator,
+  .sd-checkbox > input:focus-visible + .sd-checkbox__decorator {
+    outline: 2px solid color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+    outline-offset: 2px;
+  }
+}
+/* Forced colors drop every box-shadow, the focus ring of all the rest with
+   them: an outline in the system's text color takes its place. */
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
+  .sd-radio:has(> input:focus-visible),
+  .sd-checkbox:has(> input:focus-visible) { outline-color: CanvasText; }
+  /* The chosen number was told only by its fill, which forced colors drop:
+     all eleven points of an answered 0-10 scale looked alike. */
+  .sd-rating:not(.sd-rating--stars) .sd-rating__item.is-selected {
+    forced-color-adjust: none;
+    background: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+}
 
 .sd-choice-label { flex: 1; min-width: 0; }
 /* A word longer than the line (an address) breaks rather than running off
@@ -663,6 +696,18 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   gap: 6px;
   flex-wrap: wrap;
 }
+/* Numbers are cells of one width. A row too narrow for every point wraps
+   them into rows of the same cells; as flex items, the points that wrapped
+   grew to fill their row, and 9 and 10 of a 0–10 scale stood out twice as
+   wide as the rest. How many a row holds (--sd-rating-cols) is measured on
+   the scale by the runtime: all of them where each keeps its least width,
+   --sd-rating-min, else two even rows. */
+.sd-rating__scale { --sd-rating-min: 44px; }
+.sd-rating:not(.sd-rating--stars) .sd-rating__scale {
+  display: grid;
+  grid-template-columns: repeat(var(--sd-rating-cols, var(--sd-rating-points, 5)), minmax(0, 1fr));
+}
+.sd-rating:not(.sd-rating--stars) .sd-rating__item { min-width: 0; }
 
 .sd-rating__item {
   flex: 1 1 0;
@@ -682,6 +727,9 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   font-size: 0.95rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  /* A button's own text color is the browser's black, unreadable on a dark
+     theme's card. */
+  color: var(--siamang-text);
   transition: background-color 80ms, border-color 80ms, color 80ms;
 }
 .sd-rating--stars .sd-rating__item {
@@ -713,6 +761,14 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   background: var(--siamang-accent);
   border-color: var(--siamang-accent);
   color: #fff;
+}
+/* The keyboard's focus on a number: the solid ring an option's row and a
+   star have, where the soft ring of a text field was all but invisible
+   around a point not chosen (1.3:1 on a dark card). */
+.sd-rating:not(.sd-rating--stars) .sd-rating__item:focus-visible {
+  box-shadow: none;
+  outline: 2px solid color-mix(in srgb, var(--siamang-accent) 60%, var(--siamang-text));
+  outline-offset: 2px;
 }
 .sd-rating__num { font-size: 1rem; line-height: 1; }
 
@@ -1825,30 +1881,54 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
 }
 
 /* ─── Step dots ────────────────────────────────────────────────────── */
+/* A dot is drawn 10 px wide, as it was, but the button around it is 24 px
+   (32 px under a finger): a respondent goes back with it, and a 10 px target
+   was easy to miss. The dots stand that far apart (16 px before); the row's
+   margins take back what the taller buttons add, so the page under one row
+   stays where it was. Under a finger a button narrows to 24 px when the
+   page's steps (--sd-steps, set by the runtime through the CSSOM) would not
+   fit one row at 32 px; dots too many for one row even then wrap instead
+   of running off a phone's screen. */
 .siamang-step-dots {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
-  margin-bottom: 24px;
+  margin: -7px 0 17px;
   padding: 0;
 }
 .siamang-step-dot {
-  width: 10px;
-  height: 10px;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
   border-radius: 50%;
-  border: 2px solid var(--siamang-border);
   background: transparent;
   cursor: pointer;
   padding: 0;
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: opacity 180ms ease;
 }
-.siamang-step-dot:hover { border-color: var(--siamang-accent); }
-.siamang-step-dot.is-active {
+.siamang-step-dot::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--siamang-border);
+  background: transparent;
+  transition: transform 180ms ease;
+}
+@media (pointer: coarse) {
+  .siamang-step-dots { margin: -11px 0 13px; }
+  .siamang-step-dot { width: clamp(24px, calc(100% / var(--sd-steps, 1)), 32px); height: 32px; }
+}
+.siamang-step-dot:hover::before { border-color: var(--siamang-accent); }
+.siamang-step-dot.is-active::before {
   background: var(--siamang-accent);
   border-color: var(--siamang-accent);
   transform: scale(1.25);
 }
-.siamang-step-dot.is-complete {
+.siamang-step-dot.is-complete::before {
   background: color-mix(in srgb, var(--siamang-accent) 30%, transparent);
   border-color: var(--siamang-accent);
 }
@@ -1856,13 +1936,13 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
   cursor: not-allowed;
   opacity: 0.5;
 }
-.siamang-step-dot[disabled]:hover { border-color: var(--siamang-border); }
+.siamang-step-dot[disabled]:hover::before { border-color: var(--siamang-border); }
 /* The page being answered: not a place to go, but not grayed out either. */
 .siamang-step-dot.is-active[disabled] {
   cursor: default;
   opacity: 1;
-  border-color: var(--siamang-accent);
 }
+.siamang-step-dot.is-active[disabled]::before { border-color: var(--siamang-accent); }
 
 /* ─── Celebration / confetti ───────────────────────────────────────── */
 .siamang-celebration {
@@ -1972,7 +2052,7 @@ textarea.sd-input { min-height: 96px; resize: vertical; line-height: 1.55; }
     padding: 24px 20px;
   }
   .sd-page__title { font-size: 1.15rem; }
-  .sd-rating__scale { gap: 4px; }
+  .sd-rating__scale { gap: 4px; --sd-rating-min: 40px; }
   .sd-rating__item { min-width: 40px; padding: 8px 4px; font-size: 0.9rem; }
   .sd-navigation { flex-direction: column-reverse; }
   .sd-navigation .sd-btn { width: 100%; }
@@ -2133,6 +2213,7 @@ body.viewport-mobile #survey-frame {
 }
 body.viewport-mobile #survey { padding: 20px 18px 48px; }
 body.viewport-mobile .sd-rating__item { font-size: 0.88rem; padding: 8px 4px; min-width: 38px; }
+body.viewport-mobile .sd-rating__scale { --sd-rating-min: 38px; }
 body.viewport-mobile .sd-choices--buttons { flex-direction: column; }
 body.viewport-mobile .sd-choices--buttons .sd-radio { width: 100%; }
 body.viewport-mobile .sd-navigation { flex-direction: column-reverse; }

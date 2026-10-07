@@ -182,37 +182,79 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
     return null;
   });
 
-  const doSave = useCallback((currentAnswers, currentPage) => {
+  // A save waits 2 s after the last answer; pendingRef says one is waiting.
+  const pendingRef = useRef(false);
+
+  /* Writes the answers as they are now. The idle callback a save waits for
+     reads them when it runs, not when it was asked for: a save written as
+     the page was hidden (below) holds a later answer, which a write that had
+     taken the answers earlier would have put back to the earlier ones. */
+  const writeSave = useCallback(() => {
+    pendingRef.current = false;
+    if (endedRef.current) return;
+    try {
+      const currentAnswers = store.snapshot();
+      const cleanAnswers = {};
+      for (const [k, v] of Object.entries(currentAnswers || {})) {
+        if (!k.startsWith("__")) cleanAnswers[k] = v;
+      }
+      const data = { answers: cleanAnswers, pageIdx: pageIdxRef.current, savedAt: new Date().toISOString() };
+      if (historyRef && Array.isArray(historyRef.current)) data.history = historyRef.current.slice();
+      // The page order this respondent was dealt (randomize_pages deals a
+      // new one at every load): pageIdx and the path are positions in it.
+      const order = currentAnswers && currentAnswers.__pages__;
+      if (Array.isArray(order)) data.pageOrder = order.map((p) => p && p.name);
+      data.startedAt = interviewSession.startedAt;
+      keepItem(surveyId, AUTO_SAVE_KEY, JSON.stringify(data));
+    } catch (e) { /* not kept */ }
+  }, [AUTO_SAVE_KEY, historyRef, surveyId, store, pageIdxRef]);
+  const doSave = useCallback(() => {
     const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
-    ric(() => {
+    ric(() => writeSave());
+  }, [writeSave]);
+
+  /* The respondent leaves - another tab, the app switcher, the phone locked,
+     the tab closed: the save still waiting is written at once, with the text
+     typed into a field and not yet taken (commitPendingInputs). An answer
+     given less than 2 s before was not in the save, and a platform's
+     transport, which reads the save to send the partial response as the page
+     goes, sent it without that answer. On window, in the capture phase:
+     visibilitychange is the document's, so this runs before a transport's
+     own listener on the document whenever that was put on. pagehide is the
+     window's own, whose listeners run in the order they were put on, so a
+     transport's earlier pagehide listener on window runs first; leaving the
+     page, pagehide comes before the document turns hidden, and that later
+     visibilitychange finds the save written. */
+  useEffect(() => {
+    const flush = () => {
       if (endedRef.current) return;
-      try {
-        const cleanAnswers = {};
-        for (const [k, v] of Object.entries(currentAnswers || {})) {
-          if (!k.startsWith("__")) cleanAnswers[k] = v;
-        }
-        const data = { answers: cleanAnswers, pageIdx: currentPage, savedAt: new Date().toISOString() };
-        if (historyRef && Array.isArray(historyRef.current)) data.history = historyRef.current.slice();
-        // The page order this respondent was dealt (randomize_pages deals a
-        // new one at every load): pageIdx and the path are positions in it.
-        const order = currentAnswers && currentAnswers.__pages__;
-        if (Array.isArray(order)) data.pageOrder = order.map((p) => p && p.name);
-        data.startedAt = interviewSession.startedAt;
-        keepItem(surveyId, AUTO_SAVE_KEY, JSON.stringify(data));
-      } catch (e) { /* not kept */ }
-    });
-  }, [AUTO_SAVE_KEY, historyRef, surveyId]);
+      commitPendingInputs();
+      if (!pendingRef.current) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+      writeSave();
+    };
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("visibilitychange", onVisibility, true);
+    window.addEventListener("pagehide", flush, true);
+    return () => {
+      window.removeEventListener("visibilitychange", onVisibility, true);
+      window.removeEventListener("pagehide", flush, true);
+    };
+  }, [writeSave]);
 
   const scheduleSave = useCallback(() => {
     if (endedRef.current) return;
+    pendingRef.current = true;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     if (savingTimerRef.current) clearTimeout(savingTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
       setSaving(true);
-      doSave(store.snapshot(), pageIdxRef.current);
+      doSave();
       savingTimerRef.current = setTimeout(() => setSaving(false), 800);
     }, 2000);
-  }, [store, doSave, pageIdxRef]);
+  }, [doSave]);
 
   const clearSaved = useCallback(() => {
     keptRemove(AUTO_SAVE_KEY);
@@ -227,6 +269,7 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
      responses posted it as one). */
   const finish = useCallback(() => {
     endedRef.current = true;
+    pendingRef.current = false;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     if (savingTimerRef.current) clearTimeout(savingTimerRef.current);
     setSaving(false);
@@ -234,8 +277,8 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
   }, [clearSaved]);
 
   const saveNow = useCallback(() => {
-    doSave(store.snapshot(), pageIdxRef.current);
-  }, [store, doSave, pageIdxRef]);
+    doSave();
+  }, [doSave]);
 
   return { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish };
 }
@@ -722,6 +765,8 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
   useEffect(() => {
     // The control the mouse last pressed, while the focus that gave it stays.
     let pointed = null;
+    // The digits typed into one scale just now ("1", then "0": 10).
+    let typed = { id: null, text: "", at: 0 };
     const onPress = (e) => {
       pointed = e.target && e.target.closest ? e.target.closest(CLICKED_SELECTOR) : null;
     };
@@ -749,23 +794,42 @@ function useKeyboardShortcuts(navRef, storeRef, visibilityEngine) {
         e.preventDefault();
         if (nav.onPrev) nav.onPrev();
       }
-      if (/^[1-9]$/.test(e.key)) {
-        const n = parseInt(e.key);
+      // A digit answers a rating scale: the one the focus is in, or — the
+      // focus in no question — the page's only one. It went to the page's
+      // first scale that had the point, whichever question the respondent
+      // was at: "1" under an NPS changed the stars above it. Two digits typed
+      // together are one point of a scale that has it ("1", "0": 10).
+      if (/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const store = storeRef.current;
         const page = nav.currentPage;
         if (!page || !store) return;
-        const answers = store.snapshot();
-        const items = visibilityEngine.visibleItems(page, answers);
-        for (const q of items) {
-          // The digit is the point's value: 1 … points, or 0 … points - 1 on
-          // a scale that starts at 0 (Likert's `start`).
-          const start = q.start === 0 ? 0 : 1;
-          if (q.kind === "likert" && n >= start && n < start + q.points) {
-            // As a click answers: saved, onAnswer scripts run, the question's
-            // error cleared.
-            nav.setAnswer(q.id, n);
-            break;
-          }
+        const scales = visibilityEngine.visibleItems(page, store.snapshot())
+          .filter((item) => item.kind === "likert");
+        const slot = e.target.closest ? e.target.closest("[data-qid]") : null;
+        const q = slot
+          ? scales.find((item) => (item.qid || item.id) === slot.getAttribute("data-qid"))
+          : (scales.length === 1 ? scales[0] : null);
+        if (!q) return;
+        // The point's value: 1 … points, or 0 … points - 1 on a scale that
+        // starts at 0 (Likert's `start`).
+        const start = q.start === 0 ? 0 : 1;
+        const fits = (n) => n >= start && n < start + q.points;
+        const now = Date.now();
+        const both = typed.id === q.id && now - typed.at < 800 ? parseInt(typed.text + e.key, 10) : NaN;
+        const n = fits(both) ? both : parseInt(e.key, 10);
+        typed = { id: q.id, text: String(n), at: now };
+        if (!fits(n)) return;
+        e.preventDefault();
+        // As a click answers: saved, onAnswer scripts run, the question's
+        // error cleared.
+        nav.setAnswer(q.id, n);
+        // The focus on one of the scale's points goes to the one chosen, as
+        // an arrow key takes it: the point it was on is out of the tab order
+        // now (Likert's roving tabindex).
+        const scale = e.target.closest ? e.target.closest(".sd-rating__scale") : null;
+        if (scale) {
+          const point = scale.querySelectorAll(".sd-rating__item")[n - start];
+          if (point) point.focus();
         }
       }
     };

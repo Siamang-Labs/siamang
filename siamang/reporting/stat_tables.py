@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.data import inference
-from siamang.data.listwise import round_p
+from siamang.data.listwise import round_p, round_weighted
 from siamang.reporting import p_values
 from siamang.reporting.tables import (
     SurveyTable,
@@ -314,7 +314,7 @@ def fisher_stats(
             )
         stats["N"] = n
     if weights is not None:
-        stats["Weighted N"] = round(float(weights.sum()), 1)
+        stats["Weighted N"] = round_weighted(weights.sum())
         stats["Weight"] = data.weight
         stats["Base"] = (
             "the test counts respondents (an exact test needs whole counts); weighted counts shown"

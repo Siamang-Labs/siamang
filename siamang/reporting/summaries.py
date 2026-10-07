@@ -18,6 +18,7 @@ from typing import Any
 
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
 from siamang.reporting.tables import SurveyTable, _BlankUndefined
 
 __all__ = ["DataCheckTable", "DescriptivesTable"]
@@ -114,7 +115,11 @@ class DescriptivesTable(_BlankUndefined, SurveyTable):
         sizes = [
             f"{label}: {len(index):,}"
             + (" respondents" if position == 0 else "")
-            + (f" ({float(weights.loc[index].sum()):,.1f} weighted)" if weights is not None else "")
+            + (
+                f" ({round_weighted(weights.loc[index].sum()):,.1f} weighted)"
+                if weights is not None
+                else ""
+            )
             for position, (_value, label, index) in enumerate(groups)
         ]
         shown: dict[str, Any] = {

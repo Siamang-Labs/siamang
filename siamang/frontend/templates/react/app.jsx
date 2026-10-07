@@ -1455,7 +1455,54 @@ function App() {
   }, [store, scheduleSave, itemsById]);
 
   // ─── Stable handleBlur ───
+  // A press on another question leaves this one first, and its error came in
+  // between the press and the release: everything under it moved down, the
+  // release landed on something else and the click was lost ("I clicked and
+  // nothing happened"). While a press is under way the check waits, and runs
+  // once it is over, after its click: a mouse's press ends as the button is
+  // let go (its click comes in the same turn), a finger's at the click a tap
+  // makes once the finger is lifted (or 600 ms after, if none comes). A
+  // press whose end never reached the page (the button let go in another
+  // window) ends with the next key, a mouse moving with no button down, or
+  // the window losing the focus, so a respondent who goes on with the
+  // keyboard still sees what is missing as a field is left.
+  const pressRef = useRef(0);
+  const heldBlursRef = useRef([]);
+  const blurCheckRef = useRef(null);
+  useEffect(() => {
+    let presses = 0;
+    const end = (press) => {
+      if (!press || pressRef.current !== press) return;
+      pressRef.current = 0;
+      for (const id of heldBlursRef.current.splice(0)) blurCheckRef.current(id);
+    };
+    const later = (ms) => { const press = pressRef.current; setTimeout(() => end(press), ms); };
+    const down = () => { presses += 1; pressRef.current = presses; };
+    const up = (e) => later(e.pointerType === "mouse" ? 0 : 600);
+    const click = () => later(0);
+    const cancel = () => end(pressRef.current);
+    const moved = (e) => { if (pressRef.current && e.pointerType === "mouse" && e.buttons === 0) cancel(); };
+    const key = (e) => { if (!["Shift", "Control", "Alt", "Meta"].includes(e.key)) cancel(); };
+    // Captured on window, an element's blur passes here too: only the
+    // window's own counts.
+    const away = (e) => { if (e.target === window) cancel(); };
+    const listeners = [
+      ["pointerdown", down], ["pointerup", up], ["click", click], ["pointercancel", cancel],
+      ["keydown", key], ["pointermove", moved], ["blur", away],
+    ];
+    for (const [type, fn] of listeners) window.addEventListener(type, fn, true);
+    return () => {
+      for (const [type, fn] of listeners) window.removeEventListener(type, fn, true);
+    };
+  }, []);
   const handleBlur = useCallback((questionId) => {
+    if (pressRef.current) {
+      if (!heldBlursRef.current.includes(questionId)) heldBlursRef.current.push(questionId);
+      return;
+    }
+    blurCheckRef.current(questionId);
+  }, []);
+  blurCheckRef.current = (questionId) => {
     const page = nav.pages[pageIdxRef.current];
     if (!page) return;
     const answers = store.snapshot();
@@ -1476,7 +1523,7 @@ function App() {
     const error = textFormatError(q, answers[q.id], uiTexts)
       || (q.kind === "numeric" ? answerLimitError(q, value, uiTexts) : null);
     if (error) setErrors((prev) => ({ ...prev, [q.id]: error }));
-  }, [store, visibilityEngine, nav.pages, uiTexts]);
+  };
 
   // ─── Quotas (checked when a page is left) ───
   const quotaVars = useMemo(() => (Array.isArray(ui.quotaVars) ? ui.quotaVars : []), []);
@@ -1731,7 +1778,7 @@ function App() {
           </div>
         ) : null}
         {showDots && (
-          <nav className="siamang-step-dots" aria-label="Survey progress">
+          <nav className="siamang-step-dots" aria-label="Survey progress" style={{ "--sd-steps": nav.pages.filter((p) => !isTerminalPage(p)).length }}>
             {nav.pages.map((p, i) => {
               // One dot per page the respondent answers; an end page is not
               // a step.

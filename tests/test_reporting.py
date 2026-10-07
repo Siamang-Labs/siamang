@@ -309,7 +309,7 @@ def test_cumulative_percent_is_rounded_once_and_ends_at_100():
     assert same["Cumulative %"].tolist() == frame["Cumulative %"].tolist()
     # Nothing answered: no rows but the total.
     empty = SurveyData(frame=pd.DataFrame({"q": pd.Series([], dtype=float)}))
-    assert empty.report.freq("q").to_frame()["Cumulative %"].tolist() == [100.0]
+    assert empty.report.freq("q").to_frame()["Cumulative %"].tolist() == [None]
 
 
 def test_a_frequency_table_of_codes_and_stray_text_orders_them():

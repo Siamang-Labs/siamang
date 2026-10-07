@@ -71,6 +71,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
+
 if TYPE_CHECKING:
     from siamang.core.variable import VariableMap
     from siamang.data.models import RegressionResult
@@ -570,9 +572,10 @@ def ordinal_regression(
         # it; weights summing to the population (or to a tenth of the sample)
         # would make the standard errors count those instead.
         if abs(total / len(data) - 1) > WEIGHT_SUM_TOLERANCE:
+            shown = round_weighted(total)
             stats["weights"] = (
-                f"frequencies: they sum to {total:,.1f} over {len(data)} respondents, and the "
-                f"standard errors count {total:,.1f}"
+                f"frequencies: they sum to {shown:,.1f} over {len(data)} respondents, and the "
+                f"standard errors count {shown:,.1f}"
             )
     if weight:
         table.attrs["weight"] = weight  # a chart of the table alone says it

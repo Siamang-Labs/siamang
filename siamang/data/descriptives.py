@@ -37,6 +37,7 @@ import numpy as np
 import pandas as pd
 
 from siamang.core.variable import VariableMap
+from siamang.data.listwise import round_weighted
 
 __all__ = ["Descriptives", "describe", "weighted_quantile"]
 
@@ -169,7 +170,7 @@ def describe(
         squares = float((weights**2).sum())
         effective = total**2 / squares if squares > 0 else 0.0
         stats["Weight"] = weight
-        stats["Weighted N"] = round(total, 1)
+        stats["Weighted N"] = round_weighted(total)
         stats["Effective N"] = round(effective, 1)
         if effective > 0:
             # Kish's deff over the rows the weighting kept (a weight of 0 is a
@@ -263,7 +264,7 @@ def _summary(
     nan = float("nan")
     row: dict[str, Any] = {"N": n, "Missing": missing}
     if weights is not None:
-        row["Weighted N"] = round(float(weights.sum()), 1)
+        row["Weighted N"] = round_weighted(weights.sum())
     if n == 0:
         row.update(dict.fromkeys(_BASE[2:] + _DETAIL, nan))
         return row

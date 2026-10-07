@@ -1140,3 +1140,27 @@ def test_ids_beside_other_texts_embedded_data_and_arms_are_otherwise_free():
         {"type": "Matrix", "id": "panel", "var": ["m1", "m2"], "text": "Rate"}
     )
     from_document(document).survey.validate()
+
+
+def test_strict_lint_counts_every_key_the_survey_writes_as_used():
+    """UNUSED_VARIABLE named the text of "Other (please specify)", which is
+    declared in the codebook so an export labels its column, though
+    the runtime stores the typed text under it — and so an assigned arm and
+    what a custom script writes. Only a variable nothing writes is unused."""
+
+    arms = [{"code": 1, "label": "A"}, {"code": 2, "label": "B"}]
+    document = _brand_document(
+        "q2",
+        variables={
+            "condition": {"scale": "nominal", "labels": {"1": "A", "2": "B"}},
+            "score": {"scale": "ratio"},
+            "spare": {"scale": "nominal"},
+        },
+        scripts=[
+            {"type": "assign_condition", "variable": "condition", "arms": arms},
+            {"type": "custom", "trigger": "onSubmit", "code": "answers.score = 1;"},
+        ],
+    )
+    survey = from_document(document).survey
+    unused = [w.location for w in survey.lint(level="strict") if w.code == "UNUSED_VARIABLE"]
+    assert unused == ["spare"]

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from siamang.data.listwise import round_p
+from siamang.data.listwise import round_p, round_weighted
 from siamang.reporting import p_values
 
 if TYPE_CHECKING:
@@ -122,7 +122,10 @@ def _frame_to_markdown(df: pd.DataFrame) -> str:
 
 def markdown_cell(value: Any) -> str:
     """A cell of a Markdown pipe table: a "|" in its text (a label "A|B") is
-    escaped, where it would end the cell and move the rest a column right."""
+    escaped, where it would end the cell and move the rest a column right.
+    A cell with nothing to say (None) is a dash, as a statistic is."""
+    if value is None:
+        return "—"
     return str(value).replace("|", "\\|")
 
 
@@ -140,6 +143,8 @@ def stat_text(value: Any) -> str:
     the p of Paired tests and factor analysis
     (:func:`~siamang.data.listwise.p_rounded`: ``p = 0.002343``, not ``0.0023``).
     """
+    if value is None:
+        return "—"
     if isinstance(value, float) and not isinstance(value, bool):
         if not np.isfinite(value):
             return str(value)
@@ -203,12 +208,17 @@ def frame_to_html(df: pd.DataFrame, caption: str | None = None, *, rounded: bool
 
 
 def _float_text(value: Any) -> Any:
-    """A float as ``str`` writes it (NaN left for pandas to print)."""
+    """A float as ``str`` writes it (NaN left for pandas to print); a cell with
+    nothing to say (None) as a dash, as the Markdown writes it."""
+    if value is None:
+        return "—"
     return str(value) if isinstance(value, float) and value == value else value
 
 
 def _tabulated(value: Any) -> Any:
     """A number in a column of numbers as tabulate writes it: ``format(value, "g")``."""
+    if value is None:
+        return "—"
     if isinstance(value, float | np.floating) and value == value:
         return format(float(value), "g")
     return value
@@ -332,6 +342,14 @@ class SurveyTable:
         return self.to_html()
 
 
+def _testable(counts: np.ndarray) -> bool:
+    """Whether a table of counts has two rows and two columns with answers in
+    them, which a test of independence needs."""
+    if counts.ndim != 2 or counts.size == 0:
+        return False
+    return int((counts.sum(axis=1) > 0).sum()) >= 2 and int((counts.sum(axis=0) > 0).sum()) >= 2
+
+
 def _value_order(value: Any) -> tuple[int, float, str]:
     """Where a value sorts in a table by value: numbers (and number-like
     text, "2") by their value, then other text alphabetically. A column
@@ -409,7 +427,7 @@ class FreqTable(SurveyTable):
             label = value_labels.get(value, str(value))
             row: dict[str, Any] = {"Value": value, "Label": label, "N": n}
             if weighted is not None:
-                row["N"] = round(float(weighted.get(value, 0.0)), 1)
+                row["N"] = round_weighted(weighted.get(value, 0.0))
                 row["Unweighted N"] = n
             rows.append(row)
             exact.append(float(weighted.get(value, 0.0)) if weighted is not None else float(n))
@@ -441,12 +459,15 @@ class FreqTable(SurveyTable):
         df["Cumulative %"] = (sums.cumsum() / total * 100).round(1) if total > 0 else 0.0
 
         # Append total row
+        # No answers: a total of nothing is no percentage at all — "100.0"
+        # beside N 0 read as a result on an empty dashboard.
+        whole = 100.0 if total > 0 else None
         total_entry: dict[str, Any] = {
             "Value": "",
             "Label": "Total",
-            "N": round(total, 1) if weighted is not None else int(total),
-            "%": 100.0,
-            "Cumulative %": 100.0,
+            "N": round_weighted(total) if weighted is not None else int(total),
+            "%": whole,
+            "Cumulative %": whole,
         }
         if weighted is not None:
             total_entry["Unweighted N"] = n_valid
@@ -456,7 +477,7 @@ class FreqTable(SurveyTable):
         self._result = df
         self._stats = {"Variable": _get_label(self.data, col), "N valid": n_valid}
         if weighted is not None:
-            self._stats["Weighted N"] = round(total, 1)
+            self._stats["Weighted N"] = round_weighted(total)
             # What the weighting costs in precision, on the answers counted: a
             # weighted percentage is as precise as one of Kish's effective N
             # respondents, the design effect times fewer than N valid.
@@ -591,19 +612,20 @@ class NpsTable(SurveyTable):
                 # weighted count, with the respondents beside it. An unweighted
                 # N next to a weighted % (348 of 579 beside 61.8 %) reads as a
                 # sum that does not add up.
-                row["N"] = round(float(weights[mask].sum()), 1)
+                row["N"] = round_weighted(weights[mask].sum())
                 row["Unweighted N"] = int(mask.sum())
             else:
                 row["N"] = int(mask.sum())
-            row["%"] = round(share, 1)
+            # No answers (or none that carries weight): no share at all.
+            row["%"] = round(share, 1) if total_w > 0 else None
             rows.append(row)
         total: dict[str, Any] = {"Group": "Total", "Range": "0–10"}
         if weighted:
-            total["N"] = round(total_w, 1)
+            total["N"] = round_weighted(total_w)
             total["Unweighted N"] = n
         else:
             total["N"] = n
-        total["%"] = 100.0 if n else 0.0
+        total["%"] = 100.0 if total_w > 0 else None
         rows.append(total)
         columns = ["Group", "Range", "N", *(["Unweighted N"] if weighted else []), "%"]
         self._result = pd.DataFrame(rows, columns=columns)
@@ -613,11 +635,16 @@ class NpsTable(SurveyTable):
         # (Rocks, 2016), on the effective sample size when weighted.
         p_pro, p_det = shares["Promoters"] / 100, shares["Detractors"] / 100
         n_eff = total_w**2 / float((weights**2).sum()) if total_w > 0 else 0.0
-        variance = (p_pro + p_det - (p_pro - p_det) ** 2) / n_eff if n_eff > 0 else float("nan")
+        # One respondent has no spread to estimate: an SE of 0 and an
+        # interval of one point (-100 to -100) read as certainty.
+        variance = (
+            (p_pro + p_det - (p_pro - p_det) ** 2) / n_eff if n_eff > 0 and n >= 2 else float("nan")
+        )
         se = float(np.sqrt(variance)) * 100 if variance == variance else float("nan")
         self._stats = {
             "Variable": _get_label(self.data, col),
-            "NPS": round(score, 1),
+            # No one answered: there is no score, not a score of 0.
+            "NPS": round(score, 1) if total_w > 0 else None,
             "SE": round(se, 1) if se == se else None,
             "CI95 low": round(max(-100.0, score - 1.96 * se), 1) if se == se else None,
             "CI95 high": round(min(100.0, score + 1.96 * se), 1) if se == se else None,
@@ -728,7 +755,13 @@ class CrossTable(SurveyTable):
         else:
             display = contingency.copy()
 
-        display = display.round(1)
+        # Weighted counts (no percentages) are sums of weights, rounded as
+        # every weighted count is (round_weighted).
+        display = (
+            round_weighted(display)
+            if weights is not None and self.pct == "none"
+            else display.round(1)
+        )
 
         # Apply labels
         if row_labels:
@@ -746,11 +779,12 @@ class CrossTable(SurveyTable):
         grand = float(contingency.to_numpy(dtype=float).sum())
 
         def base(value: float) -> int | float:
-            return round(float(value), 1) if weights is not None else int(round(value))
+            return round_weighted(value) if weights is not None else int(round(value))
 
-        def share(values: np.ndarray) -> list[float]:
+        def share(values: np.ndarray) -> list[float | None]:
             if grand <= 0:
-                return [0.0 for _ in values]
+                # No one in the table: no share of it (None, "—").
+                return [None for _ in values]
             return [round(float(value) / grand * 100, 1) for value in values]
 
         def add_row(name: str, values: list[Any]) -> None:
@@ -766,7 +800,7 @@ class CrossTable(SurveyTable):
             add_row("Base", [*(base(value) for value in col_sums), base(grand)])
         elif self.pct == "total":
             display["Total"] = share(row_sums)
-            add_row("Total", [*share(col_sums), 100.0 if grand > 0 else 0.0])
+            add_row("Total", [*share(col_sums), 100.0 if grand > 0 else None])
         else:
             display["Total"] = [base(value) for value in row_sums]
             add_row("Total", [*(base(value) for value in col_sums), base(grand)])
@@ -789,6 +823,19 @@ class CrossTable(SurveyTable):
                 weights=weights,
                 left_out=left_out,
             )
+        elif self.test and not _testable(contingency.to_numpy(dtype=float)):
+            # No answers yet, or all in one row or column (one respondent):
+            # a test of that table printed χ² = 0, df = 0, p = 1 — or, with no
+            # answers at all, stopped the flow in SciPy. Not run, as Fisher's
+            # exact test says it.
+            self._stats = {
+                "Test": "Chi-square test: not run — the table has fewer than two rows or "
+                "columns with answers in them",
+                "N": int(frame.shape[0]),
+            }
+            if weights is not None:
+                self._stats["Weighted N"] = round_weighted(weights.sum())
+                self._stats["Weight"] = self.data.weight
         elif self.test:
             try:
                 from scipy.stats import chi2_contingency
@@ -815,7 +862,7 @@ class CrossTable(SurveyTable):
                     "N": int(frame.shape[0]),
                 }
                 if weights is not None:
-                    self._stats["Weighted N"] = round(total_w, 1)
+                    self._stats["Weighted N"] = round_weighted(total_w)
                     self._stats["Effective N"] = round(n_eff, 1)
                     self._stats["Weight"] = self.data.weight
                     shown = "weighted counts" if self.pct == "none" else "weighted bases"
@@ -826,7 +873,7 @@ class CrossTable(SurveyTable):
             except ImportError:
                 self._stats = {"error": "scipy not installed"}
         elif weights is not None:
-            self._stats = {"Weighted N": round(float(weights.sum()), 1), "Weight": self.data.weight}
+            self._stats = {"Weighted N": round_weighted(weights.sum()), "Weight": self.data.weight}
         if not fisher:
             _counted(self._stats, self.data, frame, [self.row, self.col])
 
@@ -1235,7 +1282,9 @@ class QualityTable(SurveyTable):
             if any(reason in parts for parts in reasons)
         }
         flagged = int(sum(1 for value in flags if value))
-        share = lambda n: round(n / screened * 100, 1) if screened else 0.0  # noqa: E731
+        # No responses screened: no share either ("0.0 %" of no one read as a
+        # result), None, written "—".
+        share = lambda n: round(n / screened * 100, 1) if screened else None  # noqa: E731
         rows = [
             {"Check": reason.capitalize(), "N": n, "%": share(n)} for reason, n in counts.items()
         ]
@@ -1306,8 +1355,9 @@ class ThemeTable(_BlankUndefined, SurveyTable):
         counts = themes.value_counts()
         cover = text_coding.coverage(frame, cf)
         answered, coded, uncoded = cover["answered"], cover["coded"], cover["uncoded"]
-        share = lambda n: round(n / coded * 100, 1) if coded else 0.0  # noqa: E731
-        of_answered = lambda n: round(n / answered * 100, 1) if answered else 0.0  # noqa: E731
+        # A share of no answers is None ("—"), not 0.0 %.
+        share = lambda n: round(n / coded * 100, 1) if coded else None  # noqa: E731
+        of_answered = lambda n: round(n / answered * 100, 1) if answered else None  # noqa: E731
         rows = [
             {
                 "Theme": theme.label,
@@ -1368,7 +1418,8 @@ class ThemeTable(_BlankUndefined, SurveyTable):
         coded = text_coding.coding(series, cf)
         counts = text_coding.tally(coded)
         answered = counts["answered"]
-        of_answered = lambda n: round(n / answered * 100, 1) if answered else 0.0  # noqa: E731
+        # A share of no answers is None ("—"), not 0.0 %.
+        of_answered = lambda n: round(n / answered * 100, 1) if answered else None  # noqa: E731
         have = [set(item.codes or ()) for item in coded]
         rows: list[dict[str, Any]] = []
         kinds: list[str] = []
@@ -1997,4 +2048,4 @@ def proportion_letters(
 
 def _round_base(value: float) -> int | float:
     """Weighted counts are fractional; a base of 41.0 should read as 41."""
-    return int(round(value)) if abs(value - round(value)) < 1e-9 else round(value, 1)
+    return int(round(value)) if abs(value - round(value)) < 1e-9 else round_weighted(value)

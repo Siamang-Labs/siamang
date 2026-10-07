@@ -169,6 +169,13 @@ Markdown and its HTML; its figure is then closed and let go
 all at once. A chart whose figure you asked for (`plot()`, `show()`) is left
 open, as you may still be changing it.
 
+A chart of a base no one answered (`NoAnswersError`, see
+[[Reporting Charts|Reporting-Charts]]) does not stop the report: its message —
+`No respondent answered Brand.` — is written where the figure would be (in the
+Markdown in italics, in the HTML in the caption's type, under the figure's number
+and above its caption), and the rest of the report follows. A table of such a base
+writes its `—` for the percentages and the score it has none of.
+
 A chart of `palette="theme"` is written in the chart colors of the report's
 `ReportTheme` (`chart_palette`, `chart_diverging`, … — see
 [[Reporting Charts|Reporting-Charts]]), in the Markdown's figures and the

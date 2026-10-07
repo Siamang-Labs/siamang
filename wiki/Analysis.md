@@ -94,6 +94,12 @@ For a formatted, significance-tested version of this comparison, prefer the
 These methods require **`scipy`**, which ships with the base install (they raise
 `ImportError` if it is somehow missing). Each returns a plain `dict`.
 
+With nothing to test — a survey with no responses yet, a filter that left no
+one — none of them reports a result of no one: a test of groups with fewer than
+two groups that have answers is not run (`statistic` and `p_value` are `None`,
+and `note` says why), `spearman` of no pairs gives `rho` and `p_value` `None`,
+and `proportion_ci` of no one gives `p`, `lower` and `upper` `None`.
+
 ### `kruskal`
 
 ```python
@@ -102,8 +108,8 @@ def kruskal(self, column: str, group: str) -> dict[str, Any]: ...
 
 Kruskal–Wallis H-test for 3+ independent groups (the non-parametric analogue of
 one-way ANOVA). Returns `{"statistic", "p_value", "groups"}`, where `groups` is
-the number of groups compared. Raises `ValueError` with fewer than two
-non-empty groups.
+the number of groups compared. With fewer than two groups that have answers
+the test is not run: `statistic` and `p_value` are `None`, and `note` says why.
 
 ```python
 data.analysis.kruskal("autonomy", "remote_freq")
@@ -118,8 +124,9 @@ def mannwhitney(self, column: str, group: str) -> dict[str, Any]: ...
 
 Mann–Whitney U-test for **exactly two** independent groups (two-sided). Returns
 `{"statistic", "p_value", "group_a", "group_b"}`, where `group_a`/`group_b` are
-the two group values compared. Raises `ValueError` unless exactly two non-empty
-groups are present.
+the two group values compared. Raises `ValueError` with more than two non-empty
+groups; with fewer than two the test is not run (`statistic` and `p_value` are
+`None`, and `note` says why).
 
 ```python
 two_levels = data.with_frame(data.frame[data.frame["remote_freq"].isin([1, 5])])

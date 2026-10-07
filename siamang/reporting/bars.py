@@ -55,6 +55,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
 from siamang.reporting import chart_theme
 from siamang.reporting.chart_parts import (
     CHAR_WIDTH,
@@ -78,6 +79,7 @@ from siamang.reporting.chart_parts import (
     thousands_axis,
     wrap,
 )
+from siamang.reporting.errors import NoAnswersError
 
 if TYPE_CHECKING:
     from siamang.data.survey_data import SurveyData
@@ -464,7 +466,9 @@ def _base_text(n: int, weighted: float | None) -> str:
 
 def _base(n: int, weighted: float | None, whom: str) -> str:
     text = f"Base: {n:,} {'respondent' if n == 1 else 'respondents'} {whom}"
-    return text + (f" (weighted: {weighted:,.1f})." if weighted is not None else ".")
+    return text + (
+        f" (weighted: {round_weighted(weighted):,.1f})." if weighted is not None else "."
+    )
 
 
 def _order(values: np.ndarray, sort: str) -> list[int]:
@@ -558,7 +562,7 @@ def _distribution(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | No
     if not answered.any():
         # Every answer a missing code (or none at all): an empty axis ticked
         # "−0 %" said nothing; the split and the donut say this.
-        raise ValueError(f"No respondent answered {label}.")
+        raise NoAnswersError(f"No respondent answered {label}.")
     codes = (
         _multi_codes(data, name, series)
         if is_multi
@@ -644,7 +648,7 @@ def _split(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     weight = weights if weights is not None else np.ones(len(series))
     answered = _answered(series, is_multi) & groups.notna().to_numpy(dtype=bool)
     if not answered.any():
-        raise ValueError(f"No respondent answered both {label} and {by_label}.")
+        raise NoAnswersError(f"No respondent answered both {label} and {by_label}.")
     group_codes = sorted(pd.unique(groups[answered]), key=code_order)
     codes = (
         _multi_codes(data, name, series)
@@ -1643,7 +1647,7 @@ def _histogram(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None)
                 "fewer groups."
             )
     if not answered.any():
-        raise ValueError(
+        raise NoAnswersError(
             f"No respondent answered {label}" + (f" and {by_label}." if chart.split else ".")
         )
     edges, how = histogram_edges(numbers[answered], chart.bins)
@@ -1880,7 +1884,7 @@ def _donut(chart: BarChart, frame: pd.DataFrame, weights: np.ndarray | None) -> 
     weight = weights if weights is not None else np.ones(len(series))
     answered = _answered(series, False)
     if not answered.any():
-        raise ValueError(f"No respondent answered {label}.")
+        raise NoAnswersError(f"No respondent answered {label}.")
     base = float(weight[answered].sum())
     if base <= 0:
         raise ValueError(f"No answer to {label} carries weight.")

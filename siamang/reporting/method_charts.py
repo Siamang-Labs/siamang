@@ -47,6 +47,8 @@ import numpy as np
 import pandas as pd
 
 from siamang.reporting import result_specs
+from siamang.reporting.charts import _all_labeled
+from siamang.reporting.errors import NoAnswersError
 from siamang.reporting.result_charts import (
     ResultChart,
     _dots,
@@ -196,6 +198,9 @@ def _draw_cochran(table: Any, chart: ResultChart) -> str:
     frame = table.to_frame()
     stats = table.stats
     n = int(stats.get("N") or 0)
+    if n <= 0:
+        # No one answered every variable: empty rows on an axis of 0-100 %.
+        raise NoAnswersError(_all_labeled([str(value) for value in frame["Variable"]]))
     intervals = [proportion_interval(int(count), n) for count in frame["Yes"]]
     estimate = [
         interval.estimate * 100 if interval.estimate is not None else np.nan

@@ -46,6 +46,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from siamang.data.listwise import round_weighted
+
 if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
@@ -1024,7 +1026,7 @@ class _Writer:
             ("Weight", book.weight or "none: every count is of respondents"),
         ]
         if book.weighted_total is not None:
-            rows.append(("Weighted total", round(book.weighted_total, 1)))
+            rows.append(("Weighted total", round_weighted(book.weighted_total)))
         rows += [
             ("Banner", "Total, " + ", ".join(banner)),
             (

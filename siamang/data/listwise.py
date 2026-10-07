@@ -176,6 +176,31 @@ def rounded(value: float | None, digits: int) -> float | None:
     return round(float(value), digits)
 
 
+def round_weighted(value: Any, digits: int = 1) -> Any:
+    """A weighted count — a sum of weights: a weighted N, base, total or cell
+    — rounded to ``digits`` for a table, a footer or a line of text, the
+    float's own noise put aside first.
+
+    Thirteen weights of 0.35 add up to 4.55, and to 4.549999999999999 or
+    4.550000000000001 depending on the order they are summed in: rounded as
+    they were, two counts that are both 4.55 read 4.5 and 4.6, in one table or
+    from one run to the next. Rounded to nine decimals first, both are 4.55
+    and read 4.5, as 4.55 itself does. A Series or a DataFrame is rounded value
+    by value the same way (numpy's own rounding scales by ten first and would
+    read 4.6); a missing value stays missing.
+    """
+    if isinstance(value, pd.DataFrame):
+        return value.apply(lambda column: round_weighted(column, digits))
+    if isinstance(value, pd.Series):
+        return value.map(lambda item: round_weighted(item, digits), na_action="ignore")
+    if value is None:
+        return None
+    number = float(value)
+    if not np.isfinite(number):
+        return number
+    return round(round(number, 9), digits)
+
+
 def p_rounded(value: float | None) -> float | None:
     """A p-value to four significant digits, so a tiny one is not rounded to 0."""
     if value is None or not np.isfinite(value):
@@ -208,6 +233,7 @@ __all__ = [
     "p_rounded",
     "result_table",
     "round_p",
+    "round_weighted",
     "rounded",
     "unweighted",
 ]

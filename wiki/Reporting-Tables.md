@@ -51,7 +51,12 @@ A frequency distribution with absolute counts, percentages, and cumulative
 percentages, plus a `Total` row. Value labels are resolved automatically. The
 cumulative percentage is the running share of the counts (of the sums of
 weights, when weighted) rounded once, so the last answer reads `100.0` even
-when the rounded percentages add up to 99.9 or 100.1.
+when the rounded percentages add up to 99.9 or 100.1. With no answers at all —
+a survey just opened, a filter that left no one — there is no percentage: the
+`Total` row's `%` and `Cumulative %` are `None`, written `—`, beside N 0. A
+`None` reads `—` in the Markdown, the HTML and the footer, and is a blank cell in
+an Excel file; the same holds for a crosstab's `Total` of no one (`pct="total"`)
+and for the quality and theme tables' shares of no one.
 
 **Parameters**
 
@@ -104,7 +109,9 @@ freedom, p-value, Cramér's V, and N.
   (Cochran's rule, on the base the test is run on), the footer's `Warning`
   says so and suggests merging answers or Fisher's exact test.
 - **`test`** — run the Chi-square test and append the footer (default `True`).
-  Requires `scipy`; without it the footer reports that scipy is missing.
+  Requires `scipy`; without it the footer reports that scipy is missing. A
+  table with fewer than two rows or columns that have answers — no responses
+  yet, or one respondent — is not tested: the footer's `Test` says why.
 - **`method`** — `"chi2"` (default) or `"fisher"`: Fisher's exact test, for
   small counts. A 2 × 2 table gets p, the odds ratio and its exact 95 % CI; a
   larger one the Fisher–Freeman–Halton p (exact, or from 20,000 random tables
@@ -216,7 +223,14 @@ medians while N, the test and the post-hoc pairs stay unweighted.
 base); `TTestTable` and the rank correlations say the weight is not applied. The
 banner, NPS, MaxDiff and conjoint tables are weighted throughout and name the
 `Weight` (a weighted NPS table's `N` is the weighted count its `%` is of, with
-the respondents in `Unweighted N` beside it, as in `FreqTable`). The descriptives table weights means, SDs, medians and quartiles
+the respondents in `Unweighted N` beside it, as in `FreqTable`). Every weighted
+count — a weighted N, base, total or cell in a table or a footer; a chart's base,
+a bar's label, a donut's center, a tooltip and a chart's description; a multiple
+choice's, a MaxDiff's and a TURF's whole counts — is rounded by one helper,
+`siamang.data.listwise.round_weighted`, which puts the float's noise aside first
+(nine decimals), so two counts that are both 1.45 print `1.4` alike, on the table
+and on its chart, whatever order their weights were summed in. The descriptives
+table weights means, SDs, medians and quartiles
 beside a `Weighted N` column and gives Kish's effective N. The quality, theme
 and data-check tables count responses and say
 `Weight: unweighted (the weight 'w' is not applied)`. See
@@ -241,6 +255,12 @@ def descriptives(columns, *, by=None, detail=False) -> DescriptivesTable
 def data_check(variables=None) -> DataCheckTable
 def themes(codeframe, *, sentiment=False) -> ThemeTable
 ```
+
+`data.report.nps(column)` gives an `NpsTable`: Detractors (0–6), Passives (7–8),
+Promoters (9–10) and Total with their N and %, and the score with its SE and 95 %
+interval in its stats. With no answers there is no score: `NPS`, `SE` and the
+interval are `None` (`—` in its footer), and so is every `%`. One respondent gives a
+score but no SE and no interval: there is no spread to estimate.
 
 `descriptives` and `data_check` are described in [[Analysis|Analysis#descriptive-statistics-datareportdescriptives]];
 both print an undefined cell (the SD of one answer) as a blank, never `nan`.
