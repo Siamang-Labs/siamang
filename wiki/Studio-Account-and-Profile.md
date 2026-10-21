@@ -167,7 +167,7 @@ you where you were.
 |---|---|
 | Avatar | "Your avatar is generated from your initials." There is no picture upload. |
 | **Name** | how colleagues see you: presence avatars, Save authors, comments, the member list and the Activity log. Up to 200 characters; the field stops there and says "200 characters at most". A longer name, such as one that came from your Google or Microsoft account, shows "Name must be 200 characters or fewer." and cannot be saved until you shorten it. |
-| **Email** | marked "read-only". It is your identity: invitations, notices and the one-trial-per-address rule all key on it. To change it, write to `info@siamang-team.org`. |
+| **Email** | marked "read-only". It is your identity: invitations, notices and the one-trial-per-address rule all key on it. To change it, write to `support@siamang-team.org`. |
 
 Edit the name and click **Save changes**. The button is active only when the
 name has changed and is not empty. A "Profile updated" notice confirms it.
@@ -309,7 +309,7 @@ Respondent data is a separate matter; see
   remove themselves the same way. An owner cannot leave or be removed from
   their own organization.
 - **Delete your account.** Not self-service in the beta. Write to
-  `info@siamang-team.org` from the address you signed up with.
+  `support@siamang-team.org` from the address you signed up with.
 - **Delete a project.** Self-service for owners and admins, and permanent;
   members see **Delete project** disabled. See
   [[Project Settings|Studio-Project-Settings]].

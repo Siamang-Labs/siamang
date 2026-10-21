@@ -173,7 +173,7 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
 
 - In the app: avatar menu → **Documentation** opens this wiki; **Profile →
   Support** links to examples, the issue tracker and feature requests.
-- Email: `info@siamang-team.org` — include the organization slug, the project
+- Email: `support@siamang-team.org` — include the organization slug, the project
   slug and the Save number; that is usually enough to reproduce anything.
 - Legal: [Terms of Use](https://siamang.org/terms-of-use) ·
   [Privacy Policy](https://siamang.org/privacy-policy)

@@ -356,7 +356,7 @@ again** button comes first.
 | The **Sign in** or **Create account** button stays gray | Solve the captcha, and for sign-up fill in the name and meet every password rule. |
 | Nothing arrives by email | Check spam and the address you typed. Reset emails can be requested again from **Reset your password**. |
 
-Still stuck? Write to `info@siamang-team.org` from the address you use for
+Still stuck? Write to `support@siamang-team.org` from the address you use for
 Studio.
 
 ## See also

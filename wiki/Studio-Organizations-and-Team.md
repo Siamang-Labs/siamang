@@ -85,7 +85,7 @@ next address…" — then shows the next free address: "Its address will be
 sentences out. Click **Create** again.
 
 Organizations cannot be deleted from the app in the beta. Write to
-`info@siamang-team.org`.
+`support@siamang-team.org`.
 
 ---
 
