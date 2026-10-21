@@ -219,7 +219,7 @@ Open **More ▾ → Theme**.
    title of the first page (you can then drop the sentence about the length
    from the consent page's Body).
 4. **Wording** — optionally rephrase the runtime's fixed texts: buttons,
-   section labels, answering hints and error messages, saving and failure
+   page labels, answering hints and error messages, saving and failure
    messages, the screen-out and quota-full screens. The notices a published
    survey shows when it is closed or paused stay in English.
 

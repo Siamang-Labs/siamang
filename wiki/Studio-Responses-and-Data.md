@@ -124,16 +124,17 @@ never a variable of the questionnaire:
 |---|---|
 | `started_at` | when the page was opened |
 | `duration_seconds` | seconds from opening to this save |
-| `last_page` | the page the respondent was on |
+| `last_page` | the last page with questions the respondent saw |
 | `url_<name>` | each URL parameter of the link, up to 8 (`url_source`, `url_inv` for an invitation, `url_prolific_pid` for a Prolific id) |
 | `tab_switches`, `hidden_seconds`, `pastes` | how often the respondent left the tab, for how long in total, how many times they pasted |
 | `captcha` | `pass` or `unavailable`, written by Studio when the captcha is on |
 
 The grid shows `meta` as it is stored, as JSON. In **exports** from the Data
-tab and in **Flows**, these keys arrive as ordinary columns: `url_*`,
-`duration_s` (from `duration_seconds`), `started_at`, `captcha`,
-`tab_switches`, `hidden_seconds`, `pastes`. `last_page` stays in `meta`: it
-feeds the drop-off funnel. See [[Data Exports|Studio-Data-Exports]].
+tab, these keys arrive as ordinary columns: `url_*`, `duration_s` (from
+`duration_seconds`), `started_at`, `captcha`, `tab_switches`,
+`hidden_seconds`, `pastes`, `last_page`. In **Flows** the data has the same
+columns except `last_page`, which also feeds the drop-off funnel. See
+[[Data Exports|Studio-Data-Exports]].
 
 ### Partial responses
 

@@ -19,7 +19,7 @@ question you are answering:
 
 | Section | Blurb | Answers |
 |---|---|---|
-| **Appearance** | "How the questionnaire looks to respondents." | colors, typography, question style, progress, section labels |
+| **Appearance** | "How the questionnaire looks to respondents." | colors, typography, question style, progress, page labels |
 | **Branding** | "Whose study this is, and what carries its name." | logo, institution, subtitle |
 | **Respondent experience** | "What a respondent can see, do and read." | light/dark, navigation, survey information, completion screen |
 | **Wording** | "Every fixed phrase the runtime shows." | the 69 runtime texts |
@@ -106,7 +106,7 @@ Google Fonts until you republish it. To use your own typefaces, see
 |---|---|---|
 | **Style** | **plain**, **carded**, **divided**, **accent** | plain |
 | **Progress** ("hidden removes the indicator entirely") | **bar**, **dots**, **both**, **hidden** | bar |
-| **Section labels** ("“Welcome”, “Section 2 of 5”, “Final thoughts” above each page title; off, the progress text reads “Page 2 of 5”") | checkbox | on |
+| **Page labels** ("“Welcome”, “Page 2 of 5”, “Final thoughts” above each page title and beside the bar; off, the progress text reads “Page 1 of 5”, “Page 2 of 5” … on every page") | checkbox | on |
 | **Progress text** ("the words beside the progress bar") | checkbox | on |
 
 The published survey, the header **Preview** and the Builder's previews
@@ -131,15 +131,17 @@ such a jump the bar moves on by more than one step. The last question page
 reads "Final thoughts" with a full bar, also in a survey that ends on a Final
 page followed by a Screen-out page.
 
-**Section labels.** With **Section labels** on, each question page carries a
-small label above its title: "Welcome" on the first page, "Section n of m" on
+**Page labels.** With **Page labels** on, each question page carries a
+small label above its title: "Welcome" on the first page, "Page n of m" on
 the pages between and "Final thoughts" on the last, and the same words stand
 beside the bar. For a respondent who is shown five pages, that is Welcome,
-Section 1 of 4, Section 2 of 4, Section 3 of 4, Final thoughts. Switched off,
-the pages carry no label and the text beside the bar reads "Page 2 of 5". The
-words themselves are Wording fields (**Section label: first page**, **Section
-label: pages between**, **Section label: last page**, **Progress: “Page”**,
-**Progress: “of”**). With **Progress text** off, the bar has no words at all.
+Page 2 of 5, Page 3 of 5, Page 4 of 5, Final thoughts. Switched off, the
+pages carry no label and the text beside the bar reads "Page 1 of 5", "Page 2
+of 5" and so on. The words themselves are Wording fields (**Page label: first
+page**, **Page label: pages between**, **Page label: last page**,
+**Progress: “Page”**, **Progress: “of”**); left empty, **Page label: pages
+between** reads in the words of the two **Progress** fields. With **Progress
+text** off, the bar has no words at all.
 
 **Page dots.** One dot per question page the bar counts; hidden pages and
 end pages get none.
@@ -158,7 +160,8 @@ A respondent who resumes a saved interview can go back along the saved path.
 > indicator until you publish it again: there, **dots** showed the bar as
 > well, **hidden** kept the dots when **dots** or **both** had been chosen
 > before, the dots could jump **forward** past required questions and
-> routing, and the section label counted every page, end pages included.
+> routing, the label above the title read "Section n of m" and counted every
+> page, end pages included, and the Next button read "Next section →".
 > Earlier still, surveys were published **without** the bar unless the
 > questionnaire's `options` held `"show_progress": true`. Publish again to
 > get the indicator described above.
@@ -340,12 +343,12 @@ With no field set, every text reads exactly as the defaults below.
 
 | Group | Label | Default |
 |---|---|---|
-| Buttons and navigation | **Next button** | `Next section →` |
+| Buttons and navigation | **Next button** | `Next →` |
 | | **Previous button** | `← Previous` |
 | | **Submit button** | `Submit responses` |
-| | **Section label: first page** | `Welcome` |
-| | **Section label: pages between** | `Section {n} of {total}` |
-| | **Section label: last page** | `Final thoughts` |
+| | **Page label: first page** | `Welcome` |
+| | **Page label: pages between** | `Page {page} of {pages}` |
+| | **Page label: last page** | `Final thoughts` |
 | | **Progress: “Page”** | `Page` |
 | | **Progress: “of”** | `of` |
 | | **Estimated time** | `About {minutes} minutes` |
@@ -412,7 +415,7 @@ With no field set, every text reads exactly as the defaults below.
 
 Where some of them appear:
 
-- **Section label** fields and **Progress: “Page”** / **Progress: “of”**: see
+- **Page label** fields and **Progress: “Page”** / **Progress: “of”**: see
   [Question style and progress](#question-style-and-progress). The "Page 2 of
   5" words are also what screen readers announce on each page.
 - **“of” in “2 of 3 selected”** and **“selected” in “2 of 3 selected”**: the

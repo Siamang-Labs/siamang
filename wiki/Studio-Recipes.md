@@ -219,8 +219,8 @@ and a **Shuffle options** script the news sources.
 
 One questionnaire is one language. Write the question texts, options and page
 texts in the target language, then **More ▾ → Theme → Wording** and replace
-the runtime's fixed phrases: buttons and section labels ("Welcome", "Section
-{n} of {total}", "Final thoughts"), the estimated time, answering hints and
+the runtime's fixed phrases: buttons and page labels ("Welcome", "Page
+{page} of {pages}", "Final thoughts"), the estimated time, answering hints and
 error messages, "Other", "None of the above" and "Not applicable", saving and
 failure messages, the completion, screen-out, redirect and quota-full
 screens. A few texts are still English only — among them the notices a

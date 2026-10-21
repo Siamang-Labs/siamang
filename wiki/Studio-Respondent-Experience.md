@@ -83,18 +83,18 @@ Things your consent text should reflect (details below):
 │  1  How often do you …?  *                     │
 │     ○ Never  ○ Rarely  ○ Sometimes  …          │
 │                                                │
-│  [← Previous]              [Next section →]    │
+│  [← Previous]              [Next →]            │
 ├────────────────────────────────────────────────┤
 │  Institute · Privacy · Contact research team   │   footer
 │                  (moon)                        │   light/dark switch
 └────────────────────────────────────────────────┘
 ```
 
-**Navigation.** **← Previous** and **Next section →** move between pages. On
+**Navigation.** **← Previous** and **Next →** move between pages. On
 the last page, when it has questions, the button reads **Submit responses**.
 When an end page (Final, Screen-out or Redirect) comes after the last
 question page, as it does in every template, the last question page shows
-**Next section →**, and reaching the end page submits the response. With
+**Next →**, and reaching the end page submits the response. With
 **Allow going back** turned off (Builder → Theme → Respondent experience),
 there is no Previous button.
 
@@ -113,8 +113,8 @@ these" is a whole answer on its own, so **Min answers** does not hold it, and
 an optional question left empty can still be skipped.
 
 **Progress.** Unless you hide it, a progress bar runs across the top of every
-question page, with a section label beside it: "Welcome" on the first page the
-respondent answers, "Section N of M" on the pages between and "Final thoughts"
+question page, with a page label beside it: "Welcome" on the first page the
+respondent answers, "Page N of M" on the pages between and "Final thoughts"
 on the last one. The same label stands above each page's title. The labels and
 the bar count the question pages the respondent is shown, in the order they
 see them: pages hidden by a **Show if** / **Hide if** and end pages (**Final**,
@@ -130,8 +130,9 @@ Builder → Theme → Appearance → Question style → **Progress**:
 | **both** | the bar and the dots |
 | **hidden** | neither bar nor dots |
 
-- **Section labels** (a checkbox in the same card) off: no label above the
-  page title, and the text beside the bar reads "Page 2 of 5".
+- **Page labels** (a checkbox in the same card) off: no label above the
+  page title, and the text beside the bar reads "Page 1 of 5", "Page 2 of 5"
+  and so on, on every page.
 - **Progress text** off: the bar has no text.
 - All these words can be changed in Theme → Wording.
 
@@ -422,7 +423,7 @@ See also [[Security and Privacy|Studio-Security-and-Privacy]].
 
 Most fixed phrases can be reworded — or translated — in **Builder → Theme →
 Wording**, grouped as **Buttons and navigation** (Next, Previous, Submit, the
-section labels "Welcome", "Section {n} of {total}" and "Final thoughts",
+page labels "Welcome", "Page {page} of {pages}" and "Final thoughts",
 "Page", "of", the estimated time), **Answering** (the required-question
 message and a required matrix's "Please answer every row.", "Other", "None
 of the above", "Not applicable", the range, format and too-few-choices

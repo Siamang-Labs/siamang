@@ -365,7 +365,7 @@ not — and hard-refresh the page (browsers cache survey files).
 Published surveys follow **Theme → Progress** (**bar**, **dots**, **both** or
 **hidden**; the bar when you never chose), like the Builder's previews:
 **bar** shows only the bar and its text, **dots** only the page dots,
-**hidden** nothing at all. **Section labels** and **Progress text** switch off
+**hidden** nothing at all. **Page labels** and **Progress text** switch off
 the words above the page title and beside the bar. A survey published with an
 earlier version of Studio can show a different indicator until you publish it
 again — **Save**, then **Republish #N**.

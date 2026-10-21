@@ -46,6 +46,7 @@ For the `responses` table, in this order:
 | `duration_s`, `started_at` | seconds from opening the page to the last save, and when the page was opened |
 | `captcha` | `pass` or `unavailable`, when the captcha is on |
 | `tab_switches`, `hidden_seconds`, `pastes` | the behavioral counts (see [[Data Quality\|Studio-Data-Quality]]) |
+| `last_page` | the last page with questions the respondent saw, so partial responses can be told apart by where they stopped and screened-out ones by the page that screened them out |
 | `id` | the row number (the respondent's **Response ID**) |
 | `survey_id` | the environment that collected the row |
 | `respondent_id` | the random id of the interview |
@@ -62,8 +63,8 @@ For the `responses` table, in this order:
   at least one row has the value (a survey without the captcha has no
   `captcha` column). If one of your variables has the same name as one of
   them (say, a variable `duration_s`), the answer wins in the rows that hold
-  one, and the other rows keep the metadata value. `last_page` is not
-  exported: it belongs to the drop-off funnel.
+  one, and the other rows keep the metadata value. Only `last_page` is a
+  download's alone: a flow's data leaves it out.
 - **Personal data.** The `url_*` columns include panel ids and invitation
   tokens, which tie a response to a person. Treat a Data export accordingly. A
   [research bundle](Studio-Reproducibility#the-research-bundle) leaves out the

@@ -102,7 +102,7 @@ the member role or higher.
 | `GET /projects/{id}/database/tables` | the project's tables with row counts |
 | `GET /projects/{id}/database/tables/{table}/schema` | a table's columns |
 | `GET /projects/{id}/database/tables/{table}/preview?limit=100` | up to `limit` rows (1–1,000; default 100), newest first when the table has a `created_at` or `id` column (as `responses` does). For `responses`, the answers come as one column per variable, in the questionnaire's order, as in the **Data** tab. Optional: `q` (up to 200 characters) searches **the whole table** — a row matches when any of its values contains the text, ignoring case (a response id, a respondent id, a panel id from the link, an answer); `outcome` = `completed`, `screened_out` or `partial` keeps those responses. With either, `matched` gives how many rows of the whole table match (the page holds at most `limit` of them); without, it is `null`. An unknown outcome answers 400 ("unknown outcome '*x*'; one of completed, screened_out, partial"), as does `outcome` on a table without response outcomes ("*table* has no response outcomes") |
-| `GET /projects/{id}/database/tables/{table}/export?format=…` | the whole table as a file: `csv`, `xlsx`, `parquet`, `sav` (SPSS), `dta` (Stata) or `sqlite`; SPSS and Stata files carry the codebook labels; up to 100,000 rows. For `responses`: one column per variable in the questionnaire's order, then the fieldwork columns `url_<name>`, `duration_s`, `started_at`, `captcha`, `tab_switches`, `hidden_seconds`, `pastes` (see [[Data Exports\|Studio-Data-Exports]]). A table the format cannot hold answers 422 ("The table cannot be written as .*fmt*: *reason*"). Each download is recorded in the project's Activity as `data.export` |
+| `GET /projects/{id}/database/tables/{table}/export?format=…` | the whole table as a file: `csv`, `xlsx`, `parquet`, `sav` (SPSS), `dta` (Stata) or `sqlite`; SPSS and Stata files carry the codebook labels; up to 100,000 rows. For `responses`: one column per variable in the questionnaire's order, then the fieldwork columns `url_<name>`, `duration_s`, `started_at`, `captcha`, `tab_switches`, `hidden_seconds`, `pastes`, `last_page` (see [[Data Exports\|Studio-Data-Exports]]). A table the format cannot hold answers 422 ("The table cannot be written as .*fmt*: *reason*"). Each download is recorded in the project's Activity as `data.export` |
 | `DELETE /projects/{id}/database/responses/{response_id}` **(admin)** | delete one response (recorded in Activity); the quota cells of its survey are recounted from the responses that remain, so a cell it filled goes down |
 
 ### Saves and documents
@@ -206,7 +206,7 @@ earlier version of the survey page are read in today's layout — for example a
 legacy "Other (please specify)" answer as the question's Other code in
 `<variable>` plus its text in `<variable>_other`. The fieldwork columns
 (`url_<name>`, `duration_s`, `started_at`, `captcha`, `tab_switches`,
-`hidden_seconds`, `pastes`) come after them, so a script that reads columns by
+`hidden_seconds`, `pastes`, `last_page`) come after them, so a script that reads columns by
 position should read them by name. Use `format=csv`, `xlsx`, `parquet`, `dta`
 or `sqlite` for other formats. A table above 100,000 rows answers 413 with
 nothing generated. What every column means is on
