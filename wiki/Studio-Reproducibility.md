@@ -252,10 +252,12 @@ which:
   a later siamang revision that has those changes (the commit after `@` in
   `environment/requirements.txt`).
 
-The PyPI release (siamang 0.6.0) is **not** enough in any case: it predates
-Studio's engine changes and cannot run these scripts, although its version
-number is the same. See [[Installation]] for installing the engine from its
-source.
+The PyPI release siamang 0.6.0 (and anything older) is **not** enough: it
+predates Studio's engine changes and cannot run these scripts, although the
+engine Studio ran may report the same version number. A later release can
+still lag behind that engine, so install the revision
+`environment/requirements.txt` names. See [[Installation]] for installing the
+engine from its source.
 
 ---
 

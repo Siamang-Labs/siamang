@@ -8,7 +8,7 @@ hub — each row links to the wiki page that documents the symbol in depth.
 ```python
 import siamang as sg
 
-sg.__version__        # the installed version (e.g. "0.6.0")
+sg.__version__        # the installed version (e.g. "0.6.5")
 ```
 
 The package is organised into seven layers: **core** (survey definition),
