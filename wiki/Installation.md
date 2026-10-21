@@ -85,7 +85,7 @@ Clone the repository and install in editable mode with the `dev` extra to get th
 linter, type checker, and test runner:
 
 ```bash
-git clone https://github.com/hanelias/siamang.git
+git clone https://github.com/Siamang-Labs/siamang.git
 cd siamang
 pip install -e ".[dev]"
 ```
@@ -93,7 +93,7 @@ pip install -e ".[dev]"
 You can also install the latest unreleased code straight from Git:
 
 ```bash
-pip install "git+https://github.com/hanelias/siamang.git"
+pip install "git+https://github.com/Siamang-Labs/siamang.git"
 ```
 
 ## Verifying the install

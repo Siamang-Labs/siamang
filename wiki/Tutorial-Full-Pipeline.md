@@ -1,7 +1,7 @@
 # Tutorial: Full Pipeline
 
 This tutorial walks through the worked example in
-[`examples/full_pipeline/`](https://github.com/hanelias/siamang/tree/main/examples/full_pipeline)
+[`examples/full_pipeline/`](https://github.com/Siamang-Labs/siamang/tree/main/examples/full_pipeline)
 end to end: define variables, assemble a multi-page questionnaire with conditional
 routing, simulate respondents, run tables and charts, and export the results. It
 mirrors the `full_pipeline_demo.ipynb` notebook, which ships with every output saved

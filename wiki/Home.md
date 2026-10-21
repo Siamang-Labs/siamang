@@ -114,6 +114,6 @@ See the full list in the sidebar, or the manual **[[API Reference Index\|API-Ref
 
 ---
 
-*This wiki lives in the [`wiki/`](https://github.com/hanelias/siamang/tree/main/wiki) folder
+*This wiki lives in the [`wiki/`](https://github.com/Siamang-Labs/siamang/tree/main/wiki) folder
 of the `siamang` repository and is published to the GitHub Wiki. To edit, change the
-source files and re-run the sync script — see [`wiki/README.md`](https://github.com/hanelias/siamang/blob/main/wiki/README.md).*
+source files and re-run the sync script — see [`wiki/README.md`](https://github.com/Siamang-Labs/siamang/blob/main/wiki/README.md).*

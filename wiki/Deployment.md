@@ -96,7 +96,7 @@ class BackendAdapter:
   `gsheets` extra (`pip install "siamang[gsheets]"`). For public deployments you
   **must** route submissions through an Apps Script proxy (`apps_script_url`) — see
   the security note in
-  [`docs/reference/deploy.md`](https://github.com/hanelias/siamang/blob/main/docs/reference/deploy.md).
+  [`docs/reference/deploy.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/deploy.md).
 
 ---
 

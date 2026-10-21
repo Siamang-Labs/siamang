@@ -36,7 +36,7 @@ reference (every class, every field), see [`docs/`](docs/index.md).
 ## Install
 
 ```bash
-pip install git+https://github.com/hanelias/siamang.git
+pip install git+https://github.com/Siamang-Labs/siamang.git
 ```
 
 That's it — every feature is included by default (Excel / SPSS / Stata

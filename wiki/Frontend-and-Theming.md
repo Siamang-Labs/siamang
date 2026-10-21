@@ -210,7 +210,7 @@ mouse moving with no button down or the window losing the focus.
 
 Both inherit the `RuntimeAdapter` interface (`render_html`, `render_closed_page`,
 `stylesheet`, `static_assets`) — see
-[`docs/reference/frontend.md`](https://github.com/hanelias/siamang/blob/main/docs/reference/frontend.md).
+[`docs/reference/frontend.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/frontend.md).
 
 
 ### A Content-Security-Policy for the bundle
