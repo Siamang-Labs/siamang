@@ -830,7 +830,11 @@ class TrendChart(SurveyChart):
         try:
             points = self.points
         except NoAnswersError:
-            none = pd.DataFrame(columns=_POINT_COLUMNS)
+            # Numeric columns typed as numbers: pandas 2.3 refuses to round
+            # a column of objects, even an empty one.
+            none = pd.DataFrame(columns=_POINT_COLUMNS).astype(
+                dict.fromkeys(("value", "lower", "upper", "weighted_base", "effective_base"), float)
+            )
             by_label = _get_label(self.data, self.by) if self.by else None
             weighted = self.data.weight is not None
             frame = _table(none, self.measure, by_label, weighted, self.min_base, self.confidence)

@@ -1159,6 +1159,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Trend with no respondents yet makes its table under pandas 2.3.** Its
+  table of no rows (Base 0) was made of untyped columns, and pandas 2.3
+  refuses to round those: the Trend node failed with "Expected numeric dtype,
+  got object instead." and a flow stopped at it. The empty table's numbers are
+  typed as numbers.
+
 - **Check data counts `last_page` as response metadata.** A survey platform's
   response export can carry `last_page`, the page an interview was on, beside
   `captcha`, `tab_switches`, `hidden_seconds` and `pastes`.
