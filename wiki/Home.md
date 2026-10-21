@@ -1,4 +1,4 @@
-# siamang, siamang Cloud & Siamang Studio
+# siamang & Siamang Studio
 
 **siamang** is a *research-as-code* framework for sociological surveys. You define
 variables, questionnaires, and logic in **pure Python** — then validate, preview,
@@ -6,20 +6,15 @@ simulate, deploy, collect, and analyze, all from a single pipeline. The engine h
 no GUI and no lock-in: a survey is just a Python module you can version, test, and
 reuse. (Siamang Studio, below, has a GUI — and it writes engine code.)
 
-**siamang Cloud** is the managed platform built on the siamang engine: keep your
-surveys as code in hosted projects, deploy them with one click, collect responses,
-run analysis, and share reports — all from your browser.
-
 **Siamang Studio** is the visual survey platform on the same engine: build the
 questionnaire, publish it, collect responses, analyze them on a node canvas and
 write the report — all by mouse, with every questionnaire and analysis
 downloadable as Python that runs without Studio.
 
-> This wiki has **three parts**. Use the sidebar to navigate.
+> This wiki has **two parts**. Use the sidebar to navigate.
 >
 > - 🎛️ **Siamang Studio** — the visual platform, no code required. Start at **[[Studio Overview|Studio-Overview]]**.
 > - 📚 **Library** — the `siamang` Python package. Start at **[[Quickstart]]**.
-> - ☁️ **siamang Cloud** — the hosted research-as-code platform. Start at **[[Cloud Overview|Cloud-Overview]]**.
 
 ### Which part do I need?
 
@@ -27,7 +22,7 @@ downloadable as Python that runs without Studio.
 | :--- | :--- |
 | want to build and run surveys in the browser without writing code | 🎛️ [[Siamang Studio\|Studio-Overview]] — start with the [[Quick Start\|Studio-Quick-Start]] |
 | downloaded a `questionnaire.py` or a research bundle from Studio and want to run it | 📚 [[Installation]], then [[CLI Reference\|CLI-Reference]] and [[Reproducibility\|Studio-Reproducibility]] |
-| write surveys as Python and want them versioned in Git | 📚 [[Quickstart]] and ☁️ [[Cloud Overview\|Cloud-Overview]] |
+| write surveys as Python and want them versioned in Git | 📚 [[Quickstart]] |
 | came here from Studio's **Documentation** menu | 🎛️ [[Studio Overview\|Studio-Overview]] |
 
 ---
@@ -83,7 +78,6 @@ siamang deploy   my_survey.py --backend supabase --frontend vercel
 | **Frontend** | SurveyJS and React 18 runtimes, dark mode, auto-save, access codes, 6 theme presets |
 | **Deploy** | Local SQLite, Supabase, Google Sheets backends; Local, Vercel, Netlify frontends |
 | **Data I/O** | CSV, Excel, SPSS, Stata, R — SPSS/Stata round-trip labels and missing values; CSV/Excel carry data only (labels via the JSON dictionary) |
-| **Cloud** | Hosted survey projects, one-click deploy, response collection, live dashboards, scheduled analysis, shareable reports, team roles and plans |
 | **Studio** | Visual questionnaire builder, environments and permanent links, panel returns, email invitations, response database, node-based analysis canvas, live tiles, reports, version history, research bundles, AI assistant |
 
 ---
@@ -102,22 +96,6 @@ siamang deploy   my_survey.py --backend supabase --frontend vercel
 | [[Deployment]] · [[CLI Reference\|CLI-Reference]] | Backends/frontends and the command line |
 
 See the full list in the sidebar, or the manual **[[API Reference Index\|API-Reference-Index]]**.
-
-## ☁️ siamang Cloud — start here
-
-| Page | What it covers |
-| :--- | :--- |
-| [[Cloud Overview\|Cloud-Overview]] | What the platform does and who it's for |
-| [[Cloud Quick Start\|Cloud-Quick-Start]] | Create a project and deploy your first survey |
-| [[Your First Project\|Cloud-Your-First-Project]] | Start from the example or an empty project |
-| [[Organizations & Team\|Cloud-Organizations-and-Team]] | Workspaces, inviting people, and roles |
-| [[Using the Web App\|Cloud-Web-App]] | The web interface, screen by screen |
-| [[Deploying a Survey\|Cloud-Deploying-a-Survey]] | Publish a survey and share its public link |
-| [[Viewing & Exporting Data\|Cloud-Viewing-and-Exporting-Data]] | Browse responses and export your data |
-| [[Analysis & Reports\|Cloud-Analysis-and-Reporting]] | Run analysis, view reports and dashboards |
-| [[Project Config (siamang.yaml)\|Cloud-siamang-yaml]] · [[Analysis SDK\|Cloud-Analysis-SDK]] | Configure projects and write analysis scripts |
-| [[Plans & Billing\|Cloud-Subscription-Tiers]] | Plans, limits, and team roles |
-| [[FAQ & Troubleshooting\|Cloud-FAQ-and-Troubleshooting]] | Common questions and fixes |
 
 ## 🎛️ Siamang Studio — start here
 

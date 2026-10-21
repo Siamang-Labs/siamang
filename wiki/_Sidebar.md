@@ -1,6 +1,6 @@
 ### [[Home]]
 
-**Start here:** [[Studio|Studio-Overview]] · [[Library|Quickstart]] · [[Cloud|Cloud-Overview]]
+**Start here:** [[Studio|Studio-Overview]] · [[Library|Quickstart]]
 
 ---
 
@@ -47,38 +47,6 @@
 - [[Tutorial Full Pipeline|Tutorial-Full-Pipeline]]
 - [[API Reference Index|API-Reference-Index]]
 - [[Cookbook]]
-
----
-
-### ☁️ siamang Cloud
-
-**Get started**
-- [[Overview|Cloud-Overview]]
-- [[Quick Start|Cloud-Quick-Start]]
-- [[Your First Project|Cloud-Your-First-Project]]
-
-**Account & team**
-- [[Account & Security|Cloud-Account-and-Security]]
-- [[Organizations & Team|Cloud-Organizations-and-Team]]
-
-**Build & deploy**
-- [[Repository & Editing|Cloud-Repository-and-Editing]]
-- [[Deploying a Survey|Cloud-Deploying-a-Survey]]
-
-**Data & analysis**
-- [[Viewing & Exporting Data|Cloud-Viewing-and-Exporting-Data]]
-- [[Analysis & Reports|Cloud-Analysis-and-Reporting]]
-- [[Schedules & Webhooks|Cloud-Scheduling-and-Webhooks]]
-- [[Connectors|Cloud-Connectors]]
-
-**Author & configure**
-- [[Project Config (siamang.yaml)|Cloud-siamang-yaml]]
-- [[Analysis SDK|Cloud-Analysis-SDK]]
-
-**Reference**
-- [[Using the Web App|Cloud-Web-App]]
-- [[Plans & Billing|Cloud-Subscription-Tiers]]
-- [[FAQ & Troubleshooting|Cloud-FAQ-and-Troubleshooting]]
 
 ---
 

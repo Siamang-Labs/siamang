@@ -19,7 +19,7 @@ the product.
 │  Siamang Studio  Beta                  ☾   │
 │                                            │
 │  Sign in                                   │
-│  Research-as-code platform for your team.  │
+│  Your research, one clear workflow.        │
 │                                            │
 │  [ G  Continue with Google            ]    │
 │  [ ⊞  Continue with Microsoft         ]    │
@@ -50,7 +50,7 @@ sign up if it does not.
 
 | Step | Heading | What it says | Controls |
 |---|---|---|---|
-| Start | **Sign in** | "Research-as-code platform for your team." | **Continue with Google**, **Continue with Microsoft**, then **Continue with Email** |
+| Start | **Sign in** | "Your research, one clear workflow." | **Continue with Google**, **Continue with Microsoft**, then **Continue with Email** |
 | Email | **Continue with email** | "Enter your email to sign in or create an account." | **Email** (placeholder `you@agency.com`), **Continue** (shows "Checking…"), **← Back** |
 | Password | **Welcome back** | "Enter your password for *your address*." | **Password** with **Show**/**Hide**, a captcha if configured, **Sign in** (shows "Signing in…"), **← Different email**, **Forgot password?** |
 | Sign-up | **Create your account** | "No account for *your address* yet — let's set one up. You'll get your own workspace on a 30-day Pro trial." | the Google/Microsoft buttons again, **Name** (placeholder `Jane Doe`), **Password** with **Show**/**Hide** (placeholder "at least 8 characters"), the password checklist, a captcha if configured, **Create account** (shows "Creating…"), **← Use a different email** |

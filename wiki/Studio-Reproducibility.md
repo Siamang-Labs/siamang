@@ -487,18 +487,13 @@ engine. For a commercial license for using the engine outside Studio, write to
 
 ---
 
-## Moving to the siamang library or Cloud
+## Moving to the siamang library
 
-A bundle is also a starting point if you want to work with the code directly:
-
-- **The siamang library.** Install the engine
-  ([[Installation]]), then use `questionnaire.py` and the flow scripts as
-  ordinary programs; the [[CLI Reference|CLI-Reference]] covers `validate`,
-  `preview`, `codegen` and the rest. After editing a JSON document, regenerate
-  its code with `siamang codegen <document>`, as the README says.
-- **siamang Cloud.** The bundle's `siamang.yaml` describes the project the way
-  Cloud's repositories do, so its files can seed a Cloud project; see
-  [[Cloud Overview|Cloud-Overview]].
+A bundle is also a starting point if you want to work with the code directly.
+Install the engine ([[Installation]]), then use `questionnaire.py` and the flow
+scripts as ordinary programs; the [[CLI Reference|CLI-Reference]] covers
+`validate`, `preview`, `codegen` and the rest. After editing a JSON document,
+regenerate its code with `siamang codegen <document>`, as the README says.
 
 ## See also
 

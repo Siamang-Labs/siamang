@@ -59,18 +59,14 @@ Studio is trapped in Studio.
 siamang            the engine: a source-available Python library — questionnaire model,
    │               compiler, survey runtime, analysis, reports       → Library section of this wiki
    │
-   ├── siamang Cloud    research-as-code: a Git repository per project,
-   │                    for teams who write the survey as code           → Cloud section of this wiki
-   │
    └── Siamang Studio   a visual survey platform: everything by mouse,
                         code included as a download                      → this section
 ```
 
-Studio and Cloud are **separate products** with separate accounts and billing;
-they share the engine. In Studio you never see or edit code — you download it.
-If you later want to work with that code directly, the downloaded
+Studio is built on the engine. In Studio you never see or edit code — you
+download it. If you later want to work with that code directly, the downloaded
 `questionnaire.py` and flow scripts are ordinary programs for the
-[[siamang library|Quickstart]] (and can be brought into Cloud).
+[[siamang library|Quickstart]].
 
 ---
 

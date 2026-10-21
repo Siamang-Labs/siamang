@@ -19,8 +19,8 @@ questionnaire.json (from a bundle or another project)").
 ```
 ┌ Import questionnaire ─────────────────────────────────────────────── ✕ ┐
 │ A questionnaire.py or questionnaire.json — from a bundle, another      │
-│ project, Cloud or the engine — a Qualtrics export (.qsf) or a          │
-│ LimeSurvey structure export (.lss, or the same export saved as .xml). …│
+│ project or the engine — a Qualtrics export (.qsf) or a LimeSurvey      │
+│ structure export (.lss, or the same export saved as .xml). …           │
 │ ┌────────────────────────────────────────────────────────────────────┐ │
 │ │ Drop a .py, .json, .qsf, .lss or .xml file here, or click to choose│ │
 │ └────────────────────────────────────────────────────────────────────┘ │
@@ -96,7 +96,7 @@ browser.
 ### Python (`questionnaire.py`)
 
 A siamang questionnaire written in Python — for example a `questionnaire.py`
-from **Export Python**, a research bundle or a siamang Cloud project. The file
+from **Export Python**, a research bundle or the engine. The file
 is **read, never run**: Studio walks its syntax and rebuilds the questionnaire
 from the declarative subset of siamang code — the subset **Export Python**
 writes, and the one hand-written questionnaires almost always stay in:

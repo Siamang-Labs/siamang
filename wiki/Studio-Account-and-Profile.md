@@ -269,7 +269,7 @@ Four tiles:
 
 | Tile | Buttons |
 |---|---|
-| **Contact team**: "Get help with your account, repositories, organizations, billing, or technical issues." | **Contact team** opens an email to `info@siamang-team.org` |
+| **Contact team**: "Get help with your account, organizations, billing, or technical issues." | **Contact team** opens an email to `support@siamang-team.org` |
 | **Documentation**: "Read guides and references for using Siamang Studio." | **API**, **Examples**, **Wiki**: the engine's documentation, examples and this wiki on GitHub |
 | **Report bugs and request features** | **Report issue** (the issue tracker), **Request feature** (discussions) |
 | **Legal**: "Read the terms of use and how Siamang Studio handles your data." | **Terms of Use**, **Privacy Policy** |
