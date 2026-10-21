@@ -9,7 +9,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#full-pipeline-example">Full pipeline example</a> ·
-  <a href="docs/reference/">API Reference</a>
+  <a href="https://github.com/Siamang-Labs/siamang/tree/main/docs/reference">API Reference</a>
 </p>
 
 ---
@@ -93,7 +93,7 @@ survey = Questionnaire(
 data = survey.simulate(n=200)
 print(data.report.freq("satisfaction").to_markdown())
 
-# Visualize (requires: pip install siamang[charts])
+# Visualize (requires: pip install "siamang[charts]")
 data.plot.bar("satisfaction").show()
 ```
 
@@ -101,7 +101,7 @@ data.plot.bar("satisfaction").show()
 
 ## Full Pipeline Example
 
-The [`examples/full_pipeline/`](examples/full_pipeline/) directory contains a complete Jupyter notebook demonstrating the entire research workflow — from survey design to statistical analysis:
+The [`examples/full_pipeline/`](https://github.com/Siamang-Labs/siamang/tree/main/examples/full_pipeline) directory contains a complete Jupyter notebook demonstrating the entire research workflow — from survey design to statistical analysis:
 
 1. **Survey Design** — 12 variables, 5 pages, conditional routing (`show_if`), matrix questions, Likert scales
 2. **Simulation & Deployment** — 250 synthetic respondents, local SQLite storage, interactive HTML preview
@@ -183,7 +183,7 @@ siamang deploy my_survey.py --backend gsheets --frontend netlify
 
 Responses are written to a Google Spreadsheet (one row per respondent) via an **Apps Script proxy** that acts as a secure intermediary. The survey is hosted on Netlify CDN with automatic HTTPS and global edge distribution.
 
-> **Note:** The Google Sheets backend is currently **experimental** for public web deployments. Browser-to-Sheets writes require an Apps Script Web App URL to avoid exposing credentials. See [`docs/reference/deploy.md`](docs/reference/deploy.md#googlesheetsbackend) for setup instructions.
+> **Note:** The Google Sheets backend is currently **experimental** for public web deployments. Browser-to-Sheets writes require an Apps Script Web App URL to avoid exposing credentials. See [`docs/reference/deploy.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/deploy.md#googlesheetsbackend) for setup instructions.
 
 ### Deployment combinations
 
@@ -216,12 +216,12 @@ siamang/
 
 | Resource | Description |
 | :--- | :--- |
-| [`docs/reference/core.md`](docs/reference/core.md) | API reference — Variable, Expression, all Question types, Page, Questionnaire |
-| [`docs/reference/data.md`](docs/reference/data.md) | API reference — SurveyData, DataAnalysis, DataProcessing, SurveyTables |
-| [`docs/reference/reporting.md`](docs/reference/reporting.md) | API reference — Declarative tables and charts |
-| [`docs/reference/frontend.md`](docs/reference/frontend.md) | API reference — UIConfig, theme presets, runtimes, bundle builder |
-| [`docs/reference/deploy.md`](docs/reference/deploy.md) | API reference — Backends (Local, Supabase, Google Sheets), Frontends (Local, Vercel, Netlify), pipeline |
-| [`examples/full_pipeline/`](examples/full_pipeline/) | Complete worked example: design → deploy → analyze |
+| [`docs/reference/core.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/core.md) | API reference — Variable, Expression, all Question types, Page, Questionnaire |
+| [`docs/reference/data.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/data.md) | API reference — SurveyData, DataAnalysis, DataProcessing, SurveyTables |
+| [`docs/reference/reporting.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/reporting.md) | API reference — Declarative tables and charts |
+| [`docs/reference/frontend.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/frontend.md) | API reference — UIConfig, theme presets, runtimes, bundle builder |
+| [`docs/reference/deploy.md`](https://github.com/Siamang-Labs/siamang/blob/main/docs/reference/deploy.md) | API reference — Backends (Local, Supabase, Google Sheets), Frontends (Local, Vercel, Netlify), pipeline |
+| [`examples/full_pipeline/`](https://github.com/Siamang-Labs/siamang/tree/main/examples/full_pipeline) | Complete worked example: design → deploy → analyze |
 
 ---
 
@@ -259,7 +259,7 @@ All core dependencies are installed automatically with `pip install siamang`.
 ### Charts (optional)
 
 ```bash
-pip install siamang[charts]
+pip install "siamang[charts]"
 ```
 
 | Package | Version | Purpose |
@@ -272,7 +272,7 @@ Charts are optional — if you only use tables (`data.report.freq()`, `data.repo
 ### Google Sheets backend (optional)
 
 ```bash
-pip install siamang[gsheets]
+pip install "siamang[gsheets]"
 ```
 
 | Package | Version | Purpose |
@@ -284,7 +284,7 @@ pip install siamang[gsheets]
 ### Development
 
 ```bash
-pip install siamang[dev]
+pip install "siamang[dev]"
 ```
 
 | Package | Version | Purpose |
@@ -302,12 +302,12 @@ pip install siamang[dev]
 Siamang is **dual-licensed**:
 
 - **Noncommercial use is free** under the
-  [PolyForm Noncommercial License 1.0.0](LICENSE) — personal projects,
+  [PolyForm Noncommercial License 1.0.0](https://github.com/Siamang-Labs/siamang/blob/main/LICENSE) — personal projects,
   research, education, and use by noncommercial organizations such as
   charities, universities, public research bodies, and government
   institutions.
 - **Commercial use requires a separate commercial license.** See
-  [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) — to obtain one, email
+  [LICENSE-COMMERCIAL.md](https://github.com/Siamang-Labs/siamang/blob/main/LICENSE-COMMERCIAL.md) — to obtain one, email
   **info@siamang-team.org**.
 
 
