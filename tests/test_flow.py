@@ -940,12 +940,12 @@ def test_generate_flow_variants(questionnaire_doc):
         two_sources,
         questionnaire_doc,
         header="Studio made this ({schema}).",
-        platform_module="siamang_cloud",
+        platform_module="my_platform",
     )
     assert "Studio made this (1.0)." in code
     assert '"--data-a"' in code and '"--data-b"' in code
     assert "if args.a_data:" in code and "if args.b_data:" in code
-    assert "from siamang_cloud import db" in code
+    assert "from my_platform import db" in code
     # A platform-only step in a flow with several sources is skipped when any
     # snapshot is given; it used to test `args.data`, which that script lacks.
     writes = _flow(

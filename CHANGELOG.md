@@ -465,8 +465,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`cell_weights`, `rake_weights` with an optional `cap`,
   `effective_sample_size`) and `stats` (`frequencies`, `crosstab`, `chi2`
   on a bare frame). Plain pandas functions that combine with
-  `SurveyData.with_frame`; the first two sets were previously only
-  available in the Siamang Cloud SDK.
+  `SurveyData.with_frame`.
 - **`siamang.flow`** — analysis flows. A flow document (`flow-1.0.json`
   schema) is a graph of typed nodes from a YAML **node registry**
   (30 nodes: sources, prepare, analyze, visualize, output; `siamang flow
@@ -1150,6 +1149,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `UIConfig.effective_google_fonts_url` and the `"google_fonts"` URL of each
   `FONT_PRESETS` entry: nothing loads the survey's fonts from Google Fonts any
   more (see Changed).
+
+- **Siamang Cloud's documentation.** Siamang Cloud, the hosted research-as-code
+  platform, has been discontinued, and its documentation goes with it: the
+  wiki's Cloud pages, Cloud's Terms of Use and Privacy Policy in `docs/cloud/`,
+  and the cookbook's Cloud recipes (Part C of the fifth notebook, which keeps
+  the engine recipes as `05_engine_recipes.ipynb`). Siamang Studio is the
+  hosted product built on the engine; the wiki's Studio pages describe it.
 
 ### Fixed
 

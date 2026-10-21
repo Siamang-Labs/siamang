@@ -42,15 +42,17 @@ Python module — version-control it, test it, reuse it.
 
 ---
 
-## Siamang Cloud
+## Siamang Studio
 
-Prefer not to run servers, databases, and hosting yourself? **Siamang Cloud** is
-the hosted platform built on this engine — author surveys as code in your browser,
-deploy them to a public link with one click, collect responses, run analysis, read
-dashboards and reports, and collaborate with your team. The engine in this
-repository is open source; the Cloud runs everything around it.
+Prefer to build surveys and analyze their answers without writing code?
+**Siamang Studio** is the hosted survey platform built on this engine, with the
+GUI the engine leaves out: a visual questionnaire builder, publishing and fieldwork monitoring, a response database
+with exports, a node-based analysis canvas, live dashboards and reports. Every
+questionnaire and analysis flow you build in Studio is also Python, and any
+version of a project downloads as a research bundle that reproduces its tables,
+charts and report on this engine, outside Studio.
 
-→ **Try open beta** https://app.siamang.org/login
+→ **Try the open beta** https://studio.siamang.org
 
 ---
 
@@ -225,7 +227,7 @@ siamang/
 
 ## Free User Guide
 
-See the complete [textbook](https://siamang.org/textbook) for the engine and the hosted platform, from first installation to banner tables and report documents.
+See the complete [textbook](https://siamang.org/textbook) for the engine, from first installation to banner tables and report documents.
 
 ---
 
@@ -309,4 +311,4 @@ Siamang is **dual-licensed**:
   **info@siamang-team.org**.
 
 
-Siamang and Siamang Cloud are operated by **Siamang Labs LLC** (Wyoming, USA).
+Siamang and Siamang Studio are operated by **Siamang Labs LLC** (Wyoming, USA).
