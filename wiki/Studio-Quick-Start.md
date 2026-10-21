@@ -16,8 +16,8 @@ depth.
 
 Go to **`studio.siamang.org`**. The **Sign in** card offers:
 
-- **Continue with Google** or **Continue with Microsoft** — one click; the
-  account is created on first sign-in.
+- **Continue with Google** — one click; the account is created on first
+  sign-in.
 - **Continue with Email →** — type your address and press **Continue**. If the
   address is new, Studio shows **Create your account**: your name and a
   password (at least 8 characters with a lower-case and an upper-case letter,

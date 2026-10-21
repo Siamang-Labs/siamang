@@ -10,8 +10,7 @@ Messages are quoted exactly as Studio shows them.
 
 **I never got the confirmation email.**
 Check spam, and make sure you typed the address correctly. You can also sign in
-with **Continue with Google** or **Continue with Microsoft** for the same
-address. Still nothing: write to `support@siamang-team.org`.
+with **Continue with Google** for the same address. Still nothing: write to `support@siamang-team.org`.
 → [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]]
 
 **A confirmation or password-reset link opened the app instead of a form.**

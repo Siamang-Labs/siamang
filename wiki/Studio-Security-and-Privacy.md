@@ -13,7 +13,7 @@ study that collects personal or sensitive data.
 | The application | `studio.siamang.org` |
 | The API (used by the app, your scripts and API keys) | `api.studio.siamang.org` |
 | Published surveys | `study.siamang.org/<survey id>/`, a separate host that shares no cookies or session with the app |
-| Sign-in | a managed authentication service (passwords and Google or Microsoft sign-ins are handled there, not by Studio's own servers) |
+| Sign-in | a managed authentication service (passwords and Google sign-ins are handled there, not by Studio's own servers) |
 | Your responses | a database schema dedicated to your project |
 | Uploaded files and run outputs | object storage, reachable only through signed links that expire |
 
@@ -264,8 +264,8 @@ session storage — which the browser never sends anywhere on its own:
 |---|---|---|
 | `sc_session` | your sign-in: the token the API checks, the token that renews it, your name, email and organizations | until you sign out |
 | `sc_next` | the team invitation to return to once you have signed in | until you have signed in |
-| `sc_oauth_provider` | which sign-in button, Google or Microsoft, started the trip to the provider's page, so the sign-in page knows which provider you came back from | until you come back from the provider; at most until the tab is closed |
-| `sc_oauth_next` | the address you opened before signing in with Google or Microsoft, so it opens once you are back (the provider always returns you to the bare sign-in page) | until you have signed in; at most until the tab is closed |
+| `sc_oauth_provider` | that the Google button started the trip to Google's page, so the sign-in page knows you came back from Google | until you come back from Google; at most until the tab is closed |
+| `sc_oauth_next` | the address you opened before signing in with Google, so it opens once you are back (Google always returns you to the bare sign-in page) | until you have signed in; at most until the tab is closed |
 | `ss_theme`, `ss_density` | the theme and density you picked (see [[Account and Profile\|Studio-Account-and-Profile]]) | until you clear the browser's data for Studio |
 | `sc_last_opened` | when you last opened each project in this browser, for **Sort: Last opened** | the same |
 | `siamang.builder.inspector`, `siamang.flows.node-inspector`, `siamang.flows.report-preview` | the panel widths you dragged | the same |
@@ -305,7 +305,7 @@ button is a real build and keeps a draft as a live survey does. See
 
 | Service | When a browser talks to it | What it learns |
 |---|---|---|
-| **Supabase** (sign-in) | on the sign-in page and while you work: your browser signs in and renews its session with Supabase's authentication service; a Google or Microsoft sign-in passes through Supabase and the provider's own pages | your IP address, browser and sign-in details; the provider's pages keep their own cookies on their own sites |
+| **Supabase** (sign-in) | on the sign-in page and while you work: your browser signs in and renews its session with Supabase's authentication service; a Google sign-in passes through Supabase and Google's own pages | your IP address, browser and sign-in details; the provider's pages keep their own cookies on their own sites |
 | **Stripe** (payments) | only when an owner clicks **Continue to checkout** or **Manage billing**: the browser leaves Studio for Stripe's own pages | what you enter there; Stripe's cookies stay on Stripe's sites, and Studio's pages load nothing from Stripe |
 | **Cloudflare Turnstile** (captcha) | in Studio, on the sign-up, password and **Reset your password** forms of the sign-in page — not on its first, email step; in a survey, only with the [captcha](Studio-Distribution-Channels#captcha) on, and only when the respondent submits | the IP address and browser; Studio sends Cloudflare the IP address with the token to verify it |
 | Fonts | none: Studio's own fonts come with the app, and a survey's (Source Serif 4, Inter, Nunito) come from the survey host — for previews, from Studio's API. Nothing is requested from Google Fonts or any other font service | — |
@@ -495,7 +495,7 @@ under [Activity](Studio-Organizations-and-Team#activity).
   says "Could not check your email. Too many sign-in attempts from your
   network just now — wait a minute and try again." It never treats a failed
   lookup as "no account".
-- **Google and Microsoft** sign-in inherit the provider's protections,
+- **Google** sign-in inherits Google's protections,
   including its two-factor authentication. This is the recommended route for
   sensitive studies. A provider sign-in whose email address is not verified
   is refused.

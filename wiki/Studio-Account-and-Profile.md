@@ -166,7 +166,7 @@ you where you were.
 | Field | Notes |
 |---|---|
 | Avatar | "Your avatar is generated from your initials." There is no picture upload. |
-| **Name** | how colleagues see you: presence avatars, Save authors, comments, the member list and the Activity log. Up to 200 characters; the field stops there and says "200 characters at most". A longer name, such as one that came from your Google or Microsoft account, shows "Name must be 200 characters or fewer." and cannot be saved until you shorten it. |
+| **Name** | how colleagues see you: presence avatars, Save authors, comments, the member list and the Activity log. Up to 200 characters; the field stops there and says "200 characters at most". A longer name, such as one that came from your Google account, shows "Name must be 200 characters or fewer." and cannot be saved until you shorten it. |
 | **Email** | marked "read-only". It is your identity: invitations, notices and the one-trial-per-address rule all key on it. To change it, write to `support@siamang-team.org`. |
 
 Edit the name and click **Save changes**. The button is active only when the
@@ -194,9 +194,9 @@ Sign out when you leave a shared computer. The new password goes straight to
 the managed sign-in service, so the change does not appear in any
 organization's Activity log.
 
-**If you sign in with Google or Microsoft**, the same form **sets** a password
-on your account. From then on you can also sign in with **Continue with
-Email** and that password. Your Google or Microsoft sign-in keeps working.
+**If you sign in with Google**, the same form **sets** a password on your
+account. From then on you can also sign in with **Continue with Email** and
+that password. Your Google sign-in keeps working.
 
 If the change fails, the notice starts with "Could not change your password."
 and gives the reason.
@@ -279,7 +279,7 @@ Four tiles:
 ## What Studio knows about you
 
 - Your **name**, **email**, and which organizations you belong to with which
-  role. Passwords and Google or Microsoft sign-ins are handled by a managed
+  role. Passwords and Google sign-ins are handled by a managed
   authentication service; Studio's own servers never receive your password.
 - **Your actions inside an organization**, recorded in its Activity log under
   your name: Saves, publishing, data exports, deletions, member changes and so

@@ -1,7 +1,7 @@
 # Sign Up and Sign In
 
 This page covers getting into Siamang Studio: creating an account, confirming
-your email, signing in with a password or with Google or Microsoft, resetting a
+your email, signing in with a password or with Google, resetting a
 forgotten password, staying signed in, and joining an organization from an
 invitation. It ends with a table of the messages you may see and what they
 mean.
@@ -22,7 +22,6 @@ the product.
 │  Your research, one clear workflow.        │
 │                                            │
 │  [ G  Continue with Google            ]    │
-│  [ ⊞  Continue with Microsoft         ]    │
 │                  or                        │
 │  [    Continue with Email          →  ]    │
 │                                            │
@@ -50,10 +49,10 @@ sign up if it does not.
 
 | Step | Heading | What it says | Controls |
 |---|---|---|---|
-| Start | **Sign in** | "Your research, one clear workflow." | **Continue with Google**, **Continue with Microsoft**, then **Continue with Email** |
+| Start | **Sign in** | "Your research, one clear workflow." | **Continue with Google**, then **Continue with Email** |
 | Email | **Continue with email** | "Enter your email to sign in or create an account." | **Email** (placeholder `you@agency.com`), **Continue** (shows "Checking…"), **← Back** |
 | Password | **Welcome back** | "Enter your password for *your address*." | **Password** with **Show**/**Hide**, a captcha if configured, **Sign in** (shows "Signing in…"), **← Different email**, **Forgot password?** |
-| Sign-up | **Create your account** | "No account for *your address* yet — let's set one up. You'll get your own workspace on a 30-day Pro trial." | the Google/Microsoft buttons again, **Name** (placeholder `Jane Doe`), **Password** with **Show**/**Hide** (placeholder "at least 8 characters"), the password checklist, a captcha if configured, **Create account** (shows "Creating…"), **← Use a different email** |
+| Sign-up | **Create your account** | "No account for *your address* yet — let's set one up. You'll get your own workspace on a 30-day Pro trial." | the Google button again, **Name** (placeholder `Jane Doe`), **Password** with **Show**/**Hide** (placeholder "at least 8 characters"), the password checklist, a captcha if configured, **Create account** (shows "Creating…"), **← Use a different email** |
 | Forgot | **Reset your password** | "Enter your email and we'll send you a link to reset your password." | **Email**, a captcha if configured, **Send reset link** (shows "Sending…"), **← Back to sign in** |
 | Reset link sent | **Check your email** | "We sent a password reset link to *your address*. Click the link in the email to reset your password." / "Didn't receive it? Check your spam folder or try again." | **Try again**, **← Back to sign in** |
 | New password | **Set new password** | "Enter your new password below." | **New password** with **Show**/**Hide** and the checklist, **Confirm new password** (placeholder "repeat your password"), **Update password** (shows "Updating…"), **← Back to sign in** |
@@ -136,7 +135,7 @@ Nothing arrived? Check your spam folder, and check the address on the
 ## What you get when you sign up
 
 Every new account gets its own workspace straight away. This happens whether
-you signed up with email or with Google or Microsoft:
+you signed up with email or with Google:
 
 - **An organization named after you.** Its name is the name you entered (its
   first 120 characters, on one line, if it is longer), for example "Jane Doe",
@@ -175,13 +174,13 @@ instead. The workspace chip in the topbar switches between your organizations.
 
 **← Different email** takes you back to the address step.
 
-## Sign in with Google or Microsoft
+## Sign in with Google
 
-Click **Continue with Google** or **Continue with Microsoft** and complete the
-provider's sign-in. You return to Studio signed in. The first time, your Studio
+Click **Continue with Google** and complete Google's sign-in. You return to
+Studio signed in. The first time, your Studio
 account and your trial workspace are created automatically, and any pending
-invitations to your address are accepted with it. The same buttons
-appear on the **Create your account** step, so you can switch to a provider
+invitations to your address are accepted with it. The same button
+appears on the **Create your account** step, so you can switch to Google
 there too.
 
 **Linking.** Accounts are matched by email address. If you signed up with a
@@ -191,8 +190,8 @@ verified. If it doesn't, Studio refuses the sign-in (see
 [Troubleshooting](#troubleshooting)).
 
 **Two-factor authentication.** Studio has no two-factor authentication of its
-own in the beta. Signing in with Google or Microsoft uses whatever second
-factor your provider requires. This is the recommended route for sensitive
+own in the beta. Signing in with Google uses whatever second factor your
+Google account requires. This is the recommended route for sensitive
 studies.
 
 ---
@@ -215,8 +214,8 @@ studies.
 If the link no longer works, go back to **Reset your password** and request a
 new one (**Try again** on the **Check your email** screen does the same).
 
-**Accounts created with Google or Microsoft** have no Studio password to begin
-with. Keep using the provider button, or set a password as described in
+**Accounts created with Google** have no Studio password to begin with. Keep
+using **Continue with Google**, or set a password as described in
 [[Account and Profile|Studio-Account-and-Profile]].
 
 ---
@@ -235,7 +234,7 @@ with. Keep using the provider button, or set a password as described in
 - While you are signed in, the sign-in page is skipped: going to
   `studio.siamang.org` takes you straight to your workspace.
 - A link to a Studio screen opened while you are signed out takes you to the
-  sign-in card first; once you sign in (with a password, Google or Microsoft),
+  sign-in card first; once you sign in (with a password or Google),
   the screen opens.
 
 ---
@@ -289,7 +288,7 @@ Sign in (or create an account) with the invited email to accept.
 ### If you create your account from the invitation
 
 When you create a new account with the invited address, whether on the
-**Create your account** step or with Google or Microsoft, Studio adds you to
+**Create your account** step or with Google, Studio adds you to
 the inviting organization, with the role in the invitation, as your account is
 set up. You don't need to click anything else. The invitation page you are
 brought back to takes you straight into that organization, on its
@@ -343,10 +342,10 @@ again** button comes first.
 | "Could not check your email. Too many sign-in attempts from your network just now — wait a minute and try again." | From one network address, Studio answers at most 10 lookups a minute for the same email, and at most 20 a minute for all emails together. Repeated tries, or many people signing in at once from a shared network such as a classroom or an office, can reach that. Wait a minute and click **Continue** again. |
 | "Could not check your email. The server could not be reached — check your connection and try again." | The lookup never reached Studio. Check your connection and click **Continue** again. Other reasons after "Could not check your email." (for example "The server is having trouble — try again in a moment." or "The server did not say whether this email has an account — try again.") mean the same: try again shortly. |
 | "This email already has an account — sign in instead." | You tried to sign up with an address that already has an account. Use **← Use a different email**, then sign in. |
-| "Could not sign you in. Invalid login credentials." | Wrong password, or the account was created with Google or Microsoft and has no password. Use **Forgot password?** or the provider button. |
+| "Could not sign you in. Invalid login credentials." | Wrong password, or the account was created with Google and has no password. Use **Forgot password?** or **Continue with Google**. |
 | "Could not sign you in. Email not confirmed." | Click the link in the confirmation email first. |
-| "…This browser blocks cookies and site data for Studio, which it needs to keep you signed in. Allow them for this site and try again." after "Could not sign you in." (password sign-in), "Could not create your account." (new account) or "Sign in failed." (back from Google, Microsoft or a confirmation link) | Your browser, or its private-window settings, blocks cookies and site data for Studio. Allow both for `studio.siamang.org`, reload the sign-in page and sign in again. After "Could not create your account." the account already exists: sign in with the address and password you chose. |
-| "Sign in failed. This e-mail address is not verified by the identity provider; verify it there, then sign in again." | Your Google or Microsoft account reports the email address as unverified. Verify it with the provider, then try again. |
+| "…This browser blocks cookies and site data for Studio, which it needs to keep you signed in. Allow them for this site and try again." after "Could not sign you in." (password sign-in), "Could not create your account." (new account) or "Sign in failed." (back from Google or a confirmation link) | Your browser, or its private-window settings, blocks cookies and site data for Studio. Allow both for `studio.siamang.org`, reload the sign-in page and sign in again. After "Could not create your account." the account already exists: sign in with the address and password you chose. |
+| "Sign in failed. This e-mail address is not verified by the identity provider; verify it there, then sign in again." | Your Google account reports the email address as unverified. Verify it with Google, then try again. |
 | "Your session expired. Please sign in again." | Your sign-in could not be renewed. Sign in again; Studio opens the screen you were on, and no work is lost. Unsaved edits are kept as drafts. |
 | The reset or confirmation link opened the app instead of a form | You were already signed in. Sign out (or use a private window) and click the link again. |
 | "Passwords don't match." | The two fields on **Set new password** differ. |

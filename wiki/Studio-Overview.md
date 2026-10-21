@@ -109,7 +109,7 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
 - [[Tutorial: A Study from Start to Finish|Studio-Tutorial-End-to-End]] — one realistic study, every stage
 
 ### Account & workspace
-- [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]] — accounts, email confirmation, Google / Microsoft, passwords, invitations
+- [[Sign Up and Sign In|Studio-Sign-Up-and-Sign-In]] — accounts, email confirmation, Google, passwords, invitations
 - [[Account and Profile|Studio-Account-and-Profile]] — profile, appearance, API keys, support
 - [[Organizations and Team|Studio-Organizations-and-Team]] — workspaces, roles, invitations, organization settings, audit log
 - [[Projects|Studio-Projects]] — creating projects, templates, the projects list, Saves and drafts
