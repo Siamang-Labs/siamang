@@ -41,7 +41,7 @@ Extras are declared in `pyproject.toml` and installed with the usual
 
 | Package | Version | Purpose |
 | :--- | :--- | :--- |
-| `pandas` | ≥ 2.0 | Data model and `SurveyData` backbone |
+| `pandas` | ≥ 2.0, < 3 | Data model and `SurveyData` backbone |
 | `scipy` | ≥ 1.11 | Statistical tests (chi-square, t-test, ANOVA, …) |
 | `openpyxl` | ≥ 3.1 | Excel (`.xlsx`) import/export |
 | `pyreadstat` | ≥ 1.2 | SPSS (`.sav`) and Stata (`.dta`) import/export |

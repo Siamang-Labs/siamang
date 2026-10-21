@@ -1011,6 +1011,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **pandas 3 is not supported yet: siamang needs `pandas>=2.0,<3`.** Under
+  pandas 3 a data file's numbers and dates stay text, a Qualtrics export's
+  multiple answers are not split, personal-data columns are not pointed out
+  and a tab book loses its multiple-answer bases. A plain `pip install
+  siamang` installed pandas 3 and gave those results without an error.
+
 - **A respondent reads pages, as the author writes them.** The runtime's own
   words said "section" where the author builds pages: the Next button read
   "Next section →", and the label above a page's title and beside the

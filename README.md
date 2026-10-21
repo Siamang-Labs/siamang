@@ -247,7 +247,7 @@ All core dependencies are installed automatically with `pip install siamang`.
 
 | Package | Version | Purpose |
 | :--- | :--- | :--- |
-| `pandas` | ≥ 2.0 | Data manipulation, SurveyData backbone |
+| `pandas` | ≥ 2.0, < 3 | Data manipulation, SurveyData backbone |
 | `scipy` | ≥ 1.11 | Statistical tests (chi-square, t-test, ANOVA) |
 | `openpyxl` | ≥ 3.1 | Excel (.xlsx) import/export |
 | `pyreadstat` | ≥ 1.2 | SPSS (.sav) and Stata (.dta) import/export |
