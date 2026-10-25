@@ -88,6 +88,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An ending page stays where the interview ended.** Escape went back a page
+  from an ending page (a final, screen-out or redirect page) as it does from a
+  page with questions. The page before took its place, and once the answers
+  were stored the completion screen took that one's: a screened-out respondent
+  was sent to `redirect_url`, the address that carries a panel's completion
+  code, in place of `screen_out_redirect_url`, and a final page's own
+  `redirect_url` (an arm's code, say) gave way to the survey's. Going back now
+  does nothing on an ending page and, as Next already did, nothing once the
+  interview is over or while its answers are being sent. On a page with
+  questions, Previous, Escape, a swipe and the page dots go back as before.
+  Resume could put an ending page where it did not belong too. Clicked while
+  a Next waited on a quota check, it opened a saved screen-out page, which
+  sent the answers as screened out, and the check's answer then moved the
+  respondent on from the page Next was pressed on, to the completion screen
+  and `redirect_url`. Under the "Submitting" overlay and the retry dialog Tab
+  still reached it, and a saved ending page then sent the old answers a
+  second time while the first send was on its way. And it opened whatever
+  page had the saved place among today's pages: after a redeploy under the
+  same address with a page more or less before it, or a `show_if` changed on
+  one, a saved screen-out page came back as the final page and was sent as
+  completed. Resume and Start over are now disabled while a quota check runs,
+  the resume banner is not offered while the answers are being sent or under
+  the retry dialog, a quota check's answer moves only the page it was asked
+  from, and the autosave names its page (`pageName`). Resume opens the page
+  of that name; when the survey no longer has it, it opens the first page,
+  with the answers kept. So does a save written before this change, which has
+  no name, unless it lists today's pages (its `pageOrder`) and was left on a
+  page with questions.
+
 - **"Save locally and finish" never sends the respondent on.** When the
   answers could not be sent, the retry dialog's "Save locally and finish" kept
   them in the browser and then ended as a sent response does: on the

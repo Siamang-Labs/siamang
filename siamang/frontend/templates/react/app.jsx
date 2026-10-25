@@ -1388,8 +1388,10 @@ function App() {
 
   // ─── Navigation ───
   const pageIdxRef = useRef(0);
+  const pageNameRef = useRef(null);
   const nav = useSurveyNav(allPages, store, visibilityEngine);
   pageIdxRef.current = nav.pageIdx;
+  pageNameRef.current = nav.currentPage ? nav.currentPage.name : null;
 
   // ─── Design mode (Studio preview only) ───
   const design = useDesignMode(nav, store, visibilityEngine, allPages);
@@ -1397,7 +1399,7 @@ function App() {
   useEmbedHeight();
 
   // ─── Autosave ───
-  const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish: finishSaved } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef);
+  const { saving, savedData, setSavedData, scheduleSave, clearSaved, saveNow, finish: finishSaved } = useAutosave(store, surveyId, pageIdxRef, nav.historyRef, pageNameRef);
   // A screen reader is told the first time the answers are saved, and not at
   // every save after: a region always in the page, its text put in at that
   // save and taken out with "Saving…" (which itself is aria-hidden).
@@ -1658,9 +1660,18 @@ function App() {
     // before routing anywhere, the last page's submission included.
     leavingRef.current = true;
     setChecking(true);
+    // The answer is for the page Next was pressed on, and proceed() goes on
+    // from that page. Should another page be on screen by then, or the
+    // interview be over, it does nothing. Resume clicked during the check
+    // opened a saved screen-out page, which sent the answers as screened
+    // out; the answer then took the respondent off it to the page after the
+    // one Next was pressed on, and once the answers were stored the
+    // completion screen sent a screened-out respondent to redirect_url.
+    const fromIdx = pageIdxRef.current;
     quotaFull(answers).then((full) => {
       leavingRef.current = false;
       setChecking(false);
+      if (pageIdxRef.current !== fromIdx || phaseRef.current !== "running") return;
       if (!full) { proceed(); return; }
       cancelScriptTimers(store);
       finishSaved();
@@ -1670,8 +1681,26 @@ function App() {
     });
   }, [store, nav, visibilityEngine, uiTexts, submit, setSubmitting, quotaVars, quotaFull, finishSaved, setClosedReason, setPhase]);
 
+  // The page on screen stays as it is while a Next waits on a quota check
+  // (leavingRef), while the answers are being sent (submittingRef) and once
+  // the interview is over: going back, Resume and Start over do nothing then.
+  const pageLocked = () => leavingRef.current || submittingRef.current || phaseRef.current !== "running";
+
+  // Going back: Previous, Escape, a swipe and a page dot all come here. Not
+  // from an ending page, and, as for Next, not once the interview is over or
+  // while its answers are being sent. An ending page is where the interview
+  // ended: it sends the answers as it opens and, once they are stored, the
+  // respondent on, to its own redirect_url or the survey's for its outcome.
+  // Escape went back from one (an ending page shows no Previous or dots and
+  // takes no swipe), the page before took its place, and once the answers
+  // were stored the completion screen took that one's: a screened-out
+  // respondent went to redirect_url, with a panel's completion code, not to
+  // screen_out_redirect_url, and a final page's own redirect_url gave way
+  // to the survey's.
+  const backBlocked = () => pageLocked() || isTerminalPage(nav.pages[pageIdxRef.current]);
+
   const handlePrev = useCallback(() => {
-    if (leavingRef.current) return;
+    if (backBlocked()) return;
     startInterview(surveyId);
     setErrors({});
     setHeldRows({});
@@ -1680,7 +1709,7 @@ function App() {
 
   // A page dot: back to a page on the path that led here, never forward.
   const handleDot = useCallback((idx) => {
-    if (leavingRef.current || !nav.canGoBackTo(idx)) return;
+    if (backBlocked() || !nav.canGoBackTo(idx)) return;
     startInterview(surveyId);
     setErrors({});
     setHeldRows({});
@@ -1849,11 +1878,23 @@ function App() {
       <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
       <div id="survey" className={design.enabled ? "siamang-design" : undefined} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <Header />
-        {savedData && (
+        {/* Resume and Start over only while nothing is being checked or
+            sent. While a Next waits on a quota check the two are disabled,
+            out of reach of a click and of Tab, and the banner stays: taken
+            out for the check, its alert would go in anew, and be read out
+            again, on every Next of a survey with quotas, and the page would
+            move while a check ran. While the answers are on their way, and
+            under the retry dialog after a failed send, there is no banner.
+            It stayed in the page under the "Submitting" overlay and the
+            dialog, and Tab reached it: Resume then put a saved ending page
+            in place of the page being sent, and that page sent the old
+            answers a second time, with its own outcome and way on. */}
+        {savedData && !submitting && submitAttempts === 0 && (
           <div className="siamang-resume-banner" role="alert">
             <span>{uiTexts.resumeTitle}</span>
             <div className="siamang-resume-banner__actions">
-              <button className="sd-btn sd-navigation__next-btn" onClick={() => {
+              <button className="sd-btn sd-navigation__next-btn" disabled={checking} onClick={() => {
+                if (pageLocked()) return;
                 startInterview(surveyId);
                 // The runtime's own state (__pages__, __options__, …) stays;
                 // the answers come back in today's layout.
@@ -1865,13 +1906,35 @@ function App() {
                 const order = savedPageOrder(internal.__pages__, savedData.pageOrder);
                 if (order) internal.__pages__ = order;
                 store.replace({ ...internal, ...upgradeSavedAnswers(allPages, savedData.answers) });
-                nav.restoreHistory(savedData.history);
+                // The page it was saved on, found by its name among the pages
+                // the restored answers show (nav.pages once this renders).
+                // The saved index is a place among the pages of the version
+                // that saved it: after a redeploy with a page more or less
+                // before it, that place was another page's, an ending page's
+                // among them, which sent the answers with that page's outcome
+                // and way on. A save without the name (from before it was
+                // kept) goes by its index only while the pages are the ones
+                // it names, and never to an ending page: a show_if or hide_if
+                // changed on a page before it moves which page has that place
+                // even when the names are the same, and an ending page sends
+                // the answers as it opens. Otherwise Resume opens the first
+                // page, with the answers kept, and the path back starts
+                // there.
+                const restored = store.snapshot();
+                const ordered = Array.isArray(restored.__pages__) && restored.__pages__.length ? restored.__pages__ : allPages;
+                const visible = ordered.filter((p) => visibilityEngine.isPageVisible(p, restored));
+                const byPlace = order ? visible[savedData.pageIdx] : null;
+                const idx = typeof savedData.pageName === "string"
+                  ? visible.findIndex((p) => p.name === savedData.pageName)
+                  : (byPlace && !isTerminalPage(byPlace) ? savedData.pageIdx : -1);
+                nav.restoreHistory(idx >= 0 ? savedData.history : []);
                 // The interview began in the sitting that saved it.
                 if (Number.isFinite(savedData.startedAt)) interviewSession.startedAt = savedData.startedAt;
-                nav.setPageIdx(savedData.pageIdx);
+                nav.setPageIdx(Math.max(idx, 0));
                 setSavedData(null);
               }}>{uiTexts.resumeAction}</button>
-              <button className="sd-btn sd-navigation__prev-btn" onClick={() => {
+              <button className="sd-btn sd-navigation__prev-btn" disabled={checking} onClick={() => {
+                if (pageLocked()) return;
                 startInterview(surveyId);
                 clearSaved();
               }}>{uiTexts.restartAction}</button>

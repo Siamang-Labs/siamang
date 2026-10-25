@@ -159,7 +159,7 @@ const interviewSession = { startedAt: Date.now(), surveyId: null, page: null, pa
 
 /* ─── useAutosave ──────────────────────────────────────────────────────── */
 
-function useAutosave(store, surveyId, pageIdxRef, historyRef) {
+function useAutosave(store, surveyId, pageIdxRef, historyRef, pageNameRef) {
   const AUTO_SAVE_KEY = "siamang_answers_" + surveyId;
   const saveTimerRef = useRef(null);
   const savingTimerRef = useRef(null);
@@ -199,6 +199,10 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
         if (!k.startsWith("__")) cleanAnswers[k] = v;
       }
       const data = { answers: cleanAnswers, pageIdx: pageIdxRef.current, savedAt: new Date().toISOString() };
+      // The page on screen by its name too: pageIdx counts in the pages this
+      // version shows, and Resume after a redeploy with other pages finds the
+      // page by its name (see the resume banner).
+      if (pageNameRef && typeof pageNameRef.current === "string") data.pageName = pageNameRef.current;
       if (historyRef && Array.isArray(historyRef.current)) data.history = historyRef.current.slice();
       // The page order this respondent was dealt (randomize_pages deals a
       // new one at every load): pageIdx and the path are positions in it.
@@ -207,7 +211,7 @@ function useAutosave(store, surveyId, pageIdxRef, historyRef) {
       data.startedAt = interviewSession.startedAt;
       keepItem(surveyId, AUTO_SAVE_KEY, JSON.stringify(data));
     } catch (e) { /* not kept */ }
-  }, [AUTO_SAVE_KEY, historyRef, surveyId, store, pageIdxRef]);
+  }, [AUTO_SAVE_KEY, historyRef, surveyId, store, pageIdxRef, pageNameRef]);
   const doSave = useCallback(() => {
     const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
     ric(() => writeSave());

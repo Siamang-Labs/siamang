@@ -166,7 +166,9 @@ radio, checks or unchecks the box.
 Right after a click, while the focus the mouse left on a button or a link is still
 there, Enter and Space go on: the key would otherwise click again, and a MaxDiff or
 conjoint pick, which a second click takes back, would be lost. Esc goes back when
-going back is allowed. A matrix is a grid the arrow keys move through (see
+going back is allowed, as Previous does, but never from an ending page, where the
+interview ended (its redirect, if it has one, is the way on), nor while the answers
+are being sent. A matrix is a grid the arrow keys move through (see
 [[Question Types|Question-Types]]).
 
 A rating scale — numbers (a 0–10 NPS too) or stars — is one radio group: Tab stops on
@@ -392,7 +394,10 @@ as the interview is submitted or ended by a full quota), the theme choice
 `siamang_theme_<survey id>` and the runtime's own respondent id
 `siamang_interview_<survey id>`. A host's transport may read the autosave — Studio's
 posts it as a partial response — and keeps its own keys beside these (Studio:
-`siamang_respondent_<survey id>`, `siamang_ended_<survey id>`).
+`siamang_respondent_<survey id>`, `siamang_ended_<survey id>`). Resume opens the saved
+page by its name, not by its place, which after a redeploy with a page more or less
+before it is another page's; when the survey no longer has that page, Resume opens the
+first one, with the answers kept.
 
 The autosave is written 2 s after the last answer (a field's text is taken 600 ms
 after its last key), and at once when the page is hidden or left — another tab, the

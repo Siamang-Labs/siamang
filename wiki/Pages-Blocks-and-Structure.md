@@ -68,7 +68,9 @@ raises `ValueError`.
 | `"redirect"` | yes | Terminal screen that redirects to `redirect_url` (e.g. a panel completion URL). |
 
 Terminal pages end the survey when reached — typically gated by `show_if`. Content
-pages remain navigable.
+pages remain navigable. There is no going back from a terminal page (Esc does nothing
+there); its redirect, if it has one, is the way on, to its own `redirect_url` or else
+the survey's for its outcome (`screen_out_redirect_url` for a screen-out).
 
 ### Page bodies
 

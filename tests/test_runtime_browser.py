@@ -3596,6 +3596,592 @@ def test_keys_do_nothing_on_the_saved_screen(tmp_path, document, to_the_end):
     assert state["after"] == state["before"]
 
 
+# ── An ending page stays where the interview ended ───────────────────────────
+
+_COMPLETED = "https://panel.example/complete?cc=COMPLETE"
+_SCREENED_OUT = "https://panel.example/complete?cc=SCREENOUT"
+
+
+def _screen_out_document() -> dict[str, Any]:
+    """_body_document's two pages, then a screen-out page without an address
+    of its own: 2 s after the answers are stored it sends the respondent to
+    the survey's screen_out_redirect_url, never to its redirect_url, the
+    panel's completion code."""
+
+    document = _body_document()
+    document["pages"][-1] = {
+        "name": "out",
+        "kind": "disqualification",
+        "title": "Not this time",
+        "body": "<p>This study is looking for other participants.</p>",
+        "redirect_delay": 2,
+    }
+    document["ui"] = {"redirect_url": _COMPLETED, "screen_out_redirect_url": _SCREENED_OUT}
+    return document
+
+
+# The pages the transport was told of, whether a page with questions is on
+# screen, the statuses of the answers sent, and the links to the panel.
+_AT_THE_END = """
+    const atTheEnd = () => page.evaluate(() => ({
+        pages: window.__T.pages.slice(),
+        question: !!document.querySelector(".sd-page"),
+        statuses: window.__T.submitted.map((answers) => answers.__status),
+        links: Array.from(document.querySelectorAll("a[href]"), (a) => a.href)
+            .filter((href) => href.startsWith("https://panel.example/")),
+    }));
+"""
+
+# Escape on the screen-out page: while its answers are on their way, once
+# they are stored (within the page's redirect_delay), and under the retry
+# dialog after a failed send, then Try again.
+_ESCAPE_ON_THE_SCREEN_OUT = {
+    "sending": (
+        "window.__T = { holdSubmit: true };",
+        """
+        await page.waitForFunction(() => typeof window.__T.release === "function");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        const pressed = await atTheEnd();
+        await page.evaluate(() => window.__T.release());
+    """,
+    ),
+    "stored": (
+        "",
+        """
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        const pressed = await atTheEnd();
+    """,
+    ),
+    "retrying": (
+        _FAIL_ONCE,
+        """
+        await page.waitForSelector(".siamang-retry-dialog");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        const pressed = await atTheEnd();
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+    """,
+    ),
+}
+
+
+@pytest.mark.parametrize("when", list(_ESCAPE_ON_THE_SCREEN_OUT))
+def test_escape_on_a_screen_out_page_leaves_neither_it_nor_its_way_on(tmp_path, when):
+    """Escape went back from an ending page: the page before it took its
+    place, and once the answers were stored the completion screen took that
+    one's and sent a screened-out participant to redirect_url, the panel's
+    completion code, in place of screen_out_redirect_url."""
+    init, press = _ESCAPE_ON_THE_SCREEN_OUT[when]
+    scenario = (
+        _PANEL
+        + _AT_THE_END
+        + _TO_THE_ENDING
+        + press
+        + """
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const stored = await atTheEnd();
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { pressed, stored, toPanel, url: page.url() };
+    """
+    )
+    state = run_in_browser(_screen_out_document(), scenario, tmp_path, init=init)
+    for seen in (state["pressed"], state["stored"]):
+        assert seen["pages"] == ["p1", "p2", "out"]
+        assert seen["question"] is False
+    tries = 2 if when == "retrying" else 1
+    assert state["stored"]["statuses"] == ["screened_out"] * tries
+    assert state["stored"]["links"] == [_SCREENED_OUT]
+    assert state["toPanel"] == [_SCREENED_OUT]
+    assert state["url"] == _SCREENED_OUT
+
+
+def test_escape_on_a_final_page_keeps_its_own_way_on(tmp_path):
+    """A final page's own redirect_url (an arm's code, say) gave way to the
+    survey's redirect_url after Escape, the completion screen in its place.
+    On a page with questions Escape still goes back, keeping the answers."""
+    scenario = (
+        _PANEL
+        + _AT_THE_END
+        + """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+    """
+        + _NEXT
+        + """
+        await page.keyboard.press("Escape");
+        await page.waitForFunction(() => window.__T.pages.length === 3);
+        const back = await page.evaluate(() => ({
+            pages: window.__T.pages.slice(),
+            name: document.querySelector("input.sd-input").value,
+        }));
+    """
+        + _NEXT
+        + """
+        await page.click("text=Pear");
+    """
+        + _NEXT
+        + """
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        const pressed = await atTheEnd();
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { back, pressed, toPanel, url: page.url() };
+    """
+    )
+    document = _panel_document(ending=True, redirect_url=_COMPLETED)
+    state = run_in_browser(document, scenario, tmp_path)
+    assert state["back"] == {"pages": ["p1", "p2", "p1"], "name": "Ann"}
+    pressed = state["pressed"]
+    assert pressed["pages"] == ["p1", "p2", "p1", "p2", "done"]
+    assert pressed["question"] is False
+    assert pressed["statuses"] == ["completed"]
+    assert pressed["links"] == [_PANEL_COMPLETE]
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+    assert state["url"] == _PANEL_COMPLETE
+
+
+# ── Resume: the page it was saved on, never under a page being left ──────────
+
+_RESUMED_VARIABLES: dict[str, dict[str, Any]] = {
+    "heard": {"scale": "nominal", "dtype": "str"},
+    "gender": {
+        "scale": "nominal",
+        "labels": [{"code": 1, "label": "Male"}, {"code": 2, "label": "Female"}],
+    },
+    "fruit": {
+        "scale": "nominal",
+        "labels": [{"code": 1, "label": "Apple"}, {"code": 2, "label": "Pear"}],
+    },
+    "extra": {"scale": "nominal", "dtype": "str"},
+}
+
+
+def _resumed_document(*names: str, quota: bool = False) -> dict[str, Any]:
+    """Of p0 (a question put in at the start), p1 (gender), p2 (fruit: a Pear
+    is screened out), p3 (a question put in before the endings), the final
+    page `done` and the screen-out page `out`, the pages ``names``, in that
+    order; ``p3-for-a-pear`` is p3 shown to a Pear alone. Each ending sends
+    the respondent on 2 s after the answers are stored: `done` to the
+    survey's redirect_url (cc=COMPLETE), `out` to its screen_out_redirect_url
+    (cc=SCREENOUT). With ``quota``, gender is a quota variable."""
+
+    pages: dict[str, dict[str, Any]] = {
+        "p0": {"name": "p0", "items": [_text("heard", "Where did you hear of us?")]},
+        "p1": {"name": "p1", "items": [_choice("gender", "Gender?")]},
+        "p2": {
+            "name": "p2",
+            "items": [_choice("fruit", "Fruit?")],
+            "next_if": [{"condition": _cmp("=", _var("fruit"), 2), "target": "out"}],
+        },
+        "p3": {"name": "p3", "items": [_text("extra", "Anything else?")]},
+        "p3-for-a-pear": {
+            "name": "p3",
+            "items": [_text("extra", "Anything else?")],
+            "show_if": _cmp("=", _var("fruit"), 2),
+        },
+        "done": {"name": "done", "kind": "final", "title": "All done", "redirect_delay": 2},
+        "out": {
+            "name": "out",
+            "kind": "disqualification",
+            "title": "Not this time",
+            "redirect_delay": 2,
+        },
+    }
+    chosen = [pages[name] for name in names]
+    used = {item["var"] for page in chosen for item in page.get("items", [])}
+    document: dict[str, Any] = {
+        "schema_version": "1.0",
+        "title": "Resumed",
+        "variables": {name: spec for name, spec in _RESUMED_VARIABLES.items() if name in used},
+        "pages": chosen,
+        "ui": {"redirect_url": _COMPLETED, "screen_out_redirect_url": _SCREENED_OUT},
+    }
+    if quota:
+        document["quotas"] = [
+            {"variable": "gender", "target_value": 1, "limit": 100},
+            {"variable": "gender", "target_value": 2, "limit": 100},
+        ]
+    return document
+
+
+def _saved_on(
+    pages: list[str],
+    on: str,
+    answers: dict[str, Any],
+    history: list[str],
+    *,
+    named: bool = True,
+    unseen: tuple[str, ...] = (),
+) -> str:
+    """An init script that leaves, written just now, the autosave a sitting
+    of a version whose pages were ``pages`` wrote on page ``on``; without
+    ``named``, as a version that kept no pageName wrote it. The page index
+    counts the pages on screen: not ``unseen``, pages the version did not
+    show this respondent, which its page order has all the same."""
+
+    shown = [name for name in pages if name not in unseen]
+    save: dict[str, Any] = {
+        "answers": answers,
+        "pageIdx": shown.index(on),
+        "history": history,
+        "pageOrder": pages,
+    }
+    if named:
+        save["pageName"] = on
+    return (
+        "localStorage.setItem('siamang_answers_t', JSON.stringify(Object.assign("
+        + json.dumps(save)
+        + ", { savedAt: new Date().toISOString(), startedAt: Date.now() })));"
+    )
+
+
+# The pages the transport was told of, the statuses of the answers sent,
+# whether a page with questions is on screen and its chosen answers.
+_RESUMED = """
+    const read = () => page.evaluate(() => ({
+        pages: window.__T.pages.slice(),
+        statuses: window.__T.submitted.map((answers) => answers.__status),
+        question: !!document.querySelector(".sd-page"),
+        checked: Array.from(document.querySelectorAll(".sd-item--checked .sd-choice-label"),
+            (el) => el.textContent),
+    }));
+"""
+
+
+def test_resume_waits_for_the_quota_check_of_the_page_being_left(tmp_path):
+    """Resume, clicked while a Next waited on a quota check, opened the saved
+    screen-out page, which sent the answers as screened out. The check's
+    answer then took the respondent off it to the page after the one Next
+    was pressed on, and once the answers were stored the completion screen
+    sent a screened-out participant to redirect_url (cc=COMPLETE). Resume is
+    disabled while a check runs, and the answer moves only the page it was
+    asked from."""
+    init = _saved_on(["p1", "p2", "done", "out"], "out", {"gender": 1, "fruit": 2}, ["p1", "p2"])
+    scenario = (
+        _PANEL
+        + _RESUMED
+        + """
+        await page.waitForSelector(".siamang-resume-banner");
+        // The quota check waits until the test lets it answer.
+        await page.evaluate(() => {
+            window.SIAMANG_TRANSPORTS.test.checkQuota = () => new Promise((answer) => {
+                window.__T.answerQuota = () => answer({ ok: true });
+            });
+        });
+        await page.click("text=Female");
+        await page.click(".sd-navigation .sd-navigation__next-btn");
+        await page.waitForFunction(() => typeof window.__T.answerQuota === "function");
+        // Resume while it waits, wherever the banner is.
+        const offered = await page.evaluate(() => {
+            const resume = document.querySelector(".siamang-resume-banner .sd-navigation__next-btn");
+            if (resume) resume.click();
+            return resume ? (resume.disabled ? "disabled" : "enabled") : "gone";
+        });
+        await page.waitForTimeout(300);
+        const checking = await read();
+        await page.evaluate(() => window.__T.answerQuota());
+        await page.waitForTimeout(300);
+        const answered = await read();
+        if (!(await page.$(".siamang-resume-banner"))) {
+            // Past the completion screen's 5 s countdown, should it be up.
+            await page.waitForTimeout(6000);
+            return { offered, checking, answered, toPanel };
+        }
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const resumed = await read();
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { offered, checking, answered, resumed, toPanel, url: page.url() };
+    """
+    )
+    document = _resumed_document("p1", "p2", "done", "out", quota=True)
+    state = run_in_browser(document, scenario, tmp_path, init=init)
+    # Nothing sent and no page changed while the check ran; its answer took
+    # the respondent on from p1, the page Next was pressed on.
+    checking, answered = state["checking"], state["answered"]
+    assert checking == {"pages": ["p1"], "statuses": [], "question": True, "checked": ["Female"]}
+    assert answered == {"pages": ["p1", "p2"], "statuses": [], "question": True, "checked": []}
+    assert state["offered"] == "disabled"
+    # Resumed from there, the saved screen-out page sends the answers as
+    # screened out, and the one way on is screen_out_redirect_url.
+    assert state["resumed"]["pages"] == ["p1", "p2", "out"]
+    assert state["resumed"]["statuses"] == ["screened_out"]
+    assert state["toPanel"] == [_SCREENED_OUT]
+    assert state["url"] == _SCREENED_OUT
+
+
+def test_the_resume_banner_stays_through_a_quota_check(tmp_path):
+    """While a Next waits on a quota check, Resume and Start over are
+    disabled, and the banner stays, the same element: taken out for the
+    check, its alert would go in anew, and be read out again, on every Next
+    of a survey with quotas, the check answered at once or not, and the page
+    would move up while a check was held."""
+    init = _saved_on(["p0", "p1", "p2", "p3"], "p2", {"heard": "web", "gender": 1}, ["p0", "p1"])
+    scenario = """
+        await page.waitForSelector(".siamang-resume-banner");
+        await page.evaluate(() => {
+            window.__banner = document.querySelector(".siamang-resume-banner");
+            window.__taken = 0;
+            new MutationObserver((records) => {
+                for (const record of records) {
+                    for (const node of record.removedNodes) if (node === window.__banner) window.__taken++;
+                }
+            }).observe(document.getElementById("survey"), { childList: true, subtree: true });
+        });
+        const banner = () => page.evaluate(() => {
+            const now = document.querySelector(".siamang-resume-banner");
+            return {
+                taken: window.__taken,
+                same: now === window.__banner,
+                disabled: now ? Array.from(now.querySelectorAll("button"), (b) => b.disabled) : null,
+            };
+        });
+        const nextTop = () => page.evaluate(() => Math.round(document.querySelector(
+            ".sd-navigation .sd-navigation__next-btn").getBoundingClientRect().top));
+        // p0 has no quota variable: its check answers at once.
+        await page.fill("input.sd-input", "web");
+        await page.click("body");
+        await page.click(".sd-navigation .sd-navigation__next-btn");
+        await page.waitForSelector("text=Female");
+        const atOnce = await banner();
+        // p1's gender is checked, and the check waits until the test lets it
+        // answer.
+        await page.evaluate(() => {
+            window.SIAMANG_TRANSPORTS.test.checkQuota = () => new Promise((answer) => {
+                window.__T.answerQuota = () => answer({ ok: true });
+            });
+        });
+        await page.click("text=Female");
+        const before = await nextTop();
+        await page.click(".sd-navigation .sd-navigation__next-btn");
+        await page.waitForFunction(() => typeof window.__T.answerQuota === "function");
+        await page.waitForTimeout(200);
+        const during = { banner: await banner(), top: await nextTop() };
+        await page.evaluate(() => window.__T.answerQuota());
+        await page.waitForSelector("text=Apple");
+        const after = await banner();
+        return { atOnce, before, during, after };
+    """
+    document = _resumed_document("p0", "p1", "p2", "p3", quota=True)
+    state = run_in_browser(document, scenario, tmp_path, init=init)
+    assert state["atOnce"] == {"taken": 0, "same": True, "disabled": [False, False]}
+    assert state["during"]["banner"] == {"taken": 0, "same": True, "disabled": [True, True]}
+    assert state["during"]["top"] == state["before"]
+    assert state["after"] == {"taken": 0, "same": True, "disabled": [False, False]}
+
+
+def test_the_resume_banner_is_out_of_reach_while_the_answers_are_sent(tmp_path):
+    """The banner stayed in the page under the "Submitting" overlay, and Tab
+    reached its Resume: Enter put the saved screen-out page in place of the
+    page being sent, which sent the old answers a second time, as screened
+    out, and the participant went to screen_out_redirect_url whatever the
+    first send stored."""
+    # A Pear is screened out on `out`, shown for it alone; p2, the last page,
+    # sends the answers, and the completion screen sends the respondent to
+    # redirect_url.
+    document = {
+        "schema_version": "1.0",
+        "title": "Resumed",
+        "variables": {"fruit": _RESUMED_VARIABLES["fruit"], "extra": _RESUMED_VARIABLES["extra"]},
+        "pages": [
+            {"name": "p1", "items": [_choice("fruit", "Fruit?")]},
+            {
+                "name": "out",
+                "kind": "disqualification",
+                "title": "Not this time",
+                "redirect_delay": 2,
+                "show_if": _cmp("=", _var("fruit"), 2),
+            },
+            {"name": "p2", "items": [_text("extra", "Anything else?")]},
+        ],
+        "ui": {"redirect_url": _COMPLETED, "screen_out_redirect_url": _SCREENED_OUT},
+    }
+    init = "window.__T = { holdSubmit: true };" + _saved_on(
+        ["p1", "out", "p2"], "out", {"fruit": 2}, ["p1"]
+    )
+    scenario = (
+        _PANEL
+        + """
+        await page.waitForSelector(".siamang-resume-banner");
+        await page.click("text=Apple");
+        await page.click(".sd-navigation .sd-navigation__next-btn");
+        await page.waitForSelector("input.sd-input");
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+        await page.click(".sd-navigation .sd-navigation__complete-btn");
+        await page.waitForFunction(() => typeof window.__T.release === "function");
+        const banner = !!(await page.$(".siamang-resume-banner"));
+        let reached = false;
+        for (let tab = 0; tab < 30 && !reached; tab++) {
+            await page.keyboard.press("Tab");
+            reached = await page.evaluate(() =>
+                !!(document.activeElement && document.activeElement.closest(".siamang-resume-banner")));
+        }
+        if (reached) await page.keyboard.press("Enter");
+        await page.waitForTimeout(300);
+        const sent = await page.evaluate(() => window.__T.submitted.map((answers) =>
+            [answers.__status || null, answers.fruit, answers.extra || null]));
+        await page.evaluate(() => window.__T.release());
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"), { timeout: 15000 });
+        return { banner, reached, sent, toPanel, url: page.url() };
+    """
+    )
+    state = run_in_browser(document, scenario, tmp_path, init=init)
+    # Only the last page's answers, which carry no outcome (__status) of
+    # their own: an ending page sets one. Their way on is redirect_url.
+    assert state["sent"] == [[None, 1, "Ann"]]
+    assert state["toPanel"] == [_COMPLETED]
+    assert state["url"] == _COMPLETED
+    # The banner is not in the page while they are sent, so Tab never
+    # reaches it.
+    assert state["banner"] is False
+    assert state["reached"] is False
+
+
+# The version that saved (its pages and the page saved on, the answers, the
+# path, whether the save names the page, and any of its pages it did not show
+# the respondent), today's pages, and what the respondent does after Resume:
+# nothing, Next to the end, or Previous.
+_REPUBLISHED = {
+    "a-page-put-in-before-the-endings": (
+        (["p1", "p2", "done", "out"], "out", {"gender": 1, "fruit": 2}, ["p1", "p2"], True),
+        ["p1", "p2", "p3", "done", "out"],
+        "",
+    ),
+    "its-page-taken-out": (
+        (["p1", "p2", "p3", "done", "out"], "p3", {"gender": 1, "fruit": 1}, ["p1", "p2"], True),
+        ["p1", "p2", "done", "out"],
+        "next",
+    ),
+    "a-save-without-its-name-and-other-pages": (
+        (["p1", "p2", "done", "out"], "out", {"gender": 1, "fruit": 2}, ["p1", "p2"], False),
+        ["p1", "p2", "p3", "done", "out"],
+        "next",
+    ),
+    "a-save-without-its-name-and-the-same-pages": (
+        (["p1", "p2", "done", "out"], "out", {"gender": 1, "fruit": 2}, ["p1", "p2"], False),
+        ["p1", "p2", "done", "out"],
+        "next",
+    ),
+    # The same pages, p3 shown to an Apple alone then and to all today: the
+    # place of `out` among a Pear's pages is `done`'s today.
+    "a-save-without-its-name-and-p3-shown-to-all": (
+        (
+            ["p1", "p2", "p3", "done", "out"],
+            "out",
+            {"gender": 1, "fruit": 2},
+            ["p1", "p2"],
+            False,
+            "p3",
+        ),
+        ["p1", "p2", "p3", "done", "out"],
+        "next",
+    ),
+    # p3 shown to all then and to a Pear alone today: the place of `done`
+    # among an Apple's pages is `out`'s today.
+    "a-save-without-its-name-and-p3-for-a-pear": (
+        (
+            ["p1", "p2", "p3", "done", "out"],
+            "done",
+            {"gender": 1, "fruit": 1},
+            ["p1", "p2", "p3"],
+            False,
+        ),
+        ["p1", "p2", "p3-for-a-pear", "done", "out"],
+        "next",
+    ),
+    "a-save-without-its-name-on-a-page-with-questions": (
+        (["p1", "p2", "done", "out"], "p2", {"gender": 1}, ["p1"], False),
+        ["p1", "p2", "done", "out"],
+        "back",
+    ),
+    "a-page-put-in-at-the-start": (
+        (["p1", "p2", "done", "out"], "p2", {"gender": 1}, ["p1"], True),
+        ["p0", "p1", "p2", "done", "out"],
+        "back",
+    ),
+}
+
+_AFTER_RESUME = {
+    "": "",
+    # The banner, whose Resume _NEXT would click, is gone once it is used.
+    "next": _NEXT * 2,
+    "back": """
+        await page.click(".sd-navigation .sd-navigation__prev-btn");
+        await page.waitForTimeout(250);
+    """,
+}
+
+
+@pytest.mark.parametrize("case", list(_REPUBLISHED))
+def test_resume_opens_the_page_it_was_saved_on_after_a_redeploy(tmp_path, case):
+    """The autosave keeps the page by its place among the pages on screen,
+    and Resume opened whatever page had that place today. A redeploy under
+    the same address with a page more or less before it made that another
+    page: with a page put in before the endings, a screen-out page saved by
+    Save locally and finish came back as the final page, which sent the
+    answers as completed and the participant to redirect_url (cc=COMPLETE).
+    The save names the page, and Resume opens the page of that name; with
+    no such page, or a save without the name from a version with other
+    pages, it opens the first page with the answers kept. So does a save
+    without the name on an ending page: a show_if changed on a page before
+    it gives its place to another page even with the same pages."""
+    (saved_pages, on, answers, history, named, *unseen), today, then = _REPUBLISHED[case]
+    init = _saved_on(saved_pages, on, answers, history, named=named, unseen=tuple(unseen))
+    scenario = (
+        _PANEL
+        + _RESUMED
+        + """
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForTimeout(500);
+        const landed = await read();
+        if (!landed.statuses.length) {
+    """
+        + _AFTER_RESUME[then]
+        + """
+        }
+        const after = await read();
+        if (after.statuses.length) {
+            await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        }
+        return { landed, after, toPanel };
+    """
+    )
+    state = run_in_browser(_resumed_document(*today), scenario, tmp_path, init=init)
+    landed, after = state["landed"], state["after"]
+    if then == "":
+        # On the screen-out page it was saved on, by its name.
+        assert landed["pages"] == ["p1", "out"]
+        assert landed["statuses"] == ["screened_out"]
+        assert landed["question"] is False
+        assert state["toPanel"] == [_SCREENED_OUT]
+    elif then == "next":
+        # From the first page, the answers kept and nothing sent until the
+        # respondent reaches an ending, the one their answers route to.
+        assert landed == {"pages": ["p1"], "statuses": [], "question": True, "checked": ["Male"]}
+        if answers["fruit"] == 2:
+            assert after["pages"] == ["p1", "p2", "out"]
+            assert after["statuses"] == ["screened_out"]
+            assert state["toPanel"] == [_SCREENED_OUT]
+        else:
+            assert after["pages"] == ["p1", "p2", "done"]
+            assert after["statuses"] == ["completed"]
+            assert state["toPanel"] == [_COMPLETED]
+    else:
+        # On p2, the page it was saved on, by its name or, without it, by its
+        # place among the same pages (a control); Previous goes back the way
+        # the respondent came, to p1, not to the page before it today.
+        assert landed["pages"] == [today[0], "p2"]
+        assert landed["statuses"] == [] and landed["question"] is True
+        assert after["pages"] == [today[0], "p2", "p1"]
+        assert after["checked"] == ["Male"]
+        assert state["toPanel"] == []
+
+
 # ── Header ───────────────────────────────────────────────────────────────────
 
 
