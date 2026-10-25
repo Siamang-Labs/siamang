@@ -685,7 +685,13 @@ function respondentMessage(err) {
 }
 
 function useSubmission(store, finishSaved, surveyId) {
-  const [phase, setPhase] = useState("running"); // "running" | "completed" | "closed"
+  // "running" | "completed" | "saved" | "closed". "completed" is a response
+  // the transport took: only then may the respondent be sent on (a redirect,
+  // a link to continue). "saved" is "Save locally and finish" after a failed
+  // attempt: the answers are kept in this browser and were not sent, so
+  // nothing may send the respondent on; the autosave stays, to resume and
+  // send them from on a later visit.
+  const [phase, setPhase] = useState("running");
   // Why the survey closed on this respondent: "quota_full" (the sample is
   // complete) or "error" (the response could not be saved); null otherwise.
   const [closedReason, setClosedReason] = useState(null);
@@ -871,11 +877,13 @@ function useTouchGestures(onNext, onPrev, allowBack) {
 /* ─── useBeforeUnload ──────────────────────────────────────────────────── */
 
 /* Leaving the page asks first once the respondent has answered something in
-   this sitting and the interview is still running. What scripts wrote on
-   their own — the arm an assignment draws at load, a respondent id noted by
-   an onInit script — is not the respondent's work: counting it asked
-   "Leave site?" of everyone who opened such a survey and closed or reloaded
-   it untouched. */
+   this sitting and the interview is still running — not once it is over,
+   nor once its answers were kept in the browser to send later ("saved"):
+   the respondent has been told how to come back and send them. What
+   scripts wrote on their own — the arm an assignment draws at load, a
+   respondent id noted by an onInit script — is not the respondent's work:
+   counting it asked "Leave site?" of everyone who opened such a survey and
+   closed or reloaded it untouched. */
 function useBeforeUnload(answeredRef, phaseRef) {
   useEffect(() => {
     const handler = (e) => {

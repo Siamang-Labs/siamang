@@ -6,8 +6,9 @@ above the first question (as 0.6.0 drew them, before every question went into
 a slot), nothing an author writes runs out of its place, and in design mode
 the selected question's ring clears what is around it and moves nothing, and
 the host can bring a question into view and put a rebuilt frame back where
-the last one was. Same infrastructure as test_runtime_browser.py (Node,
-`playwright`, a Chromium; skipped without them).
+the last one was, on a long ending page too. Same infrastructure as
+test_runtime_browser.py (Node, `playwright`, a Chromium; skipped without
+them).
 """
 
 from __future__ import annotations
@@ -780,3 +781,32 @@ def test_the_host_brings_a_question_into_view_and_puts_a_rebuilt_frame_back(tmp_
         and seen["revealed"]["y"] > 0
     )
     assert seen["nowhere"] == {"page": "long", "y": 0}
+
+
+def test_a_rebuilt_frame_is_put_back_on_a_long_ending_page_where_the_last_one_was(tmp_path):
+    """An ending page shows its words once the answers are stored, and a
+    restore puts the window back as soon as the page is drawn, before the
+    preview's transport has answered: at the top of an empty card, the place
+    the last frame had lost. In design mode the page shows as it opens."""
+    document = _long_document()
+    document["pages"][-1]["body"] = "".join(
+        f"<p>Paragraph {n} of the debriefing.</p>" for n in range(1, 121)
+    )
+    scenario = """
+        await page.setViewportSize({ width: 1024, height: 600 });
+        await page.evaluate(() => { window.__said = []; });
+        await page.evaluate(() => window.postMessage({ type: "siamang:restore", page: "done", y: 1500 }, "*"));
+        await page.waitForFunction(() => window.__said.some((m) => m.type === "siamang:restored"));
+        return {
+            said: await page.evaluate(() => window.__said.find((m) => m.type === "siamang:restored")),
+            y: await page.evaluate(() => Math.round(scrollY)),
+        };
+    """
+    seen = run_in_browser(document, scenario, tmp_path, init=_MESSAGES)
+    assert seen["y"] == 1500
+    assert seen["said"] == {
+        "source": "siamang-runtime",
+        "type": "siamang:restored",
+        "page": "done",
+        "y": 1500,
+    }

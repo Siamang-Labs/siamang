@@ -494,6 +494,42 @@ def test_the_completion_screen_takes_the_ui_wording_first():
     assert (meta["completedTitle"], meta["completedBody"]) == ("Danke!", "Gespeichert.")
 
 
+_SAVED_LOCALLY = {
+    "saved_locally_title": "Im Browser gespeichert",
+    "saved_locally_body": "Noch nicht gesendet. Öffnen Sie den Link wieder und wählen Sie Fortsetzen.",
+}
+
+
+def test_the_saved_in_this_browser_screen_takes_the_ui_wording():
+    """What "Save locally and finish" ends on: the survey's wording, or the
+    runtime's English default (None)."""
+
+    survey = _survey(_fruit())
+    meta = compile_react_payload(survey)["SURVEY"]
+    assert (meta["savedLocallyTitle"], meta["savedLocallyBody"]) == (None, None)
+    meta = compile_react_payload(survey, ui=sg.UIConfig(**_SAVED_LOCALLY))["SURVEY"]
+    assert meta["savedLocallyTitle"] == _SAVED_LOCALLY["saved_locally_title"]
+    assert meta["savedLocallyBody"] == _SAVED_LOCALLY["saved_locally_body"]
+
+
+def test_the_saved_in_this_browser_wording_goes_through_the_document_and_the_python(tmp_path):
+    from siamang.cli.loader import load_survey_module
+    from siamang.codegen import generate_questionnaire
+    from siamang.model import from_document, load_schema, to_document, validate_document
+
+    ui_schema = load_schema()["$defs"]["ui"]["properties"]
+    for name in _SAVED_LOCALLY:
+        assert ui_schema[name] == {"anyOf": [{"type": "string"}, {"type": "null"}]}
+    document = to_document(_survey(_fruit()), {"ui": sg.UIConfig(**_SAVED_LOCALLY)})
+    assert document["ui"] == _SAVED_LOCALLY
+    validate_document(document)
+    assert from_document(document).options["ui"] == sg.UIConfig(**_SAVED_LOCALLY)
+    path = tmp_path / "worded.py"
+    path.write_text(generate_questionnaire(document), encoding="utf-8")
+    module = load_survey_module(path)
+    assert to_document(module.survey, getattr(module, "options", None)) == document
+
+
 def test_the_static_closed_page_uses_the_surveys_wording():
     from siamang.frontend.runtime.base import RuntimeRenderContext
     from siamang.frontend.runtime.react import ReactRuntime

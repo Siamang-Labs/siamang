@@ -256,6 +256,10 @@ function runtimeTexts() {
     retryBody: ui.retryBody || "We could not save your responses.",
     retryAction: ui.retryAction || "Try again",
     saveLocalAction: ui.saveLocalAction || "Save locally and finish",
+    // What "Save locally and finish" ends on (SavedLocallyScreen). 7 days is
+    // KEEP_MS, how long this browser keeps the autosave to resume.
+    savedLocallyTitle: ui.savedLocallyTitle || "Your answers are saved in this browser",
+    savedLocallyBody: ui.savedLocallyBody || "They have not been sent yet. To send them, open this survey's link again in this browser within 7 days and choose Resume.",
     completedTitle: ui.completedTitle || "Thank you for participating",
     completedBody: ui.completedBody || "Your responses help inform open research.",
     // A YouTube or Vimeo video's play button, where it plays from, the
@@ -762,7 +766,9 @@ function Footer() {
                      {type:"siamang:embed-blocked", provider}
                        (a YouTube or Vimeo video's play button was pressed:
                        the preview cannot play it, and its box says so)
-   Nothing else changes: the survey behaves exactly as respondents see it. */
+   Nothing else changes: the survey behaves exactly as respondents see it,
+   but for an ending page's words, shown as the page opens rather than once
+   the answers are stored (see TerminalScreen). */
 function postToDesignHost(msg) {
   try { window.parent.postMessage(Object.assign({ source: "siamang-runtime" }, msg), "*"); } catch (e) { /* no parent */ }
 }
@@ -1152,6 +1158,19 @@ function CompletedScreen({ surveyId, submittedAt, uiTexts, redirectUrl }) {
   );
 }
 
+/* The closed screens' mark: a notice, not a done check. */
+function ClosedIcon() {
+  return (
+    <div className="siamang-closed__icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.6"/>
+        <path d="M11 6.5V11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+        <circle cx="11" cy="14.6" r="0.9" fill="currentColor"/>
+      </svg>
+    </div>
+  );
+}
+
 function ClosedScreen({ reason, redirectUrl }) {
   const texts = runtimeTexts();
   // A panel's quota-full return: send the respondent back once the notice showed.
@@ -1169,13 +1188,7 @@ function ClosedScreen({ reason, redirectUrl }) {
   const m = messages[reason] || messages.closed;
   return (
     <div className="siamang-closed">
-      <div className="siamang-closed__icon" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-          <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.6"/>
-          <path d="M11 6.5V11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-          <circle cx="11" cy="14.6" r="0.9" fill="currentColor"/>
-        </svg>
-      </div>
+      <ClosedIcon />
       <h2 className="siamang-closed__title">{m.title}</h2>
       <p className="siamang-closed__body">{m.body}</p>
       {redirectUrl ? (
@@ -1183,6 +1196,25 @@ function ClosedScreen({ reason, redirectUrl }) {
           <TextWithLink template={texts.redirecting} href={redirectUrl} label={texts.redirectingLink} />
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/* "Save locally and finish": the answers are in this browser and were not
+   sent. This used to end as a sent response does — the completion screen
+   or the ending page, whose redirect then ran — so a panel's completion
+   address, which carries its completion code, marked the respondent
+   complete for answers the survey's server never got. Nothing here sends
+   the respondent on or reads as done: no redirect and no link to one, no
+   response id or time, no confetti, the closed screens' notice and not a
+   check. It takes the place of an ending page too, whose title or body
+   can show a completion code of its own. */
+function SavedLocallyScreen({ uiTexts }) {
+  return (
+    <div className="siamang-closed siamang-saved-locally">
+      <ClosedIcon />
+      <h2 className="siamang-closed__title">{uiTexts.savedLocallyTitle}</h2>
+      <p className="siamang-closed__body">{uiTexts.savedLocallyBody}</p>
     </div>
   );
 }
@@ -1203,8 +1235,9 @@ function SubmittingOverlay({ uiTexts }) {
 }
 
 /* A failed submission, before the last attempt: try again, or keep the answers
-   in this browser and finish. The body is the transport's word on why, when it
-   has one (respondentMessage), else the survey's retry text. */
+   in this browser to send on a later visit (SavedLocallyScreen). The body is
+   the transport's word on why, when it has one (respondentMessage), else the
+   survey's retry text. */
 function RetryDialog({ uiTexts, attempts, message, onRetry, onSaveLocal }) {
   return (
     <div className="siamang-retry-overlay" role="dialog" aria-modal="true" aria-label={uiTexts.retryTitle}>
@@ -1261,6 +1294,19 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
   const wrapCls = screenedOut ? "siamang-closed" : "sd-completedpage";
   const titleCls = screenedOut ? "siamang-closed__title" : "sd-completedpage__title";
   const bodyCls = screenedOut ? "siamang-closed__body" : "sd-completedpage__body";
+  // The page's own words — its title and body, the response id, the way on —
+  // once the response is stored, as its redirect waits. Shown as the page
+  // opened, they were in the page under the "Submitting" overlay and the
+  // retry dialog: a completion code in the body faint through them and
+  // copyable, a link back to the panel in the tab order, for answers not yet
+  // sent and perhaps never to be. Until then the card stands empty; the page
+  // sends the answers as it opens all the same. Without a transport, or with
+  // a preview's, the answers count as sent at once. In design mode (the
+  // host's editor, whose preview stores nothing) the page shows as it opens:
+  // a rebuilt frame is put back where the last one was as soon as the page
+  // is drawn, before the preview's transport has answered, and an empty card
+  // put a long ending page back at its top.
+  if (phase !== "completed" && !window.SIAMANG_DESIGN) return <div className={wrapCls} />;
   // The last page pipes answers like every other one ({answer:x}, {label:x}):
   // the answers are final by now.
   const answers = store.snapshot();
@@ -1649,7 +1695,13 @@ function App() {
 
   // ─── Keyboard + Touch + BeforeUnload ───
   const navRef = useRef({ onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage, setAnswer });
-  navRef.current = { onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage, setAnswer };
+  // No keys on the saved screen (useKeyboardShortcuts does nothing without
+  // a nav). The page it took the place of is out of sight but still the
+  // current one: a digit answered its rating scale, rewriting the kept
+  // answers that Resume sends, and Escape went back a page, ran the pages'
+  // scripts and told the transport of a page no one saw.
+  navRef.current = phase === "saved" ? null
+    : { onNext: handleNext, onPrev: handlePrev, isFirst: nav.isFirst, currentPage: nav.currentPage, setAnswer };
   useKeyboardShortcuts(navRef, storeRef, visibilityEngine);
   useBeforeUnload(answeredRef, phaseRef);
   const { handleTouchStart, handleTouchEnd } = useTouchGestures(handleNext, handlePrev, ui.allowBack !== false);
@@ -1719,19 +1771,46 @@ function App() {
 
   // Sending the answers, and a send that failed (see SubmittingOverlay).
   const submittingOverlay = submitting ? <SubmittingOverlay uiTexts={uiTexts} /> : null;
+  // "Save locally and finish" keeps the autosave (no finishSaved, no
+  // forgetInterview), so the next visit in this browser offers Resume and
+  // sends the answers from there. Not while a Try again is still on its way
+  // (the dialog stays up while it goes): that attempt may yet store the
+  // response, and an ending page put back in its place would send it again.
+  // Try again waits the same way, so one attempt at most is ever on its way.
+  // A double click sent two: the first one's failure let Save locally
+  // through while the second was still going, and when that one was stored
+  // the ending page came back over the saved screen and sent the answers
+  // once more. The ref is set at once, as Next sets it, so a second click
+  // before the next render is refused too.
   const retryDialog = phase === "running" && submitAttempts > 0 && submitAttempts < 3 ? (
     <RetryDialog uiTexts={uiTexts} attempts={submitAttempts} message={submitMessage}
-      onRetry={() => submit(true)} onSaveLocal={() => { saveNow(); setPhase("completed"); }} />
+      onRetry={() => { if (submittingRef.current) return; submittingRef.current = true; submit(true); }}
+      onSaveLocal={() => { if (submittingRef.current) return; saveNow(); setPhase("saved"); }} />
   ) : null;
+
+  // ─── Saved in this browser, not sent ───
+  // In place of whatever page was on screen, an ending page too (see
+  // SavedLocallyScreen): before the terminal pages, whose branch below is
+  // taken in every phase but "closed".
+  if (phase === "saved") {
+    return (
+      <>
+        <a className="siamang-skip-link" href="#surveyContainer">{uiTexts.skipLink}</a>
+        <div id="survey"><Header /><main id="surveyContainer" role="main"><SavedLocallyScreen uiTexts={uiTexts} /></main><Footer /></div>
+      </>
+    );
+  }
 
   // ─── Terminal pages (disqualification / final / redirect) ───
   // When the respondent reaches a terminal page it ends the survey: record the
-  // response (screened-out for disqualification) and show the page's content.
-  // Over it, the answers being sent and a send that failed, as over a page
-  // with questions: the page's "thank you, your answers were recorded" must
-  // not stand alone while they are not. Once the interview is closed — the
+  // response (screened-out for disqualification) and, once it is stored, show
+  // the page's content (see TerminalScreen). Until then the answers being
+  // sent and a send that failed show over its empty card, as over a page with
+  // questions: the page's "thank you, your answers were recorded" must not
+  // stand while they are not. Once the interview is closed — the
   // last attempt failed, or the server said the quota is full — the closed
-  // screen below says so instead of the page.
+  // screen below says so instead of the page, and once the answers were kept
+  // in the browser instead of sent, the saved screen above.
   const _cur = nav.currentPage;
   if (_cur && isTerminalPage(_cur) && phase !== "closed") {
     return (

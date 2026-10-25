@@ -2812,6 +2812,26 @@
             }
           ]
         },
+        "saved_locally_title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "saved_locally_body": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "privacy_text": {
           "anyOf": [
             {

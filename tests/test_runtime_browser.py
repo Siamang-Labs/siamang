@@ -3051,7 +3051,8 @@ def test_an_ending_page_shows_the_answers_being_sent(tmp_path):
     """The ending page used to show at once, alone, while its answers were
     still on their way: a respondent read "your answers were recorded" and
     could close the tab before they were (a captcha that loads at submit
-    makes that wait seconds long)."""
+    makes that wait seconds long). The overlay shows over it now, and the
+    page's own words come once the answers are stored."""
     scenario = (
         _ON_SCREEN
         + _TO_THE_ENDING
@@ -3066,7 +3067,7 @@ def test_an_ending_page_shows_the_answers_being_sent(tmp_path):
     state = run_in_browser(
         _body_document(), scenario, tmp_path, init="window.__T = { holdSubmit: true };"
     )
-    assert state["sending"]["ending"] == "Thanks Ann"
+    assert state["sending"]["ending"] is None
     assert state["sending"]["sending"] is True
     assert state["sent"]["sending"] is False
     assert state["sent"]["retry"] is None
@@ -3128,14 +3129,28 @@ def test_answers_that_never_arrive_from_an_ending_page_end_on_the_error_screen(t
     assert "We could not save your responses." in state["closed"]
 
 
-def test_keeping_the_answers_in_the_browser_finishes_on_the_ending_page(tmp_path):
+# "Save locally and finish" in the retry dialog.
+_SAVE_LOCALLY = """
+    await page.waitForSelector(".siamang-retry-dialog");
+    await page.click(".siamang-retry-dialog .sd-navigation__prev-btn");
+    await page.waitForSelector(".siamang-retry-dialog", { state: "detached" });
+"""
+
+_SAVED_TITLE = "Your answers are saved in this browser"
+_SAVED_BODY = (
+    "They have not been sent yet. To send them, open this survey's link again in this "
+    "browser within 7 days and choose Resume."
+)
+
+
+def test_keeping_the_answers_in_the_browser_ends_on_the_saved_screen(tmp_path):
+    """Not on the ending page, which thanks the respondent as if the answers
+    had been recorded (and may show a completion code): they were not sent."""
     scenario = (
         _ON_SCREEN
         + _TO_THE_ENDING
+        + _SAVE_LOCALLY
         + """
-        await page.waitForSelector(".siamang-retry-dialog");
-        await page.click(".siamang-retry-dialog .sd-navigation__prev-btn");
-        await page.waitForSelector(".siamang-retry-dialog", { state: "detached" });
         const finished = await onScreen();
         await page.waitForFunction(() => localStorage.getItem("siamang_answers_t"));
         const kept = await page.evaluate(() => JSON.parse(localStorage.getItem("siamang_answers_t")).answers);
@@ -3145,8 +3160,9 @@ def test_keeping_the_answers_in_the_browser_finishes_on_the_ending_page(tmp_path
     state = run_in_browser(
         _body_document(), scenario, tmp_path, init="window.__T = { failSubmits: 1 };"
     )
-    assert state["finished"]["ending"] == "Thanks Ann"
-    assert state["finished"]["closed"] is None
+    assert state["finished"]["ending"] is None
+    assert state["finished"]["closed"] == _SAVED_TITLE + _SAVED_BODY
+    assert state["finished"]["submitted"] == 1
     assert state["kept"]["name"] == "Ann"
 
 
@@ -3164,6 +3180,420 @@ def test_the_retry_dialog_says_what_the_transport_knows_about_the_failure(tmp_pa
     )
     state = run_in_browser(_body_document(), scenario, tmp_path, init=init)
     assert state["retry"] == "The check could not run. Allow it and try again. Attempt 1 of 3."
+
+
+# ── Sending the respondent on: only for answers that were stored ─────────────
+
+# A panel's completion address carries its completion code: a respondent sent
+# there is counted complete, so they must be sent there only once the survey
+# has their answers.
+_PANEL_COMPLETE = "https://panel.example/complete?cc=ABC123"
+
+
+def _panel_document(*, ending: bool, **ui: Any) -> dict[str, Any]:
+    """_body_document's two pages, then an ending page that shows the code and
+    sends the respondent to the panel 2 s after the answers are stored — or no
+    ending page, and the survey's redirect_url (the completion screen's 5 s
+    countdown)."""
+
+    document = _body_document()
+    if ending:
+        document["pages"][-1] = {
+            "name": "done",
+            "kind": "final",
+            "title": "All done",
+            "body": "<p>Your code is ABC123</p>",
+            "redirect_url": _PANEL_COMPLETE,
+            "redirect_delay": 2,
+        }
+    else:
+        document["pages"].pop()
+        ui = {"redirect_url": _PANEL_COMPLETE, **ui}
+    if ui:
+        document["ui"] = ui
+    return document
+
+
+# The panel answers with a page of its own (the harness aborts every other
+# address), and every navigation to it is noted in `toPanel`. `onPage()` reads
+# where the page is, the saved screen's text, what the survey shows (#root:
+# the payload's own script holds the ending page's text), any link to the
+# panel, anything that reads as done, and the autosave.
+_PANEL = """
+    const toPanel = [];
+    page.on("request", (request) => {
+        if (request.isNavigationRequest() && request.url().startsWith("https://panel.example/")) {
+            toPanel.push(request.url());
+        }
+    });
+    await page.route("https://panel.example/**", (route) => route.fulfill({
+        status: 200, contentType: "text/html", body: "<p id='panel'>Back on the panel</p>" }));
+    const onPage = async () => page.evaluate(() => {
+        const root = document.getElementById("root");
+        const saved = document.querySelector(".siamang-saved-locally");
+        return {
+            url: location.href,
+            saved: saved ? saved.textContent : null,
+            shown: root ? root.innerHTML : "",
+            links: Array.from(document.querySelectorAll("a[href]"))
+                .map((a) => a.href).filter((href) => href.startsWith("https://panel.example/")),
+            done: !!document.querySelector(
+                ".sd-completedpage, .sd-completedpage__meta, .siamang-celebration, .sd-completedpage__icon"),
+            sending: !!document.querySelector(".siamang-loading-overlay"),
+            kept: JSON.parse(localStorage.getItem("siamang_answers_t") || "null"),
+        };
+    });
+"""
+
+_FAIL_ONCE = "window.__T = { failSubmits: 1 };"
+
+
+def test_saving_locally_never_takes_the_respondent_to_the_completion_address(tmp_path):
+    """It ended on the completion screen, which sent the respondent to
+    redirect_url 5 s later, carrying the panel's code, for answers the survey
+    never got."""
+    scenario = (
+        _PANEL
+        + _TO_THE_ENDING
+        + _SAVE_LOCALLY
+        + """
+        const saved = await onPage();
+        // Past the completion screen's 5 s countdown.
+        await page.waitForTimeout(6000);
+        return { saved, later: await onPage(), toPanel };
+    """
+    )
+    state = run_in_browser(_panel_document(ending=False), scenario, tmp_path, init=_FAIL_ONCE)
+    saved, later = state["saved"], state["later"]
+    assert saved["saved"] == _SAVED_TITLE + _SAVED_BODY
+    assert saved["done"] is False
+    for text in ("Response ID", "Submitted", "Thank you for participating", "redirected"):
+        assert text not in saved["shown"]
+    assert state["toPanel"] == []
+    assert later["url"].startswith("file://")
+    assert later["saved"] == saved["saved"]
+    assert saved["links"] == later["links"] == []
+    assert later["kept"]["answers"] == {"name": "Ann", "fruit": 2}
+
+
+def test_saving_locally_on_an_ending_page_shows_neither_its_code_nor_its_way_on(tmp_path):
+    """The ending page stayed, its code on screen, and its redirect ran."""
+    scenario = (
+        _PANEL
+        + _TO_THE_ENDING
+        + _SAVE_LOCALLY
+        + """
+        const saved = await onPage();
+        // Past the page's 2 s redirect_delay.
+        await page.waitForTimeout(3000);
+        return { saved, later: await onPage(), toPanel };
+    """
+    )
+    state = run_in_browser(_panel_document(ending=True), scenario, tmp_path, init=_FAIL_ONCE)
+    for seen in (state["saved"], state["later"]):
+        assert seen["saved"] == _SAVED_TITLE + _SAVED_BODY
+        assert "ABC123" not in seen["shown"] and "All done" not in seen["shown"]
+        assert seen["links"] == [] and seen["done"] is False
+        assert seen["url"].startswith("file://")
+    assert state["toPanel"] == []
+    assert state["later"]["kept"]["answers"] == {"name": "Ann", "fruit": 2}
+
+
+def test_an_ending_pages_way_on_waits_for_the_answers_to_be_stored(tmp_path):
+    """Its "Redirecting you now. Continue" link was in the page as the page
+    opened, under the "Submitting" overlay: a way to the panel's code before
+    the answers had arrived."""
+    scenario = (
+        _PANEL
+        + _TO_THE_ENDING
+        + """
+        const sending = await onPage();
+        await page.evaluate(() => window.__T.release());
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const stored = await onPage();
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { sending, stored, toPanel, url: page.url() };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=True),
+        scenario,
+        tmp_path,
+        init="window.__T = { holdSubmit: true };",
+    )
+    assert state["sending"]["sending"] is True
+    assert state["sending"]["links"] == []
+    assert state["stored"]["sending"] is False
+    assert state["stored"]["links"] == [_PANEL_COMPLETE]
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+    assert state["url"] == _PANEL_COMPLETE
+
+
+def test_an_ending_pages_words_wait_for_the_answers_to_be_stored(tmp_path):
+    """Its title and body were in the page as it opened, under the
+    "Submitting" overlay and the retry dialog: a completion code faint through
+    them and copyable, a link back to the panel that Tab reached, for answers
+    not yet stored and perhaps never to be."""
+    document = _body_document()
+    document["pages"][-1] = {
+        "name": "done",
+        "kind": "final",
+        "title": "All done",
+        "body": f'<p>Your code is ABC123</p><p><a href="{_PANEL_COMPLETE}">Return</a></p>',
+    }
+    scenario = (
+        _TO_THE_ENDING
+        + """
+        const read = () => page.evaluate(() => ({
+            text: document.body.innerText,
+            links: Array.from(document.querySelectorAll("[href]"), (el) => el.href)
+                .filter((href) => href.includes("panel.example")),
+            sending: !!document.querySelector(".siamang-loading-overlay"),
+            retry: !!document.querySelector(".siamang-retry-dialog"),
+        }));
+        await page.waitForFunction(() => typeof window.__T.release === "function");
+        const sending = await read();
+        // The first send fails; Try again goes through.
+        await page.evaluate(() => { window.__T.holdSubmit = false; window.__T.release(); });
+        await page.waitForSelector(".siamang-retry-dialog");
+        const failed = await read();
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        await page.waitForSelector(".sd-completedpage__title");
+        const stored = await read();
+        return { sending, failed, stored };
+    """
+    )
+    state = run_in_browser(
+        document,
+        scenario,
+        tmp_path,
+        init="window.__T = { failSubmits: 1, holdSubmit: true };",
+    )
+    for seen in (state["sending"], state["failed"]):
+        assert "ABC123" not in seen["text"] and "All done" not in seen["text"], seen["text"]
+        assert seen["links"] == []
+    assert state["sending"]["sending"] is True
+    assert state["failed"]["retry"] is True
+    stored = state["stored"]
+    assert "All done" in stored["text"] and "Your code is ABC123" in stored["text"]
+    assert stored["links"] == [_PANEL_COMPLETE]
+    assert stored["sending"] is False and stored["retry"] is False
+
+
+def test_saving_locally_waits_for_a_try_again_on_its_way(tmp_path):
+    """The retry dialog stays up while a Try again is being sent, and Save
+    locally and finish does nothing then: that attempt may yet store the
+    answers, and the ending page, put back in place of the saved screen once
+    it did, would send them a second time."""
+    scenario = (
+        _PANEL
+        + _TO_THE_ENDING
+        + """
+        await page.waitForFunction(() => typeof window.__T.release === "function");
+        // The first send fails.
+        await page.evaluate(() => { const go = window.__T.release; window.__T.release = null; go(); });
+        await page.waitForSelector(".siamang-retry-dialog");
+        // Try again, held on its way; then Save locally and finish.
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        await page.waitForFunction(() => typeof window.__T.release === "function");
+        await page.click(".siamang-retry-dialog .sd-navigation__prev-btn");
+        await page.waitForTimeout(300);
+        const during = await onPage();
+        const dialog = await page.evaluate(() => !!document.querySelector(".siamang-retry-dialog"));
+        // The Try again is stored.
+        await page.evaluate(() => { window.__T.holdSubmit = false; window.__T.release(); });
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const sent = await page.evaluate(() => window.__T.submitted.length);
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { during, dialog, sent, toPanel };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=True),
+        scenario,
+        tmp_path,
+        init="window.__T = { failSubmits: 1, holdSubmit: true };",
+    )
+    assert state["during"]["saved"] is None
+    assert state["during"]["sending"] is True
+    assert state["dialog"] is True
+    assert state["sent"] == 2
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+
+
+def test_a_double_click_on_try_again_sends_one_attempt(tmp_path):
+    """Try again did not wait for an attempt on its way: a double click sent
+    two, the first one's failure let Save locally and finish through while
+    the second was still going, and once that one was stored the ending page
+    took the saved screen's place, sent the answers a fourth time and went
+    to the panel."""
+    scenario = (
+        _PANEL
+        + """
+        // The first send fails after 50 ms, the second after 400 ms, and any
+        // after them is stored, 2.5 s later.
+        await page.evaluate(() => {
+            const plan = [[50, false], [400, false]];
+            window.SIAMANG_TRANSPORTS.test.submit = async (r) => {
+                const [ms, ok] = plan[window.__T.submitted.length] || [2500, true];
+                window.__T.submitted.push(JSON.parse(JSON.stringify(r)));
+                await new Promise((go) => setTimeout(go, ms));
+                if (ok) return { response_id: window.__T.submitted.length };
+                const err = new Error("submit failed: 503");
+                err.status = 503;
+                throw err;
+            };
+        });
+    """
+        + _TO_THE_ENDING
+        + """
+        await page.waitForSelector(".siamang-retry-dialog");
+        await page.dblclick(".siamang-retry-dialog .sd-navigation__next-btn");
+        await page.waitForFunction(() => {
+            const body = document.querySelector(".siamang-retry-dialog__body");
+            return body && body.textContent.includes("Attempt 2 of 3.");
+        });
+        await page.click(".siamang-retry-dialog .sd-navigation__prev-btn");
+        // Past where a third attempt would have been stored, then past the
+        // page's 2 s redirect_delay after it.
+        await page.waitForTimeout(3000);
+        const during = await onPage();
+        // Read on the survey's page; on the panel's there is nothing to read.
+        const sent = await page.evaluate(() => window.__T ? window.__T.submitted.length : null);
+        await page.waitForTimeout(2500);
+        return { during, sent, later: await onPage(), toPanel };
+    """
+    )
+    state = run_in_browser(_panel_document(ending=True), scenario, tmp_path)
+    assert state["during"]["saved"] == _SAVED_TITLE + _SAVED_BODY
+    assert state["sent"] == 2
+    assert state["toPanel"] == []
+    assert state["later"]["url"].startswith("file://")
+    assert state["later"]["saved"] == _SAVED_TITLE + _SAVED_BODY
+
+
+def test_answers_saved_locally_are_sent_from_the_next_visit_and_then_redirect(tmp_path):
+    """The autosave stays: the link opened again in the same browser offers
+    Resume, which sends the answers, and only then is the respondent sent
+    to the panel."""
+    # The first visit's sending fails once; the next one, opened with ?send,
+    # goes through. Told by the address, not by localStorage: an init script
+    # that reads localStorage as a file:// page loads again can leave that page
+    # with an empty one in Chromium, and no resume to offer.
+    init = 'window.__T = { failSubmits: location.search.includes("send") ? 0 : 1 };'
+    scenario = (
+        _PANEL
+        + _RELOAD
+        + _TO_THE_ENDING
+        + _SAVE_LOCALLY
+        + """
+        // The respondent reads the screen, past the page's 2 s redirect_delay,
+        // and comes back later.
+        await page.waitForTimeout(3000);
+        const left = toPanel.slice();
+        if (left.length) return { left };
+        await page.waitForFunction(() => localStorage.getItem("siamang_answers_t"));
+        await visit("?send=1", ".siamang-resume-banner");
+        const offered = await onPage();
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const submitted = await page.evaluate(() => window.__T.submitted);
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { left, offered, submitted, toPanel, url: page.url() };
+    """
+    )
+    state = run_in_browser(_panel_document(ending=True), scenario, tmp_path, init=init)
+    assert state["left"] == []
+    assert state["offered"]["saved"] is None and state["offered"]["links"] == []
+    assert state["submitted"] == [{"name": "Ann", "fruit": 2, "__status": "completed"}]
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+    assert state["url"] == _PANEL_COMPLETE
+
+
+def test_the_saved_screen_speaks_the_surveys_wording(tmp_path):
+    ui = {
+        "saved_locally_title": "Im Browser gespeichert",
+        "saved_locally_body": "Noch nicht gesendet.",
+    }
+    scenario = _PANEL + _TO_THE_ENDING + _SAVE_LOCALLY + "return await onPage();"
+    state = run_in_browser(_panel_document(ending=True, **ui), scenario, tmp_path, init=_FAIL_ONCE)
+    assert state["saved"] == "Im Browser gespeichertNoch nicht gesendet."
+
+
+def _rating_document() -> dict[str, Any]:
+    """_body_document's first page, then a page whose one question is a 1-5
+    rating scale, sent from there (no ending page)."""
+
+    document = _body_document()
+    del document["variables"]["fruit"]
+    document["variables"]["sat"] = {"scale": "ordinal", "labels": _labels([1, 2, 3, 4, 5])}
+    document["pages"][1:] = [
+        {
+            "name": "p2",
+            "items": [
+                {
+                    "type": "LikertScale",
+                    "id": "sat",
+                    "var": "sat",
+                    "text": "How satisfied are you?",
+                    "points": 5,
+                }
+            ],
+        }
+    ]
+    return document
+
+
+# Answer _rating_document's two pages (3 on the scale) and send them.
+_TO_THE_RATING = (
+    """
+        await page.fill("input.sd-input", "Ann");
+        await page.click("body");
+    """
+    + _NEXT
+    + """
+        await page.click(".sd-rating__item >> nth=2");
+    """
+    + _NEXT
+)
+
+
+@pytest.mark.parametrize(
+    ("document", "to_the_end"),
+    [(_rating_document, _TO_THE_RATING), (_body_document, _TO_THE_ENDING)],
+    ids=["a-rating-scale", "an-ending-page"],
+)
+def test_keys_do_nothing_on_the_saved_screen(tmp_path, document, to_the_end):
+    """The page the saved screen took the place of still heard the keyboard:
+    a digit answered its rating scale, and 2 s later the kept answers that
+    Resume sends held that point; Escape went back a page, ran the pages'
+    scripts and told the transport of a page no one saw."""
+    scenario = (
+        to_the_end
+        + _SAVE_LOCALLY
+        + """
+        await page.waitForFunction(() => localStorage.getItem("siamang_answers_t"));
+        const read = () => page.evaluate(() => {
+            const kept = JSON.parse(localStorage.getItem("siamang_answers_t"));
+            return {
+                answers: kept.answers,
+                pageIdx: kept.pageIdx,
+                pages: window.__T.pages.slice(),
+                saved: !!document.querySelector(".siamang-saved-locally"),
+            };
+        });
+        const before = await read();
+        await page.keyboard.press("5");
+        await page.keyboard.press("Escape");
+        // Past the 2 s a save waits after an answer.
+        await page.waitForTimeout(3000);
+        return { before, after: await read() };
+    """
+    )
+    state = run_in_browser(document(), scenario, tmp_path, init=_FAIL_ONCE)
+    assert state["before"]["saved"] is True
+    assert state["before"]["pages"][-1] == ("p2" if document is _rating_document else "done")
+    assert state["after"] == state["before"]
 
 
 # ── Header ───────────────────────────────────────────────────────────────────

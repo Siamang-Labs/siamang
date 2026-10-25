@@ -86,6 +86,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own media and nothing else; a survey without a player gets
   `frame-src 'none'`. Neither function judges an address.
 
+### Fixed
+
+- **"Save locally and finish" never sends the respondent on.** When the
+  answers could not be sent, the retry dialog's "Save locally and finish" kept
+  them in the browser and then ended as a sent response does: on the
+  completion screen, which took the respondent to `redirect_url` 5 s later, or
+  on the ending page, whose redirect ran and whose title and body stayed on
+  screen. A panel's completion address carries its completion code, as an
+  ending page's text can, so the panel counted the respondent complete for
+  answers the survey's server did not have. It now ends on a screen of its own
+  in place of any page, an ending page too — "Your answers are saved in this
+  browser" over "They have not been sent yet. To send them, open this survey's
+  link again in this browser within 7 days and choose Resume." (the new
+  `UIConfig.saved_locally_title` and `saved_locally_body`) — in the closed
+  screens' look, with no redirect, no link on, no response id or time and no
+  confetti. The autosave stays (7 days is how long the browser keeps it), so
+  the next visit in that browser offers Resume, which sends the answers and
+  then redirects as any sent response does. The keys do nothing on that
+  screen: a digit answered the rating scale of the page it took the place of,
+  changing the answers Resume sends, and Escape went back a page, ran its
+  scripts and told the transport. An ending page's title, body, response id
+  and "Redirecting you now" link wait for the response to be stored as well:
+  they were in the page as soon as it opened, under the "Submitting" overlay
+  and the retry dialog, a completion code in the body faint through them and
+  copyable, a link in it reachable with Tab. Until then the page's card is
+  empty (a design preview, which stores nothing, shows the page as it opens).
+  A sent response, the error screen after the third failed attempt and a full
+  quota end as before. This changes 0.6.5's "An ending page no longer says the
+  answers were recorded while they are not": "Save locally and finish" no
+  longer stays on the page, and the page's own text shows only once the
+  answers are stored.
+
 ## [0.6.5] — 2026-10-21
 
 ### Added

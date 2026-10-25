@@ -224,6 +224,13 @@ class UIConfig:
     # "We could not save your responses. Please refresh and try again."
     error_body: str | None = None
     attempt_text: str | None = None  # "Attempt {n} of {max}."
+    # After "Save locally and finish" (save_local_action), where the answers
+    # are kept in the browser and not sent; nothing sends the respondent on.
+    saved_locally_title: str | None = None  # "Your answers are saved in this browser"
+    # "They have not been sent yet. To send them, open this survey's link
+    # again in this browser within 7 days and choose Resume." (7 days: how long
+    # the browser keeps the autosave)
+    saved_locally_body: str | None = None
     # Around the questions:
     privacy_text: str | None = None  # "Privacy"
     contact_text: str | None = None  # "Contact research team"

@@ -350,14 +350,22 @@ value one of its codes, plus `__status` (`"completed"`, `"screened_out"` or
 The runtime's own state (`__pages__`, `__options__`, `__errors__`, `__timers__`) is
 never sent. See [[Question Types|Question-Types]] for the codes.
 
-While `submit()` runs, the page shows "Submitting your responses…" — over an ending page
-too, which sends the answers as it opens. When it throws, the respondent gets the retry
-dialog (`retry_title`, `retry_body`, "Attempt 1 of 3."; **Try again** calls `submit()`
-again, **Save locally and finish** keeps the answers in the browser and ends on the
-page), and after the third failure the closed screen (`error_title`, `error_body`). A
-transport that knows why the answers did not go, and what the respondent can do about
-it, puts that on the error it throws as `respondentMessage`; the retry dialog shows it
-in place of `retry_body`:
+While `submit()` runs, the page shows "Submitting your responses…" — on an ending page
+too, which sends the answers as it opens and shows its own title and body, and the
+response id, only once they are stored: a completion code or a link back to a panel in
+its text is not in the page before then (a design preview shows it as it opens). Only
+once `submit()` has returned does the respondent get a way on: an ending page's redirect
+and its "Redirecting you now" link, the completion screen's countdown to `redirect_url`.
+When it throws, the respondent gets the retry dialog (`retry_title`, `retry_body`,
+"Attempt 1 of 3."). **Try again** calls `submit()` again. **Save locally and finish**
+keeps the answers in the browser and, in place of the page (an ending page too, whose
+text may hold a completion code), says they were not sent (`saved_locally_title`,
+`saved_locally_body`), with no redirect, no link on and no response id; opening the
+survey's link again in that browser within 7 days offers Resume, which sends them. After
+the third failure comes the closed screen (`error_title`, `error_body`). A transport
+that knows why the answers did not go, and what the respondent can do about it, puts
+that on the error it throws as `respondentMessage`; the retry dialog shows it in place
+of `retry_body`:
 
 ```js
 const err = new Error("submit failed: 429");
@@ -545,6 +553,7 @@ language. In a template, `{name}` is replaced by the value named (`{page}`, `{pa
 | `media_preview_blocked_text` | `This preview can't play videos.` | a preview that cannot play a video (a design preview, a sandboxed page that cannot open the video's page) |
 | `resume_title` / `resume_action` / `restart_action` | `We saved your progress from earlier. Would you like to resume?` / `Resume` / `Start over` | the resume banner |
 | `retry_title` / `retry_body` / `retry_action` / `save_local_action` / `attempt_text` | `Submission failed` / `We could not save your responses.` / `Try again` / `Save locally and finish` / `Attempt {n} of {max}.` | a failed submission |
+| `saved_locally_title` / `saved_locally_body` | `Your answers are saved in this browser` / `They have not been sent yet. To send them, open this survey's link again in this browser within 7 days and choose Resume.` | after **Save locally and finish**, in place of the page; it sends the respondent nowhere |
 | `completion_title` / `completion_body` | `Thank you for participating` / the `completion_text` option (`Thank you for your participation!`) | the completion screen; `completion_body` wins over `completion_text` |
 | `response_id_text` / `submitted_text` | `Response ID` / `Submitted` | the completion screen and a final page |
 | `screen_out_title` | `Thank you` | a screen-out page without a title |

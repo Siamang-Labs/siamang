@@ -229,6 +229,8 @@ _WORDING_FIELDS = (
     "error_title",
     "error_body",
     "attempt_text",
+    "saved_locally_title",
+    "saved_locally_body",
     "privacy_text",
     "contact_text",
     "skip_link_text",
