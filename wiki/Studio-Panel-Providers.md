@@ -117,11 +117,31 @@ is filled in and `{answer:…}` / `{label:…}` are removed.
 | a response cap is full — the notice appears as the page opens, or at submit for someone already answering | the **Quota full** URL | 3 seconds after the "Thank you for your interest" notice |
 | the environment is closed or past its [closing date](Studio-Publishing-and-Environments#deadlines) | the environment's post-close redirect (`redirect_after_close` in `studio/settings.json`), if it has one; otherwise the respondent stays on the "This survey is closed" notice | 3 seconds |
 | the environment is paused | nowhere — the respondent stays on the "This survey is paused" notice | — |
+| submitting fails and the respondent presses **Save locally and finish** | nowhere — the respondent stays on "Your answers are saved in this browser", with no end page | — |
 
 A terminal page with its own redirect keeps it — the page wins over the
 survey-level URL; the Panel chip lists those pages. On terminal pages the
 redirect happens only after the response has been stored, with "Redirecting you
-now. Continue if you are not redirected."
+now. Continue if you are not redirected."; the page's title and body appear
+only then too. A terminal page cannot be left: `Esc`, which goes back on a
+question page, does nothing there, so a respondent who reaches a Screen-out
+page goes to the **Screened out** URL (or the page's own redirect), never to
+the **Completed** one. When submitting fails, **Save locally and finish**
+keeps the answers in the respondent's browser, unsent, and sends them
+nowhere, so a provider's return URL is never followed, and a code in an end
+page's body never shown, without a stored response (see
+[When submitting fails](Studio-Respondent-Experience#when-submitting-fails)).
+**Resume** reopens the page they were on by its name, even if you republished
+in between, so someone saved on a Screen-out page is still stored as screened
+out and sent to the **Screened out** URL; if you removed that page, it opens
+the first page with their answers kept. Progress saved by a survey built
+before **Resume** kept the page's name never reopens an end page by its
+position: **Resume** opens the first page with the answers kept, and
+**Next** leads the respondent to the end page those answers reach today, and
+on to its URL. The survey page's source still holds
+every page and return URL, codes included, so check the provider's list
+against the completed outcomes below before you approve anyone (see
+[Reconciling outcomes](#reconciling-outcomes)).
 
 The quota-full rows depend on the survey page: a survey built before quota
 cells could stop respondents, or before the page-open check existed, uses the

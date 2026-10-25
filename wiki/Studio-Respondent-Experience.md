@@ -167,7 +167,7 @@ statement, when you set them.
 | `Enter` or `Space` on a video or audio player | the player's own keys (`Space` plays or pauses); they never go to the next page. The same holds for an expandable section or a widget in a page's own HTML, and typing in an editable area of it is like typing in a text field |
 | `←` `→` / `↑` `↓` in a Matrix | move along the row, answering it with the cell reached (the N/A column included) / move to the same column in the row above or below; `Tab` leaves the grid. The cell in focus shows the focus ring, a chosen one included |
 | `Enter`, `Space` or `↓` on a dropdown | opens its list, with the cursor in the search box. There `↓` / `↑` move through the options (starting from the chosen one), typing narrows the list to the matches and puts the cursor on the first, and `Enter` chooses the option and closes the list. `Esc` or `Tab` closes the list without choosing, however long it is. The keys work wherever the focus is in the open list (a click on its scroll bar puts it there); `Esc` there, or on the dropdown itself, only closes the list, with the focus back on the dropdown — it never goes back a page |
-| `Esc` | previous page (when going back is allowed) |
+| `Esc` | previous page (when going back is allowed), never from an end page (Final, Screen-out or Redirect), where the interview ended, nor while the answers are being sent |
 | `1`–`9` (outside a text field) | picks that point on the page's first rating scale that has it, as a click does: the answer is autosaved and the question's error message goes. On a scale that starts at 0 the key is the point's number; a digit the scale does not have does nothing |
 | swipe left / right | next / previous page on touch screens |
 
@@ -189,9 +189,18 @@ week**.
   last answer shows a banner: "We saved your progress from earlier. Would you
   like to resume?" with **Resume** (back to the page they left, along the path
   they took — in the same page order if your pages are shuffled) and **Start
-  over**. After 7 days, or in another browser or device, they start from the
-  beginning. Each survey keeps its own saved progress, so answers saved for
-  one survey are never offered in another.
+  over**. While the page is checking a quota, both buttons are disabled and
+  the banner stays where it is; it is not offered while the page is sending
+  the answers, nor under the dialog after a failed submission. If you
+  republished in between, **Resume** finds the page they left by its name,
+  wherever it now sits; if that page no longer exists, or is no longer shown
+  for their answers, it opens the first page with their answers kept.
+  Progress saved by a survey built before **Resume** kept the page's name
+  never reopens an end page by its position: **Resume** opens the first page
+  with the answers kept instead, and **Next** leads on to the end page those
+  answers reach today. After 7 days, or in another browser or device, they
+  start from the beginning. Each survey keeps its own saved progress, so
+  answers saved for one survey are never offered in another.
 - **Once it is over.** When the interview is submitted, or ended by a full
   quota, the browser keeps no saved progress: reopening the link starts a new
   interview rather than offering to resume the finished one.
@@ -268,8 +277,13 @@ responses…". Then the thank-you page:
 | **Screen-out** | the page's title (default "Thank you") and body (the Completion screen's message when the page has none) — no Response ID | submitted with `__status` = `screened_out` |
 | **Redirect** | "Redirecting you now. Continue if you are not redirected." — then the page's URL after its delay (5 s by default) | completed |
 
-Reaching one of these pages submits the response at once; any redirect happens
-only after the response is stored. The title and body can pipe earlier answers
+Reaching one of these pages submits the response at once. Until the response
+is stored, the page stays empty under "Submitting your responses…" (or the
+failure dialog below): its title and body, the Response ID and "Redirecting
+you now." appear only once it is stored, and any redirect happens only then.
+There is no going back from these pages: `Esc` does nothing there, so the
+respondent is sent on only where the page sends them, to its own redirect or
+the return URL for its outcome. The title and body can pipe earlier answers
 (`{answer:…}`, `{label:…}`). A screened-out response is stored even when the
 response cap is full, and it does not count toward the cap or fill a quota
 cell. Panel redirects are covered in
@@ -290,11 +304,18 @@ We could not save your responses. Attempt 1 of 3.
 ```
 
 - **Try again** sends the answers again.
-- **Save locally and finish** shows the thank-you page, but the answers are
-  **only kept in that browser** (for 7 days) — they are **not submitted**; at
-  most the progress the survey saved along the way reaches you, as a partial
-  response. If a respondent tells you they used it, ask them to reopen the
-  link in the same browser within 7 days, **Resume**, and submit again.
+- **Save locally and finish** keeps the answers **only in that browser** (for
+  7 days) — they are **not submitted** — and says so: "Your answers are saved
+  in this browser" / "They have not been sent yet. To send them, open this
+  survey's link again in this browser within 7 days and choose Resume." It
+  shows no thank-you page and no end page, no Response ID, and sends the
+  respondent nowhere: not to an end page's redirect, nor to a **Completed** or
+  **Screened out** return URL. At most the progress the survey saved along
+  the way reaches you, as a partial response. When the respondent reopens the
+  link in the same browser within 7 days, it offers **Resume**; submitting
+  from there stores the response, and the survey then ends and redirects as
+  usual. Both texts are Wording fields (**Saved in this browser: title** and
+  **text**).
 - With the [captcha](Studio-Distribution-Channels#captcha) on, when the check
   could not run in the respondent's browser and the survey has already taken
   its few unchecked responses an hour from their network, the dialog says why
@@ -430,9 +451,10 @@ of the above", "Not applicable", the range, format and too-few-choices
 messages, and more), **Saving and resuming** ("Submitting your
 responses…", "Saving…", the resume prompt and its buttons), **At the end**
 ("Response ID", "Submitted", the screen-out title, the redirect texts), **When
-something fails** (the submission-failed dialog, its buttons and the error
-screens), **Closed or full** (the quota-full title and text), **Around the
-survey** (the Privacy and Contact links, the skip link) and **Access code**
+something fails** (the submission-failed dialog, its buttons, the screen after
+**Save locally and finish** and the error screens), **Closed or full** (the
+quota-full title and text), **Around the survey** (the Privacy and Contact
+links, the skip link) and **Access code**
 (the gate's title, text, field, button and wrong-code message). In a text,
 `{n}`, `{total}`, `{min}`, `{max}`, `{minutes}` and `{seconds}` are filled in
 by the survey. The thank-you title and message are under **Theme →

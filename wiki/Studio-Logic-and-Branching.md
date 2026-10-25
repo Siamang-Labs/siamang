@@ -313,9 +313,10 @@ page**. When routing reaches an end page, the interview ends there:
 | **Screen-out** | the page's title and body (defaults "Thank you" / "You do not qualify for this study.") | screened out |
 | **Redirect** | the page, then a redirect to **Redirect URL** after **Delay (s)** (5 seconds by default) | redirect |
 
-- Reaching an end page **submits the response**. A redirect counts as a
-  completed response. A screen-out is stored and shows in **Data**, but it
-  is not a completed interview: it does not count toward the environment's
+- Reaching an end page **submits the response**; its title and body appear
+  once the response is stored. A redirect counts as a completed response. A
+  screen-out is stored and shows in **Data**, but it is not a completed
+  interview: it does not count toward the environment's
   [response cap](Studio-Publishing-and-Environments#response-caps) or the
   Free plan's per-project cap, and it fills no quota cell.
 - The **Body** of a Final or Screen-out page is HTML (hint "HTML, shown to

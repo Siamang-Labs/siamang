@@ -22,7 +22,7 @@ question you are answering:
 | **Appearance** | "How the questionnaire looks to respondents." | colors, typography, question style, progress, page labels |
 | **Branding** | "Whose study this is, and what carries its name." | logo, institution, subtitle |
 | **Respondent experience** | "What a respondent can see, do and read." | light/dark, navigation, survey information, completion screen |
-| **Wording** | "Every fixed phrase the runtime shows." | the 69 runtime texts |
+| **Wording** | "Every fixed phrase the runtime shows." | the 75 runtime texts |
 | **Advanced** | "Rarely needed, and nothing here is checked for you." | measurements, typefaces, custom CSS |
 
 - The number beside a section in the index is how many settings **this
@@ -230,7 +230,8 @@ people.
   and disables going back with the `Esc` key, the swipe gesture and the page
   dots. Use it for experiments where later answers must not revise earlier
   ones. The **Previous button** field under [Wording](#wording) then says it
-  is never shown.
+  is never shown. Either way, nobody goes back from an end page (Final,
+  Screen-out or Redirect).
 
 ### Survey information
 
@@ -305,7 +306,7 @@ are filled in by the survey, and {link} is the link that follows."
 - **Search wording…** searches labels, defaults and your own texts.
 - Filter chips: **All**, **Buttons**, **Answering**, **Saving**, **Ending**,
   **Failures**, **Closed**, **Around**, **Access**.
-- "N of 69 replaced" counts your replacements. **Reset all** asks "Reset every
+- "N of 75 replaced" counts your replacements. **Reset all** asks "Reset every
   runtime text?" ("This drops the N phrase(s) this study replaces and puts the
   runtime's own wording back. Nothing is saved until you press Save.").
 - A replaced field shows "default: …" under it and a **×** (tooltip "Back to
@@ -365,6 +366,10 @@ With no field set, every text reads exactly as the defaults below.
 | | **“Other” text box** | `Please specify...` |
 | | **“None of the above” option** | `None of the above` |
 | | **“N/A” option** | `Not applicable` |
+| | **Video: play button** | `Play video` |
+| | **Video: where it plays from** | `Plays from {service} when you press play` |
+| | **Video window: close button** | `Close` |
+| | **Video: in a preview that can't play** | `This preview can't play videos.` |
 | | **Number below its minimum** | `Minimum value is {min}` |
 | | **Number above its maximum** | `Maximum value is {max}` |
 | | **Characters left** | `{n} characters remaining` |
@@ -393,6 +398,8 @@ With no field set, every text reads exactly as the defaults below.
 | | **Submission attempt** | `Attempt {n} of {max}.` |
 | | **Try again button** | `Try again` |
 | | **Save locally button** | `Save locally and finish` |
+| | **Saved in this browser: title** | `Your answers are saved in this browser` |
+| | **Saved in this browser: text** | `They have not been sent yet. To send them, open this survey's link again in this browser within 7 days and choose Resume.` |
 | | **Submission error title** | `Submission error` |
 | | **Submission error text** | `We could not save your responses. Please refresh and try again.` |
 | | **Page error title** | `Something went wrong` |
@@ -446,6 +453,14 @@ Where some of them appear:
 - **Submission attempt**: in the **Submission failed** dialog ("Attempt 1 of
   3."). After the third failed attempt the survey shows **Submission error
   title** and **text**.
+- **Saved in this browser: title** and **text**: the screen after **Save
+  locally and finish** in that dialog, in place of the page, an end page too.
+  The answers stay in that browser, unsent, for 7 days; the screen shows no
+  Response ID and sends the respondent nowhere (see
+  [When submitting fails](Studio-Respondent-Experience#when-submitting-fails)).
+- **Video** fields: on a question or an option with a YouTube or Vimeo video;
+  `{service}` is YouTube or Vimeo. **Video: in a preview that can't play** is
+  shown only in previews that can't play videos.
 - **Quota full**: the screen a full quota cell shows (see
   [When a cell is full](Studio-Quotas-and-Randomization#when-a-cell-is-full)),
   and the notice of a survey whose sample is full as it opens.
