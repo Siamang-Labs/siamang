@@ -335,6 +335,21 @@ env = ClientEnv(survey_id="abc", backend="supabase", settings={"url": "...", "an
 service keys never reach the bundle. The `DeployPipeline` selects the matching
 template for you based on the backend name (see [[Deployment]]).
 
+A template names the transport its `env.js` registers (`transport`: `local`, `supabase`
+and `gsheets` for the three above), and `FrontendBuilder` writes the name into the
+page's own inline script (`SURVEY.transport`, from `RuntimeRenderContext.transport`),
+which the page has even when `env.js` never loads. Such a page needs that transport to
+send its answers: when `env.js` did not load (a dropped connection, a blocked script)
+or registered no transport, sending the answers is a failed attempt, as below, and never
+ends as if they were sent — the completion screen, an ending page, a redirect to a
+panel's completion address with nothing stored. The page carries its survey's id there
+too (`SURVEY.surveyId`, the one `env.js` gives), so the answers Save locally and finish
+keeps while `env.js` is missing are where the next visit looks once `env.js` loads, and
+Resume sends them. A template of your own sets `transport`
+when its `env.js` is the only way the answers reach the backend. Without it (`None`, the
+default), and on a page rendered with no client template, as a host's preview is, a
+page without a transport ends as if the answers had been sent, as before.
+
 ### What the React runtime hands a transport
 
 `submit(answers)` receives one object. Every key is a **codebook variable** and every
@@ -364,10 +379,14 @@ keeps the answers in the browser and, in place of the page (an ending page too, 
 text may hold a completion code), says they were not sent (`saved_locally_title`,
 `saved_locally_body`), with no redirect, no link on and no response id; opening the
 survey's link again in that browser within 7 days offers Resume, which sends them. After
-the third failure comes the closed screen (`error_title`, `error_body`). A transport
-that knows why the answers did not go, and what the respondent can do about it, puts
-that on the error it throws as `respondentMessage`; the retry dialog shows it in place
-of `retry_body`:
+the third failure comes the closed screen (`error_title`, `error_body`). A page that
+needs its transport (`SURVEY.transport`, above) and has none fails each attempt the same
+way, and its dialog says "We could not reach the server, so your answers could not be
+sent. Check your connection and try again." — or the survey's own `retry_body` when it
+has one, which may be in another language; each attempt looks for the transport again,
+and one made once it is there sends through it. A transport that knows why the answers
+did not go, and what the respondent can do about it, puts that on the error it throws
+as `respondentMessage`; the retry dialog shows it in place of `retry_body`:
 
 ```js
 const err = new Error("submit failed: 429");

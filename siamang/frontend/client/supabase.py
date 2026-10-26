@@ -9,6 +9,7 @@ from siamang.frontend.client.base import BackendClientTemplate, ClientEnv
 
 class SupabaseClientTemplate(BackendClientTemplate):
     name = "supabase"
+    transport = "supabase"
 
     def render_env_js(self, env: ClientEnv) -> str:
         env_payload = {

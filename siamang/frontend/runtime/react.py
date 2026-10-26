@@ -135,6 +135,21 @@ class ReactRuntime(RuntimeAdapter):
             # choice; a question's own video always does).
             payload["SURVEY"]["clickToPlay"] = True
 
+        if context.transport:
+            # In the page itself, not in env.js: the page has to know that it
+            # needs a transport precisely when env.js did not load.
+            payload["SURVEY"]["transport"] = str(context.transport)
+            if context.survey_id:
+                # And so its id, which keys what the browser keeps for it (the
+                # autosave, the interview's id). With the id in env.js alone,
+                # a page whose env.js did not load would keep Save locally
+                # and finish's answers under the runtime's last-resort key,
+                # which the next visit, its env.js loaded, never reads: no
+                # Resume. The builder renders env.js from the same ClientEnv,
+                # so the keys are those env.js gives; a host may still set
+                # SURVEY.surveyId itself (Studio's preview does).
+                payload["SURVEY"].setdefault("surveyId", str(context.survey_id))
+
         # Get SRI hashes for the CDN version
         version_integrity = _REACT_INTEGRITY.get("18.3.1", {})
         react_integrity = version_integrity.get("react", "")

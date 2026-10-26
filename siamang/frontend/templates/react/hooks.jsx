@@ -500,6 +500,30 @@ function currentTransport() {
   return (window.SIAMANG_TRANSPORTS || window.SURVLIB_TRANSPORTS || {})[env.transport] || null;
 }
 
+/* The transport a page cannot send its answers without, by the name its
+   env.js registers (SURVEY.transport), or null. The build writes it into the
+   page's own script when the host's client template supplies the transport
+   (RuntimeRenderContext.transport), so the page knows it needs one even when
+   env.js never loaded. A page without it — a preview that stores nothing, a
+   page a host hands no backend — may run without a transport, as before. */
+function requiredTransport() {
+  const name = (window.SURVEY || {}).transport;
+  return typeof name === "string" && name ? name : null;
+}
+
+/* Said in the retry dialog when a page that needs its transport has none
+   (see useSubmission): the survey's own retry_body when it words one, which
+   may be in another language, else this. */
+const MISSING_TRANSPORT_MESSAGE = "We could not reach the server, so your answers could not be sent. "
+  + "Check your connection and try again.";
+
+function missingTransportError(name) {
+  const err = new Error("siamang: no transport \"" + name + "\" to send the answers through "
+    + "(env.js did not load, or did not register it)");
+  if (!(window.SURVEY || {}).retryBody) err.respondentMessage = MISSING_TRANSPORT_MESSAGE;
+  return err;
+}
+
 // How long leaving a page waits on a quota check before letting the
 // respondent on: a slow or dead backend must never hold a survey hostage.
 const QUOTA_CHECK_TIMEOUT_MS = 4000;
@@ -515,7 +539,9 @@ function hasAnswerValue(v) {
    answer of { ok: false } means a cell holding that value is full, and the
    interview ends as "quota full" before any routing, without a submission.
    No quotas, a transport without checkQuota, an error or a timeout: the
-   respondent goes on — only a backend that says "full" stops anyone. */
+   respondent goes on — only a backend that says "full" stops anyone. So does
+   a page without the transport it needs (requiredTransport): no one can say
+   "full" there, and its submission fails all the same. */
 function useQuotaCheck(quotaVars) {
   const checkedRef = useRef({});
   return useCallback(async (answers) => {
@@ -681,8 +707,9 @@ function submittedAnswers(snapshot) {
    do about it, says so on the error it throws: `respondentMessage`, one or two
    plain sentences, which the retry dialog shows in place of the survey's own
    retry text (Studio's transport does, when its captcha could not run and the
-   server would not take the answers without it). Any other error gets the
-   survey's text. */
+   server would not take the answers without it). The runtime does the same
+   when a page has no transport to send through (missingTransportError). Any
+   other error gets the survey's text. */
 function respondentMessage(err) {
   const message = err && err.respondentMessage;
   return typeof message === "string" && message.trim() ? message.trim() : null;
@@ -707,13 +734,24 @@ function useSubmission(store, finishSaved, surveyId) {
   const [submitMessage, setSubmitMessage] = useState(null);
 
   const submit = useCallback(async (isRetry = false) => {
-    const env = window.SIAMANG_ENV || window.SURVLIB_ENV || {};
-    const transport = (window.SIAMANG_TRANSPORTS || window.SURVLIB_TRANSPORTS || {})[env.transport];
+    // Looked up at each attempt, so one made once a transport is there sends
+    // through it.
+    const transport = currentTransport();
     const stamp = new Date();
     if (!isRetry) setSubmitAttempts(0);
     setSubmitting(true);
     try {
       ScriptRunner.runOnSubmit(store.snapshot());
+      if (!(transport && typeof transport.submit === "function") && requiredTransport()) {
+        // A page built for a host's backend whose env.js did not load (a
+        // dropped connection, a blocked script) or registered no transport
+        // has nowhere to send the answers. It went on below as if they had
+        // been sent: the completion screen or the ending page and then their
+        // redirect, which for a panel carries its completion code, with
+        // nothing stored. It is a send that did not arrive: the retry dialog,
+        // Save locally and finish, the error screen after the third attempt.
+        throw missingTransportError(requiredTransport());
+      }
       if (transport && typeof transport.submit === "function") {
         const res = await transport.submit(submittedAnswers(store.snapshot()));
         if (res && res.status === "quota_full") {

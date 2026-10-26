@@ -88,6 +88,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A survey whose `env.js` did not load never ends as if its answers were
+  sent.** The runtime sent the answers through the transport `env.js`
+  registers, and without one it ended as a sent response does, which a
+  preview needs: the completion screen, then its countdown to `redirect_url`,
+  or the ending page, with its text and its redirect. A deployed survey
+  whose `env.js` did not load (a dropped connection, a blocked script) or
+  registered no transport had stored nothing, and the respondent was sent to
+  the panel's completion address, with its completion code. A client
+  template now names the transport its `env.js` registers
+  (`BackendClientTemplate.transport`: `"local"`, `"supabase"` and
+  `"gsheets"` for the engine's own), and `FrontendBuilder` writes the name
+  into the page's own inline script (`RuntimeRenderContext.transport`,
+  `SURVEY.transport`), which a page has even when `env.js` never loads. On
+  such a page each attempt to send the answers without a transport fails as
+  a send does: the retry dialog, saying "We could not reach the server, so
+  your answers could not be sent. Check your connection and try again." (or
+  the survey's own `retry_body`, which may be in another language), Save
+  locally and finish and its saved screen, and the error screen after the
+  third attempt; no ending page's text, no completion screen and no
+  redirect. An attempt made once a transport is there sends through it. Such
+  a page carries its survey's id there too (`SURVEY.surveyId`, the one
+  `env.js` gives), which keys what the browser keeps for it: the answers Save
+  locally and finish kept while `env.js` was missing are where the next
+  visit looks once `env.js` loads, and it offers Resume, which sends them,
+  not under the runtime's last-resort key, which every such survey of a host
+  shares. A page built without one to require — a template that names none,
+  or a page rendered with no client template, as a host's preview is — ends
+  without a transport as before.
+
 - **An ending page stays where the interview ended.** Escape went back a page
   from an ending page (a final, screen-out or redirect page) as it does from a
   page with questions. The page before took its place, and once the answers

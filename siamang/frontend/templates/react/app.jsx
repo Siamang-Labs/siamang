@@ -1300,8 +1300,10 @@ function TerminalScreen({ page, store, submit, phase, submitId, submittedAt, uiT
   // retry dialog: a completion code in the body faint through them and
   // copyable, a link back to the panel in the tab order, for answers not yet
   // sent and perhaps never to be. Until then the card stands empty; the page
-  // sends the answers as it opens all the same. Without a transport, or with
-  // a preview's, the answers count as sent at once. In design mode (the
+  // sends the answers as it opens all the same. Without a transport, on a
+  // page that needs none, or with a preview's, the answers count as sent at
+  // once; a page that needs one and has none fails to send them (see
+  // useSubmission), and this card stays empty. In design mode (the
   // host's editor, whose preview stores nothing) the page shows as it opens:
   // a rebuilt frame is put back where the last one was as soon as the page
   // is drawn, before the preview's transport has answered, and an empty card
@@ -1337,10 +1339,12 @@ function App() {
   const ui = window.SURVEY || {};
   // What this browser keeps for the survey — the autosave, the theme, the
   // interview's id — is keyed by it, and a host serves many surveys from one
-  // origin (Studio: study.siamang.org/<survey id>/). The compiled survey
-  // carries no id of its own (a host may set SURVEY.surveyId, as Studio's
-  // preview does), so it is the transport's survey_id; the constant
-  // "siamang_survey" is only the last resort of a page without either. With
+  // origin (Studio: study.siamang.org/<survey id>/). A page that needs its
+  // transport carries its id (SURVEY.surveyId, the one env.js gives), so
+  // what it keeps while env.js is missing is found once env.js loads; a host
+  // may set SURVEY.surveyId itself, as Studio's preview does. Otherwise it is
+  // the transport's survey_id; the constant "siamang_survey" is only the
+  // last resort of a page without either. With
   // the constant, every survey of a host shared one autosave — offering one
   // study's saved answers to resume in another — and Studio's transport,
   // which reads siamang_answers_<survey_id>, never found any to send as a

@@ -122,8 +122,11 @@ def _node() -> str:
     return node
 
 
-def build_bundle(document: dict[str, Any], out: Path) -> Path:
-    """Compile a questionnaire document into a static bundle under ``out``."""
+def build_bundle(
+    document: dict[str, Any], out: Path, *, client: BackendClientTemplate | None = None
+) -> Path:
+    """Compile a questionnaire document into a static bundle under ``out``
+    (with the recording transport's template unless ``client`` is given)."""
 
     loaded = from_document(document)
     options = dict(loaded.options)
@@ -131,7 +134,7 @@ def build_bundle(document: dict[str, Any], out: Path) -> Path:
     schema = compile_questionnaire(loaded.survey, options=options)
     env = ClientEnv(survey_id="t", backend="test", settings={})
     bundle = FrontendBuilder(ui=ui, runtime=ReactRuntime()).build(
-        schema, client=_RecordingClient(), env=env, survey=loaded.survey
+        schema, client=client or _RecordingClient(), env=env, survey=loaded.survey
     )
     return bundle.write_to(out)
 
@@ -143,13 +146,23 @@ def run_in_browser(
     *,
     init: str = "",
     extra_files: dict[str, str] | None = None,
+    client: BackendClientTemplate | None = None,
+    env_js: bool | str = True,
 ) -> Any:
     """Open ``document`` as a respondent and run ``scenario`` — the body of an
     async function of Playwright's ``page`` — returning what it returns.
-    ``extra_files`` are written next to the bundle's index.html."""
+    ``extra_files`` are written next to the bundle's index.html. ``client``
+    builds the bundle (see build_bundle); ``env_js=False`` takes its env.js
+    out, as when it fails to load, and a string is what env.js holds instead."""
 
     node = _node()
-    out = build_bundle(document, tmp_path / "bundle")
+    out = build_bundle(document, tmp_path / "bundle", client=client)
+    if env_js is not True:
+        (env,) = out.glob("env*.js")
+        if env_js is False:
+            env.unlink()
+        else:
+            env.write_text(env_js, encoding="utf-8")
     for name, text in (extra_files or {}).items():
         (out / name).write_text(text, encoding="utf-8")
     harness = tmp_path / "harness.cjs"
@@ -3518,6 +3531,303 @@ def test_the_saved_screen_speaks_the_surveys_wording(tmp_path):
     scenario = _PANEL + _TO_THE_ENDING + _SAVE_LOCALLY + "return await onPage();"
     state = run_in_browser(_panel_document(ending=True, **ui), scenario, tmp_path, init=_FAIL_ONCE)
     assert state["saved"] == "Im Browser gespeichertNoch nicht gesendet."
+
+
+# ── A page whose transport is not there ──────────────────────────────────────
+
+
+class _RequiringClient(_RecordingClient):
+    """The recording transport, from a template that names it: the pages it
+    builds need it to send their answers (``SURVEY.transport``)."""
+
+    transport = "test"
+
+
+_UNREACHABLE = (
+    "We could not reach the server, so your answers could not be sent. "
+    "Check your connection and try again."
+)
+
+# env.js that ran and registered no transport (a host's script that failed
+# halfway).
+_ENV_WITHOUT_TRANSPORT = 'window.SIAMANG_ENV = { transport: "test", survey_id: "t" };\n'
+
+# _PANEL's record of every way to the panel, for a page without its env.js
+# (nothing records a submission there). `settled()` waits for the retry
+# dialog, or for what ends the survey in its place: an ending page's title,
+# the completion screen, the closed or the saved screen. `attempt(n)` waits
+# for the dialog's "Attempt n of 3.". `kept` is the autosave's answers.
+_UNSENT = """
+    page.setDefaultTimeout(10000);
+    const toPanel = [];
+    page.on("request", (request) => {
+        if (request.isNavigationRequest() && request.url().startsWith("https://panel.example/")) {
+            toPanel.push(request.url());
+        }
+    });
+    await page.route("https://panel.example/**", (route) => route.fulfill({
+        status: 200, contentType: "text/html", body: "<p id='panel'>Back on the panel</p>" }));
+    const settled = () => page.waitForSelector(
+        ".siamang-retry-dialog, .sd-completedpage__title, .siamang-closed");
+    const attempt = (n) => page.waitForFunction((n) => {
+        const body = document.querySelector(".siamang-retry-dialog__body");
+        return body && body.textContent.includes(`Attempt ${n} of 3.`);
+    }, n);
+    const onPage = async () => page.evaluate(() => {
+        const text = (sel) => { const el = document.querySelector(sel); return el ? el.textContent : null; };
+        const root = document.getElementById("root");
+        const key = Object.keys(localStorage).find((k) => k.startsWith("siamang_answers_"));
+        return {
+            url: location.href,
+            retry: text(".siamang-retry-dialog__body"),
+            saved: text(".siamang-saved-locally"),
+            closed: text(".siamang-closed"),
+            shown: root ? root.innerHTML : "",
+            links: Array.from(document.querySelectorAll("[href]"), (el) => el.href)
+                .filter((href) => href.startsWith("https://panel.example/")),
+            done: !!document.querySelector(".sd-completedpage__title, .sd-completedpage__meta, "
+                + ".siamang-celebration, .sd-completedpage__icon"),
+            kept: key ? JSON.parse(localStorage.getItem(key)).answers : null,
+        };
+    });
+"""
+
+
+def _neither_done_nor_on_the_way(seen: dict[str, Any]) -> None:
+    """Nothing reads as done, nothing leads to the panel, and the page is
+    where it was: the completion screen's words, an ending page's ("All
+    done", its code ABC123) and its links are not in the page."""
+    assert seen["done"] is False and seen["links"] == []
+    for text in ("All done", "ABC123", "Thank you for participating", "Response ID", "redirected"):
+        assert text not in seen["shown"]
+    assert seen["url"].startswith("file://")
+
+
+@pytest.mark.parametrize("ending", [False, True], ids=["completion-screen", "ending-page"])
+def test_a_page_without_the_transport_it_needs_never_ends_as_sent(tmp_path, ending):
+    """Its env.js did not load. The page ended as if the answers had been
+    sent: on the completion screen, and 5 s later at its redirect_url, or on
+    the ending page, with its code, and 2 s later at its redirect_url — the
+    panel's completion address, which counts the respondent complete — with
+    nothing stored anywhere. Each attempt now fails as a send does: the retry
+    dialog says why, and the third ends on the error screen."""
+    scenario = (
+        _UNSENT
+        + _TO_THE_ENDING
+        + """
+        await settled();
+        const first = await onPage();
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        await attempt(2);
+        const second = await onPage();
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        await page.waitForSelector(".siamang-closed");
+        const closed = await onPage();
+        // Past the completion screen's 5 s countdown and the page's 2 s delay.
+        await page.waitForTimeout(6000);
+        return { first, second, closed, later: await onPage(), toPanel };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=ending),
+        scenario,
+        tmp_path,
+        client=_RequiringClient(),
+        env_js=False,
+    )
+    assert state["first"]["retry"] == _UNREACHABLE + " Attempt 1 of 3."
+    assert state["second"]["retry"] == _UNREACHABLE + " Attempt 2 of 3."
+    for seen in (state["closed"], state["later"]):
+        assert seen["retry"] is None
+        assert "Submission error" in seen["closed"]
+        assert "We could not save your responses. Please refresh and try again." in seen["closed"]
+    for seen in (state["first"], state["second"], state["closed"], state["later"]):
+        _neither_done_nor_on_the_way(seen)
+    assert state["toPanel"] == []
+
+
+@pytest.mark.parametrize(
+    "env_js", [False, _ENV_WITHOUT_TRANSPORT], ids=["env-not-loaded", "no-transport-registered"]
+)
+def test_saving_locally_without_the_transport_ends_on_the_saved_screen(tmp_path, env_js):
+    """Save locally and finish, on an ending page whose send found no
+    transport: the saved screen, never the ending page's code or its way on."""
+    scenario = (
+        _UNSENT
+        + _TO_THE_ENDING
+        + """
+        await settled();
+        const failed = await onPage();
+        await page.click(".siamang-retry-dialog .sd-navigation__prev-btn");
+        await page.waitForSelector(".siamang-saved-locally");
+        const saved = await onPage();
+        // Past the page's 2 s redirect_delay.
+        await page.waitForTimeout(3000);
+        return { failed, saved, later: await onPage(), toPanel };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=True),
+        scenario,
+        tmp_path,
+        client=_RequiringClient(),
+        env_js=env_js,
+    )
+    assert state["failed"]["retry"] == _UNREACHABLE + " Attempt 1 of 3."
+    for seen in (state["saved"], state["later"]):
+        assert seen["saved"] == _SAVED_TITLE + _SAVED_BODY
+        assert seen["retry"] is None
+    for seen in (state["failed"], state["saved"], state["later"]):
+        _neither_done_nor_on_the_way(seen)
+    assert state["toPanel"] == []
+    assert state["later"]["kept"] == {"name": "Ann", "fruit": 2}
+
+
+def test_without_its_transport_the_retry_dialog_speaks_the_surveys_failure_text(tmp_path):
+    """The runtime's own explanation is English: a survey that words its
+    failure text (retry_body), perhaps in another language, says that."""
+    document = _panel_document(
+        ending=True,
+        retry_body="Wir konnten Ihre Antworten nicht speichern.",
+        attempt_text="Versuch {n} von {max}.",
+    )
+    scenario = _UNSENT + _TO_THE_ENDING + "await settled(); return await onPage();"
+    state = run_in_browser(document, scenario, tmp_path, client=_RequiringClient(), env_js=False)
+    assert state["retry"] == "Wir konnten Ihre Antworten nicht speichern. Versuch 1 von 3."
+    _neither_done_nor_on_the_way(state)
+
+
+def test_an_attempt_made_once_the_transport_is_there_sends_through_it(tmp_path):
+    """Each attempt looks for the transport again: one a host registers
+    meanwhile takes the answers, and only then does the ending page show
+    and send the respondent on."""
+    scenario = (
+        _UNSENT
+        + _TO_THE_ENDING
+        + """
+        await settled();
+        const failed = await onPage();
+        await page.evaluate(() => {
+            window.__sent = [];
+            window.SIAMANG_ENV = { transport: "test", survey_id: "t" };
+            window.SIAMANG_TRANSPORTS = { test: { async submit(r) {
+                window.__sent.push(JSON.parse(JSON.stringify(r)));
+                return { response_id: 3 };
+            } } };
+        });
+        await page.click(".siamang-retry-dialog .sd-navigation__next-btn");
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const stored = await onPage();
+        const sent = await page.evaluate(() => window.__sent);
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { failed, stored, sent, toPanel, url: page.url() };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=True),
+        scenario,
+        tmp_path,
+        client=_RequiringClient(),
+        env_js=False,
+    )
+    assert state["failed"]["retry"] == _UNREACHABLE + " Attempt 1 of 3."
+    _neither_done_nor_on_the_way(state["failed"])
+    assert state["sent"] == [{"name": "Ann", "fruit": 2, "__status": "completed"}]
+    assert "All done" in state["stored"]["shown"] and state["stored"]["retry"] is None
+    assert state["stored"]["links"] == [_PANEL_COMPLETE]
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+    assert state["url"] == _PANEL_COMPLETE
+
+
+@pytest.mark.parametrize("ending", [False, True], ids=["completion-screen", "ending-page"])
+def test_a_page_that_needs_no_transport_ends_without_one_as_before(tmp_path, ending):
+    """A control, which the previous bundle passes too: a page built with no
+    transport to require (a preview, a page its host gives no backend) ends
+    without one as if the answers had been sent, and sends the respondent
+    on."""
+    scenario = (
+        _UNSENT
+        + _TO_THE_ENDING
+        + """
+        await settled();
+        const ended = await onPage();
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { ended, toPanel };
+    """
+    )
+    state = run_in_browser(_panel_document(ending=ending), scenario, tmp_path, env_js=False)
+    assert state["ended"]["retry"] is None and state["ended"]["done"] is True
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+
+
+def test_a_page_that_needs_its_transport_sends_through_it_as_before(tmp_path):
+    """A control, which the previous bundle passes too: with its env.js
+    there, a page that requires the transport sends through it and goes on
+    once the answers are stored."""
+    scenario = (
+        _PANEL
+        + _TO_THE_ENDING
+        + """
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const submitted = await page.evaluate(() => window.__T.submitted);
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { submitted, toPanel };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=True), scenario, tmp_path, client=_RequiringClient()
+    )
+    assert state["submitted"] == [{"name": "Ann", "fruit": 2, "__status": "completed"}]
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+
+
+# env.js that does not load on the first visit (it runs nothing: no
+# SIAMANG_ENV, no transport) and loads on a visit opened with ?send.
+_ENV_ON_THE_NEXT_VISIT = 'if (location.search.includes("send")) {\n' + _TRANSPORT + "}\n"
+
+
+def test_answers_kept_without_env_js_are_offered_back_once_it_loads(tmp_path):
+    """With the survey's id in env.js alone, a page whose env.js did not load
+    would keep Save locally and finish's answers, and the interview's id,
+    under the runtime's last resort, siamang_survey, a key every such survey
+    of a host shares, while the next visit, its env.js loaded, reads
+    siamang_answers_t: no Resume, and the answers could never be sent. The
+    page carries its id along with the transport it needs."""
+    scenario = (
+        _PANEL
+        + _RELOAD
+        + _TO_THE_ENDING
+        + _SAVE_LOCALLY
+        + """
+        await page.waitForSelector(".siamang-saved-locally");
+        await page.waitForFunction(
+            () => Object.keys(localStorage).some((k) => k.startsWith("siamang_answers_")));
+        const keys = await page.evaluate(() => Object.keys(localStorage).sort());
+        await visit("?send=1");
+        const offered = !!(await page.waitForSelector(
+            ".siamang-resume-banner", { timeout: 5000 }).catch(() => null));
+        if (!offered) return { keys, offered };
+        await page.click(".siamang-resume-banner .sd-navigation__next-btn");
+        await page.waitForSelector(".sd-completedpage__redirect a");
+        const submitted = await page.evaluate(() => window.__T.submitted);
+        await page.waitForURL((url) => url.href.startsWith("https://panel.example/"));
+        return { keys, offered, submitted, toPanel, url: page.url() };
+    """
+    )
+    state = run_in_browser(
+        _panel_document(ending=True),
+        scenario,
+        tmp_path,
+        client=_RequiringClient(),
+        env_js=_ENV_ON_THE_NEXT_VISIT,
+    )
+    # The test transport's survey_id is "t", as the page's own.
+    assert "siamang_answers_t" in state["keys"] and "siamang_interview_t" in state["keys"]
+    assert not any(key.endswith("siamang_survey") for key in state["keys"])
+    assert state["offered"] is True
+    assert state["submitted"] == [{"name": "Ann", "fruit": 2, "__status": "completed"}]
+    assert state["toPanel"] == [_PANEL_COMPLETE]
+    assert state["url"] == _PANEL_COMPLETE
 
 
 def _rating_document() -> dict[str, Any]:

@@ -42,6 +42,23 @@ class RuntimeRenderContext:
     requested from the provider before. Off, the default, a body's player is
     a frame as the author wrote it (rebuilt by :mod:`siamang.core.safe_html`).
     The React runtime reads it as ``SURVEY.clickToPlay``.
+
+    ``transport`` names the transport the page's ``env.js`` registers when
+    the page cannot send its answers without it
+    (``BackendClientTemplate.transport``; ``FrontendBuilder`` passes the
+    client template's). It travels in the page's own inline script, as
+    ``SURVEY.transport``, so the page knows it even when ``env.js`` never
+    loads: the React runtime then counts an attempt to send the answers
+    without a transport as a failed one (the retry dialog, Save locally and
+    finish, the error screen after the third) and never ends as if they were
+    sent. With it the page also carries ``survey_id``, as ``SURVEY.surveyId``
+    (the id ``env.js`` gives, from the same ``ClientEnv``), which keys what
+    the browser keeps for the survey: the answers Save locally and finish
+    kept while ``env.js`` was missing are under the key the next visit reads,
+    and it offers Resume. None, the default, writes neither, and a page
+    without a transport ends as before: a preview that stores nothing, a page
+    a host gives its own transport after the build. ``SurveyJSRuntime``
+    ignores it.
     """
 
     schema: SurveySchema
@@ -53,6 +70,7 @@ class RuntimeRenderContext:
     font_base: str = FONT_BASE
     csp: str | None = None
     click_to_play: bool = False
+    transport: str | None = None
 
 
 class RuntimeAdapter(ABC):

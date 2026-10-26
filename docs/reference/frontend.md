@@ -109,6 +109,8 @@ What an author writes reaches the pages only as data: the survey's texts travel 
 
 A YouTube or Vimeo video of a question or an option (`Media(kind="embed")`) is a play button until the respondent presses it, and nothing is requested from the provider before. `click_to_play=True` (also `RuntimeRenderContext.click_to_play`) does the same for the players a page's body holds; off by default, they are frames as before.
 
+A client template that names the transport its `env.js` registers (`BackendClientTemplate.transport`; the engine's `LocalClientTemplate`, `SupabaseClientTemplate` and `GoogleSheetsClientTemplate` do) has the pages require it: the builder passes the name as `RuntimeRenderContext.transport`, and `ReactRuntime` writes it into the page's inline script as `SURVEY.transport`, there even when `env.js` does not load. Without that transport the React runtime counts an attempt to send the answers as a failed one (the retry dialog, Save locally and finish, the error screen after the third), never as answers sent. Such a page also carries its survey's id (`SURVEY.surveyId`, the `ClientEnv`'s `survey_id`, as in `env.js`), which keys what the browser keeps for it, so answers kept while `env.js` was missing are offered back (Resume) once it loads. A template that names none (`None`, the default) and a page rendered without one build as before: without a transport they end as if the answers had been sent, as a preview does.
+
 ---
 
 ## `UIConfig` — The Design System
@@ -287,7 +289,7 @@ All runtimes inherit from this base class, which defines the interface for gener
 * **`render_style_css(ui: UIConfig) -> str`**:
   Compiles the active `UIConfig` into a CSS stylesheet string.
 
-`RuntimeRenderContext` carries what a runtime renders with: `schema`, `ui`, `css_href` (`"style.css"`), `env_src` (`"env.js"`), `survey_id`, `survey`, and `font_base` (`"fonts/"`) — where the stylesheet's `@font-face` rules find the bundled typefaces, relative to the stylesheet; a host that inlines the stylesheet passes the URL (ending in `/`) it serves them at.
+`RuntimeRenderContext` carries what a runtime renders with: `schema`, `ui`, `css_href` (`"style.css"`), `env_src` (`"env.js"`), `survey_id`, `survey`, `font_base` (`"fonts/"`) — where the stylesheet's `@font-face` rules find the bundled typefaces, relative to the stylesheet; a host that inlines the stylesheet passes the URL (ending in `/`) it serves them at — `csp`, `click_to_play`, and `transport` (`None`): the transport the page cannot send its answers without, written with `survey_id` (see [`FrontendBuilder`](#frontendbuilder)).
 * **`get_client_js(client: BackendClientTemplate, env: ClientEnv) -> str`**:
   Compiles the selected backend client adapter into JavaScript.
 

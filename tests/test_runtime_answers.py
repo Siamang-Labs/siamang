@@ -401,6 +401,116 @@ class TestQuotaVariables:
         assert 'throw new Error("quota check failed: "' in gsheets.split("async checkQuota", 1)[1]
 
 
+# ── The transport a page cannot send without ─────────────────────────────────
+
+
+def _survey_meta(html: str) -> dict:
+    import json
+
+    return json.loads(html.split("window.SURVEY = ", 1)[1].split(";\n", 1)[0])
+
+
+class TestRequiredTransport:
+    def _built(self, client):
+        from siamang.frontend import ClientEnv, FrontendBuilder, ReactRuntime
+
+        survey = _survey(_fruit())
+        bundle = FrontendBuilder(runtime=ReactRuntime()).build(
+            survey.compile(),
+            client=client,
+            env=ClientEnv(survey_id="s", backend="local", settings={}),
+            survey=survey,
+        )
+        return bundle.files["index.html"]
+
+    def test_a_page_built_for_a_hosts_transport_names_it_in_its_own_script(self):
+        """Written into the page, not into env.js: the page has to know that
+        it needs a transport precisely when env.js did not load."""
+        from siamang.frontend import LocalClientTemplate
+
+        assert _survey_meta(self._built(LocalClientTemplate()))["transport"] == "local"
+
+    def test_a_template_that_names_no_transport_builds_the_page_as_before(self):
+        from siamang.frontend.client.base import BackendClientTemplate, ClientEnv
+
+        class Plain(BackendClientTemplate):
+            name = "plain"
+
+            def render_env_js(self, env: ClientEnv) -> str:
+                return ""
+
+        class Old:
+            """A duck-typed template from before templates named one."""
+
+            name = "old"
+
+            def render_env_js(self, env: ClientEnv) -> str:
+                return ""
+
+        assert BackendClientTemplate.transport is None
+        for client in (Plain(), Old()):
+            meta = _survey_meta(self._built(client))
+            assert "transport" not in meta and "surveyId" not in meta
+
+    def test_a_page_that_needs_its_transport_carries_its_survey_id_too(self):
+        """What the browser keeps for a survey is keyed by its id. From env.js
+        alone, a page whose env.js did not load would keep the answers under
+        a key the next visit, with env.js, never reads. The page carries the
+        id env.js gives, and a host's own still wins."""
+        from siamang.frontend import LocalClientTemplate, ReactRuntime, UIConfig
+        from siamang.frontend.runtime.base import RuntimeRenderContext
+
+        assert _survey_meta(self._built(LocalClientTemplate()))["surveyId"] == "s"
+        survey = _survey(_fruit())
+        schema = survey.compile()
+        runtime = ReactRuntime()
+
+        def meta(**context):
+            ctx = RuntimeRenderContext(schema=schema, ui=UIConfig(), survey=survey, **context)
+            return _survey_meta(runtime.render_html(ctx))
+
+        assert meta(transport="platform", survey_id="sid123")["surveyId"] == "sid123"
+        # A page that needs no transport ends as sent without env.js, and
+        # keeps its payload as before; without an id there is none to write.
+        assert "surveyId" not in meta(survey_id="sid123")
+        assert "surveyId" not in meta(transport="platform")
+
+    def test_the_render_context_carries_it_to_the_runtime_and_none_writes_nothing(self):
+        from siamang.frontend import ReactRuntime, UIConfig
+        from siamang.frontend.runtime.base import RuntimeRenderContext
+
+        survey = _survey(_fruit())
+        schema = survey.compile()
+        runtime = ReactRuntime()
+        context = RuntimeRenderContext(schema=schema, ui=UIConfig(), survey=survey)
+        assert context.transport is None
+        assert "transport" not in _survey_meta(runtime.render_html(context))
+        assert "transport" not in compile_react_payload(survey)["SURVEY"]
+        named = RuntimeRenderContext(
+            schema=schema, ui=UIConfig(), survey=survey, transport="platform"
+        )
+        assert _survey_meta(runtime.render_html(named))["transport"] == "platform"
+
+    def test_the_engines_templates_name_the_transport_their_env_js_registers(self):
+        import json
+
+        from siamang.frontend import ClientEnv, LocalClientTemplate, SupabaseClientTemplate
+        from siamang.frontend.client import GoogleSheetsClientTemplate
+
+        templates = (
+            (LocalClientTemplate(), {}),
+            (SupabaseClientTemplate(), {"url": "https://x.supabase.co", "anon_key": "k"}),
+            (GoogleSheetsClientTemplate(), {"spreadsheet_id": "x"}),
+        )
+        for template, settings in templates:
+            js = template.render_env_js(
+                ClientEnv(survey_id="s", backend=template.name, settings=settings)
+            )
+            env = json.loads(js.split("window.SIAMANG_ENV = ", 1)[1].split(";\n", 1)[0])
+            assert template.transport and env["transport"] == template.transport
+            assert f"window.SIAMANG_TRANSPORTS.{template.transport} = {{" in js
+
+
 def test_the_payload_says_whether_to_show_the_title_apart_from_the_header():
     from siamang.frontend import UIConfig
 

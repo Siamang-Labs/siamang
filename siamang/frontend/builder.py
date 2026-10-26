@@ -35,6 +35,11 @@ class FrontendBuilder:
     ``click_to_play`` (off by default) shows the YouTube and Vimeo players of
     a page's body as a play button that loads the player when pressed
     (:class:`~siamang.frontend.runtime.base.RuntimeRenderContext`).
+
+    A client template that names its transport (``client.transport``, as the
+    engine's own do) has the pages require it: a page whose ``env.js`` did
+    not load treats the end of the survey as a failed submission, not as
+    answers sent (``RuntimeRenderContext.transport``).
     """
 
     runtime: RuntimeAdapter = None  # type: ignore[assignment]
@@ -70,6 +75,9 @@ class FrontendBuilder:
             survey=survey,
             csp=self.csp,
             click_to_play=self.click_to_play,
+            # getattr: a template written before templates named their
+            # transport has none to require, and builds as before.
+            transport=getattr(client, "transport", None) or None,
         )
 
         # Runtime can provide its own stylesheet (full design system); the

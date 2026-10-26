@@ -19,6 +19,7 @@ class GoogleSheetsClientTemplate(BackendClientTemplate):
     """
 
     name = "gsheets"
+    transport = "gsheets"
 
     def render_env_js(self, env: ClientEnv) -> str:
         env_payload = {
