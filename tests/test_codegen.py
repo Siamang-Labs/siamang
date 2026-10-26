@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import itertools
 import shutil
 import subprocess
 import sys
@@ -10,11 +11,13 @@ from pathlib import Path
 
 import pytest
 
+import siamang as sg
 from siamang.cli.loader import load_survey_module
 from siamang.codegen import generate_questionnaire
 from siamang.codegen.emit import Call, Dict, List, Raw, literal, render
 from siamang.codegen.format import ruff_command
 from siamang.core import validate_options
+from siamang.core.page import DisqualificationPage, FinalPage
 from siamang.model import (
     DocumentError,
     dumps,
@@ -23,6 +26,7 @@ from siamang.model import (
     loads,
     to_document,
 )
+from siamang.model.parse_python import parse_source
 
 ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "fixtures"
@@ -380,6 +384,50 @@ def test_generated_document_text_is_stable_through_code(tmp_path):
         )
         # from_document on the regenerated document is equal to the executed module's survey
         assert from_document(document).survey.title == module.survey.title
+
+
+def test_an_attention_checks_answers_that_pass_survive_the_round_trip(tmp_path):
+    """A question's metadata keeps every answer that passes its attention
+    check: a list stays a list and a single answer a single answer, through
+    the generated code run and read without running it, and so does a
+    screen-out after two failed checks, the OR of an AND per pair."""
+
+    agree = {1: "Strongly disagree", 2: "Disagree", 3: "Agree", 4: "Strongly agree"}
+    swim = sg.Variable("swim", scale="ordinal", label="Swim", labels=agree)
+    trap = sg.Variable("trap", scale="nominal", label="Trap", labels={1: "R", 2: "G", 3: "B"})
+    word = sg.Variable("word", scale="nominal", label="Word")
+    fails = [swim.isin([3, 4]), trap.isin([1, 2]), word.ne(None) & word.notin(["blue", "Blue"])]
+    two = sg.OR(*(a & b for a, b in itertools.combinations(fails, 2)))
+
+    def check(passes):
+        return {"attention_check": True, "expected": passes}
+
+    survey = sg.Questionnaire(
+        title="Checks",
+        pages=[
+            sg.Page(
+                name="checks",
+                items=[
+                    sg.SingleChoice("I swim to work", var=swim, metadata=check([1, 2])),
+                    sg.SingleChoice("Choose B", var=trap, metadata=check(3)),
+                    sg.OpenText("Type the word blue", var=word, metadata=check(["blue", "Blue"])),
+                ],
+                next_if=[(two, "out")],
+            ),
+            FinalPage("done", title="Thanks"),
+            DisqualificationPage("out", title="Sorry"),
+        ],
+    )
+    document = to_document(survey)
+    items = document["pages"][0]["items"]
+    assert [item["metadata"]["expected"] for item in items] == [[1, 2], 3, ["blue", "Blue"]]
+    code = _assert_generated_is_faithful(document, tmp_path)
+    assert 'metadata={"attention_check": True, "expected": [1, 2]}' in code
+    assert 'metadata={"attention_check": True, "expected": 3}' in code
+    assert 'metadata={"attention_check": True, "expected": ["blue", "Blue"]}' in code
+    static = parse_source(generate_questionnaire(document, format=False))
+    assert static.dropped == []
+    assert static.document == document
 
 
 @pytest.mark.skipif(

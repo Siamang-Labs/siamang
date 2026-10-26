@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An attention check can accept several answers.** Response quality's
+  Attention checks (`prepare.quality`'s `expected`, and
+  `quality.attention_failed` and `quality.quality_flags` under it) map a
+  check's variable to the answer that passes it or, now, to a list of every
+  answer that passes: a nonsensical statement ("I swim across the Atlantic to
+  get to work") is passed by either answer on the disagree side of its scale,
+  `{"swim": [1, 2]}`. A check is failed when it was answered with none of
+  them, each compared as a single answer is, numbers as numbers (`2.0` and
+  `"2"` pass where `2` does). A single answer works as before, a list of one
+  is that answer, and a check with an empty list is skipped, as one that is
+  not set up. Before, a list failed everyone who answered the check. A host
+  that keeps the answers in a question's metadata, as Siamang Studio does
+  (`{"attention_check": true, "expected": [1, 2]}`), keeps a list through the
+  document, the generated `.py` and its static reader. A screen-out after two
+  failed checks is an ordinary page branch, the OR of an AND per pair of
+  checks, which the runtime and `simulate()` route alike (the wiki's
+  Visibility and Branching shows it).
+
 - **A YouTube or Vimeo video plays when the respondent presses play.** A
   question's or an answer option's media can be a video of kind `embed`:
   `Media("", kind="embed", provider="youtube", id="aBcDeFgHiJ0")` (`"vimeo"`

@@ -154,24 +154,44 @@ def duplicate_pattern(
     return complete & ~flat & duplicated
 
 
+def _acceptable(want: object) -> list[object]:
+    """The answers that pass a check: a list as given, one answer as a list of
+    one."""
+
+    if isinstance(want, list | tuple | set | frozenset):
+        return list(want)
+    return [want]
+
+
 def attention_failed(
     frame: pd.DataFrame,
     expected: Mapping[str, object] | None,
 ) -> pd.Series:
-    """``True`` where an attention check was answered with anything but its
-    expected value.
+    """``True`` where an attention check was answered with none of the answers
+    that pass it.
 
-    ``expected`` maps a column to the answer a reading respondent gives. An
-    unanswered check is not a failure — that is a partial.
+    ``expected`` maps a column to the answer a reading respondent gives, or to
+    a list of every answer that passes. A nonsensical statement ("I swim
+    across the Atlantic to get to work") is passed by any answer on the
+    disagree side of its scale, so both "Strongly disagree" and "Disagree"
+    pass: ``{"swim": [1, 2]}``. Each answer compares as a single one does,
+    numbers as numbers. An unanswered check is not a failure — that is a
+    partial. A check whose list is empty is skipped: with nothing that
+    passes, it would fail everyone who answered it.
     """
 
     flagged = pd.Series(False, index=frame.index)
     for column, want in (expected or {}).items():
-        if column not in frame.columns:
+        accepted = _acceptable(want)
+        if column not in frame.columns or not accepted:
             continue
-        answered = frame[column].notna()
-        wanted = pd.Series([want] * len(frame), index=frame.index)
-        flagged = flagged | (answered & _differs(frame[column], wanted))
+        answer = frame[column]
+        # Failed: answered, and different from every answer that passes.
+        failed = answer.notna()
+        for code in accepted:
+            wanted = pd.Series([code] * len(frame), index=frame.index)
+            failed = failed & _differs(answer, wanted)
+        flagged = flagged | failed
     return flagged
 
 
@@ -188,7 +208,9 @@ def quality_flags(
 
     The reasons are joined with ``"; "`` in :data:`REASONS` order, so the column
     reads as an explanation rather than a verdict: ``"straightlining; duplicate"``.
-    ``duplicates_also`` is :func:`duplicate_pattern`'s ``also``.
+    ``expected`` is :func:`attention_failed`'s: an answer, or a list of the
+    answers that pass, per check. ``duplicates_also`` is
+    :func:`duplicate_pattern`'s ``also``.
     """
 
     checks = {

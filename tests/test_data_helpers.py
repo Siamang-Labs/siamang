@@ -171,6 +171,54 @@ def test_checks_compare_numbers_as_numbers_not_as_text():
     assert list(quality.attention_failed(words, {"trap": "blue"})) == [False, True]
 
 
+def test_an_attention_check_can_accept_several_answers():
+    """A nonsensical statement ("I swim across the Atlantic to get to work") on
+    a four-point scale is passed by both answers on the disagree side, 1 and
+    2. A list of them names every answer that passes; each compares as a
+    single answer does, so 2.0 (a column with a skipped check is float) and
+    the code written as text pass too."""
+
+    frame = pd.DataFrame({"swim": [1, 2, 3, 4, None]})
+    assert list(quality.attention_failed(frame, {"swim": [1, 2]})) == [
+        False,
+        False,
+        True,
+        True,
+        False,
+    ]
+    assert list(quality.attention_failed(frame, {"swim": ["1", "2"]})) == [
+        False,
+        False,
+        True,
+        True,
+        False,
+    ]
+    assert list(quality.attention_failed(frame, {"swim": (1, 2)})) == [
+        False,
+        False,
+        True,
+        True,
+        False,
+    ]
+    # A list of one is the single answer.
+    assert list(quality.attention_failed(frame, {"swim": [1]})) == list(
+        quality.attention_failed(frame, {"swim": 1})
+    )
+    words = pd.DataFrame({"color": ["blue", "navy", "red", None]})
+    assert list(quality.attention_failed(words, {"color": ["blue", "navy"]})) == [
+        False,
+        False,
+        True,
+        False,
+    ]
+    # With nothing that passes the check is skipped, not failed by everyone.
+    assert not quality.attention_failed(frame, {"swim": []}).any()
+    # One check with a list, one with a single answer.
+    both = pd.DataFrame({"swim": [1, 2, 4, 1], "trap": [3, 1, 3, 3]})
+    flags = quality.quality_flags(both, expected={"swim": [1, 2], "trap": 3})
+    assert flags.tolist() == ["", "attention", "attention", ""]
+
+
 def test_quality_flags_name_every_failed_check_in_order():
     frame = _battery()
     frame.loc[5] = frame.loc[0]  # the honest respondent's answers again

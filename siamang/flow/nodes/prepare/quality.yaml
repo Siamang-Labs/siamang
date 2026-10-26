@@ -39,7 +39,7 @@ params:
     default: {}
     label: Attention checks
     help: |-
-      The answer a reading respondent gives to each attention check, as variable: answer, e.g. `{"q9": 3}`. Any other answer is flagged; a skipped check is not.
+      The answer a reading respondent gives to each attention check, as variable: answer, e.g. `{"q9": 3, "q12": [1, 2]}`. Where several answers pass, list them: a nonsensical statement is passed by any answer on the correct side of its scale (the disagree side for a statement nobody agrees with). Any other answer is flagged; a skipped check is not.
 
       Fill from the questionnaire, below the box, fills this in from the questions marked as attention checks.
   max_sd:

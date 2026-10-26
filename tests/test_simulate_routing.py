@@ -3,6 +3,8 @@ default_next and skip_to shape the synthetic data the way the runtime would."""
 
 from __future__ import annotations
 
+import itertools
+
 import pytest
 
 import siamang as sg
@@ -546,3 +548,47 @@ def test_questionnaire_simulate_runs_the_scripts_and_changes_nothing_else():
     assert data.frame.loc[data.frame["condition"] == 1, "seen"].isna().all()
     assert data.frame.loc[data.frame["condition"] == 2, "seen"].notna().all()
     assert data.variables["condition"].labels == {1: "Control", 2: "Treatment"}
+
+
+def test_a_screen_out_after_two_failed_checks_routes_by_every_answer_that_passes():
+    """Three attention checks and a screen-out after two failures, as Studio
+    writes the rule: the OR of an AND per pair of checks. A check with codes
+    fails on any code but those that pass (a nonsensical statement passes on
+    either disagree answer), and a typed one when it was answered with none
+    of them. A simulated respondent who failed two goes no further; everyone
+    else answers the next page."""
+
+    agree = {1: "Strongly disagree", 2: "Disagree", 3: "Agree", 4: "Strongly agree"}
+    swim = sg.Variable("swim", scale="ordinal", label="Swim", labels=agree)
+    trap = sg.Variable("trap", scale="nominal", label="Trap", labels={1: "R", 2: "G", 3: "B"})
+    count = sg.Variable("count", scale="ratio", label="Count", valid_range=(3, 5))
+    later = sg.Variable("later", scale="nominal", label="Later")
+    fails = [swim.isin([3, 4]), trap.isin([1, 2]), count.ne(None) & count.notin([4, 5])]
+    two = sg.OR(*(a & b for a, b in itertools.combinations(fails, 2)))
+    survey = sg.Questionnaire(
+        title="Checks",
+        pages=[
+            sg.Page(
+                name="checks",
+                items=[
+                    sg.SingleChoice("I swim across the Atlantic to get to work", var=swim),
+                    sg.SingleChoice("Choose the third color", var=trap),
+                    sg.NumericInput("Type a number above 3", var=count),
+                ],
+                next_if=[(two, "out")],
+            ),
+            sg.Page(name="next", items=[sg.OpenText("Anything else?", var=later)]),
+            FinalPage("done", title="Thanks"),
+            DisqualificationPage("out", title="Sorry"),
+        ],
+    )
+    frame = survey.simulate(n=300, seed=7).frame
+    failed = (
+        frame["swim"].isin([3, 4]).astype(int)
+        + frame["trap"].isin([1, 2]).astype(int)
+        + (frame["count"].notna() & ~frame["count"].isin([4, 5])).astype(int)
+    )
+    out = failed >= 2
+    assert 30 < out.sum() < 270
+    assert frame.loc[out, "later"].isna().all()
+    assert frame.loc[~out, "later"].notna().all()

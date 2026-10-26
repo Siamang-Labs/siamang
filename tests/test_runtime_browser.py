@@ -30,6 +30,7 @@ from typing import Any
 
 import pytest
 
+from siamang.core.expression import Expression
 from siamang.frontend import ClientEnv, FrontendBuilder, ReactRuntime, UIConfig
 from siamang.frontend.client.base import BackendClientTemplate
 from siamang.frontend.compiler import compile_questionnaire
@@ -1899,6 +1900,103 @@ def test_a_condition_on_null_holds_for_a_question_nobody_answered(tmp_path, type
     # respondent who left the optional check empty goes on.
     assert state["shown"] == shown
     assert state["pages"] == route
+
+
+def _two_failed_checks() -> dict[str, Any]:
+    # A screen-out after two failed attention checks of three, written as
+    # Studio writes it: the OR of an AND per pair of checks. A check with
+    # codes fails on any code but those that pass, and one without codes when
+    # it was answered with none of them, so a skipped check never counts.
+    fails = [
+        _cmp("in", _var("swim"), [3, 4]),
+        _cmp("in", _var("trap"), [1, 2]),
+        _cmp(
+            "and",
+            _cmp("!=", _var("word"), None),
+            _cmp("not in", _var("word"), ["blue", "Blue"]),
+        ),
+    ]
+    first, second, third = fails
+    return _cmp(
+        "or",
+        _cmp("or", _cmp("and", first, second), _cmp("and", first, third)),
+        _cmp("and", second, third),
+    )
+
+
+def _attention_checks_document() -> dict[str, Any]:
+    agree = ["Strongly disagree", "Disagree", "Agree", "Strongly agree"]
+    colors = ["Red", "Green", "Blue"]
+
+    def coded(labels: list[str]) -> list[dict[str, Any]]:
+        return [{"code": code, "label": label} for code, label in enumerate(labels, 1)]
+
+    def check(item: dict[str, Any], passes: Any) -> dict[str, Any]:
+        return {**item, "metadata": {"attention_check": True, "expected": passes}}
+
+    return {
+        "schema_version": "1.0",
+        "title": "Attention checks",
+        "variables": {
+            "swim": {"scale": "ordinal", "labels": coded(agree)},
+            "trap": {"scale": "nominal", "labels": coded(colors)},
+            "word": {"scale": "nominal", "dtype": "str"},
+            "b": {"scale": "nominal", "dtype": "str"},
+        },
+        "pages": [
+            {
+                "name": "p1",
+                "title": "One",
+                "items": [
+                    # A nonsensical statement: either disagree answer passes.
+                    check(_choice("swim", "I swim across the Atlantic to get to work"), [1, 2]),
+                    check(_choice("trap", "Choose the third color"), 3),
+                    check(_text("word", "Type the word blue"), ["blue", "Blue"]),
+                ],
+                "next_if": [{"condition": _two_failed_checks(), "target": "out"}],
+            },
+            {"name": "p2", "title": "Two", "items": [_text("b", "B?")]},
+            {"name": "done", "kind": "final", "title": "Thanks"},
+            {"name": "out", "kind": "disqualification", "title": "Sorry"},
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    ("swim", "trap", "word", "route"),
+    [
+        (2, 3, "Blue", ["p1", "p2"]),  # every check passed
+        (3, 3, "blue", ["p1", "p2"]),  # one failed
+        (3, 1, "Blue", ["p1", "out"]),  # two failed
+        (1, 2, "red", ["p1", "out"]),  # two failed, the statement passed
+        (4, 3, "", ["p1", "p2"]),  # one failed, the word skipped
+        (4, 1, "", ["p1", "out"]),  # two failed, the word skipped
+    ],
+)
+def test_a_screen_out_after_two_failed_checks_counts_every_answer_that_passes(
+    tmp_path, swim, trap, word, route
+):
+    scenario = (
+        f"""
+        const q = (n) => page.locator(".sd-question").nth(n);
+        await q(0).locator(".sd-choice-label").nth({swim - 1}).click();
+        await q(1).locator(".sd-choice-label").nth({trap - 1}).click();
+        const word = {json.dumps(word)};
+        if (word) {{
+            await q(2).locator("input, textarea").first().fill(word);
+            await page.click("body");
+            await page.waitForTimeout(100);
+        }}
+    """
+        + _NEXT
+        + _STATE
+    )
+    state = run_in_browser(_attention_checks_document(), scenario, tmp_path)
+    assert state["pages"] == route
+    # The engine's own reading of the rule, which simulate() follows, agrees.
+    answers = {"swim": swim, "trap": trap, "word": word or None}
+    screened_out = Expression.from_dict(_two_failed_checks()).evaluate(answers)
+    assert screened_out == (route[-1] == "out")
 
 
 # ── Nested blocks ────────────────────────────────────────────────────────────

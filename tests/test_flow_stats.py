@@ -442,6 +442,30 @@ def test_duplicates_can_match_on_more_than_the_battery(questionnaire_doc, survey
     assert "duplicate" not in flags[other] and "duplicate" not in flags.iloc[-1]
 
 
+def test_an_attention_check_can_list_every_answer_that_passes(questionnaire_doc, survey, tmp_path):
+    """Response quality's Attention checks take a list of the answers that
+    pass beside a single answer. The node renders the list as written, the
+    generated script carries it, and the run flags only an answer outside
+    it; a skipped check is not flagged."""
+    params = {"expected": {"trust_acme": [1, 2], "gender": 1}}
+    flow, issues = _one("prepare.quality", params, questionnaire_doc)
+    assert issues == []
+    code = render_node(resolve_flow(flow, questionnaire=questionnaire_doc), "n")
+    assert "expected={'trust_acme': [1, 2], 'gender': 1}," in code
+    assert 'expected={"trust_acme": [1, 2], "gender": 1},' in generate_flow(flow, questionnaire_doc)
+
+    frame = survey.simulate(n=6, seed=2).frame.reset_index(drop=True)
+    frame["trust_acme"] = [1, 2, 3, 9, None, 1]
+    frame["gender"] = [1, 1, 1, 1, 1, 2]
+    result = FlowRunner(flow, questionnaire=survey).run(
+        sources={"src": SurveyData(frame=frame, questionnaire=survey)},
+        cwd=tmp_path,
+        raise_on_error=True,
+    )
+    flags = result.outputs["n"]["data"].frame["quality_flags"]
+    assert flags.tolist() == ["", "", "attention", "attention", "", "attention"]
+
+
 def test_clusters_can_be_numbered_by_an_items_mean(questionnaire_doc, survey, tmp_path):
     """Cluster's Number clusters by: written when set, one of the Items or an
     error in the check, and run the clusters come numbered by that item."""

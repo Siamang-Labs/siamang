@@ -39,6 +39,25 @@ holds for it. An attention check on a question without codes, "screen out when
 `check.ne(None) & check.ne(3)`", therefore leaves alone a respondent who skipped
 an optional check.
 
+A check that several answers pass fails on every other answer. A nonsensical
+statement ("I swim across the Atlantic to get to work") on a four-point scale is
+passed by either disagree answer, so it fails on `swim.isin([3, 4])`, as an
+instruction to choose the third of three colors fails on `trap.isin([1, 2])`. A
+check without codes fails on `word.ne(None) & word.notin(["blue", "Blue"])`. A
+screen-out after two failed checks of these three is the OR of an AND per pair,
+an ordinary `next_if` that the runtime and `simulate()` read alike:
+
+```python
+import itertools
+
+fails = [swim.isin([3, 4]), trap.isin([1, 2]), word.ne(None) & word.notin(["blue", "Blue"])]
+two = sg.OR(*(a & b for a, b in itertools.combinations(fails, 2)))
+sg.Page(name="checks", items=[...], next_if=[(two, "failed_checks")])
+```
+
+The Response quality node (`prepare.quality`) takes the same answers per check,
+a list where several pass: `{"swim": [1, 2], "trap": 3}`.
+
 `>`, `>=`, `<`, `<=` are overloaded on `Variable`, so `age >= 18` works directly.
 `==` and `!=` are **not** overloaded — the dataclass machinery uses them for
 field-wise comparison of `Variable` objects — so use `var.eq(value)` and
