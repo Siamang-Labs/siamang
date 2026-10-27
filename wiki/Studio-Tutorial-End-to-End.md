@@ -119,7 +119,7 @@ answers are anonymous.* It is HTML, not Markdown — wrap paragraphs in
    and Id `nps`.
 4. **+ Question → Presets → Attention check**. It is a required single choice
    (*…please choose "Rarely"*) already marked as an attention check with its
-   expected answer. Variable and Id `attention`.
+   acceptable answer. Variable and Id `attention`.
 5. **+ Question → Types → Open text**. Text *You gave us {answer:nps} out of 10.
    What should we do better?* Turn **Multi-line** on. Variable and Id
    `comment`.
@@ -307,7 +307,7 @@ Set the parameters:
 | Node | Parameter | Value |
 |---|---|---|
 | **Simulated data** | **Respondents** · **Seed** | `300` · `42` |
-| **Response quality** | **Attention checks** | use **Fill from the questionnaire** — it fills `attention` with its expected answer |
+| **Response quality** | **Attention checks** | use **Fill from the questionnaire** — it fills `attention` with its acceptable answer |
 | | **Mode** | `flag` (adds `quality_flags` and `quality_score`, keeps everyone) |
 | **Rake weights** | **Targets (variable → code → share)** | `{"region": {"1": 0.45, "2": 0.30, "3": 0.25}}` |
 | **Apply weight** | **Weight column** | `weight` |

@@ -368,7 +368,7 @@ sample from a search.
 | Anyone with the link may answer | the plain link, QR code or embed |
 | Only people you gave a code to | [Access codes](#access-codes) |
 | One personal link per person, completion tracked, reminders | [[Email Invitations\|Studio-Email-Invitations]] *(Plus)* |
-| Respondents from Prolific, Cint, Dynata … | [[Panel Providers\|Studio-Panel-Providers]] |
+| Respondents from Prolific, Respondent, Cint, Dynata … | [[Panel Providers\|Studio-Panel-Providers]] |
 | Keep bots out | [Captcha](#captcha) |
 | Discourage the same browser from answering twice | [One response per browser](#one-response-per-browser) |
 | Know which channel a response came from | [URL parameters](#url-parameters) |

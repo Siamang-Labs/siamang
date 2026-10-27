@@ -27,8 +27,9 @@ documented and can be revisited.
 ## Marking attention checks in the Builder
 
 An attention check is an instructed-response item ("to show you are reading
-carefully, please choose *Rarely*"). Studio records the answer a reading
-respondent gives and compares it later. It is **scored in the analysis, not in
+carefully, please choose *Rarely*"), or a statement nobody reading it agrees
+with ("I swim to work every day"). Studio records the answers a reading
+respondent gives and compares them later. It is **scored in the analysis, not in
 the survey**: a respondent who fails still finishes and is flagged in the
 data, where the decision can be re-examined.
 
@@ -37,7 +38,7 @@ data, where the decision can be re-examined.
 In the Builder's add menu, **Attention check** inserts a ready-made question:
 "To show you are reading carefully, please choose “Rarely”." with the options
 Never · Rarely · Sometimes · Often · Always, required, with **Rarely** (code 2)
-as the expected answer.
+as its acceptable answer.
 
 ### Any question as a check
 
@@ -45,10 +46,16 @@ On a **Single choice**, **Likert scale**, **Number** or **Open text**
 question, in the inspector's **Question** section:
 
 1. Check **Attention check** (hint: "scored in the flow, not in the survey").
-2. Choose the **Expected answer** (hint: "what a reading respondent gives") —
-   from the question's codes, or typed for an open question. Until you do, the
-   field warns "Until an answer is set, this question checks nothing."
-3. Optionally check **Also end the survey for respondents who fail** (hint:
+2. Set the **Acceptable answers** — one or several of the question's codes
+   (a Likert scale also offers each side of its scale in one click, for a
+   statement nobody agrees with), several numbers separated by commas, or the
+   one typed answer of an open question. Until you do, the field warns "Until
+   an answer is set, this question checks nothing." A respondent passes with
+   any of them.
+3. Optionally end the survey for those who fail: **End the survey after N
+   failed attention checks** counts every check together (`2` to start with;
+   see [After several failed checks](Studio-Logic-and-Branching#after-several-failed-checks)),
+   or, for one check, check **Also end the survey for respondents who fail** (hint:
    "adds a screen-out branch", or "branches to `<page>`" once added). This adds
    an ordinary branch rule to the page, editable in Logic. The inspector
    explains it: "An ordinary page branch, editable in Logic: it is evaluated
@@ -119,8 +126,10 @@ fieldwork left to change**. They only count — nothing is dropped or stored.
 The share of **submitted** responses of the environment (screen-outs included,
 partial interviews not) that failed an attention check **or** straightlined:
 
-- **Attention checks**: the questions marked in the Builder, with their
-  expected answers.
+- **Attention checks**: the questions marked in the Builder that have one
+  acceptable answer. A check with several acceptable answers is left out of
+  the tile (and of "N attention checks") and is scored by the **Response
+  quality** node.
 - **Straightlining**: every **Matrix** with three or more rows counts as a
   battery; a response is flat when all rows are answered and all answers are
   identical. A Multiple choice in the wide layout also writes one variable per
@@ -144,12 +153,31 @@ defaults, so the live number and your analysis agree.
 
 ### Median duration and speeders
 
-**Median duration** is the median time from opening the survey to submitting,
-over submitted responses, screen-outs included (`m:ss`), to the nearest
+**Median duration** is the median time from starting the survey to
+submitting (`duration_seconds`, from the start of the interview: a reload
+followed by **Resume**, or **Save locally and finish** followed by **Resume**,
+keeps that start; **Start over**, or answering after a reload without choosing
+**Resume**, starts the count again), over submitted responses, screen-outs
+included (`m:ss`), to the nearest
 second; a median that falls on a half second rounds up, as the percentages
 beside it do (92.5 seconds reads `1:33`). Underneath, **N
-speeders**: submitted responses faster than **one third of the median**. Until
-timings arrive the tile says **timing arrives with responses**.
+speeders**: submitted responses faster than **one third of the median**. Its
+(i) says it is "A guide for the analysis, not a reason to reject a
+submission." Until timings arrive the tile says **timing arrives with
+responses**.
+
+With Prolific as the panel provider, a second line, **N exceptionally fast**,
+counts the completed, not screened-out responses more than 3 standard
+deviations (population SD) below the mean of their times: Prolific's rule for
+rejecting a submission on speed. Here each response's time is the longer of
+its `duration_seconds` and the time between its first and last save in
+Studio, so a response resumed on an older build, whose duration counts only
+its last sitting, is not counted as fast; the median and **speeders** use
+`duration_seconds` alone, and Prolific's own submission time is the
+reference before you reject anyone. With 10 or fewer timed responses none can be
+that far below the mean, and with fewer than 3 the line is not shown. The
+outcome CSVs under **Panel** mark each one in `fast_outlier` (see
+[Reconciling outcomes](Studio-Panel-Providers#reconciling-outcomes)).
 
 ### Completion and drop-off
 
@@ -253,7 +281,7 @@ four checks:
 | **Battery to check** | a matrix or battery of same-scale items; straightlining and duplicate patterns are measured across it |
 | **Duplicates also match on** | other answers a duplicate must repeat as well as the battery — age, gender and a few questions of the respondent's own; empty, the battery alone decides |
 | **Answers that must agree** | pairs `left variable: right variable`; answering them differently is a contradiction |
-| **Attention checks** | `variable: expected answer`. **Fill from the questionnaire (N marked)** copies the checks marked in the Builder |
+| **Attention checks** | `variable: answer`, or `variable: [answers]` for a check several answers pass, e.g. `{"q9": 3, "q12": [1, 2]}`. **Fill from the questionnaire (N marked)** copies the checks marked in the Builder, lists included |
 | **Straightlining tolerance** | the spread across the battery at or below which a response counts as flat; `0` (default) means identical answers |
 | **Mode** | **flag** (default) adds the columns and keeps everyone; **drop** also removes flagged responses |
 | **Flags column** / **Score column** | names of the two new columns, `quality_flags` and `quality_score` by default |
@@ -271,8 +299,9 @@ What the checks mean:
   straightlining, never a duplicate: two straightliners of one column match
   whoever they are. Two honest respondents can answer a battery alike now and
   then; the more answers a duplicate must share, the surer the match;
-- **attention** — an attention check answered with anything but the expected
-  answer.
+- **attention** — an attention check answered with none of the answers that
+  pass it (compared as numbers where both sides are numbers, else as text); a
+  skipped check is not a failure.
 
 `quality_flags` names every failed check, joined with `; ` (e.g.
 `straightlining; duplicate`); `quality_score` counts them (0 = clean). The node
@@ -314,6 +343,13 @@ Where these nodes fit in a cleaning flow:
 6. **Decide and document:** filter in the flow, not by deleting responses, so
    the rule is visible in the node, in the downloaded `.py` and in the Methods
    text.
+
+With a panel provider, a flag is a reason to leave a response out of the
+analysis, not by itself a reason to reject the participant's submission.
+Prolific, for one, accepts failed attention checks only under its own policy
+and speed only for an exceptionally fast submission, and names failing an
+internal threshold as an invalid reason (see
+[Prolific](Studio-Panel-Providers#prolific)).
 
 ### Reporting exclusions
 

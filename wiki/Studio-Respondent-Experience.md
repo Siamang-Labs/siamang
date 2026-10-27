@@ -304,6 +304,22 @@ We could not save your responses. Attempt 1 of 3.
 ```
 
 - **Try again** sends the answers again.
+- **When the survey page cannot reach Studio.** A published survey loads a
+  small configuration file, `env.js`, that connects it to Studio's server, and
+  the page itself says it needs that connection. If the file does not load (a
+  dropped connection, a script blocker), every attempt to submit fails as a
+  send does: "We could not reach the server, so your answers could not be
+  sent. Check your connection and try again. Attempt 1 of 3." (or your own
+  **Failed submission text**). Nothing reads as sent — no thank-you or end
+  page, no redirect — and since the progress saves need the same connection,
+  no partial response arrives either. The page does not load the file again
+  on **Try again**, so **Try again** does not succeed here, even once the
+  connection is back. The ways on are **Save locally and finish**, then
+  opening the link again in the same browser and choosing **Resume**, or
+  reloading the page (at the "Submission error" screen, say) and choosing
+  **Resume**: the page then loads with its connection and sends the answers,
+  which it kept under the survey's own id. A preview, which stores nothing,
+  ends as before.
 - **Save locally and finish** keeps the answers **only in that browser** (for
   7 days) — they are **not submitted** — and says so: "Your answers are saved
   in this browser" / "They have not been sent yet. To send them, open this
@@ -315,7 +331,10 @@ We could not save your responses. Attempt 1 of 3.
   link in the same browser within 7 days, it offers **Resume**; submitting
   from there stores the response, and the survey then ends and redirects as
   usual. Both texts are Wording fields (**Saved in this browser: title** and
-  **text**).
+  **text**). With Prolific as the panel provider, **Save panel setup** sets the
+  text for Prolific's participants, who should message the researcher through
+  Prolific (see [Prolific](Studio-Panel-Providers#prolific)); with Respondent,
+  for Respondent's (see [Respondent](Studio-Panel-Providers#respondent)).
 - With the [captcha](Studio-Distribution-Channels#captcha) on, when the check
   could not run in the respondent's browser and the survey has already taken
   its few unchecked responses an hour from their network, the dialog says why
@@ -375,7 +394,7 @@ closed notices and "You have already taken part" are fixed English texts. See
 | Recorded | Detail |
 |---|---|
 | Answers | one field per variable (see [[Responses and the Data Tab\|Studio-Responses-and-Data]]) |
-| `started_at`, `duration_seconds` | when the page was opened, and how long until submission |
+| `started_at`, `duration_seconds` | when the interview began — the opening of the survey page on which they started, in that browser; a reload followed by **Resume**, or **Save locally and finish** followed by **Resume**, keeps it, and **Start over**, or answering after a reload without choosing **Resume**, starts the count again from that page — and how long from then until submission, time between visits included |
 | `last_page` | the page they were on |
 | URL parameters | `url_<name>` for up to 8 parameters of the link (a panel id, a source tag, an invitation token) |
 | `tab_switches`, `hidden_seconds`, `pastes` | how often they left the tab, for how long in total, and how many times they pasted — counts only, no content |
@@ -384,8 +403,11 @@ closed notices and "You have already taken part" are fixed English texts. See
 
 **Not recorded:** IP address, browser or device details, location, keystrokes,
 or which access code was entered. (Network addresses are used briefly to limit
-abuse, and are not stored with responses. With the captcha on, the address is
-also passed to Cloudflare to verify the check — see below.)
+abuse, and are not stored with responses; they appear in the server's request
+logs, which stay on the server until they are overwritten, and the survey
+pages' log also records the link opened and the browser's User-Agent string.
+With the captcha on, the address is also passed to Cloudflare to verify the
+check — see below.)
 
 **In the respondent's browser**, the survey keeps nothing until the
 respondent starts. From then on it keeps the autosaved answers (removed once

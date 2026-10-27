@@ -133,7 +133,7 @@ The pages are ordered as a study unfolds; the sidebar follows the same order.
 ### Fieldwork
 - [[Publishing and Environments|Studio-Publishing-and-Environments]] — publish, pause, close, closing dates, response caps, republish, roll back
 - [[Links, QR Codes, Embeds and Access Control|Studio-Distribution-Channels]] — sharing the survey and restricting who answers
-- [[Panel Providers|Studio-Panel-Providers]] — Prolific, Cint, Dynata and custom panels
+- [[Panel Providers|Studio-Panel-Providers]] — Prolific, Respondent, Cint, Dynata and custom panels
 - [[Email Invitations|Studio-Email-Invitations]] — contacts, personal links, reminders, unsubscribes
 - [[What Respondents See|Studio-Respondent-Experience]] — the survey from the other side
 - [[Live Monitoring|Studio-Live-Monitoring]] — fieldwork monitor, live tiles, public dashboards

@@ -237,7 +237,7 @@ people.
 
 | Label | Where respondents see it |
 |---|---|
-| **Estimated minutes** | under the title of the first page, as "About N minutes" ("About 1 minute" for 1) |
+| **Estimated minutes** | under the title of the first page, as "About N minutes" ("About 1 minute" for 1). With Prolific as the panel provider, the Builder's warnings about attention checks read it too |
 | **Contact email** | footer of every page, as a **Contact research team** email link |
 | **Privacy URL** | footer of every page, as a **Privacy** link (opens in a new tab) |
 | **Ethics statement** | footer of every page, as a paragraph under the links |
@@ -458,6 +458,15 @@ Where some of them appear:
   The answers stay in that browser, unsent, for 7 days; the screen shows no
   Response ID and sends the respondent nowhere (see
   [When submitting fails](Studio-Respondent-Experience#when-submitting-fails)).
+  With Prolific as the panel provider, **Save panel setup** fills in **text**,
+  when you have left it empty, with "They have not been sent yet. Please
+  message the researcher through Prolific. While the study is still open on
+  Prolific, you can also open its link again in this browser and choose Resume
+  to send them." (see [Prolific](Studio-Panel-Providers#prolific)); with
+  Respondent, with "They have not been sent yet. Please message the researcher
+  through Respondent. You can also open this survey's link again in this
+  browser within 7 days and choose Resume to send them." (see
+  [Respondent](Studio-Panel-Providers#respondent)).
 - **Video** fields: on a question or an option with a YouTube or Vimeo video;
   `{service}` is YouTube or Vimeo. **Video: in a preview that can't play** is
   shown only in previews that can't play videos.

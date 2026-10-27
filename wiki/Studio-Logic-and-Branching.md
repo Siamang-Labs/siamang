@@ -362,16 +362,29 @@ passing one.
 
 ### Attention checks
 
-For an instructed-response item ("please choose *Rarely*"), check **Attention
-check** on the question ("scored in the flow, not in the survey") and pick the
-**Expected answer**. Until you set one, the Builder warns "Until an answer is
-set, this question checks nothing." The option is available on single choice,
-Likert, number and open text questions.
+For an instructed-response item ("please choose *Rarely*"), or a statement
+nobody reading it agrees with ("I swim to work every day"), check **Attention
+check** on the question and set its **Acceptable answers**: on a single choice
+or Likert question, check the codes that pass (a Likert scale also has a
+button for each side of the scale, such as "The “Strongly disagree” side (1,
+2)"); on a number question, type them separated by commas (`7, 8`); on an
+open text question, type the one answer. Until you set one, the Builder warns
+"Until an answer is set, this question checks nothing." One answer is stored
+as `expected: 2`, several as a list, `expected: [1, 2]`. The option is
+available on single choice, Likert, number and open text questions.
 
 By default, a failed check is only flagged in the data, for your analysis to
 decide (see [[Data Quality|Studio-Data-Quality]]). To stop the interview
-instead, check **Also end the survey for respondents who fail** (hint "adds a
-screen-out branch"; once checked, "branches to <page>"). This adds an ordinary
+instead, there are two settings under **Acceptable answers**:
+**End the survey after N failed attention checks**, which counts every check
+in the survey together (see
+[After several failed checks](#after-several-failed-checks)), and, for one
+check alone, **Also end the survey for respondents who fail**.
+
+#### After one failed check
+
+Check **Also end the survey for respondents who fail** (once checked,
+"branches to <page>"). This adds an ordinary
 branch rule to the page that holds the check, pointing at a Screen-out page
 that only this rule leads to. Under the box the Inspector explains:
 
@@ -383,15 +396,22 @@ that only this rule leads to. Under the box the Inspector explains:
 
 (The middle sentence appears only while the Screen-out page really does sit
 behind the Final page.) The rule appears in the page's **Logic** section like
-any other, and unchecking the box removes it; the Screen-out page stays.
+any other, and unchecking the box removes it; the Screen-out page stays. The
+rule follows its check: it is written again when the check's acceptable
+answers or options change, and removed when the check has none left, is
+unmarked or is deleted; its row in the Page inspector says "Written by Also
+end the survey for respondents who fail on swim: it follows that check’s
+acceptable answers. Remove it here, or turn that switch off." A check moved to
+another page leaves its rule behind: turn the box off and on again.
 
-**Who is screened out.** Only a respondent who answered, and answered
-something other than the expected answer:
+**Who is screened out.** Only a respondent who answered, and answered with
+none of the acceptable answers:
 
 - on a question with answer codes (single choice, Likert, or a variable with
   value labels), the rule is "the answer is one of the other codes" (**in**);
 - on a number or open-text question without codes, it is "answered and
-  different" (`≠ ∅` and `≠` the expected answer).
+  different" (`≠ ∅` and `≠` the acceptable answer), or "answered and not one
+  of" several (`≠ ∅` and **not in**).
 
 A respondent who leaves an optional check empty is not screened out. (In a
 survey built before the runtime update, the "answered and different" rule
@@ -447,6 +467,87 @@ survey), and the rule is pointed at it. A conditional Screen-out page is left
 where it is for its own job, and the rule is pointed at a Screen-out page
 behind the Final page, added if there is none. Save, then publish again: a
 survey already in the field keeps the old routing until you do.
+
+#### After several failed checks
+
+**End the survey after N failed attention checks** — a checkbox, "End the
+survey after", a number box (`2` to start with, any whole number from `1`)
+and "failed attention checks" — is shown on every attention check, since each
+is one of the N. It ends the interview for a respondent who has failed N of
+the survey's checks when they leave a page with a check; a skipped check is
+not a failed one. Its note reads "For every attention check in the survey,
+counted together." while it is off, and "For every attention check in the
+survey; branches to failed_attention_checks, which sits after the Final page:
+only these branches lead there." while it is on.
+
+- **Its page.** Turning it on adds a Screen-out page, `failed_attention_checks`
+  ("Thank you" / "Thank you for your time. This survey has ended."), right
+  after the last Final or Redirect page, a Final page first if nothing ends
+  the survey for everyone. Give it a redirect of its own (`redirect_url`, in
+  the **Source** tab) to send these respondents to a provider's code of their
+  own, such as Prolific's code for failed attention checks.
+- **Its branches.** On each page with a check where N failures can already
+  have happened, a branch first in the page's **Branch rules**: every
+  combination of N failed checks on that page and the pages that can come
+  before it, joined with **or**. Those are the pages before it in the
+  questionnaire and, with **Randomize pages**, every page an order it deals
+  can show earlier; a check not answered yet has not failed. The Builder
+  writes them again on every edit, so they follow a
+  check that is added, removed, moved or given other acceptable answers or
+  options, and a change of N. In the Page inspector the branch is read-only,
+  with a summary such as "2 or more of att_imc, att_swim and att_sum failed"
+  (on a randomized page it names every check the page can follow) and the
+  note "Written by End the survey after 2 failed attention checks,
+  and written again whenever the attention checks change. To change it,
+  change the checks, or the rule on any attention check."
+- **The per-question box.** While the rule is on, **Also end the survey for
+  respondents who fail** is off and disabled on every check: "Off while End
+  the survey after 2 failed attention checks is on: that rule decides for
+  every check."
+- **Off, renamed, deleted.** Turning the rule off removes its branches and
+  keeps the page; renaming the page keeps the rule on it; deleting the page
+  turns the rule off. The setting is stored in the questionnaire as
+  `options.metadata.attention_screen_out`, for example
+  `{"after": 2, "page": "failed_attention_checks"}`.
+
+When the rule cannot work as it says, the control and **Validation →
+Structure** say why, prefixed "End the survey after N failed attention checks
+does not work as it says. ": too few checks with an acceptable answer ("Only 1
+attention check has an acceptable answer, so nobody fails 2: add checks, or
+end the survey after fewer."); too many combinations to write out (more than
+3,000 failure terms in all, counted page by page; 10 checks at N = 3 take 990,
+one to a page, and with **Randomize pages**, where a page can count every
+check, 9 take 2,268 and 10 are too many); a page that is no
+longer a Screen-out page, has a show if or hide if of its own, or is reached by
+respondents who pass (each with **Fix the page**); or a **Skip to** on the
+same page, which is checked before branch rules.
+
+With Prolific as the panel provider, the Builder warns on a check that screens
+out after one failure — **Also end the survey for respondents who fail**, or
+the rule with N = 1 — when **Estimated minutes** is 5 or more or not set:
+"Prolific requires at least two failed attention checks to screen out or
+reject a participant in a study of 5 minutes or more, and this survey is
+estimated at 8 minutes. Leave screening out off and score the checks in the
+analysis, or end the survey after 2 failed attention checks." It also notes,
+on any check that screens out, "Prolific allows screening participants out on
+failed attention checks only when the checks come at the start of the
+study.", and on a Likert check with an odd number of points, "If this is a
+nonsensical statement: Prolific requires a scale without a neutral option,
+and this scale’s middle point (3) is one. Give the scale an even number of
+points." (with the scale's own middle point). All are listed under
+**Validation → Prolific** and never stop a Save (see
+[Prolific](Studio-Panel-Providers#prolific)).
+
+With Respondent as the panel provider, the Builder warns on any check that
+screens out, by either switch: "Respondent has one completion URL: a
+participant screened out on failed attention checks stays on Studio’s page
+and never reaches it; leave screening out off, score the checks in the
+analysis, and decide on the participant in Respondent before Auto-Pay pays
+them, 48 hours after task completion (24 hours for projects created through
+Respondent’s API)." It warns too on every Screen-out page a participant can reach,
+in the page's Inspector and under **Validation → Respondent**, which also
+lists quota cells and response caps (see
+[Respondent](Studio-Panel-Providers#respondent)).
 
 ---
 

@@ -23,6 +23,7 @@ field itself shows `independent`.
   [quota cells](#close-quota-cells-when-they-are-full) ·
   [one response per browser](#accept-one-response-per-browser) ·
   [Prolific](#field-a-study-on-prolific) ·
+  [Respondent](#field-a-study-on-respondent) ·
   [email invitations](#invite-a-list-by-email-and-remind-non-responders) ·
   [invited participants only](#restrict-the-survey-to-invited-participants) ·
   [embed](#embed-the-survey-in-your-website)
@@ -146,9 +147,12 @@ question after it with `{label:main_app}`.
 ### An attention check that ends the survey
 
 1. **+ Question → Presets → Attention check** (a required single choice,
-   already marked, with its expected answer). Rename the variable to
+   already marked, with its acceptable answer). Rename the variable to
    `attention`.
 2. In the Inspector, check **Also end the survey for respondents who fail**
+   (or, to end it only after several failed checks, **End the survey after N
+   failed attention checks** — see
+   [After several failed checks](Studio-Logic-and-Branching#after-several-failed-checks))
    (the hint then reads "branches to *page*"). Studio adds a branch rule from
    the check's page to a Screen-out page that only this rule leads to: one
    **after the last Final or Redirect page**, so respondents who pass walk on
@@ -163,7 +167,7 @@ question after it with `{label:main_app}`.
      job; the rule gets a Screen-out page of its own behind the Final page.
 3. Confirm with **Test → Walkthrough** twice: once answering the check
    correctly (you should end on the Final page), once failing it.
-4. To flag rather than exclude, leave that box off and use the **Response
+4. To flag rather than exclude, leave both off and use the **Response
    quality** node in your flow (**Fill from the questionnaire** picks up the
    check).
 
@@ -339,14 +343,62 @@ consent, unique invitation links are more reliable.
 
 ### Field a study on Prolific
 
-1. **Distribute** → your `main` card → **Panel** chip → **Provider**
-   **Prolific**. The id parameter becomes `PROLIFIC_PID`.
-2. Copy **Entry link for the provider** into the Prolific study's URL.
+1. **Distribute** → publish `pilot` and `main` if they are not published
+   yet: the **Panel** chip is only on the card of an environment that serves
+   the survey.
+2. Either card → **Panel** chip → **Provider** **Prolific**. The id
+   parameter becomes `PROLIFIC_PID`.
 3. In the three return URLs, replace `<COMPLETION_CODE>`, `<SCREENOUT_CODE>`
-   and `<QUOTA_FULL_CODE>` with the codes from your Prolific study page.
-4. **Save panel setup**, then republish `main`.
-5. When fieldwork ends, reconcile with **Outcomes · reconcile with the
-   provider** (completed / screened out / partial CSVs).
+   and `<QUOTA_FULL_CODE>` with the codes from your Prolific study page, and
+   set what each code does in Prolific.
+4. **Save panel setup**, then publish that Save to `pilot` and to `main`.
+5. Test on `pilot` with a made-up id
+   (`?PROLIFIC_PID=test0000000000000000001&STUDY_ID=test&SESSION_ID=test`):
+   you should land on Prolific's completion page, and the row should be in
+   **Data**.
+6. Copy `main`'s **Entry link for the provider** — the plain survey link —
+   into the Prolific study's URL and choose **I'll use URL parameters**;
+   Prolific adds `PROLIFIC_PID`, `STUDY_ID` and `SESSION_ID`; check that the
+   study link it shows has each of them once.
+7. Before approving, reconcile with **Outcomes · reconcile with the
+   provider** (completed / screened out / partial CSVs, with
+   `duration_seconds`, `duplicate_id` and `fast_outlier`). Check a submission
+   without a stored response: an exceptionally fast one may be rejected;
+   otherwise message the participant, and approve it when it looks like a
+   technical problem.
+
+### Field a study on Respondent
+
+1. **Distribute** → publish `pilot` and `main` if they are not published
+   yet: the **Panel** chip is only on the card of an environment that serves
+   the survey.
+2. Either card → **Panel** chip → **Provider** **Respondent**. The id
+   parameter becomes `respondent_user_id`; **Screened out** and **Quota
+   full** stay empty.
+3. Replace `<projectCompletionId>` in **Completed** — or the whole URL — with
+   the project's Completion Confirmation URL from Respondent, and **Save
+   panel setup**.
+4. In the Builder, which now shows Respondent's warnings, make sure the
+   survey ends only by finishing it: no Screen-out page a participant can
+   reach, no attention check that ends the survey, no quota cells. A
+   Respondent survey project has a single completion URL; screening and
+   quotas stay in Respondent.
+5. Publish the latest Save to `pilot` and to `main`.
+6. Test on `pilot` with made-up identifiers
+   (`?respondent_profile_id=test&respondent_project_id=test&respondent_screener_response_id=test&respondent_user_id=test0001`):
+   you should land on `app.respondent.io/complete`, and the row should be in
+   **Data**.
+7. Paste `main`'s **Entry link for the provider** — the plain survey link —
+   into the project's **Link to Task** (Custom URL), with no parameters of
+   your own: Respondent adds its four `respondent_*` identifiers.
+8. Before Respondent's Auto-Pay pays a participant, 48 hours after task
+   completion, reconcile **Completes** with the **completed** CSV (its id
+   column is `respondent_user_id`) and decide on the participant in
+   Respondent; message one listed under Completes without a completed
+   response before deciding, and mark one who finished but is not under
+   Completes as having attended yourself.
+
+→ [Respondent](Studio-Panel-Providers#respondent)
 
 → [[Panel Providers|Studio-Panel-Providers]]
 

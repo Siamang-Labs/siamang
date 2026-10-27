@@ -43,7 +43,7 @@ For the `responses` table, in this order:
 | codebook-only variables | variables no question asks — hidden, computed or assigned ones, such as an experimental arm — right after the questions |
 | other answer keys | `__status` (`completed`, `screened_out` or `redirect` for interviews that ended on a special page; empty otherwise), a column left under an old Id, a flag a custom script wrote |
 | `url_<name>` | each URL parameter the link carried: a source tag, a panel id (`url_prolific_pid`), the invitation token (`url_inv`) |
-| `duration_s`, `started_at` | seconds from opening the page to the last save, and when the page was opened |
+| `duration_s`, `started_at` | seconds from the start of the interview to the last save, and when it started: the opening of the survey page on which the respondent began, in that browser; a reload followed by **Resume**, or **Save locally and finish** followed by **Resume**, keeps it; **Start over**, or answering after a reload without choosing **Resume**, starts the count again from that page |
 | `captcha` | `pass` or `unavailable`, when the captcha is on |
 | `tab_switches`, `hidden_seconds`, `pastes` | the behavioral counts (see [[Data Quality\|Studio-Data-Quality]]) |
 | `last_page` | the last page with questions the respondent saw, so partial responses can be told apart by where they stopped and screened-out ones by the page that screened them out |

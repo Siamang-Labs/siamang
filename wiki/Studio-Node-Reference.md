@@ -907,7 +907,7 @@ write-up.
 | **Battery to check** | variables (several) | empty | — | A matrix or a battery of same-scale items. Straightlining and duplicate patterns are measured across these; a flat pattern (the same answer throughout) is straightlining, never a duplicate, since two straightliners of one column match whoever they are. |
 | **Duplicates also match on** | variables (several) | empty | — | Other answers a duplicate must repeat as well as the battery, such as age, gender and a few questions of their own. Two honest respondents can answer a battery alike, and both are dropped as one person submitting twice; the more answers two responses must share, the surer the match. Empty, the battery alone decides. |
 | **Answers that must agree** | JSON object | empty | — | left variable: right variable. A respondent answering them differently is flagged as contradictory. |
-| **Attention checks** | JSON object | empty | — | The answer a reading respondent gives to each attention check, as variable: answer, e.g. `{"q9": 3}`. Any other answer is flagged; a skipped check is not. **Fill from the questionnaire**, below the box, fills it in from the questions marked as attention checks. |
+| **Attention checks** | JSON object | empty | — | The answer a reading respondent gives to each attention check, as variable: answer, e.g. `{"q9": 3, "q12": [1, 2]}`. Where several answers pass, list them: a nonsensical statement is passed by any answer on the correct side of its scale (the disagree side for a statement nobody agrees with). Any other answer is flagged; a skipped check is not. **Fill from the questionnaire**, below the box, fills it in from the questions marked as attention checks, lists included. |
 | **Straightlining tolerance** | number | `0.0` | at least 0.0 | Standard deviation across the battery at or below which a response counts as flat. 0 means literally identical answers. |
 | **Mode** | choice | `flag` | `flag`, `drop` | Flag adds the columns and keeps everyone; drop also removes the flagged responses. |
 | **Flags column** | text | `quality_flags` | — | New variable holding the names of the failed checks (empty when clean). |
@@ -920,7 +920,7 @@ The four checks:
 | `straightlining` | the standard deviation of a response across **Battery to check** is at or below **Straightlining tolerance** |
 | `inconsistency` | a pair in **Answers that must agree** was answered differently |
 | `duplicate` | the response's complete answer pattern across a battery of at least 5 items — not a flat one — is identical to another response's, and so are its answers to **Duplicates also match on** (two unanswered ones match) — every member of such a group is flagged |
-| `attention` | an attention-check variable was answered with anything but the expected answer |
+| `attention` | an attention-check variable was answered with none of the answers that pass it (numbers compared as numbers, else as text); a skipped check is not a failure |
 
 - **Flags column** (`quality_flags`) holds the failed checks joined with
   `; `, e.g. `straightlining; duplicate`, and is empty for a clean response;

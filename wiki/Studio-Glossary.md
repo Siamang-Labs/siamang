@@ -313,8 +313,9 @@ after, two brands on one scale): the paired t-test, Wilcoxon signed-rank,
 McNemar for yes/no, Friedman for three or more, Cochran's Q for three or more
 yes/no. Each respondent is compared with themselves. → [Paired tests](Studio-Node-Reference#paired-tests)
 
-**Panel provider** — a sample company (Prolific, Cint, Dynata, …) that sends
-respondents with an id in the link and expects them back on a return URL.
+**Panel provider** — a sample company (Prolific, Respondent, Cint, Dynata, …)
+that sends respondents with an id in the link and expects them back on a
+return URL.
 → [[Panel Providers|Studio-Panel-Providers]]
 
 **Partial** — an interview that was started but not submitted. Stored in the

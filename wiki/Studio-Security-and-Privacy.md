@@ -84,7 +84,10 @@ Nothing else is public.
   are sent to Studio as a **partial** response, so someone who stops halfway
   still leaves a row. The final submission replaces it.
 - **IP addresses are not stored with responses.** They are used briefly to
-  limit how fast one address can submit. On surveys where you switch on the
+  limit how fast one address can submit, and they appear in the server's
+  request logs, which stay on the server and are overwritten as new entries
+  arrive; the survey pages' log also records the link opened and the
+  browser's User-Agent string. On surveys where you switch on the
   **captcha**, the check loads from Cloudflare when the respondent submits —
   not before — so Cloudflare sees the IP address and browser of each
   respondent who sends their answers, and Studio sends Cloudflare the

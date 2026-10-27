@@ -682,7 +682,7 @@ an ordinary question of its type — change anything you like.
 | **Rating (stars)** | Likert scale | 5 points, **Stars**, no end labels | `rating_<n>` |
 | **NPS (0–10)** | Likert scale | 11 points, First point 0, "Not at all likely" / "Extremely likely", text "How likely are you to recommend us to a friend or colleague?" | `nps_<n>` |
 | **CES (1–7)** | Likert scale | 7 points, First point 1, "Strongly disagree" / "Strongly agree", text "The company made it easy for me to handle my issue." | `ces_<n>` |
-| **Attention check** | Single choice | text "To show you are reading carefully, please choose “Rarely”.", **Required**, `1` Never … `5` Always, marked as an attention check expecting `2` | `attention_<n>` |
+| **Attention check** | Single choice | text "To show you are reading carefully, please choose “Rarely”.", **Required**, `1` Never … `5` Always, marked as an attention check with `2` as its acceptable answer | `attention_<n>` |
 | **Date** | Open text | Format **Date** | `date_<n>` |
 | **Email** | Open text | Format **Email**, placeholder `name@example.com` | `email_<n>` |
 | **Phone** | Open text | Format **Phone**, placeholder `+1 555 000 0000` | `phone_<n>` |
@@ -703,23 +703,43 @@ with an open follow-up, not Likert scales — see
 
 ## Attention checks
 
-An *instructed-response* item ("please choose Rarely") tells you who is reading.
-It is available on Single choice, Likert scale, Number and Open text questions,
-in the **Question** section:
+An *instructed-response* item ("please choose Rarely") tells you who is
+reading, and so does a statement nobody reading it agrees with ("I swim to
+work every day"). It is available on Single choice, Likert scale, Number and
+Open text questions, in the **Question** section:
 
 1. Turn on **Attention check** ("scored in the flow, not in the survey").
-2. Set **Expected answer** ("what a reading respondent gives") — a list of the
-   question's codes, or a free field for open questions. Until it is set the
-   Inspector warns "Until an answer is set, this question checks nothing."
-3. Optionally turn on **Also end the survey for respondents who fail** (hint:
+2. Set **Acceptable answers**, the answers a reading respondent gives. On a
+   Single choice or Likert scale question, check them among the question's
+   codes, shown as "code · label" ("2 of 5 answers" when several are
+   checked), the codes the survey stores for **Other** (`-66`), **None of the
+   above** (`-77`) and **N/A** among them where the question offers them; a
+   Likert scale also has a button for each side of the scale, named by its
+   end labels — "The “Strongly disagree” side (1, 2)", "The “Strongly agree”
+   side (4, 5)" — with an odd scale's middle point on neither. On a Number
+   question, type them separated by commas (`7, 8`), kept as numbers; on an
+   Open text question, type the one answer, kept as text. Until one is set the Inspector
+   warns "Until an answer is set, this question checks nothing."; with every
+   code checked, "Every answer is acceptable, so nobody fails this check." One
+   answer is stored as `expected: 2` in the question's metadata, several as a
+   list, `expected: [1, 2]`.
+3. Optionally end the survey for respondents who fail: **End the survey after
+   N failed attention checks** counts the survey's checks together (see
+   [After several failed checks](Studio-Logic-and-Branching#after-several-failed-checks));
+   for this check alone, turn on **Also end the survey for respondents who fail** (hint:
    "adds a screen-out branch", then "branches to *page*"). Studio adds an
-   ordinary **Branch (next if)** rule to the question's page that sends anyone
-   who answered something else to a Screen-out page. The rule is evaluated
+   ordinary **Branch (next if)** rule, first among the page's branches, to the
+   question's page that sends anyone who answered with none of the
+   acceptable answers to a Screen-out page, and writes it again when the
+   acceptable answers change. While **End the survey
+   after N failed attention checks** is on, this switch is off and disabled. The rule is evaluated
    when the page is left, a respondent who skipped the question is not
    screened out, and a failing respondent's answers are still collected and
    counted as screened out. You can edit or delete the rule (or change its
    target page) in the page's **Logic** section like any other; turning the
-   option off removes the rule and leaves the page.
+   option off removes the rule and leaves the page. Only a branch of that
+   shape to a Screen-out page is the switch's: one you wrote to another page
+   stays.
 
    The Screen-out page the rule points at sits **after the last Final or
    Redirect page**, so that only the rule leads there: respondents who pass
@@ -734,12 +754,13 @@ in the **Question** section:
      first adds a **Final** page ("Thank you" / "Thank you for taking part.")
      after the last content page and any end pages right behind it.
 
-   The explanation under the checkbox reads: "An ordinary page branch,
-   editable in Logic: it is evaluated when this page is left, so they finish
-   the page first, and their answers are still collected and counted as
-   screened out. Its Screen-out page sits after the Final page, so only this
-   branch leads there. Leave it off to keep everyone and decide in the
-   analysis instead."
+   The checkbox's (i) reads: "Adds a branch on this page to a Screen-out
+   page, taken by a respondent who gives another answer. It is an ordinary
+   page branch, editable under Logic, and comes first among the page’s
+   branches, so another one does not send a respondent who fails past it. It
+   is checked when the respondent leaves this page, so they finish the page
+   first, and their answers are still collected and counted as screened out.
+   Leave it off to keep everyone and decide in the analysis instead."
 
 **Questionnaires saved with an older placement.** Earlier versions of Studio
 put the Screen-out page in front of the Final page, or pointed the rule at an
@@ -760,8 +781,41 @@ details in [Attention checks](Studio-Logic-and-Branching#attention-checks).
 
 Without step 3 nobody is screened out during the interview: the check is
 scored afterward by the **Response quality** node, whose **Attention checks**
-parameter is filled from these settings. See
+parameter is filled from these settings, lists included. See
 [[Data Quality|Studio-Data-Quality]].
+
+**With Prolific as the panel provider** (Distribute → Panel), the Inspector
+also shows Prolific's rules: on a check that screens out after one failure in
+a study of 5 minutes or more, that Prolific needs at least two failed checks;
+on a check that screens out, that the checks must come at the start of the
+study; on a Likert check with an odd number of points, "If this is a
+nonsensical statement: Prolific requires a scale without a neutral option,
+and this scale’s middle point (3) is one. Give the scale an even number of
+points."; and under **Format** of an Open text question — "Prolific does not
+allow asking participants for a personal email address without its prior
+written approval. Contact them through Prolific’s messages instead." (Email),
+"Prolific does not allow asking participants for a phone number." (Phone) and
+"If this asks for a date of birth: Prolific does not allow that without its
+prior written approval. Ask for age in years instead." (Date). The
+**Validation** tab lists them under **Prolific**. They never stop a Save; see
+[Prolific](Studio-Panel-Providers#prolific).
+
+**With Respondent as the panel provider**, the Inspector warns on a check
+that screens out ("Respondent has one completion URL: a participant screened
+out on failed attention checks stays on Studio’s page and never reaches it;
+…"), and under **Format** of an Open text question — "Respondent recognizes
+participants by the IDs it adds to the survey link, not by an email address.
+Ask for an email only if the project uses Respondent’s email visibility
+option, in which participants who opt in enter the email of their Respondent
+account; for participants sourced through Respondent’s API, requesting
+personal data is a violation of its terms. Otherwise contact participants
+through Respondent’s messages." (Email), "Respondent prohibits collecting a
+participant’s phone number, and removes researchers found collecting personal
+data from the platform. Contact participants through Respondent’s messages."
+(Phone), and "If this asks for a date of birth: Respondent prohibits
+collecting it. Ask for age in years instead." (Date). The **Validation** tab
+lists them under **Respondent**; see
+[Respondent](Studio-Panel-Providers#respondent).
 
 ---
 

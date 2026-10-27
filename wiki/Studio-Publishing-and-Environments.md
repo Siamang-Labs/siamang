@@ -112,7 +112,7 @@ to the tab.
 |---|---|
 | **Responses · `<env>`** | with an environment cap: the **completed interviews** of that environment against its cap (`247 / 1,200`), with a bar — the number the cap counts. The tooltip adds everything else: "247 completed interviews count toward the cap of 1,200; 312 responses in all, partial and screened out included". Without an environment cap: every response row of the environment, and **no cap** |
 | **Completion** | submitted interviews (screen-outs included) ÷ all rows, as a percentage; underneath, **drop-off peaks on `<page>`** (the page where most partial respondents stopped) or **no drop-off recorded**. Partial rows arrive only from a survey built with the current runtime (see [Republishing](#republishing)); for an older build this tile reads 100 % |
-| **Median duration** | median time of submitted responses, screen-outs included (`m:ss`), to the nearest second — a half second rounds up, as the percentages do (92.5 seconds reads `1:33`); underneath, the number of **speeders** — submitted responses faster than a third of the median — or **timing arrives with responses** |
+| **Median duration** | median time of submitted responses, screen-outs included (`m:ss`), to the nearest second — a half second rounds up, as the percentages do (92.5 seconds reads `1:33`); underneath, the number of **speeders** — submitted responses faster than a third of the median, "A guide for the analysis, not a reason to reject a submission." — or **timing arrives with responses**; with Prolific as the panel provider, also **N exceptionally fast**: completed responses more than 3 standard deviations below the mean time, Prolific's rule for rejecting on speed |
 | **Quality screen** | share of submitted responses (screen-outs included) that failed an attention check or straightlined a matrix, with **`X` of `Y` flagged · `<what was checked>`**; **add an attention check in Builder** when the questionnaire has nothing to check. See [[Data Quality\|Studio-Data-Quality]] |
 | **Today** | **+N** submitted responses (screen-outs included) since midnight (UTC), with a 14-day sparkline, or **last 14 days** when there is nothing to draw |
 
@@ -278,6 +278,12 @@ The Publish panel does the same for the selected target. When you republish:
 > - sends partial responses, so the drop-off funnel, the **Completion** tile
 >   and an invitation's `started` status fill in;
 > - resizes itself inside the [script embed](Studio-Distribution-Channels#embedding-the-survey);
+> - after a failed submission, keeps **Save locally and finish** from sending
+>   the respondent on, keeps an end page from being left, fails every
+>   submission of a page that cannot reach Studio instead of ending it as
+>   sent, and counts a duration from the start of the interview, across a
+>   reload followed by **Resume** and across **Save locally and finish**
+>   followed by **Resume** ([When submitting fails](Studio-Respondent-Experience#when-submitting-fails));
 > - stores answers with today's codes (a matrix column's code, Other and
 >   None of the above as codes, N/A as the variable's declared
 >   not-applicable code, a wide Multiple choice as one 0/1 variable per

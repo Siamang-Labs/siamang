@@ -122,8 +122,8 @@ never a variable of the questionnaire:
 
 | Key | Meaning |
 |---|---|
-| `started_at` | when the page was opened |
-| `duration_seconds` | seconds from opening to this save |
+| `started_at` | when the interview began: the opening of the survey page on which the respondent started, in that browser; a reload followed by **Resume**, or **Save locally and finish** followed by **Resume**, keeps it; **Start over**, or answering after a reload without choosing **Resume**, starts it again from that page |
+| `duration_seconds` | seconds from `started_at` to this save |
 | `last_page` | the last page with questions the respondent saw |
 | `url_<name>` | each URL parameter of the link, up to 8 (`url_source`, `url_inv` for an invitation, `url_prolific_pid` for a Prolific id) |
 | `tab_switches`, `hidden_seconds`, `pastes` | how often the respondent left the tab, for how long in total, how many times they pasted |
