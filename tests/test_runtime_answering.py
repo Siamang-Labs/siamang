@@ -332,7 +332,12 @@ def test_the_keyboard_focus_shows_on_an_options_row(tmp_path):
             };
             const card = getComputedStyle(document.querySelector(".sd-page")).backgroundColor;
             const [hi, lo] = [lum(cs.outlineColor), lum(card)].sort((x, y) => y - x);
-            return { style: cs.outlineStyle, width: cs.outlineWidth, contrast: cs.outlineStyle === "none" ? 0 : (hi + 0.05) / (lo + 0.05) >= 3 };
+            // An outline of style none draws nothing, whatever its width: since
+            // Chromium 147 its computed width keeps the specified one (3px,
+            // medium) where it was 0 (CSSWG #11494), so the width read is the
+            // one drawn.
+            const none = cs.outlineStyle === "none";
+            return { style: cs.outlineStyle, width: none ? "0px" : cs.outlineWidth, contrast: none ? 0 : (hi + 0.05) / (lo + 0.05) >= 3 };
         }, [selector, index]);
         const seen = {};
         for (const theme of ["light", "dark"]) {
